@@ -6,11 +6,11 @@ This document outlines the requirements for evolving rust-sitter into a complete
 
 ### Scope and Assumptions
 
-This project focuses on creating a pure-Rust LR(1) parser generator that produces Tree-sitter-compatible Language objects. The following are explicitly out of scope for the initial release:
-- GLR (Generalized LR) parsing algorithms (planned for future release)
+This project focuses on creating a pure-Rust GLR (Generalized LR) parser generator that produces Tree-sitter-compatible Language objects. Tree-sitter's power comes from its GLR algorithm with compile-time conflict resolution, not simple LR(1) parsing. The following are explicitly out of scope for the initial release:
 - Lossless syntax trees (CST) - focus remains on Tree-sitter's AST model
 - Query runtime modifications - existing tree-sitter query system remains unchanged
 - Alternative parsing algorithms (Earley, PEG, etc.)
+- Custom error recovery strategies beyond Tree-sitter's standard approach
 
 ### Glossary
 
@@ -23,18 +23,19 @@ This project focuses on creating a pure-Rust LR(1) parser generator that produce
 
 ## Requirements
 
-### Requirement 1: Pure-Rust LR(1) Parser Generator
+### Requirement 1: Pure-Rust GLR Parser Generator
 
 **User Story:** As a language grammar developer, I want to generate Tree-sitter parsers entirely in Rust, so that I don't need a C compiler or any C dependencies in my build process.
 
 #### Acceptance Criteria
 
-1. WHEN a developer defines a grammar using rust-sitter macros THEN the system SHALL generate LR(1) parse tables entirely in Rust without invoking the C-based tree-sitter CLI
-2. WHEN the generator processes a grammar THEN it SHALL produce static Rust constants containing all necessary parse tables (action table, goto table, symbol metadata)
-3. WHEN the generated parser is used THEN it SHALL be fully compatible with the tree_sitter::Language interface
+1. WHEN a developer defines a grammar using rust-sitter macros THEN the system SHALL generate GLR parse tables entirely in Rust without invoking the C-based tree-sitter CLI
+2. WHEN the generator processes a grammar THEN it SHALL produce static Rust constants containing all necessary parse tables (action table, goto table, symbol metadata) with support for multiple actions per (state, lookahead) pair
+3. WHEN the generated parser encounters ambiguity THEN it SHALL implement GLR fork/merge logic identical to Tree-sitter's C implementation
 4. IF a grammar contains conflicts THEN the system SHALL resolve them using precedence and associativity rules identical to the C implementation, including static and dynamic precedence as well as fragile tokens
 5. WHEN building for WebAssembly THEN the system SHALL compile without requiring any C toolchain or external dependencies
 6. WHEN generating tables THEN the system SHALL emit alias-sequence and production-id tables identical to C output
+7. WHEN parse table compression is applied THEN the system SHALL replicate Tree-sitter's "small table" optimization with bit-for-bit compatibility
 
 ### Requirement 2: Complete Grammar IR System
 

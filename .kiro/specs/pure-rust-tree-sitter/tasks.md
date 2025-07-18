@@ -1,10 +1,12 @@
 # Implementation Plan
 
-## MVP vs Extended Roadmap
+## Critical Strategic Priorities (Based on Research)
 
-This implementation is split into two major releases:
-- **MVP (0.6)**: Core pure-Rust LR(1) generation with full C compatibility (Phases 1-6)
-- **Extended (0.7+)**: Advanced features like GLR, enhanced diagnostics, and optimization (Phases 7-9)
+**Key Finding**: Tree-sitter is fundamentally a GLR parser generator, not LR(1). The GLR fork/merge logic and compile-time conflict resolution are core to its functionality and compatibility.
+
+## MVP Roadmap (0.6)
+
+Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit table compression compatibility. Performance target: 4-8x faster than current FFI-based Rust bindings (not faster than specialized compiler frontends like rustc).
 
 ## Phase 0: Dry Run Checkpoint (Week 1)
 

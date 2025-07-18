@@ -4,7 +4,7 @@
 
 This document outlines the design for evolving rust-sitter into a complete, pure-Rust Tree-sitter language generator ecosystem. The design eliminates all C dependencies while maintaining full compatibility with the existing Tree-sitter ecosystem, making rust-sitter the definitive solution for Tree-sitter integration.
 
-The core innovation is implementing a pure-Rust LR(1) parser generator that produces static Language objects, replacing the current approach of shelling out to the C-based tree-sitter CLI.
+The core innovation is implementing a pure-Rust GLR (Generalized LR) parser generator that produces static Language objects, replacing the current approach of shelling out to the C-based tree-sitter CLI. **Critical insight**: Tree-sitter's power comes from its GLR algorithm with compile-time conflict resolution, not simple LR(1) parsing. The system must support multiple actions per (state, lookahead) pair and implement fork/merge logic for handling ambiguous grammars.
 
 ## Architecture
 
@@ -106,9 +106,9 @@ pub struct AliasSequence {
 - `Grammar::validate()` - Ensure grammar consistency and detect issues
 - `Grammar::optimize()` - Apply grammar transformations for better table generation
 
-### 2. LR Core (lr-core/ crate)
+### 2. GLR Core (lr-core/ crate)
 
-**Purpose**: Implement the core LR(1) parser generation algorithms in pure Rust.
+**Purpose**: Implement the core GLR parser generation algorithms in pure Rust, including support for multiple actions per (state, lookahead) pair and fork/merge logic.
 
 **Key Components**:
 
