@@ -8,4 +8,5 @@ members = [
   "common",
   "ir",
   "glr-core",
+  "tablegen",
 ]

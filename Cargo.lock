@@ -599,6 +599,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-sitter-tablegen"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "insta",
+ "proc-macro2",
+ "quote",
+ "rust-sitter-glr-core",
+ "rust-sitter-ir",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "rust-sitter-tool"
 version = "0.4.5"
 dependencies = [

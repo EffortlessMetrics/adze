@@ -404,7 +404,7 @@ pub struct ParseTable {
 }
 
 /// Actions in GLR parse table (supporting multiple actions per state)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Action {
     Shift(StateId),
     Reduce(RuleId),
