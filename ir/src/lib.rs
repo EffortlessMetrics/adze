@@ -1,0 +1,543 @@
+// Grammar Intermediate Representation for pure-Rust Tree-sitter
+// This module provides GLR-aware data structures for representing Tree-sitter grammars
+
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
+use std::fmt;
+
+/// Core grammar representation supporting all Tree-sitter features including GLR
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Grammar {
+    pub name: String,
+    pub rules: IndexMap<SymbolId, Rule>,
+    pub tokens: IndexMap<SymbolId, Token>,
+    pub precedences: Vec<Precedence>,
+    pub conflicts: Vec<ConflictDeclaration>,
+    pub externals: Vec<ExternalToken>,
+    pub fields: IndexMap<FieldId, String>, // Maintained in lexicographic order
+    pub supertypes: Vec<SymbolId>,
+    pub inline_rules: Vec<SymbolId>,
+    pub alias_sequences: IndexMap<ProductionId, AliasSequence>,
+    pub production_ids: IndexMap<RuleId, ProductionId>,
+    pub max_alias_sequence_length: usize,
+}
+
+/// Grammar rule supporting GLR multiple actions per state
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Rule {
+    pub lhs: SymbolId,
+    pub rhs: Vec<Symbol>,
+    pub precedence: Option<PrecedenceKind>,
+    pub associativity: Option<Associativity>,
+    pub fields: Vec<(FieldId, usize)>, // field -> position mapping
+    pub production_id: ProductionId,
+}
+
+/// Precedence supporting both static and dynamic precedence (PREC_DYNAMIC)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PrecedenceKind {
+    Static(i16),
+    Dynamic(i16),
+}
+
+/// Token with fragile flag for lexical vs parse conflicts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Token {
+    pub name: String,
+    pub pattern: TokenPattern,
+    pub fragile: bool, // TSFragile flag for lexical vs parse conflicts
+}
+
+/// Token pattern representation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TokenPattern {
+    String(String),
+    Regex(String),
+}
+
+/// Grammar symbol types
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Symbol {
+    Terminal(SymbolId),
+    NonTerminal(SymbolId),
+    External(SymbolId),
+}
+
+/// Alias sequence for node renaming
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AliasSequence {
+    pub aliases: Vec<Option<String>>,
+}
+
+/// Precedence declaration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Precedence {
+    pub level: i16,
+    pub associativity: Associativity,
+    pub symbols: Vec<SymbolId>,
+}
+
+/// Associativity for conflict resolution
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Associativity {
+    Left,
+    Right,
+    None,
+}
+
+/// Conflict declaration for GLR handling
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConflictDeclaration {
+    pub symbols: Vec<SymbolId>,
+    pub resolution: ConflictResolution,
+}
+
+/// How to resolve conflicts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ConflictResolution {
+    Precedence(PrecedenceKind),
+    Associativity(Associativity),
+    GLR, // Allow GLR fork/merge
+}
+
+/// External token declaration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExternalToken {
+    pub name: String,
+    pub symbol_id: SymbolId,
+}
+
+// Type-safe IDs
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct SymbolId(pub u16);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct RuleId(pub u16);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct StateId(pub u16);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct FieldId(pub u16);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ProductionId(pub u16);
+
+// Display implementations for debugging
+impl fmt::Display for SymbolId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Symbol({})", self.0)
+    }
+}
+
+impl fmt::Display for RuleId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Rule({})", self.0)
+    }
+}
+
+impl fmt::Display for StateId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "State({})", self.0)
+    }
+}
+
+impl fmt::Display for FieldId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Field({})", self.0)
+    }
+}
+
+impl fmt::Display for ProductionId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Production({})", self.0)
+    }
+}
+
+/// Grammar validation and processing
+impl Grammar {
+    /// Create a new empty grammar
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            rules: IndexMap::new(),
+            tokens: IndexMap::new(),
+            precedences: Vec::new(),
+            conflicts: Vec::new(),
+            externals: Vec::new(),
+            fields: IndexMap::new(),
+            supertypes: Vec::new(),
+            inline_rules: Vec::new(),
+            alias_sequences: IndexMap::new(),
+            production_ids: IndexMap::new(),
+            max_alias_sequence_length: 0,
+        }
+    }
+
+    /// Extract IR from procedural macro data
+    pub fn from_macro_output(data: &str) -> Result<Self, GrammarError> {
+        // This will be implemented to parse the output from rust-sitter macros
+        serde_json::from_str(data).map_err(GrammarError::ParseError)
+    }
+
+    /// Validate grammar consistency and detect issues
+    pub fn validate(&self) -> Result<(), GrammarError> {
+        // Validate field name ordering (must be lexicographic)
+        let mut field_names: Vec<_> = self.fields.values().collect();
+        field_names.sort();
+        let expected_order: Vec<_> = self.fields.values().collect();
+        if field_names != expected_order {
+            return Err(GrammarError::InvalidFieldOrdering);
+        }
+
+        // Validate symbol references
+        for rule in self.rules.values() {
+            for symbol in &rule.rhs {
+                match symbol {
+                    Symbol::Terminal(id) | Symbol::NonTerminal(id) => {
+                        if !self.rules.contains_key(id) && !self.tokens.contains_key(id) {
+                            return Err(GrammarError::UnresolvedSymbol(*id));
+                        }
+                    }
+                    Symbol::External(id) => {
+                        if !self.externals.iter().any(|ext| ext.symbol_id == *id) {
+                            return Err(GrammarError::UnresolvedExternalSymbol(*id));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Apply grammar transformations for better table generation
+    pub fn optimize(&mut self) {
+        // Remove unused rules
+        // Inline simple rules where beneficial
+        // Optimize precedence declarations
+        // This will be implemented based on Tree-sitter's optimization strategies
+    }
+}
+
+/// Grammar processing errors
+#[derive(Debug, thiserror::Error)]
+pub enum GrammarError {
+    #[error("Failed to parse grammar: {0}")]
+    ParseError(#[from] serde_json::Error),
+    
+    #[error("Invalid field ordering - fields must be in lexicographic order")]
+    InvalidFieldOrdering,
+    
+    #[error("Unresolved symbol reference: {0}")]
+    UnresolvedSymbol(SymbolId),
+    
+    #[error("Unresolved external symbol reference: {0}")]
+    UnresolvedExternalSymbol(SymbolId),
+    
+    #[error("Conflict in grammar: {0}")]
+    ConflictError(String),
+    
+    #[error("Invalid precedence declaration: {0}")]
+    InvalidPrecedence(String),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_grammar_creation() {
+        let grammar = Grammar::new("test".to_string());
+        assert_eq!(grammar.name, "test");
+        assert!(grammar.rules.is_empty());
+        assert!(grammar.tokens.is_empty());
+        assert!(grammar.precedences.is_empty());
+        assert!(grammar.conflicts.is_empty());
+        assert!(grammar.externals.is_empty());
+        assert!(grammar.fields.is_empty());
+        assert!(grammar.supertypes.is_empty());
+        assert!(grammar.inline_rules.is_empty());
+        assert!(grammar.alias_sequences.is_empty());
+        assert!(grammar.production_ids.is_empty());
+        assert_eq!(grammar.max_alias_sequence_length, 0);
+    }
+
+    #[test]
+    fn test_field_ordering_validation() {
+        let mut grammar = Grammar::new("test".to_string());
+        
+        // Add fields in non-lexicographic order
+        grammar.fields.insert(FieldId(1), "zebra".to_string());
+        grammar.fields.insert(FieldId(0), "alpha".to_string());
+        
+        // Validation should fail
+        assert!(grammar.validate().is_err());
+        
+        // Fix the ordering
+        grammar.fields.clear();
+        grammar.fields.insert(FieldId(0), "alpha".to_string());
+        grammar.fields.insert(FieldId(1), "zebra".to_string());
+        
+        // Validation should now pass
+        assert!(grammar.validate().is_ok());
+    }
+
+    #[test]
+    fn test_symbol_id_display() {
+        let symbol_id = SymbolId(42);
+        assert_eq!(format!("{}", symbol_id), "Symbol(42)");
+        
+        let rule_id = RuleId(10);
+        assert_eq!(format!("{}", rule_id), "Rule(10)");
+        
+        let state_id = StateId(5);
+        assert_eq!(format!("{}", state_id), "State(5)");
+        
+        let field_id = FieldId(3);
+        assert_eq!(format!("{}", field_id), "Field(3)");
+        
+        let production_id = ProductionId(7);
+        assert_eq!(format!("{}", production_id), "Production(7)");
+    }
+
+    #[test]
+    fn test_precedence_kinds() {
+        let static_prec = PrecedenceKind::Static(5);
+        let dynamic_prec = PrecedenceKind::Dynamic(10);
+        
+        match static_prec {
+            PrecedenceKind::Static(level) => assert_eq!(level, 5),
+            _ => panic!("Expected static precedence"),
+        }
+        
+        match dynamic_prec {
+            PrecedenceKind::Dynamic(level) => assert_eq!(level, 10),
+            _ => panic!("Expected dynamic precedence"),
+        }
+    }
+
+    #[test]
+    fn test_symbol_types() {
+        let terminal = Symbol::Terminal(SymbolId(1));
+        let non_terminal = Symbol::NonTerminal(SymbolId(2));
+        let external = Symbol::External(SymbolId(3));
+        
+        match terminal {
+            Symbol::Terminal(SymbolId(1)) => {},
+            _ => panic!("Expected terminal symbol"),
+        }
+        
+        match non_terminal {
+            Symbol::NonTerminal(SymbolId(2)) => {},
+            _ => panic!("Expected non-terminal symbol"),
+        }
+        
+        match external {
+            Symbol::External(SymbolId(3)) => {},
+            _ => panic!("Expected external symbol"),
+        }
+        
+        // Test equality and hashing
+        assert_eq!(terminal, Symbol::Terminal(SymbolId(1)));
+        assert_ne!(terminal, non_terminal);
+        
+        let mut set = std::collections::HashSet::new();
+        set.insert(terminal.clone());
+        assert!(set.contains(&terminal));
+        assert!(!set.contains(&non_terminal));
+    }
+
+    #[test]
+    fn test_token_patterns() {
+        let string_pattern = TokenPattern::String("hello".to_string());
+        let regex_pattern = TokenPattern::Regex(r"\d+".to_string());
+        
+        match string_pattern {
+            TokenPattern::String(s) => assert_eq!(s, "hello"),
+            _ => panic!("Expected string pattern"),
+        }
+        
+        match regex_pattern {
+            TokenPattern::Regex(r) => assert_eq!(r, r"\d+"),
+            _ => panic!("Expected regex pattern"),
+        }
+    }
+
+    #[test]
+    fn test_associativity() {
+        let left = Associativity::Left;
+        let right = Associativity::Right;
+        let none = Associativity::None;
+        
+        assert_eq!(left, Associativity::Left);
+        assert_eq!(right, Associativity::Right);
+        assert_eq!(none, Associativity::None);
+        
+        assert_ne!(left, right);
+        assert_ne!(left, none);
+        assert_ne!(right, none);
+    }
+
+    #[test]
+    fn test_conflict_resolution() {
+        let precedence_resolution = ConflictResolution::Precedence(PrecedenceKind::Static(5));
+        let associativity_resolution = ConflictResolution::Associativity(Associativity::Left);
+        let glr_resolution = ConflictResolution::GLR;
+        
+        match precedence_resolution {
+            ConflictResolution::Precedence(PrecedenceKind::Static(5)) => {},
+            _ => panic!("Expected precedence resolution"),
+        }
+        
+        match associativity_resolution {
+            ConflictResolution::Associativity(Associativity::Left) => {},
+            _ => panic!("Expected associativity resolution"),
+        }
+        
+        match glr_resolution {
+            ConflictResolution::GLR => {},
+            _ => panic!("Expected GLR resolution"),
+        }
+    }
+
+    #[test]
+    fn test_grammar_with_rules_and_tokens() {
+        let mut grammar = Grammar::new("test_grammar".to_string());
+        
+        // Add a rule: S -> NUMBER
+        let rule = Rule {
+            lhs: SymbolId(0), // S
+            rhs: vec![Symbol::Terminal(SymbolId(1))], // NUMBER
+            precedence: Some(PrecedenceKind::Static(1)),
+            associativity: Some(Associativity::Left),
+            fields: vec![(FieldId(0), 0)],
+            production_id: ProductionId(0),
+        };
+        grammar.rules.insert(SymbolId(0), rule);
+        
+        // Add a token
+        let token = Token {
+            name: "NUMBER".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        };
+        grammar.tokens.insert(SymbolId(1), token);
+        
+        // Add fields in correct order
+        grammar.fields.insert(FieldId(0), "left".to_string());
+        grammar.fields.insert(FieldId(1), "right".to_string());
+        
+        // Validation should pass
+        match grammar.validate() {
+            Ok(_) => {},
+            Err(e) => panic!("Grammar validation failed: {:?}", e),
+        }
+        
+        assert_eq!(grammar.rules.len(), 1);
+        assert_eq!(grammar.tokens.len(), 1);
+        assert_eq!(grammar.fields.len(), 2);
+    }
+
+    #[test]
+    fn test_grammar_validation_unresolved_symbol() {
+        let mut grammar = Grammar::new("test".to_string());
+        
+        // Add a rule that references a non-existent symbol
+        let rule = Rule {
+            lhs: SymbolId(0),
+            rhs: vec![Symbol::Terminal(SymbolId(999))], // Non-existent symbol
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        grammar.rules.insert(SymbolId(0), rule);
+        
+        // Validation should fail
+        assert!(grammar.validate().is_err());
+        
+        match grammar.validate() {
+            Err(GrammarError::UnresolvedSymbol(SymbolId(999))) => {},
+            _ => panic!("Expected unresolved symbol error"),
+        }
+    }
+
+    #[test]
+    fn test_grammar_validation_unresolved_external() {
+        let mut grammar = Grammar::new("test".to_string());
+        
+        // Add a rule that references a non-existent external symbol
+        let rule = Rule {
+            lhs: SymbolId(0),
+            rhs: vec![Symbol::External(SymbolId(999))], // Non-existent external
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        grammar.rules.insert(SymbolId(0), rule);
+        
+        // Validation should fail
+        assert!(grammar.validate().is_err());
+        
+        match grammar.validate() {
+            Err(GrammarError::UnresolvedExternalSymbol(SymbolId(999))) => {},
+            _ => panic!("Expected unresolved external symbol error"),
+        }
+    }
+
+    #[test]
+    fn test_alias_sequence() {
+        let alias_seq = AliasSequence {
+            aliases: vec![Some("alias1".to_string()), None, Some("alias2".to_string())],
+        };
+        
+        assert_eq!(alias_seq.aliases.len(), 3);
+        assert_eq!(alias_seq.aliases[0], Some("alias1".to_string()));
+        assert_eq!(alias_seq.aliases[1], None);
+        assert_eq!(alias_seq.aliases[2], Some("alias2".to_string()));
+    }
+
+    #[test]
+    fn test_external_token() {
+        let external_token = ExternalToken {
+            name: "HERE_STRING".to_string(),
+            symbol_id: SymbolId(42),
+        };
+        
+        assert_eq!(external_token.name, "HERE_STRING");
+        assert_eq!(external_token.symbol_id, SymbolId(42));
+    }
+
+    #[test]
+    fn test_precedence() {
+        let precedence = Precedence {
+            level: 10,
+            associativity: Associativity::Right,
+            symbols: vec![SymbolId(1), SymbolId(2), SymbolId(3)],
+        };
+        
+        assert_eq!(precedence.level, 10);
+        assert_eq!(precedence.associativity, Associativity::Right);
+        assert_eq!(precedence.symbols.len(), 3);
+        assert!(precedence.symbols.contains(&SymbolId(2)));
+    }
+
+    #[test]
+    fn test_conflict_declaration() {
+        let conflict = ConflictDeclaration {
+            symbols: vec![SymbolId(1), SymbolId(2)],
+            resolution: ConflictResolution::GLR,
+        };
+        
+        assert_eq!(conflict.symbols.len(), 2);
+        assert!(conflict.symbols.contains(&SymbolId(1)));
+        assert!(conflict.symbols.contains(&SymbolId(2)));
+        
+        match conflict.resolution {
+            ConflictResolution::GLR => {},
+            _ => panic!("Expected GLR resolution"),
+        }
+    }
+}

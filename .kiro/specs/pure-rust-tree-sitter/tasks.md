@@ -37,7 +37,7 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
 
 **CRITICAL**: Implement GLR state machine fidelity and conflict resolution logic as core functionality.
 
-- [ ] 1.1 Implement GLR-aware Grammar IR structure
+- [x] 1.1 Implement GLR-aware Grammar IR structure
   - Define Grammar, Rule, Token, Precedence structs using IndexMap for deterministic ordering
   - Add support for dynamic precedence (PREC_DYNAMIC), fragile tokens, and alias sequences
   - Implement field allocation with lexicographic ordering and validation

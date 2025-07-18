@@ -6,4 +6,6 @@ members = [
   "tool",
   "example",
   "common",
+  "ir",
+  "glr-core",
 ]
