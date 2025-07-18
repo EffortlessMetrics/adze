@@ -45,7 +45,7 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
   - Model IR for multiple actions per (state, lookahead) pair to support GLR
   - _Requirements: 2.1, 2.2, 2.6, Research Priority #1_
 
-- [ ] 1.2 Port Tree-sitter's exact conflict resolution logic
+- [x] 1.2 Port Tree-sitter's exact conflict resolution logic
   - Implement C's exact logic for rule comparison and conflict pruning
   - Handle subtle interactions of explicit/implicit precedence
   - Parse and preserve all macro annotations faithfully into IR
@@ -53,7 +53,7 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
   - Implement TSFragile/TSForcedReduce semantics for lexical vs parse conflicts
   - _Requirements: 1.4, Research Priority #2_
 
-- [ ] 1.3 Create grammar extraction with emit_ir!() macro
+- [x] 1.3 Create grammar extraction with emit_ir!() macro
   - Implement rust-sitter::emit_ir!() macro to generate const GRAMMAR_JSON
   - Build Grammar::from_json() parser with comprehensive validation
   - Extract IR from sample grammars and serialize back to JSON identical to tree-sitter generate --json
@@ -62,14 +62,14 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
 
 ## Phase 2: GLR State Machine and Parse Table Generation (Weeks 4-6)
 
-- [ ] 2.1 Implement GLR state machine construction
+- [x] 2.1 Implement GLR state machine construction
   - Build FIRST/FOLLOW computation using FixedBitSet for efficient set operations
   - Implement GLR item set collection with support for multiple actions per state
   - Create closure and goto operations with deterministic ordering
   - Add support for fork/merge points in the state machine
   - _Requirements: 1.1, 1.3, Research Priority #1_
 
-- [ ] 2.2 Generate GLR-compatible parse tables
+- [x] 2.2 Generate GLR-compatible parse tables
   - Create ParseTable supporting multiple actions per (state, lookahead) pair
   - Implement conflict detection that preserves ambiguity for GLR resolution
   - Apply precedence/associativity rules to prune conflicts at generation time
