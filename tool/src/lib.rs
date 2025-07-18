@@ -510,4 +510,93 @@ mod tests {
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
+
+    #[cfg(feature = "build_parsers")]
+    #[test]
+    fn test_emit_artifacts_functionality() {
+        use std::env;
+        use std::path::Path;
+        
+        // Set up test environment
+        let original_target = env::var("TARGET").ok();
+        let original_out_dir = env::var("OUT_DIR").ok();
+        let original_emit = env::var("RUST_SITTER_EMIT_ARTIFACTS").ok();
+        let original_opt_level = env::var("OPT_LEVEL").ok();
+        let original_host = env::var("HOST").ok();
+        let original_profile = env::var("PROFILE").ok();
+        
+        // Set required environment variables for the current platform
+        let target = if cfg!(target_os = "windows") {
+            "x86_64-pc-windows-msvc"
+        } else if cfg!(target_os = "macos") {
+            "x86_64-apple-darwin"
+        } else {
+            "x86_64-unknown-linux-gnu"
+        };
+        
+        env::set_var("TARGET", target);
+        env::set_var("OPT_LEVEL", "0");
+        env::set_var("HOST", target);
+        env::set_var("PROFILE", "debug");
+        env::set_var("RUST_SITTER_EMIT_ARTIFACTS", "true");
+        
+        let test_dir = "./test_emit_artifacts_output";
+        std::fs::create_dir_all(test_dir).unwrap();
+        env::set_var("OUT_DIR", test_dir);
+        
+        // Create a simple test grammar file
+        let test_grammar = r#"
+#[rust_sitter::grammar("test_emit")]
+mod grammar {
+    #[rust_sitter::language]
+    pub enum Expression {
+        Number(
+            #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+            i32
+        ),
+    }
+}
+"#;
+        
+        let grammar_file = "test_emit_grammar.rs";
+        std::fs::write(grammar_file, test_grammar).unwrap();
+        
+        // Test that build_parsers doesn't panic with RUST_SITTER_EMIT_ARTIFACTS=true
+        let result = std::panic::catch_unwind(|| {
+            super::build_parsers(Path::new(grammar_file));
+        });
+        
+        // Clean up
+        let _ = std::fs::remove_file(grammar_file);
+        let _ = std::fs::remove_dir_all(test_dir);
+        
+        // Restore original environment variables
+        match original_target {
+            Some(val) => env::set_var("TARGET", val),
+            None => env::remove_var("TARGET"),
+        }
+        match original_out_dir {
+            Some(val) => env::set_var("OUT_DIR", val),
+            None => env::remove_var("OUT_DIR"),
+        }
+        match original_emit {
+            Some(val) => env::set_var("RUST_SITTER_EMIT_ARTIFACTS", val),
+            None => env::remove_var("RUST_SITTER_EMIT_ARTIFACTS"),
+        }
+        match original_opt_level {
+            Some(val) => env::set_var("OPT_LEVEL", val),
+            None => env::remove_var("OPT_LEVEL"),
+        }
+        match original_host {
+            Some(val) => env::set_var("HOST", val),
+            None => env::remove_var("HOST"),
+        }
+        match original_profile {
+            Some(val) => env::set_var("PROFILE", val),
+            None => env::remove_var("PROFILE"),
+        }
+        
+        // Assert that the function completed successfully
+        assert!(result.is_ok(), "build_parsers should not panic with RUST_SITTER_EMIT_ARTIFACTS=true");
+    }
 }

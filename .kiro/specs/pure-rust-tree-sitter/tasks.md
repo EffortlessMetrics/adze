@@ -12,21 +12,21 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
 
 **CRITICAL**: Fix rust-sitter macro system debuggability before proceeding with GLR implementation.
 
-- [ ] 0.1 Fix RUST_SITTER_EMIT_ARTIFACTS debugging (BLOCKING)
+- [x] 0.1 Fix RUST_SITTER_EMIT_ARTIFACTS debugging (BLOCKING)
   - Investigate and resolve rust-sitter Issue #63: "RUST_SITTER_EMIT_ARTIFACTS=true causes the build to fail"
   - Restore reliable grammar.js and IR artifact emission for debugging
   - Create golden-test pipeline comparing C output vs Rust IR vs round-tripped output
   - Build IR inspection tooling for development workflow
   - _Requirements: Research Priority #2_
 
-- [ ] 0.2 Harden macro system for IDE compatibility
+- [x] 0.2 Harden macro system for IDE compatibility
   - Implement error-recovering parsing strategies for incomplete TokenStreams
   - Build "partial IR" error reporting that emits diagnostic errors with as much IR as possible
   - Test macro resilience with syntactically incorrect input in IDE scenarios
   - Ensure rust-analyzer can provide features even with broken grammars
   - _Requirements: Research Priority #2_
 
-- [ ] 0.3 Set up GLR-aware project structure
+- [x] 0.3 Set up GLR-aware project structure
   - Create workspace structure with ir/, glr-core/, tablegen/, scanner-bridge/ crates
   - Define core types supporting multiple actions per (state, lookahead): SymbolId, RuleId, StateId, FieldId
   - Set up CI matrix with MSRV 1.78, stable, beta, nightly builds
