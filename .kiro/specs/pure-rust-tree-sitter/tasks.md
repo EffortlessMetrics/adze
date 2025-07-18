@@ -8,88 +8,80 @@
 
 Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit table compression compatibility. Performance target: 4-8x faster than current FFI-based Rust bindings (not faster than specialized compiler frontends like rustc).
 
-## Phase 0: Dry Run Checkpoint (Week 1)
+## Phase 0: Research & Macro Hardening (Week 1)
 
-- [ ] 0.1 Set up project structure and foundational infrastructure
-  - Create workspace structure with ir/, lr-core/, tablegen/, scanner-bridge/ crates
-  - Define core types: SymbolId, RuleId, StateId, FieldId with proper newtype wrappers
+**CRITICAL**: Fix rust-sitter macro system debuggability before proceeding with GLR implementation.
+
+- [ ] 0.1 Fix RUST_SITTER_EMIT_ARTIFACTS debugging (BLOCKING)
+  - Investigate and resolve rust-sitter Issue #63: "RUST_SITTER_EMIT_ARTIFACTS=true causes the build to fail"
+  - Restore reliable grammar.js and IR artifact emission for debugging
+  - Create golden-test pipeline comparing C output vs Rust IR vs round-tripped output
+  - Build IR inspection tooling for development workflow
+  - _Requirements: Research Priority #2_
+
+- [ ] 0.2 Harden macro system for IDE compatibility
+  - Implement error-recovering parsing strategies for incomplete TokenStreams
+  - Build "partial IR" error reporting that emits diagnostic errors with as much IR as possible
+  - Test macro resilience with syntactically incorrect input in IDE scenarios
+  - Ensure rust-analyzer can provide features even with broken grammars
+  - _Requirements: Research Priority #2_
+
+- [ ] 0.3 Set up GLR-aware project structure
+  - Create workspace structure with ir/, glr-core/, tablegen/, scanner-bridge/ crates
+  - Define core types supporting multiple actions per (state, lookahead): SymbolId, RuleId, StateId, FieldId
   - Set up CI matrix with MSRV 1.78, stable, beta, nightly builds
   - Add Miri and address-sanitizer jobs for UB detection from Week 1
   - _Requirements: 12.1, 11.3_
 
-- [ ] 0.2 Implement basic Grammar IR structure
+## Phase 1: GLR-Aware IR and Conflict Resolution (Weeks 2-3)
+
+**CRITICAL**: Implement GLR state machine fidelity and conflict resolution logic as core functionality.
+
+- [ ] 1.1 Implement GLR-aware Grammar IR structure
   - Define Grammar, Rule, Token, Precedence structs using IndexMap for deterministic ordering
   - Add support for dynamic precedence (PREC_DYNAMIC), fragile tokens, and alias sequences
   - Implement field allocation with lexicographic ordering and validation
   - Add production_ids and alias_map for complex grammar features
-  - _Requirements: 2.1, 2.2, 2.6_
+  - Model IR for multiple actions per (state, lookahead) pair to support GLR
+  - _Requirements: 2.1, 2.2, 2.6, Research Priority #1_
 
-- [ ] 0.3 Create grammar extraction and validation (Dry Run Goal)
+- [ ] 1.2 Port Tree-sitter's exact conflict resolution logic
+  - Implement C's exact logic for rule comparison and conflict pruning
+  - Handle subtle interactions of explicit/implicit precedence
+  - Parse and preserve all macro annotations faithfully into IR
+  - Add IR invariants/testing to catch single-token divergences from C output
+  - Implement TSFragile/TSForcedReduce semantics for lexical vs parse conflicts
+  - _Requirements: 1.4, Research Priority #2_
+
+- [ ] 1.3 Create grammar extraction with emit_ir!() macro
   - Implement rust-sitter::emit_ir!() macro to generate const GRAMMAR_JSON
   - Build Grammar::from_json() parser with comprehensive validation
-  - Extract IR from two sample grammars and serialize back to JSON identical to tree-sitter generate --json
-  - Build still uses C backend - this validates spec fidelity before heavy LR work
+  - Extract IR from sample grammars and serialize back to JSON identical to tree-sitter generate --json
+  - Create round-trip testing: C output vs Rust IR vs round-tripped output
   - _Requirements: 2.1, 13.5_
 
-## Phase 1: Foundation and Testing Infrastructure (Week 2)
+## Phase 2: GLR State Machine and Parse Table Generation (Weeks 4-6)
 
-- [ ] 1.1 Set up comprehensive testing infrastructure
-  - Create golden-file test framework for tiny grammars (expr, dangling-else)
-  - Build compatibility harness for grammar.js → JSON comparison with Tree-sitter CLI
-  - Add corpus test framework with C/Rust parse tree comparison
-  - Implement fuzzing target with cargo-fuzz integration and nightly CI runs
-  - _Requirements: 10.1, 10.2, 10.3, 11.4_
+- [ ] 2.1 Implement GLR state machine construction
+  - Build FIRST/FOLLOW computation using FixedBitSet for efficient set operations
+  - Implement GLR item set collection with support for multiple actions per state
+  - Create closure and goto operations with deterministic ordering
+  - Add support for fork/merge points in the state machine
+  - _Requirements: 1.1, 1.3, Research Priority #1_
 
-- [ ] 1.2 Implement license and security validation
-  - Add cargo deny check for license compatibility
-  - Create LICENSE-THIRD-PARTY file generation
-  - Implement grammar identifier escaping to prevent code injection
-  - Add compile-time license validation for third-party grammars
-  - _Requirements: 11.1, 11.2, 11.5_
+- [ ] 2.2 Generate GLR-compatible parse tables
+  - Create ParseTable supporting multiple actions per (state, lookahead) pair
+  - Implement conflict detection that preserves ambiguity for GLR resolution
+  - Apply precedence/associativity rules to prune conflicts at generation time
+  - Add table validation against Tree-sitter CLI output with bit-for-bit comparison
+  - _Requirements: 1.1, 1.3, 3.1, Research Priority #1_
 
-- [ ] 1.3 Create deterministic build foundation
-  - Implement hash-based caching for grammar rules
-  - Add incremental build support with proper change detection
-  - Create build-time metrics collection (compile time, table size)
-  - Add MSRV compatibility testing with cargo +1.78 check -Z minimal-versions
-  - _Requirements: 12.3, 12.1_
-
-- [ ] 1.4 Add ABI compatibility framework
-  - Create ABI compliance test harness for tree-sitter versions
-  - Implement version tracking and compatibility matrix
-  - Add CI job to test against tree-sitter 0.25, 0.26-alpha headers
-  - Build foundation for automatic ABI adaptation
-  - _Requirements: 13.1, 13.4_
-
-## Phase 2: LR(1) Core Algorithm Implementation (Weeks 3-5)
-
-- [ ] 2. Implement FIRST/FOLLOW computation with optimization
-  - Build FirstFollowSets using FixedBitSet for efficient set operations
-  - Implement parallel computation with rayon behind feature flag
-  - Add nullable set computation and sequence FIRST calculation
-  - Create comprehensive unit tests with known grammar results
-  - _Requirements: 1.1, 1.3, 7.1_
-
-- [ ] 2.1 Build canonical LR(1) item set collection
-  - Implement LRItem, ItemSet, and ItemSetCollection structures
-  - Build closure and goto operations with deterministic ordering
-  - Create canonical collection algorithm with state deduplication
-  - Add progress reporting for large grammar generation
-  - _Requirements: 1.1, 1.3_
-
-- [ ] 2.2 Implement conflict detection and resolution
-  - Build conflict detector for shift/reduce and reduce/reduce conflicts
-  - Port Tree-sitter's precedence resolution algorithm from C
-  - Implement associativity handling (left, right, none)
-  - Add conflict diagnostics with source location mapping
-  - _Requirements: 1.4, 8.1, 8.2_
-
-- [ ] 2.3 Generate parse tables with compression support
-  - Create ParseTable with action and goto tables
-  - Implement naive 2D Vec representation for correctness
-  - Add table validation against Tree-sitter CLI output
-  - Build foundation for compression (Phase 3)
-  - _Requirements: 1.1, 1.3, 3.1_
+- [ ] 2.3 Implement Tree-sitter's table compression exactly
+  - Replicate "small table" factoring (ts_small_parse_table, ts_small_parse_table_map)
+  - Implement indexed/offset layout and one-dimensional array compression
+  - Serialize in-memory IR as const Rust arrays bit-for-bit identical to parser.c output
+  - Build test suite that round-trips C's output and Rust output for identical grammars
+  - _Requirements: 1.7, 3.1, Research Priority #3_
 
 ## Phase 3: Table Generation and Static Language (Weeks 5-6)
 
@@ -183,12 +175,12 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
   - Add debugging and profiling utilities
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 6.2 Implement optional GLR support
-  - Add GLR parsing algorithm behind feature flag
-  - Create compile-time guards for large grammars
-  - Test GLR with complex, ambiguous grammars
-  - Document GLR usage and performance characteristics
-  - _Requirements: 1.1, 7.1_
+- [ ] 6.2 Implement ABI 15 compliance and compatibility
+  - Implement #[repr(C)] Language struct with exact field layout matching C
+  - Expose all ABI 15 metadata functions (language name, version, supertypes, reserved words)
+  - Load and process tree-sitter.json for metadata embedding
+  - Add ABI compliance testing against multiple Tree-sitter versions
+  - _Requirements: 13.1, 13.2, 13.3, Research Priority #5_
 
 ## Phase 7: Testing and Quality Assurance (Week 10)
 
@@ -263,12 +255,13 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
 
 Each phase must meet these criteria before proceeding:
 
-**Phase 1**: Grammar IR can parse and validate all major Tree-sitter grammars
-**Phase 2**: LR(1) tables match Tree-sitter CLI output for test grammars
-**Phase 3**: Generated Language objects work with tree_sitter::Parser
+**Phase 0**: RUST_SITTER_EMIT_ARTIFACTS works reliably and macro system handles incomplete input gracefully
+**Phase 1**: Grammar IR can parse and validate all major Tree-sitter grammars with GLR support
+**Phase 2**: GLR parse tables match Tree-sitter CLI output bit-for-bit for test grammars
+**Phase 3**: Generated Language objects work with tree_sitter::Parser and pass ABI 15 compliance
 **Phase 4**: External scanners integrate seamlessly with complex lexical rules
 **Phase 5**: Build system works without C toolchain on all platforms
-**Phase 6**: Performance meets or exceeds C implementation
+**Phase 6**: Performance achieves 4-8x improvement over FFI-based Rust bindings
 **Phase 7**: 100% corpus compatibility and robust fuzzing results
 **Phase 8**: Complete documentation and migration guides
 **Phase 9**: Successful community beta testing and feedback integration
@@ -276,9 +269,10 @@ Each phase must meet these criteria before proceeding:
 ## Risk Mitigation
 
 **Technical Risks**:
-- LR(1) algorithm complexity → Extensive unit testing with known results
-- Table compression bugs → Golden file tests against Tree-sitter CLI
-- Performance regressions → Continuous benchmarking with failure gates
+- GLR algorithm complexity and fork/merge logic → Extensive unit testing with known ambiguous grammars and golden file comparison
+- Table compression bugs → Bit-for-bit golden file tests against Tree-sitter CLI output
+- Performance regressions → Continuous benchmarking with failure gates targeting 4-8x FFI improvement
+- Macro system fragility → Early Phase 0 focus on debugging and error recovery
 
 **Project Risks**:
 - Scope creep → Strict phase boundaries with success criteria
