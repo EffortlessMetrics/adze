@@ -4,6 +4,23 @@
 
 This document outlines the requirements for evolving rust-sitter into a complete, pure-Rust Tree-sitter language generator ecosystem. The goal is to eliminate all C dependencies from the Tree-sitter grammar development workflow while maintaining full compatibility with the existing Tree-sitter ecosystem. This will make rust-sitter THE go-to solution for Tree-sitter integration by providing a faster, safer, and more ergonomic development experience.
 
+### Scope and Assumptions
+
+This project focuses on creating a pure-Rust LR(1) parser generator that produces Tree-sitter-compatible Language objects. The following are explicitly out of scope for the initial release:
+- GLR (Generalized LR) parsing algorithms (planned for future release)
+- Lossless syntax trees (CST) - focus remains on Tree-sitter's AST model
+- Query runtime modifications - existing tree-sitter query system remains unchanged
+- Alternative parsing algorithms (Earley, PEG, etc.)
+
+### Glossary
+
+- **Language**: A Tree-sitter Language object containing parse tables and metadata
+- **IR**: Intermediate Representation - structured grammar data extracted from Rust annotations
+- **Action Table**: LR parser table mapping (state, symbol) → action (shift/reduce/accept/error)
+- **Alias Sequence**: Tree-sitter feature for renaming nodes in parse trees
+- **Production ID**: Unique identifier for grammar rules used in alias mapping
+- **MSRV**: Minimum Supported Rust Version (1.78 for this project)
+
 ## Requirements
 
 ### Requirement 1: Pure-Rust LR(1) Parser Generator
@@ -15,8 +32,9 @@ This document outlines the requirements for evolving rust-sitter into a complete
 1. WHEN a developer defines a grammar using rust-sitter macros THEN the system SHALL generate LR(1) parse tables entirely in Rust without invoking the C-based tree-sitter CLI
 2. WHEN the generator processes a grammar THEN it SHALL produce static Rust constants containing all necessary parse tables (action table, goto table, symbol metadata)
 3. WHEN the generated parser is used THEN it SHALL be fully compatible with the tree_sitter::Language interface
-4. IF a grammar contains conflicts THEN the system SHALL resolve them using precedence and associativity rules identical to the C implementation
+4. IF a grammar contains conflicts THEN the system SHALL resolve them using precedence and associativity rules identical to the C implementation, including static and dynamic precedence as well as fragile tokens
 5. WHEN building for WebAssembly THEN the system SHALL compile without requiring any C toolchain or external dependencies
+6. WHEN generating tables THEN the system SHALL emit alias-sequence and production-id tables identical to C output
 
 ### Requirement 2: Complete Grammar IR System
 
@@ -29,6 +47,7 @@ This document outlines the requirements for evolving rust-sitter into a complete
 3. WHEN precedence rules are defined THEN the IR SHALL capture and preserve all precedence and associativity information
 4. IF a grammar uses external tokens THEN the IR SHALL properly represent the external scanner interface requirements
 5. WHEN conflicts are declared THEN the IR SHALL maintain the conflict resolution strategy for table generation
+6. WHEN field names are processed THEN the IR SHALL maintain lexicographic ordering of field names to satisfy Tree-sitter ABI requirements
 
 ### Requirement 3: Static Language Generation
 
@@ -123,5 +142,41 @@ This document outlines the requirements for evolving rust-sitter into a complete
 1. WHEN running corpus tests THEN 100% of existing Tree-sitter grammar test suites SHALL pass
 2. WHEN fuzzing the parser THEN it SHALL handle malformed input gracefully without panics
 3. WHEN testing incremental parsing THEN all edit scenarios SHALL produce correct results
-4. IF memory leaks occur THEN they SHALL be detected and prevented by automated testing
+4. IF memory leaks occur THEN they SHALL be detected and prevented by automated testing, and SHALL run miri or cargo-sanitize in CI to detect undefined behavior
 5. WHEN releasing THEN the system SHALL pass comprehensive integration tests across all supported platforms
+
+### Requirement 11: Security and Licensing
+
+**User Story:** As a project maintainer, I want to ensure security and license compliance, so that the generated code is safe and legally compliant.
+
+#### Acceptance Criteria
+
+1. WHEN processing third-party grammars THEN the system SHALL verify grammar licenses are MIT/Apache compatible
+2. WHEN generating code THEN the system SHALL escape identifier names to prevent Rust code injection
+3. WHEN using unsafe code THEN it SHALL be limited to FFI boundaries only with comprehensive safety documentation
+4. IF license incompatibilities are detected THEN the system SHALL fail compilation with clear error messages
+5. WHEN building THEN the system SHALL generate a LICENSE-THIRD-PARTY file documenting all dependencies
+
+### Requirement 12: Build System Requirements
+
+**User Story:** As a developer, I want reliable and efficient builds, so that my development workflow is smooth and predictable.
+
+#### Acceptance Criteria
+
+1. WHEN the project is built THEN it SHALL compile with MSRV 1.78 and CI SHALL enforce it
+2. WHEN c-backend feature is selected but cc toolchain is unavailable THEN the build SHALL fail fast with a clear error message
+3. WHEN grammar files are unchanged THEN the generator SHALL use cached results so rebuilds complete in under 200ms
+4. IF table compression is enabled THEN compressed binary size SHALL be ≤60% of uncompressed tables for grammars with ≥5k states
+5. WHEN building for no_std targets THEN runtime crates SHALL be compatible with no_std + alloc
+
+### Requirement 13: ABI Compatibility and Versioning
+
+**User Story:** As an ecosystem participant, I want consistent ABI compatibility, so that parsers work reliably across different Tree-sitter versions.
+
+#### Acceptance Criteria
+
+1. WHEN generating Language objects THEN the version SHALL match upstream Tree-sitter minor release within 30 days of upstream bump
+2. WHEN multiple Languages with external scanners coexist THEN they SHALL operate in the same process without global mutable state conflicts
+3. WHEN generating metadata THEN symbol_is_heap_allocated flags SHALL be populated correctly for UTF-8 input and UTF-16 editor offset conversions
+4. IF ABI changes occur upstream THEN the system SHALL detect and adapt to changes automatically
+5. WHEN regenerating parsers THEN the tool SHALL be able to produce grammar.json and node-types.json for external consumers

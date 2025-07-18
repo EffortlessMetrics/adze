@@ -57,18 +57,35 @@ pub struct Grammar {
     pub precedences: Vec<Precedence>,
     pub conflicts: Vec<ConflictDeclaration>,
     pub externals: Vec<ExternalToken>,
-    pub fields: IndexMap<FieldId, String>,
+    pub fields: IndexMap<FieldId, String>, // Maintained in lexicographic order
     pub supertypes: Vec<SymbolId>,
     pub inline_rules: Vec<SymbolId>,
+    pub alias_sequences: IndexMap<ProductionId, AliasSequence>,
+    pub production_ids: IndexMap<RuleId, ProductionId>,
+    pub max_alias_sequence_length: usize,
 }
 
 #[derive(Debug, Clone)]
 pub struct Rule {
     pub lhs: SymbolId,
     pub rhs: Vec<Symbol>,
-    pub precedence: Option<PrecedenceId>,
+    pub precedence: Option<PrecedenceKind>,
     pub associativity: Option<Associativity>,
     pub fields: Vec<(FieldId, usize)>, // field -> position mapping
+    pub production_id: ProductionId,
+}
+
+#[derive(Debug, Clone)]
+pub enum PrecedenceKind {
+    Static(i16),
+    Dynamic(i16),
+}
+
+#[derive(Debug, Clone)]
+pub struct Token {
+    pub name: String,
+    pub pattern: TokenPattern,
+    pub fragile: bool, // TSFragile flag for lexical vs parse conflicts
 }
 
 #[derive(Debug, Clone)]
@@ -76,6 +93,11 @@ pub enum Symbol {
     Terminal(SymbolId),
     NonTerminal(SymbolId),
     External(SymbolId),
+}
+
+#[derive(Debug, Clone)]
+pub struct AliasSequence {
+    pub aliases: Vec<Option<String>>,
 }
 ```
 
