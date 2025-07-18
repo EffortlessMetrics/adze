@@ -3,9 +3,12 @@ use std::env;
 use std::path::Path;
 
 fn main() {
-    // Set the environment variables that would normally be set by Cargo
+    // Set the environment variables that would normally be set by Cargo during build
     env::set_var("RUST_SITTER_EMIT_ARTIFACTS", "true");
     env::set_var("TARGET", "x86_64-pc-windows-msvc"); // Set appropriate target
+    env::set_var("OPT_LEVEL", "0"); // Debug optimization level
+    env::set_var("HOST", "x86_64-pc-windows-msvc"); // Host target
+    env::set_var("PROFILE", "debug"); // Build profile
     
     // Create test output directory
     let test_dir = "./test_output";
@@ -50,7 +53,29 @@ mod grammar {
         }
     }
     
+    // Check if artifacts were created
+    println!("\n📁 Checking created artifacts:");
+    if let Ok(entries) = std::fs::read_dir(test_dir) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                println!("  - {}", entry.file_name().to_string_lossy());
+                
+                // If it's a directory, list its contents too
+                if entry.file_type().unwrap().is_dir() {
+                    if let Ok(sub_entries) = std::fs::read_dir(entry.path()) {
+                        for sub_entry in sub_entries {
+                            if let Ok(sub_entry) = sub_entry {
+                                println!("    - {}", sub_entry.file_name().to_string_lossy());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     // Clean up
     let _ = std::fs::remove_file(grammar_file);
-    let _ = std::fs::remove_dir_all(test_dir);
+    // Comment out cleanup to verify artifacts
+    // let _ = std::fs::remove_dir_all(test_dir);
 }
