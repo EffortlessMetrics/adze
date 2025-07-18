@@ -94,7 +94,11 @@ pub fn build_parsers(root_file: &Path) {
         drop(parser_file);
 
         let sysroot_dir = dir.join("sysroot");
-        if env::var("TARGET").unwrap().starts_with("wasm32") {
+        let target = env::var("TARGET").unwrap_or_else(|_| {
+            // Fallback to the current target if TARGET is not set
+            std::env::consts::ARCH.to_string() + "-" + std::env::consts::OS
+        });
+        if target.starts_with("wasm32") {
             std::fs::create_dir(&sysroot_dir).unwrap();
             let mut stdint = std::fs::File::create(sysroot_dir.join("stdint.h")).unwrap();
             stdint
