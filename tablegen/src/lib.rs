@@ -9,7 +9,7 @@ use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-mod generate_language;
+// mod generate_language; // Removed - not needed yet
 
 // Use the appropriate tree-sitter backend
 #[cfg(feature = "tree-sitter-standard")]
@@ -73,10 +73,11 @@ impl StaticLanguageGenerator {
         let node_types_json = self.generate_node_types();
         
         // Count various elements
-        let token_count = self.grammar.tokens.len();
-        let external_token_count = self.grammar.externals.len();
-        let production_id_count = self.grammar.production_ids.len();
-        let max_alias_sequence_length = self.grammar.max_alias_sequence_length;
+        let field_count = field_names.len();
+        let _token_count = self.grammar.tokens.len();
+        let _external_token_count = self.grammar.externals.len();
+        let _production_id_count = self.grammar.alias_sequences.len(); // Production IDs are from alias sequences
+        let _max_alias_sequence_length = 0u16; // TODO: Calculate from alias sequences
         
         quote! {
             use std::sync::OnceLock;
