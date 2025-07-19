@@ -166,12 +166,93 @@ impl StaticLanguageGenerator {
 
     /// Generate NODE_TYPES JSON string
     pub fn generate_node_types(&self) -> String {
-        // This will generate the NODE_TYPES JSON that describes each node's structure
-        // For now, return a placeholder - this will be implemented based on the grammar
-        serde_json::to_string_pretty(&serde_json::json!({
-            "version": 15,
-            "types": []
-        })).unwrap_or_else(|_| "{}".to_string())
+        use serde_json::json;
+        
+        let mut types = Vec::new();
+        
+        // Generate node types for non-terminal rules
+        for (symbol_id, _rule) in &self.grammar.rules {
+            // For now, use generated rule names
+            // TODO: Add proper symbol name mapping to Grammar
+            let rule_name = format!("rule_{}", symbol_id.0);
+            
+            // Skip hidden rules (those starting with underscore)
+            if rule_name.starts_with('_') {
+                continue;
+            }
+            
+            let mut node_type = json!({
+                "type": rule_name,
+                "named": true
+            });
+            
+            // Add fields if this rule has any
+            if !_rule.fields.is_empty() {
+                let mut fields = serde_json::Map::new();
+                for (field_id, _position) in &_rule.fields {
+                    if let Some(field_name) = self.grammar.fields.get(field_id) {
+                        fields.insert(
+                            field_name.clone(),
+                            json!({
+                                "multiple": false,
+                                "required": true,
+                                "types": []
+                            })
+                        );
+                    }
+                }
+                node_type["fields"] = json!(fields);
+            }
+            
+            // Add children if rule has any
+            if !_rule.rhs.is_empty() {
+                let mut children = serde_json::Map::new();
+                children.insert(
+                    "multiple".to_string(),
+                    json!(false)
+                );
+                children.insert(
+                    "required".to_string(),
+                    json!(!_rule.rhs.is_empty())
+                );
+                // TODO: Add proper child types based on rule.rhs
+                children.insert(
+                    "types".to_string(),
+                    json!([])
+                );
+                node_type["children"] = json!(children);
+            }
+            
+            // Check if this is a supertype
+            if self.grammar.supertypes.contains(symbol_id) {
+                node_type["subtypes"] = json!([]);
+            }
+            
+            types.push(node_type);
+        }
+        
+        // Generate node types for named tokens
+        for (_, token) in &self.grammar.tokens {
+            if !token.name.starts_with('_') && matches!(&token.pattern, TokenPattern::Regex(_)) {
+                types.push(json!({
+                    "type": token.name,
+                    "named": true
+                }));
+            }
+        }
+        
+        // Generate node types for external tokens
+        for external in &self.grammar.externals {
+            if !external.name.starts_with('_') {
+                types.push(json!({
+                    "type": external.name,
+                    "named": true
+                }));
+            }
+        }
+        
+        serde_json::to_string_pretty(&json!(types))
+            .unwrap_or_else(|_| "[]".to_string())
     }
 
     fn generate_symbol_names(&self) -> Vec<String> {
@@ -198,10 +279,12 @@ impl StaticLanguageGenerator {
     fn generate_symbol_metadata(&self) -> Vec<TokenStream> {
         let mut metadata = Vec::new();
         
-        // Generate metadata for each symbol
-        for (_, _token) in &self.grammar.tokens {
-            let visible = true; // Terminals are usually visible
-            let named = false; // Terminals are usually not named nodes
+        // Generate metadata for each terminal symbol
+        for (_, token) in &self.grammar.tokens {
+            // Hidden tokens start with underscore
+            let visible = !token.name.starts_with('_');
+            // Anonymous tokens (string literals) are unnamed, regex tokens can be named
+            let named = matches!(&token.pattern, TokenPattern::Regex(_)) && visible;
             let supertype = false;
             
             metadata.push(quote! {
@@ -213,11 +296,32 @@ impl StaticLanguageGenerator {
             });
         }
         
-        // Add metadata for non-terminals
-        for (_, _rule) in &self.grammar.rules {
-            let visible = true;
-            let named = true; // Non-terminals are usually named nodes
-            let supertype = false; // Will be true if in supertypes list
+        // Add metadata for non-terminals (rules)
+        for (symbol_id, _rule) in &self.grammar.rules {
+            // For now, use generated rule names until we have proper symbol mapping
+            let rule_name = format!("rule_{}", symbol_id.0);
+            // Hidden rules start with underscore
+            let visible = !rule_name.starts_with('_');
+            // Non-terminals are named unless they're hidden
+            let named = visible;
+            // Check if this rule is in the supertypes list
+            let supertype = self.grammar.supertypes.contains(symbol_id);
+            
+            metadata.push(quote! {
+                ts::ffi::TSSymbolMetadata {
+                    visible: #visible,
+                    named: #named,
+                    supertype: #supertype,
+                }
+            });
+        }
+        
+        // Add metadata for external symbols
+        for external in &self.grammar.externals {
+            // External tokens are typically visible and named
+            let visible = !external.name.starts_with('_');
+            let named = visible;
+            let supertype = false;
             
             metadata.push(quote! {
                 ts::ffi::TSSymbolMetadata {
