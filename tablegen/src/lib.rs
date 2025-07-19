@@ -9,6 +9,8 @@ use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+mod generate_language;
+
 // Use the appropriate tree-sitter backend
 #[cfg(feature = "tree-sitter-standard")]
 use tree_sitter as ts;
@@ -70,6 +72,12 @@ impl StaticLanguageGenerator {
         // Generate NODE_TYPES JSON
         let node_types_json = self.generate_node_types();
         
+        // Count various elements
+        let token_count = self.grammar.tokens.len();
+        let external_token_count = self.grammar.externals.len();
+        let production_id_count = self.grammar.production_ids.len();
+        let max_alias_sequence_length = self.grammar.max_alias_sequence_length;
+        
         quote! {
             use std::sync::OnceLock;
             
@@ -99,7 +107,7 @@ impl StaticLanguageGenerator {
             const LANGUAGE_VERSION: u32 = 15; // ABI version 15
             const STATE_COUNT: u32 = #state_count as u32;
             const SYMBOL_COUNT: u32 = #symbol_count as u32;
-            const FIELD_COUNT: u32 = FIELD_NAMES.len() as u32;
+            const FIELD_COUNT: u32 = #field_count as u32;
             
             // Tree-sitter Language structure (ABI v15)
             #[repr(C)]
@@ -134,17 +142,17 @@ impl StaticLanguageGenerator {
                 primary_state_ids: *const ts::ffi::TSStateId,
             }
             
-            static LANGUAGE: OnceLock<ts::Language> = OnceLock::new();
+            // For now, use a simplified approach that compiles
+            // In a full implementation, we would properly construct the Language structure
             
-            /// Get the Tree-sitter Language for this grammar
+            /// Get the Tree-sitter Language for this grammar  
             pub fn language() -> ts::Language {
-                *LANGUAGE.get_or_init(|| {
-                    // For now, create a simple language
-                    // This will be replaced with proper ABI-compatible structure
-                    unsafe {
-                        ts::Language::from_raw(std::ptr::null() as *const ts::ffi::TSLanguage)
-                    }
-                })
+                // Placeholder implementation
+                // TODO: Create proper TSLanguage structure with all fields
+                unsafe {
+                    // Return a dummy language for now
+                    ts::Language::from_raw(std::ptr::null())
+                }
             }
             
             /// Export for C FFI
