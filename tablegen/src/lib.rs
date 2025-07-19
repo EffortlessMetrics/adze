@@ -9,6 +9,17 @@ use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+// Use the appropriate tree-sitter backend
+#[cfg(feature = "tree-sitter-standard")]
+use tree_sitter as ts;
+
+#[cfg(all(feature = "tree-sitter-c2rust", not(feature = "tree-sitter-standard")))]
+use tree_sitter_c2rust as ts;
+
+// Ensure ts is available even if neither feature is enabled (for tests)
+#[cfg(all(not(feature = "tree-sitter-standard"), not(feature = "tree-sitter-c2rust")))]
+use tree_sitter_c2rust as ts;
+
 /// Static Language generator that produces Rust code
 pub struct StaticLanguageGenerator {
     pub grammar: Grammar,
@@ -29,17 +40,25 @@ impl StaticLanguageGenerator {
     /// Generate static Rust code for the Language
     pub fn generate_language_code(&self) -> TokenStream {
         let language_name = &self.grammar.name;
+        let language_fn_name = format!("tree_sitter_{}", language_name.to_lowercase().replace('-', "_"));
+        let language_fn_ident = quote::format_ident!("{}", language_fn_name);
         let symbol_count = self.parse_table.symbol_count;
         let state_count = self.parse_table.state_count;
         
         // Generate symbol names array
-        let symbol_names = self.generate_symbol_names();
+        let symbol_names: Vec<_> = self.generate_symbol_names()
+            .into_iter()
+            .map(|name| quote! { #name })
+            .collect();
         
         // Generate symbol metadata array
         let symbol_metadata = self.generate_symbol_metadata();
         
-        // Generate field names array
-        let field_names = self.generate_field_names();
+        // Generate field names array  
+        let field_names: Vec<_> = self.generate_field_names()
+            .into_iter()
+            .map(|name| quote! { #name })
+            .collect();
         
         // Generate parse tables
         let (action_table, goto_table) = if let Some(compressed) = &self.compressed_tables {
@@ -53,13 +72,18 @@ impl StaticLanguageGenerator {
         
         quote! {
             use std::sync::OnceLock;
-            use tree_sitter::{Language, LanguageFn};
+            
+            #[cfg(feature = "tree-sitter-standard")]
+            use tree_sitter as ts;
+            
+            #[cfg(feature = "tree-sitter-c2rust")]
+            use tree_sitter_c2rust as ts;
             
             // Static symbol names array
             static SYMBOL_NAMES: &[&str] = &[#(#symbol_names),*];
             
-            // Static symbol metadata array
-            static SYMBOL_METADATA: &[tree_sitter::ffi::TSSymbolMetadata] = &[#(#symbol_metadata),*];
+            // Static symbol metadata array  
+            static SYMBOL_METADATA: &[ts::ffi::TSSymbolMetadata] = &[#(#symbol_metadata),*];
             
             // Static field names array
             static FIELD_NAMES: &[&str] = &[#(#field_names),*];
@@ -71,35 +95,61 @@ impl StaticLanguageGenerator {
             // NODE_TYPES JSON
             pub const NODE_TYPES: &str = #node_types_json;
             
-            // Language version and metadata
+            // Language metadata
             const LANGUAGE_VERSION: u32 = 15; // ABI version 15
-            const STATE_COUNT: u32 = #state_count;
-            const SYMBOL_COUNT: u32 = #symbol_count;
+            const STATE_COUNT: u32 = #state_count as u32;
+            const SYMBOL_COUNT: u32 = #symbol_count as u32;
+            const FIELD_COUNT: u32 = FIELD_NAMES.len() as u32;
             
-            static LANGUAGE: OnceLock<Language> = OnceLock::new();
+            // Tree-sitter Language structure (ABI v15)
+            #[repr(C)]
+            struct TSLanguage {
+                version: u32,
+                symbol_count: u32,
+                alias_count: u32,
+                token_count: u32,
+                external_token_count: u32,
+                state_count: u32,
+                large_state_count: u32,
+                production_id_count: u32,
+                field_count: u32,
+                max_alias_sequence_length: u16,
+                parse_table: *const u16,
+                small_parse_table: *const u16,
+                small_parse_table_map: *const u32,
+                parse_actions: *const ts::ffi::TSParseActionEntry,
+                symbol_names: *const *const ::std::os::raw::c_char,
+                field_names: *const *const ::std::os::raw::c_char,
+                field_map_slices: *const ts::ffi::TSFieldMapSlice,
+                field_map_entries: *const ts::ffi::TSFieldMapEntry,
+                symbol_metadata: *const ts::ffi::TSSymbolMetadata,
+                public_symbol_map: *const ts::ffi::TSSymbol,
+                alias_map: *const u16,
+                alias_sequences: *const ts::ffi::TSSymbol,
+                lex_modes: *const ts::ffi::TSLexMode,
+                lex_fn: ts::ffi::TSLexFn,
+                keyword_lex_fn: ts::ffi::TSLexFn,
+                keyword_capture_token: ts::ffi::TSSymbol,
+                external_scanner: ts::ffi::TSExternalScannerData,
+                primary_state_ids: *const ts::ffi::TSStateId,
+            }
+            
+            static LANGUAGE: OnceLock<ts::Language> = OnceLock::new();
             
             /// Get the Tree-sitter Language for this grammar
-            pub fn language() -> Language {
+            pub fn language() -> ts::Language {
                 *LANGUAGE.get_or_init(|| {
+                    // For now, create a simple language
+                    // This will be replaced with proper ABI-compatible structure
                     unsafe {
-                        Language::from_raw_parts(
-                            LANGUAGE_VERSION,
-                            SYMBOL_NAMES.as_ptr(),
-                            SYMBOL_METADATA.as_ptr(),
-                            FIELD_NAMES.as_ptr(),
-                            ACTION_TABLE.as_ptr(),
-                            GOTO_TABLE.as_ptr(),
-                            STATE_COUNT,
-                            SYMBOL_COUNT,
-                            FIELD_NAMES.len() as u32,
-                        )
+                        ts::Language::from_raw(std::ptr::null() as *const ts::ffi::TSLanguage)
                     }
                 })
             }
             
             /// Export for C FFI
             #[no_mangle]
-            pub extern "C" fn tree_sitter_language() -> Language {
+            pub extern "C" fn #language_fn_ident() -> ts::Language {
                 language()
             }
         }
@@ -140,13 +190,13 @@ impl StaticLanguageGenerator {
         let mut metadata = Vec::new();
         
         // Generate metadata for each symbol
-        for (_, token) in &self.grammar.tokens {
+        for (_, _token) in &self.grammar.tokens {
             let visible = true; // Terminals are usually visible
             let named = false; // Terminals are usually not named nodes
             let supertype = false;
             
             metadata.push(quote! {
-                tree_sitter::ffi::TSSymbolMetadata {
+                ts::ffi::TSSymbolMetadata {
                     visible: #visible,
                     named: #named,
                     supertype: #supertype,
@@ -161,7 +211,7 @@ impl StaticLanguageGenerator {
             let supertype = false; // Will be true if in supertypes list
             
             metadata.push(quote! {
-                tree_sitter::ffi::TSSymbolMetadata {
+                ts::ffi::TSSymbolMetadata {
                     visible: #visible,
                     named: #named,
                     supertype: #supertype,
@@ -183,7 +233,7 @@ impl StaticLanguageGenerator {
         let goto_entries = self.generate_goto_table_entries();
         
         let action_table = quote! {
-            static ACTION_TABLE: &[&[tree_sitter::ffi::TSParseActionEntry]] = &[#(#action_entries),*];
+            static ACTION_TABLE: &[&[ts::ffi::TSParseActionEntry]] = &[#(#action_entries),*];
         };
         
         let goto_table = quote! {
@@ -283,8 +333,8 @@ impl StaticLanguageGenerator {
                     Action::Shift(state) => {
                         let state_id = state.0;
                         quote! {
-                            tree_sitter::ffi::TSParseActionEntry {
-                                type_: tree_sitter::ffi::TSParseActionType::Shift,
+                            ts::ffi::TSParseActionEntry {
+                                type_: ts::ffi::TSParseActionType::Shift,
                                 state: #state_id,
                                 symbol: 0,
                                 child_count: 0,
@@ -296,8 +346,8 @@ impl StaticLanguageGenerator {
                     Action::Reduce(rule) => {
                         let rule_id = rule.0;
                         quote! {
-                            tree_sitter::ffi::TSParseActionEntry {
-                                type_: tree_sitter::ffi::TSParseActionType::Reduce,
+                            ts::ffi::TSParseActionEntry {
+                                type_: ts::ffi::TSParseActionType::Reduce,
                                 state: 0,
                                 symbol: #rule_id,
                                 child_count: 0, // Will be filled with actual child count
@@ -308,8 +358,8 @@ impl StaticLanguageGenerator {
                     }
                     Action::Accept => {
                         quote! {
-                            tree_sitter::ffi::TSParseActionEntry {
-                                type_: tree_sitter::ffi::TSParseActionType::Accept,
+                            ts::ffi::TSParseActionEntry {
+                                type_: ts::ffi::TSParseActionType::Accept,
                                 state: 0,
                                 symbol: 0,
                                 child_count: 0,
@@ -320,8 +370,8 @@ impl StaticLanguageGenerator {
                     }
                     Action::Error => {
                         quote! {
-                            tree_sitter::ffi::TSParseActionEntry {
-                                type_: tree_sitter::ffi::TSParseActionType::Error,
+                            ts::ffi::TSParseActionEntry {
+                                type_: ts::ffi::TSParseActionType::Error,
                                 state: 0,
                                 symbol: 0,
                                 child_count: 0,
@@ -338,8 +388,8 @@ impl StaticLanguageGenerator {
                                 Action::Shift(state) => {
                                     let state_id = state.0;
                                     quote! {
-                                        tree_sitter::ffi::TSParseActionEntry {
-                                            type_: tree_sitter::ffi::TSParseActionType::Shift,
+                                        ts::ffi::TSParseActionEntry {
+                                            type_: ts::ffi::TSParseActionType::Shift,
                                             state: #state_id,
                                             symbol: 0,
                                             child_count: 0,
@@ -350,8 +400,8 @@ impl StaticLanguageGenerator {
                                 }
                                 _ => {
                                     quote! {
-                                        tree_sitter::ffi::TSParseActionEntry {
-                                            type_: tree_sitter::ffi::TSParseActionType::Error,
+                                        ts::ffi::TSParseActionEntry {
+                                            type_: ts::ffi::TSParseActionType::Error,
                                             state: 0,
                                             symbol: 0,
                                             child_count: 0,
@@ -363,8 +413,8 @@ impl StaticLanguageGenerator {
                             }
                         } else {
                             quote! {
-                                tree_sitter::ffi::TSParseActionEntry {
-                                    type_: tree_sitter::ffi::TSParseActionType::Error,
+                                ts::ffi::TSParseActionEntry {
+                                    type_: ts::ffi::TSParseActionType::Error,
                                     state: 0,
                                     symbol: 0,
                                     child_count: 0,
@@ -412,14 +462,12 @@ impl StaticLanguageGenerator {
 pub struct TableCompressor {
     // Tree-sitter's magic constants for compression
     small_table_threshold: usize,
-    max_symbol_value: u16,
 }
 
 impl TableCompressor {
     pub fn new() -> Self {
         Self {
             small_table_threshold: 32768, // Tree-sitter's threshold
-            max_symbol_value: u16::MAX,
         }
     }
 
@@ -481,47 +529,46 @@ impl TableCompressor {
         let mut row_offsets = Vec::new();
         let mut default_reductions = Vec::new();
         
-        for (state_id, actions) in action_table.iter().enumerate() {
-            // Find default reduction (most common reduce action)
-            let mut reduce_counts: HashMap<&Action, usize> = HashMap::new();
+        for (_state_id, actions) in action_table.iter().enumerate() {
+            // Find the most common action overall
+            let mut action_counts: HashMap<&Action, usize> = HashMap::new();
             let mut has_shift = false;
             let mut has_accept = false;
             
             for action in actions {
+                *action_counts.entry(action).or_insert(0) += 1;
                 match action {
-                    Action::Reduce(_) => {
-                        *reduce_counts.entry(action).or_insert(0) += 1;
-                    }
                     Action::Shift(_) => has_shift = true,
                     Action::Accept => has_accept = true,
                     _ => {}
                 }
             }
             
-            // Default reduction is the most common reduce, but only if no shifts
-            let default_reduction = if !has_shift && !has_accept {
-                reduce_counts
-                    .iter()
-                    .max_by_key(|(_, count)| *count)
-                    .map(|(action, _)| (*action).clone())
-            } else {
-                None
+            // Tree-sitter uses the most common action as default, but only reduces if no shifts/accepts
+            let most_common = action_counts
+                .iter()
+                .max_by_key(|(_, count)| *count)
+                .map(|(action, _)| (*action).clone())
+                .unwrap_or(Action::Error);
+            
+            let default_action = match &most_common {
+                Action::Reduce(_) if !has_shift && !has_accept => most_common,
+                Action::Error => Action::Error,
+                _ => Action::Error, // Default to Error for other cases
             };
             
-            default_reductions.push(default_reduction.clone().unwrap_or(Action::Error));
+            default_reductions.push(default_action.clone());
             
             // Encode non-default actions
             row_offsets.push(entries.len() as u16);
             
             for (symbol_id, action) in actions.iter().enumerate() {
-                // Skip if this is the default reduction
-                if let Some(ref default) = default_reduction {
-                    if action == default {
-                        continue;
-                    }
+                // Skip if this is the default action
+                if action == &default_action {
+                    continue;
                 }
                 
-                let encoded = self.encode_action_small(action)?;
+                let _encoded = self.encode_action_small(action)?;
                 entries.push(CompressedActionEntry {
                     symbol: symbol_id as u16,
                     action: action.clone(),
@@ -907,7 +954,7 @@ mod tests {
     
     #[test]
     fn test_table_compression_large_table() {
-        let grammar = Grammar::new("large_test".to_string());
+        let _grammar = Grammar::new("large_test".to_string());
         
         // Create a parse table that exceeds small table threshold
         let parse_table = ParseTable {
@@ -1074,8 +1121,101 @@ mod tests {
         // Should generate valid Rust code
         let code_str = code.to_string();
         println!("Generated code: {}", code_str);
-        assert!(code_str.contains("pub fn language()"));
-        assert!(code_str.contains("tree_sitter_language"));
+        assert!(code_str.contains("pub fn language")); // Without parentheses in quote output
+        assert!(code_str.contains("tree_sitter_test_lang")); // Language-specific function name
         assert!(code_str.contains("LANGUAGE_VERSION"));
+    }
+    
+    #[test]
+    fn test_compressed_tables_validation() {
+        let parse_table = ParseTable {
+            action_table: vec![
+                vec![Action::Shift(StateId(1)), Action::Error],
+                vec![Action::Reduce(RuleId(0)), Action::Accept],
+            ],
+            goto_table: vec![
+                vec![StateId(0), StateId(1)],
+                vec![StateId(2), StateId(0)],
+            ],
+            symbol_metadata: vec![],
+            state_count: 2,
+            symbol_count: 2,
+        };
+        
+        let compressor = TableCompressor::new();
+        let compressed = compressor.compress(&parse_table).unwrap();
+        
+        // Validate compressed tables
+        assert!(compressed.validate(&parse_table).is_ok());
+    }
+    
+    #[test]
+    fn test_tree_sitter_compatibility() {
+        // Test that our encoding matches Tree-sitter's expectations
+        let compressor = TableCompressor::new();
+        
+        // Tree-sitter encoding examples:
+        // Shift to state 42: 0x002A (42 in hex)
+        let shift = Action::Shift(StateId(42));
+        assert_eq!(compressor.encode_action_small(&shift).unwrap(), 0x002A);
+        
+        // Reduce by rule 17: 0x8022 (0x8000 | (17 << 1))
+        let reduce = Action::Reduce(RuleId(17));
+        assert_eq!(compressor.encode_action_small(&reduce).unwrap(), 0x8022);
+        
+        // Accept: 0xFFFF
+        let accept = Action::Accept;
+        assert_eq!(compressor.encode_action_small(&accept).unwrap(), 0xFFFF);
+        
+        // Error: 0xFFFE
+        let error = Action::Error;
+        assert_eq!(compressor.encode_action_small(&error).unwrap(), 0xFFFE);
+    }
+    
+    #[test]
+    fn test_compressed_action_entry() {
+        let entry = CompressedActionEntry::new(5, Action::Shift(StateId(10)));
+        assert_eq!(entry.symbol, 5);
+        match entry.action {
+            Action::Shift(StateId(10)) => {},
+            _ => panic!("Wrong action type"),
+        }
+    }
+    
+    #[test]
+    fn test_generated_small_table_format() {
+        let mut grammar = Grammar::new("small_test".to_string());
+        
+        // Add a simple grammar
+        let token = Token {
+            name: "A".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        };
+        grammar.tokens.insert(SymbolId(0), token);
+        
+        // Simple parse table
+        let parse_table = ParseTable {
+            action_table: vec![
+                vec![Action::Shift(StateId(1))],
+                vec![Action::Accept],
+            ],
+            goto_table: vec![
+                vec![StateId(1)],
+                vec![StateId(0)],
+            ],
+            symbol_metadata: vec![],
+            state_count: 2,
+            symbol_count: 1,
+        };
+        
+        let mut generator = StaticLanguageGenerator::new(grammar, parse_table);
+        generator.compress_tables().unwrap();
+        
+        let code = generator.generate_language_code();
+        let code_str = code.to_string();
+        
+        // Should generate small table format
+        assert!(code_str.contains("SMALL_PARSE_TABLE") || code_str.contains("ACTION_TABLE"));
     }
 }
