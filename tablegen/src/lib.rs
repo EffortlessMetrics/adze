@@ -1,6 +1,7 @@
 // Static table generation and compression for pure-Rust Tree-sitter
 // This module implements Tree-sitter's exact table compression algorithms
 
+pub mod abi;
 pub mod compress;
 pub mod external_scanner;
 pub mod generate;
@@ -138,45 +139,16 @@ impl StaticLanguageGenerator {
             // NODE_TYPES JSON
             pub const NODE_TYPES: &str = #node_types_json;
             
-            // Language metadata
-            const LANGUAGE_VERSION: u32 = 15; // ABI version 15
-            const STATE_COUNT: u32 = #state_count as u32;
+                        const STATE_COUNT: u32 = #state_count as u32;
             const SYMBOL_COUNT: u32 = #symbol_count as u32;
             const FIELD_COUNT: u32 = #field_count as u32;
             const EXTERNAL_TOKEN_COUNT: u32 = #external_token_count as u32;
             
-            // Tree-sitter Language structure (ABI v15)
-            #[repr(C)]
-            struct TSLanguage {
-                version: u32,
-                symbol_count: u32,
-                alias_count: u32,
-                token_count: u32,
-                external_token_count: u32,
-                state_count: u32,
-                large_state_count: u32,
-                production_id_count: u32,
-                field_count: u32,
-                max_alias_sequence_length: u16,
-                parse_table: *const u16,
-                small_parse_table: *const u16,
-                small_parse_table_map: *const u32,
-                parse_actions: *const ts::ffi::TSParseActionEntry,
-                symbol_names: *const *const ::std::os::raw::c_char,
-                field_names: *const *const ::std::os::raw::c_char,
-                field_map_slices: *const ts::ffi::TSFieldMapSlice,
-                field_map_entries: *const ts::ffi::TSFieldMapEntry,
-                symbol_metadata: *const ts::ffi::TSSymbolMetadata,
-                public_symbol_map: *const ts::ffi::TSSymbol,
-                alias_map: *const u16,
-                alias_sequences: *const ts::ffi::TSSymbol,
-                lex_modes: *const ts::ffi::TSLexMode,
-                lex_fn: ts::ffi::TSLexFn,
-                keyword_lex_fn: ts::ffi::TSLexFn,
-                keyword_capture_token: ts::ffi::TSSymbol,
-                external_scanner: ts::ffi::TSExternalScannerData,
-                primary_state_ids: *const ts::ffi::TSStateId,
-            }
+            // Import our ABI module
+            use crate::abi::*;
+            
+            // Language metadata
+            const LANGUAGE_VERSION: u32 = TREE_SITTER_LANGUAGE_VERSION; // ABI version 15
             
             // For now, use a simplified approach that compiles
             // In a full implementation, we would properly construct the Language structure

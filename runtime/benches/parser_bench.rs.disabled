@@ -4,7 +4,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rust_sitter::lexer::{GrammarLexer, ErrorRecoveringLexer, ErrorRecoveryMode};
 use rust_sitter::parser_v2::{ParserV2, Token};
-use rust_sitter::incremental::{IncrementalParser, Edit, IncrementalTree};
+// use rust_sitter::incremental::{IncrementalParser, Edit, IncrementalTree};
 use rust_sitter_glr_core::{ParseTable, Action, SymbolMetadata};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, Symbol, SymbolId, Token as IrToken, TokenPattern, ProductionId};
 use std::collections::HashMap;
@@ -243,6 +243,7 @@ fn benchmark_parser(c: &mut Criterion) {
     });
 }
 
+/*
 fn benchmark_incremental(c: &mut Criterion) {
     let grammar = create_arithmetic_grammar();
     let table = create_parse_table();
@@ -286,6 +287,7 @@ fn benchmark_incremental(c: &mut Criterion) {
         });
     });
 }
+*/
 
-criterion_group!(benches, benchmark_lexer, benchmark_parser, benchmark_incremental);
+criterion_group!(benches, benchmark_lexer, benchmark_parser); // , benchmark_incremental);
 criterion_main!(benches);

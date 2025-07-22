@@ -3,7 +3,7 @@
 
 use crate::parser_v2::{ParseNode, ParserV2};
 use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{Grammar, SymbolId};
+use rust_sitter_ir::Grammar;
 use std::ops::Range;
 
 /// Represents an edit to a document
@@ -56,7 +56,8 @@ impl IncrementalTree {
     /// Compute byte ranges for all nodes in the tree
     fn compute_node_ranges(&mut self) {
         self.node_ranges.clear();
-        self.collect_ranges(&self.root, 0);
+        let root_clone = self.root.clone();
+        self.collect_ranges(&root_clone, 0);
     }
 
     /// Recursively collect node ranges
@@ -66,7 +67,7 @@ impl IncrementalTree {
         
         if node.children.is_empty() {
             // Leaf node - use token length
-            let len = node.symbol.0; // Simplified - would need actual token length
+            let len = node.symbol.0 as usize; // Simplified - would need actual token length
             self.node_ranges.push((node_id, start..start + len));
             offset + len
         } else {
@@ -138,11 +139,11 @@ impl IncrementalParser {
             self.parse_with_reuse(tokens, old_tree, edits)
         } else {
             // No old tree - parse from scratch
-            let root = self.parser.parse(tokens)?;
+            let root = self.parser.parse(tokens.to_vec())?;
             let text = tokens.iter()
-                .map(|t| &t.text[..])
-                .collect::<Vec<_>>()
-                .join("");
+                .map(|t| t.text.clone())
+                .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+                .collect::<String>();
             Ok(IncrementalTree::new(root, text))
         }
     }
@@ -170,11 +171,11 @@ impl IncrementalParser {
         }
 
         // Full reparse
-        let root = self.parser.parse(tokens)?;
+        let root = self.parser.parse(tokens.to_vec())?;
         let text = tokens.iter()
-            .map(|t| &t.text[..])
-            .collect::<Vec<_>>()
-            .join("");
+            .map(|t| t.text.clone())
+            .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+            .collect::<String>();
         Ok(IncrementalTree::new(root, text))
     }
 }
@@ -182,23 +183,35 @@ impl IncrementalParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser_v2::Token;
+    use rust_sitter_ir::SymbolId;
 
     #[test]
     fn test_edit_application() {
         // Create a simple tree
         let root = ParseNode {
             symbol: SymbolId(0),
+            rule_id: None,
             children: vec![
                 ParseNode {
                     symbol: SymbolId(1),
+                    rule_id: None,
                     children: vec![],
+                    start_byte: 0,
+                    end_byte: 5,
+                    text: Some(b"hello".to_vec()),
                 },
                 ParseNode {
                     symbol: SymbolId(2),
+                    rule_id: None,
                     children: vec![],
+                    start_byte: 6,
+                    end_byte: 11,
+                    text: Some(b"world".to_vec()),
                 },
             ],
+            start_byte: 0,
+            end_byte: 11,
+            text: None,
         };
 
         let mut tree = IncrementalTree::new(root, "hello world".to_string());
@@ -230,20 +243,36 @@ mod tests {
     fn test_affected_nodes() {
         let root = ParseNode {
             symbol: SymbolId(0),
+            rule_id: None,
             children: vec![
                 ParseNode {
                     symbol: SymbolId(1),
+                    rule_id: None,
                     children: vec![],
+                    start_byte: 0,
+                    end_byte: 4,
+                    text: Some(b"abcd".to_vec()),
                 },
                 ParseNode {
                     symbol: SymbolId(2),
+                    rule_id: None,
                     children: vec![],
+                    start_byte: 4,
+                    end_byte: 8,
+                    text: Some(b"efgh".to_vec()),
                 },
                 ParseNode {
                     symbol: SymbolId(3),
+                    rule_id: None,
                     children: vec![],
+                    start_byte: 8,
+                    end_byte: 12,
+                    text: Some(b"ijkl".to_vec()),
                 },
             ],
+            start_byte: 0,
+            end_byte: 12,
+            text: None,
         };
 
         let mut tree = IncrementalTree::new(root, "abcdefghijkl".to_string());
