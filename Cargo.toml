@@ -9,4 +9,5 @@ members = [
   "ir",
   "glr-core",
   "tablegen",
+  "xtask",
 ]
