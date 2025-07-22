@@ -766,6 +766,9 @@ name = "rust-sitter"
 version = "0.4.5"
 dependencies = [
  "insta",
+ "regex",
+ "rust-sitter-glr-core",
+ "rust-sitter-ir",
  "rust-sitter-macro",
  "tempfile",
  "tree-sitter",

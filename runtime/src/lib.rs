@@ -1,4 +1,7 @@
 pub mod __private;
+pub mod lexer;
+pub mod parser;
+pub mod parser_v2;
 
 use std::ops::Deref;
 
