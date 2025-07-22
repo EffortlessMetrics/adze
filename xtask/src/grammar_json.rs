@@ -9,8 +9,8 @@ pub fn extract_node_types_from_grammar_json(grammar_json: &str) -> Result<Vec<No
     
     if let Some(rules) = grammar.get("rules").and_then(|r| r.as_object()) {
         for (rule_name, rule_value) in rules {
-            // Skip internal rules
-            if rule_name == "source_file" || rule_name.contains("_0") || rule_name.contains("_1") {
+            // Skip only the source_file rule
+            if rule_name == "source_file" {
                 continue;
             }
             
@@ -18,13 +18,15 @@ pub fn extract_node_types_from_grammar_json(grammar_json: &str) -> Result<Vec<No
             if let Some(rule_type) = rule_value.get("type").and_then(|t| t.as_str()) {
                 match rule_type {
                     "SEQ" | "PREC_LEFT" | "PREC_RIGHT" => {
-                        // This is a named node with potential fields
-                        let fields = extract_fields_from_rule(rule_value);
-                        node_types.push(NodeTypeInfo {
-                            name: clean_rule_name(rule_name),
-                            named: true,
-                            fields,
-                        });
+                        // Only process if this is a main rule (not an internal _0, _1 rule)
+                        if !rule_name.contains("_0") && !rule_name.ends_with("_1") && !rule_name.ends_with("_2") {
+                            let fields = extract_fields_from_rule(rule_value);
+                            node_types.push(NodeTypeInfo {
+                                name: clean_rule_name(rule_name),
+                                named: true,
+                                fields,
+                            });
+                        }
                     }
                     "STRING" => {
                         // This is a literal token

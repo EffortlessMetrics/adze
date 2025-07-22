@@ -1,29 +1,27 @@
 [
   {
-    "type": "expression",
     "named": true,
     "subtypes": [
       {
-        "type": "binary_expression",
-        "named": true
+        "named": true,
+        "type": "number"
       },
       {
-        "type": "number",
-        "named": true
+        "named": true,
+        "type": "binary_expression"
       }
-    ]
+    ],
+    "type": "expression"
   },
   {
-    "type": "binary_expression",
-    "named": true,
     "fields": {
       "left": {
         "multiple": false,
         "required": true,
         "types": [
           {
-            "type": "expression",
-            "named": true
+            "named": true,
+            "type": "expression"
           }
         ]
       },
@@ -32,12 +30,12 @@
         "required": true,
         "types": [
           {
-            "type": "-",
-            "named": false
+            "named": false,
+            "type": "-"
           },
           {
-            "type": "*",
-            "named": false
+            "named": false,
+            "type": "*"
           }
         ]
       },
@@ -46,24 +44,26 @@
         "required": true,
         "types": [
           {
-            "type": "expression",
-            "named": true
+            "named": true,
+            "type": "expression"
           }
         ]
       }
-    }
-  },
-  {
-    "type": "number",
+    },
     "named": true,
-    "fields": {}
+    "type": "binary_expression"
   },
   {
-    "type": "-",
-    "named": false
+    "fields": {},
+    "named": true,
+    "type": "number"
   },
   {
-    "type": "*",
-    "named": false
+    "named": false,
+    "type": "*"
+  },
+  {
+    "named": false,
+    "type": "-"
   }
 ]
