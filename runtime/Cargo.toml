@@ -17,6 +17,7 @@ path = "src/lib.rs"
 default = ["tree-sitter-c2rust"]
 tree-sitter-c2rust = ["tree-sitter-runtime-c2rust"]
 tree-sitter-standard = ["tree-sitter-runtime-standard"]
+serialization = ["serde", "serde_json"]
 
 [dependencies]
 tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
@@ -25,6 +26,8 @@ rust-sitter-macro = { version = "0.4.5", path = "../macro" }
 rust-sitter-ir = { path = "../ir" }
 rust-sitter-glr-core = { path = "../glr-core" }
 regex = "1.10"
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
 
 [dev-dependencies]
 insta = "1.39"
@@ -33,4 +36,8 @@ criterion = { version = "0.5", features = ["html_reports"] }
 
 [[bench]]
 name = "simple_bench"
+harness = false
+
+[[bench]]
+name = "parser_benchmark"
 harness = false

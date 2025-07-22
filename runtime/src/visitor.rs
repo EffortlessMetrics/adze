@@ -1,28 +1,28 @@
 // Parse tree visitor API for the pure-Rust Tree-sitter implementation
 // This module provides flexible visitor patterns for traversing and analyzing parse trees
 
-use crate::tree_sitter::{Node, TreeCursor};
+use crate::tree_sitter::Node;
 use std::collections::VecDeque;
 
 /// Visitor trait for traversing parse trees
 pub trait Visitor {
     /// Called when entering a node
-    fn enter_node(&mut self, node: &Node) -> VisitorAction {
+    fn enter_node(&mut self, _node: &Node) -> VisitorAction {
         VisitorAction::Continue
     }
     
     /// Called when leaving a node
-    fn leave_node(&mut self, node: &Node) {
+    fn leave_node(&mut self, _node: &Node) {
         // Default: do nothing
     }
     
     /// Called for leaf nodes (tokens)
-    fn visit_leaf(&mut self, node: &Node, text: &str) {
+    fn visit_leaf(&mut self, _node: &Node, _text: &str) {
         // Default: do nothing
     }
     
     /// Called for error nodes
-    fn visit_error(&mut self, node: &Node) {
+    fn visit_error(&mut self, _node: &Node) {
         // Default: do nothing
     }
 }
@@ -184,7 +184,7 @@ impl Visitor for StatsVisitor {
 /// Visitor that searches for specific node types
 pub struct SearchVisitor<F> {
     predicate: F,
-    pub matches: Vec<Node>,
+    pub matches: Vec<(usize, usize, String)>, // (start, end, kind)
 }
 
 impl<F> SearchVisitor<F>
@@ -205,7 +205,11 @@ where
 {
     fn enter_node(&mut self, node: &Node) -> VisitorAction {
         if (self.predicate)(node) {
-            self.matches.push(*node);
+            self.matches.push((
+                node.start_byte(),
+                node.end_byte(),
+                node.kind().to_string(),
+            ));
         }
         VisitorAction::Continue
     }
@@ -239,9 +243,7 @@ impl Visitor for PrettyPrintVisitor {
             self.output.push_str(" [named]");
         }
         
-        if let Some(field_name) = node.field_name() {
-            self.output.push_str(&format!(" field: {}", field_name));
-        }
+        // Field names not directly accessible on Node
         
         self.output.push('\n');
         self.indent += 1;
@@ -257,9 +259,7 @@ impl Visitor for PrettyPrintVisitor {
         let indent_str = "  ".repeat(self.indent);
         self.output.push_str(&format!("{}\"{}\"", indent_str, text));
         
-        if let Some(field_name) = node.field_name() {
-            self.output.push_str(&format!(" field: {}", field_name));
-        }
+        // Field names not directly accessible on Node
         
         self.output.push('\n');
     }

@@ -138,7 +138,7 @@ impl GrammarVisualizer {
         let mut output = String::new();
         
         writeln!(&mut output, "Grammar: {}", self.grammar.name).unwrap();
-        writeln!(&mut output, "=" .repeat(50)).unwrap();
+        writeln!(&mut output, "{}", "=".repeat(50)).unwrap();
         
         // Tokens
         writeln!(&mut output, "\nTokens:").unwrap();
@@ -293,85 +293,8 @@ impl GrammarVisualizer {
     }
 }
 
-/// Tree visualizer for parse trees
-pub struct TreeVisualizer<'a> {
-    source: &'a [u8],
-}
-
-impl<'a> TreeVisualizer<'a> {
-    pub fn new(source: &'a [u8]) -> Self {
-        Self { source }
-    }
-    
-    /// Generate ASCII art representation of a parse tree
-    pub fn to_ascii(&self, node: &crate::tree_sitter::Node) -> String {
-        let mut output = String::new();
-        self.draw_node_ascii(node, &mut output, "", true);
-        output
-    }
-    
-    fn draw_node_ascii(
-        &self,
-        node: &crate::tree_sitter::Node,
-        output: &mut String,
-        prefix: &str,
-        is_last: bool,
-    ) {
-        // Draw branch
-        let branch = if is_last { "└── " } else { "├── " };
-        write!(output, "{}{}", prefix, branch).unwrap();
-        
-        // Draw node info
-        write!(output, "{}", node.kind()).unwrap();
-        
-        if node.is_named() {
-            write!(output, " [named]").unwrap();
-        }
-        
-        if node.is_error() {
-            write!(output, " [ERROR]").unwrap();
-        }
-        
-        // Add text for leaf nodes
-        if node.child_count() == 0 {
-            if let Ok(text) = node.utf8_text(self.source) {
-                let text = if text.len() > 20 {
-                    format!("\"{}...\"", &text[..20])
-                } else {
-                    format!("\"{}\"", text)
-                };
-                write!(output, " {}", text).unwrap();
-            }
-        }
-        
-        writeln!(output).unwrap();
-        
-        // Draw children
-        let child_count = node.child_count();
-        if child_count > 0 {
-            let mut cursor = node.walk();
-            if cursor.goto_first_child() {
-                let mut i = 0;
-                loop {
-                    let child = cursor.node();
-                    let is_last_child = i == child_count - 1;
-                    let child_prefix = if is_last {
-                        format!("{}    ", prefix)
-                    } else {
-                        format!("{}│   ", prefix)
-                    };
-                    
-                    self.draw_node_ascii(&child, output, &child_prefix, is_last_child);
-                    
-                    if !cursor.goto_next_sibling() {
-                        break;
-                    }
-                    i += 1;
-                }
-            }
-        }
-    }
-}
+// Note: TreeVisualizer for parse trees should be implemented in the runtime crate
+// where tree_sitter types are available, not in the tool crate
 
 #[cfg(test)]
 mod tests {

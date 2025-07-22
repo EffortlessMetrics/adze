@@ -8,6 +8,9 @@ mod arithmetic;
 mod optionals;
 mod repetitions;
 mod words;
+// mod json;
+// mod c_like;
+mod performance_test;
 
 fn convert_parse_error_to_diagnostics(
     file_span: &codemap::Span,

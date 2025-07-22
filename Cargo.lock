@@ -922,6 +922,8 @@ dependencies = [
  "rust-sitter-glr-core",
  "rust-sitter-ir",
  "rust-sitter-macro",
+ "serde",
+ "serde_json",
  "tempfile",
  "tree-sitter",
  "tree-sitter-c2rust",
