@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use xshell::Shell;
 
 mod golden;
+mod grammar_json;
 
 #[derive(Parser)]
 #[command(author, version, about = "Rust Sitter development tasks")]

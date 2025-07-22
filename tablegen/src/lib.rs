@@ -3,11 +3,13 @@
 
 pub mod compress;
 pub mod generate;
+pub mod node_types;
 pub mod validation;
 
 // Re-export key types
 pub use compress::CompressedParseTable;
 pub use generate::LanguageBuilder;
+pub use node_types::NodeTypesGenerator;
 pub use validation::{LanguageValidator, ValidationError};
 
 // use indexmap::IndexMap; // Currently unused
@@ -20,14 +22,14 @@ use std::collections::HashMap;
 
 // Use the appropriate tree-sitter backend
 #[cfg(feature = "tree-sitter-standard")]
-use tree_sitter as ts;
+use tree_sitter as _ts;
 
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "tree-sitter-standard")))]
-use tree_sitter_c2rust as ts;
+use tree_sitter_c2rust as _ts;
 
 // Ensure ts is available even if neither feature is enabled (for tests)
 #[cfg(all(not(feature = "tree-sitter-standard"), not(feature = "tree-sitter-c2rust")))]
-use tree_sitter_c2rust as ts;
+use tree_sitter_c2rust as _ts;
 
 /// Static Language generator that produces Rust code
 pub struct StaticLanguageGenerator {

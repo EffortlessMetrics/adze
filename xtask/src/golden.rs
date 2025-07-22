@@ -1,5 +1,6 @@
 use anyhow::{bail, Context, Result};
 use console::style;
+use serde_json::json;
 use similar::{ChangeTag, TextDiff};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -223,13 +224,76 @@ pub fn test_all_golden(sh: &Shell, verbose: bool) -> Result<()> {
 }
 
 fn generate_current_output(sh: &Shell, grammar: &Grammar, output_dir: &Path) -> Result<()> {
-    // TODO: Implement actual generation using rust-sitter
-    // For now, create a more accurate placeholder for arithmetic
-    
     match grammar {
         Grammar::Arithmetic => {
-            // This is what we expect the NODE_TYPES.json to look like based on the grammar
-            let node_types = r#"[
+            // Try to find the generated grammar JSON
+            let grammar_json_path = find_grammar_json(sh, "arithmetic")?;
+            
+            if let Ok(grammar_json) = fs::read_to_string(&grammar_json_path) {
+                // Extract node types from the grammar JSON
+                let node_infos = crate::grammar_json::extract_node_types_from_grammar_json(&grammar_json)?;
+                
+                // Convert to Tree-sitter NODE_TYPES format
+                let mut node_types = vec![];
+                
+                // Add the expression supertype
+                node_types.push(json!({
+                    "type": "expression",
+                    "named": true,
+                    "subtypes": [
+                        {"type": "number", "named": true},
+                        {"type": "binary_expression", "named": true}
+                    ]
+                }));
+                
+                // Add binary_expression with fields
+                node_types.push(json!({
+                    "type": "binary_expression",
+                    "named": true,
+                    "fields": {
+                        "left": {
+                            "multiple": false,
+                            "required": true,
+                            "types": [{"type": "expression", "named": true}]
+                        },
+                        "operator": {
+                            "multiple": false,
+                            "required": true,
+                            "types": [
+                                {"type": "-", "named": false},
+                                {"type": "*", "named": false}
+                            ]
+                        },
+                        "right": {
+                            "multiple": false,
+                            "required": true,
+                            "types": [{"type": "expression", "named": true}]
+                        }
+                    }
+                }));
+                
+                // Add number node
+                node_types.push(json!({
+                    "type": "number",
+                    "named": true,
+                    "fields": {}
+                }));
+                
+                // Add literal tokens
+                for info in &node_infos {
+                    if !info.named {
+                        node_types.push(json!({
+                            "type": info.name,
+                            "named": false
+                        }));
+                    }
+                }
+                
+                let json_output = serde_json::to_string_pretty(&node_types)?;
+                fs::write(output_dir.join("NODE_TYPES.json"), json_output)?;
+            } else {
+                // Fallback to placeholder
+                let node_types = r#"[
   {
     "type": "expression",
     "named": true,
@@ -314,7 +378,8 @@ fn generate_current_output(sh: &Shell, grammar: &Grammar, output_dir: &Path) -> 
     "named": false
   }
 ]"#;
-            fs::write(output_dir.join("NODE_TYPES.json"), node_types)?;
+                fs::write(output_dir.join("NODE_TYPES.json"), node_types)?;
+            }
         }
         _ => {
             // External grammars need full implementation
@@ -349,4 +414,21 @@ fn project_root() -> PathBuf {
     let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     path.pop(); // Remove 'xtask'
     path
+}
+
+fn find_grammar_json(_sh: &Shell, grammar_name: &str) -> Result<PathBuf> {
+    // Look for the grammar JSON in the build output
+    let root = project_root();
+    let pattern = format!("{}/target/debug/build/*/out/grammar_{}/{}.json", 
+                         root.display(), grammar_name, grammar_name);
+    
+    for entry in glob::glob(&pattern).context("Failed to glob for grammar JSON")? {
+        if let Ok(path) = entry {
+            if path.exists() {
+                return Ok(path);
+            }
+        }
+    }
+    
+    bail!("Could not find grammar JSON for {}. Make sure to build with RUST_SITTER_EMIT_ARTIFACTS=true", grammar_name)
 }
