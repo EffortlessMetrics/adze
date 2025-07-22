@@ -85,6 +85,25 @@ Rust Sitter is a Rust workspace consisting of multiple interconnected crates tha
    - Contains arithmetic, optional, repetition, and word grammar examples
    - Uses snapshot testing with `insta` for parser output verification
 
+### New Pure-Rust Implementation Components
+
+6. **`rust-sitter-ir`** - Grammar Intermediate Representation
+   - Located in `/ir/`
+   - Defines the IR for representing grammars with GLR support
+   - Supports precedence, associativity, field mappings, and fragile tokens
+
+7. **`rust-sitter-glr-core`** - GLR Parser Generation Core
+   - Located in `/glr-core/`
+   - Implements FIRST/FOLLOW set computation
+   - LR(1) item sets and canonical collection building
+   - Conflict detection and GLR fork/merge logic
+
+8. **`rust-sitter-tablegen`** - Table Generation and Compression
+   - Located in `/tablegen/`
+   - Implements Tree-sitter's table compression algorithms
+   - Generates static Language objects with FFI compatibility
+   - Produces NODE_TYPES JSON metadata
+
 ### Key Design Patterns
 
 1. **Grammar Definition Flow**:
@@ -109,3 +128,20 @@ When making changes:
 3. The tool crate handles all build-time code generation
 4. Test changes using the example crate which has comprehensive snapshot tests
 5. Use `cargo insta review` to update snapshots when grammar output changes intentionally
+
+### Pure-Rust Implementation Development
+
+When working on the pure-Rust implementation:
+1. The IR crate defines the grammar representation - modify this for new grammar features
+2. The GLR core implements the parser generation algorithms - this is where conflict resolution happens
+3. The tablegen crate handles compression - ensure bit-for-bit compatibility with Tree-sitter
+4. Use `emit_ir!()` macro to debug grammar extraction
+5. Test table generation with `cargo test -p rust-sitter-tablegen`
+6. Verify Language struct layout matches Tree-sitter ABI exactly
+
+### Testing Guidelines
+
+1. **Grammar Tests**: Add new grammars to `/example/src/` with corresponding snapshot tests
+2. **Compression Tests**: Verify table compression maintains Tree-sitter compatibility
+3. **FFI Tests**: Ensure generated Language structs match C ABI requirements
+4. **Integration Tests**: Test with real Tree-sitter grammars for validation

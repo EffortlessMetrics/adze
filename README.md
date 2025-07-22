@@ -3,6 +3,8 @@
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
+> **Note**: Rust Sitter is actively being rewritten to use a pure-Rust implementation that generates static parsers at compile time, eliminating all C dependencies. This will enable true WASM support, improved performance, and better integration with the Rust ecosystem. The API remains stable during this transition.
+
 ## Installation
 First, add Rust/Tree Sitter to your `Cargo.toml`:
 ```toml
@@ -13,7 +15,7 @@ rust-sitter = "0.4.5"
 rust-sitter-tool = "0.4.5"
 ```
 
-_Note: By default, Rust Sitter uses a fork of Tree Sitter with a pure-Rust runtime to support `wasm32-unknown-unknown`. To use the standard C runtime instead, disable default features and enable the `tree-sitter-standard` feature_
+_Note: By default, Rust Sitter uses `tree-sitter-c2rust`, a fork of Tree Sitter with a pure-Rust runtime to support `wasm32-unknown-unknown`. To use the standard C runtime instead, disable default features and enable the `tree-sitter-standard` feature. A fully native Rust implementation is under active development._
 
 The first step is to configure your `build.rs` to compile and link the generated Tree Sitter parser:
 
@@ -239,3 +241,14 @@ Boxes are automatically constructed around the inner type when parsing, but Rust
 ## Debugging
 
 To view the generated grammar, you can set the `RUST_SITTER_EMIT_ARTIFACTS` environment variable to `true`. This will cause the generated grammar to be written to wherever cargo sets `OUT_DIR` (usually `target/debug/build/<crate>-<hash>/out`).
+
+## Project Status
+
+Rust Sitter is under active development with a major pure-Rust implementation underway:
+
+- **Stable API**: The user-facing API shown in this README is stable and will not change
+- **Pure-Rust Backend**: A GLR parser generator that produces static Rust code at compile time (90% complete)
+- **Enhanced Features**: Support for ambiguous grammars, better error recovery, and improved performance
+- **Full Compatibility**: Maintains 100% compatibility with existing Tree-sitter grammars
+
+For more details on the implementation progress, see [IMPLEMENTATION_ROADMAP.md](./IMPLEMENTATION_ROADMAP.md).
