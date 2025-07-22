@@ -5,6 +5,9 @@ pub mod incremental_v2;
 pub mod lexer;
 pub mod parser;
 pub mod parser_v2;
+pub mod error_recovery;
+pub mod visitor;
+pub mod serialization;
 
 use std::ops::Deref;
 

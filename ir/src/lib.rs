@@ -5,6 +5,12 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+pub mod optimizer;
+pub use optimizer::{GrammarOptimizer, OptimizationStats};
+
+pub mod validation;
+pub use validation::{GrammarValidator, ValidationError, ValidationWarning, ValidationResult};
+
 /// Core grammar representation supporting all Tree-sitter features including GLR
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Grammar {
@@ -23,7 +29,7 @@ pub struct Grammar {
 }
 
 /// Grammar rule supporting GLR multiple actions per state
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Rule {
     pub lhs: SymbolId,
     pub rhs: Vec<Symbol>,
@@ -34,14 +40,14 @@ pub struct Rule {
 }
 
 /// Precedence supporting both static and dynamic precedence (PREC_DYNAMIC)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PrecedenceKind {
     Static(i16),
     Dynamic(i16),
 }
 
 /// Token with fragile flag for lexical vs parse conflicts
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Token {
     pub name: String,
     pub pattern: TokenPattern,
@@ -49,7 +55,7 @@ pub struct Token {
 }
 
 /// Token pattern representation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TokenPattern {
     String(String),
     Regex(String),
@@ -78,7 +84,7 @@ pub struct Precedence {
 }
 
 /// Associativity for conflict resolution
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Associativity {
     Left,
     Right,
@@ -93,7 +99,7 @@ pub struct ConflictDeclaration {
 }
 
 /// How to resolve conflicts
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConflictResolution {
     Precedence(PrecedenceKind),
     Associativity(Associativity),

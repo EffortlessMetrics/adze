@@ -7,6 +7,9 @@ use expansion::*;
 mod grammar_converter;
 pub use grammar_converter::GrammarConverter;
 
+pub mod visualization;
+pub use visualization::{GrammarVisualizer, TreeVisualizer};
+
 // mod pure_rust_builder;
 // pub use pure_rust_builder::{build_parser, build_parser_for_crate, BuildOptions, BuildResult};
 

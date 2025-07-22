@@ -9,6 +9,8 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 
 - [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference for the pure-Rust implementation
 - [Implementation Status](./IMPLEMENTATION_STATUS.md) - Current status of the pure-Rust implementation
+- [Implementation Update](./IMPLEMENTATION_UPDATE.md) - Recent enhancements and features
+- [Pure-Rust Summary](./PURE_RUST_SUMMARY.md) - Overview of the pure-Rust implementation
 
 ## Installation
 First, add Rust/Tree Sitter to your `Cargo.toml`:

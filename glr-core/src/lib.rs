@@ -7,6 +7,9 @@ use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
+pub mod advanced_conflict;
+pub use advanced_conflict::{ConflictAnalyzer, PrecedenceResolver, ConflictStats, PrecedenceDecision};
+
 /// FIRST/FOLLOW sets computation for GLR parsing
 #[derive(Debug, Clone)]
 pub struct FirstFollowSets {
