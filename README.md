@@ -249,6 +249,61 @@ Boxes are automatically constructed around the inner type when parsing, but Rust
 
 To view the generated grammar, you can set the `RUST_SITTER_EMIT_ARTIFACTS` environment variable to `true`. This will cause the generated grammar to be written to wherever cargo sets `OUT_DIR` (usually `target/debug/build/<crate>-<hash>/out`).
 
+## Enhanced Features (Pure-Rust Implementation)
+
+The pure-Rust implementation includes several powerful features for grammar development and debugging:
+
+### Grammar Optimization
+Automatically optimize your grammars for better performance:
+```rust
+use rust_sitter_ir::GrammarOptimizer;
+
+let mut optimizer = GrammarOptimizer::new();
+optimizer.optimize_grammar(&mut grammar);
+```
+
+### Grammar Validation
+Catch grammar issues early with comprehensive validation:
+```rust
+use rust_sitter_ir::GrammarValidator;
+
+let mut validator = GrammarValidator::new();
+let result = validator.validate(&grammar);
+for error in result.errors {
+    eprintln!("Error: {}", error);
+}
+```
+
+### Error Recovery
+Build robust parsers that handle syntax errors gracefully:
+```rust
+use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState};
+
+let config = ErrorRecoveryConfig::default()
+    .with_sync_tokens(vec![SEMICOLON, RBRACE])
+    .with_scope_delimiters(vec![(LPAREN, RPAREN), (LBRACE, RBRACE)]);
+```
+
+### Parse Tree Visitors
+Analyze and transform parse trees with the visitor API:
+```rust
+use rust_sitter::visitor::{TreeWalker, StatsVisitor};
+
+let mut visitor = StatsVisitor::default();
+let walker = TreeWalker::new(source);
+walker.walk(tree.root_node(), &mut visitor);
+```
+
+### Visualization Tools
+Visualize your grammars for better understanding:
+```rust
+use rust_sitter_tool::GrammarVisualizer;
+
+let visualizer = GrammarVisualizer::new(grammar);
+let dot = visualizer.to_dot();        // Graphviz format
+let svg = visualizer.to_railroad_svg(); // Railroad diagrams
+```
+
 ## Project Status
 
 Rust Sitter is under active development with a major pure-Rust implementation underway:

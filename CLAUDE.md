@@ -91,18 +91,31 @@ Rust Sitter is a Rust workspace consisting of multiple interconnected crates tha
    - Located in `/ir/`
    - Defines the IR for representing grammars with GLR support
    - Supports precedence, associativity, field mappings, and fragile tokens
+   - Includes grammar optimization (`optimizer.rs`)
+   - Includes grammar validation (`validation.rs`)
 
 7. **`rust-sitter-glr-core`** - GLR Parser Generation Core
    - Located in `/glr-core/`
    - Implements FIRST/FOLLOW set computation
    - LR(1) item sets and canonical collection building
    - Conflict detection and GLR fork/merge logic
+   - Advanced conflict resolution strategies (`advanced_conflict.rs`)
 
 8. **`rust-sitter-tablegen`** - Table Generation and Compression
    - Located in `/tablegen/`
    - Implements Tree-sitter's table compression algorithms
    - Generates static Language objects with FFI compatibility
    - Produces NODE_TYPES JSON metadata
+
+### Enhanced Runtime Components
+
+The runtime crate (`/runtime/`) now includes:
+- **`error_recovery.rs`** - Comprehensive error recovery strategies
+- **`visitor.rs`** - Parse tree visitor API for traversal and analysis
+- **`serialization.rs`** - Tree serialization in multiple formats
+
+The tool crate (`/tool/`) now includes:
+- **`visualization.rs`** - Grammar and tree visualization tools
 
 ### Key Design Patterns
 

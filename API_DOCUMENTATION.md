@@ -7,11 +7,18 @@ This document provides comprehensive API documentation for the pure-Rust Tree-si
 1. [Overview](#overview)
 2. [Core Modules](#core-modules)
 3. [Grammar Definition (IR)](#grammar-definition-ir)
-4. [Parser Generation (GLR Core)](#parser-generation-glr-core)
-5. [Table Generation](#table-generation)
-6. [Runtime Components](#runtime-components)
-7. [Build Integration](#build-integration)
-8. [Examples](#examples)
+4. [Grammar Optimization](#grammar-optimization)
+5. [Grammar Validation](#grammar-validation)
+6. [Parser Generation (GLR Core)](#parser-generation-glr-core)
+7. [Conflict Resolution](#conflict-resolution)
+8. [Table Generation](#table-generation)
+9. [Runtime Components](#runtime-components)
+10. [Error Recovery](#error-recovery)
+11. [Parse Tree Visitors](#parse-tree-visitors)
+12. [Tree Serialization](#tree-serialization)
+13. [Visualization Tools](#visualization-tools)
+14. [Build Integration](#build-integration)
+15. [Examples](#examples)
 
 ## Overview
 
@@ -364,6 +371,222 @@ match parser.parse(tokens) {
 - Grammars and parse tables are immutable and can be shared across threads
 - Parsers and lexers maintain state and should not be shared between threads
 - Use separate parser instances for concurrent parsing
+
+## Grammar Optimization
+
+The IR crate includes comprehensive optimization passes:
+
+```rust
+use rust_sitter_ir::{GrammarOptimizer, OptimizationStats};
+
+let mut optimizer = GrammarOptimizer::new();
+optimizer.optimize_grammar(&mut grammar);
+
+let stats = optimizer.get_stats();
+println!("Optimization results:");
+println!("  Removed {} unused symbols", stats.removed_unused_symbols);
+println!("  Inlined {} rules", stats.inlined_rules);
+println!("  Merged {} duplicate tokens", stats.merged_tokens);
+```
+
+Available optimizations:
+- Remove unused symbols and rules
+- Inline simple rules (A -> B)
+- Merge duplicate token patterns
+- Optimize left recursion
+- Eliminate unit rules
+
+## Grammar Validation
+
+Validate grammars to catch issues early:
+
+```rust
+use rust_sitter_ir::{GrammarValidator, ValidationResult};
+
+let mut validator = GrammarValidator::new();
+let result = validator.validate(&grammar);
+
+// Check for errors
+for error in &result.errors {
+    eprintln!("Error: {}", error);
+}
+
+// Check for warnings
+for warning in &result.warnings {
+    eprintln!("Warning: {}", warning);
+}
+
+// Access statistics
+println!("Grammar has {} reachable symbols", result.stats.reachable_symbols);
+```
+
+Validation checks:
+- Undefined symbol detection
+- Unreachable symbol analysis
+- Non-productive symbol detection
+- Cycle detection
+- Field validation
+- Precedence conflicts
+
+## Conflict Resolution
+
+The GLR core provides advanced conflict resolution:
+
+```rust
+use rust_sitter_glr_core::{ConflictAnalyzer, PrecedenceResolver};
+
+// Analyze conflicts in parse table
+let mut analyzer = ConflictAnalyzer::new();
+let stats = analyzer.analyze_table(&parse_table);
+println!("Found {} shift/reduce conflicts", stats.shift_reduce_conflicts);
+
+// Resolve conflicts using precedence
+let resolver = PrecedenceResolver::new(&grammar);
+if let Some(decision) = resolver.can_resolve_shift_reduce(shift_symbol, reduce_symbol) {
+    match decision {
+        PrecedenceDecision::PreferShift => { /* shift */ }
+        PrecedenceDecision::PreferReduce => { /* reduce */ }
+        PrecedenceDecision::Error => { /* non-associative error */ }
+    }
+}
+```
+
+## Error Recovery
+
+Build robust parsers with error recovery strategies:
+
+```rust
+use rust_sitter::error_recovery::{
+    ErrorRecoveryConfig, ErrorRecoveryState, 
+    RecoveryStrategy, ErrorRecoveryConfigBuilder
+};
+
+// Configure error recovery
+let config = ErrorRecoveryConfigBuilder::new()
+    .max_panic_skip(100)
+    .add_sync_token(SEMICOLON)
+    .add_sync_token(RBRACE)
+    .add_insertable_token(RPAREN)
+    .add_scope_delimiter(LPAREN, RPAREN)
+    .add_scope_delimiter(LBRACE, RBRACE)
+    .enable_indentation_recovery(true)
+    .build();
+
+// Use during parsing
+let mut recovery_state = ErrorRecoveryState::new(config);
+let strategy = recovery_state.determine_recovery_strategy(
+    &expected_symbols,
+    actual_symbol,
+    position,
+    byte_offset
+);
+```
+
+Recovery strategies:
+- Panic mode (skip to sync token)
+- Token insertion/deletion/substitution
+- Phrase-level recovery
+- Scope-based recovery (bracket matching)
+- Indentation-based recovery
+
+## Parse Tree Visitors
+
+Traverse and analyze parse trees with the visitor API:
+
+```rust
+use rust_sitter::visitor::{Visitor, TreeWalker, VisitorAction};
+
+// Implement a custom visitor
+struct MyVisitor {
+    identifier_count: usize,
+}
+
+impl Visitor for MyVisitor {
+    fn enter_node(&mut self, node: &Node) -> VisitorAction {
+        if node.kind() == "identifier" {
+            self.identifier_count += 1;
+        }
+        VisitorAction::Continue
+    }
+    
+    fn visit_leaf(&mut self, node: &Node, text: &str) {
+        println!("Leaf: {} = '{}'", node.kind(), text);
+    }
+}
+
+// Walk the tree
+let mut visitor = MyVisitor { identifier_count: 0 };
+let walker = TreeWalker::new(source);
+walker.walk(tree.root_node(), &mut visitor);
+```
+
+Built-in visitors:
+- `StatsVisitor` - Collect tree statistics
+- `SearchVisitor` - Find specific nodes
+- `PrettyPrintVisitor` - Generate readable tree representation
+- `TransformVisitor` - Transform tree structure
+
+## Tree Serialization
+
+Serialize parse trees in various formats:
+
+```rust
+use rust_sitter::serialization::{
+    TreeSerializer, CompactSerializer, 
+    SExpressionSerializer, BinarySerializer
+};
+
+// JSON serialization
+let serializer = TreeSerializer::new(source)
+    .with_unnamed_nodes()
+    .with_max_text_length(Some(50));
+let json = serializer.serialize_tree(&tree)?;
+
+// Compact JSON
+let compact = CompactSerializer::new(source);
+let compact_json = compact.serialize_tree(&tree)?;
+
+// S-expression format
+let sexpr = SExpressionSerializer::new(source)
+    .with_positions();
+let sexpr_string = sexpr.serialize_tree(&tree);
+
+// Binary format for efficient storage
+let mut binary = BinarySerializer::new();
+let binary_format = binary.serialize_tree(&tree);
+```
+
+## Visualization Tools
+
+Visualize grammars and parse trees:
+
+```rust
+use rust_sitter_tool::{GrammarVisualizer, TreeVisualizer};
+
+// Grammar visualization
+let grammar_viz = GrammarVisualizer::new(grammar);
+
+// Generate Graphviz DOT
+let dot = grammar_viz.to_dot();
+std::fs::write("grammar.dot", dot)?;
+
+// Generate railroad diagram
+let svg = grammar_viz.to_railroad_svg();
+std::fs::write("grammar.svg", svg)?;
+
+// Text representation
+let text = grammar_viz.to_text();
+println!("{}", text);
+
+// Dependency graph
+let deps = grammar_viz.dependency_graph();
+println!("{}", deps);
+
+// Tree visualization
+let tree_viz = TreeVisualizer::new(source);
+let ascii = tree_viz.to_ascii(&tree.root_node());
+println!("{}", ascii);
+```
 
 ## Future Extensions
 
