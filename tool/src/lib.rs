@@ -4,6 +4,12 @@ use syn::{parse_quote, Item};
 mod expansion;
 use expansion::*;
 
+mod grammar_converter;
+pub use grammar_converter::GrammarConverter;
+
+// mod pure_rust_builder;
+// pub use pure_rust_builder::{build_parser, build_parser_for_crate, BuildOptions, BuildResult};
+
 const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 2));
 
 /// Generates JSON strings defining Tree Sitter grammars for every Rust Sitter

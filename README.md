@@ -5,6 +5,11 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 
 > **Note**: Rust Sitter is actively being rewritten to use a pure-Rust implementation that generates static parsers at compile time, eliminating all C dependencies. This will enable true WASM support, improved performance, and better integration with the Rust ecosystem. The API remains stable during this transition.
 
+## Documentation
+
+- [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference for the pure-Rust implementation
+- [Implementation Status](./IMPLEMENTATION_STATUS.md) - Current status of the pure-Rust implementation
+
 ## Installation
 First, add Rust/Tree Sitter to your `Cargo.toml`:
 ```toml

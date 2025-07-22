@@ -1,5 +1,7 @@
 pub mod __private;
+pub mod external_scanner;
 pub mod incremental;
+pub mod incremental_v2;
 pub mod lexer;
 pub mod parser;
 pub mod parser_v2;

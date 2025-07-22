@@ -25,6 +25,9 @@ syn-inline-mod = "0.6"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 rust-sitter-common = { version = "0.4.5", path = "../common" }
+rust-sitter-ir = { version = "0.1.0", path = "../ir" }
+rust-sitter-glr-core = { version = "0.1.0", path = "../glr-core" }
+rust-sitter-tablegen = { version = "0.1.0", path = "../tablegen" }
 
 tempfile = { version = "3", optional = true }
 tree-sitter = { version = "0.25.2", optional = true }
