@@ -2,12 +2,14 @@
 // This module implements Tree-sitter's exact table compression algorithms
 
 pub mod compress;
+pub mod external_scanner;
 pub mod generate;
 pub mod node_types;
 pub mod validation;
 
 // Re-export key types
 pub use compress::CompressedParseTable;
+pub use external_scanner::ExternalScannerGenerator;
 pub use generate::LanguageBuilder;
 pub use node_types::NodeTypesGenerator;
 pub use validation::{LanguageValidator, ValidationError};
@@ -84,9 +86,29 @@ impl StaticLanguageGenerator {
         // Count various elements
         let field_count = field_names.len();
         let _token_count = self.grammar.tokens.len();
-        let _external_token_count = self.grammar.externals.len();
+        let external_token_count = self.grammar.externals.len();
         let _production_id_count = self.grammar.alias_sequences.len(); // Production IDs are from alias sequences
         let _max_alias_sequence_length = 0u16; // TODO: Calculate from alias sequences
+        
+        // Generate external scanner data if needed
+        let external_scanner_code = if !self.grammar.externals.is_empty() {
+            let scanner_gen = external_scanner::ExternalScannerGenerator::new(self.grammar.clone());
+            let scanner_interface = scanner_gen.generate_scanner_interface();
+            quote! { #scanner_interface }
+        } else {
+            quote! {
+                // No external scanner needed
+                static EXTERNAL_SCANNER_DATA: ts::ffi::TSExternalScannerData = ts::ffi::TSExternalScannerData {
+                    states: std::ptr::null(),
+                    symbol_map: std::ptr::null(),
+                    create: None,
+                    destroy: None,
+                    scan: None,
+                    serialize: None,
+                    deserialize: None,
+                };
+            }
+        };
         
         quote! {
             use std::sync::OnceLock;
@@ -110,6 +132,9 @@ impl StaticLanguageGenerator {
             #action_table
             #goto_table
             
+            // External scanner data
+            #external_scanner_code
+            
             // NODE_TYPES JSON
             pub const NODE_TYPES: &str = #node_types_json;
             
@@ -118,6 +143,7 @@ impl StaticLanguageGenerator {
             const STATE_COUNT: u32 = #state_count as u32;
             const SYMBOL_COUNT: u32 = #symbol_count as u32;
             const FIELD_COUNT: u32 = #field_count as u32;
+            const EXTERNAL_TOKEN_COUNT: u32 = #external_token_count as u32;
             
             // Tree-sitter Language structure (ABI v15)
             #[repr(C)]
