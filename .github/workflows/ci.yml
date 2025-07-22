@@ -49,3 +49,30 @@ jobs:
       run: cargo fmt --all -- --check
     - name: Check clippy
       run: cargo clippy --all-targets -- -D warnings
+  golden-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install tree-sitter CLI
+      run: npm install -g tree-sitter-cli
+    
+    - name: Run golden tests
+      run: |
+        cargo xtask golden test
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: golden-test-failures
+        path: |
+          xtask/golden/actual/
+          xtask/golden/diffs/

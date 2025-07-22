@@ -1,4 +1,5 @@
 pub mod __private;
+pub mod incremental;
 pub mod lexer;
 pub mod parser;
 pub mod parser_v2;

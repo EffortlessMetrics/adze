@@ -52,6 +52,7 @@ enum Grammar {
     Javascript,
     Rust,
     Python,
+    C,
 }
 
 impl Grammar {
@@ -61,6 +62,7 @@ impl Grammar {
             Grammar::Javascript => "javascript", 
             Grammar::Rust => "rust",
             Grammar::Python => "python",
+            Grammar::C => "c",
         }
     }
     
@@ -70,6 +72,7 @@ impl Grammar {
             Grammar::Javascript => Some("https://github.com/tree-sitter/tree-sitter-javascript"),
             Grammar::Rust => Some("https://github.com/tree-sitter/tree-sitter-rust"),
             Grammar::Python => Some("https://github.com/tree-sitter/tree-sitter-python"),
+            Grammar::C => Some("https://github.com/tree-sitter/tree-sitter-c"),
         }
     }
 }
