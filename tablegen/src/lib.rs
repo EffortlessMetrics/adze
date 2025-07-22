@@ -1,6 +1,15 @@
 // Static table generation and compression for pure-Rust Tree-sitter
 // This module implements Tree-sitter's exact table compression algorithms
 
+pub mod compress;
+pub mod generate;
+pub mod validation;
+
+// Re-export key types
+pub use compress::CompressedParseTable;
+pub use generate::LanguageBuilder;
+pub use validation::{LanguageValidator, ValidationError};
+
 // use indexmap::IndexMap; // Currently unused
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -8,8 +17,6 @@ use rust_sitter_glr_core::*;
 use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-// mod generate_language; // Removed - not needed yet
 
 // Use the appropriate tree-sitter backend
 #[cfg(feature = "tree-sitter-standard")]
