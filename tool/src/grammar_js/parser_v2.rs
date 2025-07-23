@@ -29,11 +29,14 @@ impl ImprovedGrammarJsParser {
     }
     
     fn parse(&self) -> Result<GrammarJs> {
-        // First, try to extract the module.exports pattern
-        let exports_regex = Regex::new(r"module\.exports\s*=\s*grammar\s*\(([\s\S]*)\)")?;
+        // First, find the module.exports pattern
+        let exports_regex = Regex::new(r"module\.exports\s*=\s*grammar\s*\(")?;
         
-        let grammar_content = if let Some(caps) = exports_regex.captures(&self.content) {
-            caps[1].to_string()
+        let grammar_content = if let Some(mat) = exports_regex.find(&self.content) {
+            // Found the start, now find the matching closing parenthesis
+            let start = mat.end();
+            let end = self.find_matching_paren(&self.content[start..])?;
+            self.content[start..start + end].to_string()
         } else {
             bail!("Could not find module.exports = grammar(...) pattern")
         };
@@ -119,14 +122,24 @@ impl ImprovedGrammarJsParser {
     }
     
     fn extract_extras(&self, content: &str) -> Result<Vec<Rule>> {
-        // Match extras: $ => [...]
-        let extras_regex = Regex::new(r#"extras:\s*\$\s*=>\s*\[([^\]]+)\]"#)?;
-        
-        if let Some(caps) = extras_regex.captures(content) {
-            self.parse_rule_array(&caps[1])
-        } else {
-            Ok(vec![])
+        // Find extras: $ => [
+        if let Some(extras_start) = content.find("extras:") {
+            let after_extras = &content[extras_start + 7..]; // Skip "extras:"
+            let trimmed = after_extras.trim_start();
+            
+            // Skip $ =>
+            if let Some(arrow_pos) = trimmed.find("=>") {
+                let after_arrow = trimmed[arrow_pos + 2..].trim_start();
+                
+                if after_arrow.starts_with('[') {
+                    // Extract the array content by matching brackets
+                    let array_content = self.extract_balanced_brackets(&after_arrow[1..])?;
+                    return self.parse_rule_array(&array_content);
+                }
+            }
         }
+        
+        Ok(vec![])
     }
     
     fn extract_externals(&self, content: &str) -> Vec<ExternalToken> {
@@ -248,9 +261,14 @@ impl ImprovedGrammarJsParser {
             self.parse_token_rule(trimmed)
         } else if trimmed.starts_with("token.immediate(") {
             self.parse_immediate_token_rule(trimmed)
-        } else if trimmed.starts_with("/") && trimmed.ends_with("/") {
-            // Regular expression pattern
-            Ok(Rule::Pattern { value: trimmed[1..trimmed.len()-1].to_string() })
+        } else if trimmed.starts_with("/") {
+            // Regular expression pattern - handle both single-line and multi-line regexes
+            if let Some(end_pos) = self.find_regex_end(trimmed) {
+                let pattern = trimmed[1..end_pos].to_string();
+                Ok(Rule::Pattern { value: pattern })
+            } else {
+                bail!("Unterminated regex pattern: {}", trimmed)
+            }
         } else if trimmed.starts_with("'") || trimmed.starts_with("\"") {
             // String literal
             let quote = &trimmed[0..1];
@@ -551,6 +569,44 @@ impl ImprovedGrammarJsParser {
         }
     }
     
+    /// Extract content within balanced brackets
+    fn extract_balanced_brackets(&self, content: &str) -> Result<String> {
+        let mut depth = 1;
+        let mut end_idx = 0;
+        let chars: Vec<char> = content.chars().collect();
+        let mut in_string = false;
+        let mut in_regex = false;
+        let mut escape_next = false;
+        
+        while depth > 0 && end_idx < chars.len() {
+            if escape_next {
+                escape_next = false;
+            } else if chars[end_idx] == '\\' {
+                escape_next = true;
+            } else if !in_regex && (chars[end_idx] == '\'' || chars[end_idx] == '"') {
+                in_string = !in_string;
+            } else if !in_string && chars[end_idx] == '/' && end_idx > 0 && 
+                      (chars[end_idx - 1].is_whitespace() || "[,(".contains(chars[end_idx - 1])) {
+                in_regex = true;
+            } else if in_regex && chars[end_idx] == '/' && !escape_next {
+                in_regex = false;
+            } else if !in_string && !in_regex {
+                match chars[end_idx] {
+                    '[' => depth += 1,
+                    ']' => depth -= 1,
+                    _ => {}
+                }
+            }
+            end_idx += 1;
+        }
+        
+        if depth == 0 && end_idx > 0 {
+            Ok(content[..end_idx - 1].to_string())
+        } else {
+            bail!("Unbalanced brackets in content")
+        }
+    }
+    
     /// Parse commaSep/commaSep1 helper functions
     fn parse_comma_sep(&self, rule_def: &str, require_one: bool) -> Result<Rule> {
         let func_name = if require_one { "commaSep1" } else { "commaSep" };
@@ -580,6 +636,62 @@ impl ImprovedGrammarJsParser {
                 value: Box::new(self.parse_comma_sep(rule_def.replace("commaSep(", "commaSep1(").as_str(), true)?)
             })
         }
+    }
+    
+    /// Find the matching closing parenthesis
+    fn find_matching_paren(&self, content: &str) -> Result<usize> {
+        let chars: Vec<char> = content.chars().collect();
+        let mut depth = 1;
+        let mut i = 0;
+        let mut in_string = false;
+        let mut string_char = ' ';
+        let mut escape_next = false;
+        
+        while i < chars.len() && depth > 0 {
+            if escape_next {
+                escape_next = false;
+            } else if chars[i] == '\\' {
+                escape_next = true;
+            } else if !in_string && (chars[i] == '\'' || chars[i] == '"' || chars[i] == '`') {
+                in_string = true;
+                string_char = chars[i];
+            } else if in_string && chars[i] == string_char {
+                in_string = false;
+            } else if !in_string {
+                match chars[i] {
+                    '(' => depth += 1,
+                    ')' => depth -= 1,
+                    _ => {}
+                }
+            }
+            i += 1;
+        }
+        
+        if depth == 0 {
+            Ok(i - 1) // Position of the closing paren
+        } else {
+            bail!("No matching closing parenthesis found")
+        }
+    }
+    
+    /// Find the end position of a regex pattern, handling escaped slashes
+    fn find_regex_end(&self, content: &str) -> Option<usize> {
+        let chars: Vec<char> = content.chars().collect();
+        let mut i = 1; // Skip the initial /
+        let mut escaped = false;
+        
+        while i < chars.len() {
+            if escaped {
+                escaped = false;
+            } else if chars[i] == '\\' {
+                escaped = true;
+            } else if chars[i] == '/' {
+                return Some(i);
+            }
+            i += 1;
+        }
+        
+        None
     }
     
     /// Extract a complete rule definition (handling nested structures)
