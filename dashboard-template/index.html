@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rust-Sitter Compatibility Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>🦀 Rust-Sitter Compatibility Dashboard</h1>
+        <p class="subtitle">Pure-Rust Tree-sitter Implementation Progress</p>
+        <p class="last-updated">Last updated: <span id="last-updated">Loading...</span></p>
+    </header>
+    
+    <main>
+        <section id="overview" class="card">
+            <h2>Overview</h2>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <h3>Grammar Support</h3>
+                    <div class="metric-value" id="grammar-support">0%</div>
+                </div>
+                <div class="metric">
+                    <h3>Parse Speed</h3>
+                    <div class="metric-value" id="parse-speed">0 MB/s</div>
+                </div>
+                <div class="metric">
+                    <h3>Memory Usage</h3>
+                    <div class="metric-value" id="memory-usage">0 B/node</div>
+                </div>
+                <div class="metric">
+                    <h3>WASM Size</h3>
+                    <div class="metric-value" id="wasm-size">0 KB</div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="grammar-matrix" class="card">
+            <h2>Grammar Compatibility Matrix</h2>
+            <div class="table-container">
+                <table id="grammar-table">
+                    <thead>
+                        <tr>
+                            <th>Grammar</th>
+                            <th>Parse</th>
+                            <th>Query</th>
+                            <th>Incremental</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="grammar-tbody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <section id="performance" class="card">
+            <h2>Performance Metrics</h2>
+            <div class="perf-comparison">
+                <div class="perf-item">
+                    <h3>Parse Speed</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="parse-speed-bar"></div>
+                    </div>
+                    <p class="perf-label" id="parse-speed-label">Loading...</p>
+                </div>
+                <div class="perf-item">
+                    <h3>Memory Efficiency</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="memory-bar"></div>
+                    </div>
+                    <p class="perf-label" id="memory-label">Loading...</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="corpus" class="card">
+            <h2>Corpus Test Results</h2>
+            <div class="corpus-stats">
+                <div class="stat">
+                    <span class="stat-label">Total Grammars:</span>
+                    <span class="stat-value" id="total-grammars">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Passing:</span>
+                    <span class="stat-value passing" id="passing-grammars">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Failing:</span>
+                    <span class="stat-value failing" id="failing-grammars">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Pass Rate:</span>
+                    <span class="stat-value" id="pass-rate">0%</span>
+                </div>
+            </div>
+            <div id="recent-changes" class="recent-changes">
+                <h3>Recent Changes</h3>
+                <ul id="changes-list">
+                    <!-- Populated by JavaScript -->
+                </ul>
+            </div>
+        </section>
+        
+        <section id="adoption" class="card">
+            <h2>Community Adoption</h2>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <h3>GitHub Stars</h3>
+                    <div class="metric-value" id="github-stars">0</div>
+                </div>
+                <div class="metric">
+                    <h3>Downloads</h3>
+                    <div class="metric-value" id="downloads">0</div>
+                </div>
+                <div class="metric">
+                    <h3>Grammar PRs</h3>
+                    <div class="metric-value" id="grammar-prs">0</div>
+                </div>
+                <div class="metric">
+                    <h3>Contributors</h3>
+                    <div class="metric-value" id="contributors">0</div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>
+            <a href="https://github.com/rust-sitter/rust-sitter">GitHub</a> | 
+            <a href="https://crates.io/crates/rust-sitter">crates.io</a> | 
+            <a href="https://docs.rs/rust-sitter">docs.rs</a>
+        </p>
+    </footer>
+    
+    <script src="dashboard.js"></script>
+</body>
+</html>

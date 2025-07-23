@@ -4,6 +4,8 @@ use xshell::Shell;
 
 mod golden;
 mod grammar_json;
+mod corpus;
+mod dashboard;
 
 #[derive(Parser)]
 #[command(author, version, about = "Rust Sitter development tasks")]
@@ -43,6 +45,44 @@ enum Commands {
         /// Show detailed output for failures
         #[arg(short, long)]
         verbose: bool,
+    },
+    /// Download Tree-sitter grammar corpus
+    DownloadCorpus {
+        /// Target directory for corpus
+        #[arg(short, long, default_value = "./corpus")]
+        target: String,
+    },
+    /// Test grammars against Tree-sitter corpus
+    TestCorpus {
+        /// Path to corpus directory
+        #[arg(short, long, default_value = "./corpus")]
+        corpus: String,
+        /// Output directory for results
+        #[arg(short, long, default_value = "./target/corpus-results")]
+        output: String,
+    },
+    /// Test a specific grammar from the corpus
+    TestGrammar {
+        /// Grammar name (e.g., javascript, rust, python)
+        grammar: String,
+        /// Path to corpus directory
+        #[arg(short, long, default_value = "./corpus")]
+        corpus: String,
+    },
+    /// Generate dashboard data from test results
+    DashboardData {
+        /// Input directory with test results
+        #[arg(short, long, default_value = "./target/corpus-results")]
+        input: String,
+        /// Output file for dashboard data
+        #[arg(short, long, default_value = "./dashboard/data.json")]
+        output: String,
+    },
+    /// Initialize dashboard project
+    InitDashboard {
+        /// Dashboard directory
+        #[arg(short, long, default_value = "./dashboard")]
+        dir: String,
     },
 }
 
@@ -93,6 +133,25 @@ fn main() -> Result<()> {
         }
         Commands::TestGolden { verbose } => {
             golden::test_all_golden(&sh, verbose)?;
+        }
+        Commands::DownloadCorpus { target } => {
+            corpus::download_corpus(std::path::Path::new(&target))?;
+        }
+        Commands::TestCorpus { corpus, output } => {
+            let runner = corpus::CorpusRunner::new(corpus.into(), output.into());
+            let results = runner.run_all()?;
+            println!("\nCorpus test complete: {:.1}% pass rate", results.pass_rate);
+        }
+        Commands::TestGrammar { grammar, corpus } => {
+            let runner = corpus::CorpusRunner::new(corpus.into(), "./target/corpus-results".into());
+            let result = runner.test_grammar(&grammar)?;
+            println!("Grammar {} status: {:?}", grammar, result.status);
+        }
+        Commands::DashboardData { input, output } => {
+            dashboard::generate_dashboard_data(std::path::Path::new(&input), std::path::Path::new(&output))?;
+        }
+        Commands::InitDashboard { dir } => {
+            dashboard::init_dashboard(std::path::Path::new(&dir))?;
         }
     }
     
