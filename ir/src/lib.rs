@@ -11,6 +11,8 @@ pub use optimizer::{GrammarOptimizer, OptimizationStats};
 pub mod validation;
 pub use validation::{GrammarValidator, ValidationError, ValidationWarning, ValidationResult};
 
+pub mod debug_macros;
+
 /// Core grammar representation supporting all Tree-sitter features including GLR
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Grammar {

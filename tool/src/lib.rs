@@ -13,8 +13,8 @@ pub use visualization::GrammarVisualizer;
 pub mod grammar_js;
 pub use grammar_js::{parse_grammar_js, GrammarJsConverter};
 
-// mod pure_rust_builder;
-// pub use pure_rust_builder::{build_parser, build_parser_for_crate, BuildOptions, BuildResult};
+mod pure_rust_builder;
+pub use pure_rust_builder::{build_parser, build_parser_for_crate, BuildOptions, BuildResult};
 
 const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 2));
 
@@ -56,6 +56,24 @@ use tree_sitter_generate::generate_parser_for_grammar;
 /// for every Rust Sitter grammar found in the given module and recursive
 /// submodules.
 pub fn build_parsers(root_file: &Path) {
+    // Check if we should use the new pure-Rust builder
+    if std::env::var("RUST_SITTER_USE_PURE_RUST").is_ok() {
+        use pure_rust_builder::{build_parser_for_crate, BuildOptions};
+        let options = BuildOptions::default();
+        match build_parser_for_crate(root_file, options) {
+            Ok(results) => {
+                for result in results {
+                    println!("cargo:rerun-if-changed={}", result.parser_path);
+                    println!("Built pure-Rust parser for {}", result.grammar_name);
+                }
+                return;
+            }
+            Err(e) => {
+                eprintln!("Failed to build pure-Rust parser: {}", e);
+                eprintln!("Falling back to C parser generation");
+            }
+        }
+    }
     use std::env;
     let out_dir = env::var("OUT_DIR").unwrap();
     let emit_artifacts: bool = env::var("RUST_SITTER_EMIT_ARTIFACTS")

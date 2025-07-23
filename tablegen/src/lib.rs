@@ -9,7 +9,7 @@ pub mod node_types;
 pub mod validation;
 
 // Re-export key types
-pub use compress::CompressedParseTable;
+pub use compress::{CompressedParseTable, CompressedTables, CompressedActionTable, CompressedGotoTable, CompressedGotoEntry, ActionEntry, GotoEntry, TableCompressor};
 pub use external_scanner::ExternalScannerGenerator;
 pub use generate::LanguageBuilder;
 pub use node_types::NodeTypesGenerator;
