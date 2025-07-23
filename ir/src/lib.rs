@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 pub mod optimizer;
-pub use optimizer::{GrammarOptimizer, OptimizationStats};
+pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
 
 pub mod validation;
 pub use validation::{GrammarValidator, ValidationError, ValidationWarning, ValidationResult};

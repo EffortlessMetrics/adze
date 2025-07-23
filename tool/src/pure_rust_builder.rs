@@ -7,7 +7,7 @@ use std::io::Write;
 use anyhow::{Result, Context};
 use rust_sitter_ir::{Grammar, optimize_grammar};
 use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
-use rust_sitter_tablegen::{StaticLanguageGenerator, LanguageBuilder, NodeTypesGenerator};
+use rust_sitter_tablegen::{StaticLanguageGenerator, NodeTypesGenerator};
 use crate::grammar_js::{parse_grammar_js_v2, GrammarJsConverter};
 use serde_json::Value;
 
@@ -55,8 +55,8 @@ pub fn build_parser_from_grammar_js(grammar_js_path: &Path, options: BuildOption
         .context("Failed to parse grammar.js")?;
     
     // Convert to IR
-    let mut converter = GrammarJsConverter::new();
-    let mut grammar = converter.convert(&grammar_js)
+    let converter = GrammarJsConverter::new(grammar_js);
+    let mut grammar = converter.convert()
         .context("Failed to convert grammar.js to IR")?;
     
     // Optimize the grammar
@@ -95,8 +95,8 @@ pub fn build_parser_from_json(grammar_json: Value, options: BuildOptions) -> Res
     let grammar_js = parse_grammar_js_v2(&format!("module.exports = {}", grammar_js_str))
         .context("Failed to parse grammar JSON")?;
     
-    let mut converter = GrammarJsConverter::new();
-    let mut grammar = converter.convert(&grammar_js)
+    let converter = GrammarJsConverter::new(grammar_js);
+    let mut grammar = converter.convert()
         .context("Failed to convert grammar JSON to IR")?;
     
     // Optimize the grammar
@@ -112,8 +112,7 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
     let grammar_name = grammar.name.clone();
     
     // Step 1: Compute FIRST/FOLLOW sets
-    let first_follow = FirstFollowSets::compute(&grammar)
-        .context("Failed to compute FIRST/FOLLOW sets")?;
+    let first_follow = FirstFollowSets::compute(&grammar);
     
     // Step 2: Build LR(1) automaton
     let parse_table = build_lr1_automaton(&grammar, &first_follow)
@@ -132,7 +131,7 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
     let language_code = generator.generate_language_code();
     
     // Step 4: Generate NODE_TYPES.json
-    let node_types_gen = NodeTypesGenerator::new(grammar.clone());
+    let node_types_gen = NodeTypesGenerator::new(&grammar);
     let node_types = node_types_gen.generate();
     let node_types_json = serde_json::to_string_pretty(&node_types)?;
     

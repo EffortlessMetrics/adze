@@ -512,6 +512,13 @@ pub struct OptimizationStats {
     pub eliminated_unit_rules: usize,
 }
 
+/// Convenience function to optimize a grammar
+pub fn optimize_grammar(mut grammar: Grammar) -> anyhow::Result<Grammar> {
+    let mut optimizer = GrammarOptimizer::new();
+    optimizer.optimize(&mut grammar);
+    Ok(grammar)
+}
+
 impl OptimizationStats {
     /// Get total number of optimizations performed
     pub fn total(&self) -> usize {

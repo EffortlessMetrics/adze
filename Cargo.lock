@@ -1424,6 +1424,7 @@ dependencies = [
 name = "rust-sitter-ir"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "indexmap",
  "insta",
  "serde",

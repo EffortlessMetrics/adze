@@ -572,26 +572,11 @@ impl StaticLanguageGenerator {
     }
 }
 
-/// Table compression implementation matching Tree-sitter's algorithms
-/// 
-/// Tree-sitter uses a sophisticated compression scheme:
-/// 1. Small parse table optimization for <32k states
-/// 2. Row displacement method for action table compression
-/// 3. Default reductions to minimize table size
-/// 4. Symbol remapping for compact representation
-pub struct TableCompressor {
-    // Tree-sitter's magic constants for compression
-    small_table_threshold: usize,
-}
+// TableCompressor moved to compress.rs
 
+// Remove the TableCompressor impl - it's now in compress.rs
+/*
 impl TableCompressor {
-    pub fn new() -> Self {
-        Self {
-            small_table_threshold: 32768, // Tree-sitter's threshold
-        }
-    }
-
-    /// Compress parse tables using Tree-sitter's exact algorithms
     pub fn compress(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
         // Determine if we should use small table optimization
         let use_small_table = parse_table.state_count < self.small_table_threshold;
@@ -816,70 +801,9 @@ impl TableCompressor {
         self.compress_goto_table_small(goto_table)
     }
 }
+*/
 
-/// Compressed table representation matching Tree-sitter's format
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompressedTables {
-    pub action_table: CompressedActionTable,
-    pub goto_table: CompressedGotoTable,
-    pub small_table_threshold: usize,
-}
-
-impl CompressedTables {
-    /// Validate that compressed tables maintain correctness
-    pub fn validate(&self, original: &ParseTable) -> Result<(), TableGenError> {
-        // Validate that decompression yields the same results
-        // This is critical for bit-for-bit compatibility
-        
-        // Check action table dimensions
-        if self.action_table.row_offsets.len() != original.action_table.len() + 1 {
-            return Err(TableGenError::InvalidTable(
-                "Action table row count mismatch".to_string()
-            ));
-        }
-        
-        // Check goto table dimensions
-        if self.goto_table.row_offsets.len() != original.goto_table.len() + 1 {
-            return Err(TableGenError::InvalidTable(
-                "Goto table row count mismatch".to_string()
-            ));
-        }
-        
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompressedActionTable {
-    pub data: Vec<CompressedActionEntry>,
-    pub row_offsets: Vec<u16>,
-    pub default_actions: Vec<Action>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompressedGotoTable {
-    pub data: Vec<CompressedGotoEntry>,
-    pub row_offsets: Vec<u16>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompressedActionEntry {
-    pub symbol: u16,
-    pub action: Action,
-}
-
-impl CompressedActionEntry {
-    /// Create a new compressed action entry
-    pub fn new(symbol: u16, action: Action) -> Self {
-        Self { symbol, action }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CompressedGotoEntry {
-    Single(u16),
-    RunLength { state: u16, count: u16 },
-}
+// CompressedTables and related types are now defined in compress.rs
 
 /// Table generation errors
 #[derive(Debug, thiserror::Error)]
