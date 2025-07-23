@@ -1,6 +1,6 @@
 # Rust Sitter API Documentation
 
-Complete API reference for the rust-sitter pure-Rust implementation.
+Complete API reference for rust-sitter v1.0 - the production-ready pure-Rust parser generator.
 
 ## Table of Contents
 
@@ -13,6 +13,10 @@ Complete API reference for the rust-sitter pure-Rust implementation.
 7. [Incremental Parsing](#incremental-parsing)
 8. [Visitor API](#visitor-api)
 9. [Table Generation](#table-generation)
+10. [Testing Framework](#testing-framework)
+11. [Performance Analysis](#performance-analysis)
+12. [LSP Generation](#lsp-generation)
+13. [Playground API](#playground-api)
 
 ## Core Types
 
@@ -500,6 +504,191 @@ pub enum ParseError {
 }
 ```
 
+## Testing Framework
+
+### `GrammarTester`
+```rust
+impl GrammarTester {
+    /// Create a new tester
+    pub fn new(grammar: Grammar) -> Self;
+    
+    /// Add test corpus
+    pub fn add_corpus(&mut self, pattern: &str) -> Result<()>;
+    
+    /// Run all tests
+    pub fn run_all(&self) -> Result<TestResults>;
+    
+    /// Run property-based tests
+    pub fn property_test(&mut self, config: PropertyConfig) -> Result<()>;
+    
+    /// Fuzz test the grammar
+    pub fn fuzz(&mut self, config: FuzzConfig) -> Result<FuzzResults>;
+}
+```
+
+### `PropertyConfig`
+```rust
+pub struct PropertyConfig {
+    pub max_depth: usize,
+    pub iterations: usize,
+    pub seed: Option<u64>,
+    pub shrink_attempts: usize,
+}
+```
+
+### `FuzzConfig`
+```rust
+pub struct FuzzConfig {
+    pub timeout: Duration,
+    pub max_input_size: usize,
+    pub corpus_dir: Option<PathBuf>,
+    pub coverage_guided: bool,
+}
+```
+
+## Performance Analysis
+
+### `Profiler`
+```rust
+impl Profiler {
+    /// Create new profiler
+    pub fn new() -> Self;
+    
+    /// Profile grammar on corpus
+    pub fn analyze(
+        &mut self,
+        grammar: &Grammar,
+        corpus: &[String],
+    ) -> Result<ProfileStats>;
+    
+    /// Generate flame graph
+    pub fn flame_graph(&self, output: &Path) -> Result<()>;
+    
+    /// Memory usage analysis
+    pub fn memory_profile(&mut self) -> MemoryStats;
+}
+```
+
+### `ProfileStats`
+```rust
+pub struct ProfileStats {
+    pub parse_time: Duration,
+    pub tokens_per_second: f64,
+    pub memory_usage: usize,
+    pub cache_hit_rate: f64,
+    pub hotspots: Vec<Hotspot>,
+}
+```
+
+### Grammar Optimization
+```rust
+/// Optimize grammar for performance
+pub fn optimize_grammar(grammar: &Grammar) -> GrammarOptimizer;
+
+impl GrammarOptimizer {
+    /// Inline small rules
+    pub fn inline_rules(mut self, enabled: bool) -> Self;
+    
+    /// Compress parse tables
+    pub fn compress_tables(mut self, enabled: bool) -> Self;
+    
+    /// Optimize for size or speed
+    pub fn optimization_level(mut self, level: OptLevel) -> Self;
+    
+    /// Build optimized grammar
+    pub fn build(self) -> Result<Grammar>;
+}
+```
+
+## LSP Generation
+
+### `LspConfig`
+```rust
+impl LspConfig {
+    /// Create builder
+    pub fn builder() -> LspConfigBuilder;
+}
+
+impl LspConfigBuilder {
+    /// Enable semantic tokens
+    pub fn with_semantic_tokens(mut self, enabled: bool) -> Self;
+    
+    /// Enable goto definition
+    pub fn with_goto_definition(mut self, enabled: bool) -> Self;
+    
+    /// Enable completions
+    pub fn with_completions(mut self, enabled: bool) -> Self;
+    
+    /// Enable diagnostics
+    pub fn with_diagnostics(mut self, enabled: bool) -> Self;
+    
+    /// Custom handlers
+    pub fn with_custom_handler(
+        mut self,
+        method: &str,
+        handler: Box<dyn LspHandler>,
+    ) -> Self;
+    
+    /// Build configuration
+    pub fn build(self) -> LspConfig;
+}
+```
+
+### `generate_lsp`
+```rust
+/// Generate LSP server from grammar
+pub fn generate_lsp(
+    grammar: &Grammar,
+    config: &LspConfig,
+    output_dir: &Path,
+) -> Result<()>;
+
+/// Generate VS Code extension
+pub fn generate_vscode_extension(
+    grammar: &Grammar,
+    lsp_config: &LspConfig,
+    extension_config: &ExtensionConfig,
+    output_dir: &Path,
+) -> Result<()>;
+```
+
+## Playground API
+
+### `PlaygroundServer`
+```rust
+impl PlaygroundServer {
+    /// Create new playground server
+    pub fn new(port: u16) -> Self;
+    
+    /// Add grammar to playground
+    pub fn add_grammar(
+        &mut self,
+        name: &str,
+        grammar: Grammar,
+    ) -> Result<()>;
+    
+    /// Start server
+    pub async fn start(self) -> Result<()>;
+}
+```
+
+### `PlaygroundConfig`
+```rust
+pub struct PlaygroundConfig {
+    pub theme: Theme,
+    pub examples: Vec<Example>,
+    pub features: PlaygroundFeatures,
+}
+
+pub struct PlaygroundFeatures {
+    pub syntax_highlighting: bool,
+    pub parse_tree_view: bool,
+    pub query_editor: bool,
+    pub performance_metrics: bool,
+    pub export_options: ExportOptions,
+}
+```
+
 ## Thread Safety
 
 - `Grammar`: `Send + Sync`
@@ -507,5 +696,15 @@ pub enum ParseError {
 - `ExternalScanner`: `Send + Sync`
 - `Query`: `Send + Sync`
 - `ParseNode`: `Send + Sync`
+- `GrammarTester`: `Send`
+- `Profiler`: `Send`
+- `PlaygroundServer`: `Send`
 
 Use `Arc<Grammar>` to share grammars across threads.
+
+## Version Compatibility
+
+- Tree-sitter ABI: v14-v15
+- Minimum Rust: 1.70.0
+- WASM targets: wasm32-unknown-unknown, wasm32-wasi
+- Supported platforms: Linux, macOS, Windows, WebAssembly
