@@ -1376,6 +1376,7 @@ dependencies = [
  "criterion",
  "indexmap",
  "insta",
+ "rayon",
  "regex",
  "rust-sitter-glr-core",
  "rust-sitter-ir",
@@ -1449,6 +1450,18 @@ dependencies = [
  "insta",
  "rust-sitter",
  "rust-sitter-tool",
+]
+
+[[package]]
+name = "rust-sitter-lsp-generator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "rust-sitter-ir",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]

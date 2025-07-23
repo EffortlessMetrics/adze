@@ -14,4 +14,5 @@ members = [
   "grammars/javascript",
   "grammars/python",
   "grammars/go",
+  "lsp-generator",
 ]

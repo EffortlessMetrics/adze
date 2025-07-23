@@ -17,6 +17,14 @@ pub mod visitor;
 pub mod query;
 #[cfg(feature = "serialization")]
 pub mod serialization;
+pub mod simd_lexer {
+    pub use super::simd_lexer_v2::*;
+}
+mod simd_lexer_v2;
+pub mod parallel_parser {
+    pub use super::parallel_parser_v2::*;
+}
+mod parallel_parser_v2;
 
 use std::ops::Deref;
 
