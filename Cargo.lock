@@ -1422,6 +1422,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-sitter-go"
+version = "0.1.0"
+dependencies = [
+ "insta",
+ "rust-sitter",
+ "rust-sitter-tool",
+]
+
+[[package]]
 name = "rust-sitter-ir"
 version = "0.5.0-beta"
 dependencies = [
@@ -1434,6 +1443,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-sitter-javascript"
+version = "0.1.0"
+dependencies = [
+ "insta",
+ "rust-sitter",
+ "rust-sitter-tool",
+]
+
+[[package]]
 name = "rust-sitter-macro"
 version = "0.5.0-beta"
 dependencies = [
@@ -1443,6 +1461,15 @@ dependencies = [
  "rust-sitter-common",
  "syn 2.0.98",
  "tempfile",
+]
+
+[[package]]
+name = "rust-sitter-python"
+version = "0.1.0"
+dependencies = [
+ "insta",
+ "rust-sitter",
+ "rust-sitter-tool",
 ]
 
 [[package]]

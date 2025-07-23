@@ -11,4 +11,7 @@ members = [
   "tablegen",
   "xtask",
   "testing",
+  "grammars/javascript",
+  "grammars/python",
+  "grammars/go",
 ]
