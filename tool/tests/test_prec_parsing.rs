@@ -37,7 +37,7 @@ module.exports = grammar({{
 }})
 "#, input);
         
-        let parser = GrammarJsParserV3::new(grammar_content);
+        let mut parser = GrammarJsParserV3::new(grammar_content);
         match parser.parse() {
             Ok(grammar) => {
                 println!("✓ Successfully parsed!");
@@ -93,7 +93,7 @@ module.exports = grammar({
 })
 "#;
     
-    let parser = GrammarJsParserV3::new(grammar_content.to_string());
+    let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
     match parser.parse() {
         Ok(grammar) => {
             println!("Successfully parsed JavaScript-like binary expressions!");

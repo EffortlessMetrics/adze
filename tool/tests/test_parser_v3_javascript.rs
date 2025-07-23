@@ -22,7 +22,7 @@ fn test_parser_v3_javascript() {
     println!("File size: {} bytes", content.len());
     
     // Try to parse with v3 parser
-    let parser = GrammarJsParserV3::new(content);
+    let mut parser = GrammarJsParserV3::new(content);
     match parser.parse() {
         Ok(grammar) => {
             println!("Successfully parsed JavaScript grammar!");

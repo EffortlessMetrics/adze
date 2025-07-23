@@ -235,7 +235,7 @@ fn test_grammar_string(name: &str, content: &str) -> Result<()> {
     println!("Testing {} grammar...", name);
     
     // Parse
-    let parser = GrammarJsParserV3::new(content.to_string());
+    let mut parser = GrammarJsParserV3::new(content.to_string());
     match parser.parse() {
         Ok(grammar_js) => {
             println!("  ✅ Parsed successfully");

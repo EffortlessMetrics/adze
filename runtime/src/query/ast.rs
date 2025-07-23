@@ -186,7 +186,7 @@ impl Query {
     /// Get all capture names
     pub fn capture_names(&self) -> Vec<&str> {
         let mut names: Vec<_> = self.capture_names.iter().collect();
-        names.sort_by_key(|(_, &index)| index);
+        names.sort_by_key(|&(_, &index)| index);
         names.into_iter().map(|(name, _)| name.as_str()).collect()
     }
     

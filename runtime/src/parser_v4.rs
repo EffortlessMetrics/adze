@@ -201,7 +201,9 @@ impl Parser {
         let mut valid_externals = HashSet::new();
         
         // Get all valid symbols for this state from the parse table
-        if let Some(state_actions) = self.parse_table.states.get(&state) {
+        let state_idx = state.0 as usize;
+        if state_idx < self.parse_table.action_table.len() {
+            let state_actions = &self.parse_table.action_table[state_idx];
             for (symbol_id, _) in &state_actions.actions {
                 // Check if this is an external symbol by comparing with grammar externals
                 if self.grammar.externals.iter().any(|ext| ext.symbol_id == *symbol_id) {
@@ -308,7 +310,9 @@ impl Parser {
             .symbol;
         
         // Look up goto action
-        if let Some(state_actions) = self.parse_table.states.get(&current_state) {
+        let state_idx = current_state.0 as usize;
+        if state_idx < self.parse_table.action_table.len() {
+            let state_actions = &self.parse_table.action_table[state_idx];
             if let Some(action) = state_actions.actions.get(&reduced_symbol) {
                 if let Action::Shift(goto_state) = action {
                     return Ok(*goto_state);
@@ -324,11 +328,13 @@ impl Parser {
         match action {
             Action::Shift(next_state) => {
                 self.handle_shift(next_state, token)?;
-                self.parse(&String::from_utf8_lossy(&self.input))
+                let input_str = String::from_utf8_lossy(&self.input).into_owned();
+                self.parse(&input_str)
             }
             Action::Reduce(rule_id) => {
                 self.handle_reduce(rule_id)?;
-                self.parse(&String::from_utf8_lossy(&self.input))
+                let input_str = String::from_utf8_lossy(&self.input).into_owned();
+                self.parse(&input_str)
             }
             Action::Accept => {
                 self.node_stack.pop()
@@ -340,7 +346,9 @@ impl Parser {
     
     /// Get action from parse table
     fn get_action(&self, state: StateId, symbol: SymbolId) -> Result<Action> {
-        if let Some(state_actions) = self.parse_table.states.get(&state) {
+        let state_idx = state.0 as usize;
+        if state_idx < self.parse_table.action_table.len() {
+            let state_actions = &self.parse_table.action_table[state_idx];
             if let Some(action) = state_actions.actions.get(&symbol) {
                 return Ok(action.clone());
             }
@@ -352,7 +360,9 @@ impl Parser {
     
     /// Get expected symbols for error reporting
     fn get_expected_symbols(&self, state: StateId) -> Vec<SymbolId> {
-        if let Some(state_actions) = self.parse_table.states.get(&state) {
+        let state_idx = state.0 as usize;
+        if state_idx < self.parse_table.action_table.len() {
+            let state_actions = &self.parse_table.action_table[state_idx];
             state_actions.actions.keys()
                 .filter(|&&sym| {
                     // Include only terminals and external tokens

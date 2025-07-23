@@ -231,7 +231,7 @@ impl SimdLexer {
         
         // Process 8 bytes at a time using u64
         let chunks = a.len() / 8;
-        let remainder = a.len() % 8;
+        let _remainder = a.len() % 8;
         
         // Compare 8-byte chunks
         for i in 0..chunks {

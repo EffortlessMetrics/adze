@@ -112,7 +112,7 @@ module.exports = grammar({
     println!("Testing comprehensive grammar with all implemented features...\n");
     
     // Parse the grammar
-    let parser = GrammarJsParserV3::new(grammar_content.to_string());
+    let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
     match parser.parse() {
         Ok(grammar) => {
             println!("✓ Successfully parsed grammar!");

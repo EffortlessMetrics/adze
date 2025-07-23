@@ -36,7 +36,7 @@ module.exports = grammar({
 "#;
 
     println!("\nTesting grammar with externals...");
-    let parser = GrammarJsParserV3::new(grammar_content.to_string());
+    let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
     match parser.parse() {
         Ok(grammar_js) => {
             println!("✓ Successfully parsed grammar!");
@@ -140,7 +140,7 @@ module.exports = grammar({
 "#;
 
     println!("\nTesting Python-style grammar with indent/dedent externals...");
-    let parser = GrammarJsParserV3::new(grammar_content.to_string());
+    let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
     match parser.parse() {
         Ok(grammar_js) => {
             println!("✓ Successfully parsed grammar!");
@@ -253,7 +253,7 @@ module.exports = grammar({
 "#;
 
     println!("\nTesting Markdown-style grammar with complex externals...");
-    let parser = GrammarJsParserV3::new(grammar_content.to_string());
+    let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
     match parser.parse() {
         Ok(grammar_js) => {
             println!("✓ Successfully parsed grammar!");

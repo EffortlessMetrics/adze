@@ -90,7 +90,7 @@ impl GLRStack {
     
     /// Check if stacks can be merged at the current state
     pub fn check_merge(&mut self, state: StateId, position: usize) -> Vec<Vec<usize>> {
-        let key = (state, position);
+        let _key = (state, position);
         let mut stacks_at_state = Vec::new();
         
         // Find all active stacks at this state and position
@@ -245,10 +245,17 @@ impl GLRParser {
         }
         
         // Check for merge opportunities
-        let active = self.stack.active_stacks();
-        for stack in active {
-            let state = stack.state_stack.last().unwrap().state;
-            let merge_groups = self.stack.check_merge(state, stack.position);
+        let merge_data: Vec<_> = {
+            let active = self.stack.active_stacks();
+            active.into_iter().map(|stack| {
+                let state = stack.state_stack.last().unwrap().state;
+                let position = stack.position;
+                (state, position)
+            }).collect()
+        };
+        
+        for (state, position) in merge_data {
+            let merge_groups = self.stack.check_merge(state, position);
             
             for group in merge_groups {
                 if group.len() > 1 {

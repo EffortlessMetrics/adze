@@ -32,7 +32,7 @@ impl ExternalScanner for HeredocScanner {
         position: usize,
     ) -> Option<ScanResult> {
         // If we're inside a heredoc, look for the end delimiter
-        if let Some(delimiter) = &self.delimiter {
+        if let Some(delimiter) = self.delimiter.clone() {
             if self.at_line_start && valid_symbols.get(HEREDOC_END) == Some(&true) {
                 // Check if the line starts with the delimiter
                 let delimiter_bytes = delimiter.as_bytes();
@@ -85,11 +85,11 @@ impl ExternalScanner for HeredocScanner {
                    input[position] == b'<' && 
                    input[position + 1] == b'<' {
                     let mut i = position + 2;
-                    let mut indent_allowed = false;
+                    let mut _indent_allowed = false;
                     
                     // Check for <<- (indent allowed)
                     if i < input.len() && input[i] == b'-' {
-                        indent_allowed = true;
+                        _indent_allowed = true;
                         i += 1;
                     }
                     

@@ -249,7 +249,7 @@ pub fn test_grammar(test: &GrammarTest, grammar_dir: &Path) -> Result<TestResult
     
     // Try parsing with v3 parser
     println!("  Parsing grammar.js...");
-    let parser = GrammarJsParserV3::new(grammar_content.clone());
+    let mut parser = GrammarJsParserV3::new(grammar_content.clone());
     
     let grammar_js = match parser.parse() {
         Ok(g) => {
