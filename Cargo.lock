@@ -1464,6 +1464,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-sitter-testing"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "insta",
+ "rust-sitter",
+ "rust-sitter-glr-core",
+ "rust-sitter-ir",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "rust-sitter-tool"
 version = "0.5.0-beta"
 dependencies = [

@@ -10,4 +10,5 @@ members = [
   "glr-core",
   "tablegen",
   "xtask",
+  "testing",
 ]

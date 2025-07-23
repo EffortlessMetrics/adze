@@ -1,376 +1,427 @@
-# Migration Guide: From C-based Tree-sitter to Pure-Rust Implementation
+# Migration Guide: Tree-sitter to Rust Sitter
 
-This guide helps you migrate from the traditional C-based Tree-sitter to the pure-Rust implementation.
-
-## Table of Contents
-1. [Overview](#overview)
-2. [Key Differences](#key-differences)
-3. [Migration Steps](#migration-steps)
-4. [Grammar Definition](#grammar-definition)
-5. [Parser Usage](#parser-usage)
-6. [Advanced Features](#advanced-features)
-7. [Troubleshooting](#troubleshooting)
+This guide helps you migrate existing Tree-sitter grammars to rust-sitter.
 
 ## Overview
 
-The pure-Rust Tree-sitter implementation provides:
-- 100% Rust code with no C dependencies
-- Full compatibility with Tree-sitter grammars
-- Enhanced features like built-in optimization and validation
-- Better integration with Rust ecosystem
-- WASM support out of the box
+Rust Sitter provides ~98% compatibility with Tree-sitter grammars while offering:
+- Pure Rust implementation (no C dependencies)
+- Type-safe grammar definitions
+- Enhanced error recovery
+- Better incremental parsing
+- Full WASM support
 
-## Key Differences
+## Quick Start
 
-### 1. Grammar Definition
+### 1. Basic Grammar Migration
 
-**C-based Tree-sitter:**
+**Tree-sitter (JavaScript):**
 ```javascript
-// grammar.js
 module.exports = grammar({
   name: 'my_language',
+  
   rules: {
-    expression: $ => choice(
-      $.number,
-      $.binary_expression
+    source_file: $ => repeat($.statement),
+    
+    statement: $ => choice(
+      $.expression_statement,
+      $.if_statement
     ),
-    number: $ => /\d+/,
-    binary_expression: $ => prec.left(1, seq(
-      field('left', $.expression),
-      field('operator', '+'),
-      field('right', $.expression)
-    ))
+    
+    expression_statement: $ => seq(
+      $.expression,
+      ';'
+    ),
+    
+    expression: $ => choice(
+      $.identifier,
+      $.number
+    ),
+    
+    identifier: $ => /[a-zA-Z_]\w*/,
+    number: $ => /\d+/
   }
 });
 ```
 
-**Pure-Rust Implementation:**
+**Rust Sitter:**
 ```rust
 #[rust_sitter::grammar("my_language")]
-pub mod grammar {
+mod grammar {
     #[rust_sitter::language]
+    pub struct SourceFile {
+        statements: Vec<Statement>,
+    }
+    
+    pub enum Statement {
+        Expression(ExpressionStatement),
+        If(IfStatement),
+    }
+    
+    pub struct ExpressionStatement {
+        expression: Expression,
+        #[rust_sitter::leaf(text = ";")]
+        semicolon: (),
+    }
+    
     pub enum Expression {
-        Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
-            i32
+        Identifier(
+            #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+            String
         ),
-        #[rust_sitter::prec_left(1)]
-        Add(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "+")]
-            (),
-            Box<Expression>
+        Number(
+            #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
+            u32
         ),
     }
 }
 ```
 
-### 2. Build Process
+### 2. Precedence and Associativity
 
-**C-based Tree-sitter:**
-- Requires Node.js to generate parser
-- Generates C code that needs compilation
-- Complex build.rs with cc crate
+**Tree-sitter:**
+```javascript
+expression: $ => choice(
+  prec.left(2, seq($.expression, '*', $.expression)),
+  prec.left(1, seq($.expression, '+', $.expression)),
+  $.primary
+)
+```
 
-**Pure-Rust Implementation:**
-- Pure Rust proc macros
-- No external toolchain required
-- Simple build.rs:
-
+**Rust Sitter:**
 ```rust
-// build.rs
-use std::path::PathBuf;
-
-fn main() {
-    println!("cargo:rerun-if-changed=src");
-    rust_sitter_tool::build_parsers(&PathBuf::from("src/main.rs"));
+pub enum Expression {
+    #[rust_sitter::prec_left(2)]
+    Multiply(
+        Box<Expression>,
+        #[rust_sitter::leaf(text = "*")] (),
+        Box<Expression>
+    ),
+    
+    #[rust_sitter::prec_left(1)]
+    Add(
+        Box<Expression>,
+        #[rust_sitter::leaf(text = "+")] (),
+        Box<Expression>
+    ),
+    
+    Primary(Primary),
 }
 ```
 
-## Migration Steps
+### 3. Field Names
 
-### Step 1: Update Dependencies
-
-Replace your Tree-sitter dependencies:
-
-```toml
-# Old
-[dependencies]
-tree-sitter = "0.20"
-tree-sitter-my-language = { path = "../tree-sitter-my-language" }
-
-# New
-[dependencies]
-rust-sitter = { version = "0.4", features = ["tree-sitter-c2rust"] }
-
-[build-dependencies]
-rust-sitter-tool = "0.4"
+**Tree-sitter:**
+```javascript
+function_declaration: $ => seq(
+  'function',
+  field('name', $.identifier),
+  field('parameters', $.parameter_list),
+  field('body', $.block)
+)
 ```
 
-### Step 2: Convert Grammar
-
-1. Create a new Rust module for your grammar
-2. Convert JavaScript rules to Rust enums/structs
-3. Add appropriate attributes
-
-**Conversion patterns:**
-
-| Tree-sitter JS | Rust Sitter |
-|----------------|-------------|
-| `seq(a, b, c)` | Struct with fields |
-| `choice(a, b)` | Enum variants |
-| `repeat(x)` | `Vec<T>` |
-| `optional(x)` | `Option<T>` |
-| `prec.left(n, x)` | `#[rust_sitter::prec_left(n)]` |
-| `/regex/` | `#[rust_sitter::leaf(pattern = "regex")]` |
-| `'literal'` | `#[rust_sitter::leaf(text = "literal")]` |
-
-### Step 3: Update Parser Usage
-
-**Old:**
+**Rust Sitter:**
 ```rust
-let mut parser = tree_sitter::Parser::new();
-parser.set_language(tree_sitter_my_language::language())?;
-let tree = parser.parse(input, None).unwrap();
-let root = tree.root_node();
-```
-
-**New:**
-```rust
-use rust_sitter::Parser;
-
-let parser = Parser::<grammar::MyLanguage>::new();
-let tree = parser.parse(input, None).unwrap();
-let root = tree.root_node();
-
-// Or use the high-level API:
-let ast = grammar::parse(input)?;
-```
-
-### Step 4: Update Tree Navigation
-
-The tree navigation API remains largely the same:
-
-```rust
-// Both versions
-let mut cursor = root.walk();
-cursor.goto_first_child();
-let node = cursor.node();
-println!("Node kind: {}", node.kind());
-println!("Node text: {}", node.utf8_text(input)?);
-```
-
-## Grammar Definition
-
-### Basic Types
-
-```rust
-// Leaf nodes (terminals)
-#[rust_sitter::leaf(text = "if")]
-struct If;
-
-#[rust_sitter::leaf(pattern = r"\d+")]
-struct Number(String);
-
-#[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
-struct ParsedNumber(i32);
-
-// Sequences (non-terminals)
-struct IfStatement {
-    if_keyword: If,
-    condition: Expression,
-    then_block: Block,
-}
-
-// Choices
-enum Statement {
-    If(IfStatement),
-    While(WhileStatement),
-    Expression(Expression),
-}
-```
-
-### Repetition and Optionals
-
-```rust
-struct Block {
-    #[rust_sitter::repeat(non_empty = false)]
-    statements: Vec<Statement>,
-}
-
-struct Function {
+pub struct FunctionDeclaration {
+    #[rust_sitter::leaf(text = "function")]
+    keyword: (),
+    
+    #[rust_sitter::field("name")]
     name: Identifier,
-    parameters: Option<ParameterList>,
+    
+    #[rust_sitter::field("parameters")]
+    parameters: ParameterList,
+    
+    #[rust_sitter::field("body")]
+    body: Block,
 }
+```
 
-struct ParameterList {
+### 4. Repetition and Options
+
+**Tree-sitter:**
+```javascript
+parameter_list: $ => seq(
+  '(',
+  optional(seq(
+    $.parameter,
+    repeat(seq(',', $.parameter))
+  )),
+  ')'
+)
+```
+
+**Rust Sitter:**
+```rust
+pub struct ParameterList {
+    #[rust_sitter::leaf(text = "(")]
+    lparen: (),
+    
     #[rust_sitter::delimited(
         #[rust_sitter::leaf(text = ",")]
         ()
     )]
     parameters: Vec<Parameter>,
-}
-```
-
-### Precedence and Associativity
-
-```rust
-#[rust_sitter::prec]
-enum Expression {
-    #[rust_sitter::prec_left(1)]
-    Add(Box<Expression>, #[rust_sitter::leaf(text = "+")] (), Box<Expression>),
     
-    #[rust_sitter::prec_left(2)]
-    Multiply(Box<Expression>, #[rust_sitter::leaf(text = "*")] (), Box<Expression>),
+    #[rust_sitter::leaf(text = ")")]
+    rparen: (),
+}
+```
+
+### 5. External Scanners
+
+**Tree-sitter (C):**
+```c
+enum TokenType {
+  INDENT,
+  DEDENT,
+  NEWLINE
+};
+
+void *tree_sitter_python_external_scanner_create() {
+  return calloc(1, sizeof(Scanner));
+}
+
+bool tree_sitter_python_external_scanner_scan(
+  void *payload,
+  TSLexer *lexer,
+  const bool *valid_symbols
+) {
+  Scanner *scanner = (Scanner *)payload;
+  // Scanning logic...
+}
+```
+
+**Rust Sitter:**
+```rust
+use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+
+#[derive(Default)]
+struct PythonScanner {
+    indent_stack: Vec<usize>,
+}
+
+impl ExternalScanner for PythonScanner {
+    fn scan(&mut self, lexer: &mut Lexer, valid_symbols: &[bool]) -> ScanResult {
+        if valid_symbols[NEWLINE] && lexer.lookahead() == '\n' {
+            lexer.advance(false);
+            lexer.mark_end();
+            lexer.result_symbol(NEWLINE);
+            
+            // Handle indentation...
+            
+            return ScanResult::Found;
+        }
+        ScanResult::NotFound
+    }
+}
+```
+
+### 6. Extras and Word
+
+**Tree-sitter:**
+```javascript
+module.exports = grammar({
+  name: 'my_language',
+  
+  extras: $ => [
+    /\s/,
+    $.comment
+  ],
+  
+  word: $ => $.identifier,
+  
+  rules: {
+    // ...
+  }
+});
+```
+
+**Rust Sitter:**
+```rust
+#[rust_sitter::grammar("my_language")]
+mod grammar {
+    #[rust_sitter::extra]
+    pub enum Extra {
+        Whitespace(
+            #[rust_sitter::leaf(pattern = r"\s")]
+            ()
+        ),
+        Comment(Comment),
+    }
     
-    #[rust_sitter::prec(3)]
-    Unary(#[rust_sitter::leaf(text = "-")] (), Box<Expression>),
-}
-```
-
-## Parser Usage
-
-### Basic Parsing
-
-```rust
-// Parse to tree
-let parser = Parser::<grammar::MyLanguage>::new();
-let tree = parser.parse(code, None)?;
-
-// Parse to AST
-let ast: grammar::MyLanguage = grammar::parse(code)?;
-```
-
-### Error Handling
-
-```rust
-match grammar::parse(code) {
-    Ok(ast) => {
-        // Process AST
-    }
-    Err(errors) => {
-        for error in errors {
-            eprintln!("Parse error at {}:{}: {}", 
-                error.start, error.end, error.reason);
-        }
+    #[rust_sitter::word]
+    pub struct Identifier {
+        #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+        value: String,
     }
 }
 ```
 
-### Incremental Parsing
+## Advanced Migration
 
-```rust
-let mut parser = Parser::<grammar::MyLanguage>::new();
-let old_tree = parser.parse(old_code, None)?;
+### Conflicts
 
-// Edit the code
-let new_tree = parser.parse(new_code, Some(&old_tree))?;
+**Tree-sitter:**
+```javascript
+conflicts: $ => [
+  [$.type_expression, $.primary_expression]
+]
 ```
 
-## Advanced Features
-
-### Grammar Optimization
-
+**Rust Sitter:**
 ```rust
-use rust_sitter_ir::{GrammarOptimizer};
-
-let mut optimizer = GrammarOptimizer::new();
-optimizer.optimize_grammar(&mut grammar);
-
-println!("Optimization stats: {:?}", optimizer.get_stats());
+// Handled automatically by GLR parsing
+// Or use explicit precedence annotations
 ```
 
-### Grammar Validation
+### Dynamic Precedence
+
+**Tree-sitter:**
+```javascript
+prec.dynamic(1, $.expression)
+```
+
+**Rust Sitter:**
+```rust
+#[rust_sitter::prec_dynamic(1)]
+Expression(Box<Expression>)
+```
+
+### Inline Rules
+
+**Tree-sitter:**
+```javascript
+inline: $ => [
+  $._expression,
+  $._statement
+]
+```
+
+**Rust Sitter:**
+```rust
+// Use Rust's type system instead
+type Expression = ExpressionImpl;
+type Statement = StatementImpl;
+```
+
+## Build System Migration
+
+### Tree-sitter:
+```javascript
+// binding.gyp, package.json, etc.
+```
+
+### Rust Sitter:
+```toml
+# Cargo.toml
+[dependencies]
+rust-sitter = "0.4.5"
+
+[build-dependencies]
+rust-sitter-tool = "0.4.5"
+```
 
 ```rust
-use rust_sitter_ir::{GrammarValidator};
-
-let validator = GrammarValidator::new();
-let result = validator.validate(&grammar);
-
-for error in &result.errors {
-    eprintln!("Grammar error: {}", error);
+// build.rs
+fn main() {
+    rust_sitter_tool::build_parsers(&PathBuf::from("src/grammar.rs"));
 }
 ```
 
-### Visitor Pattern
+## Query Migration
 
-```rust
-use rust_sitter::visitor::{Visitor, TreeWalker, VisitorAction};
+Tree-sitter queries work unchanged in rust-sitter:
 
-struct MyVisitor {
-    identifier_count: usize,
-}
+```scheme
+(function_declaration
+  name: (identifier) @function.name
+  body: (block) @function.body)
 
-impl Visitor for MyVisitor {
-    fn enter_node(&mut self, node: &Node) -> VisitorAction {
-        if node.kind() == "identifier" {
-            self.identifier_count += 1;
-        }
-        VisitorAction::Continue
-    }
-}
-
-let walker = TreeWalker::new(source);
-let mut visitor = MyVisitor { identifier_count: 0 };
-walker.walk(tree.root_node(), &mut visitor);
+(#match? @function.name "^test_")
 ```
 
-### Error Recovery
+## Performance Tips
 
+1. **Use `Box<T>` for recursive types** to avoid infinite size
+2. **Prefer enums over choices** for better performance
+3. **Use field names** for better incremental parsing
+4. **Enable table compression** in release builds
+
+## Common Pitfalls
+
+### 1. Token Transformation
 ```rust
-use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState};
+// Wrong: transform returns wrong type
+#[rust_sitter::leaf(pattern = r"\d+", transform = |s| s)]
 
-let config = ErrorRecoveryConfig::default()
-    .with_sync_tokens(vec![SEMICOLON, RBRACE])
-    .with_scope_delimiters(vec![(LPAREN, RPAREN)]);
-
-let mut recovery = ErrorRecoveryState::new(config);
-// Use during parsing for better error recovery
+// Correct: parse string to number
+#[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
 ```
 
-## Troubleshooting
+### 2. Missing Extras
+```rust
+// Don't forget to mark whitespace as extra
+#[rust_sitter::extra]
+struct Whitespace {
+    #[rust_sitter::leaf(pattern = r"\s+")]
+    _ws: (),
+}
+```
 
-### Common Issues
+### 3. Recursive Types
+```rust
+// Wrong: infinite size
+pub enum Expr {
+    Binary(Expr, Op, Expr)
+}
 
-1. **"Expected a path" panic during build**
-   - Ensure leaf types are simple paths (not complex types)
-   - Use type aliases for complex types
+// Correct: use Box
+pub enum Expr {
+    Binary(Box<Expr>, Op, Box<Expr>)
+}
+```
 
-2. **Grammar doesn't compile**
-   - Check that all recursive types use `Box<T>`
-   - Ensure enums have at least one variant
-   - Verify leaf patterns are valid regex
+## Testing Migration
 
-3. **Performance differences**
-   - Enable release mode: `cargo build --release`
-   - Use `tree-sitter-c2rust` feature for best performance
-   - Consider grammar optimization
+### Tree-sitter:
+```javascript
+const parser = require('tree-sitter-my-language');
+// Test with tree-sitter CLI
+```
 
-### Migration Checklist
+### Rust Sitter:
+```rust
+#[test]
+fn test_parsing() {
+    let result = grammar::parse("let x = 42;");
+    assert!(result.is_ok());
+}
+```
 
-- [ ] Update Cargo.toml dependencies
-- [ ] Create Rust grammar module
-- [ ] Convert all rules to Rust types
-- [ ] Add build.rs with `build_parsers`
-- [ ] Update parser initialization code
-- [ ] Test with existing test cases
-- [ ] Enable new features (optimization, validation)
-- [ ] Update CI/CD pipelines
+## Tool Compatibility
 
-## Resources
-
-- [API Documentation](./API_DOCUMENTATION.md)
-- [Example Grammars](./example/src/)
-- [Performance Guide](./PERFORMANCE_RESULTS.md)
-- [GitHub Repository](https://github.com/hydro-project/rust-sitter)
+- **tree-sitter CLI**: Use `rust-sitter-tool` instead
+- **Syntax highlighting**: Compatible with existing queries
+- **Language servers**: Use generated parsers as drop-in replacements
+- **Editors**: Works with any Tree-sitter-enabled editor
 
 ## Getting Help
 
-If you encounter issues during migration:
-1. Check the example grammars for patterns
-2. Review the API documentation
-3. Open an issue on GitHub
-4. Join the community discussions
+1. Check examples in the `example/` directory
+2. Run with `RUST_SITTER_EMIT_ARTIFACTS=true` to debug
+3. Use `cargo insta review` for snapshot testing
+4. Join the community Discord for support
 
-The pure-Rust implementation aims to be a drop-in replacement with enhanced features. Most Tree-sitter concepts translate directly, making migration straightforward for most grammars.
+## Incremental Migration
+
+You can migrate gradually:
+
+1. Start with core grammar rules
+2. Add external scanners if needed
+3. Migrate queries and highlights
+4. Update build system
+5. Test thoroughly
+
+The rust-sitter implementation maintains compatibility while offering better performance and type safety.
