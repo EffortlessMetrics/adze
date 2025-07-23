@@ -28,6 +28,8 @@ rust-sitter-glr-core = { path = "../glr-core" }
 regex = "1.10"
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
+anyhow = "1.0"
+indexmap = "2.0"
 
 [dev-dependencies]
 insta = "1.39"

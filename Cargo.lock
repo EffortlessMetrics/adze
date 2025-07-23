@@ -1372,7 +1372,9 @@ dependencies = [
 name = "rust-sitter"
 version = "0.4.5"
 dependencies = [
+ "anyhow",
  "criterion",
+ "indexmap",
  "insta",
  "regex",
  "rust-sitter-glr-core",
