@@ -12,6 +12,7 @@ pub mod parser_v3;
 pub mod parser_v4;
 pub mod error_recovery;
 pub mod visitor;
+pub mod query;
 #[cfg(feature = "serialization")]
 pub mod serialization;
 

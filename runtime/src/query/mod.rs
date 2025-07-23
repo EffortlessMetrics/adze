@@ -7,8 +7,10 @@ pub mod cursor;
 pub mod matcher;
 pub mod parser;
 pub mod pattern;
+pub mod highlights;
 
 pub use ast::{Query, QueryError};
 pub use cursor::QueryCursor;
-pub use matcher::{QueryMatch, QueryCapture};
+pub use matcher::{QueryMatch, QueryCapture, QueryMatches};
 pub use pattern::{Pattern, Predicate};
+pub use highlights::{Highlighter, Highlight, Theme, Color};

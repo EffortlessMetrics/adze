@@ -1383,6 +1383,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "thiserror 1.0.69",
  "tree-sitter",
  "tree-sitter-c2rust",
 ]
