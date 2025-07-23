@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rust Sitter Grammar Playground</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Rust Sitter Grammar Playground</h1>
+            <p>Interactive testing environment for rust-sitter grammars</p>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="section">
+                    <h2>Input Code</h2>
+                    <textarea id="input-code" placeholder="Enter code to parse...">// Example JavaScript
+function fibonacci(n) {
+    if (n <= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}</textarea>
+                    <div class="button-group">
+                        <button id="parse-btn" class="primary">Parse</button>
+                        <button id="visualize-btn">Visualize</button>
+                        <button id="add-test-btn">Add Test</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Test Cases</h2>
+                    <div id="test-list"></div>
+                    <button id="run-tests-btn">Run All Tests</button>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="tabs">
+                    <button class="tab active" data-tab="tree">Parse Tree</button>
+                    <button class="tab" data-tab="analysis">Analysis</button>
+                    <button class="tab" data-tab="visualization">Visualization</button>
+                    <button class="tab" data-tab="timing">Performance</button>
+                </div>
+
+                <div class="tab-content">
+                    <div id="tree-tab" class="tab-pane active">
+                        <pre id="parse-tree"></pre>
+                    </div>
+                    <div id="analysis-tab" class="tab-pane">
+                        <div id="analysis-content"></div>
+                    </div>
+                    <div id="visualization-tab" class="tab-pane">
+                        <div id="tree-visualization"></div>
+                    </div>
+                    <div id="timing-tab" class="tab-pane">
+                        <div id="timing-content"></div>
+                    </div>
+                </div>
+
+                <div class="section errors" id="errors" style="display: none;">
+                    <h3>Errors</h3>
+                    <div id="error-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <button id="export-btn">Export Session</button>
+            <button id="import-btn">Import Session</button>
+            <input type="file" id="import-file" style="display: none;" accept=".json">
+            <span class="status" id="status"></span>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>
