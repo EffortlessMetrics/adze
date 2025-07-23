@@ -28,6 +28,7 @@ pub struct Grammar {
     pub alias_sequences: IndexMap<ProductionId, AliasSequence>,
     pub production_ids: IndexMap<RuleId, ProductionId>,
     pub max_alias_sequence_length: usize,
+    pub rule_names: IndexMap<SymbolId, String>, // Maps symbol IDs to rule names
 }
 
 /// Grammar rule supporting GLR multiple actions per state
@@ -179,6 +180,7 @@ impl Grammar {
             alias_sequences: IndexMap::new(),
             production_ids: IndexMap::new(),
             max_alias_sequence_length: 0,
+            rule_names: IndexMap::new(),
         }
     }
 

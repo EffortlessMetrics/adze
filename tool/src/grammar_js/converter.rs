@@ -47,6 +47,7 @@ impl GrammarJsConverter {
             alias_sequences: IndexMap::new(),
             production_ids: IndexMap::new(),
             max_alias_sequence_length: 0,
+            rule_names: IndexMap::new(),
         };
         
         // First pass: collect all symbols (rules and tokens)
@@ -89,6 +90,7 @@ impl GrammarJsConverter {
         for rule_name in self.grammar_js.rules.keys() {
             let symbol_id = SymbolId(self.next_symbol_id.try_into().unwrap());
             self.symbol_names.insert(rule_name.clone(), symbol_id);
+            grammar.rule_names.insert(symbol_id, rule_name.clone());
             self.next_symbol_id += 1;
         }
         

@@ -58,9 +58,12 @@ impl<'a> NodeTypesGenerator<'a> {
         let mut node_types = Vec::new();
         let mut symbol_names: HashMap<_, _> = HashMap::new();
         
+        eprintln!("Debug: NodeTypesGenerator - grammar has {} rules", self.grammar.rules.len());
+        
         // First, collect all symbol names
         for (symbol_id, _rule) in &self.grammar.rules {
             if let Some(rule_name) = self.get_rule_name(*symbol_id) {
+                eprintln!("Debug: Adding rule name '{}' for symbol {}", rule_name, symbol_id.0);
                 symbol_names.insert(*symbol_id, rule_name);
             }
         }
@@ -73,6 +76,8 @@ impl<'a> NodeTypesGenerator<'a> {
         // Process rules to create node types
         let mut processed = HashSet::new();
         
+        eprintln!("Debug: Processing {} rules for node types", self.grammar.rules.len());
+        
         // Find supertypes (rules that have other rules as alternatives)
         let _supertypes: HashMap<rust_sitter_ir::SymbolId, Vec<rust_sitter_ir::SymbolId>> = HashMap::new();
         
@@ -82,10 +87,15 @@ impl<'a> NodeTypesGenerator<'a> {
                 continue;
             }
             
-            // Check if this is a simple rule with fields
-            if !rule.fields.is_empty() {
-                let mut fields = HashMap::new();
+            eprintln!("Debug: Processing rule {} with {} fields", symbol_id.0, rule.fields.len());
+            
+            // Get the rule name
+            if let Some(name) = self.get_rule_name(*symbol_id) {
+                // Skip internal rules (starting with _)
+                let is_internal = name.starts_with('_');
                 
+                // Collect fields if any
+                let mut fields = HashMap::new();
                 for (field_id, position) in &rule.fields {
                     if let Some(field_name) = self.grammar.fields.get(field_id) {
                         if let Some(symbol) = rule.rhs.get(*position) {
@@ -99,7 +109,8 @@ impl<'a> NodeTypesGenerator<'a> {
                     }
                 }
                 
-                if let Some(name) = symbol_names.get(symbol_id) {
+                // Add the node type if it's not internal
+                if !is_internal {
                     node_types.push(NodeType {
                         type_name: name.clone(),
                         named: true,
@@ -140,8 +151,17 @@ impl<'a> NodeTypesGenerator<'a> {
     }
     
     fn get_rule_name(&self, symbol_id: rust_sitter_ir::SymbolId) -> Option<String> {
-        // In a real implementation, we'd need to track rule names during grammar construction
-        // For now, generate a name based on the symbol ID
+        // Check if this is a token first
+        if let Some(token) = self.grammar.tokens.get(&symbol_id) {
+            return Some(token.name.clone());
+        }
+        
+        // Look up rule name
+        if let Some(rule_name) = self.grammar.rule_names.get(&symbol_id) {
+            return Some(rule_name.clone());
+        }
+        
+        // Fallback
         Some(format!("rule_{}", symbol_id.0))
     }
     
