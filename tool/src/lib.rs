@@ -16,6 +16,8 @@ pub use grammar_js::{parse_grammar_js, GrammarJsConverter};
 pub mod pure_rust_builder;
 pub use pure_rust_builder::{build_parser, build_parser_for_crate, build_parser_from_grammar_js, BuildOptions, BuildResult};
 
+pub mod cli;
+
 const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 2));
 
 /// Generates JSON strings defining Tree Sitter grammars for every Rust Sitter

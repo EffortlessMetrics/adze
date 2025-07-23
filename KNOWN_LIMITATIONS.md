@@ -12,12 +12,19 @@ rust-sitter v0.5.0-beta provides a pure-Rust implementation of Tree-sitter with 
   - Field names and aliases
   - Tokens and immediate tokens
   - Basic rules and symbols
+  - **NEW**: Precedence and associativity (`prec`, `prec.left`, `prec.right`, `prec.dynamic`) ✨
+  - **NEW**: Word token declarations ✨
+  - **NEW**: External scanner declarations (parsing only) ✨
+  - **NEW**: Supertypes declarations ✨
+  - **NEW**: Inline rules ✨
+  - **NEW**: Conflicts declarations ✨
 
 - **Parser Generation**
   - LR(1) automaton construction
   - Table compression matching Tree-sitter format
   - NODE_TYPES.json generation
   - FFI-compatible Language struct
+  - **NEW**: Non-sequential symbol ID handling ✨
 
 - **Runtime Features**
   - Parse tree construction
@@ -31,34 +38,26 @@ The following Tree-sitter features are not yet supported in v0.5.0-beta:
 
 ### Grammar Features
 
-1. **Precedence and Associativity** ❌
-   - `prec(level, rule)`
-   - `prec.left(level, rule)`
-   - `prec.right(level, rule)`
-   - `prec.dynamic(level, rule)`
-   - **Impact**: Cannot parse grammars with operator precedence (JavaScript, C, Python, etc.)
-   - **Workaround**: None - these grammars will fail to build
-
-2. **Word Token** ❌
-   - `word: $ => $.identifier` declarations
-   - **Impact**: Cannot properly handle keyword vs identifier distinction
-   - **Workaround**: None - grammars using word tokens will fail
-
-3. **External Scanners** ❌
-   - `externals: $ => [...]` declarations
-   - External C/C++ scanner integration
+1. **External Scanner Runtime** ❌
+   - External scanner declarations are parsed but not executed
+   - External C/C++ scanner integration not implemented
    - **Impact**: Cannot parse context-sensitive tokens (Python indentation, C++ raw strings)
-   - **Workaround**: None - grammars with externals will fail
+   - **Workaround**: None - grammars requiring external scanners will fail at runtime
 
-4. **Conflicts** ⚠️
-   - `conflicts: $ => [[...]]` declarations
-   - **Impact**: Explicit conflict resolution not supported
-   - **Workaround**: Grammar may still work if conflicts are naturally resolved
+2. **Named Precedence Levels** ❌
+   - `prec('operator', rule)` style precedences
+   - **Impact**: Some grammars use named precedence for clarity
+   - **Workaround**: Convert to numeric precedence levels
 
-5. **Supertypes** ⚠️
-   - `supertypes: $ => [...]` declarations
-   - **Impact**: Type hierarchy information missing from NODE_TYPES.json
-   - **Workaround**: Grammar will build but without supertype metadata
+3. **JavaScript-style Function Blocks in grammar.js** ❌
+   - `{ const table = [...]; return choice(...); }` patterns
+   - **Impact**: Cannot parse some complex grammar patterns
+   - **Workaround**: Rewrite as direct expressions
+
+4. **Complex Extras Patterns** ⚠️
+   - Extras with complex regex or choices
+   - **Impact**: Some whitespace handling may not work correctly
+   - **Workaround**: Simplify extras patterns
 
 ### CLI Features
 
@@ -83,24 +82,26 @@ The following Tree-sitter features are not yet supported in v0.5.0-beta:
 | TOML | ✅ Working | - |
 | INI | ✅ Working | - |
 | Arithmetic | ✅ Working | - |
-| JavaScript | ❌ Blocked | Precedence, word, externals |
-| TypeScript | ❌ Blocked | Precedence, word, externals, supertypes |
-| Python | ❌ Blocked | Precedence, word, externals (indentation) |
-| Rust | ❌ Blocked | Precedence, word, externals |
-| C | ❌ Blocked | Precedence, word |
-| C++ | ❌ Blocked | Precedence, word, externals |
-| Go | ❌ Blocked | Precedence, word |
-| Ruby | ❌ Blocked | Precedence, word, externals |
-| Java | ❌ Blocked | Precedence, word |
-| C# | ❌ Blocked | Precedence, word, externals |
+| C | 🟡 Likely Working | Needs testing |
+| Go | 🟡 Likely Working | Needs testing |
+| Java | 🟡 Likely Working | Needs testing |
+| JavaScript | 🟡 Partial | External scanner runtime, JS function blocks |
+| TypeScript | 🟡 Partial | External scanner runtime, extends JavaScript |
+| Python | ❌ Blocked | External scanner runtime (indentation) |
+| Rust | ❌ Blocked | External scanner runtime (raw strings) |
+| C++ | ❌ Blocked | External scanner runtime (raw strings) |
+| Ruby | ❌ Blocked | External scanner runtime (heredocs) |
+| C# | ❌ Blocked | External scanner runtime |
 
 ## 🚀 Roadmap
 
-### v0.6.0 (Target: Q2 2025)
-- ✨ Precedence and associativity support
-- ✨ Word token support
+### v0.6.0 (Target: Q1 2025)
+- ✅ Precedence and associativity support (DONE)
+- ✅ Word token support (DONE)
+- ✅ External/supertypes/conflicts parsing (DONE)
+- ✨ External scanner runtime implementation
 - ✨ Basic CLI tool (`rust-sitter generate`, `rust-sitter parse`)
-- 📈 Support for ~60% of popular grammars
+- 📈 Support for ~70% of popular grammars
 
 ### v0.7.0 (Target: Q3 2025)
 - ✨ External scanner support
