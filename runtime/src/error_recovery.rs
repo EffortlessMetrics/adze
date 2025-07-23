@@ -23,6 +23,19 @@ pub enum RecoveryStrategy {
     IndentationRecovery,
 }
 
+/// Action to take for error recovery
+#[derive(Debug, Clone)]
+pub enum RecoveryAction {
+    /// Insert a token to continue parsing
+    InsertToken(rust_sitter_ir::SymbolId),
+    /// Delete the current token
+    DeleteToken,
+    /// Replace the current token with another
+    ReplaceToken(rust_sitter_ir::SymbolId),
+    /// Create an error node containing problematic tokens
+    CreateErrorNode(Vec<rust_sitter_ir::SymbolId>),
+}
+
 /// Error recovery configuration
 #[derive(Debug, Clone)]
 pub struct ErrorRecoveryConfig {
@@ -42,6 +55,20 @@ pub struct ErrorRecoveryConfig {
     pub scope_delimiters: Vec<(u16, u16)>,
     /// Enable indentation-based recovery
     pub enable_indentation_recovery: bool,
+}
+
+impl ErrorRecoveryConfig {
+    /// Check if a token can be deleted
+    pub fn can_delete_token(&self, token: rust_sitter_ir::SymbolId) -> bool {
+        // For now, allow deleting any token that's not in sync_tokens
+        !self.sync_tokens.contains(&token.0)
+    }
+    
+    /// Check if a token can be replaced
+    pub fn can_replace_token(&self, token: rust_sitter_ir::SymbolId) -> bool {
+        // Allow replacing if it's not a sync token
+        !self.sync_tokens.contains(&token.0)
+    }
 }
 
 impl Default for ErrorRecoveryConfig {

@@ -2,7 +2,7 @@
 // This module implements the runtime parsing logic for the pure-Rust Tree-sitter
 
 use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{StateId, SymbolId};
+use rust_sitter_ir::{StateId, SymbolId, RuleId, Grammar};
 
 /// Parser state during execution
 #[derive(Debug, Clone)]
@@ -159,19 +159,62 @@ impl Parser {
                     self.position = token.end;
                 }
                 
-                Action::Reduce(_rule_id) => {
-                    // TODO: Implement reduction logic
-                    // This requires looking up the rule from the grammar
-                    // For now, we'll implement a simplified version
+                Action::Reduce(rule_id) => {
+                    // Look up the rule from the grammar
+                    let rule = self.grammar.rules.get(&rule_id)
+                        .ok_or(ParseError::InvalidState)?;
                     
-                    // In a real implementation, we would:
-                    // 1. Look up the rule to get its length and LHS symbol
-                    // 2. Pop that many states and nodes from the stacks
-                    // 3. Create a new node with the popped nodes as children
-                    // 4. Look up the goto state for the LHS symbol
-                    // 5. Push the new node and state
+                    // Pop states and nodes for each symbol in the rule's RHS
+                    let rhs_len = rule.rhs.len();
+                    let mut children = Vec::with_capacity(rhs_len);
                     
-                    return Err(ParseError::InvalidParse);
+                    // Pop nodes in reverse order to maintain correct order
+                    for _ in 0..rhs_len {
+                        let node = self.node_stack.pop()
+                            .ok_or(ParseError::InvalidState)?;
+                        children.push(node);
+                    }
+                    children.reverse();
+                    
+                    // Pop states
+                    let mut start_pos = self.position;
+                    let mut end_pos = self.position;
+                    
+                    for _ in 0..rhs_len {
+                        let state = self.state_stack.pop()
+                            .ok_or(ParseError::InvalidState)?;
+                        start_pos = start_pos.min(state.start_pos);
+                        end_pos = end_pos.max(state.end_pos);
+                    }
+                    
+                    // Get the state to return to after reduction
+                    let return_state = self.state_stack.last()
+                        .ok_or(ParseError::InvalidState)?.state;
+                    
+                    // Look up goto state for the LHS symbol
+                    let goto_state = self.parse_table.goto_table
+                        .get(&(return_state, rule.lhs))
+                        .ok_or(ParseError::InvalidState)?;
+                    
+                    // Create new node for the reduction
+                    let new_node = ParseNode {
+                        symbol: rule.lhs,
+                        children: Some(children),
+                        value: None,
+                        start: start_pos,
+                        end: end_pos,
+                    };
+                    
+                    // Push new node and state
+                    self.node_stack.push(new_node);
+                    self.state_stack.push(ParserState {
+                        state: *goto_state,
+                        start_pos,
+                        end_pos,
+                    });
+                    
+                    // Continue parsing without consuming a token
+                    continue;
                 }
                 
                 Action::Accept => {
@@ -188,10 +231,37 @@ impl Parser {
                     });
                 }
                 
-                Action::Fork(_actions) => {
-                    // TODO: Implement GLR fork handling
-                    // For now, just take the first action
-                    return Err(ParseError::InvalidParse);
+                Action::Fork(actions) => {
+                    // GLR fork handling - try each action in order
+                    // In a full GLR implementation, we would explore all paths in parallel
+                    // For now, we'll try each action sequentially until one succeeds
+                    
+                    for (idx, action) in actions.iter().enumerate() {
+                        // Clone parser state for this fork
+                        let mut fork_parser = Parser {
+                            grammar: self.grammar.clone(),
+                            parse_table: self.parse_table.clone(),
+                            state_stack: self.state_stack.clone(),
+                            node_stack: self.node_stack.clone(),
+                            position: self.position,
+                        };
+                        
+                        // Try to continue parsing with this action
+                        match fork_parser.try_action(action, &token, input) {
+                            Ok(node) => return Ok(node),
+                            Err(_) if idx < actions.len() - 1 => {
+                                // Try next fork
+                                continue;
+                            }
+                            Err(e) => {
+                                // Last fork failed, return error
+                                return Err(e);
+                            }
+                        }
+                    }
+                    
+                    // Should not reach here
+                    return Err(ParseError::InvalidState);
                 }
             }
         }
@@ -228,6 +298,120 @@ impl Parser {
         }
         
         expected
+    }
+    
+    fn try_action(&mut self, action: &Action, token: &Token, input: &str) -> Result<ParseNode> {
+        // Helper method to try a single action
+        match action {
+            Action::Shift(next_state) => {
+                // Push token as node
+                self.node_stack.push(ParseNode {
+                    symbol: token.symbol,
+                    children: None,
+                    value: Some(input[token.start..token.end].to_string()),
+                    start: token.start,
+                    end: token.end,
+                });
+                
+                // Push new state
+                self.state_stack.push(ParserState {
+                    state: *next_state,
+                    start_pos: token.start,
+                    end_pos: token.end,
+                });
+                
+                // Advance position and continue parsing
+                self.position = token.end;
+                self.parse_internal(input)
+            }
+            
+            Action::Reduce(rule_id) => {
+                // Apply reduction and continue parsing
+                self.apply_reduction(*rule_id)?;
+                self.parse_internal(input)
+            }
+            
+            Action::Accept => {
+                self.node_stack.pop()
+                    .ok_or(ParseError::InvalidState)
+            }
+            
+            Action::Error => {
+                Err(ParseError::UnexpectedToken {
+                    expected: self.get_expected_symbols(self.state_stack.last().unwrap().state),
+                    found: token.symbol,
+                    position: self.position,
+                })
+            }
+            
+            Action::Fork(actions) => {
+                // Recursively handle nested forks
+                for action in actions {
+                    match self.try_action(action, token, input) {
+                        Ok(node) => return Ok(node),
+                        Err(_) => continue,
+                    }
+                }
+                Err(ParseError::InvalidState)
+            }
+        }
+    }
+    
+    fn apply_reduction(&mut self, rule_id: RuleId) -> Result<()> {
+        // Extract reduction logic into separate method
+        let rule = self.grammar.rules.get(&rule_id)
+            .ok_or(ParseError::InvalidState)?;
+        
+        // Pop states and nodes for each symbol in the rule's RHS
+        let rhs_len = rule.rhs.len();
+        let mut children = Vec::with_capacity(rhs_len);
+        
+        // Pop nodes in reverse order to maintain correct order
+        for _ in 0..rhs_len {
+            let node = self.node_stack.pop()
+                .ok_or(ParseError::InvalidState)?;
+            children.push(node);
+        }
+        children.reverse();
+        
+        // Pop states
+        let mut start_pos = self.position;
+        let mut end_pos = self.position;
+        
+        for _ in 0..rhs_len {
+            let state = self.state_stack.pop()
+                .ok_or(ParseError::InvalidState)?;
+            start_pos = start_pos.min(state.start_pos);
+            end_pos = end_pos.max(state.end_pos);
+        }
+        
+        // Get the state to return to after reduction
+        let return_state = self.state_stack.last()
+            .ok_or(ParseError::InvalidState)?.state;
+        
+        // Look up goto state for the LHS symbol
+        let goto_state = self.parse_table.goto_table
+            .get(&(return_state, rule.lhs))
+            .ok_or(ParseError::InvalidState)?;
+        
+        // Create new node for the reduction
+        let new_node = ParseNode {
+            symbol: rule.lhs,
+            children: Some(children),
+            value: None,
+            start: start_pos,
+            end: end_pos,
+        };
+        
+        // Push new node and state
+        self.node_stack.push(new_node);
+        self.state_stack.push(ParserState {
+            state: *goto_state,
+            start_pos,
+            end_pos,
+        });
+        
+        Ok(())
     }
 }
 

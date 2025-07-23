@@ -6,6 +6,7 @@ pub mod compress;
 pub mod external_scanner;
 pub mod external_scanner_v2;
 pub mod generate;
+pub mod language_gen;
 pub mod node_types;
 pub mod validation;
 
@@ -50,122 +51,9 @@ impl StaticLanguageGenerator {
 
     /// Generate static Rust code for the Language
     pub fn generate_language_code(&self) -> TokenStream {
-        let language_name = &self.grammar.name;
-        let language_fn_name = format!("tree_sitter_{}", language_name.to_lowercase().replace('-', "_"));
-        let language_fn_ident = quote::format_ident!("{}", language_fn_name);
-        let symbol_count = self.parse_table.symbol_count;
-        let state_count = self.parse_table.state_count;
-        
-        // Generate symbol names array
-        let symbol_names: Vec<_> = self.generate_symbol_names()
-            .into_iter()
-            .map(|name| quote! { #name })
-            .collect();
-        
-        // Generate symbol metadata array
-        let symbol_metadata = self.generate_symbol_metadata();
-        
-        // Generate field names array  
-        let field_names: Vec<_> = self.generate_field_names()
-            .into_iter()
-            .map(|name| quote! { #name })
-            .collect();
-        
-        // Generate parse tables
-        let (action_table, goto_table) = if let Some(compressed) = &self.compressed_tables {
-            self.generate_compressed_tables(compressed)
-        } else {
-            self.generate_uncompressed_tables()
-        };
-        
-        // Generate NODE_TYPES JSON
-        let node_types_json = self.generate_node_types();
-        
-        // Count various elements
-        let field_count = field_names.len();
-        let _token_count = self.grammar.tokens.len();
-        let external_token_count = self.grammar.externals.len();
-        let _production_id_count = self.grammar.alias_sequences.len(); // Production IDs are from alias sequences
-        let _max_alias_sequence_length = 0u16; // TODO: Calculate from alias sequences
-        
-        // Generate external scanner data if needed
-        let external_scanner_code = if !self.grammar.externals.is_empty() {
-            let scanner_gen = external_scanner::ExternalScannerGenerator::new(self.grammar.clone());
-            let scanner_interface = scanner_gen.generate_scanner_interface();
-            quote! { #scanner_interface }
-        } else {
-            quote! {
-                // No external scanner needed
-                static EXTERNAL_SCANNER_DATA: ts::ffi::TSExternalScannerData = ts::ffi::TSExternalScannerData {
-                    states: std::ptr::null(),
-                    symbol_map: std::ptr::null(),
-                    create: None,
-                    destroy: None,
-                    scan: None,
-                    serialize: None,
-                    deserialize: None,
-                };
-            }
-        };
-        
-        quote! {
-            use std::sync::OnceLock;
-            
-            #[cfg(feature = "tree-sitter-standard")]
-            use tree_sitter as ts;
-            
-            #[cfg(feature = "tree-sitter-c2rust")]
-            use tree_sitter_c2rust as ts;
-            
-            // Static symbol names array
-            static SYMBOL_NAMES: &[&str] = &[#(#symbol_names),*];
-            
-            // Static symbol metadata array  
-            static SYMBOL_METADATA: &[ts::ffi::TSSymbolMetadata] = &[#(#symbol_metadata),*];
-            
-            // Static field names array
-            static FIELD_NAMES: &[&str] = &[#(#field_names),*];
-            
-            // Parse tables
-            #action_table
-            #goto_table
-            
-            // External scanner data
-            #external_scanner_code
-            
-            // NODE_TYPES JSON
-            pub const NODE_TYPES: &str = #node_types_json;
-            
-                        const STATE_COUNT: u32 = #state_count as u32;
-            const SYMBOL_COUNT: u32 = #symbol_count as u32;
-            const FIELD_COUNT: u32 = #field_count as u32;
-            const EXTERNAL_TOKEN_COUNT: u32 = #external_token_count as u32;
-            
-            // Import our ABI module
-            use crate::abi::*;
-            
-            // Language metadata
-            const LANGUAGE_VERSION: u32 = TREE_SITTER_LANGUAGE_VERSION; // ABI version 15
-            
-            // For now, use a simplified approach that compiles
-            // In a full implementation, we would properly construct the Language structure
-            
-            /// Get the Tree-sitter Language for this grammar  
-            pub fn language() -> ts::Language {
-                // Placeholder implementation
-                // TODO: Create proper TSLanguage structure with all fields
-                unsafe {
-                    // Return a dummy language for now
-                    ts::Language::from_raw(std::ptr::null())
-                }
-            }
-            
-            /// Export for C FFI
-            #[no_mangle]
-            pub extern "C" fn #language_fn_ident() -> ts::Language {
-                language()
-            }
-        }
+        // Use the new language generator
+        let generator = crate::language_gen::LanguageGenerator::new(&self.grammar, &self.parse_table);
+        generator.generate()
     }
 
     /// Generate NODE_TYPES JSON string

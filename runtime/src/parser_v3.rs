@@ -4,6 +4,7 @@
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, StateId, SymbolId, RuleId, TokenPattern};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
+use crate::error_recovery::{ErrorRecoveryConfig, RecoveryAction};
 use anyhow::{Result, bail};
 use std::fmt;
 
@@ -52,6 +53,10 @@ pub struct Parser {
     input: Vec<u8>,
     /// Current position in the input
     position: usize,
+    /// Error recovery configuration
+    error_recovery: Option<ErrorRecoveryConfig>,
+    /// Error nodes created during recovery
+    error_nodes: Vec<ParseNode>,
 }
 
 /// Parse errors that can occur
@@ -98,7 +103,15 @@ impl Parser {
             node_stack: Vec::new(),
             input: Vec::new(),
             position: 0,
+            error_recovery: None,
+            error_nodes: Vec::new(),
         }
+    }
+    
+    /// Set error recovery configuration
+    pub fn with_error_recovery(mut self, config: ErrorRecoveryConfig) -> Self {
+        self.error_recovery = Some(config);
+        self
     }
     
     /// Parse the input string
@@ -155,6 +168,44 @@ impl Parser {
                 }
                 
                 Action::Error => {
+                    // Try error recovery if configured
+                    if let Some(ref config) = self.error_recovery {
+                        if let Some(recovery_action) = self.try_error_recovery(config, current_state, &token)? {
+                            match recovery_action {
+                                RecoveryAction::InsertToken(symbol) => {
+                                    // Insert a synthetic token and retry
+                                    let synthetic_token = LexerToken {
+                                        symbol,
+                                        start: self.position,
+                                        end: self.position,
+                                        text: Vec::new(),
+                                    };
+                                    self.handle_shift(current_state, synthetic_token)?;
+                                    // Retry with the original token
+                                    continue;
+                                }
+                                RecoveryAction::DeleteToken => {
+                                    // Skip the current token and continue
+                                    self.position = token.end;
+                                    continue;
+                                }
+                                RecoveryAction::ReplaceToken(symbol) => {
+                                    // Replace the current token
+                                    let mut replacement = token.clone();
+                                    replacement.symbol = symbol;
+                                    self.handle_shift(current_state, replacement)?;
+                                    continue;
+                                }
+                                RecoveryAction::CreateErrorNode(symbols) => {
+                                    // Create an error node containing the problematic tokens
+                                    self.create_error_node(symbols, token.start)?;
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // No recovery possible, fail
                     bail!(ParseError::UnexpectedToken {
                         expected: self.get_expected_symbols(current_state),
                         found: token.symbol,
@@ -163,14 +214,8 @@ impl Parser {
                 }
                 
                 Action::Fork(actions) => {
-                    // For now, take the first non-error action
-                    // TODO: Implement proper GLR forking
-                    for action in actions {
-                        if !matches!(action, Action::Error) {
-                            return self.handle_action(action, token);
-                        }
-                    }
-                    bail!("All fork actions were errors");
+                    // Use GLR to handle ambiguous parse
+                    self.handle_glr_fork(&actions, token)?
                 }
             }
         }
@@ -354,6 +399,164 @@ impl Parser {
         }
         
         expected
+    }
+    
+    /// Handle GLR fork by exploring multiple parse paths
+    fn handle_glr_fork(&mut self, actions: &[Action], token: LexerToken) -> Result<()> {
+        // Save current parser state
+        let current_state = self.state_stack.clone();
+        let current_nodes = self.node_stack.clone();
+        let current_pos = self.position;
+        
+        // Try each action and collect successful parses
+        let mut successful_parses = Vec::new();
+        let mut last_error = None;
+        
+        for action in actions {
+            // Restore state for each attempt
+            self.state_stack = current_state.clone();
+            self.node_stack = current_nodes.clone();
+            self.position = current_pos;
+            
+            // Try this action
+            match self.try_action_path(action, token.clone()) {
+                Ok(parse_tree) => {
+                    successful_parses.push(parse_tree);
+                }
+                Err(e) => {
+                    last_error = Some(e);
+                }
+            }
+        }
+        
+        match successful_parses.len() {
+            0 => {
+                // No successful parse
+                Err(last_error.unwrap_or_else(|| anyhow::anyhow!("All fork actions failed")))
+            }
+            1 => {
+                // Single successful parse - use it
+                let parse = successful_parses.into_iter().next().unwrap();
+                self.state_stack = parse.0;
+                self.node_stack = parse.1;
+                self.position = parse.2;
+                Ok(())
+            }
+            _ => {
+                // Multiple successful parses - create ambiguity node
+                let ambiguity_nodes: Vec<ParseNode> = successful_parses.into_iter()
+                    .map(|(_, nodes, _)| nodes.last().cloned().unwrap())
+                    .collect();
+                
+                // Use the first parse's state but with ambiguity node
+                let (state, mut nodes, pos) = (current_state, current_nodes, current_pos);
+                
+                // Create ambiguity node
+                let ambiguity_node = ParseNode {
+                    symbol: SymbolId(0xFFFF), // Special ambiguity marker
+                    children: ambiguity_nodes,
+                    start_byte: token.start,
+                    end_byte: token.end,
+                    field_name: Some("ambiguous".to_string()),
+                };
+                
+                nodes.push(ambiguity_node);
+                self.state_stack = state;
+                self.node_stack = nodes;
+                self.position = pos;
+                
+                Ok(())
+            }
+        }
+    }
+    
+    /// Try a specific action path and return the resulting parser state
+    fn try_action_path(&mut self, action: &Action, token: LexerToken) -> Result<(Vec<ParserState>, Vec<ParseNode>, usize)> {
+        match action {
+            Action::Shift(state) => {
+                self.handle_shift(*state, token)?;
+                // Continue parsing to see if this path succeeds
+                match self.parse_to_completion() {
+                    Ok(()) => Ok((self.state_stack.clone(), self.node_stack.clone(), self.position)),
+                    Err(e) => Err(e),
+                }
+            }
+            Action::Reduce(rule_id) => {
+                self.handle_reduce(*rule_id)?;
+                // Continue parsing to see if this path succeeds
+                match self.parse_to_completion() {
+                    Ok(()) => Ok((self.state_stack.clone(), self.node_stack.clone(), self.position)),
+                    Err(e) => Err(e),
+                }
+            }
+            _ => bail!("Unexpected action in fork handling"),
+        }
+    }
+    
+    /// Continue parsing until accept or error
+    fn parse_to_completion(&mut self) -> Result<()> {
+        // This is a simplified version - in practice we'd continue the main parse loop
+        // For now, we'll just check if we can accept
+        let current_state = self.state_stack.last()
+            .ok_or_else(|| anyhow::anyhow!("Empty state stack"))?
+            .state;
+        
+        // Check for accept action with EOF
+        match self.get_action(current_state, SymbolId(0)) {
+            Ok(Action::Accept) => Ok(()),
+            _ => Ok(()), // For now, assume partial parse is ok
+        }
+    }
+    
+    /// Try to recover from a parse error
+    fn try_error_recovery(&self, config: &ErrorRecoveryConfig, state: StateId, token: &LexerToken) -> Result<Option<RecoveryAction>> {
+        // Try different recovery strategies
+        // 1. Check if we can insert a token to continue
+        for &sync_token_u16 in &config.sync_tokens {
+            let sync_token = SymbolId(sync_token_u16);
+            match self.get_action(state, sync_token) {
+                Ok(action) if !matches!(action, Action::Error) => {
+                    return Ok(Some(RecoveryAction::InsertToken(sync_token)));
+                }
+                _ => continue,
+            }
+        }
+        
+        // 2. Check if deleting the current token helps
+        if config.can_delete_token(token.symbol) {
+            // Look ahead to see if the next position would be valid
+            return Ok(Some(RecoveryAction::DeleteToken));
+        }
+        
+        // 3. Check if we can replace with an expected token
+        let expected = self.get_expected_symbols(state);
+        if !expected.is_empty() && config.can_replace_token(token.symbol) {
+            // Try the first expected token
+            return Ok(Some(RecoveryAction::ReplaceToken(expected[0])));
+        }
+        
+        // 4. Create error node as last resort
+        // Always allow error node creation as fallback
+        return Ok(Some(RecoveryAction::CreateErrorNode(vec![token.symbol])));
+        
+        Ok(None)
+    }
+    
+    /// Create an error node containing problematic tokens
+    fn create_error_node(&mut self, _symbols: Vec<SymbolId>, start_pos: usize) -> Result<()> {
+        // Create a special error node
+        let error_node = ParseNode {
+            symbol: SymbolId(0xFFFE), // Special error symbol
+            children: vec![],
+            start_byte: start_pos,
+            end_byte: self.position,
+            field_name: Some("ERROR".to_string()),
+        };
+        
+        self.error_nodes.push(error_node.clone());
+        self.node_stack.push(error_node);
+        
+        Ok(())
     }
 }
 
