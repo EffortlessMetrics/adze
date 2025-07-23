@@ -6,6 +6,8 @@ mod golden;
 mod grammar_json;
 mod corpus;
 mod dashboard;
+mod test_grammars;
+mod test_local_grammars;
 
 #[derive(Parser)]
 #[command(author, version, about = "Rust Sitter development tasks")]
@@ -84,6 +86,21 @@ enum Commands {
         #[arg(short, long, default_value = "./dashboard")]
         dir: String,
     },
+    /// Test top 20 grammars for compatibility
+    TestGrammars {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "markdown")]
+        format: OutputFormat,
+    },
+    /// Test local grammar examples
+    TestLocal,
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug)]
+enum OutputFormat {
+    Markdown,
+    Json,
+    Console,
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
@@ -152,6 +169,12 @@ fn main() -> Result<()> {
         }
         Commands::InitDashboard { dir } => {
             dashboard::init_dashboard(std::path::Path::new(&dir))?;
+        }
+        Commands::TestGrammars { format: _ } => {
+            test_grammars::run_corpus_tests()?;
+        }
+        Commands::TestLocal => {
+            test_local_grammars::test_local_grammars()?;
         }
     }
     

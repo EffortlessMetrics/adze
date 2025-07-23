@@ -16,3 +16,4 @@ chrono = "0.4"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde = { version = "1.0", features = ["derive"] }
 rust-sitter-tool = { version = "0.5.0-beta", path = "../tool" }
+tempfile = "3.0"
