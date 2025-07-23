@@ -23,7 +23,12 @@ pub struct FirstFollowSets {
 impl FirstFollowSets {
     /// Compute FIRST/FOLLOW sets for the given grammar
     pub fn compute(grammar: &Grammar) -> Self {
-        let symbol_count = grammar.rules.len() + grammar.tokens.len();
+        // Find the maximum symbol ID to determine the size needed
+        let max_rule_id = grammar.rules.keys().map(|id| id.0).max().unwrap_or(0);
+        let max_token_id = grammar.tokens.keys().map(|id| id.0).max().unwrap_or(0);
+        let max_external_id = grammar.externals.iter().map(|e| e.symbol_id.0).max().unwrap_or(0);
+        let symbol_count = (max_rule_id.max(max_token_id).max(max_external_id) + 1) as usize;
+        
         let mut first = IndexMap::new();
         let mut follow = IndexMap::new();
         let mut nullable = FixedBitSet::with_capacity(symbol_count);

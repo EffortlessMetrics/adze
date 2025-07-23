@@ -171,23 +171,47 @@ impl ImprovedGrammarJsParser {
     fn extract_rules(&self, content: &str) -> Result<HashMap<String, Rule>> {
         let mut rules = HashMap::new();
         
-        // Match rules: $ => { rule_name: $ => ..., ... }
-        let rules_regex = Regex::new(r#"rules:\s*\$\s*=>\s*\{([^}]+)\}"#)?;
-        
-        if let Some(caps) = rules_regex.captures(content) {
-            let rules_content = &caps[1];
+        // Find the rules: section
+        if let Some(rules_start) = content.find("rules:") {
+            let after_rules = &content[rules_start + 6..]; // Skip "rules:"
             
-            // Parse individual rules
-            let rule_regex = Regex::new(r#"(\w+):\s*\$\s*=>\s*([^,]+(?:\([^)]*\)[^,]*)*)"#)?;
+            // Skip whitespace and find the opening brace
+            let trimmed = after_rules.trim_start();
+            if !trimmed.starts_with('{') {
+                bail!("Expected '{{' after 'rules:'");
+            }
             
-            for cap in rule_regex.captures_iter(rules_content) {
-                let rule_name = cap[1].to_string();
-                let rule_def = cap[2].trim();
+            // Extract the rules object content by matching braces
+            let rules_content = self.extract_balanced_braces(&trimmed[1..])?;
+            
+            eprintln!("Debug: Found rules content of length {}", rules_content.len());
+            
+            // Parse individual rules from the content by finding rule patterns
+            let mut remaining = rules_content.as_str();
+            while !remaining.trim().is_empty() {
+                // Skip whitespace
+                remaining = remaining.trim_start();
                 
-                let rule = self.parse_rule(rule_def)
-                    .with_context(|| format!("Failed to parse rule '{}'", rule_name))?;
-                
-                rules.insert(rule_name, rule);
+                // Look for rule name
+                let rule_regex = Regex::new(r#"^(\w+):\s*\$\s*=>\s*"#)?;
+                if let Some(caps) = rule_regex.captures(remaining) {
+                    let rule_name = caps[1].to_string();
+                    let after_arrow = &remaining[caps[0].len()..];
+                    
+                    // Extract the rule definition
+                    let (rule_def, rest) = self.extract_rule_definition(after_arrow)?;
+                    
+                    eprintln!("Debug: Found rule '{}' with definition length {}", rule_name, rule_def.len());
+                    
+                    let rule = self.parse_rule(&rule_def)
+                        .with_context(|| format!("Failed to parse rule '{}'", rule_name))?;
+                    
+                    rules.insert(rule_name, rule);
+                    remaining = rest;
+                } else {
+                    // No more rules found
+                    break;
+                }
             }
         }
         
@@ -238,6 +262,12 @@ impl ImprovedGrammarJsParser {
         } else if trimmed.starts_with("$.") {
             // Symbol reference
             Ok(Rule::Symbol { name: trimmed[2..].to_string() })
+        } else if trimmed.starts_with("commaSep(") {
+            // Handle commaSep helper function
+            self.parse_comma_sep(trimmed, false)
+        } else if trimmed.starts_with("commaSep1(") {
+            // Handle commaSep1 helper function
+            self.parse_comma_sep(trimmed, true)
         } else {
             bail!("Unknown rule pattern: {}", trimmed)
         }
@@ -497,6 +527,98 @@ impl ImprovedGrammarJsParser {
     fn parse_precedences_array(&self, _content: &str) -> Vec<Vec<(String, i32)>> {
         // Simple implementation - would need improvement
         Vec::new()
+    }
+    
+    /// Extract content within balanced braces
+    fn extract_balanced_braces(&self, content: &str) -> Result<String> {
+        let mut depth = 1;
+        let mut end_idx = 0;
+        let chars: Vec<char> = content.chars().collect();
+        
+        while depth > 0 && end_idx < chars.len() {
+            match chars[end_idx] {
+                '{' => depth += 1,
+                '}' => depth -= 1,
+                _ => {}
+            }
+            end_idx += 1;
+        }
+        
+        if depth == 0 && end_idx > 0 {
+            Ok(content[..end_idx - 1].to_string())
+        } else {
+            bail!("Unbalanced braces in content")
+        }
+    }
+    
+    /// Parse commaSep/commaSep1 helper functions
+    fn parse_comma_sep(&self, rule_def: &str, require_one: bool) -> Result<Rule> {
+        let func_name = if require_one { "commaSep1" } else { "commaSep" };
+        let content = self.extract_function_args(rule_def, func_name)?;
+        
+        // Parse the inner rule
+        let inner_rule = self.parse_rule(&content)?;
+        
+        if require_one {
+            // commaSep1(rule) => seq(rule, repeat(seq(',', rule)))
+            Ok(Rule::Seq {
+                members: vec![
+                    inner_rule.clone(),
+                    Rule::Repeat {
+                        content: Box::new(Rule::Seq {
+                            members: vec![
+                                Rule::String { value: ",".to_string() },
+                                inner_rule,
+                            ]
+                        })
+                    }
+                ]
+            })
+        } else {
+            // commaSep(rule) => optional(commaSep1(rule))
+            Ok(Rule::Optional {
+                value: Box::new(self.parse_comma_sep(rule_def.replace("commaSep(", "commaSep1(").as_str(), true)?)
+            })
+        }
+    }
+    
+    /// Extract a complete rule definition (handling nested structures)
+    fn extract_rule_definition<'a>(&self, content: &'a str) -> Result<(String, &'a str)> {
+        let trimmed = content.trim_start();
+        
+        // Find the end of this rule definition
+        // Rules are typically separated by commas at the top level
+        let mut depth = 0;
+        let mut in_string = false;
+        let mut escape_next = false;
+        let mut end_idx = 0;
+        let chars: Vec<char> = trimmed.chars().collect();
+        
+        while end_idx < chars.len() {
+            let ch = chars[end_idx];
+            
+            if escape_next {
+                escape_next = false;
+            } else if ch == '\\' {
+                escape_next = true;
+            } else if ch == '\'' || ch == '"' {
+                in_string = !in_string;
+            } else if !in_string {
+                match ch {
+                    '(' | '{' | '[' => depth += 1,
+                    ')' | '}' | ']' => depth -= 1,
+                    ',' if depth == 0 => {
+                        // Found the separator
+                        return Ok((trimmed[..end_idx].trim().to_string(), &content[end_idx + 1..]));
+                    }
+                    _ => {}
+                }
+            }
+            end_idx += 1;
+        }
+        
+        // No comma found, this is the last rule
+        Ok((content.trim().to_string(), ""))
     }
 }
 

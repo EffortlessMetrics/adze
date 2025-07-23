@@ -1,7 +1,7 @@
 // Grammar optimization passes for the pure-Rust Tree-sitter implementation
 // This module implements various optimizations to improve parser performance
 
-use crate::{Grammar, Rule, Symbol, SymbolId, ProductionId, TokenPattern};
+use crate::{Grammar, Rule, Symbol, SymbolId, ProductionId, Token, TokenPattern};
 use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
 

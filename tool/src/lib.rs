@@ -13,8 +13,8 @@ pub use visualization::GrammarVisualizer;
 pub mod grammar_js;
 pub use grammar_js::{parse_grammar_js, GrammarJsConverter};
 
-mod pure_rust_builder;
-pub use pure_rust_builder::{build_parser, build_parser_for_crate, BuildOptions, BuildResult};
+pub mod pure_rust_builder;
+pub use pure_rust_builder::{build_parser, build_parser_for_crate, build_parser_from_grammar_js, BuildOptions, BuildResult};
 
 const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 2));
 
@@ -564,15 +564,19 @@ mod tests {
             "x86_64-unknown-linux-gnu"
         };
         
-        env::set_var("TARGET", target);
-        env::set_var("OPT_LEVEL", "0");
-        env::set_var("HOST", target);
-        env::set_var("PROFILE", "debug");
-        env::set_var("RUST_SITTER_EMIT_ARTIFACTS", "true");
+        unsafe {
+            env::set_var("TARGET", target);
+            env::set_var("OPT_LEVEL", "0");
+            env::set_var("HOST", target);
+            env::set_var("PROFILE", "debug");
+            env::set_var("RUST_SITTER_EMIT_ARTIFACTS", "true");
+        }
         
         let test_dir = "./test_emit_artifacts_output";
         std::fs::create_dir_all(test_dir).unwrap();
-        env::set_var("OUT_DIR", test_dir);
+        unsafe {
+            env::set_var("OUT_DIR", test_dir);
+        }
         
         // Create a simple test grammar file
         let test_grammar = r#"
@@ -601,29 +605,41 @@ mod grammar {
         let _ = std::fs::remove_dir_all(test_dir);
         
         // Restore original environment variables
-        match original_target {
-            Some(val) => env::set_var("TARGET", val),
-            None => env::remove_var("TARGET"),
+        unsafe {
+            match original_target {
+                Some(val) => env::set_var("TARGET", val),
+                None => env::remove_var("TARGET"),
+            }
         }
-        match original_out_dir {
-            Some(val) => env::set_var("OUT_DIR", val),
-            None => env::remove_var("OUT_DIR"),
+        unsafe {
+            match original_out_dir {
+                Some(val) => env::set_var("OUT_DIR", val),
+                None => env::remove_var("OUT_DIR"),
+            }
         }
-        match original_emit {
-            Some(val) => env::set_var("RUST_SITTER_EMIT_ARTIFACTS", val),
-            None => env::remove_var("RUST_SITTER_EMIT_ARTIFACTS"),
+        unsafe {
+            match original_emit {
+                Some(val) => env::set_var("RUST_SITTER_EMIT_ARTIFACTS", val),
+                None => env::remove_var("RUST_SITTER_EMIT_ARTIFACTS"),
+            }
         }
-        match original_opt_level {
-            Some(val) => env::set_var("OPT_LEVEL", val),
-            None => env::remove_var("OPT_LEVEL"),
+        unsafe {
+            match original_opt_level {
+                Some(val) => env::set_var("OPT_LEVEL", val),
+                None => env::remove_var("OPT_LEVEL"),
+            }
         }
-        match original_host {
-            Some(val) => env::set_var("HOST", val),
-            None => env::remove_var("HOST"),
+        unsafe {
+            match original_host {
+                Some(val) => env::set_var("HOST", val),
+                None => env::remove_var("HOST"),
+            }
         }
-        match original_profile {
-            Some(val) => env::set_var("PROFILE", val),
-            None => env::remove_var("PROFILE"),
+        unsafe {
+            match original_profile {
+                Some(val) => env::set_var("PROFILE", val),
+                None => env::remove_var("PROFILE"),
+            }
         }
         
         // Assert that the function completed successfully

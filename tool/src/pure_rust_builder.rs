@@ -41,24 +41,35 @@ pub struct BuildResult {
     pub grammar_name: String,
     /// Path to generated parser module
     pub parser_path: String,
+    /// Generated parser code
+    pub parser_code: String,
     /// Generated NODE_TYPES.json content
-    pub node_types: String,
+    pub node_types_json: String,
 }
 
 /// Build a parser from a grammar.js file
-#[allow(dead_code)]
 pub fn build_parser_from_grammar_js(grammar_js_path: &Path, options: BuildOptions) -> Result<BuildResult> {
     // Read and parse grammar.js
     let grammar_js_content = fs::read_to_string(grammar_js_path)
-        .context("Failed to read grammar.js file")?;
+        .with_context(|| format!("Failed to read grammar.js file at {:?}", grammar_js_path))?;
     
     let grammar_js = parse_grammar_js_v2(&grammar_js_content)
         .context("Failed to parse grammar.js")?;
+    
+    eprintln!("Debug: Parsed grammar.js has {} rules", grammar_js.rules.len());
+    eprintln!("Debug: Grammar name: {}", grammar_js.name);
+    if !grammar_js.rules.is_empty() {
+        let first_rule = grammar_js.rules.iter().next();
+        eprintln!("Debug: First rule: {:?}", first_rule);
+    }
     
     // Convert to IR
     let converter = GrammarJsConverter::new(grammar_js);
     let mut grammar = converter.convert()
         .context("Failed to convert grammar.js to IR")?;
+    
+    eprintln!("Debug: Converted grammar has {} rules and {} tokens", 
+        grammar.rules.len(), grammar.tokens.len());
     
     // Optimize the grammar
     grammar = optimize_grammar(grammar)
@@ -133,8 +144,8 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
     
     // Step 4: Generate NODE_TYPES.json
     let node_types_gen = NodeTypesGenerator::new(&grammar);
-    let node_types = node_types_gen.generate();
-    let node_types_json = serde_json::to_string_pretty(&node_types)?;
+    let node_types_json = node_types_gen.generate()
+        .map_err(|e| anyhow::anyhow!("Failed to generate NODE_TYPES: {}", e))?;
     
     // Step 5: Write output files
     let grammar_dir = Path::new(&options.out_dir).join(format!("grammar_{}", grammar_name));
@@ -159,10 +170,17 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
         node_types_file.write_all(node_types_json.as_bytes())?;
     }
     
+    // Ensure grammar dir exists for parser module
+    if !grammar_dir.exists() {
+        fs::create_dir_all(&grammar_dir)
+            .with_context(|| format!("Failed to create grammar directory at {:?}", grammar_dir))?;
+    }
+    
     // Write the parser module
     let parser_module_name = format!("parser_{}.rs", grammar_name.to_lowercase().replace('-', "_"));
     let parser_path = grammar_dir.join(&parser_module_name);
-    let mut parser_file = fs::File::create(&parser_path)?;
+    let mut parser_file = fs::File::create(&parser_path)
+        .with_context(|| format!("Failed to create parser file at {:?}", parser_path))?;
     
     // Write module header
     writeln!(parser_file, "// Auto-generated parser for {}", grammar_name)?;
@@ -179,7 +197,8 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
     Ok(BuildResult {
         grammar_name,
         parser_path: parser_path.to_string_lossy().to_string(),
-        node_types: node_types_json,
+        parser_code: language_code.to_string(),
+        node_types_json,
     })
 }
 
@@ -219,7 +238,7 @@ module.exports = grammar({
         assert!(parser_path.exists());
         
         // Check NODE_TYPES content
-        let node_types: Value = serde_json::from_str(&result.node_types).unwrap();
+        let node_types: Value = serde_json::from_str(&result.node_types_json).unwrap();
         assert!(node_types.is_array());
     }
 }

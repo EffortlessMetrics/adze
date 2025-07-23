@@ -1,0 +1,24 @@
+{
+  "name": "rust-sitter",
+  "version": "0.5.0",
+  "description": "Pure Rust implementation of Tree-sitter",
+  "features": [
+    "WASM support",
+    "No C dependencies",
+    "GLR parsing"
+  ],
+  "metadata": {
+    "author": "Rust Sitter Team",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/rust-sitter/rust-sitter"
+    }
+  },
+  "numbers": [42, 3.14159, -17, 1e10],
+  "booleans": {
+    "isAwesome": true,
+    "hasBugs": false,
+    "needsCoffee": null
+  }
+}

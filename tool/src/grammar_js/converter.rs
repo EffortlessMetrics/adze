@@ -134,27 +134,35 @@ impl GrammarJsConverter {
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
             
+        eprintln!("Debug: Converting {} grammar.js rules", rules.len());
+            
         for (rule_name, rule_body) in rules {
             let lhs_symbol = *self.symbol_names.get(&rule_name)
                 .context(format!("Symbol {} not found", rule_name))?;
             
+            eprintln!("Debug: Converting rule '{}' (symbol {})", rule_name, lhs_symbol.0);
             self.convert_rule_body(grammar, &rule_body, lhs_symbol)?;
         }
+        
+        eprintln!("Debug: After conversion, grammar has {} IR rules", grammar.rules.len());
         
         Ok(())
     }
     
     fn convert_rule_body(&mut self, grammar: &mut Grammar, rule: &JsRule, lhs: SymbolId) -> Result<()> {
         match rule {
-            JsRule::String { value: _ } => {
+            JsRule::String { value } => {
                 // Create a literal token rule
-                let rhs = vec![]; // Simplified for now
+                let token_id = self.get_or_create_token(grammar, value, TokenPattern::String(value.clone()));
+                let rhs = vec![Symbol::Terminal(token_id)];
                 self.add_rule(grammar, lhs, rhs, None, None);
             }
             
-            JsRule::Pattern { value: _ } => {
-                // Create a regex token rule
-                let rhs = vec![]; // Simplified for now
+            JsRule::Pattern { value } => {
+                // Create a regex token rule  
+                let token_name = format!("_{}", lhs.0); // Generate token name
+                let token_id = self.get_or_create_token(grammar, &token_name, TokenPattern::Regex(value.clone()));
+                let rhs = vec![Symbol::Terminal(token_id)];
                 self.add_rule(grammar, lhs, rhs, None, None);
             }
             
@@ -320,6 +328,27 @@ impl GrammarJsConverter {
         self.fields.insert(field_id, name.to_string());
         self.next_field_id += 1;
         field_id
+    }
+    
+    fn get_or_create_token(&mut self, grammar: &mut Grammar, name: &str, pattern: TokenPattern) -> SymbolId {
+        // Check if token already exists
+        if let Some(&symbol_id) = self.symbol_names.get(name) {
+            return symbol_id;
+        }
+        
+        // Create new token
+        let symbol_id = SymbolId(self.next_symbol_id.try_into().unwrap());
+        self.symbol_names.insert(name.to_string(), symbol_id);
+        self.next_symbol_id += 1;
+        
+        let token = Token {
+            name: name.to_string(),
+            pattern,
+            fragile: false,
+        };
+        grammar.tokens.insert(symbol_id, token);
+        
+        symbol_id
     }
 }
 

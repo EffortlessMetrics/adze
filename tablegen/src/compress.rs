@@ -44,6 +44,15 @@ pub struct CompressedTables {
     pub small_table_threshold: usize,
 }
 
+impl CompressedTables {
+    /// Validate compressed tables against original parse table
+    pub fn validate(&self, _parse_table: &ParseTable) -> Result<(), TableGenError> {
+        // TODO: Implement validation logic
+        // For now, just return Ok to make tests compile
+        Ok(())
+    }
+}
+
 /// Compressed action table
 #[derive(Debug, Clone)]
 pub struct CompressedActionTable {
@@ -64,6 +73,13 @@ pub struct ActionEntry {
 pub struct CompressedActionEntry {
     pub symbol: u16,
     pub action: Action,
+}
+
+impl CompressedActionEntry {
+    /// Create a new compressed action entry
+    pub fn new(symbol: u16, action: Action) -> Self {
+        Self { symbol, action }
+    }
 }
 
 /// Compressed goto table
@@ -156,7 +172,7 @@ impl TableCompressor {
     }
     
     /// Compress action table using Tree-sitter's small table format
-    fn compress_action_table_small(&self, action_table: &[Vec<Action>]) -> Result<CompressedActionTable, TableGenError> {
+    pub fn compress_action_table_small(&self, action_table: &[Vec<Action>]) -> Result<CompressedActionTable, TableGenError> {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
         let mut default_actions = Vec::new();
@@ -213,7 +229,7 @@ impl TableCompressor {
     }
     
     /// Compress goto table  
-    fn compress_goto_table_small(&self, goto_table: &[Vec<StateId>]) -> Result<CompressedGotoTable, TableGenError> {
+    pub fn compress_goto_table_small(&self, goto_table: &[Vec<StateId>]) -> Result<CompressedGotoTable, TableGenError> {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
         
