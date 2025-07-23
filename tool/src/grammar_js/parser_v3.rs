@@ -3,18 +3,23 @@ use regex::Regex;
 use std::collections::HashMap;
 
 use super::{GrammarJs, Rule, ExternalToken};
+use super::helpers::HelperFunctions;
 
 /// A more robust parser for grammar.js files
 pub struct GrammarJsParserV3 {
     content: String,
+    precedence_map: HashMap<String, i32>,
 }
 
 impl GrammarJsParserV3 {
     pub fn new(content: String) -> Self {
-        Self { content }
+        Self { 
+            content,
+            precedence_map: HashMap::new(),
+        }
     }
     
-    pub fn parse(&self) -> Result<GrammarJs> {
+    pub fn parse(&mut self) -> Result<GrammarJs> {
         // First, find the module.exports pattern
         let exports_regex = Regex::new(r"module\.exports\s*=\s*grammar\s*\(")?;
         
@@ -31,7 +36,7 @@ impl GrammarJsParserV3 {
         self.parse_grammar_content(&grammar_content)
     }
     
-    fn parse_grammar_content(&self, content: &str) -> Result<GrammarJs> {
+    fn parse_grammar_content(&mut self, content: &str) -> Result<GrammarJs> {
         let mut grammar = GrammarJs {
             name: String::new(),
             word: None,
@@ -65,8 +70,9 @@ impl GrammarJsParserV3 {
         // Extract supertypes
         grammar.supertypes = self.extract_supertypes(content)?;
         
-        // Extract precedences
+        // Extract precedences and build precedence map
         grammar.precedences = self.extract_precedences(content)?;
+        self.build_precedence_map(&grammar.precedences);
         
         // Extract rules
         grammar.rules = self.extract_rules(content)?;
@@ -298,10 +304,106 @@ impl GrammarJsParserV3 {
             } else {
                 bail!("Unterminated regex pattern")
             }
+        } else if trimmed.starts_with("{") {
+            // Function block - extract the return statement
+            self.parse_function_block(trimmed)
+        } else if trimmed.contains('(') {
+            // Could be a helper function call
+            if let Some(paren_pos) = trimmed.find('(') {
+                let func_name = trimmed[..paren_pos].trim();
+                if HelperFunctions::is_helper_function(func_name) {
+                    self.parse_helper_call(trimmed)
+                } else {
+                    eprintln!("Warning: Unknown function call: {}", trimmed);
+                    Ok(Rule::Seq { members: vec![] })
+                }
+            } else {
+                eprintln!("Warning: Unknown rule pattern: {}", trimmed);
+                Ok(Rule::Seq { members: vec![] })
+            }
         } else {
             // Unknown pattern - for now return a placeholder
             eprintln!("Warning: Unknown rule pattern: {}", trimmed);
             Ok(Rule::Seq { members: vec![] })
+        }
+    }
+    
+    fn parse_function_block(&self, block: &str) -> Result<Rule> {
+        // Function blocks have JavaScript code that ends with a return statement
+        // We need to extract the return value
+        
+        // Find the last 'return' statement
+        if let Some(return_pos) = block.rfind("return ") {
+            let return_content = &block[return_pos + 7..]; // Skip "return "
+            
+            // Find the end of the return statement (either ';' or '}')
+            let mut end_pos = return_content.len();
+            let mut depth = 0;
+            let mut in_string = false;
+            let mut in_regex = false;
+            let mut escape_next = false;
+            
+            for (i, ch) in return_content.chars().enumerate() {
+                if escape_next {
+                    escape_next = false;
+                    continue;
+                }
+                
+                if ch == '\\' {
+                    escape_next = true;
+                    continue;
+                }
+                
+                if !in_regex {
+                    if ch == '"' || ch == '\'' {
+                        in_string = !in_string;
+                    }
+                }
+                
+                if !in_string && ch == '/' {
+                    in_regex = !in_regex;
+                }
+                
+                if !in_string && !in_regex {
+                    match ch {
+                        '(' | '{' | '[' => depth += 1,
+                        ')' | '}' | ']' => depth -= 1,
+                        ';' if depth == 0 => {
+                            end_pos = i;
+                            break;
+                        },
+                        _ => {}
+                    }
+                }
+                
+                // If we hit the closing brace at depth -1, that's the end of the block
+                if depth < 0 {
+                    end_pos = i;
+                    break;
+                }
+            }
+            
+            let return_expr = return_content[..end_pos].trim();
+            self.parse_rule(return_expr)
+        } else {
+            bail!("Function block must contain a return statement")
+        }
+    }
+    
+    fn parse_helper_call(&self, call: &str) -> Result<Rule> {
+        // Extract function name and arguments
+        if let Some(paren_pos) = call.find('(') {
+            let func_name = call[..paren_pos].trim();
+            let args_with_paren = &call[paren_pos..];
+            let args_content = self.extract_function_args(args_with_paren, "")?;
+            
+            // Parse arguments
+            let args = self.parse_rule_list(&args_content)?;
+            
+            // Evaluate the helper function
+            HelperFunctions::evaluate_helper(func_name, args)
+        } else {
+            bail!("Invalid helper function call: {}", call)
         }
     }
     
@@ -319,50 +421,99 @@ impl GrammarJsParserV3 {
         Ok(rules)
     }
     
+    fn build_precedence_map(&mut self, precedences: &[Vec<(String, i32)>]) {
+        // Build a map from precedence names to values
+        // If precedences are given as [['name1', 'name2'], ['name3', 'name4']]
+        // They get values like name1=2, name2=2, name3=1, name4=1
+        let mut value = precedences.len() as i32;
+        for group in precedences {
+            for (name, explicit_value) in group {
+                if *explicit_value != 0 {
+                    self.precedence_map.insert(name.clone(), *explicit_value);
+                } else {
+                    self.precedence_map.insert(name.clone(), value);
+                }
+            }
+            value -= 1;
+        }
+    }
+    
     // Parse precedence functions
     fn parse_prec(&self, rule_def: &str) -> Result<Rule> {
-        // prec(level, rule)
+        // prec(level, rule) - level can be numeric or a string name
         let content = self.extract_function_args(rule_def, "prec")?;
         let parts = self.split_args(&content, 2)?;
         
-        let value = parts[0].trim().parse::<i32>()
-            .with_context(|| format!("Invalid precedence value: {}", parts[0]))?;
+        let level_str = parts[0].trim();
+        let value = if let Ok(val) = level_str.parse::<i32>() {
+            val
+        } else {
+            // Try to look up named precedence
+            let name = level_str.trim_matches(|c| c == '\'' || c == '"');
+            *self.precedence_map.get(name)
+                .with_context(|| format!("Unknown precedence name: {}", name))?
+        };
+        
         let content = Box::new(self.parse_rule(&parts[1])?);
         
         Ok(Rule::Prec { value, content })
     }
     
     fn parse_prec_left(&self, rule_def: &str) -> Result<Rule> {
-        // prec.left(level, rule)
+        // prec.left(level, rule) - level can be numeric or a string name
         let content = self.extract_function_args(rule_def, "prec.left")?;
         let parts = self.split_args(&content, 2)?;
         
-        let value = parts[0].trim().parse::<i32>()
-            .with_context(|| format!("Invalid precedence value: {}", parts[0]))?;
+        let level_str = parts[0].trim();
+        let value = if let Ok(val) = level_str.parse::<i32>() {
+            val
+        } else {
+            // Try to look up named precedence
+            let name = level_str.trim_matches(|c| c == '\'' || c == '"');
+            *self.precedence_map.get(name)
+                .with_context(|| format!("Unknown precedence name: {}", name))?
+        };
+        
         let content = Box::new(self.parse_rule(&parts[1])?);
         
         Ok(Rule::PrecLeft { value, content })
     }
     
     fn parse_prec_right(&self, rule_def: &str) -> Result<Rule> {
-        // prec.right(level, rule)
+        // prec.right(level, rule) - level can be numeric or a string name
         let content = self.extract_function_args(rule_def, "prec.right")?;
         let parts = self.split_args(&content, 2)?;
         
-        let value = parts[0].trim().parse::<i32>()
-            .with_context(|| format!("Invalid precedence value: {}", parts[0]))?;
+        let level_str = parts[0].trim();
+        let value = if let Ok(val) = level_str.parse::<i32>() {
+            val
+        } else {
+            // Try to look up named precedence
+            let name = level_str.trim_matches(|c| c == '\'' || c == '"');
+            *self.precedence_map.get(name)
+                .with_context(|| format!("Unknown precedence name: {}", name))?
+        };
+        
         let content = Box::new(self.parse_rule(&parts[1])?);
         
         Ok(Rule::PrecRight { value, content })
     }
     
     fn parse_prec_dynamic(&self, rule_def: &str) -> Result<Rule> {
-        // prec.dynamic(level, rule)
+        // prec.dynamic(level, rule) - level can be numeric or a string name
         let content = self.extract_function_args(rule_def, "prec.dynamic")?;
         let parts = self.split_args(&content, 2)?;
         
-        let value = parts[0].trim().parse::<i32>()
-            .with_context(|| format!("Invalid precedence value: {}", parts[0]))?;
+        let level_str = parts[0].trim();
+        let value = if let Ok(val) = level_str.parse::<i32>() {
+            val
+        } else {
+            // Try to look up named precedence
+            let name = level_str.trim_matches(|c| c == '\'' || c == '"');
+            *self.precedence_map.get(name)
+                .with_context(|| format!("Unknown precedence name: {}", name))?
+        };
+        
         let content = Box::new(self.parse_rule(&parts[1])?);
         
         Ok(Rule::PrecDynamic { value, content })
@@ -371,14 +522,32 @@ impl GrammarJsParserV3 {
     // Parse other functions
     fn parse_seq(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "seq")?;
-        let members = self.parse_rule_list(&content)?;
-        Ok(Rule::Seq { members })
+        
+        // Handle spread operators
+        if content.contains("...") {
+            eprintln!("Warning: Spread operator in seq not fully supported yet: {}", content);
+            // Try to parse what we can
+            let members = self.parse_rule_list(&content)?;
+            Ok(Rule::Seq { members })
+        } else {
+            let members = self.parse_rule_list(&content)?;
+            Ok(Rule::Seq { members })
+        }
     }
     
     fn parse_choice(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "choice")?;
-        let members = self.parse_rule_list(&content)?;
-        Ok(Rule::Choice { members })
+        
+        // Handle spread operators (...array)
+        if content.trim().starts_with("...") {
+            // For now, we'll just parse it as an empty choice
+            // In a full implementation, we'd need to evaluate the JavaScript expression
+            eprintln!("Warning: Spread operator in choice not fully supported yet: {}", content);
+            Ok(Rule::Choice { members: vec![] })
+        } else {
+            let members = self.parse_rule_list(&content)?;
+            Ok(Rule::Choice { members })
+        }
     }
     
     fn parse_repeat(&self, rule_def: &str) -> Result<Rule> {
@@ -659,13 +828,74 @@ impl GrammarJsParserV3 {
         if let Some(mat) = precedences_regex.find(content) {
             let start = mat.end();
             let end = self.find_matching_bracket(&content[start..], '[', ']')?;
-            let _precedences_content = &content[start..start + end];
+            let precedences_content = &content[start..start + end];
             
-            // For now, return empty - full implementation would parse the nested structure
-            Ok(Vec::new())
+            // Parse the nested array structure
+            let mut result = Vec::new();
+            let mut current_pos = 0;
+            
+            eprintln!("Debug: Parsing precedences from: {}", precedences_content);
+            
+            while current_pos < precedences_content.len() {
+                // Skip whitespace
+                let trimmed = precedences_content[current_pos..].trim_start();
+                if trimmed.is_empty() {
+                    break;
+                }
+                
+                if trimmed.starts_with('[') {
+                    // Find the end of this precedence group
+                    let group_end = self.find_matching_bracket(&trimmed[1..], '[', ']')?;
+                    let group_content = &trimmed[1..group_end + 1];
+                    
+                    // Parse the group
+                    let group = self.parse_precedence_group(group_content)?;
+                    eprintln!("Debug: Parsed group: {:?}", group);
+                    result.push(group);
+                    
+                    current_pos += precedences_content.len() - trimmed.len() + group_end + 2;
+                    eprintln!("Debug: New position: {}, remaining: {:?}", current_pos, &precedences_content[current_pos..]);
+                    
+                    // Skip comma
+                    let remaining = precedences_content[current_pos..].trim_start();
+                    if remaining.starts_with(',') {
+                        current_pos += precedences_content[current_pos..].len() - remaining.len() + 1;
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            Ok(result)
         } else {
             Ok(Vec::new())
         }
+    }
+    
+    fn parse_precedence_group(&self, content: &str) -> Result<Vec<(String, i32)>> {
+        // Parse a precedence group like ['call', 'member'] or ['high', 10]
+        let mut items = Vec::new();
+        let parts: Vec<&str> = content.split(',').collect();
+        
+        for part in parts {
+            let trimmed = part.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            
+            // Check if it's a string (precedence name) or number
+            if trimmed.starts_with('\'') || trimmed.starts_with('"') {
+                let name = trimmed.trim_matches(|c| c == '\'' || c == '"' || c == ' ');
+                items.push((name.to_string(), 0)); // 0 means "use automatic value"
+            } else if let Ok(value) = trimmed.parse::<i32>() {
+                // If we have a numeric value, pair it with the previous name
+                if let Some((_, v)) = items.last_mut() {
+                    *v = value;
+                }
+            }
+        }
+        
+        Ok(items)
     }
     
     fn find_matching_bracket(&self, content: &str, open: char, close: char) -> Result<usize> {

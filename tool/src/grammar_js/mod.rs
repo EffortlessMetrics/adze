@@ -12,6 +12,7 @@ pub mod parser_v2;
 pub mod parser_v2_test;
 pub mod parser_v3;
 pub mod converter;
+pub mod helpers;
 
 pub use parser::parse_grammar_js;
 pub use parser_v2::parse_grammar_js_v2;
