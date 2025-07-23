@@ -10,11 +10,13 @@ use anyhow::{Result, bail};
 pub mod parser;
 pub mod parser_v2;
 pub mod parser_v2_test;
+pub mod parser_v3;
 pub mod converter;
 
 pub use parser::parse_grammar_js;
 pub use parser_v2::parse_grammar_js_v2;
 pub use converter::GrammarJsConverter;
+pub use parser_v3::GrammarJsParserV3;
 
 /// Represents a Tree-sitter grammar.js file structure
 #[derive(Debug, Clone, Serialize, Deserialize)]

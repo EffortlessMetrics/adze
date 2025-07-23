@@ -195,6 +195,8 @@ impl ImprovedGrammarJsParser {
             }
             
             // Extract the rules object content by matching braces
+            eprintln!("Debug: Attempting to extract balanced braces from rules section");
+            eprintln!("Debug: First 100 chars after opening brace: {:?}", &trimmed[1..].chars().take(100).collect::<String>());
             let rules_content = self.extract_balanced_braces(&trimmed[1..])?;
             
             eprintln!("Debug: Found rules content of length {}", rules_content.len());
@@ -552,19 +554,77 @@ impl ImprovedGrammarJsParser {
         let mut depth = 1;
         let mut end_idx = 0;
         let chars: Vec<char> = content.chars().collect();
+        let mut in_string = false;
+        let mut string_char = ' ';
+        let mut in_regex = false;
+        let mut escape_next = false;
+        let mut brace_positions = vec![];
+        
+        eprintln!("Debug: Starting brace extraction, total chars: {}", chars.len());
+        let mut debug_counter = 0;
         
         while depth > 0 && end_idx < chars.len() {
-            match chars[end_idx] {
-                '{' => depth += 1,
-                '}' => depth -= 1,
-                _ => {}
+            if debug_counter < 5 || (end_idx > 0 && end_idx % 1000 == 0) {
+                eprintln!("Debug: [{}] char='{}' in_string={} in_regex={} escape_next={}", 
+                         end_idx, chars[end_idx], in_string, in_regex, escape_next);
+            }
+            debug_counter += 1;
+            if escape_next {
+                escape_next = false;
+            } else if chars[end_idx] == '\\' {
+                escape_next = true;
+            } else if !in_regex && !in_string && (chars[end_idx] == '\'' || chars[end_idx] == '"' || chars[end_idx] == '`') {
+                in_string = true;
+                string_char = chars[end_idx];
+                if debug_counter < 20 {
+                    eprintln!("Debug: Entering string with '{}' at position {}", string_char, end_idx);
+                }
+            } else if in_string && chars[end_idx] == string_char && !escape_next {
+                in_string = false;
+                if debug_counter < 20 {
+                    eprintln!("Debug: Exiting string at position {}", end_idx);
+                }
+            } else if !in_string && !in_regex && chars[end_idx] == '/' && end_idx > 0 && 
+                      (end_idx == 0 || chars[end_idx - 1].is_whitespace() || "[,({:;=".contains(chars[end_idx - 1])) {
+                // Check if this might be a regex by looking ahead
+                if end_idx + 1 < chars.len() && chars[end_idx + 1] != '/' && chars[end_idx + 1] != '*' {
+                    in_regex = true;
+                }
+            } else if in_regex && chars[end_idx] == '/' && !escape_next {
+                in_regex = false;
+            } else if !in_string && !in_regex {
+                match chars[end_idx] {
+                    '{' => {
+                        depth += 1;
+                        brace_positions.push((end_idx, depth, '{'));
+                        if brace_positions.len() <= 10 {
+                            eprintln!("Debug: [{}] Found '{{' - depth now {}", end_idx, depth);
+                        }
+                    }
+                    '}' => {
+                        depth -= 1;
+                        brace_positions.push((end_idx, depth, '}'));
+                        if brace_positions.len() <= 10 || depth == 0 {
+                            eprintln!("Debug: [{}] Found '}}' - depth now {}", end_idx, depth);
+                        }
+                    }
+                    _ => {}
+                }
             }
             end_idx += 1;
         }
         
         if depth == 0 && end_idx > 0 {
+            eprintln!("Debug: Successfully balanced braces at position {}", end_idx - 1);
             Ok(content[..end_idx - 1].to_string())
         } else {
+            eprintln!("Debug: Failed to balance braces. Final depth: {}, position: {}", depth, end_idx);
+            eprintln!("Debug: Total braces found: {}", brace_positions.len());
+            if brace_positions.len() < 50 {
+                for (pos, d, ch) in &brace_positions {
+                    eprintln!("  [{}] {} -> depth {}", pos, ch, d);
+                }
+            }
             bail!("Unbalanced braces in content")
         }
     }
