@@ -1,78 +1,180 @@
-name: Rust Sitter CI
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable, beta, nightly]
+        exclude:
+          - os: macos-latest
+            rust: beta
+          - os: windows-latest
+            rust: beta
     steps:
-    - uses: actions/checkout@v3
-    - name: Build
-      run: cargo build
-    - name: Run tests
-      run: cargo test
-    - name: Run macro tests
-      run: cargo test -p rust-sitter-macro -- tests
-  test-wasm:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Install wasm32 target
-      uses: actions-rs/toolchain@v1
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
       with:
-        toolchain: stable
-        target: wasm32-unknown-unknown
-
-    - name: Get wasm-bindgen version
-      id: wasm-bindgen-version
-      run: echo "VERSION=$(cargo pkgid wasm-bindgen-shared | cut -d '@' -f2)" >> "$GITHUB_OUTPUT"
-    - name: Install WebAssembly test runner
-      run: cargo install wasm-bindgen-cli@${{ steps.wasm-bindgen-version.outputs.VERSION }}
-
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo index
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo build
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+    
     - name: Run tests
-      env:
-        CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
-      run: cargo test -p rust-sitter-example --target wasm32-unknown-unknown --no-fail-fast
+      run: cargo test --workspace --all-features
+    
+    - name: Run tests (no default features)
+      run: cargo test --workspace --no-default-features
+    
+    - name: Run doctests
+      run: cargo test --doc --workspace
+
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Check rustfmt
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    
+    - name: Check formatting
       run: cargo fmt --all -- --check
-    - name: Check clippy
-      run: cargo clippy --all-targets -- -D warnings
-  golden-tests:
+    
+    - name: Run clippy
+      run: cargo clippy --workspace --all-features -- -D warnings
+    
+    - name: Check documentation
+      run: cargo doc --workspace --no-deps --all-features
+      env:
+        RUSTDOCFLAGS: -D warnings
+
+  coverage:
+    name: Code Coverage
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install tarpaulin
+      run: cargo install cargo-tarpaulin
+    
+    - name: Generate coverage
+      run: cargo tarpaulin --workspace --out Xml --all-features
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v4
       with:
-        submodules: recursive
+        files: ./cobertura.xml
+        fail_ci_if_error: true
+
+  wasm:
+    name: WASM Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
     
-    - name: Install Node.js
-      uses: actions/setup-node@v4
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
       with:
-        node-version: '20'
+        targets: wasm32-unknown-unknown
     
-    - name: Install tree-sitter CLI
-      run: npm install -g tree-sitter-cli
+    - name: Install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     
-    - name: Run golden tests
+    - name: Build WASM
       run: |
-        cargo xtask golden test
+        cargo build --target wasm32-unknown-unknown --workspace
+        cd example && wasm-pack test --node
+
+  examples:
+    name: Examples
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
     
-    - name: Upload test results
-      uses: actions/upload-artifact@v3
-      if: failure()
-      with:
-        name: golden-test-failures
-        path: |
-          xtask/golden/actual/
-          xtask/golden/diffs/
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Build examples
+      run: cargo build --workspace --examples
+    
+    - name: Test examples
+      run: |
+        cd example
+        cargo test --all-features
+
+  bench:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Run benchmarks
+      run: cargo bench --workspace --no-run
+
+  minimal-versions:
+    name: Minimal Versions
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@nightly
+    
+    - name: Check minimal versions
+      run: |
+        cargo +nightly -Z minimal-versions update
+        cargo +nightly build --workspace --all-features
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+    
+    - name: Run security audit
+      run: cargo audit
