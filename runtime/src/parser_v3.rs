@@ -647,6 +647,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let _parser = Parser::new(grammar, parse_table);

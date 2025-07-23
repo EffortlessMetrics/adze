@@ -518,6 +518,7 @@ mod tests {
             action_table: vec![vec![Action::Accept]],
             goto_table: vec![vec![StateId(0)]],
             symbol_metadata: vec![],
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let parser = Parser::new(parse_table);
