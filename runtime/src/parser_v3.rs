@@ -309,6 +309,7 @@ impl Parser {
     }
     
     /// Handle any action (used for fork resolution)
+    #[allow(dead_code)]
     fn handle_action(&mut self, action: Action, token: LexerToken) -> Result<ParseNode> {
         // Save the input to avoid borrowing issues
         let input_str = String::from_utf8_lossy(&self.input).to_string();

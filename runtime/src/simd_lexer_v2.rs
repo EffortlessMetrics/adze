@@ -18,6 +18,7 @@ struct CompiledPattern {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum PatternType {
     /// Simple literal string
     Literal(Vec<u8>),

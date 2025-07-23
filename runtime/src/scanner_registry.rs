@@ -134,7 +134,7 @@ impl ScannerRegistry {
         data: TSExternalScannerData,
         external_tokens: Vec<SymbolId>,
     ) {
-        let language_owned = language.to_string();
+        let _language_owned = language.to_string();
         let factory: ScannerFactory = Box::new(move || {
             let scanner = unsafe { CExternalScanner::new(&data) };
             if let Some(scanner) = scanner {
