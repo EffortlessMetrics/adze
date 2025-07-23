@@ -192,10 +192,13 @@ Completed:
 
 Tasks:
 - [ ] 9.0 Publish v0.5.0 beta release to crates.io
-- [ ] 9.1 Community testing with real-world grammars
-- [ ] 9.2 Performance benchmarking against C implementation
-- [ ] 9.3 Bug fixes and API refinements based on feedback
-- [ ] 9.4 Integration testing with popular Tree-sitter tools
+- [ ] 9.1 Set up compatibility dashboard (GitHub Pages + CI badges)
+- [ ] 9.2 Community testing with real-world grammars
+- [ ] 9.3 Performance benchmarking against C implementation
+- [ ] 9.4 Bug fixes and API refinements based on feedback
+- [ ] 9.5 Integration testing with popular Tree-sitter tools
+- [ ] 9.6 Start Grammar.js compatibility spike (de-risk Phase 10)
+- [ ] 9.7 Monthly compatibility bulletin #1
 
 ### ⏳ Phase 10: Grammar Compatibility Layer (Q1 2025)
 **Status**: Planned  
@@ -203,10 +206,12 @@ Tasks:
 
 Tasks:
 - [ ] 10.0 Grammar.js compatibility layer
-- [ ] 10.1 Tree-sitter CLI compatibility
+- [ ] 10.1 Tree-sitter CLI drop-in replacement (rust-sitter-cli)
 - [ ] 10.2 Support for all grammar.js features (word, inline, conflicts, etc.)
 - [ ] 10.3 Automated migration tool for existing grammars
 - [ ] 10.4 Validation against Tree-sitter grammar corpus
+- [ ] 10.5 Create migration PRs for top 20 grammars
+- [ ] 10.6 Monthly compatibility bulletin #2
 
 ### ⏳ Phase 11: Query System Implementation (Q2 2025)
 **Status**: Planned  
@@ -262,11 +267,15 @@ Tasks:
 
 ### Full Compatibility Metrics (Target)
 - **Grammar Compatibility**: 100% of Tree-sitter grammar features
+  - Q1 2025: 80% grammar corpus pass rate
+  - Q2 2025: 95% grammar corpus pass rate
+  - Q3 2025: 100% grammar corpus pass rate
 - **Query Support**: Full query language implementation
 - **Performance**: Match or exceed C implementation
 - **Incremental Parsing**: <1ms for typical edits
 - **Bundle Size**: ≤70 kB gzipped WASM
 - **Ecosystem**: Drop-in replacement for major tools
+- **CLI Compatibility**: tree-sitter-cli drop-in replacement
 
 ### Quality Metrics
 - **Test Coverage**: >95% line coverage
@@ -276,7 +285,7 @@ Tasks:
 
 ## Risk Management
 
-### High-Risk Areas
+### Technical Risks
 1. **Table Compression Algorithm** (Phase 2.3)
    - Risk: Bit-for-bit compatibility requires exact replication
    - Mitigation: Extensive reverse engineering and golden file testing
@@ -285,24 +294,43 @@ Tasks:
    - Risk: Complex algorithm with subtle edge cases
    - Mitigation: Comprehensive test suite with ambiguous grammars
 
-3. **ABI Compatibility** (Phase 6.2)
-   - Risk: Struct layout and function table must match exactly
-   - Mitigation: ABI compliance testing against multiple versions
+3. **Grammar.js Edge Cases** (Phase 10)
+   - Risk: Undocumented features and grammar quirks
+   - Mitigation: Start compatibility spike during Phase 9
+
+### Adoption Risks
+1. **Community Adoption**
+   - Risk: Popular grammars don't migrate
+   - Mitigation: Create automated migration PRs for top 20 grammars
+   - Mitigation: Monthly compatibility bulletin showing progress
+
+2. **Tool Integration Effort**
+   - Risk: Editor maintainers lack bandwidth
+   - Mitigation: Provide working proof-of-concepts
+   - Mitigation: Recruit dedicated integration contributors
 
 ### Contingency Plans
-- **Performance Miss**: Focus on correctness first, optimize later
+- **Performance Miss**: Early performance preview in Phase 12
 - **Compatibility Issues**: Maintain hybrid mode with C fallback
-- **Timeline Slip**: Prioritize core functionality over advanced features
+- **Timeline Slip**: Prioritize grammar.js compatibility over new features
 
 ## Resource Requirements
 
-### Development Team
+### MVP Team (Phases 0-8) ✓
 - **Core Developer**: Full-time for 12 weeks
 - **Testing/QA**: Part-time from Week 7
 - **Documentation**: Part-time from Week 10
 
+### Post-MVP Team Needs (Phases 9-14)
+- **Core Maintainer**: Full-time continuation
+- **Query Engine Developer**: Part-time (Phases 11-12)
+- **Editor Integration Specialist**: Part-time (Phase 13)
+- **Performance Engineer**: Part-time (Phases 12, 14)
+- **Community Manager**: Part-time (Phase 9 onwards)
+
 ### Infrastructure
 - **CI/CD**: GitHub Actions with comprehensive test matrix
+- **Compatibility Dashboard**: GitHub Pages + automated corpus testing
 - **Benchmarking**: Dedicated performance testing infrastructure
 - **Fuzzing**: OSS-Fuzz integration for continuous testing
 
@@ -379,12 +407,14 @@ Tasks:
 4. **Developer Experience**: Better error messages, visualization tools
 5. **Modern Architecture**: Async-ready, trait-based design
 
-### Planned Enhancements
+### Planned Enhancements (Post-1.0)
 1. **Parallel Parsing**: Multi-threaded grammar processing
 2. **Streaming Parser**: Parse large files without loading entirely
 3. **Grammar Composition**: Combine multiple grammars
 4. **Type-Safe Query API**: Compile-time query validation
 5. **WASM-First Design**: Optimized for browser environments
+
+Note: These stretch features are explicitly marked for post-1.0 to maintain focus on Tree-sitter parity.
 
 ## Conclusion
 
