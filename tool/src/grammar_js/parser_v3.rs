@@ -955,7 +955,7 @@ module.exports = grammar({
 })
 "#;
         
-        let parser = GrammarJsParserV3::new(content.to_string());
+        let mut parser = GrammarJsParserV3::new(content.to_string());
         let result = parser.parse();
         assert!(result.is_ok());
         

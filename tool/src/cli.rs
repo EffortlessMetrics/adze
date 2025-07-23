@@ -2,6 +2,9 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use anyhow::Result;
 
+mod parse;
+mod test;
+
 /// Tree-sitter compatible CLI for rust-sitter
 #[derive(Parser)]
 #[command(name = "rust-sitter")]
@@ -129,29 +132,20 @@ pub fn run_generate(grammar: &PathBuf, output: &PathBuf, debug: bool, pure_rust:
     Ok(())
 }
 
-pub fn run_parse(file: &PathBuf, _parser: &Option<PathBuf>, format: &OutputFormat, fields: bool, stats: bool) -> Result<()> {
-    // For now, just print a message
-    println!("Parsing {:?} with format {:?}", file, format);
-    if fields {
-        println!("  Showing field names");
-    }
-    if stats {
-        println!("  Showing statistics");
-    }
+pub fn run_parse(file: &PathBuf, parser: &Option<PathBuf>, format: &OutputFormat, fields: bool, stats: bool) -> Result<()> {
+    use parse::{OutputFormat as ParseOutputFormat};
     
-    anyhow::bail!("Parse command not yet implemented. Use the rust-sitter runtime API directly.")
+    let parse_format = match format {
+        OutputFormat::Tree | OutputFormat::Sexp => ParseOutputFormat::Sexp,
+        OutputFormat::Json => ParseOutputFormat::Json,
+        OutputFormat::Dot => ParseOutputFormat::Dot,
+    };
+    
+    parse::parse_file(file, parser.as_deref(), parse_format, fields, stats)
 }
 
 pub fn run_test(path: &PathBuf, filter: &Option<String>, update: bool) -> Result<()> {
-    println!("Running tests in {:?}", path);
-    if let Some(filter) = filter {
-        println!("  Filter: {}", filter);
-    }
-    if update {
-        println!("  Updating expectations");
-    }
-    
-    anyhow::bail!("Test command not yet implemented.")
+    test::run_tests(Some(path), None, filter.as_deref(), update, true)
 }
 
 pub fn run_init(name: &str, in_place: bool) -> Result<()> {

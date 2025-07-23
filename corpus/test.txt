@@ -1,0 +1,12 @@
+=== Simple function
+function test() {
+  return 42;
+}
+---
+
+(source_file
+  (function_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (statement_block
+      (return_statement (number)))))

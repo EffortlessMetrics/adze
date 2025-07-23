@@ -1469,6 +1469,7 @@ dependencies = [
  "anyhow",
  "cc",
  "clap",
+ "glob",
  "indexmap",
  "insta",
  "regex",
