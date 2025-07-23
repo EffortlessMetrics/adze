@@ -8,9 +8,12 @@ use serde::{Deserialize, Serialize};
 use anyhow::{Result, bail};
 
 pub mod parser;
+pub mod parser_v2;
+pub mod parser_v2_test;
 pub mod converter;
 
 pub use parser::parse_grammar_js;
+pub use parser_v2::parse_grammar_js_v2;
 pub use converter::GrammarJsConverter;
 
 /// Represents a Tree-sitter grammar.js file structure
