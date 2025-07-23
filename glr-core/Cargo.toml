@@ -1,11 +1,15 @@
 [package]
 name = "rust-sitter-glr-core"
-version = "0.1.0"
+version = "0.5.0-beta"
 edition = "2024"
 description = "GLR parser generation algorithms for pure-Rust Tree-sitter"
+license = "MIT"
+repository = "https://github.com/hydro-project/rust-sitter"
+homepage = "https://github.com/hydro-project/rust-sitter"
+documentation = "https://docs.rs/rust-sitter-glr-core"
 
 [dependencies]
-rust-sitter-ir = { path = "../ir" }
+rust-sitter-ir = { version = "0.5.0-beta", path = "../ir" }
 indexmap = { version = "2.0", features = ["serde"] }
 fixedbitset = "0.5"
 serde = { version = "1.0", features = ["derive"] }

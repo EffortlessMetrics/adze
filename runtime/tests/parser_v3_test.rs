@@ -17,6 +17,7 @@ fn create_simple_arithmetic_grammar() -> Grammar {
         inline_rules: vec![],
         alias_sequences: indexmap::IndexMap::new(),
         production_ids: indexmap::IndexMap::new(),
+        rule_names: indexmap::IndexMap::new(),
         max_alias_sequence_length: 0,
     };
     

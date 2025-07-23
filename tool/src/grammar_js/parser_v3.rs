@@ -241,14 +241,30 @@ impl GrammarJsParserV3 {
         let trimmed = rule_def.trim();
         
         // Handle different rule patterns
-        if trimmed.starts_with("seq(") || trimmed.starts_with("choice(") || 
-           trimmed.starts_with("repeat(") || trimmed.starts_with("repeat1(") ||
-           trimmed.starts_with("optional(") || trimmed.starts_with("field(") ||
-           trimmed.starts_with("alias(") || trimmed.starts_with("token(") ||
-           trimmed.starts_with("prec(") || trimmed.starts_with("prec.left(") ||
-           trimmed.starts_with("prec.right(") {
-            // For now, return a placeholder
-            Ok(Rule::Seq { members: vec![] })
+        if trimmed.starts_with("prec.left(") {
+            self.parse_prec_left(trimmed)
+        } else if trimmed.starts_with("prec.right(") {
+            self.parse_prec_right(trimmed)
+        } else if trimmed.starts_with("prec.dynamic(") {
+            self.parse_prec_dynamic(trimmed)
+        } else if trimmed.starts_with("prec(") {
+            self.parse_prec(trimmed)
+        } else if trimmed.starts_with("seq(") {
+            self.parse_seq(trimmed)
+        } else if trimmed.starts_with("choice(") {
+            self.parse_choice(trimmed)
+        } else if trimmed.starts_with("repeat(") {
+            self.parse_repeat(trimmed)
+        } else if trimmed.starts_with("repeat1(") {
+            self.parse_repeat1(trimmed)
+        } else if trimmed.starts_with("optional(") {
+            self.parse_optional(trimmed)
+        } else if trimmed.starts_with("field(") {
+            self.parse_field(trimmed)
+        } else if trimmed.starts_with("alias(") {
+            self.parse_alias(trimmed)
+        } else if trimmed.starts_with("token(") {
+            self.parse_token(trimmed)
         } else if trimmed.starts_with("$") {
             // Symbol reference
             Ok(Rule::Symbol { name: trimmed[1..].trim_start_matches('.').to_string() })
@@ -286,6 +302,210 @@ impl GrammarJsParserV3 {
         }
         
         Ok(rules)
+    }
+    
+    // Parse precedence functions
+    fn parse_prec(&self, rule_def: &str) -> Result<Rule> {
+        // prec(level, rule)
+        let content = self.extract_function_args(rule_def, "prec")?;
+        let parts = self.split_args(&content, 2)?;
+        
+        let value = parts[0].trim().parse::<i32>()
+            .with_context(|| format!("Invalid precedence value: {}", parts[0]))?;
+        let content = Box::new(self.parse_rule(&parts[1])?);
+        
+        Ok(Rule::Prec { value, content })
+    }
+    
+    fn parse_prec_left(&self, rule_def: &str) -> Result<Rule> {
+        // prec.left(level, rule)
+        let content = self.extract_function_args(rule_def, "prec.left")?;
+        let parts = self.split_args(&content, 2)?;
+        
+        let value = parts[0].trim().parse::<i32>()
+            .with_context(|| format!("Invalid precedence value: {}", parts[0]))?;
+        let content = Box::new(self.parse_rule(&parts[1])?);
+        
+        Ok(Rule::PrecLeft { value, content })
+    }
+    
+    fn parse_prec_right(&self, rule_def: &str) -> Result<Rule> {
+        // prec.right(level, rule)
+        let content = self.extract_function_args(rule_def, "prec.right")?;
+        let parts = self.split_args(&content, 2)?;
+        
+        let value = parts[0].trim().parse::<i32>()
+            .with_context(|| format!("Invalid precedence value: {}", parts[0]))?;
+        let content = Box::new(self.parse_rule(&parts[1])?);
+        
+        Ok(Rule::PrecRight { value, content })
+    }
+    
+    fn parse_prec_dynamic(&self, rule_def: &str) -> Result<Rule> {
+        // prec.dynamic(level, rule)
+        let content = self.extract_function_args(rule_def, "prec.dynamic")?;
+        let parts = self.split_args(&content, 2)?;
+        
+        let value = parts[0].trim().parse::<i32>()
+            .with_context(|| format!("Invalid precedence value: {}", parts[0]))?;
+        let content = Box::new(self.parse_rule(&parts[1])?);
+        
+        Ok(Rule::PrecDynamic { value, content })
+    }
+    
+    // Parse other functions
+    fn parse_seq(&self, rule_def: &str) -> Result<Rule> {
+        let content = self.extract_function_args(rule_def, "seq")?;
+        let members = self.parse_rule_list(&content)?;
+        Ok(Rule::Seq { members })
+    }
+    
+    fn parse_choice(&self, rule_def: &str) -> Result<Rule> {
+        let content = self.extract_function_args(rule_def, "choice")?;
+        let members = self.parse_rule_list(&content)?;
+        Ok(Rule::Choice { members })
+    }
+    
+    fn parse_repeat(&self, rule_def: &str) -> Result<Rule> {
+        let content = self.extract_function_args(rule_def, "repeat")?;
+        let content = Box::new(self.parse_rule(&content)?);
+        Ok(Rule::Repeat { content })
+    }
+    
+    fn parse_repeat1(&self, rule_def: &str) -> Result<Rule> {
+        let content = self.extract_function_args(rule_def, "repeat1")?;
+        let content = Box::new(self.parse_rule(&content)?);
+        Ok(Rule::Repeat1 { content })
+    }
+    
+    fn parse_optional(&self, rule_def: &str) -> Result<Rule> {
+        let content = self.extract_function_args(rule_def, "optional")?;
+        let value = Box::new(self.parse_rule(&content)?);
+        Ok(Rule::Optional { value })
+    }
+    
+    fn parse_field(&self, rule_def: &str) -> Result<Rule> {
+        // field('name', rule)
+        let content = self.extract_function_args(rule_def, "field")?;
+        let parts = self.split_args(&content, 2)?;
+        
+        let name = self.extract_string_literal(&parts[0])?;
+        let content = Box::new(self.parse_rule(&parts[1])?);
+        
+        Ok(Rule::Field { name, content })
+    }
+    
+    fn parse_alias(&self, rule_def: &str) -> Result<Rule> {
+        // alias(rule, 'name') or alias(rule, 'name', named)
+        let content = self.extract_function_args(rule_def, "alias")?;
+        let parts = self.split_args(&content, -1)?; // Variable number of args
+        
+        if parts.len() < 2 {
+            bail!("alias() requires at least 2 arguments");
+        }
+        
+        let content = Box::new(self.parse_rule(&parts[0])?);
+        let value = self.extract_string_literal(&parts[1])?;
+        let named = if parts.len() > 2 {
+            parts[2].trim() == "true"
+        } else {
+            // Default to true if the alias starts with a letter
+            value.chars().next().map_or(false, |c| c.is_alphabetic())
+        };
+        
+        Ok(Rule::Alias { content, value, named })
+    }
+    
+    fn parse_token(&self, rule_def: &str) -> Result<Rule> {
+        let content = self.extract_function_args(rule_def, "token")?;
+        let content = Box::new(self.parse_rule(&content)?);
+        Ok(Rule::Token { content })
+    }
+    
+    // Helper methods
+    fn extract_function_args(&self, rule_def: &str, func_name: &str) -> Result<String> {
+        let start = func_name.len() + 1; // Skip function name and opening paren
+        if !rule_def[..start-1].starts_with(func_name) || !rule_def[start-1..].starts_with('(') {
+            bail!("Expected {}(...) but got: {}", func_name, rule_def);
+        }
+        
+        let content = &rule_def[start..];
+        self.extract_balanced_delim(content, '(', ')')
+    }
+    
+    fn split_args(&self, content: &str, expected: i32) -> Result<Vec<String>> {
+        let mut args = Vec::new();
+        let mut current = String::new();
+        let mut depth = 0;
+        let mut in_string = false;
+        let mut string_char = ' ';
+        let mut escape_next = false;
+        
+        for ch in content.chars() {
+            if escape_next {
+                escape_next = false;
+                current.push(ch);
+            } else if ch == '\\' {
+                escape_next = true;
+                current.push(ch);
+            } else if !in_string && (ch == '\'' || ch == '"' || ch == '`') {
+                in_string = true;
+                string_char = ch;
+                current.push(ch);
+            } else if in_string && ch == string_char {
+                in_string = false;
+                current.push(ch);
+            } else if !in_string {
+                match ch {
+                    '(' | '[' | '{' => {
+                        depth += 1;
+                        current.push(ch);
+                    }
+                    ')' | ']' | '}' => {
+                        depth -= 1;
+                        current.push(ch);
+                    }
+                    ',' if depth == 0 => {
+                        args.push(current.trim().to_string());
+                        current.clear();
+                    }
+                    _ => current.push(ch),
+                }
+            } else {
+                current.push(ch);
+            }
+        }
+        
+        if !current.trim().is_empty() {
+            args.push(current.trim().to_string());
+        }
+        
+        if expected > 0 && args.len() != expected as usize {
+            bail!("Expected {} arguments, got {}", expected, args.len());
+        }
+        
+        Ok(args)
+    }
+    
+    fn parse_rule_list(&self, content: &str) -> Result<Vec<Rule>> {
+        let args = self.split_args(content, -1)?;
+        let mut rules = Vec::new();
+        
+        for arg in args {
+            rules.push(self.parse_rule(&arg)?);
+        }
+        
+        Ok(rules)
+    }
+    
+    fn extract_string_literal(&self, s: &str) -> Result<String> {
+        let trimmed = s.trim();
+        if (trimmed.starts_with('\'') && trimmed.ends_with('\'')) ||
+           (trimmed.starts_with('"') && trimmed.ends_with('"')) {
+            Ok(trimmed[1..trimmed.len()-1].to_string())
+        } else {
+            bail!("Expected string literal, got: {}", s)
+        }
     }
 }
 

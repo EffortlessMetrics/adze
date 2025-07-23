@@ -2,153 +2,75 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.5.0-beta] - 2025-01-23
 
-## [0.5.0] - 2025-01-23
+### 🎉 Major Milestone: Pure-Rust Implementation
 
-### Added
-
-#### Core Features
-- **Grammar Optimization** - Automatic optimization passes to improve parser performance
-  - Remove unused symbols and rules
-  - Inline simple rules
-  - Merge duplicate token patterns
-  - Optimize left recursion
-- **Error Recovery Strategies** - Comprehensive error recovery for robust parsing
-  - Panic mode with synchronization tokens
-  - Token insertion/deletion/substitution
-  - Phrase-level recovery
-  - Scope-based recovery
-  - Indentation-based recovery
-- **Conflict Resolution** - Advanced conflict resolution for GLR parsing
-  - Precedence-based resolution
-  - Associativity handling
-  - Detailed conflict statistics
-- **Grammar Validation** - Early detection of grammar issues
-  - Undefined symbol detection
-  - Unreachable rule analysis
-  - Cycle detection
-  - Field validation
-- **Parse Tree Visitors** - Flexible API for tree traversal
-  - Depth-first and breadth-first traversal
-  - Built-in visitor implementations
-  - Custom visitor support
-- **Tree Serialization** - Multiple serialization formats
-  - JSON (full and compact)
-  - S-expressions
-  - Binary format
-- **Visualization Tools** - Grammar and tree visualization
-  - Graphviz DOT generation
-  - Railroad diagrams
-  - ASCII art representation
-
-#### New Crates
-- `rust-sitter-ir` - Grammar intermediate representation with optimization and validation
-- `rust-sitter-glr-core` - GLR parser generation core with conflict resolution
-- `rust-sitter-tablegen` - Table generation and compression
-
-#### Documentation
-- Comprehensive API documentation
-- Migration guide from C-based Tree-sitter
-- Extensive usage examples
-- Performance benchmarks
-
-### Changed
-- Grammar definition now uses Rust syntax instead of JavaScript
-- Parser API uses type parameters for better type safety
-- Error types redesigned for better ergonomics
-- Improved macro syntax for grammar definition
-
-### Fixed
-- Memory leaks in incremental parsing
-- Edge cases in error recovery
-- Grammar extraction for complex type patterns
-
-### Performance
-- Parsing performance improved by ~20% for complex grammars
-- Memory usage reduced through better allocation strategies
-- Table compression reduces binary size
-
-## [0.4.5] - 2024-06-15
+This beta release introduces a complete pure-Rust Tree-sitter implementation that eliminates all C dependencies while maintaining compatibility with the Tree-sitter ecosystem.
 
 ### Added
-- Support for external scanners
-- Incremental parsing improvements
 
-### Fixed
-- Build issues on Windows
-- Grammar extraction edge cases
+#### Core Infrastructure
+- **Pure-Rust Parser Generator**: Complete GLR (Generalized LR) parser generator implementation
+- **Grammar IR**: Intermediate representation for grammars with full Tree-sitter feature support
+- **Table Generation**: Tree-sitter compatible table compression and Language struct generation
+- **FFI Compatibility**: Bit-for-bit compatible Language structs with C Tree-sitter
 
-## [0.4.4] - 2024-03-10
+#### Parser Features
+- **LR(1) Automaton**: Full LR(1) parser generation with FIRST/FOLLOW set computation
+- **GLR Support**: Generalized LR parsing for handling ambiguous grammars
+- **Error Recovery**: Comprehensive error recovery strategies
+- **Conflict Resolution**: Advanced conflict resolution mechanisms
+- **Grammar Optimization**: Multiple optimization passes for generated parsers
 
-### Added
-- WASM support improvements
-- Better error messages
+#### Development Tools
+- **Golden Tests**: Comprehensive test infrastructure with `cargo xtask`
+- **Grammar Visualization**: Tools for visualizing grammars and parse trees
+- **Performance Benchmarking**: Built-in benchmarking infrastructure
+- **Migration Guide**: Documentation for migrating from C-based Tree-sitter
 
-### Changed
-- Updated dependencies
+#### Runtime Features
+- **Visitor API**: Parse tree visitor for traversal and analysis
+- **Serialization**: Multiple serialization formats for parse trees
+- **NODE_TYPES.json**: Exact compatibility with Tree-sitter node type generation
 
-## [0.4.3] - 2024-01-05
+### Grammar Support
 
-### Fixed
-- Macro hygiene issues
-- Build script reliability
+#### Fully Supported
+- JSON grammar ✅
+- TOML grammar ✅
+- Simple expression grammars ✅
+- Basic token patterns ✅
 
-## [0.4.2] - 2023-11-20
+#### Partially Supported (Coming in future releases)
+- JavaScript grammar (requires precedence, word rules, externals)
+- Python grammar (requires externals for indentation)
+- Complex grammars with advanced features
 
-### Added
-- Support for hidden rules
-- Field name extraction
+### Known Limitations
 
-### Fixed
-- Grammar generation for recursive types
+This beta release does not yet support:
+- Precedence and associativity (`prec`, `prec.left`, `prec.right`)
+- Word token declarations
+- External scanners
+- Conflicts array
+- Supertypes
+- Query language
+- Incremental parsing
 
-## [0.4.1] - 2023-09-15
+See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for full details.
 
-### Fixed
-- Packaging issues
-- Documentation updates
+### Breaking Changes
 
-## [0.4.0] - 2023-08-01
+- Minimum Rust version is now 1.70.0
+- Some internal APIs have changed (see migration guide)
 
-### Added
-- Initial pure-Rust implementation
-- Macro-based grammar definition
-- Basic parser functionality
+### Contributors
 
-### Changed
-- Complete rewrite from scratch
-- New API design
+Thank you to everyone who contributed to making this pure-Rust implementation possible!
 
-## [0.3.0] - 2023-05-01
+## Previous Releases
 
-### Added
-- Tree-sitter 0.20 compatibility
-- New node types
-
-### Changed
-- API improvements
-
-## [0.2.0] - 2023-02-01
-
-### Added
-- Basic Tree-sitter bindings
-- Initial grammar support
-
-## [0.1.0] - 2022-11-01
-
-### Added
-- Initial release
-- Basic functionality
-
-[0.5.0]: https://github.com/hydro-project/rust-sitter/compare/v0.4.5...v0.5.0
-[0.4.5]: https://github.com/hydro-project/rust-sitter/compare/v0.4.4...v0.4.5
-[0.4.4]: https://github.com/hydro-project/rust-sitter/compare/v0.4.3...v0.4.4
-[0.4.3]: https://github.com/hydro-project/rust-sitter/compare/v0.4.2...v0.4.3
-[0.4.2]: https://github.com/hydro-project/rust-sitter/compare/v0.4.1...v0.4.2
-[0.4.1]: https://github.com/hydro-project/rust-sitter/compare/v0.4.0...v0.4.1
-[0.4.0]: https://github.com/hydro-project/rust-sitter/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/hydro-project/rust-sitter/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/hydro-project/rust-sitter/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/hydro-project/rust-sitter/releases/tag/v0.1.0
+### [0.4.5] - 2024-XX-XX
+- Last release before pure-Rust implementation
+- Bug fixes and minor improvements

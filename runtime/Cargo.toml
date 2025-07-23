@@ -3,7 +3,7 @@ name = "rust-sitter"
 description = "A package for defining tree-sitter grammars alongside Rust logic"
 readme = "../README.md"
 repository = "https://github.com/hydro-project/rust-sitter"
-version = "0.4.5"
+version = "0.5.0-beta"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 edition = "2024"
 license = "MIT"
@@ -22,9 +22,9 @@ serialization = ["serde", "serde_json"]
 [dependencies]
 tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
 tree-sitter-runtime-standard = { package = "tree-sitter", version = "0.25.2", optional = true }
-rust-sitter-macro = { version = "0.4.5", path = "../macro" }
-rust-sitter-ir = { path = "../ir" }
-rust-sitter-glr-core = { path = "../glr-core" }
+rust-sitter-macro = { version = "0.5.0-beta", path = "../macro" }
+rust-sitter-ir = { version = "0.5.0-beta", path = "../ir" }
+rust-sitter-glr-core = { version = "0.5.0-beta", path = "../glr-core" }
 regex = "1.10"
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }

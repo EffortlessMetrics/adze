@@ -1,11 +1,16 @@
 [package]
 name = "rust-sitter-tablegen"
-version = "0.1.0"
+version = "0.5.0-beta"
 edition = "2024"
+description = "Table generation and compression for pure-Rust Tree-sitter"
+license = "MIT"
+repository = "https://github.com/hydro-project/rust-sitter"
+homepage = "https://github.com/hydro-project/rust-sitter"
+documentation = "https://docs.rs/rust-sitter-tablegen"
 
 [dependencies]
-rust-sitter-ir = { path = "../ir" }
-rust-sitter-glr-core = { path = "../glr-core" }
+rust-sitter-ir = { version = "0.5.0-beta", path = "../ir" }
+rust-sitter-glr-core = { version = "0.5.0-beta", path = "../glr-core" }
 proc-macro2 = "1.0"
 quote = "1.0"
 serde = { version = "1.0", features = ["derive"] }
