@@ -134,6 +134,7 @@ impl ScannerRegistry {
         data: TSExternalScannerData,
         external_tokens: Vec<SymbolId>,
     ) {
+        let language_owned = language.to_string();
         let factory: ScannerFactory = Box::new(move || {
             let scanner = unsafe { CExternalScanner::new(&data) };
             if let Some(scanner) = scanner {
@@ -142,7 +143,7 @@ impl ScannerRegistry {
                     external_tokens: external_tokens.clone(),
                 })
             } else {
-                panic!("Failed to create C external scanner for {}", language)
+                panic!("Failed to create C external scanner")
             }
         });
         self.scanners.insert(language.to_string(), factory);

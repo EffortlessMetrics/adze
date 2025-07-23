@@ -5,7 +5,7 @@ mod grammar {
     #[rust_sitter::language]
     pub struct Expr {
         #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
-        value: i32,
+        pub value: i32,
     }
 }
 

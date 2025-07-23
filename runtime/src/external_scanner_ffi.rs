@@ -54,6 +54,7 @@ pub struct TSLexer {
 
 /// External scanner data structure for FFI
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct TSExternalScannerData {
     pub states: *const bool,
     pub symbol_map: *const u16,

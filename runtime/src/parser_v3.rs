@@ -18,10 +18,10 @@ pub struct ParserState {
     pub state: StateId,
     /// Symbol that led to this state
     #[allow(dead_code)]
-    symbol: Option<SymbolId>,
+    pub symbol: Option<SymbolId>,
     /// Position in the input
     #[allow(dead_code)]
-    position: usize,
+    pub position: usize,
 }
 
 /// A node in the parse tree being constructed
