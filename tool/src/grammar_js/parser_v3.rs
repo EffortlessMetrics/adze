@@ -832,38 +832,35 @@ impl GrammarJsParserV3 {
             
             // Parse the nested array structure
             let mut result = Vec::new();
-            let mut current_pos = 0;
             
-            eprintln!("Debug: Parsing precedences from: {}", precedences_content);
+            // Split by top-level commas and parse each group
+            let mut depth = 0;
+            let mut current_group_start = 0;
+            let mut i = 0;
             
-            while current_pos < precedences_content.len() {
-                // Skip whitespace
-                let trimmed = precedences_content[current_pos..].trim_start();
-                if trimmed.is_empty() {
-                    break;
-                }
-                
-                if trimmed.starts_with('[') {
-                    // Find the end of this precedence group
-                    let group_end = self.find_matching_bracket(&trimmed[1..], '[', ']')?;
-                    let group_content = &trimmed[1..group_end + 1];
-                    
-                    // Parse the group
-                    let group = self.parse_precedence_group(group_content)?;
-                    eprintln!("Debug: Parsed group: {:?}", group);
-                    result.push(group);
-                    
-                    current_pos += precedences_content.len() - trimmed.len() + group_end + 2;
-                    eprintln!("Debug: New position: {}, remaining: {:?}", current_pos, &precedences_content[current_pos..]);
-                    
-                    // Skip comma
-                    let remaining = precedences_content[current_pos..].trim_start();
-                    if remaining.starts_with(',') {
-                        current_pos += precedences_content[current_pos..].len() - remaining.len() + 1;
+            while i < precedences_content.len() {
+                let ch = precedences_content.chars().nth(i).unwrap();
+                match ch {
+                    '[' => {
+                        if depth == 0 {
+                            current_group_start = i;
+                        }
+                        depth += 1;
                     }
-                } else {
-                    break;
+                    ']' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            // Found end of a group
+                            let group_content = &precedences_content[current_group_start + 1..i];
+                            let group = self.parse_precedence_group(group_content)?;
+                            if !group.is_empty() {
+                                result.push(group);
+                            }
+                        }
+                    }
+                    _ => {}
                 }
+                i += 1;
             }
             
             Ok(result)
