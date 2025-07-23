@@ -9,6 +9,7 @@ pub mod lexer;
 pub mod parser;
 pub mod parser_v2;
 pub mod parser_v3;
+pub mod parser_v4;
 pub mod error_recovery;
 pub mod visitor;
 #[cfg(feature = "serialization")]

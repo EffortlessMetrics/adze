@@ -17,6 +17,7 @@ pub mod pure_rust_builder;
 pub use pure_rust_builder::{build_parser, build_parser_for_crate, build_parser_from_grammar_js, BuildOptions, BuildResult};
 
 pub mod cli;
+pub mod scanner_build;
 
 const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 2));
 
