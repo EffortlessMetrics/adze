@@ -5,6 +5,7 @@ pub mod scanner_registry;
 pub mod scanners;
 pub mod incremental;
 pub mod incremental_v2;
+pub mod incremental_v3;
 pub mod lexer;
 pub mod parser;
 pub mod parser_v2;
