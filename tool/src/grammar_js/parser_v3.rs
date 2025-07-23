@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use regex::Regex;
 use std::collections::HashMap;
 
-use super::{GrammarJs, Rule};
+use super::{GrammarJs, Rule, ExternalToken};
 
 /// A more robust parser for grammar.js files
 pub struct GrammarJsParserV3 {
@@ -52,6 +52,21 @@ impl GrammarJsParserV3 {
         
         // Extract extras
         grammar.extras = self.extract_extras(content)?;
+        
+        // Extract externals
+        grammar.externals = self.extract_externals(content)?;
+        
+        // Extract conflicts
+        grammar.conflicts = self.extract_conflicts(content)?;
+        
+        // Extract inline rules
+        grammar.inline = self.extract_inline(content)?;
+        
+        // Extract supertypes
+        grammar.supertypes = self.extract_supertypes(content)?;
+        
+        // Extract precedences
+        grammar.precedences = self.extract_precedences(content)?;
         
         // Extract rules
         grammar.rules = self.extract_rules(content)?;
@@ -506,6 +521,193 @@ impl GrammarJsParserV3 {
         } else {
             bail!("Expected string literal, got: {}", s)
         }
+    }
+    
+    fn extract_externals(&self, content: &str) -> Result<Vec<ExternalToken>> {
+        // Look for externals: $ => [...]
+        let externals_regex = Regex::new(r#"externals:\s*\$\s*=>\s*\["#)?;
+        
+        if let Some(mat) = externals_regex.find(content) {
+            let start = mat.end();
+            let end = self.find_matching_bracket(&content[start..], '[', ']')?;
+            let externals_content = &content[start..start + end];
+            
+            // Parse the array of external tokens
+            let args = self.split_args(externals_content, -1)?;
+            let mut externals = Vec::new();
+            
+            for arg in args {
+                let trimmed = arg.trim();
+                if trimmed.starts_with("$.") {
+                    let name = trimmed[2..].to_string();
+                    externals.push(ExternalToken { 
+                        name: name.clone(),
+                        symbol: name,
+                    });
+                }
+            }
+            
+            Ok(externals)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+    
+    fn extract_conflicts(&self, content: &str) -> Result<Vec<Vec<String>>> {
+        // Look for conflicts: $ => [[...], [...]]
+        let conflicts_regex = Regex::new(r#"conflicts:\s*\$\s*=>\s*\["#)?;
+        
+        if let Some(mat) = conflicts_regex.find(content) {
+            let start = mat.end();
+            let end = self.find_matching_bracket(&content[start..], '[', ']')?;
+            let conflicts_content = &content[start..start + end];
+            
+            // Parse nested arrays
+            let mut conflicts = Vec::new();
+            let mut i = 0;
+            let chars: Vec<char> = conflicts_content.chars().collect();
+            
+            while i < chars.len() {
+                if chars[i] == '[' {
+                    // Find the matching bracket
+                    let sub_end = self.find_matching_bracket(&conflicts_content[i+1..], '[', ']')?;
+                    let conflict_set = &conflicts_content[i+1..i+1+sub_end];
+                    
+                    // Parse the conflict set
+                    let args = self.split_args(conflict_set, -1)?;
+                    let mut set = Vec::new();
+                    
+                    for arg in args {
+                        let trimmed = arg.trim();
+                        if trimmed.starts_with("$.") {
+                            set.push(trimmed[2..].to_string());
+                        }
+                    }
+                    
+                    if !set.is_empty() {
+                        conflicts.push(set);
+                    }
+                    
+                    i += sub_end + 2; // Skip past the closing bracket
+                } else {
+                    i += 1;
+                }
+            }
+            
+            Ok(conflicts)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+    
+    fn extract_inline(&self, content: &str) -> Result<Vec<String>> {
+        // Look for inline: $ => [...]
+        let inline_regex = Regex::new(r#"inline:\s*\$\s*=>\s*\["#)?;
+        
+        if let Some(mat) = inline_regex.find(content) {
+            let start = mat.end();
+            let end = self.find_matching_bracket(&content[start..], '[', ']')?;
+            let inline_content = &content[start..start + end];
+            
+            // Parse the array
+            let args = self.split_args(inline_content, -1)?;
+            let mut inline = Vec::new();
+            
+            for arg in args {
+                let trimmed = arg.trim();
+                if trimmed.starts_with("$.") {
+                    inline.push(trimmed[2..].to_string());
+                }
+            }
+            
+            Ok(inline)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+    
+    fn extract_supertypes(&self, content: &str) -> Result<Vec<String>> {
+        // Look for supertypes: $ => [...]
+        let supertypes_regex = Regex::new(r#"supertypes:\s*\$\s*=>\s*\["#)?;
+        
+        if let Some(mat) = supertypes_regex.find(content) {
+            let start = mat.end();
+            let end = self.find_matching_bracket(&content[start..], '[', ']')?;
+            let supertypes_content = &content[start..start + end];
+            
+            // Parse the array
+            let args = self.split_args(supertypes_content, -1)?;
+            let mut supertypes = Vec::new();
+            
+            for arg in args {
+                let trimmed = arg.trim();
+                if trimmed.starts_with("$.") {
+                    supertypes.push(trimmed[2..].to_string());
+                }
+            }
+            
+            Ok(supertypes)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+    
+    fn extract_precedences(&self, content: &str) -> Result<Vec<Vec<(String, i32)>>> {
+        // Look for precedences: $ => [[...], [...]]
+        let precedences_regex = Regex::new(r#"precedences:\s*\$\s*=>\s*\["#)?;
+        
+        if let Some(mat) = precedences_regex.find(content) {
+            let start = mat.end();
+            let end = self.find_matching_bracket(&content[start..], '[', ']')?;
+            let _precedences_content = &content[start..start + end];
+            
+            // For now, return empty - full implementation would parse the nested structure
+            Ok(Vec::new())
+        } else {
+            Ok(Vec::new())
+        }
+    }
+    
+    fn find_matching_bracket(&self, content: &str, open: char, close: char) -> Result<usize> {
+        let mut depth = 1;
+        let mut in_string = false;
+        let mut in_regex = false;
+        let mut escape_next = false;
+        
+        for (i, ch) in content.chars().enumerate() {
+            if escape_next {
+                escape_next = false;
+                continue;
+            }
+            
+            if ch == '\\' {
+                escape_next = true;
+                continue;
+            }
+            
+            if !in_regex {
+                if ch == '"' || ch == '\'' {
+                    in_string = !in_string;
+                }
+            }
+            
+            if !in_string && ch == '/' {
+                in_regex = !in_regex;
+            }
+            
+            if !in_string && !in_regex {
+                if ch == open {
+                    depth += 1;
+                } else if ch == close {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Ok(i);
+                    }
+                }
+            }
+        }
+        
+        bail!("Unbalanced {} and {}", open, close)
     }
 }
 

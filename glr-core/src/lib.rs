@@ -5,7 +5,7 @@ use fixedbitset::FixedBitSet;
 use indexmap::IndexMap;
 use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub mod advanced_conflict;
 pub use advanced_conflict::{ConflictAnalyzer, PrecedenceResolver, ConflictStats, PrecedenceDecision};
@@ -410,6 +410,7 @@ pub struct ParseTable {
     pub symbol_metadata: Vec<SymbolMetadata>,
     pub state_count: usize,
     pub symbol_count: usize,
+    pub symbol_to_index: HashMap<SymbolId, usize>,
 }
 
 /// Actions in GLR parse table (supporting multiple actions per state)
@@ -611,12 +612,39 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     // Build canonical collection of LR(1) item sets
     let collection = ItemSetCollection::build_canonical_collection(grammar, first_follow);
     
+    // Create mapping from symbol IDs to table indices
+    let mut symbol_to_index = HashMap::new();
+    let mut max_symbol_id = 0u16;
+    
+    // Map all token IDs
+    for &symbol_id in grammar.tokens.keys() {
+        max_symbol_id = max_symbol_id.max(symbol_id.0);
+        symbol_to_index.insert(symbol_id, symbol_to_index.len());
+    }
+    
+    // Map all rule IDs
+    for &symbol_id in grammar.rules.keys() {
+        max_symbol_id = max_symbol_id.max(symbol_id.0);
+        symbol_to_index.insert(symbol_id, symbol_to_index.len());
+    }
+    
+    // Map all external IDs
+    for external in &grammar.externals {
+        max_symbol_id = max_symbol_id.max(external.symbol_id.0);
+        symbol_to_index.insert(external.symbol_id, symbol_to_index.len());
+    }
+    
+    // Add EOF symbol (max_id + 1)
+    let eof_symbol = SymbolId(max_symbol_id + 1);
+    symbol_to_index.insert(eof_symbol, symbol_to_index.len());
+    
     // Create parse table with proper dimensions
     let state_count = collection.sets.len();
-    let symbol_count = grammar.tokens.len() + grammar.rules.len() + grammar.externals.len();
+    let indexed_symbol_count = symbol_to_index.len();
+    let symbol_count = indexed_symbol_count; // Keep for compatibility
     
-    let mut action_table = vec![vec![Action::Error; symbol_count]; state_count];
-    let mut goto_table = vec![vec![StateId(0); symbol_count]; state_count];
+    let mut action_table = vec![vec![Action::Error; indexed_symbol_count]; state_count];
+    let mut goto_table = vec![vec![StateId(0); indexed_symbol_count]; state_count];
     
     // Fill action table
     for item_set in &collection.sets {
@@ -625,18 +653,20 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         for item in &item_set.items {
             if item.is_reduce_item(grammar) {
                 // Add reduce action
-                let lookahead_idx = item.lookahead.0 as usize;
-                action_table[state_idx][lookahead_idx] = Action::Reduce(item.rule_id);
+                if let Some(&lookahead_idx) = symbol_to_index.get(&item.lookahead) {
+                    action_table[state_idx][lookahead_idx] = Action::Reduce(item.rule_id);
+                }
             } else if let Some(next_symbol) = item.next_symbol(grammar) {
                 let symbol_id = match &next_symbol {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
                 };
-                let symbol_idx = symbol_id.0 as usize;
                 
-                if let Symbol::Terminal(_) = next_symbol {
-                    // Add shift action
-                    if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id)) {
-                        action_table[state_idx][symbol_idx] = Action::Shift(goto_state);
+                if let Some(&symbol_idx) = symbol_to_index.get(symbol_id) {
+                    if let Symbol::Terminal(_) = next_symbol {
+                        // Add shift action
+                        if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id)) {
+                            action_table[state_idx][symbol_idx] = Action::Shift(goto_state);
+                        }
                     }
                 }
             }
@@ -646,8 +676,9 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     // Fill goto table from collection's goto_table
     for ((from_state, symbol), to_state) in &collection.goto_table {
         let from_idx = from_state.0 as usize;
-        let symbol_idx = symbol.0 as usize;
-        goto_table[from_idx][symbol_idx] = *to_state;
+        if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
+            goto_table[from_idx][symbol_idx] = *to_state;
+        }
     }
     
     // Add accept action for start symbol at EOF
@@ -702,6 +733,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         symbol_metadata,
         state_count,
         symbol_count,
+        symbol_to_index,
     })
 }
 
@@ -963,6 +995,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 3,
             symbol_count: 5,
+            symbol_to_index: HashMap::new(),
         };
         
         assert_eq!(parse_table.state_count, 3);

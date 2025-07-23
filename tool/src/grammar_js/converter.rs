@@ -4,7 +4,8 @@ use super::{GrammarJs, Rule as JsRule};
 use rust_sitter_ir::{
     Grammar, Rule, Symbol, Token, TokenPattern, 
     SymbolId, ProductionId, FieldId, RuleId,
-    PrecedenceKind, Associativity, ConflictDeclaration, ConflictResolution
+    PrecedenceKind, Associativity, ConflictDeclaration, ConflictResolution,
+    ExternalToken
 };
 use anyhow::{Result, Context};
 use std::collections::HashMap;
@@ -63,6 +64,16 @@ impl GrammarJsConverter {
             }
         }
         
+        // Handle externals
+        for external in &self.grammar_js.externals {
+            if let Some(&symbol_id) = self.symbol_names.get(&external.name) {
+                grammar.externals.push(ExternalToken {
+                    name: external.name.clone(),
+                    symbol_id,
+                });
+            }
+        }
+        
         // Handle conflicts
         for conflict_set in &self.grammar_js.conflicts {
             let mut symbols = Vec::new();
@@ -76,6 +87,13 @@ impl GrammarJsConverter {
                     symbols,
                     resolution: ConflictResolution::GLR, // Default to GLR handling
                 });
+            }
+        }
+        
+        // Handle supertypes
+        for supertype in &self.grammar_js.supertypes {
+            if let Some(&symbol_id) = self.symbol_names.get(supertype) {
+                grammar.supertypes.push(symbol_id);
             }
         }
         
@@ -110,6 +128,13 @@ impl GrammarJsConverter {
         
         if has_whitespace {
             self.add_terminal_token(grammar, "_WHITESPACE", r"\s+")?;
+        }
+        
+        // Add external symbols
+        for external in &self.grammar_js.externals {
+            let symbol_id = SymbolId(self.next_symbol_id.try_into().unwrap());
+            self.symbol_names.insert(external.name.clone(), symbol_id);
+            self.next_symbol_id += 1;
         }
         
         Ok(())
