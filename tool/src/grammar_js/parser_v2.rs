@@ -16,6 +16,7 @@ pub fn parse_grammar_js_v2(content: &str) -> Result<GrammarJs> {
 
 struct ImprovedGrammarJsParser {
     content: String,
+    #[allow(dead_code)]
     lines: Vec<String>,
 }
 

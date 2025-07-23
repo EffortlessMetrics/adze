@@ -146,13 +146,13 @@ impl GrammarJsConverter {
     
     fn convert_rule_body(&mut self, grammar: &mut Grammar, rule: &JsRule, lhs: SymbolId) -> Result<()> {
         match rule {
-            JsRule::String { value } => {
+            JsRule::String { value: _ } => {
                 // Create a literal token rule
                 let rhs = vec![]; // Simplified for now
                 self.add_rule(grammar, lhs, rhs, None, None);
             }
             
-            JsRule::Pattern { value } => {
+            JsRule::Pattern { value: _ } => {
                 // Create a regex token rule
                 let rhs = vec![]; // Simplified for now
                 self.add_rule(grammar, lhs, rhs, None, None);

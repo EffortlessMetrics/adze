@@ -16,6 +16,7 @@ pub struct FirstFollowSets {
     first: IndexMap<SymbolId, FixedBitSet>,
     follow: IndexMap<SymbolId, FixedBitSet>,
     nullable: FixedBitSet,
+    #[allow(dead_code)]
     symbol_count: usize,
 }
 
@@ -646,7 +647,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     
     // Add accept action for start symbol at EOF
     if let Some(start_rule) = grammar.rules.values().next() {
-        let start_symbol = start_rule.lhs;
+        let _start_symbol = start_rule.lhs;
         for (idx, item_set) in collection.sets.iter().enumerate() {
             for item in &item_set.items {
                 if item.is_reduce_item(grammar) && item.rule_id.0 == 0 && item.lookahead.0 == 0 {

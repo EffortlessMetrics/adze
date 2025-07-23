@@ -10,8 +10,10 @@ pub struct ParserState {
     /// Current state in the parse table
     state: StateId,
     /// Start position in the input
+    #[allow(dead_code)]
     start_pos: usize,
     /// End position in the input
+    #[allow(dead_code)]
     end_pos: usize,
 }
 
@@ -19,12 +21,16 @@ pub struct ParserState {
 #[derive(Debug, Clone)]
 pub struct ParseNode {
     /// Symbol ID for this node
+    #[allow(dead_code)]
     symbol: SymbolId,
     /// Child nodes
+    #[allow(dead_code)]
     children: Vec<ParseNode>,
     /// Start byte offset in the input
+    #[allow(dead_code)]
     start_byte: usize,
     /// End byte offset in the input
+    #[allow(dead_code)]
     end_byte: usize,
 }
 

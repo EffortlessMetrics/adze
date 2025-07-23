@@ -70,6 +70,7 @@ pub struct ErrorRecoveryState {
     /// Recent tokens for context-aware recovery
     recent_tokens: VecDeque<u16>,
     /// Indentation levels for indentation-based recovery
+    #[allow(dead_code)]
     indentation_stack: Vec<usize>,
     /// Error nodes created during recovery
     error_nodes: Vec<ErrorNode>,
@@ -113,8 +114,8 @@ impl ErrorRecoveryState {
         &mut self,
         expected: &[u16],
         actual: Option<u16>,
-        position: (usize, usize),
-        byte_offset: usize,
+        _position: (usize, usize),
+        _byte_offset: usize,
     ) -> RecoveryStrategy {
         self.consecutive_errors += 1;
 
@@ -244,7 +245,7 @@ impl ErrorRecoveryState {
         !expected.contains(&token) && !self.config.sync_tokens.contains(&token)
     }
 
-    fn can_substitute_token(&self, actual: u16, expected: &[u16]) -> bool {
+    fn can_substitute_token(&self, _actual: u16, expected: &[u16]) -> bool {
         // In a real implementation, check if tokens are similar
         // For now, just check if there's exactly one expected token
         expected.len() == 1

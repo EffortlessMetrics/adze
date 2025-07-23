@@ -46,6 +46,7 @@ pub struct BuildResult {
 }
 
 /// Build a parser from a grammar.js file
+#[allow(dead_code)]
 pub fn build_parser_from_grammar_js(grammar_js_path: &Path, options: BuildOptions) -> Result<BuildResult> {
     // Read and parse grammar.js
     let grammar_js_content = fs::read_to_string(grammar_js_path)
@@ -85,7 +86,7 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
 /// Build a parser from a JSON grammar (Tree-sitter format)
 pub fn build_parser_from_json(grammar_json: Value, options: BuildOptions) -> Result<BuildResult> {
     // Parse grammar name
-    let grammar_name = grammar_json["name"]
+    let _grammar_name = grammar_json["name"]
         .as_str()
         .ok_or_else(|| anyhow::anyhow!("Grammar missing name field"))?
         .to_string();

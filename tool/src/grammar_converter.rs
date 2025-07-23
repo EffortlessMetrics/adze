@@ -2,10 +2,8 @@
 // This would be expanded with actual grammar extraction logic
 
 use rust_sitter_ir::{
-    Grammar, Rule, Symbol, SymbolId, Token, TokenPattern, 
-    RuleId, ProductionId, FieldId, PrecedenceKind, Associativity
+    Grammar, Rule, Symbol, SymbolId, Token, TokenPattern, ProductionId, FieldId, PrecedenceKind, Associativity
 };
-use std::collections::HashMap;
 
 /// Simplified grammar converter
 pub struct GrammarConverter;

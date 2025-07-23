@@ -180,6 +180,7 @@ struct IncrementalParserState<'a> {
     grammar: &'a Grammar,
     table: &'a ParseTable,
     tokens: Vec<Token>,
+    #[allow(dead_code)]
     reusable: Vec<&'a ReusableNode>,
     position: usize,
     stack: Vec<(StateId, Option<ParseNode>)>,

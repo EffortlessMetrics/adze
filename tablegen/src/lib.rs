@@ -20,15 +20,11 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use rust_sitter_glr_core::*;
 use rust_sitter_ir::*;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 // Use the appropriate tree-sitter backend
 #[cfg(feature = "tree-sitter-standard")]
 use tree_sitter as _ts;
 
-#[cfg(all(feature = "tree-sitter-c2rust", not(feature = "tree-sitter-standard")))]
-use tree_sitter_c2rust as _ts;
 
 // Ensure ts is available even if neither feature is enabled (for tests)
 #[cfg(all(not(feature = "tree-sitter-standard"), not(feature = "tree-sitter-c2rust")))]

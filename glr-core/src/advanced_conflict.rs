@@ -30,7 +30,7 @@ impl ConflictAnalyzer {
     }
     
     /// Analyze conflicts in a parse table and return statistics
-    pub fn analyze_table(&mut self, table: &ParseTable) -> ConflictStats {
+    pub fn analyze_table(&mut self, _table: &ParseTable) -> ConflictStats {
         self.stats = ConflictStats::default();
         
         // In the actual ParseTable implementation, we'd need to check for multiple
@@ -43,6 +43,7 @@ impl ConflictAnalyzer {
         self.stats.clone()
     }
     
+    #[allow(dead_code)]
     fn categorize_conflicts(&mut self, actions: &[Action]) {
         let shifts = actions.iter().filter(|a| matches!(a, Action::Shift(_))).count();
         let reduces = actions.iter().filter(|a| matches!(a, Action::Reduce(_))).count();
@@ -132,8 +133,8 @@ pub enum PrecedenceDecision {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ParseTable, Action, StateId, SymbolMetadata};
-    use rust_sitter_ir::{Grammar, SymbolId, Rule, Symbol, RuleId,
+    use crate::{ParseTable, Action, StateId};
+    use rust_sitter_ir::{Grammar, SymbolId, Rule, Symbol,
                          ProductionId, Precedence, Associativity, PrecedenceKind};
     
     #[test]

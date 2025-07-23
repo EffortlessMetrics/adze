@@ -1,7 +1,7 @@
 // Grammar visualization tools for the pure-Rust Tree-sitter implementation
 // This module provides tools to visualize grammars and parse trees
 
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId};
+use rust_sitter_ir::{Grammar, Symbol, SymbolId};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 

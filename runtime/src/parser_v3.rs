@@ -2,7 +2,7 @@
 // This module implements the runtime parsing logic with proper reduction handling
 
 use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, Rule, StateId, SymbolId, RuleId, Symbol, TokenPattern};
+use rust_sitter_ir::{Grammar, Rule, StateId, SymbolId, RuleId, TokenPattern};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
 use anyhow::{Result, bail};
 use std::fmt;
@@ -16,8 +16,10 @@ pub struct ParserState {
     /// Current state in the parse table
     state: StateId,
     /// Symbol that led to this state
+    #[allow(dead_code)]
     symbol: Option<SymbolId>,
     /// Position in the input
+    #[allow(dead_code)]
     position: usize,
 }
 

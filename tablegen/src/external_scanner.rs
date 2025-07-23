@@ -4,9 +4,11 @@ use quote::quote;
 
 /// Generates external scanner data and interface for Tree-sitter
 pub struct ExternalScannerGenerator {
+    #[allow(dead_code)]
     grammar: Grammar,
     external_tokens: Vec<ExternalToken>,
     /// Maps symbol IDs to their indices in the external scanner
+    #[allow(dead_code)]
     symbol_map: HashMap<SymbolId, usize>,
 }
 

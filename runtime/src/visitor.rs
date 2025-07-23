@@ -255,7 +255,7 @@ impl Visitor for PrettyPrintVisitor {
         self.indent -= 1;
     }
     
-    fn visit_leaf(&mut self, node: &Node, text: &str) {
+    fn visit_leaf(&mut self, _node: &Node, text: &str) {
         let indent_str = "  ".repeat(self.indent);
         self.output.push_str(&format!("{}\"{}\"", indent_str, text));
         
