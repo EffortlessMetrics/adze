@@ -1,7 +1,6 @@
 // LSP feature implementations for rust-sitter grammars
 
-use rust_sitter_ir::{Grammar, Rule, Symbol};
-use serde::{Serialize, Deserialize};
+use rust_sitter_ir::{Grammar, Symbol, TokenPattern};
 
 /// Trait for LSP features
 pub trait LspFeature: Send + Sync {
@@ -29,21 +28,21 @@ impl CompletionProvider {
         let mut keywords = Vec::new();
         let mut symbols = Vec::new();
         
-        // Extract keywords and symbols from grammar
-        for rule in &grammar.rules {
-            match &rule.body {
-                Symbol::Terminal(term) => {
-                    if let Some(value) = &term.value {
-                        if value.chars().all(|c| c.is_alphabetic() || c == '_') {
-                            keywords.push(value.clone());
-                        }
+        // Extract keywords from tokens
+        for (_id, token) in &grammar.tokens {
+            match &token.pattern {
+                TokenPattern::String(value) => {
+                    if value.chars().all(|c| c.is_alphabetic() || c == '_') {
+                        keywords.push(value.clone());
                     }
-                }
-                Symbol::Named(name) => {
-                    symbols.push(name.clone());
                 }
                 _ => {}
             }
+        }
+        
+        // Extract symbols from rule names
+        for (symbol_id, name) in &grammar.rule_names {
+            symbols.push(name.clone());
         }
         
         Self { keywords, symbols }
@@ -139,10 +138,10 @@ impl HoverProvider {
     pub fn new(grammar: &Grammar) -> Self {
         let mut documentation = std::collections::HashMap::new();
         
-        // Generate documentation from grammar
-        for rule in &grammar.rules {
-            let doc = format!("Grammar rule: {}", rule.name);
-            documentation.insert(rule.name.clone(), doc);
+        // Generate documentation from grammar rules
+        for (symbol_id, rule_name) in &grammar.rule_names {
+            let doc = format!("Grammar rule: {}", rule_name);
+            documentation.insert(rule_name.clone(), doc);
         }
         
         Self { documentation }

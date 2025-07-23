@@ -3,17 +3,16 @@
 
 use std::path::{Path, PathBuf};
 use std::fs;
-use anyhow::{Result, Context};
+use anyhow::Result;
 use rust_sitter_ir::Grammar;
-use serde::{Serialize, Deserialize};
 
 pub mod codegen;
 pub mod features;
 pub mod config;
 
+pub use config::LspConfig;
 use codegen::LspCodeGenerator;
 use features::{LspFeature, CompletionProvider, HoverProvider, DiagnosticsProvider};
-use config::LspConfig;
 
 /// Main LSP generator for rust-sitter grammars
 pub struct LspGenerator {
@@ -57,7 +56,7 @@ impl LspGenerator {
     }
 
     /// Enable all features
-    pub fn with_all_features(mut self) -> Self {
+    pub fn with_all_features(self) -> Self {
         self.with_completion()
             .with_hover()
             .with_diagnostics()
@@ -164,7 +163,7 @@ impl LspBuilder {
     }
 }
 
-fn load_grammar(path: &Path) -> Result<Grammar> {
+fn load_grammar(_path: &Path) -> Result<Grammar> {
     // This would load the grammar from the compiled rust-sitter grammar
     // For now, return a placeholder
     todo!("Implement grammar loading from compiled rust-sitter parser")

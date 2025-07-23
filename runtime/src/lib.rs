@@ -7,10 +7,13 @@ pub mod incremental;
 pub mod incremental_v2;
 pub mod incremental_v3;
 pub mod lexer;
-pub mod parser;
-pub mod parser_v2;
-pub mod parser_v3;
-pub mod parser_v4;
+// Use parser_v3 as the main parser implementation
+pub mod parser {
+    pub use super::parser_v3::*;
+}
+mod parser_v2;
+mod parser_v3;
+mod parser_v4;
 pub mod glr;
 pub mod error_recovery;
 pub mod visitor;

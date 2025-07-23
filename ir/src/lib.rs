@@ -14,7 +14,7 @@ pub use validation::{GrammarValidator, ValidationError, ValidationWarning, Valid
 pub mod debug_macros;
 
 /// Core grammar representation supporting all Tree-sitter features including GLR
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Grammar {
     pub name: String,
     pub rules: IndexMap<SymbolId, Rule>,

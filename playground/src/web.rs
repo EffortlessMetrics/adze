@@ -56,17 +56,15 @@ pub fn launch_server(session: PlaygroundSession, port: u16) -> Result<()> {
         let addr = format!("0.0.0.0:{}", port).parse().unwrap();
         println!("🚀 Playground server running at http://localhost:{}", port);
         
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
-            .await
-            .unwrap();
+        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+        axum::serve(listener, app).await.unwrap();
     });
     
     Ok(())
 }
 
 async fn index_handler() -> Html<&'static str> {
-    Html(include_str!("../../playground/static/index.html"))
+    Html(include_str!("../static/index.html"))
 }
 
 async fn parse_handler(
@@ -174,13 +172,13 @@ async fn import_handler(
 async fn js_handler() -> impl IntoResponse {
     (
         [("Content-Type", "application/javascript")],
-        include_str!("../../playground/static/app.js"),
+        include_str!("../static/app.js"),
     )
 }
 
 async fn css_handler() -> impl IntoResponse {
     (
         [("Content-Type", "text/css")],
-        include_str!("../../playground/static/style.css"),
+        include_str!("../static/style.css"),
     )
 }

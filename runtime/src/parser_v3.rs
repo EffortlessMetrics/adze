@@ -15,7 +15,7 @@ pub use crate::lexer::Token;
 #[derive(Debug, Clone)]
 pub struct ParserState {
     /// Current state in the parse table
-    state: StateId,
+    pub state: StateId,
     /// Symbol that led to this state
     #[allow(dead_code)]
     symbol: Option<SymbolId>,

@@ -249,7 +249,6 @@ impl CaseConvert for String {
                     })
                     .collect()
             }
-            _ => self.clone(),
         }
     }
 }
