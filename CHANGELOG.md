@@ -24,6 +24,16 @@ This beta release introduces a complete pure-Rust Tree-sitter implementation tha
 - **Grammar Optimization**: Multiple optimization passes for generated parsers
 
 #### Development Tools
+- **CLI Tools**: Complete command-line interface for grammar development
+  - `rust-sitter init` - Initialize new grammar projects
+  - `rust-sitter build` - Build grammar parsers with watch mode
+  - `rust-sitter parse` - Parse files using grammars
+  - `rust-sitter test` - Run grammar tests
+  - `rust-sitter doc` - Generate grammar documentation
+  - `rust-sitter check` - Validate grammar syntax
+  - `rust-sitter stats` - Show grammar statistics
+- **LSP Generator**: Create language servers from grammars
+- **Interactive Playground**: Web-based grammar testing environment
 - **Golden Tests**: Comprehensive test infrastructure with `cargo xtask`
 - **Grammar Visualization**: Tools for visualizing grammars and parse trees
 - **Performance Benchmarking**: Built-in benchmarking infrastructure
@@ -41,6 +51,9 @@ This beta release introduces a complete pure-Rust Tree-sitter implementation tha
 - TOML grammar ✅
 - Simple expression grammars ✅
 - Basic token patterns ✅
+- Arithmetic expressions with operators ✅
+- Optional fields and repetitions ✅
+- String literals and identifiers ✅
 
 #### Partially Supported (Coming in future releases)
 - JavaScript grammar (requires precedence, word rules, externals)

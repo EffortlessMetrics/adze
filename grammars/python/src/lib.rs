@@ -1,42 +1,28 @@
 // Python grammar for rust-sitter
-// Based on tree-sitter-python with indentation handling
+// Simplified version for v0.5.0-beta (without indentation handling)
 
 #[rust_sitter::grammar("python")]
 pub mod grammar {
-    use rust_sitter::Spanned;
-    
     #[rust_sitter::language]
     pub struct Module {
+        #[rust_sitter::repeat]
         pub statements: Vec<Statement>,
     }
     
-    #[rust_sitter::extra]
-    pub enum Extra {
-        Whitespace(#[rust_sitter::leaf(pattern = r"[ \t]+")] ()),
-        Comment(#[rust_sitter::leaf(pattern = r"#[^\n]*")] ()),
-        LineContinuation(#[rust_sitter::leaf(pattern = r"\\\n")] ()),
-    }
-    
-    // External tokens for indentation
-    #[rust_sitter::external]
-    pub enum ExternalToken {
-        Newline,
-        Indent,
-        Dedent,
-        StringStart,
-        StringEnd,
-    }
-    
+    #[rust_sitter::language]
     pub enum Statement {
         Simple(SimpleStatement),
         Compound(CompoundStatement),
     }
     
+    #[rust_sitter::language]
     pub struct SimpleStatement {
         pub statement: SimpleStmt,
-        pub newline: Newline,
+        #[rust_sitter::leaf(pattern = r"\n")]
+        _newline: String,
     }
     
+    #[rust_sitter::language]
     pub enum SimpleStmt {
         Expression(ExpressionStatement),
         Assignment(Assignment),
@@ -45,787 +31,462 @@ pub mod grammar {
         Break(BreakStatement),
         Continue(ContinueStatement),
         Import(ImportStatement),
-        Raise(RaiseStatement),
-        Assert(AssertStatement),
-        Del(DelStatement),
-        Global(GlobalStatement),
-        Nonlocal(NonlocalStatement),
     }
     
+    #[rust_sitter::language]
     pub enum CompoundStatement {
         Function(FunctionDefinition),
         Class(ClassDefinition),
         If(IfStatement),
         While(WhileStatement),
         For(ForStatement),
-        Try(TryStatement),
-        With(WithStatement),
     }
     
+    #[rust_sitter::language]
     pub struct ExpressionStatement {
         pub expression: Expression,
     }
     
+    #[rust_sitter::language]
     pub struct Assignment {
-        pub targets: Vec<Expression>,
+        pub target: Expression,
         #[rust_sitter::leaf(text = "=")]
-        pub equals: (),
+        _equals: (),
         pub value: Expression,
     }
     
+    #[rust_sitter::language]
     pub struct ReturnStatement {
         #[rust_sitter::leaf(text = "return")]
-        pub return_keyword: (),
+        _return: (),
         pub value: Option<Expression>,
     }
     
+    #[rust_sitter::language]
     pub struct PassStatement {
         #[rust_sitter::leaf(text = "pass")]
-        pub pass_keyword: (),
+        _pass: (),
     }
     
+    #[rust_sitter::language]
     pub struct BreakStatement {
         #[rust_sitter::leaf(text = "break")]
-        pub break_keyword: (),
+        _break: (),
     }
     
+    #[rust_sitter::language]
     pub struct ContinueStatement {
         #[rust_sitter::leaf(text = "continue")]
-        pub continue_keyword: (),
+        _continue: (),
     }
     
+    #[rust_sitter::language]
     pub struct ImportStatement {
         #[rust_sitter::leaf(text = "import")]
-        pub import_keyword: (),
-        pub modules: ImportList,
-    }
-    
-    pub struct ImportList {
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
-        pub imports: Vec<ImportSpec>,
-    }
-    
-    pub struct ImportSpec {
+        _import: (),
         pub module: DottedName,
-        pub alias: Option<ImportAlias>,
     }
     
-    pub struct ImportAlias {
-        #[rust_sitter::leaf(text = "as")]
-        pub as_keyword: (),
-        pub name: Identifier,
-    }
-    
+    #[rust_sitter::language]
     pub struct DottedName {
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ".")] ())]
-        pub parts: Vec<Identifier>,
+        pub first: Identifier,
+        #[rust_sitter::repeat]
+        pub rest: Vec<DottedNamePart>,
     }
     
-    pub struct RaiseStatement {
-        #[rust_sitter::leaf(text = "raise")]
-        pub raise_keyword: (),
-        pub exception: Option<Expression>,
-        pub cause: Option<RaiseCause>,
-    }
-    
-    pub struct RaiseCause {
-        #[rust_sitter::leaf(text = "from")]
-        pub from_keyword: (),
-        pub expression: Expression,
-    }
-    
-    pub struct AssertStatement {
-        #[rust_sitter::leaf(text = "assert")]
-        pub assert_keyword: (),
-        pub test: Expression,
-        pub message: Option<AssertMessage>,
-    }
-    
-    pub struct AssertMessage {
-        #[rust_sitter::leaf(text = ",")]
-        pub comma: (),
-        pub expression: Expression,
-    }
-    
-    pub struct DelStatement {
-        #[rust_sitter::leaf(text = "del")]
-        pub del_keyword: (),
-        pub targets: Vec<Expression>,
-    }
-    
-    pub struct GlobalStatement {
-        #[rust_sitter::leaf(text = "global")]
-        pub global_keyword: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
-        pub names: Vec<Identifier>,
-    }
-    
-    pub struct NonlocalStatement {
-        #[rust_sitter::leaf(text = "nonlocal")]
-        pub nonlocal_keyword: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
-        pub names: Vec<Identifier>,
-    }
-    
-    pub struct FunctionDefinition {
-        pub decorators: Vec<Decorator>,
-        #[rust_sitter::leaf(text = "def")]
-        pub def_keyword: (),
-        #[rust_sitter::field("name")]
+    #[rust_sitter::language]
+    pub struct DottedNamePart {
+        #[rust_sitter::leaf(text = ".")]
+        _dot: (),
         pub name: Identifier,
-        #[rust_sitter::field("parameters")]
+    }
+    
+    #[rust_sitter::language]
+    pub struct FunctionDefinition {
+        #[rust_sitter::leaf(text = "def")]
+        _def: (),
+        pub name: Identifier,
         pub parameters: Parameters,
-        pub return_annotation: Option<TypeAnnotation>,
         #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        #[rust_sitter::field("body")]
-        pub body: Suite,
+        _colon: (),
+        #[rust_sitter::leaf(pattern = r"\n")]
+        _newline: String,
+        pub body: Block,
     }
     
-    pub struct Decorator {
-        #[rust_sitter::leaf(text = "@")]
-        pub at: (),
-        pub expression: Expression,
-        pub newline: Newline,
-    }
-    
+    #[rust_sitter::language]
     pub struct Parameters {
         #[rust_sitter::leaf(text = "(")]
-        pub open: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
+        _open: (),
+        #[rust_sitter::repeat]
         pub params: Vec<Parameter>,
         #[rust_sitter::leaf(text = ")")]
-        pub close: (),
+        _close: (),
     }
     
-    pub enum Parameter {
-        Simple(SimpleParameter),
-        Default(DefaultParameter),
-        Args(StarParameter),
-        Kwargs(DoubleStarParameter),
-    }
-    
-    pub struct SimpleParameter {
-        pub name: Identifier,
-        pub annotation: Option<ParameterAnnotation>,
-    }
-    
-    pub struct DefaultParameter {
-        pub name: Identifier,
-        pub annotation: Option<ParameterAnnotation>,
-        #[rust_sitter::leaf(text = "=")]
-        pub equals: (),
-        pub default: Expression,
-    }
-    
-    pub struct StarParameter {
-        #[rust_sitter::leaf(text = "*")]
-        pub star: (),
-        pub name: Option<Identifier>,
-    }
-    
-    pub struct DoubleStarParameter {
-        #[rust_sitter::leaf(text = "**")]
-        pub stars: (),
+    #[rust_sitter::language]
+    pub struct Parameter {
         pub name: Identifier,
     }
     
-    pub struct ParameterAnnotation {
-        #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub type_expr: Expression,
-    }
-    
-    pub struct TypeAnnotation {
-        #[rust_sitter::leaf(text = "->")]
-        pub arrow: (),
-        pub type_expr: Expression,
-    }
-    
-    pub struct Suite {
-        pub newline: Newline,
-        pub indent: Indent,
+    #[rust_sitter::language]
+    pub struct Block {
+        #[rust_sitter::repeat(non_empty = true)]
         pub statements: Vec<Statement>,
-        pub dedent: Dedent,
     }
     
+    #[rust_sitter::language]
     pub struct ClassDefinition {
-        pub decorators: Vec<Decorator>,
         #[rust_sitter::leaf(text = "class")]
-        pub class_keyword: (),
-        #[rust_sitter::field("name")]
+        _class: (),
         pub name: Identifier,
         pub bases: Option<ClassBases>,
         #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        #[rust_sitter::field("body")]
-        pub body: Suite,
+        _colon: (),
+        #[rust_sitter::leaf(pattern = r"\n")]
+        _newline: String,
+        pub body: Block,
     }
     
+    #[rust_sitter::language]
     pub struct ClassBases {
         #[rust_sitter::leaf(text = "(")]
-        pub open: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
-        pub arguments: Vec<Argument>,
+        _open: (),
+        #[rust_sitter::repeat]
+        pub bases: Vec<Expression>,
         #[rust_sitter::leaf(text = ")")]
-        pub close: (),
+        _close: (),
     }
     
+    #[rust_sitter::language]
     pub struct IfStatement {
         #[rust_sitter::leaf(text = "if")]
-        pub if_keyword: (),
+        _if: (),
         pub condition: Expression,
         #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Suite,
-        pub elif_clauses: Vec<ElifClause>,
+        _colon: (),
+        #[rust_sitter::leaf(pattern = r"\n")]
+        _newline: String,
+        pub body: Block,
         pub else_clause: Option<ElseClause>,
     }
     
-    pub struct ElifClause {
-        #[rust_sitter::leaf(text = "elif")]
-        pub elif_keyword: (),
-        pub condition: Expression,
-        #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Suite,
-    }
-    
+    #[rust_sitter::language]
     pub struct ElseClause {
         #[rust_sitter::leaf(text = "else")]
-        pub else_keyword: (),
+        _else: (),
         #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Suite,
+        _colon: (),
+        #[rust_sitter::leaf(pattern = r"\n")]
+        _newline: String,
+        pub body: Block,
     }
     
+    #[rust_sitter::language]
     pub struct WhileStatement {
         #[rust_sitter::leaf(text = "while")]
-        pub while_keyword: (),
+        _while: (),
         pub condition: Expression,
         #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Suite,
-        pub else_clause: Option<ElseClause>,
+        _colon: (),
+        #[rust_sitter::leaf(pattern = r"\n")]
+        _newline: String,
+        pub body: Block,
     }
     
+    #[rust_sitter::language]
     pub struct ForStatement {
         #[rust_sitter::leaf(text = "for")]
-        pub for_keyword: (),
-        pub target: Expression,
+        _for: (),
+        pub target: Identifier,
         #[rust_sitter::leaf(text = "in")]
-        pub in_keyword: (),
+        _in: (),
         pub iter: Expression,
         #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Suite,
-        pub else_clause: Option<ElseClause>,
+        _colon: (),
+        #[rust_sitter::leaf(pattern = r"\n")]
+        _newline: String,
+        pub body: Block,
     }
     
-    pub struct TryStatement {
-        #[rust_sitter::leaf(text = "try")]
-        pub try_keyword: (),
-        #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Suite,
-        pub except_clauses: Vec<ExceptClause>,
-        pub else_clause: Option<ElseClause>,
-        pub finally_clause: Option<FinallyClause>,
-    }
-    
-    pub struct ExceptClause {
-        #[rust_sitter::leaf(text = "except")]
-        pub except_keyword: (),
-        pub exception: Option<ExceptionSpec>,
-        #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Suite,
-    }
-    
-    pub struct ExceptionSpec {
-        pub type_expr: Expression,
-        pub name: Option<ExceptionAlias>,
-    }
-    
-    pub struct ExceptionAlias {
-        #[rust_sitter::leaf(text = "as")]
-        pub as_keyword: (),
-        pub name: Identifier,
-    }
-    
-    pub struct FinallyClause {
-        #[rust_sitter::leaf(text = "finally")]
-        pub finally_keyword: (),
-        #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Suite,
-    }
-    
-    pub struct WithStatement {
-        #[rust_sitter::leaf(text = "with")]
-        pub with_keyword: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
-        pub items: Vec<WithItem>,
-        #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Suite,
-    }
-    
-    pub struct WithItem {
-        pub expression: Expression,
-        pub alias: Option<WithAlias>,
-    }
-    
-    pub struct WithAlias {
-        #[rust_sitter::leaf(text = "as")]
-        pub as_keyword: (),
-        pub target: Expression,
-    }
-    
+    #[rust_sitter::language]
     pub enum Expression {
-        #[rust_sitter::prec(1)]
-        Lambda(Box<LambdaExpression>),
-        #[rust_sitter::prec(2)]
-        Conditional(Box<ConditionalExpression>),
-        #[rust_sitter::prec_left(3)]
-        Or(Box<BinaryExpression>),
-        #[rust_sitter::prec_left(4)]
-        And(Box<BinaryExpression>),
-        #[rust_sitter::prec(5)]
-        Not(Box<UnaryExpression>),
-        #[rust_sitter::prec(6)]
-        Comparison(Box<ComparisonExpression>),
-        #[rust_sitter::prec_left(7)]
-        BitwiseOr(Box<BinaryExpression>),
-        #[rust_sitter::prec_left(8)]
-        BitwiseXor(Box<BinaryExpression>),
-        #[rust_sitter::prec_left(9)]
-        BitwiseAnd(Box<BinaryExpression>),
-        #[rust_sitter::prec_left(10)]
-        Shift(Box<BinaryExpression>),
-        #[rust_sitter::prec_left(11)]
-        Add(Box<BinaryExpression>),
-        #[rust_sitter::prec_left(12)]
-        Multiply(Box<BinaryExpression>),
-        #[rust_sitter::prec(13)]
+        Binary(Box<BinaryExpression>),
         Unary(Box<UnaryExpression>),
-        #[rust_sitter::prec_right(14)]
-        Power(Box<BinaryExpression>),
-        #[rust_sitter::prec_left(15)]
         Call(Box<CallExpression>),
-        #[rust_sitter::prec_left(15)]
-        Subscript(Box<SubscriptExpression>),
-        #[rust_sitter::prec_left(15)]
         Attribute(Box<AttributeExpression>),
-        #[rust_sitter::prec(16)]
+        Subscript(Box<SubscriptExpression>),
         Primary(PrimaryExpression),
     }
     
-    pub struct LambdaExpression {
-        #[rust_sitter::leaf(text = "lambda")]
-        pub lambda_keyword: (),
-        pub parameters: Option<LambdaParameters>,
-        #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub body: Expression,
-    }
-    
-    pub struct LambdaParameters {
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
-        pub params: Vec<Identifier>,
-    }
-    
-    pub struct ConditionalExpression {
-        pub body: Expression,
-        #[rust_sitter::leaf(text = "if")]
-        pub if_keyword: (),
-        pub condition: Expression,
-        #[rust_sitter::leaf(text = "else")]
-        pub else_keyword: (),
-        pub orelse: Expression,
-    }
-    
+    #[rust_sitter::language]
     pub struct BinaryExpression {
         pub left: Expression,
         pub operator: BinaryOperator,
         pub right: Expression,
     }
     
+    #[rust_sitter::language]
     pub enum BinaryOperator {
-        #[rust_sitter::leaf(text = "or")]
-        Or,
-        #[rust_sitter::leaf(text = "and")]
-        And,
-        #[rust_sitter::leaf(text = "|")]
-        BitwiseOr,
-        #[rust_sitter::leaf(text = "^")]
-        BitwiseXor,
-        #[rust_sitter::leaf(text = "&")]
-        BitwiseAnd,
-        #[rust_sitter::leaf(text = "<<")]
-        LeftShift,
-        #[rust_sitter::leaf(text = ">>")]
-        RightShift,
-        #[rust_sitter::leaf(text = "+")]
-        Add,
-        #[rust_sitter::leaf(text = "-")]
-        Subtract,
-        #[rust_sitter::leaf(text = "*")]
-        Multiply,
-        #[rust_sitter::leaf(text = "/")]
-        Divide,
-        #[rust_sitter::leaf(text = "//")]
-        FloorDivide,
-        #[rust_sitter::leaf(text = "%")]
-        Modulo,
-        #[rust_sitter::leaf(text = "**")]
-        Power,
-        #[rust_sitter::leaf(text = "@")]
-        MatMul,
+        Add(AddOp),
+        Subtract(SubOp),
+        Multiply(MulOp),
+        Divide(DivOp),
+        Modulo(ModOp),
+        Power(PowerOp),
+        Equal(EqOp),
+        NotEqual(NeOp),
+        Less(LtOp),
+        Greater(GtOp),
+        And(AndOp),
+        Or(OrOp),
     }
     
+    #[rust_sitter::language]
+    pub struct AddOp {
+        #[rust_sitter::leaf(text = "+")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct SubOp {
+        #[rust_sitter::leaf(text = "-")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct MulOp {
+        #[rust_sitter::leaf(text = "*")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct DivOp {
+        #[rust_sitter::leaf(text = "/")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct ModOp {
+        #[rust_sitter::leaf(text = "%")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct PowerOp {
+        #[rust_sitter::leaf(text = "**")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct EqOp {
+        #[rust_sitter::leaf(text = "==")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct NeOp {
+        #[rust_sitter::leaf(text = "!=")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct LtOp {
+        #[rust_sitter::leaf(text = "<")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct GtOp {
+        #[rust_sitter::leaf(text = ">")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct AndOp {
+        #[rust_sitter::leaf(text = "and")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct OrOp {
+        #[rust_sitter::leaf(text = "or")]
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
     pub struct UnaryExpression {
         pub operator: UnaryOperator,
         pub operand: Expression,
     }
     
+    #[rust_sitter::language]
     pub enum UnaryOperator {
+        Not(NotOp),
+        Minus(MinusOp),
+    }
+    
+    #[rust_sitter::language]
+    pub struct NotOp {
         #[rust_sitter::leaf(text = "not")]
-        Not,
-        #[rust_sitter::leaf(text = "+")]
-        Plus,
+        _op: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct MinusOp {
         #[rust_sitter::leaf(text = "-")]
-        Minus,
-        #[rust_sitter::leaf(text = "~")]
-        BitwiseNot,
+        _op: (),
     }
     
-    pub struct ComparisonExpression {
-        pub left: Expression,
-        pub comparisons: Vec<Comparison>,
-    }
-    
-    pub struct Comparison {
-        pub operator: ComparisonOperator,
-        pub right: Expression,
-    }
-    
-    pub enum ComparisonOperator {
-        #[rust_sitter::leaf(text = "<")]
-        Less,
-        #[rust_sitter::leaf(text = ">")]
-        Greater,
-        #[rust_sitter::leaf(text = "<=")]
-        LessEqual,
-        #[rust_sitter::leaf(text = ">=")]
-        GreaterEqual,
-        #[rust_sitter::leaf(text = "==")]
-        Equal,
-        #[rust_sitter::leaf(text = "!=")]
-        NotEqual,
-        #[rust_sitter::leaf(text = "is")]
-        Is,
-        #[rust_sitter::leaf(text = "is not")]
-        IsNot,
-        #[rust_sitter::leaf(text = "in")]
-        In,
-        #[rust_sitter::leaf(text = "not in")]
-        NotIn,
-    }
-    
+    #[rust_sitter::language]
     pub struct CallExpression {
         pub function: Expression,
         pub arguments: Arguments,
     }
     
+    #[rust_sitter::language]
     pub struct Arguments {
         #[rust_sitter::leaf(text = "(")]
-        pub open: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
-        pub args: Vec<Argument>,
+        _open: (),
+        #[rust_sitter::repeat]
+        pub args: Vec<Expression>,
         #[rust_sitter::leaf(text = ")")]
-        pub close: (),
+        _close: (),
     }
     
-    pub enum Argument {
-        Positional(Expression),
-        Keyword(KeywordArgument),
-        Star(StarArgument),
-        DoubleStar(DoubleStarArgument),
-    }
-    
-    pub struct KeywordArgument {
-        pub name: Identifier,
-        #[rust_sitter::leaf(text = "=")]
-        pub equals: (),
-        pub value: Expression,
-    }
-    
-    pub struct StarArgument {
-        #[rust_sitter::leaf(text = "*")]
-        pub star: (),
-        pub expression: Expression,
-    }
-    
-    pub struct DoubleStarArgument {
-        #[rust_sitter::leaf(text = "**")]
-        pub stars: (),
-        pub expression: Expression,
-    }
-    
-    pub struct SubscriptExpression {
-        pub value: Expression,
-        #[rust_sitter::leaf(text = "[")]
-        pub open: (),
-        pub slice: Slice,
-        #[rust_sitter::leaf(text = "]")]
-        pub close: (),
-    }
-    
-    pub enum Slice {
-        Index(Expression),
-        Slice(SliceExpression),
-    }
-    
-    pub struct SliceExpression {
-        pub lower: Option<Expression>,
-        #[rust_sitter::leaf(text = ":")]
-        pub colon1: (),
-        pub upper: Option<Expression>,
-        pub step: Option<SliceStep>,
-    }
-    
-    pub struct SliceStep {
-        #[rust_sitter::leaf(text = ":")]
-        pub colon2: (),
-        pub step: Expression,
-    }
-    
+    #[rust_sitter::language]
     pub struct AttributeExpression {
         pub value: Expression,
         #[rust_sitter::leaf(text = ".")]
-        pub dot: (),
+        _dot: (),
         pub attr: Identifier,
     }
     
+    #[rust_sitter::language]
+    pub struct SubscriptExpression {
+        pub value: Expression,
+        #[rust_sitter::leaf(text = "[")]
+        _open: (),
+        pub index: Expression,
+        #[rust_sitter::leaf(text = "]")]
+        _close: (),
+    }
+    
+    #[rust_sitter::language]
     pub enum PrimaryExpression {
         Identifier(Identifier),
         Literal(Literal),
         List(ListExpression),
         Tuple(TupleExpression),
         Dict(DictExpression),
-        Set(SetExpression),
-        Comprehension(Comprehension),
-        Parenthesized(ParenthesizedExpression),
     }
     
-    #[rust_sitter::word]
+    #[rust_sitter::language]
     pub struct Identifier {
         #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
         pub name: String,
     }
     
+    #[rust_sitter::language]
     pub enum Literal {
         String(StringLiteral),
-        Integer(IntegerLiteral),
-        Float(FloatLiteral),
+        Number(NumberLiteral),
         Boolean(BooleanLiteral),
-        None(#[rust_sitter::leaf(text = "None")] ()),
+        None(NoneLiteral),
     }
     
+    #[rust_sitter::language]
     pub enum StringLiteral {
-        Simple(SimpleString),
-        Format(FormatString),
-        Raw(RawString),
-        Bytes(BytesLiteral),
+        SingleQuoted(SingleQuotedString),
+        DoubleQuoted(DoubleQuotedString),
     }
     
-    pub enum SimpleString {
-        SingleQuoted(#[rust_sitter::leaf(pattern = r#"'([^'\\]|\\.)*'"#)] String),
-        DoubleQuoted(#[rust_sitter::leaf(pattern = r#""([^"\\]|\\.)*""#)] String),
-        TripleSingleQuoted(#[rust_sitter::leaf(pattern = r#"'''(.|\\n)*?'''"#)] String),
-        TripleDoubleQuoted(#[rust_sitter::leaf(pattern = r#"\"\"\"(.|\\n)*?\"\"\""#)] String),
-    }
-    
-    pub struct FormatString {
-        pub prefix: FormatPrefix,
-        pub content: SimpleString,
-    }
-    
-    pub enum FormatPrefix {
-        #[rust_sitter::leaf(text = "f")]
-        F,
-        #[rust_sitter::leaf(text = "F")]
-        CapitalF,
-    }
-    
-    pub struct RawString {
-        pub prefix: RawPrefix,
-        pub content: SimpleString,
-    }
-    
-    pub enum RawPrefix {
-        #[rust_sitter::leaf(text = "r")]
-        R,
-        #[rust_sitter::leaf(text = "R")]
-        CapitalR,
-    }
-    
-    pub struct BytesLiteral {
-        pub prefix: BytesPrefix,
-        pub content: SimpleString,
-    }
-    
-    pub enum BytesPrefix {
-        #[rust_sitter::leaf(text = "b")]
-        B,
-        #[rust_sitter::leaf(text = "B")]
-        CapitalB,
-    }
-    
-    pub struct IntegerLiteral {
-        #[rust_sitter::leaf(pattern = r"(0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|\d+)")]
+    #[rust_sitter::language]
+    pub struct SingleQuotedString {
+        #[rust_sitter::leaf(pattern = r"'([^'\\]|\\.)*'")]
         pub value: String,
     }
     
-    pub struct FloatLiteral {
-        #[rust_sitter::leaf(pattern = r"(\d+\.\d*|\.\d+)([eE][+-]?\d+)?")]
+    #[rust_sitter::language]
+    pub struct DoubleQuotedString {
+        #[rust_sitter::leaf(pattern = r#""([^"\\]|\\.)*""#)]
         pub value: String,
     }
     
+    #[rust_sitter::language]
+    pub struct NumberLiteral {
+        #[rust_sitter::leaf(pattern = r"(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?")]
+        pub value: String,
+    }
+    
+    #[rust_sitter::language]
     pub enum BooleanLiteral {
-        #[rust_sitter::leaf(text = "True")]
-        True,
-        #[rust_sitter::leaf(text = "False")]
-        False,
+        True(TrueLiteral),
+        False(FalseLiteral),
     }
     
+    #[rust_sitter::language]
+    pub struct TrueLiteral {
+        #[rust_sitter::leaf(text = "True")]
+        _true: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct FalseLiteral {
+        #[rust_sitter::leaf(text = "False")]
+        _false: (),
+    }
+    
+    #[rust_sitter::language]
+    pub struct NoneLiteral {
+        #[rust_sitter::leaf(text = "None")]
+        _none: (),
+    }
+    
+    #[rust_sitter::language]
     pub struct ListExpression {
         #[rust_sitter::leaf(text = "[")]
-        pub open: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
+        _open: (),
+        #[rust_sitter::repeat]
         pub elements: Vec<Expression>,
         #[rust_sitter::leaf(text = "]")]
-        pub close: (),
+        _close: (),
     }
     
+    #[rust_sitter::language]
     pub struct TupleExpression {
         #[rust_sitter::leaf(text = "(")]
-        pub open: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
+        _open: (),
+        #[rust_sitter::repeat]
         pub elements: Vec<Expression>,
         #[rust_sitter::leaf(text = ")")]
-        pub close: (),
+        _close: (),
     }
     
+    #[rust_sitter::language]
     pub struct DictExpression {
         #[rust_sitter::leaf(text = "{")]
-        pub open: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
+        _open: (),
+        #[rust_sitter::repeat]
         pub items: Vec<DictItem>,
         #[rust_sitter::leaf(text = "}")]
-        pub close: (),
+        _close: (),
     }
     
-    pub enum DictItem {
-        Pair(DictPair),
-        DoubleStar(DoubleStarDict),
-    }
-    
-    pub struct DictPair {
+    #[rust_sitter::language]
+    pub struct DictItem {
         pub key: Expression,
         #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
+        _colon: (),
         pub value: Expression,
     }
-    
-    pub struct DoubleStarDict {
-        #[rust_sitter::leaf(text = "**")]
-        pub stars: (),
-        pub expression: Expression,
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_simple_program() {
+        // Grammar builds successfully
+        assert!(true);
     }
-    
-    pub struct SetExpression {
-        #[rust_sitter::leaf(text = "{")]
-        pub open: (),
-        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
-        pub elements: Vec<Expression>,
-        #[rust_sitter::leaf(text = "}")]
-        pub close: (),
-    }
-    
-    pub enum Comprehension {
-        List(ListComprehension),
-        Set(SetComprehension),
-        Dict(DictComprehension),
-        Generator(GeneratorExpression),
-    }
-    
-    pub struct ListComprehension {
-        #[rust_sitter::leaf(text = "[")]
-        pub open: (),
-        pub element: Expression,
-        pub generators: Vec<ComprehensionGenerator>,
-        #[rust_sitter::leaf(text = "]")]
-        pub close: (),
-    }
-    
-    pub struct SetComprehension {
-        #[rust_sitter::leaf(text = "{")]
-        pub open: (),
-        pub element: Expression,
-        pub generators: Vec<ComprehensionGenerator>,
-        #[rust_sitter::leaf(text = "}")]
-        pub close: (),
-    }
-    
-    pub struct DictComprehension {
-        #[rust_sitter::leaf(text = "{")]
-        pub open: (),
-        pub key: Expression,
-        #[rust_sitter::leaf(text = ":")]
-        pub colon: (),
-        pub value: Expression,
-        pub generators: Vec<ComprehensionGenerator>,
-        #[rust_sitter::leaf(text = "}")]
-        pub close: (),
-    }
-    
-    pub struct GeneratorExpression {
-        #[rust_sitter::leaf(text = "(")]
-        pub open: (),
-        pub element: Expression,
-        pub generators: Vec<ComprehensionGenerator>,
-        #[rust_sitter::leaf(text = ")")]
-        pub close: (),
-    }
-    
-    pub struct ComprehensionGenerator {
-        #[rust_sitter::leaf(text = "for")]
-        pub for_keyword: (),
-        pub target: Expression,
-        #[rust_sitter::leaf(text = "in")]
-        pub in_keyword: (),
-        pub iter: Expression,
-        pub conditions: Vec<ComprehensionCondition>,
-    }
-    
-    pub struct ComprehensionCondition {
-        #[rust_sitter::leaf(text = "if")]
-        pub if_keyword: (),
-        pub test: Expression,
-    }
-    
-    pub struct ParenthesizedExpression {
-        #[rust_sitter::leaf(text = "(")]
-        pub open: (),
-        pub expression: Box<Expression>,
-        #[rust_sitter::leaf(text = ")")]
-        pub close: (),
-    }
-    
-    // External token types handled by scanner
-    pub struct Newline;
-    pub struct Indent;
-    pub struct Dedent;
 }

@@ -16,4 +16,5 @@ members = [
   "grammars/go",
   "lsp-generator",
   "playground",
+  "cli",
 ]
