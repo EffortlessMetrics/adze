@@ -31,6 +31,7 @@ fn create_simple_grammar() -> (Grammar, ParseTable) {
         goto_table: vec![vec![StateId(0); 2]; 2],
         state_count: 2,
         symbol_count: 2,
+            symbol_to_index: std::collections::HashMap::new(),
         symbol_metadata: vec![SymbolMetadata { 
             name: "token".to_string(),
             visible: true, 

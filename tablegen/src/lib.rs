@@ -716,6 +716,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -802,6 +803,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -826,6 +828,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -843,6 +846,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -869,6 +873,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 2,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let mut generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -892,6 +897,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 40000,
             symbol_count: 10,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let compressor = TableCompressor::new();
@@ -1042,6 +1048,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 1,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -1069,6 +1076,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 2,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let compressor = TableCompressor::new();
@@ -1136,6 +1144,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 1,
+            symbol_to_index: std::collections::HashMap::new(),
         };
         
         let mut generator = StaticLanguageGenerator::new(grammar, parse_table);

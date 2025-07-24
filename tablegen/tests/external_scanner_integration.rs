@@ -23,6 +23,7 @@ fn test_language_generation_with_external_scanner() {
     let mut parse_table = ParseTable {
         state_count: 5,
         symbol_count: 102, // Must include external token IDs
+            symbol_to_index: std::collections::HashMap::new(),
         action_table: vec![vec![Action::Error; 102]; 5],
         goto_table: vec![vec![StateId(0); 102]; 5],
         symbol_metadata: vec![],
@@ -99,6 +100,7 @@ fn test_node_types_include_external_tokens() {
     
     let parse_table = ParseTable {
         state_count: 1,
+            symbol_to_index: std::collections::HashMap::new(),
         symbol_count: 52,
         action_table: vec![vec![Action::Error; 52]; 1],
         goto_table: vec![vec![StateId(0); 52]; 1],

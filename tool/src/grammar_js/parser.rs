@@ -122,18 +122,75 @@ impl SimpleGrammarJsParser {
             let rules_content = &caps[1];
             
             // Parse individual rules (simplified for MVP)
-            let rule_regex = Regex::new(r#"(\w+):\s*\$\s*=>\s*([\s\S]*?)(?=,\s*\w+:|$)"#)?;
-            
-            for caps in rule_regex.captures_iter(rules_content) {
-                let rule_name = caps[1].to_string();
-                let rule_body = &caps[2];
-                
-                let rule = self.parse_rule_body(rule_body)?;
-                rules.insert(rule_name, rule);
+            // Parse rules without lookahead
+            // We'll split the content manually to avoid regex lookahead
+            let mut remaining = rules_content;
+            while !remaining.trim().is_empty() {
+                // Find the rule name
+                if let Some(colon_pos) = remaining.find(':') {
+                    let name = remaining[..colon_pos].trim();
+                    remaining = &remaining[colon_pos + 1..];
+                    
+                    // Skip whitespace and $ =>
+                    remaining = remaining.trim_start();
+                    if remaining.starts_with("$ =>") {
+                        remaining = &remaining[4..];
+                    } else if remaining.starts_with("$=>") {
+                        remaining = &remaining[3..];
+                    } else {
+                        break; // Invalid format
+                    }
+                    
+                    // Find the end of the rule body
+                    // Look for the next rule pattern (word followed by colon)
+                    let mut body_end = remaining.len();
+                    let mut depth = 0;
+                    let mut in_string = false;
+                    let mut escape = false;
+                    
+                    for (i, ch) in remaining.char_indices() {
+                        if escape {
+                            escape = false;
+                            continue;
+                        }
+                        
+                        match ch {
+                            '\\' => escape = true,
+                            '"' | '\'' if depth == 0 => in_string = !in_string,
+                            '(' | '{' | '[' if !in_string => depth += 1,
+                            ')' | '}' | ']' if !in_string => depth -= 1,
+                            ',' if depth == 0 && !in_string => {
+                                // Check if this comma is followed by a rule pattern
+                                let after_comma = &remaining[i + 1..];
+                                if let Some(next_rule) = after_comma.trim_start().split(':').next() {
+                                    if next_rule.chars().all(|c| c.is_alphanumeric() || c == '_') && !next_rule.is_empty() {
+                                        body_end = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    
+                    let rule_body = remaining[..body_end].trim();
+                    remaining = &remaining[body_end..];
+                    
+                    // Skip the comma if present
+                    if remaining.trim_start().starts_with(',') {
+                        remaining = remaining.trim_start()[1..].trim_start();
+                    }
+                    
+                    // Parse the rule expression
+                    let parsed_rule = parse_rule_expression(rule_body)?;
+                    grammar.rules.insert(name.to_string(), parsed_rule);
+                } else {
+                    break;
+                }
             }
         }
         
-        Ok(rules)
+        Ok(grammar)
     }
     
     fn parse_rule_body(&self, body: &str) -> Result<Rule> {

@@ -32,6 +32,7 @@ fn test_language_generation_and_validation() {
         symbol_metadata: vec![],
         state_count: 2,
         symbol_count: 2,
+            symbol_to_index: std::collections::HashMap::new(),
     };
     
     // Create compressed table before moving parse_table
@@ -124,6 +125,7 @@ fn test_language_validation_field_names_ordering() {
         goto_table: vec![],
         symbol_metadata: vec![],
         state_count: 1,
+            symbol_to_index: std::collections::HashMap::new(),
         symbol_count: 1,
     };
     
@@ -164,6 +166,7 @@ fn test_symbol_metadata_validation() {
         action_table: vec![vec![Action::Accept]],
         goto_table: vec![vec![StateId(0)]],
         symbol_metadata: vec![],
+            symbol_to_index: std::collections::HashMap::new(),
         state_count: 1,
         symbol_count: 4, // EOF + 3 tokens
     };
@@ -204,6 +207,7 @@ fn test_empty_grammar_validation() {
     let parse_table = ParseTable {
         action_table: vec![],
         goto_table: vec![],
+            symbol_to_index: std::collections::HashMap::new(),
         symbol_metadata: vec![],
         state_count: 0,
         symbol_count: 0,
@@ -222,6 +226,7 @@ fn test_empty_grammar_validation() {
 }
 
 // Helper function to create a test Language struct
+            symbol_to_index: std::collections::HashMap::new(),
 fn create_test_language() -> TSLanguage {
     TSLanguage {
         version: 15,

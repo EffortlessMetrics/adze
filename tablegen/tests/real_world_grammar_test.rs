@@ -539,6 +539,7 @@ fn test_language_code_generation() {
         symbol_metadata: vec![],
         state_count: 0,
         symbol_count: 0,
+            symbol_to_index: std::collections::HashMap::new(),
     };
 
     // Add some dummy data
@@ -572,6 +573,7 @@ fn test_external_token_handling() {
         goto_table: vec![],
         symbol_metadata: vec![],
         state_count: 1,
+            symbol_to_index: std::collections::HashMap::new(),
         symbol_count: 17,
     };
 

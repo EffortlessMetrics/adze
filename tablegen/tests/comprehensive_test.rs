@@ -55,6 +55,7 @@ fn create_test_parse_table() -> ParseTable {
         symbol_metadata: vec![],
         state_count: 0,
         symbol_count: 0,
+            symbol_to_index: std::collections::HashMap::new(),
     };
     
     // Add some basic states
