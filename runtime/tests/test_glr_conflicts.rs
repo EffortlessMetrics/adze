@@ -14,32 +14,32 @@ use rust_sitter_ir::{
 fn build_arithmetic_grammar() -> Grammar {
     let mut grammar = Grammar::new("arithmetic".to_string());
     
-    // Tokens
-    grammar.tokens.insert(SymbolId(0), Token {
+    // Tokens (start from 1, as 0 is reserved for EOF)
+    grammar.tokens.insert(SymbolId(1), Token {
         name: "number".to_string(),
         pattern: TokenPattern::Regex(r"\d+".to_string()),
         fragile: false,
     });
     
-    grammar.tokens.insert(SymbolId(1), Token {
+    grammar.tokens.insert(SymbolId(2), Token {
         name: "plus".to_string(),
         pattern: TokenPattern::String("+".to_string()),
         fragile: false,
     });
     
-    grammar.tokens.insert(SymbolId(2), Token {
+    grammar.tokens.insert(SymbolId(3), Token {
         name: "minus".to_string(),
         pattern: TokenPattern::String("-".to_string()),
         fragile: false,
     });
     
-    grammar.tokens.insert(SymbolId(3), Token {
+    grammar.tokens.insert(SymbolId(4), Token {
         name: "times".to_string(),
         pattern: TokenPattern::String("*".to_string()),
         fragile: false,
     });
     
-    grammar.tokens.insert(SymbolId(4), Token {
+    grammar.tokens.insert(SymbolId(5), Token {
         name: "divide".to_string(),
         pattern: TokenPattern::String("/".to_string()),
         fragile: false,
@@ -52,20 +52,20 @@ fn build_arithmetic_grammar() -> Grammar {
     grammar.precedences.push(Precedence {
         level: 1,
         associativity: Associativity::Left,
-        symbols: vec![SymbolId(1), SymbolId(2)], // + -
+        symbols: vec![SymbolId(2), SymbolId(3)], // + -
     });
     
     grammar.precedences.push(Precedence {
         level: 2,
         associativity: Associativity::Left,
-        symbols: vec![SymbolId(3), SymbolId(4)], // * /
+        symbols: vec![SymbolId(4), SymbolId(5)], // * /
     });
     
     // Rules
     // expr -> number
     grammar.rules.insert(expr_id, Rule {
         lhs: expr_id,
-        rhs: vec![Symbol::Terminal(SymbolId(0))],
+        rhs: vec![Symbol::Terminal(SymbolId(1))],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -77,7 +77,7 @@ fn build_arithmetic_grammar() -> Grammar {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
-            Symbol::Terminal(SymbolId(1)),
+            Symbol::Terminal(SymbolId(2)),
             Symbol::NonTerminal(expr_id),
         ],
         precedence: Some(PrecedenceKind::Static(1)),
@@ -91,7 +91,7 @@ fn build_arithmetic_grammar() -> Grammar {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
-            Symbol::Terminal(SymbolId(2)),
+            Symbol::Terminal(SymbolId(3)),
             Symbol::NonTerminal(expr_id),
         ],
         precedence: Some(PrecedenceKind::Static(1)),
@@ -105,7 +105,7 @@ fn build_arithmetic_grammar() -> Grammar {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
-            Symbol::Terminal(SymbolId(3)),
+            Symbol::Terminal(SymbolId(4)),
             Symbol::NonTerminal(expr_id),
         ],
         precedence: Some(PrecedenceKind::Static(2)),
@@ -119,7 +119,7 @@ fn build_arithmetic_grammar() -> Grammar {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
-            Symbol::Terminal(SymbolId(4)),
+            Symbol::Terminal(SymbolId(5)),
             Symbol::NonTerminal(expr_id),
         ],
         precedence: Some(PrecedenceKind::Static(2)),
@@ -135,32 +135,32 @@ fn build_arithmetic_grammar() -> Grammar {
 fn build_dangling_else_grammar() -> Grammar {
     let mut grammar = Grammar::new("dangling_else".to_string());
     
-    // Tokens
-    grammar.tokens.insert(SymbolId(0), Token {
+    // Tokens (start from 1)
+    grammar.tokens.insert(SymbolId(1), Token {
         name: "if".to_string(),
         pattern: TokenPattern::String("if".to_string()),
         fragile: false,
     });
     
-    grammar.tokens.insert(SymbolId(1), Token {
+    grammar.tokens.insert(SymbolId(2), Token {
         name: "then".to_string(),
         pattern: TokenPattern::String("then".to_string()),
         fragile: false,
     });
     
-    grammar.tokens.insert(SymbolId(2), Token {
+    grammar.tokens.insert(SymbolId(3), Token {
         name: "else".to_string(),
         pattern: TokenPattern::String("else".to_string()),
         fragile: true, // else is fragile in Tree-sitter
     });
     
-    grammar.tokens.insert(SymbolId(3), Token {
+    grammar.tokens.insert(SymbolId(4), Token {
         name: "expr".to_string(),
         pattern: TokenPattern::String("e".to_string()),
         fragile: false,
     });
     
-    grammar.tokens.insert(SymbolId(4), Token {
+    grammar.tokens.insert(SymbolId(5), Token {
         name: "stmt".to_string(),
         pattern: TokenPattern::String("s".to_string()),
         fragile: false,
@@ -174,9 +174,9 @@ fn build_dangling_else_grammar() -> Grammar {
     grammar.rules.insert(SymbolId(11), Rule {
         lhs: stmt_id,
         rhs: vec![
-            Symbol::Terminal(SymbolId(0)), // if
-            Symbol::Terminal(SymbolId(3)), // expr
-            Symbol::Terminal(SymbolId(1)), // then
+            Symbol::Terminal(SymbolId(1)), // if
+            Symbol::Terminal(SymbolId(4)), // expr
+            Symbol::Terminal(SymbolId(2)), // then
             Symbol::NonTerminal(stmt_id),  // stmt
         ],
         precedence: None,
@@ -189,11 +189,11 @@ fn build_dangling_else_grammar() -> Grammar {
     grammar.rules.insert(SymbolId(12), Rule {
         lhs: stmt_id,
         rhs: vec![
-            Symbol::Terminal(SymbolId(0)), // if
-            Symbol::Terminal(SymbolId(3)), // expr
-            Symbol::Terminal(SymbolId(1)), // then
+            Symbol::Terminal(SymbolId(1)), // if
+            Symbol::Terminal(SymbolId(4)), // expr
+            Symbol::Terminal(SymbolId(2)), // then
             Symbol::NonTerminal(stmt_id),  // stmt
-            Symbol::Terminal(SymbolId(2)), // else
+            Symbol::Terminal(SymbolId(3)), // else
             Symbol::NonTerminal(stmt_id),  // stmt
         ],
         precedence: Some(PrecedenceKind::Static(1)), // Higher precedence to bind else to nearest if
@@ -205,7 +205,7 @@ fn build_dangling_else_grammar() -> Grammar {
     // stmt -> simple_stmt
     grammar.rules.insert(SymbolId(13), Rule {
         lhs: stmt_id,
-        rhs: vec![Symbol::Terminal(SymbolId(4))], // s
+        rhs: vec![Symbol::Terminal(SymbolId(5))], // s
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -219,14 +219,14 @@ fn build_dangling_else_grammar() -> Grammar {
 fn build_dynamic_precedence_grammar() -> Grammar {
     let mut grammar = Grammar::new("dynamic".to_string());
     
-    // Tokens
-    grammar.tokens.insert(SymbolId(0), Token {
+    // Tokens (start from 1)
+    grammar.tokens.insert(SymbolId(1), Token {
         name: "a".to_string(),
         pattern: TokenPattern::String("a".to_string()),
         fragile: false,
     });
     
-    grammar.tokens.insert(SymbolId(1), Token {
+    grammar.tokens.insert(SymbolId(2), Token {
         name: "b".to_string(),
         pattern: TokenPattern::String("b".to_string()),
         fragile: false,
@@ -239,7 +239,7 @@ fn build_dynamic_precedence_grammar() -> Grammar {
     // S -> a (dynamic precedence 1)
     grammar.rules.insert(SymbolId(11), Rule {
         lhs: s_id,
-        rhs: vec![Symbol::Terminal(SymbolId(0))],
+        rhs: vec![Symbol::Terminal(SymbolId(1))],
         precedence: Some(PrecedenceKind::Dynamic(1)),
         associativity: None,
         fields: vec![],
@@ -249,7 +249,7 @@ fn build_dynamic_precedence_grammar() -> Grammar {
     // S -> b (dynamic precedence 2)
     grammar.rules.insert(SymbolId(12), Rule {
         lhs: s_id,
-        rhs: vec![Symbol::Terminal(SymbolId(1))],
+        rhs: vec![Symbol::Terminal(SymbolId(2))],
         precedence: Some(PrecedenceKind::Dynamic(2)),
         associativity: None,
         fields: vec![],
@@ -268,11 +268,12 @@ fn test_arithmetic_precedence() {
     let mut parser = GLRParser::new(table, grammar);
     
     // Parse "2 + 3 * 4" - should parse as "2 + (3 * 4)"
-    parser.process_token(SymbolId(0), "2", 0);
-    parser.process_token(SymbolId(1), "+", 2);
-    parser.process_token(SymbolId(0), "3", 4);
-    parser.process_token(SymbolId(3), "*", 6);
-    parser.process_token(SymbolId(0), "4", 8);
+    parser.process_token(SymbolId(1), "2", 0);
+    parser.process_token(SymbolId(2), "+", 2);
+    parser.process_token(SymbolId(1), "3", 4);
+    parser.process_token(SymbolId(4), "*", 6);
+    parser.process_token(SymbolId(1), "4", 8);
+    parser.process_eof();
     
     let result = parser.get_best_parse();
     assert!(result.is_some());
@@ -290,15 +291,16 @@ fn test_dangling_else() {
     
     // Parse "if e then if e then s else s"
     // Should bind else to nearest if due to precedence
-    parser.process_token(SymbolId(0), "if", 0);
-    parser.process_token(SymbolId(3), "e", 3);
-    parser.process_token(SymbolId(1), "then", 5);
-    parser.process_token(SymbolId(0), "if", 10);
-    parser.process_token(SymbolId(3), "e", 13);
-    parser.process_token(SymbolId(1), "then", 15);
-    parser.process_token(SymbolId(4), "s", 20);
-    parser.process_token(SymbolId(2), "else", 22);
-    parser.process_token(SymbolId(4), "s", 27);
+    parser.process_token(SymbolId(1), "if", 0);
+    parser.process_token(SymbolId(4), "e", 3);
+    parser.process_token(SymbolId(2), "then", 5);
+    parser.process_token(SymbolId(1), "if", 10);
+    parser.process_token(SymbolId(4), "e", 13);
+    parser.process_token(SymbolId(2), "then", 15);
+    parser.process_token(SymbolId(5), "s", 20);
+    parser.process_token(SymbolId(3), "else", 22);
+    parser.process_token(SymbolId(5), "s", 27);
+    parser.process_eof();
     
     let result = parser.get_best_parse();
     assert!(result.is_some());
@@ -313,7 +315,8 @@ fn test_dynamic_precedence() {
     let mut parser = GLRParser::new(table, grammar);
     
     // Both 'a' and 'b' are valid, but 'b' has higher dynamic precedence
-    parser.process_token(SymbolId(1), "b", 0);
+    parser.process_token(SymbolId(2), "b", 0);
+    parser.process_eof();
     
     let result = parser.get_best_parse();
     assert!(result.is_some());

@@ -100,6 +100,7 @@ impl GLRParser {
     
     /// Process one token through all active stacks
     pub fn process_token(&mut self, token: SymbolId, text: &str, byte_offset: usize) {
+        // println!("Processing token: {} '{}' at offset {}", token.0, text, byte_offset);
         let mut new_stacks = Vec::new();
         let _stack_merges = HashMap::<(StateId, usize), Vec<usize>>::new();
         
@@ -107,11 +108,13 @@ impl GLRParser {
         let current_stacks = std::mem::take(&mut self.stacks);
         self.pending_stacks.clear();
         
-        for (stack_idx, stack) in current_stacks.into_iter().enumerate() {
+        for (_stack_idx, stack) in current_stacks.into_iter().enumerate() {
             let state = stack.current_state();
+            // println!("  Stack {} in state {}", stack.id, state.0);
             
             // Look up action in parse table
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
+                // println!("    Token {} maps to symbol index {}", token.0, symbol_idx);
                 let action = self.table.action_table[state.0 as usize][*symbol_idx].clone();
                 
                 match &action {
@@ -282,6 +285,7 @@ impl GLRParser {
     
     /// Get the best parse tree from active stacks
     pub fn get_best_parse(&self) -> Option<Arc<Subtree>> {
+        // println!("Getting best parse from {} stacks", self.stacks.len());
         if self.stacks.is_empty() {
             return None;
         }
@@ -298,6 +302,13 @@ impl GLRParser {
         }
         
         self.stacks[best_idx].nodes.last().cloned()
+    }
+    
+    /// Process EOF to complete parsing
+    pub fn process_eof(&mut self) {
+        // println!("Processing EOF");
+        // Process EOF token (symbol ID 0)
+        self.process_token(SymbolId(0), "", 0);
     }
 }
 
