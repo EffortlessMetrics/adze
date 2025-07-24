@@ -74,7 +74,10 @@ impl GLRLexer {
                     
                     match Regex::new(&anchored_pattern) {
                         Ok(re) => TokenMatcher::Regex(re),
-                        Err(e) => return Err(format!("Invalid regex for token {}: {}", token.name, e)),
+                        Err(e) => {
+                            let name = grammar.rule_names.get(symbol_id).map(|s| s.as_str()).unwrap_or("unknown");
+                            return Err(format!("Invalid regex for token {}: {}", name, e));
+                        }
                     }
                 }
             };

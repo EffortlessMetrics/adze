@@ -324,6 +324,91 @@ impl GLRParser {
     pub fn stack_count(&self) -> usize {
         self.stacks.len()
     }
+    
+    /// Finish parsing and get the result
+    pub fn finish(&self) -> Result<Arc<Subtree>, String> {
+        // Find the first accepted stack
+        for stack in &self.stacks {
+            if stack.nodes.len() == 1 {
+                // Single node on stack means we accepted
+                return Ok(stack.nodes[0].clone());
+            }
+        }
+        
+        Err("Parse incomplete".to_string())
+    }
+
+    /// Reset parser state for reuse
+    pub fn reset(&mut self) {
+        self.stacks.clear();
+        let initial_stack = ParseStack::new(StateId(0), self.next_stack_id);
+        self.next_stack_id += 1;
+        self.stacks.push(initial_stack);
+        self.pending_stacks.clear();
+        self.pending_stacks.push_back(0);
+    }
+
+    /// Get expected symbols at current parse state
+    pub fn expected_symbols(&self) -> Vec<SymbolId> {
+        let mut symbols = Vec::new();
+        
+        for stack in &self.stacks {
+            let state = stack.current_state();
+            
+            // Check all possible actions from this state
+            for (symbol, _symbol_idx) in &self.table.symbol_to_index {
+                if let Some(_action) = self.get_action(state, *symbol) {
+                    if !symbols.contains(symbol) {
+                        symbols.push(*symbol);
+                    }
+                }
+            }
+        }
+        
+        symbols
+    }
+
+    /// Inject a pre-parsed subtree into the parser
+    pub fn inject_subtree(&mut self, subtree: Arc<Subtree>) {
+        // For each active stack, try to process this subtree
+        let mut new_stacks = Vec::new();
+        
+        for stack in &self.stacks {
+            let state = stack.current_state();
+            
+            // Check if we can shift this subtree's symbol
+            if let Some(action) = self.get_action(state, subtree.node.symbol_id) {
+                match action {
+                    Action::Shift(next_state) => {
+                        let mut new_stack = stack.clone();
+                        new_stack.push(next_state, subtree.clone());
+                        new_stacks.push(new_stack);
+                    }
+                    _ => {
+                        // For reduce/accept actions, keep the original stack
+                        new_stacks.push(stack.clone());
+                    }
+                }
+            }
+        }
+        
+        self.stacks = new_stacks;
+    }
+    
+    /// Get action from parse table for state and symbol
+    fn get_action(&self, state: StateId, symbol: SymbolId) -> Option<Action> {
+        let state_idx = state.0 as usize;
+        
+        if state_idx < self.table.action_table.len() {
+            if let Some(&symbol_idx) = self.table.symbol_to_index.get(&symbol) {
+                if symbol_idx < self.table.action_table[state_idx].len() {
+                    return Some(self.table.action_table[state_idx][symbol_idx].clone());
+                }
+            }
+        }
+        
+        None
+    }
 }
 
 #[cfg(test)]
