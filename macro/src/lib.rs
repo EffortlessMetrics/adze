@@ -204,6 +204,39 @@ pub fn repeat(
     item
 }
 
+/// Marks a rule as an external scanner token. External scanners are implemented in separate
+/// code and handle context-sensitive tokens like indentation or heredocs.
+///
+/// ## Example
+/// ```ignore
+/// #[rust_sitter::external]
+/// struct IndentToken;
+/// ```
+#[proc_macro_attribute]
+pub fn external(
+    _attr: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    item
+}
+
+/// Marks a token as the word token for the grammar. Word tokens are used to handle
+/// keywords vs identifiers disambiguation.
+///
+/// ## Example
+/// ```ignore
+/// #[rust_sitter::word]
+/// #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+/// struct Identifier(String);
+/// ```
+#[proc_macro_attribute]
+pub fn word(
+    _attr: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    item
+}
+
 /// Mark a module to be analyzed for a Rust Sitter grammar. Takes a single, unnamed argument, which
 /// specifies the name of the grammar. This name must be unique across all Rust Sitter grammars within
 /// a compilation unit.

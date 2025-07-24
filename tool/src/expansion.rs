@@ -394,6 +394,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
     rules_map.insert("source_file".to_string(), json!({}));
 
     let mut extras_list = vec![];
+    let mut externals_list = vec![];
 
     let grammar_name = module
         .attrs
@@ -472,13 +473,32 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
             }
 
             Item::Struct(s) => {
-                gen_struct_or_variant(
-                    s.ident.to_string(),
-                    s.attrs.clone(),
-                    s.fields.clone(),
-                    &mut rules_map,
-                    &mut word_rule,
-                );
+                // Check if this is an external token first
+                let is_external = s.attrs
+                    .iter()
+                    .any(|a| a.path() == &syn::parse_quote!(rust_sitter::external));
+                
+                // Check if this is the word token
+                let is_word = s.attrs
+                    .iter()
+                    .any(|a| a.path() == &syn::parse_quote!(rust_sitter::word));
+                
+                if is_word {
+                    if word_rule.is_some() {
+                        panic!("Multiple `word` rules specified");
+                    }
+                    word_rule = Some(s.ident.to_string());
+                }
+                
+                if !is_external {
+                    gen_struct_or_variant(
+                        s.ident.to_string(),
+                        s.attrs.clone(),
+                        s.fields.clone(),
+                        &mut rules_map,
+                        &mut word_rule,
+                    );
+                }
 
                 (s.ident.to_string(), s.attrs.clone())
             }
@@ -495,6 +515,16 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                 "name": symbol
             }));
         }
+
+        if attrs
+            .iter()
+            .any(|a| a.path() == &syn::parse_quote!(rust_sitter::external))
+        {
+            externals_list.push(json!({
+                "type": "SYMBOL",
+                "name": symbol
+            }));
+        }
     });
 
     rules_map.insert(
@@ -502,10 +532,20 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
         rules_map.get(&root_type).unwrap().clone(),
     );
 
-    json!({
+    let mut grammar = json!({
         "name": grammar_name,
         "word": word_rule,
         "rules": rules_map,
         "extras": extras_list
-    })
+    });
+
+    // Only include externals if there are any
+    if !externals_list.is_empty() {
+        grammar.as_object_mut().unwrap().insert(
+            "externals".to_string(),
+            json!(externals_list)
+        );
+    }
+
+    grammar
 }
