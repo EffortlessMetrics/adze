@@ -289,8 +289,20 @@ impl ImprovedGrammarJsParser {
         } else if trimmed.starts_with("commaSep1(") {
             // Handle commaSep1 helper function
             self.parse_comma_sep(trimmed, true)
+        } else if trimmed.starts_with("sepBy(") {
+            // Handle sepBy helper function (separated by)
+            self.parse_sep_by(trimmed, false)
+        } else if trimmed.starts_with("sepBy1(") {
+            // Handle sepBy1 helper function (separated by, at least one)
+            self.parse_sep_by(trimmed, true)
+        } else if trimmed == "blank()" {
+            // Handle blank rule
+            Ok(Rule::Blank)
+        } else if self.is_function_call(trimmed) {
+            // Handle custom helper functions by trying to expand them
+            self.parse_custom_helper(trimmed)
         } else {
-            bail!("Unknown rule pattern: {}", trimmed)
+            bail!("Unknown rule pattern: {}. Expected one of: seq(), choice(), optional(), repeat(), repeat1(), prec(), prec.left(), prec.right(), prec.dynamic(), field(), alias(), token(), token.immediate(), /regex/, 'string', $.symbol", trimmed)
         }
     }
     
@@ -530,24 +542,259 @@ impl ImprovedGrammarJsParser {
             .collect()
     }
     
-    fn parse_conflicts_array(&self, _content: &str) -> Vec<Vec<String>> {
+    fn parse_conflicts_array(&self, content: &str) -> Vec<Vec<String>> {
         // Parse nested arrays like [[$.a, $.b], [$.c, $.d]]
-        // TODO: Implement proper nested array parsing
-        Vec::new()
+        let mut conflicts = Vec::new();
+        let mut current_conflict = Vec::new();
+        let mut current_item = String::new();
+        let mut depth = 0;
+        let mut in_string = false;
+        
+        for ch in content.chars() {
+            match ch {
+                '[' if !in_string => {
+                    depth += 1;
+                    if depth == 1 {
+                        // Start of a new conflict group
+                        current_conflict.clear();
+                    }
+                }
+                ']' if !in_string => {
+                    depth -= 1;
+                    if depth == 0 {
+                        // End of a conflict group
+                        if !current_item.trim().is_empty() {
+                            let item = current_item.trim();
+                            let name = if item.starts_with("$.") {
+                                item[2..].to_string()
+                            } else {
+                                item.to_string()
+                            };
+                            current_conflict.push(name);
+                        }
+                        if !current_conflict.is_empty() {
+                            conflicts.push(current_conflict.clone());
+                        }
+                        current_item.clear();
+                    }
+                }
+                ',' if !in_string && depth == 1 => {
+                    // Item separator within a conflict group
+                    if !current_item.trim().is_empty() {
+                        let item = current_item.trim();
+                        let name = if item.starts_with("$.") {
+                            item[2..].to_string()
+                        } else {
+                            item.to_string()
+                        };
+                        current_conflict.push(name);
+                    }
+                    current_item.clear();
+                }
+                '\'' | '"' => in_string = !in_string,
+                _ => {
+                    if depth > 0 {
+                        current_item.push(ch);
+                    }
+                }
+            }
+        }
+        
+        conflicts
     }
     
     fn parse_rule_array(&self, content: &str) -> Result<Vec<Rule>> {
         self.parse_rule_list(content)
     }
     
-    fn parse_externals_array(&self, _content: &str) -> Vec<ExternalToken> {
-        // Simple implementation - would need improvement
-        Vec::new()
+    fn parse_externals_array(&self, content: &str) -> Vec<ExternalToken> {
+        // Parse externals array like [$.token1, token('_token2')]
+        let mut externals = Vec::new();
+        let mut current = String::new();
+        let mut depth = 0;
+        let mut in_string = false;
+        let mut escape_next = false;
+        
+        for ch in content.chars() {
+            if escape_next {
+                current.push(ch);
+                escape_next = false;
+                continue;
+            }
+            
+            match ch {
+                '\\' => {
+                    current.push(ch);
+                    escape_next = true;
+                }
+                '\'' | '"' => {
+                    current.push(ch);
+                    in_string = !in_string;
+                }
+                '(' | '[' if !in_string => {
+                    current.push(ch);
+                    depth += 1;
+                }
+                ')' | ']' if !in_string => {
+                    current.push(ch);
+                    depth -= 1;
+                }
+                ',' if depth == 0 && !in_string => {
+                    let trimmed = current.trim();
+                    if !trimmed.is_empty() {
+                        let external = self.parse_external_token(trimmed);
+                        externals.push(external);
+                    }
+                    current.clear();
+                }
+                _ => {
+                    current.push(ch);
+                }
+            }
+        }
+        
+        // Don't forget the last item
+        let trimmed = current.trim();
+        if !trimmed.is_empty() {
+            let external = self.parse_external_token(trimmed);
+            externals.push(external);
+        }
+        
+        externals
     }
     
-    fn parse_precedences_array(&self, _content: &str) -> Vec<Vec<(String, i32)>> {
-        // Simple implementation - would need improvement
-        Vec::new()
+    fn parse_external_token(&self, token_str: &str) -> ExternalToken {
+        let trimmed = token_str.trim();
+        
+        if trimmed.starts_with("$.") {
+            // Simple symbol reference
+            let name = trimmed[2..].to_string();
+            ExternalToken {
+                name: name.clone(),
+                symbol: name,
+            }
+        } else if trimmed.starts_with("token(") {
+            // token('name') pattern
+            if let Ok(content) = self.extract_function_args(trimmed, "token") {
+                let name = content.trim_matches(|c| c == '\'' || c == '"').to_string();
+                ExternalToken {
+                    name: name.clone(),
+                    symbol: name,
+                }
+            } else {
+                ExternalToken {
+                    name: trimmed.to_string(),
+                    symbol: trimmed.to_string(),
+                }
+            }
+        } else {
+            // Default case
+            let name = trimmed.trim_matches(|c| c == '\'' || c == '"').to_string();
+            ExternalToken {
+                name: name.clone(),
+                symbol: name,
+            }
+        }
+    }
+    
+    fn parse_precedences_array(&self, content: &str) -> Vec<Vec<(String, i32)>> {
+        // Parse precedences array like [[prec(1, $.rule1), prec(2, $.rule2)], ...]
+        let mut precedences = Vec::new();
+        let mut current_group = Vec::new();
+        let mut current_item = String::new();
+        let mut depth = 0;
+        let mut in_string = false;
+        let mut escape_next = false;
+        
+        for ch in content.chars() {
+            if escape_next {
+                current_item.push(ch);
+                escape_next = false;
+                continue;
+            }
+            
+            match ch {
+                '\\' => {
+                    current_item.push(ch);
+                    escape_next = true;
+                }
+                '\'' | '"' => {
+                    current_item.push(ch);
+                    in_string = !in_string;
+                }
+                '[' if !in_string => {
+                    depth += 1;
+                    if depth == 1 {
+                        current_group.clear();
+                    }
+                }
+                ']' if !in_string => {
+                    depth -= 1;
+                    if depth == 0 {
+                        // End of a precedence group
+                        let trimmed = current_item.trim();
+                        if !trimmed.is_empty() {
+                            if let Some(prec) = self.parse_precedence_item(trimmed) {
+                                current_group.push(prec);
+                            }
+                        }
+                        if !current_group.is_empty() {
+                            precedences.push(current_group.clone());
+                        }
+                        current_item.clear();
+                    }
+                }
+                ',' if !in_string && depth == 1 => {
+                    // Item separator within a precedence group
+                    let trimmed = current_item.trim();
+                    if !trimmed.is_empty() {
+                        if let Some(prec) = self.parse_precedence_item(trimmed) {
+                            current_group.push(prec);
+                        }
+                    }
+                    current_item.clear();
+                }
+                '(' | ')' if !in_string => {
+                    current_item.push(ch);
+                }
+                _ => {
+                    if depth > 0 {
+                        current_item.push(ch);
+                    }
+                }
+            }
+        }
+        
+        precedences
+    }
+    
+    fn parse_precedence_item(&self, item: &str) -> Option<(String, i32)> {
+        let trimmed = item.trim();
+        
+        // Handle prec(value, $.rule) pattern
+        if trimmed.starts_with("prec(") {
+            if let Ok(content) = self.extract_function_args(trimmed, "prec") {
+                let parts: Vec<&str> = content.splitn(2, ',').collect();
+                if parts.len() == 2 {
+                    if let Ok(value) = parts[0].trim().parse::<i32>() {
+                        let rule = parts[1].trim();
+                        let name = if rule.starts_with("$.") {
+                            rule[2..].to_string()
+                        } else {
+                            rule.to_string()
+                        };
+                        return Some((name, value));
+                    }
+                }
+            }
+        }
+        
+        // Handle simple $.rule pattern (default precedence 0)
+        if trimmed.starts_with("$.") {
+            return Some((trimmed[2..].to_string(), 0));
+        }
+        
+        None
     }
     
     /// Extract content within balanced braces
