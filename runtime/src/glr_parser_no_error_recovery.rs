@@ -2,12 +2,12 @@
 // This implements Tree-sitter's GLR parsing algorithm with dynamic precedence
 
 use crate::subtree::{Subtree, SubtreeNode};
-use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
+// use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use rust_sitter_glr_core::{
     Action, ParseTable, StateId, SymbolId, RuleId,
     VersionInfo, CompareResult, compare_versions,
 };
-use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
+use rust_sitter_ir::Grammar;
 use std::collections::{VecDeque, HashMap};
 use std::sync::Arc;
 
@@ -85,11 +85,11 @@ pub struct GLRParser {
     /// Stacks to process in the next step
     pending_stacks: VecDeque<usize>,
     
-    /// Error recovery configuration
-    error_recovery: Option<ErrorRecoveryConfig>,
-    
-    /// Error recovery state
-    recovery_state: Option<ErrorRecoveryState>,
+    // /// Error recovery configuration
+    // error_recovery: Option<ErrorRecoveryConfig>,
+    // 
+    // /// Error recovery state
+    // recovery_state: Option<ErrorRecoveryState>,
 }
 
 impl GLRParser {
@@ -102,16 +102,16 @@ impl GLRParser {
             stacks: vec![initial_stack],
             next_stack_id: 1,
             pending_stacks: VecDeque::from([0]),
-            error_recovery: None,
-            recovery_state: None,
+            // error_recovery: None,
+            // recovery_state: None,
         }
     }
     
-    /// Enable error recovery with the given configuration
-    pub fn enable_error_recovery(&mut self, config: ErrorRecoveryConfig) {
-        self.recovery_state = Some(ErrorRecoveryState::new(config.clone()));
-        self.error_recovery = Some(config);
-    }
+    // /// Enable error recovery with the given configuration
+    // pub fn enable_error_recovery(&mut self, config: ErrorRecoveryConfig) {
+    //     self.recovery_state = Some(ErrorRecoveryState::new(config.clone()));
+    //     self.error_recovery = Some(config);
+    // }
     
     /// Process one token through all active stacks
     pub fn process_token(&mut self, token: SymbolId, text: &str, byte_offset: usize) {
@@ -248,67 +248,10 @@ impl GLRParser {
                     Action::Error => {
                         // println!("    Action: Error");
                         
-                        // Try error recovery if enabled
-                        if let Some(recovery_state) = &mut self.recovery_state {
-                            if let Some(recovery_action) = recovery_state.suggest_recovery(
-                                state,
-                                token,
-                                &self.table,
-                                &self.grammar,
-                            ) {
-                                match recovery_action {
-                                    RecoveryAction::InsertToken(missing_token) => {
-                                        // Try to shift the missing token
-                                        if let Some(&missing_idx) = self.table.symbol_to_index.get(&missing_token) {
-                                            let missing_action = &self.table.action_table[state.0 as usize][missing_idx];
-                                            if let Action::Shift(new_state) = missing_action {
-                                                let mut recovery_stack = stack.clone();
-                                                // Create dummy node for inserted token
-                                                let error_node = Arc::new(Subtree {
-                                                    node: SubtreeNode {
-                                                        symbol_id: missing_token,
-                                                        is_error: true,
-                                                        byte_range: byte_offset..byte_offset,
-                                                    },
-                                                    dynamic_prec: 0,
-                                                    children: vec![],
-                                                });
-                                                recovery_stack.push(*new_state, error_node);
-                                                recovery_stack.version.enter_error();
-                                                // Re-queue the current token
-                                                self.pending_stacks.push_back(self.stacks.len() + new_stacks.len());
-                                                new_stacks.push(recovery_stack);
-                                                continue;
-                                            }
-                                        }
-                                    }
-                                    RecoveryAction::DeleteToken => {
-                                        // Skip this token and continue with the same stack
-                                        new_stacks.push(stack.clone());
-                                        continue;
-                                    }
-                                    RecoveryAction::CreateErrorNode(_) => {
-                                        // Create an error node containing the unexpected token
-                                        let error_node = Arc::new(Subtree {
-                                            node: SubtreeNode {
-                                                symbol_id: token,
-                                                is_error: true,
-                                                byte_range: byte_offset..byte_offset + text.len(),
-                                            },
-                                            dynamic_prec: 0,
-                                            children: vec![],
-                                        });
-                                        let mut error_stack = stack.clone();
-                                        // Just add the error node without changing state
-                                        error_stack.nodes.push(error_node);
-                                        error_stack.version.enter_error();
-                                        new_stacks.push(error_stack);
-                                        continue;
-                                    }
-                                    _ => {} // Other recovery actions not implemented yet
-                                }
-                            }
-                        }
+                        // // Try error recovery if enabled
+                        // if let Some(recovery_state) = &mut self.recovery_state {
+                        //     ... error recovery code ...
+                        // }
                         
                         // Default error handling - mark stack as errored
                         let mut error_stack = stack.clone();
@@ -550,137 +493,17 @@ impl GLRParser {
                     Action::Shift(next_state) => {
                         let mut new_stack = stack.clone();
                         new_stack.push(next_state, subtree.clone());
-                        
-                        // After shifting the subtree, we need to check for reductions
-                        // This ensures that the subtree is properly integrated into the parse tree
-                        let reduced_stacks = self.perform_all_reductions(new_stack);
-                        new_stacks.extend(reduced_stacks);
+                        new_stacks.push(new_stack);
                     }
                     _ => {
                         // For reduce/accept actions, keep the original stack
                         new_stacks.push(stack.clone());
                     }
                 }
-            } else {
-                // If no action available, keep the original stack
-                new_stacks.push(stack.clone());
             }
         }
         
         self.stacks = new_stacks;
-    }
-    
-    /// Perform all possible reductions on a stack until no more are possible
-    fn perform_all_reductions(&self, mut stack: ParseStack) -> Vec<ParseStack> {
-        let mut result_stacks = vec![];
-        let mut work_list = vec![stack];
-        
-        while let Some(mut current_stack) = work_list.pop() {
-            let state = current_stack.current_state();
-            let mut has_reduction = false;
-            
-            // Check all possible reductions in this state
-            for (rule_id, rule) in &self.grammar.rules {
-                // Check if we can reduce by this rule
-                if self.can_reduce(&current_stack, rule) {
-                    // After reduction, we need to find the goto state
-                    // First get the state we'll be in after popping the RHS symbols
-                    let base_state_idx = if current_stack.states.len() > rule.rhs.len() {
-                        current_stack.states[current_stack.states.len() - rule.rhs.len() - 1].0 as usize
-                    } else {
-                        0
-                    };
-                    
-                    // Get the symbol index for the LHS non-terminal
-                    if let Some(&lhs_idx) = self.table.symbol_to_index.get(&rule.lhs) {
-                        // Look up the goto state
-                        if base_state_idx < self.table.goto_table.len() && 
-                           lhs_idx < self.table.goto_table[base_state_idx].len() {
-                            let goto_state = self.table.goto_table[base_state_idx][lhs_idx];
-                            if goto_state.0 != 0 { // Valid goto state
-                        has_reduction = true;
-                        
-                        // Perform the reduction
-                        let mut reduced_stack = current_stack.clone();
-                        let children: Vec<Arc<Subtree>> = (0..rule.rhs.len())
-                            .filter_map(|_| reduced_stack.nodes.pop())
-                            .collect::<Vec<_>>()
-                            .into_iter()
-                            .rev()
-                            .collect();
-                        
-                        // Also pop the corresponding states
-                        for _ in 0..rule.rhs.len() {
-                            reduced_stack.states.pop();
-                        }
-                        
-                        // Create new subtree for the reduction
-                        let byte_range = if children.is_empty() {
-                            0..0 // Empty production
-                        } else {
-                            children[0].node.byte_range.start..children.last().unwrap().node.byte_range.end
-                        };
-                        
-                        let parent = Arc::new(Subtree {
-                            node: SubtreeNode {
-                                symbol_id: rule.lhs,
-                                is_error: false,
-                                byte_range,
-                            },
-                            dynamic_prec: rule.precedence.map(|p| match p {
-                                PrecedenceKind::Static(prec) => prec as i32,
-                                PrecedenceKind::Dynamic(idx) => {
-                                    // For dynamic precedence, use child's precedence
-                                    let idx_usize = idx as usize;
-                                    if idx_usize < children.len() {
-                                        children[idx_usize].dynamic_prec
-                                    } else {
-                                        0
-                                    }
-                                }
-                            }).unwrap_or(0),
-                            children,
-                        });
-                        
-                        // Push the new subtree
-                        reduced_stack.push(goto_state, parent);
-                        
-                        // Continue reducing from this new state
-                        work_list.push(reduced_stack);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // If no reductions were possible, this stack is done
-            if !has_reduction {
-                result_stacks.push(current_stack);
-            }
-        }
-        
-        result_stacks
-    }
-    
-    /// Check if we can reduce by a rule
-    fn can_reduce(&self, stack: &ParseStack, rule: &Rule) -> bool {
-        if stack.nodes.len() < rule.rhs.len() {
-            return false;
-        }
-        
-        // Check if the top of the stack matches the rule's RHS
-        let start_idx = stack.nodes.len() - rule.rhs.len();
-        for (i, symbol) in rule.rhs.iter().enumerate() {
-            let node_symbol = match symbol {
-                Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
-                Symbol::External(id) => *id,
-            };
-            if stack.nodes[start_idx + i].node.symbol_id != node_symbol {
-                return false;
-            }
-        }
-        
-        true
     }
     
     /// Get action from parse table for state and symbol

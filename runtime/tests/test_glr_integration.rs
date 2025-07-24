@@ -343,6 +343,13 @@ fn test_precedence_and_associativity() {
         ("1 * 2 + 3", "Precedence: ((1 * 2) + 3)"),
         ("1 + 2 - 3", "Same precedence, left assoc: ((1 + 2) - 3)"),
         ("1 * 2 / 3", "Same precedence, left assoc: ((1 * 2) / 3)"),
+        ("(1)", "Simple parentheses"),
+        ("((1))", "Double parentheses"),
+        ("(((1)))", "Triple parentheses"),
+        ("(1 + 2)", "Parenthesized expression"),
+        ("((1 + 2))", "Double parenthesized expression"),
+        ("(((1 + 2)))", "Triple parenthesized expression"),
+        ("((1) + (2))", "Parenthesized operands"),
     ];
     
     for (input, description) in test_cases {

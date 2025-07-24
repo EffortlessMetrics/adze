@@ -227,10 +227,8 @@ impl IncrementalGLRParser {
         // Reset parser state
         self.parser.reset();
         
-        // For now, disable subtree reuse until we fix the reconstruction issue
-        // The problem is that injecting subtrees doesn't properly handle
-        // building the complete parse tree when mixing reused and new nodes
-        let enable_reuse = false;
+        // Enable subtree reuse now that inject_subtree properly handles reductions
+        let enable_reuse = true;
         
         while token_index < tokens.len() {
             let token = &tokens[token_index];
