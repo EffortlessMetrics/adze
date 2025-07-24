@@ -701,6 +701,9 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     let mut action_table = vec![vec![Action::Error; indexed_symbol_count]; state_count];
     let mut goto_table = vec![vec![StateId(0); indexed_symbol_count]; state_count];
     
+    // Track conflicts as we build the table
+    let mut conflicts_by_state: HashMap<(usize, usize), Vec<Action>> = HashMap::new();
+    
     // Fill action table
     for item_set in &collection.sets {
         let state_idx = item_set.id.0 as usize;
@@ -709,9 +712,14 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             if item.is_reduce_item(grammar) {
                 // Add reduce action
                 if let Some(&lookahead_idx) = symbol_to_index.get(&item.lookahead) {
-                    // For now, always use Reduce action
-                    // The parser will handle accept conditions
-                    action_table[state_idx][lookahead_idx] = Action::Reduce(item.rule_id);
+                    let new_action = Action::Reduce(item.rule_id);
+                    add_action_with_conflict(
+                        &mut action_table,
+                        &mut conflicts_by_state,
+                        state_idx,
+                        lookahead_idx,
+                        new_action
+                    );
                 }
             } else if let Some(next_symbol) = item.next_symbol(grammar) {
                 let symbol_id = match &next_symbol {
@@ -722,11 +730,27 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
                     if let Symbol::Terminal(_) = next_symbol {
                         // Add shift action
                         if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id)) {
-                            action_table[state_idx][symbol_idx] = Action::Shift(goto_state);
+                            let new_action = Action::Shift(goto_state);
+                            add_action_with_conflict(
+                                &mut action_table,
+                                &mut conflicts_by_state,
+                                state_idx,
+                                symbol_idx,
+                                new_action
+                            );
                         }
                     }
                 }
             }
+        }
+    }
+    
+    // Convert conflicts to Fork actions
+    for ((state_idx, symbol_idx), actions) in conflicts_by_state {
+        if actions.len() > 1 {
+            action_table[state_idx][symbol_idx] = Action::Fork(actions);
+        } else if let Some(action) = actions.into_iter().next() {
+            action_table[state_idx][symbol_idx] = action;
         }
     }
     
@@ -781,6 +805,56 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         symbol_count,
         symbol_to_index,
     })
+}
+
+/// Add an action to the parse table, tracking conflicts
+fn add_action_with_conflict(
+    action_table: &mut Vec<Vec<Action>>,
+    conflicts_by_state: &mut HashMap<(usize, usize), Vec<Action>>,
+    state_idx: usize,
+    symbol_idx: usize,
+    new_action: Action,
+) {
+    let current_action = &action_table[state_idx][symbol_idx];
+    
+    match current_action {
+        Action::Error => {
+            // No conflict, just set the action
+            action_table[state_idx][symbol_idx] = new_action.clone();
+        }
+        _ => {
+            // Conflict detected! Track it
+            let entry = conflicts_by_state.entry((state_idx, symbol_idx)).or_insert_with(Vec::new);
+            
+            // Add the current action if not already tracked
+            if entry.is_empty() {
+                if let Action::Fork(actions) = current_action {
+                    entry.extend(actions.clone());
+                } else {
+                    entry.push(current_action.clone());
+                }
+            }
+            
+            // Add the new action if not duplicate
+            if !entry.iter().any(|a| action_eq(a, &new_action)) {
+                entry.push(new_action);
+            }
+        }
+    }
+}
+
+/// Check if two actions are equivalent
+fn action_eq(a: &Action, b: &Action) -> bool {
+    match (a, b) {
+        (Action::Shift(s1), Action::Shift(s2)) => s1 == s2,
+        (Action::Reduce(r1), Action::Reduce(r2)) => r1 == r2,
+        (Action::Accept, Action::Accept) => true,
+        (Action::Error, Action::Error) => true,
+        (Action::Fork(a1), Action::Fork(a2)) => {
+            a1.len() == a2.len() && a1.iter().zip(a2).all(|(x, y)| action_eq(x, y))
+        }
+        _ => false,
+    }
 }
 
 #[cfg(test)]
