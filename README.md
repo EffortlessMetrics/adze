@@ -292,19 +292,40 @@ for match_ in cursor.matches(&query, tree.root_node(), source.as_bytes()) {
 }
 ```
 
-### GLR Parsing
-Handle ambiguous grammars with Generalized LR parsing:
+### GLR Parsing (NEW!)
+Handle ambiguous grammars with a production-ready Generalized LR parser featuring full Tree-sitter compatibility:
+
 ```rust
-use rust_sitter::glr::{GLRParser, AmbiguityNode};
+use rust_sitter::glr_parser::GLRParser;
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 
-let mut parser = GLRParser::new(grammar, parse_table);
-let result = parser.parse_ambiguous(input)?;
+// Build LR(1) automaton with GLR support
+let first_follow = FirstFollowSets::compute(&grammar);
+let (states, parse_table) = build_lr1_automaton(&grammar, &first_follow)?;
 
-match result {
-    ParseResult::Single(tree) => { /* Unambiguous parse */ }
-    ParseResult::Ambiguous(forest) => { /* Multiple valid parses */ }
+// Create GLR parser
+let mut parser = GLRParser::new(grammar, states, parse_table);
+
+// Parse with automatic conflict resolution
+parser.process_token(token_id, text, byte_offset);
+parser.process_eof();
+
+if let Some(tree) = parser.get_best_parse() {
+    // Tree-sitter compatible conflict resolution:
+    // 1. Error cost (prefer fewer errors)
+    // 2. Dynamic precedence (PREC_DYNAMIC)
+    // 3. Static precedence and associativity
+    // 4. Lexicographic symbol comparison
 }
 ```
+
+**GLR Features:**
+- ✅ Full Tree-sitter conflict resolution algorithm
+- ✅ Static and dynamic precedence support
+- ✅ Shift/reduce and reduce/reduce conflict handling
+- ✅ Fork/merge for ambiguous grammars
+- ✅ Performance optimizations (stack merging, action caching)
+- ✅ C API compatibility for Tree-sitter tooling
 
 ### Error Recovery
 Build robust parsers that handle syntax errors gracefully:
