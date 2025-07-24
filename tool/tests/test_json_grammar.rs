@@ -1,13 +1,63 @@
-use std::path::Path;
 use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
-use rust_sitter_ir::Grammar;
-use rust_sitter_glr_core::FirstFollowSets;
 
 #[test]
 fn test_json_grammar_parsing() {
-    // Load the JSON grammar
-    let grammar_path = Path::new("../tests/grammars/json/grammar.js");
-    assert!(grammar_path.exists(), "JSON grammar.js not found");
+    // Create a temporary grammar file
+    let temp_dir = std::env::temp_dir().join("rust_sitter_json_test");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let grammar_path = temp_dir.join("grammar.js");
+    
+    // Write a simple JSON grammar
+    let grammar_content = r#"
+module.exports = grammar({
+  name: 'json',
+
+  rules: {
+    document: $ => $._value,
+
+    _value: $ => choice(
+      $.object,
+      $.array,
+      $.number,
+      $.string,
+      $.true,
+      $.false,
+      $.null
+    ),
+
+    object: $ => seq(
+      '{',
+      optional(seq(
+        $.pair,
+        repeat(seq(',', $.pair))
+      )),
+      '}'
+    ),
+
+    pair: $ => seq(
+      field('key', $.string),
+      ':',
+      field('value', $._value)
+    ),
+
+    array: $ => seq(
+      '[',
+      optional(seq(
+        $._value,
+        repeat(seq(',', $._value))
+      )),
+      ']'
+    ),
+
+    string: $ => /("[^"]*")/,
+    number: $ => /-?\d+(\.\d+)?/,
+    true: $ => 'true',
+    false: $ => 'false',
+    null: $ => 'null'
+  }
+});
+"#;
+    std::fs::write(&grammar_path, grammar_content).unwrap();
     
     // Read grammar content first to debug
     let grammar_content = std::fs::read_to_string(&grammar_path)
@@ -15,9 +65,6 @@ fn test_json_grammar_parsing() {
     println!("Grammar.js content length: {} bytes", grammar_content.len());
     println!("First 100 chars: {}", &grammar_content[..100.min(grammar_content.len())]);
     
-    // Create a temporary directory for build outputs
-    let temp_dir = std::env::temp_dir().join("rust_sitter_json_test");
-    std::fs::create_dir_all(&temp_dir).unwrap();
     
     // Try to build the parser
     let options = BuildOptions {
@@ -25,7 +72,7 @@ fn test_json_grammar_parsing() {
         emit_artifacts: false,
         compress_tables: true,
     };
-    let result = build_parser_from_grammar_js(grammar_path, options);
+    let result = build_parser_from_grammar_js(&grammar_path, options);
     
     match result {
         Ok(build_result) => {

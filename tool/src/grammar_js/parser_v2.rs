@@ -711,6 +711,11 @@ impl ImprovedGrammarJsParser {
         let mut escape_next = false;
         let mut in_regex = false;
         
+        // Debug check for corruption
+        if content.contains("$.state'") {
+            eprintln!("WARNING: Content already contains corrupted string at start of find_matching_paren");
+        }
+        
         while i < chars.len() {
             if escape_next {
                 escape_next = false;
@@ -720,7 +725,7 @@ impl ImprovedGrammarJsParser {
             
             let ch = chars[i];
             
-            if ch == '\\' {
+            if ch == '\\' && (in_string || in_regex) {
                 escape_next = true;
             } else if !in_string && !in_regex && ch == '/' {
                 // Check if this starts a regex
@@ -744,7 +749,7 @@ impl ImprovedGrammarJsParser {
             } else if !in_string && !in_regex && (ch == '\'' || ch == '"' || ch == '`') {
                 in_string = true;
                 string_char = ch;
-            } else if in_string && ch == string_char {
+            } else if in_string && ch == string_char && !escape_next {
                 in_string = false;
             } else if !in_string && !in_regex {
                 // Check for spread operator ...
@@ -764,7 +769,13 @@ impl ImprovedGrammarJsParser {
                         '{' => brace_depth += 1,
                         '}' => brace_depth -= 1,
                         '[' => bracket_depth += 1,
-                        ']' => bracket_depth -= 1,
+                        ']' => {
+                            bracket_depth -= 1;
+                            if bracket_depth < 0 {
+                                eprintln!("DEBUG: Bracket depth went negative at pos {}. Current char: '{}', string state: in_string={}, in_regex={}", 
+                                    i, ch, in_string, in_regex);
+                            }
+                        },
                         _ => {}
                     }
                 }
@@ -773,9 +784,13 @@ impl ImprovedGrammarJsParser {
         }
         
         // If we get here, we didn't find the closing paren
-        // Find the position where we got unbalanced
-        let problem_pos = i.min(100);
-        let problem_context = &content[..problem_pos];
+        // Create a safe context string for error message
+        let context_len = 100.min(content.len());
+        let mut problem_context = String::new();
+        for ch in content.chars().take(context_len) {
+            problem_context.push(ch);
+        }
+        
         bail!("No matching closing parenthesis found for grammar(...). Depths: paren={}, brace={}, bracket={}. Stopped at pos {} in: '{}'", 
               paren_depth, brace_depth, bracket_depth, i, problem_context)
     }
