@@ -119,6 +119,7 @@ impl GLRParser {
                 
                 match &action {
                     Action::Shift(new_state) => {
+                        // println!("    Action: Shift to state {}", new_state.0);
                         let mut new_stack = stack.clone();
                         new_stack.push(
                             *new_state,
@@ -195,6 +196,7 @@ impl GLRParser {
         self.merge_stacks(&mut new_stacks);
         
         // Update active stacks
+        // println!("  After processing: {} stacks", new_stacks.len());
         self.stacks = new_stacks;
         self.pending_stacks = (0..self.stacks.len()).collect();
     }
@@ -309,6 +311,11 @@ impl GLRParser {
         // println!("Processing EOF");
         // Process EOF token (symbol ID 0)
         self.process_token(SymbolId(0), "", 0);
+    }
+    
+    /// Get number of active stacks (for debugging)
+    pub fn stack_count(&self) -> usize {
+        self.stacks.len()
     }
 }
 

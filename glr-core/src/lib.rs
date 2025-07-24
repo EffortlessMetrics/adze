@@ -673,9 +673,8 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         symbol_to_index.insert(external.symbol_id, symbol_to_index.len());
     }
     
-    // Add EOF symbol (max_id + 1)
-    let eof_symbol = SymbolId(max_symbol_id + 1);
-    symbol_to_index.insert(eof_symbol, symbol_to_index.len());
+    // Add EOF symbol (ID 0 is reserved for EOF in Tree-sitter)
+    symbol_to_index.insert(SymbolId(0), symbol_to_index.len());
     
     // Create parse table with proper dimensions
     let state_count = collection.sets.len();
@@ -693,7 +692,18 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             if item.is_reduce_item(grammar) {
                 // Add reduce action
                 if let Some(&lookahead_idx) = symbol_to_index.get(&item.lookahead) {
-                    action_table[state_idx][lookahead_idx] = Action::Reduce(item.rule_id);
+                    // Check if this is reducing the start rule with EOF lookahead
+                    if let Some(start_rule) = grammar.rules.values().next() {
+                        if item.rule_id.0 == start_rule.production_id.0 && item.lookahead == SymbolId(0) {
+                            // This is the accept state
+                            action_table[state_idx][lookahead_idx] = Action::Accept;
+                        } else {
+                            // Normal reduce
+                            action_table[state_idx][lookahead_idx] = Action::Reduce(item.rule_id);
+                        }
+                    } else {
+                        action_table[state_idx][lookahead_idx] = Action::Reduce(item.rule_id);
+                    }
                 }
             } else if let Some(next_symbol) = item.next_symbol(grammar) {
                 let symbol_id = match &next_symbol {
@@ -720,17 +730,6 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         }
     }
     
-    // Add accept action for start symbol at EOF
-    if let Some(start_rule) = grammar.rules.values().next() {
-        let _start_symbol = start_rule.lhs;
-        for (idx, item_set) in collection.sets.iter().enumerate() {
-            for item in &item_set.items {
-                if item.is_reduce_item(grammar) && item.rule_id.0 == 0 && item.lookahead.0 == 0 {
-                    action_table[idx][0] = Action::Accept;
-                }
-            }
-        }
-    }
     
     // Build symbol metadata
     let mut symbol_metadata = Vec::new();
