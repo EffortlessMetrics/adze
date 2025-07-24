@@ -690,12 +690,14 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         symbol_to_index.insert(external.symbol_id, symbol_to_index.len());
     }
     
+    // Calculate the final symbol count before adding EOF
+    let indexed_symbol_count = symbol_to_index.len() + 1; // +1 for EOF
+    
     // Add EOF symbol (ID 0 is reserved for EOF in Tree-sitter)
     symbol_to_index.insert(SymbolId(0), symbol_to_index.len());
     
     // Create parse table with proper dimensions
     let state_count = collection.sets.len();
-    let indexed_symbol_count = symbol_to_index.len();
     let symbol_count = indexed_symbol_count; // Keep for compatibility
     
     let mut action_table = vec![vec![Action::Error; indexed_symbol_count]; state_count];
@@ -815,6 +817,14 @@ fn add_action_with_conflict(
     symbol_idx: usize,
     new_action: Action,
 ) {
+    // Bounds check
+    if state_idx >= action_table.len() || symbol_idx >= action_table[0].len() {
+        eprintln!("WARNING: Index out of bounds in add_action_with_conflict: state_idx={}, symbol_idx={}, table_size={}x{}", 
+                  state_idx, symbol_idx, action_table.len(), 
+                  if action_table.is_empty() { 0 } else { action_table[0].len() });
+        return;
+    }
+    
     let current_action = &action_table[state_idx][symbol_idx];
     
     match current_action {

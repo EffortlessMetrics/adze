@@ -3,6 +3,7 @@
 
 pub mod abi;
 pub mod compress;
+pub mod compression;
 pub mod external_scanner;
 pub mod external_scanner_v2;
 pub mod generate;

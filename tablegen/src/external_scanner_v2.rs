@@ -1,6 +1,6 @@
 // Enhanced external scanner generator with state-based validity computation
 use rust_sitter_ir::{ExternalToken, Grammar, SymbolId};
-use rust_sitter_glr_core::ParseTable;
+use rust_sitter_glr_core::{ParseTable, FirstFollowSets, build_lr1_automaton};
 use std::collections::{HashMap, HashSet};
 use quote::quote;
 
@@ -240,7 +240,8 @@ mod tests {
             symbol_id: SymbolId(201),
         });
         
-        let parse_table = ParseTable::new();
+        let first_follow = FirstFollowSets::compute(&grammar);
+        let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
         let generator = ExternalScannerGenerator::new(grammar, parse_table);
         
         let symbol_map = generator.generate_symbol_map();
