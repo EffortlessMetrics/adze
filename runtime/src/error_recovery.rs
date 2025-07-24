@@ -3,6 +3,8 @@
 // even when the input contains syntax errors.
 
 use std::collections::{HashSet, VecDeque};
+use rust_sitter_ir::{Grammar, SymbolId};
+use rust_sitter_glr_core::{ParseTable, StateId};
 
 /// Error recovery strategies that can be applied during parsing
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -338,6 +340,21 @@ impl ErrorRecoveryConfigBuilder {
         self.config.enable_indentation_recovery = enable;
         self
     }
+    
+    pub fn enable_scope_recovery(mut self, enable: bool) -> Self {
+        self.config.enable_scope_recovery = enable;
+        self
+    }
+    
+    pub fn enable_phrase_recovery(mut self, enable: bool) -> Self {
+        self.config.enable_phrase_recovery = enable;
+        self
+    }
+    
+    pub fn max_consecutive_errors(mut self, max: usize) -> Self {
+        self.config.max_consecutive_errors = max;
+        self
+    }
 
     pub fn build(self) -> ErrorRecoveryConfig {
         self.config
@@ -450,5 +467,56 @@ mod tests {
         assert_eq!(errors[0].expected, vec![1, 2, 3]);
         assert_eq!(errors[0].actual, Some(4));
         assert_eq!(errors[0].recovery, RecoveryStrategy::TokenDeletion);
+    }
+}
+
+impl ErrorRecoveryState {
+    /// Suggest a recovery action for the current error state
+    pub fn suggest_recovery(
+        &mut self,
+        state: StateId,
+        unexpected_token: SymbolId,
+        table: &ParseTable,
+        _grammar: &Grammar,
+    ) -> Option<RecoveryAction> {
+        self.consecutive_errors += 1;
+        
+        // Check if we've hit the error limit
+        if self.consecutive_errors > self.config.max_consecutive_errors {
+            return None;
+        }
+        
+        // Record the token in recent history
+        self.recent_tokens.push_back(unexpected_token.0);
+        if self.recent_tokens.len() > 10 {
+            self.recent_tokens.pop_front();
+        }
+        
+        // Find expected tokens in this state
+        let mut expected_tokens = Vec::new();
+        for (symbol_id, &symbol_idx) in &table.symbol_to_index {
+            let action = &table.action_table[state.0 as usize][symbol_idx];
+            if !matches!(action, rust_sitter_glr_core::Action::Error) {
+                expected_tokens.push(*symbol_id);
+            }
+        }
+        
+        // Try different recovery strategies
+        
+        // 1. Token insertion - check if any expected token is insertable
+        if let Some(insertable) = expected_tokens.iter()
+            .find(|&&token| self.config.insertable_tokens.contains(&token.0))
+        {
+            self.consecutive_errors = 0; // Reset on successful recovery
+            return Some(RecoveryAction::InsertToken(*insertable));
+        }
+        
+        // 2. Token deletion - if this token can be safely deleted
+        if self.config.can_delete_token(unexpected_token) {
+            return Some(RecoveryAction::DeleteToken);
+        }
+        
+        // 3. Create error node as fallback
+        Some(RecoveryAction::CreateErrorNode(vec![unexpected_token]))
     }
 }

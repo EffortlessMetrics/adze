@@ -2,6 +2,7 @@
 // This implements Tree-sitter's GLR parsing algorithm with dynamic precedence
 
 use crate::subtree::{Subtree, SubtreeNode};
+use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use rust_sitter_glr_core::{
     Action, ParseTable, StateId, SymbolId, RuleId,
     VersionInfo, CompareResult, compare_versions,
@@ -83,6 +84,12 @@ pub struct GLRParser {
     
     /// Stacks to process in the next step
     pending_stacks: VecDeque<usize>,
+    
+    /// Error recovery configuration
+    error_recovery: Option<ErrorRecoveryConfig>,
+    
+    /// Error recovery state
+    recovery_state: Option<ErrorRecoveryState>,
 }
 
 impl GLRParser {
@@ -95,7 +102,15 @@ impl GLRParser {
             stacks: vec![initial_stack],
             next_stack_id: 1,
             pending_stacks: VecDeque::from([0]),
+            error_recovery: None,
+            recovery_state: None,
         }
+    }
+    
+    /// Enable error recovery with the given configuration
+    pub fn enable_error_recovery(&mut self, config: ErrorRecoveryConfig) {
+        self.recovery_state = Some(ErrorRecoveryState::new(config.clone()));
+        self.error_recovery = Some(config);
     }
     
     /// Process one token through all active stacks
@@ -232,15 +247,70 @@ impl GLRParser {
                     
                     Action::Error => {
                         // println!("    Action: Error");
-                        // Check all possible actions in this state
-                        // println!("    Available actions in state {}:", state.0);
-                        for (sym_id, sym_idx) in &self.table.symbol_to_index {
-                            let act = &self.table.action_table[state.0 as usize][*sym_idx];
-                            if !matches!(act, Action::Error) {
-                                // println!("      For symbol {} (idx {}): {:?}", sym_id.0, sym_idx, act);
+                        
+                        // Try error recovery if enabled
+                        if let Some(recovery_state) = &mut self.recovery_state {
+                            if let Some(recovery_action) = recovery_state.suggest_recovery(
+                                state,
+                                token,
+                                &self.table,
+                                &self.grammar,
+                            ) {
+                                match recovery_action {
+                                    RecoveryAction::InsertToken(missing_token) => {
+                                        // Try to shift the missing token
+                                        if let Some(&missing_idx) = self.table.symbol_to_index.get(&missing_token) {
+                                            let missing_action = &self.table.action_table[state.0 as usize][missing_idx];
+                                            if let Action::Shift(new_state) = missing_action {
+                                                let mut recovery_stack = stack.clone();
+                                                // Create dummy node for inserted token
+                                                let error_node = Arc::new(Subtree {
+                                                    node: SubtreeNode {
+                                                        symbol_id: missing_token,
+                                                        is_error: true,
+                                                        byte_range: byte_offset..byte_offset,
+                                                    },
+                                                    dynamic_prec: 0,
+                                                    children: vec![],
+                                                });
+                                                recovery_stack.push(*new_state, error_node);
+                                                recovery_stack.version.enter_error();
+                                                // Re-queue the current token
+                                                self.pending_stacks.push_back(self.stacks.len() + new_stacks.len());
+                                                new_stacks.push(recovery_stack);
+                                                continue;
+                                            }
+                                        }
+                                    }
+                                    RecoveryAction::DeleteToken => {
+                                        // Skip this token and continue with the same stack
+                                        new_stacks.push(stack.clone());
+                                        continue;
+                                    }
+                                    RecoveryAction::CreateErrorNode(_) => {
+                                        // Create an error node containing the unexpected token
+                                        let error_node = Arc::new(Subtree {
+                                            node: SubtreeNode {
+                                                symbol_id: token,
+                                                is_error: true,
+                                                byte_range: byte_offset..byte_offset + text.len(),
+                                            },
+                                            dynamic_prec: 0,
+                                            children: vec![],
+                                        });
+                                        let mut error_stack = stack.clone();
+                                        // Just add the error node without changing state
+                                        error_stack.nodes.push(error_node);
+                                        error_stack.version.enter_error();
+                                        new_stacks.push(error_stack);
+                                        continue;
+                                    }
+                                    _ => {} // Other recovery actions not implemented yet
+                                }
                             }
                         }
-                        // Enter error recovery
+                        
+                        // Default error handling - mark stack as errored
                         let mut error_stack = stack.clone();
                         error_stack.version.enter_error();
                         new_stacks.push(error_stack);
