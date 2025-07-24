@@ -1100,6 +1100,108 @@ impl ImprovedGrammarJsParser {
         // No comma found, this is the last rule
         Ok((content.trim().to_string(), ""))
     }
+    
+    /// Parse sepBy/sepBy1 helper functions
+    fn parse_sep_by(&self, rule_def: &str, require_one: bool) -> Result<Rule> {
+        let func_name = if require_one { "sepBy1" } else { "sepBy" };
+        
+        // Extract the function arguments
+        let args_start = rule_def.find('(').ok_or_else(|| anyhow!("Invalid {} function", func_name))?;
+        let args_end = self.find_matching_paren(&rule_def[args_start + 1..])?;
+        let args = &rule_def[args_start + 1..args_start + 1 + args_end];
+        
+        // Split arguments by comma (at the top level)
+        let mut depth = 0;
+        let mut in_string = false;
+        let mut escape_next = false;
+        let mut current_arg = String::new();
+        let mut args_vec = Vec::new();
+        
+        for ch in args.chars() {
+            if escape_next {
+                escape_next = false;
+                current_arg.push(ch);
+            } else if ch == '\\' {
+                escape_next = true;
+                current_arg.push(ch);
+            } else if ch == '\'' || ch == '"' {
+                in_string = !in_string;
+                current_arg.push(ch);
+            } else if !in_string {
+                match ch {
+                    '(' | '{' | '[' => {
+                        depth += 1;
+                        current_arg.push(ch);
+                    }
+                    ')' | '}' | ']' => {
+                        depth -= 1;
+                        current_arg.push(ch);
+                    }
+                    ',' if depth == 0 => {
+                        args_vec.push(current_arg.trim().to_string());
+                        current_arg.clear();
+                    }
+                    _ => current_arg.push(ch),
+                }
+            } else {
+                current_arg.push(ch);
+            }
+        }
+        if !current_arg.trim().is_empty() {
+            args_vec.push(current_arg.trim().to_string());
+        }
+        
+        if args_vec.len() != 2 {
+            bail!("{} requires exactly 2 arguments: sepBy(separator, rule)", func_name);
+        }
+        
+        let separator_rule = self.parse_rule(&args_vec[0])?;
+        let item_rule = self.parse_rule(&args_vec[1])?;
+        
+        if require_one {
+            // sepBy1(sep, rule) => seq(rule, repeat(seq(sep, rule)))
+            Ok(Rule::Seq {
+                members: vec![
+                    item_rule.clone(),
+                    Rule::Repeat {
+                        content: Box::new(Rule::Seq {
+                            members: vec![separator_rule, item_rule]
+                        })
+                    }
+                ]
+            })
+        } else {
+            // sepBy(sep, rule) => optional(sepBy1(sep, rule))
+            Ok(Rule::Optional {
+                value: Box::new(self.parse_sep_by(&format!("sepBy1({}, {})", args_vec[0], args_vec[1]), true)?)
+            })
+        }
+    }
+    
+    /// Check if a string looks like a function call
+    fn is_function_call(&self, s: &str) -> bool {
+        if let Some(paren_pos) = s.find('(') {
+            let func_name = s[..paren_pos].trim();
+            // Check if it's a known function
+            !matches!(func_name, 
+                "seq" | "choice" | "optional" | "repeat" | "repeat1" | 
+                "prec" | "prec.left" | "prec.right" | "prec.dynamic" |
+                "field" | "alias" | "token" | "token.immediate" |
+                "commaSep" | "commaSep1" | "sepBy" | "sepBy1" | "blank"
+            ) && s.ends_with(')')
+        } else {
+            false
+        }
+    }
+    
+    /// Try to parse a custom helper function
+    fn parse_custom_helper(&self, rule_def: &str) -> Result<Rule> {
+        // For now, we'll just return an error for unknown functions
+        // In the future, this could be extended to handle custom helpers
+        let paren_pos = rule_def.find('(').unwrap_or(rule_def.len());
+        let func_name = rule_def[..paren_pos].trim();
+        bail!("Unknown helper function: {}. Consider defining it or using standard Tree-sitter functions.", func_name)
+    }
 }
 
 #[cfg(test)]
