@@ -12,6 +12,7 @@ pub fn compile_query(source: &str, grammar: &Grammar) -> Result<Query, super::Qu
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::query::QueryError;
     use rust_sitter_ir::{Grammar, Token, TokenPattern, SymbolId};
     
     fn create_test_grammar() -> Grammar {
@@ -52,8 +53,17 @@ mod tests {
         });
         
         // Add rule names
+        grammar.rule_names.insert(SymbolId(1), "identifier".to_string());
+        grammar.rule_names.insert(SymbolId(2), "number".to_string());
         grammar.rule_names.insert(SymbolId(10), "expression".to_string());
         grammar.rule_names.insert(SymbolId(11), "statement".to_string());
+        
+        // Add field names to grammar and statement rule
+        use rust_sitter_ir::FieldId;
+        grammar.fields.insert(FieldId(1), "value".to_string());
+        if let Some(rule) = grammar.rules.get_mut(&SymbolId(11)) {
+            rule.fields.push((FieldId(1), 0));
+        }
         
         grammar
     }
@@ -84,8 +94,16 @@ mod tests {
         let grammar = create_test_grammar();
         let query_str = r#"(statement value: (expression))"#;
         
-        let query = compile_query(query_str, &grammar).unwrap();
-        assert_eq!(query.patterns.len(), 1);
+        match compile_query(query_str, &grammar) {
+            Ok(query) => assert_eq!(query.patterns.len(), 1),
+            Err(QueryError::SyntaxError { position, message }) => {
+                println!("Query string: '{}'", query_str);
+                println!("Error at position {}: '{}'", position, &query_str[..position]);
+                println!("Rest of query: '{}'", &query_str[position..]);
+                panic!("Query compilation failed at position {}: {}", position, message);
+            }
+            Err(e) => panic!("Query compilation failed: {:?}", e),
+        }
     }
     
     #[test]
@@ -96,9 +114,20 @@ mod tests {
             (#eq? @expr "test")
         "#;
         
-        let query = compile_query(query_str, &grammar).unwrap();
-        assert_eq!(query.patterns.len(), 1);
-        assert_eq!(query.patterns[0].predicates.len(), 1);
+        match compile_query(query_str, &grammar) {
+            Ok(query) => {
+                assert_eq!(query.patterns.len(), 1);
+                assert_eq!(query.patterns[0].predicates.len(), 1);
+            }
+            Err(QueryError::SyntaxError { position, message }) => {
+                println!("Query string: '{}'", query_str);
+                println!("Error at position {}: '{}'", position, &query_str[..position.min(query_str.len())]);
+                println!("Rest of query: '{}'", &query_str[position.min(query_str.len())..]);
+                println!("Character at position: {:?}", query_str.chars().nth(position));
+                panic!("Query compilation failed at position {}: {}", position, message);
+            }
+            Err(e) => panic!("Query compilation failed: {:?}", e),
+        }
     }
     
     #[test]
@@ -106,7 +135,16 @@ mod tests {
         let grammar = create_test_grammar();
         let query_str = r#"(expression (identifier)+ (number)?)"#;
         
-        let query = compile_query(query_str, &grammar).unwrap();
-        assert_eq!(query.patterns.len(), 1);
+        match compile_query(query_str, &grammar) {
+            Ok(query) => assert_eq!(query.patterns.len(), 1),
+            Err(QueryError::SyntaxError { position, message }) => {
+                println!("Query string: '{}'", query_str);
+                println!("Error at position {}: '{}'", position, &query_str[..position]);
+                println!("Rest of query: '{}'", &query_str[position..]);
+                println!("Character at position: {:?}", query_str.chars().nth(position));
+                panic!("Query compilation failed at position {}: {}", position, message);
+            }
+            Err(e) => panic!("Query compilation failed: {:?}", e),
+        }
     }
 }

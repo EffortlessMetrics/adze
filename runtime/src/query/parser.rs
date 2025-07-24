@@ -42,11 +42,17 @@ impl<'a> QueryParser<'a> {
                 return Err(self.syntax_error("Expected '(' to start pattern"));
             }
             
-            // Parse the pattern
-            let root = self.parse_pattern_node()?;
+            // Parse the pattern - the opening paren was already consumed
+            let root = self.parse_pattern_node_no_paren()?;
+            
+            // Consume closing paren of pattern
+            if !self.consume_char(')') {
+                return Err(self.syntax_error("Expected ')' to close pattern"));
+            }
+            
             let mut predicates = Vec::new();
             
-            // Parse predicates
+            // Parse predicates after the pattern
             self.skip_whitespace();
             while self.peek_char() == Some('(') {
                 if self.peek_ahead("(#") {
@@ -92,10 +98,6 @@ impl<'a> QueryParser<'a> {
                 self.skip_whitespace();
             }
             
-            if !self.consume_char(')') {
-                return Err(self.syntax_error("Expected ')' to close pattern"));
-            }
-            
             patterns.push(Pattern {
                 root,
                 predicates,
@@ -114,12 +116,9 @@ impl<'a> QueryParser<'a> {
         })
     }
     
-    /// Parse a pattern node
-    fn parse_pattern_node(&mut self) -> Result<PatternNode, QueryError> {
+    /// Parse a pattern node when opening paren already consumed
+    fn parse_pattern_node_no_paren(&mut self) -> Result<PatternNode, QueryError> {
         self.skip_whitespace();
-        
-        // Check for opening paren (for grouped nodes)
-        let has_paren = self.consume_char('(');
         
         // Parse node type
         let node_type = self.parse_identifier()?;
@@ -157,41 +156,115 @@ impl<'a> QueryParser<'a> {
             _ => {}
         }
         
-        if has_paren {
-            // Parse children and fields
-            self.skip_whitespace();
-            while self.peek_char() != Some(')') {
-                if self.is_at_end() {
-                    return Err(self.syntax_error("Unexpected end of input"));
-                }
-                
-                // Check for field
-                if self.peek_char() == Some('.') || self.peek_identifier().is_ok() {
-                    if let Ok(field_name) = self.peek_field_name() {
-                        self.parse_identifier()?; // consume field name
-                        self.consume_char(':');
-                        let field_node = self.parse_pattern_node()?;
-                        node.add_field(field_name, field_node);
-                    } else {
-                        // Regular child
-                        let child = self.parse_pattern_child()?;
-                        node.add_child(child);
-                    }
-                } else {
-                    // Regular child
-                    let child = self.parse_pattern_child()?;
-                    node.add_child(child);
-                }
-                
-                self.skip_whitespace();
+        // Parse children and fields
+        self.skip_whitespace();
+        while self.peek_char() != Some(')') {
+            if self.is_at_end() {
+                return Err(self.syntax_error("Unexpected end of input"));
             }
             
-            if !self.consume_char(')') {
-                return Err(self.syntax_error("Expected ')' to close node"));
+            // Skip whitespace before checking for field/child
+            self.skip_whitespace();
+            
+            // Check if we're at the closing paren after whitespace
+            if self.peek_char() == Some(')') {
+                break;
+            }
+            
+            // Try to parse as field first
+            match self.peek_field_name() {
+                Ok(field_name) => {
+                    self.parse_identifier()?; // consume field name
+                    self.consume_char(':');
+                    self.skip_whitespace(); // Skip whitespace after colon
+                    let field_node = self.parse_pattern_node()?;
+                    node.add_field(field_name, field_node);
+                }
+                Err(_) => {
+                    // Not a field, parse as regular child
+                    let child = self.parse_pattern_child()?;
+                    node.add_child(child);
+                    
+                    // Skip whitespace after child to check for more children
+                    self.skip_whitespace();
+                }
             }
         }
         
         Ok(node)
+    }
+    
+    /// Parse a pattern node
+    fn parse_pattern_node(&mut self) -> Result<PatternNode, QueryError> {
+        self.skip_whitespace();
+        
+        // Check for opening paren (for grouped nodes)
+        let has_paren = self.consume_char('(');
+        
+        if has_paren {
+            let mut node = self.parse_pattern_node_no_paren()?;
+            if !self.consume_char(')') {
+                return Err(self.syntax_error("Expected ')' to close node"));
+            }
+            
+            // Parse quantifier after closing paren
+            self.skip_whitespace();
+            match self.peek_char() {
+                Some('?') => {
+                    self.advance();
+                    node.quantifier = Quantifier::Optional;
+                }
+                Some('+') => {
+                    self.advance();
+                    node.quantifier = Quantifier::Plus;
+                }
+                Some('*') => {
+                    self.advance();
+                    node.quantifier = Quantifier::Star;
+                }
+                _ => {}
+            }
+            
+            Ok(node)
+        } else {
+            // Parse node type without parens
+            let node_type = self.parse_identifier()?;
+            
+            // Look up symbol in grammar
+            let symbol = self.find_symbol(&node_type)?;
+            let is_named = self.is_named_symbol(symbol);
+            
+            let mut node = PatternNode::new(symbol, is_named);
+            
+            // Parse capture name
+            self.skip_whitespace();
+            if self.peek_char() == Some('@') {
+                self.consume_char('@');
+                let capture_name = self.parse_identifier()?;
+                let capture_id = self.get_or_create_capture(&capture_name);
+                node.capture = Some(capture_id);
+            }
+            
+            // Parse quantifier
+            self.skip_whitespace();
+            match self.peek_char() {
+                Some('?') => {
+                    self.advance();
+                    node.quantifier = Quantifier::Optional;
+                }
+                Some('+') => {
+                    self.advance();
+                    node.quantifier = Quantifier::Plus;
+                }
+                Some('*') => {
+                    self.advance();
+                    node.quantifier = Quantifier::Star;
+                }
+                _ => {}
+            }
+            
+            Ok(node)
+        }
     }
     
     /// Parse a pattern child (node or token)
@@ -421,6 +494,13 @@ impl<'a> QueryParser<'a> {
         self.skip_whitespace();
         let start = self.position;
         
+        // First character must be alphabetic or underscore
+        if let Some(ch) = self.peek_char() {
+            if !ch.is_alphabetic() && ch != '_' {
+                return Err(self.syntax_error("Expected identifier"));
+            }
+        }
+        
         while let Some(ch) = self.peek_char() {
             if ch.is_alphanumeric() || ch == '_' || ch == '-' || ch == '.' || ch == '!' || ch == '?' {
                 self.advance();
@@ -474,11 +554,24 @@ impl<'a> QueryParser<'a> {
     
     fn peek_field_name(&mut self) -> Result<String, QueryError> {
         let saved_pos = self.position;
-        let result = self.parse_identifier();
         
-        if result.is_ok() && self.peek_char() == Some(':') {
+        // Try to parse identifier, but catch any errors
+        let result = match self.parse_identifier() {
+            Ok(name) => name,
+            Err(_) => {
+                // Not an identifier, restore position and return error
+                self.position = saved_pos;
+                return Err(QueryError::SyntaxError {
+                    position: self.position,
+                    message: "Not a field name".to_string(),
+                });
+            }
+        };
+        
+        // Check if followed by colon
+        if self.peek_char() == Some(':') {
             self.position = saved_pos;
-            result
+            Ok(result)
         } else {
             self.position = saved_pos;
             Err(QueryError::SyntaxError {
