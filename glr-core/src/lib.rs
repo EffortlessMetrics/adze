@@ -8,7 +8,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 pub mod advanced_conflict;
+pub mod version_info;
+pub mod precedence_compare;
+
 pub use advanced_conflict::{ConflictAnalyzer, PrecedenceResolver, ConflictStats, PrecedenceDecision};
+pub use version_info::{VersionInfo, CompareResult, compare_versions};
+pub use precedence_compare::{
+    StaticPrecedenceResolver, PrecedenceInfo, PrecedenceComparison, compare_precedences
+};
 
 /// FIRST/FOLLOW sets computation for GLR parsing
 #[derive(Debug, Clone)]
@@ -546,30 +553,58 @@ impl ConflictResolver {
         }
     }
 
-    fn resolve_shift_reduce_conflict(&self, conflict: &mut Conflict, _grammar: &Grammar) {
-        // Find the precedence of the shift token and reduce rule
-        // Apply Tree-sitter's exact logic for precedence comparison
-        // This will be implemented based on the C code analysis
+    fn resolve_shift_reduce_conflict(&self, conflict: &mut Conflict, grammar: &Grammar) {
+        // Use Tree-sitter's exact precedence comparison logic
+        let precedence_resolver = StaticPrecedenceResolver::from_grammar(grammar);
         
-        // For now, implement a basic resolution strategy
-        // In a real implementation, this would use the exact Tree-sitter logic
-        let mut resolved_actions = Vec::new();
+        let mut shift_action = None;
+        let mut reduce_action = None;
         
-        // Prefer shift over reduce by default (this is a simplification)
+        // Find shift and reduce actions
         for action in &conflict.actions {
             match action {
-                Action::Shift(_) => resolved_actions.push(action.clone()),
-                Action::Reduce(_) => {
-                    // Only add reduce if no shift action exists
-                    if !conflict.actions.iter().any(|a| matches!(a, Action::Shift(_))) {
-                        resolved_actions.push(action.clone());
-                    }
-                }
-                _ => resolved_actions.push(action.clone()),
+                Action::Shift(_) => shift_action = Some(action.clone()),
+                Action::Reduce(_) => reduce_action = Some(action.clone()),
+                _ => {}
             }
         }
         
-        conflict.actions = resolved_actions;
+        match (shift_action, reduce_action) {
+            (Some(shift), Some(reduce)) => {
+                // Get precedence info for shift token
+                let shift_prec = precedence_resolver.token_precedence(conflict.symbol);
+                
+                // Get precedence info for reduce rule
+                let reduce_prec = if let Action::Reduce(rule_id) = &reduce {
+                    precedence_resolver.rule_precedence(*rule_id)
+                } else {
+                    None
+                };
+                
+                // Compare precedences
+                match compare_precedences(shift_prec, reduce_prec) {
+                    PrecedenceComparison::PreferShift => {
+                        conflict.actions = vec![shift];
+                    }
+                    PrecedenceComparison::PreferReduce => {
+                        conflict.actions = vec![reduce];
+                    }
+                    PrecedenceComparison::Error => {
+                        // Non-associative conflict - this is an error
+                        // For now, keep both actions (GLR will handle it)
+                        conflict.actions = vec![Action::Fork(vec![shift, reduce])];
+                    }
+                    PrecedenceComparison::None => {
+                        // No precedence info - use GLR fork
+                        conflict.actions = vec![Action::Fork(vec![shift, reduce])];
+                    }
+                }
+            }
+            _ => {
+                // Should not happen in a shift/reduce conflict
+                // Keep original actions
+            }
+        }
     }
 
     fn resolve_reduce_reduce_conflict(&self, conflict: &mut Conflict, _grammar: &Grammar) {
