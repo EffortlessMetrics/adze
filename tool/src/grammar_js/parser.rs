@@ -182,15 +182,15 @@ impl SimpleGrammarJsParser {
                     }
                     
                     // Parse the rule expression
-                    let parsed_rule = parse_rule_expression(rule_body)?;
-                    grammar.rules.insert(name.to_string(), parsed_rule);
+                    let parsed_rule = self.parse_rule_body(rule_body)?;
+                    rules.insert(name.to_string(), parsed_rule);
                 } else {
                     break;
                 }
             }
         }
         
-        Ok(grammar)
+        Ok(rules)
     }
     
     fn parse_rule_body(&self, body: &str) -> Result<Rule> {
