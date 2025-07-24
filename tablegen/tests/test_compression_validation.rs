@@ -1,6 +1,6 @@
 // Comprehensive validation tests for table compression algorithms
 use rust_sitter_ir::{Grammar, Rule, Symbol, Token, TokenPattern, SymbolId, ProductionId};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton, Action, StateId};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton, Action};
 use rust_sitter_tablegen::compression::{
     compress_action_table, compress_goto_table, decompress_action, decompress_goto,
     BitPackedActionTable
@@ -273,15 +273,133 @@ fn test_compression_with_fork_actions() {
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     
+    // Debug output: Print table structure
+    println!("\n=== Parse Table Debug Info ===");
+    println!("Number of states: {}", parse_table.state_count);
+    println!("Number of symbols: {}", parse_table.symbol_count);
+    println!("Symbol to index mapping: {:?}", parse_table.symbol_to_index);
+    
+    // Debug output: Print all actions to see what was generated
+    println!("\n=== All Actions in Parse Table ===");
+    let mut action_counts = HashMap::new();
+    
+    for state in 0..parse_table.state_count {
+        println!("\nState {}:", state);
+        for symbol in 0..parse_table.symbol_count {
+            let action = &parse_table.action_table[state][symbol];
+            if !matches!(action, Action::Error) {
+                // Find which symbol this index corresponds to
+                let symbol_id = parse_table.symbol_to_index.iter()
+                    .find(|&(_, &idx)| idx == symbol)
+                    .map(|(id, _)| id);
+                    
+                let symbol_name = if let Some(id) = symbol_id {
+                    if let Some(token) = grammar.tokens.get(id) {
+                        token.name.clone()
+                    } else if let Some(rule_name) = grammar.rule_names.get(id) {
+                        rule_name.clone()
+                    } else {
+                        format!("Unknown({})", id.0)
+                    }
+                } else {
+                    format!("Index{}", symbol)
+                };
+                
+                println!("  Symbol {} ({}): {:?}", symbol, symbol_name, action);
+                
+                // Count action types
+                let action_type = match action {
+                    Action::Error => "Error",
+                    Action::Shift(_) => "Shift",
+                    Action::Reduce(_) => "Reduce",
+                    Action::Accept => "Accept",
+                    Action::Fork(_) => "Fork",
+                };
+                *action_counts.entry(action_type).or_insert(0) += 1;
+            }
+        }
+    }
+    
+    println!("\n=== Action Type Summary ===");
+    for (action_type, count) in &action_counts {
+        println!("{}: {}", action_type, count);
+    }
+    
+    // Debug output: Check for conflicts during construction
+    println!("\n=== Checking for Shift-Reduce Conflicts ===");
+    // Look for states where we have both shift and reduce actions on the same symbol
+    let _conflict_count = 0;
+    for state in 0..parse_table.state_count {
+        for symbol in 0..parse_table.symbol_count {
+            // Skip if action is Error
+            if matches!(&parse_table.action_table[state][symbol], Action::Error) {
+                continue;
+            }
+            
+            // Check all other states for the same symbol
+            let action1 = &parse_table.action_table[state][symbol];
+            
+            // For debugging shift-reduce conflicts, we'd need to look at the construction phase
+            // Let's at least see what actions we have
+            if matches!(action1, Action::Shift(_)) {
+                // Check if there's a potential reduce on the same lookahead
+                // This is a simplified check - real conflict detection happens during construction
+                println!("State {} has Shift action on symbol {}", state, symbol);
+            } else if matches!(action1, Action::Reduce(_)) {
+                println!("State {} has Reduce action on symbol {}", state, symbol);
+            }
+        }
+    }
+    
     // Count Fork actions
     let mut fork_count = 0;
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             if matches!(&parse_table.action_table[state][symbol], Action::Fork(_)) {
                 fork_count += 1;
+                let action = &parse_table.action_table[state][symbol];
+                if let Action::Fork(actions) = action {
+                    println!("\nFound Fork action at state {}, symbol {}:", state, symbol);
+                    for (i, sub_action) in actions.iter().enumerate() {
+                        println!("  Fork option {}: {:?}", i, sub_action);
+                    }
+                }
             }
         }
     }
+    
+    // Print grammar rules for reference
+    println!("\n=== Grammar Rules ===");
+    for (symbol_id, rule) in &grammar.rules {
+        println!("Rule for {} (SymbolId {}):", 
+                 grammar.rule_names.get(symbol_id).unwrap_or(&"Unknown".to_string()),
+                 symbol_id.0);
+        println!("  Production {}: {} ->", rule.production_id.0, rule.lhs.0);
+        for symbol in &rule.rhs {
+            match symbol {
+                Symbol::Terminal(id) => {
+                    if let Some(token) = grammar.tokens.get(id) {
+                        print!(" {}", token.name);
+                    } else {
+                        print!(" T{}", id.0);
+                    }
+                }
+                Symbol::NonTerminal(id) => {
+                    if let Some(name) = grammar.rule_names.get(id) {
+                        print!(" {}", name);
+                    } else {
+                        print!(" NT{}", id.0);
+                    }
+                }
+                Symbol::External(id) => {
+                    print!(" EXT{}", id.0);
+                }
+            }
+        }
+        println!();
+    }
+    
+    println!("\n=== Fork Action Count: {} ===", fork_count);
     
     assert!(fork_count > 0, "Expected Fork actions in ambiguous grammar");
     

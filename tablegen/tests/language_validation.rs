@@ -226,7 +226,6 @@ fn test_empty_grammar_validation() {
 }
 
 // Helper function to create a test Language struct
-            symbol_to_index: std::collections::HashMap::new(),
 fn create_test_language() -> TSLanguage {
     TSLanguage {
         version: 15,
