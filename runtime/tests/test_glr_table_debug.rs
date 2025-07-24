@@ -153,8 +153,16 @@ fn test_parse_table_debug() {
         }
     }
     
+    println!("\nState 2 actions:");
+    for (symbol, &idx) in &table.symbol_to_index {
+        let action = &table.action_table[2][idx];
+        if !matches!(action, rust_sitter_glr_core::Action::Error) {
+            println!("  Symbol {} (idx {}) -> {:?}", symbol.0, idx, action);
+        }
+    }
+    
     // Check if we need reductions after shifting a number
     println!("\nChecking what should happen after shifting a number:");
-    println!("After state 0 shifts number (1), we're in state 1");
-    println!("State 1 should be able to reduce expr->number");
+    println!("After state 0 shifts number (1), we're in state 2");
+    println!("State 2 should be able to reduce expr->number on both EOF and +");
 }

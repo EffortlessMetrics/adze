@@ -136,6 +136,7 @@ impl GLRParser {
                     }
                     
                     Action::Reduce(rule_id) => {
+                        // println!("    Action: Reduce rule {}", rule_id.0);
                         let mut reduced_stack = stack.clone();
                         self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
                         new_stacks.push(reduced_stack);
@@ -178,8 +179,9 @@ impl GLRParser {
                     }
                     
                     Action::Accept => {
-                        // Mark this stack as accepting
-                        // In a full implementation, we'd handle this properly
+                        // println!("    Action: Accept");
+                        // Keep the stack as an accepting stack
+                        new_stacks.push(stack);
                     }
                     
                     Action::Error => {
@@ -203,6 +205,7 @@ impl GLRParser {
     
     /// Perform a reduction on a specific stack
     fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
+        // println!("  Performing reduction of rule {}", rule_id.0);
         // Find the rule in the grammar
         if let Some(rule) = self.grammar.rules.values().find(|r| r.production_id.0 == rule_id.0) {
             let children = stack.pop(rule.rhs.len());
@@ -230,7 +233,10 @@ impl GLRParser {
             // Look up goto state
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&rule.lhs) {
                 let goto_state = self.table.goto_table[stack.current_state().0 as usize][*symbol_idx];
+                // println!("  After reducing, goto state {} for symbol {}", goto_state.0, rule.lhs.0);
                 stack.push(goto_state, subtree);
+            } else {
+                // println!("  WARNING: No symbol index for LHS {}", rule.lhs.0);
             }
         }
     }
@@ -303,6 +309,7 @@ impl GLRParser {
             }
         }
         
+        // println!("Best stack {} has {} nodes", best_idx, self.stacks[best_idx].nodes.len());
         self.stacks[best_idx].nodes.last().cloned()
     }
     

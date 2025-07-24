@@ -7,7 +7,7 @@ use rust_sitter_glr_core::{
 use rust_sitter_ir::{
     Grammar, Rule, Symbol, Token, TokenPattern, 
     ProductionId, Precedence, Associativity, PrecedenceKind,
-    SymbolId, RuleId, StateId,
+    SymbolId,
 };
 
 /// Build a simple arithmetic grammar with operator precedence

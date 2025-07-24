@@ -349,14 +349,23 @@ impl ItemSetCollection {
         // Create initial state with augmented start rule
         let mut initial_set = ItemSet::new(StateId(0));
         
-        // Find the start rule (first rule in grammar)
+        // Find the start symbol (LHS of the first rule in grammar)
         if let Some(start_rule) = grammar.rules.values().next() {
-            let start_item = LRItem::new(
-                RuleId(start_rule.production_id.0),
-                0,
-                SymbolId(0), // EOF symbol
-            );
-            initial_set.add_item(start_item);
+            let start_symbol = start_rule.lhs;
+            
+            // Add items for ALL rules with the start symbol as LHS
+            for rule in grammar.rules.values() {
+                if rule.lhs == start_symbol {
+                    let start_item = LRItem::new(
+                        RuleId(rule.production_id.0),
+                        0,
+                        SymbolId(0), // EOF symbol
+                    );
+                    initial_set.add_item(start_item);
+                }
+            }
+            
+            // Compute closure
             initial_set.closure(grammar, first_follow);
         }
         
@@ -661,8 +670,12 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         symbol_to_index.insert(symbol_id, symbol_to_index.len());
     }
     
-    // Map all rule IDs
-    for &symbol_id in grammar.rules.keys() {
+    // Map all non-terminal symbols (LHS of rules)
+    let mut non_terminals = HashSet::new();
+    for rule in grammar.rules.values() {
+        non_terminals.insert(rule.lhs);
+    }
+    for &symbol_id in &non_terminals {
         max_symbol_id = max_symbol_id.max(symbol_id.0);
         symbol_to_index.insert(symbol_id, symbol_to_index.len());
     }
