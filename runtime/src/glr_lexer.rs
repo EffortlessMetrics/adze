@@ -1,7 +1,7 @@
 // Lexer integration for GLR parser
 // This module provides tokenization for GLR parsing
 
-use rust_sitter_ir::{Grammar, Token, TokenPattern, SymbolId};
+use rust_sitter_ir::{Grammar, TokenPattern, SymbolId};
 use regex::Regex;
 
 /// Token with position information

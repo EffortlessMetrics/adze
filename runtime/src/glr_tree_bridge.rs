@@ -13,6 +13,13 @@ use tree_sitter_runtime_standard as tree_sitter;
 #[cfg(feature = "tree-sitter-c2rust")]
 use tree_sitter_runtime_c2rust as tree_sitter;
 
+// Provide a default for when no features are enabled
+#[cfg(not(any(feature = "tree-sitter-standard", feature = "tree-sitter-c2rust")))]
+mod tree_sitter {
+    pub struct Node;
+    pub struct Tree;
+}
+
 /// A Tree-sitter compatible tree structure built from GLR Subtree
 pub struct GLRTree {
     /// Root subtree from GLR parser

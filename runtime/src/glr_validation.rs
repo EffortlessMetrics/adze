@@ -1,7 +1,7 @@
 // Enhanced grammar validation for GLR parser with detailed diagnostics
 // This module provides comprehensive validation with helpful error messages
 
-use rust_sitter_ir::{Grammar, Symbol, SymbolId, Rule, TokenPattern};
+use rust_sitter_ir::{Grammar, Symbol, SymbolId, TokenPattern, Rule};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 
