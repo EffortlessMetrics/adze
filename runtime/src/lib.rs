@@ -20,8 +20,8 @@ pub mod error_recovery;
 pub mod visitor;
 pub mod query;
 pub mod subtree;
-pub mod glr_optimizations;
 pub mod error_reporting;
+pub mod glr_lexer;
 #[cfg(feature = "serialization")]
 pub mod serialization;
 pub mod simd_lexer {

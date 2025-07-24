@@ -1,0 +1,258 @@
+// Integration test for GLR lexer and parser
+use rust_sitter::glr_parser::GLRParser;
+use rust_sitter::glr_lexer::{GLRLexer, tokenize_and_parse};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_ir::{
+    Grammar, Rule, Symbol, Token, TokenPattern, SymbolId, ProductionId,
+};
+use std::sync::Arc;
+
+#[test]
+fn test_arithmetic_with_lexer() {
+    let mut grammar = Grammar::new("arithmetic".to_string());
+    
+    // Define tokens
+    let number_id = SymbolId(1);
+    let plus_id = SymbolId(2);
+    let times_id = SymbolId(3);
+    let lparen_id = SymbolId(4);
+    let rparen_id = SymbolId(5);
+    
+    // Define non-terminals
+    let expr_id = SymbolId(6);
+    let term_id = SymbolId(7);
+    let factor_id = SymbolId(8);
+    
+    // Add tokens
+    grammar.tokens.insert(number_id, Token {
+        name: "number".to_string(),
+        pattern: TokenPattern::Regex(r"\d+".to_string()),
+        fragile: false,
+    });
+    
+    grammar.tokens.insert(plus_id, Token {
+        name: "plus".to_string(),
+        pattern: TokenPattern::String("+".to_string()),
+        fragile: false,
+    });
+    
+    grammar.tokens.insert(times_id, Token {
+        name: "times".to_string(),
+        pattern: TokenPattern::String("*".to_string()),
+        fragile: false,
+    });
+    
+    grammar.tokens.insert(lparen_id, Token {
+        name: "lparen".to_string(),
+        pattern: TokenPattern::String("(".to_string()),
+        fragile: false,
+    });
+    
+    grammar.tokens.insert(rparen_id, Token {
+        name: "rparen".to_string(),
+        pattern: TokenPattern::String(")".to_string()),
+        fragile: false,
+    });
+    
+    // Add rules with precedence
+    // expr → expr + term (left associative)
+    grammar.rules.insert(expr_id, Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(plus_id),
+            Symbol::NonTerminal(term_id),
+        ],
+        precedence: None,
+        associativity: Some(rust_sitter_ir::Associativity::Left),
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+    
+    // expr → term
+    grammar.rules.insert(SymbolId(9), Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::NonTerminal(term_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
+    
+    // term → term * factor (left associative, higher precedence)
+    grammar.rules.insert(term_id, Rule {
+        lhs: term_id,
+        rhs: vec![
+            Symbol::NonTerminal(term_id),
+            Symbol::Terminal(times_id),
+            Symbol::NonTerminal(factor_id),
+        ],
+        precedence: None,
+        associativity: Some(rust_sitter_ir::Associativity::Left),
+        fields: vec![],
+        production_id: ProductionId(2),
+    });
+    
+    // term → factor
+    grammar.rules.insert(SymbolId(10), Rule {
+        lhs: term_id,
+        rhs: vec![Symbol::NonTerminal(factor_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(3),
+    });
+    
+    // factor → number
+    grammar.rules.insert(factor_id, Rule {
+        lhs: factor_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(4),
+    });
+    
+    // factor → ( expr )
+    grammar.rules.insert(SymbolId(11), Rule {
+        lhs: factor_id,
+        rhs: vec![
+            Symbol::Terminal(lparen_id),
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(rparen_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(5),
+    });
+    
+    // Add rule names
+    grammar.rule_names.insert(expr_id, "expr".to_string());
+    grammar.rule_names.insert(term_id, "term".to_string());
+    grammar.rule_names.insert(factor_id, "factor".to_string());
+    
+    let grammar = Arc::new(grammar);
+    let first_follow = FirstFollowSets::compute(&grammar);
+    
+    match build_lr1_automaton(&grammar, &first_follow) {
+        Ok(parse_table) => {
+            let mut parser = GLRParser::new(parse_table, (*grammar).clone());
+            
+            // Test parsing "1 + 2 * 3"
+            let input = "1 + 2 * 3";
+            
+            // Use lexer to tokenize
+            let result = tokenize_and_parse(&grammar, input, |symbol_id, text, offset| {
+                parser.process_token(symbol_id, text, offset);
+            });
+            
+            assert!(result.is_ok());
+            parser.process_eof();
+            
+            let tree = parser.get_best_parse();
+            assert!(tree.is_some());
+        }
+        Err(e) => {
+            panic!("Failed to build parse table: {:?}", e);
+        }
+    }
+}
+
+#[test]
+fn test_json_with_lexer() {
+    let mut grammar = Grammar::new("json".to_string());
+    
+    // Simple JSON: number | { }
+    let value_id = SymbolId(1);
+    let object_id = SymbolId(2);
+    let number_id = SymbolId(3);
+    let lbrace_id = SymbolId(4);
+    let rbrace_id = SymbolId(5);
+    
+    // Add tokens
+    grammar.tokens.insert(number_id, Token {
+        name: "number".to_string(),
+        pattern: TokenPattern::Regex(r"\d+".to_string()),
+        fragile: false,
+    });
+    
+    grammar.tokens.insert(lbrace_id, Token {
+        name: "lbrace".to_string(),
+        pattern: TokenPattern::String("{".to_string()),
+        fragile: false,
+    });
+    
+    grammar.tokens.insert(rbrace_id, Token {
+        name: "rbrace".to_string(),
+        pattern: TokenPattern::String("}".to_string()),
+        fragile: false,
+    });
+    
+    // Rules: value → number | object
+    grammar.rules.insert(value_id, Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+    
+    grammar.rules.insert(SymbolId(6), Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::NonTerminal(object_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
+    
+    // object → { }
+    grammar.rules.insert(object_id, Rule {
+        lhs: object_id,
+        rhs: vec![
+            Symbol::Terminal(lbrace_id),
+            Symbol::Terminal(rbrace_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(2),
+    });
+    
+    grammar.rule_names.insert(value_id, "value".to_string());
+    grammar.rule_names.insert(object_id, "object".to_string());
+    
+    let grammar = Arc::new(grammar);
+    let first_follow = FirstFollowSets::compute(&grammar);
+    
+    match build_lr1_automaton(&grammar, &first_follow) {
+        Ok(parse_table) => {
+            // Test parsing "42"
+            let mut parser = GLRParser::new(parse_table.clone(), (*grammar).clone());
+            let mut lexer = GLRLexer::new(&grammar, "42".to_string()).unwrap();
+            
+            while let Some(token) = lexer.next_token() {
+                parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+            }
+            parser.process_eof();
+            
+            assert!(parser.get_best_parse().is_some());
+            
+            // Test parsing "{}"
+            let mut parser = GLRParser::new(parse_table, (*grammar).clone());
+            let mut lexer = GLRLexer::new(&grammar, "{ }".to_string()).unwrap();
+            
+            while let Some(token) = lexer.next_token() {
+                parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+            }
+            parser.process_eof();
+            
+            assert!(parser.get_best_parse().is_some());
+        }
+        Err(e) => {
+            panic!("Failed to build parse table: {:?}", e);
+        }
+    }
+}

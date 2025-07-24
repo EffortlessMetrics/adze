@@ -3,6 +3,7 @@ use crate::glr_parser::GLRParser;
 use crate::subtree::Subtree;
 use rust_sitter_glr_core::{StateId, SymbolId, Action};
 use std::fmt;
+use std::sync::Arc;
 
 /// Parse error with location and context
 #[derive(Debug, Clone)]
@@ -64,7 +65,7 @@ impl ErrorReporter {
     }
     
     /// Record a token position
-    pub fn record_token(&mut self, token: &str, byte_offset: usize) {
+    pub fn record_token(&mut self, token: &str, _byte_offset: usize) {
         let start_line = self.current_line;
         let start_col = self.current_column;
         
@@ -98,7 +99,7 @@ impl ErrorReporter {
     }
     
     /// Get expected tokens from parser state
-    fn get_expected_tokens(&self, parser: &GLRParser) -> Vec<String> {
+    fn get_expected_tokens(&self, _parser: &GLRParser) -> Vec<String> {
         // In a real implementation, this would examine the parse table
         // to determine valid tokens at the current state
         vec![] // Placeholder
@@ -145,7 +146,7 @@ impl ErrorReportingExt for GLRParser {
         self.process_eof();
         
         if let Some(tree) = self.get_best_parse() {
-            Ok(tree)
+            Ok(Arc::try_unwrap(tree).unwrap_or_else(|arc| (*arc).clone()))
         } else {
             errors.push(reporter.error_at_current(self, None));
             Err(errors)
