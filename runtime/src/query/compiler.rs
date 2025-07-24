@@ -15,6 +15,8 @@ mod tests {
     use rust_sitter_ir::{Grammar, Token, TokenPattern, SymbolId};
     
     fn create_test_grammar() -> Grammar {
+        use rust_sitter_ir::{Rule, Symbol};
+        
         let mut grammar = Grammar::new("test".to_string());
         
         // Add some test tokens
@@ -28,6 +30,25 @@ mod tests {
             name: "number".to_string(),
             pattern: TokenPattern::Regex("[0-9]+".to_string()),
             fragile: false,
+        });
+        
+        // Add actual rules
+        grammar.rules.insert(SymbolId(10), Rule {
+            lhs: SymbolId(10),
+            rhs: vec![Symbol::NonTerminal(SymbolId(1))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: rust_sitter_ir::ProductionId(0),
+        });
+        
+        grammar.rules.insert(SymbolId(11), Rule {
+            lhs: SymbolId(11),
+            rhs: vec![Symbol::NonTerminal(SymbolId(10))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: rust_sitter_ir::ProductionId(1),
         });
         
         // Add rule names
