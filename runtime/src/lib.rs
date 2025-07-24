@@ -15,6 +15,7 @@ mod parser_v2;
 mod parser_v3;
 // mod parser_v4; // Disabled - incompatible with current ParseTable structure
 pub mod glr;
+pub mod glr_parser;
 pub mod error_recovery;
 pub mod visitor;
 pub mod query;
