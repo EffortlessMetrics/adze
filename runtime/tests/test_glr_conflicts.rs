@@ -1,16 +1,14 @@
 // Test GLR conflict resolution with classic ambiguous grammars
 
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter::subtree::SubtreeNode;
 use rust_sitter_glr_core::{
-    ParseTable, Action, StateId, SymbolId, RuleId, 
     build_lr1_automaton, FirstFollowSets,
 };
 use rust_sitter_ir::{
     Grammar, Rule, Symbol, Token, TokenPattern, 
     ProductionId, Precedence, Associativity, PrecedenceKind,
+    SymbolId, RuleId, StateId,
 };
-use std::collections::HashMap;
 
 /// Build a simple arithmetic grammar with operator precedence
 fn build_arithmetic_grammar() -> Grammar {

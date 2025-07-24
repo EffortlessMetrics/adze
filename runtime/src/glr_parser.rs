@@ -101,18 +101,20 @@ impl GLRParser {
     /// Process one token through all active stacks
     pub fn process_token(&mut self, token: SymbolId, text: &str, byte_offset: usize) {
         let mut new_stacks = Vec::new();
-        let mut stack_merges = HashMap::<(StateId, usize), Vec<usize>>::new();
+        let _stack_merges = HashMap::<(StateId, usize), Vec<usize>>::new();
         
-        // Process each active stack
-        while let Some(stack_idx) = self.pending_stacks.pop_front() {
-            let stack = &self.stacks[stack_idx];
+        // Process each active stack - work with a copy of the current stacks
+        let current_stacks = std::mem::take(&mut self.stacks);
+        self.pending_stacks.clear();
+        
+        for (stack_idx, stack) in current_stacks.into_iter().enumerate() {
             let state = stack.current_state();
             
             // Look up action in parse table
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                let action = &self.table.action_table[state.0 as usize][*symbol_idx];
+                let action = self.table.action_table[state.0 as usize][*symbol_idx].clone();
                 
-                match action {
+                match &action {
                     Action::Shift(new_state) => {
                         let mut new_stack = stack.clone();
                         new_stack.push(
@@ -130,14 +132,15 @@ impl GLRParser {
                     }
                     
                     Action::Reduce(rule_id) => {
-                        self.perform_reduction(stack_idx, *rule_id, &mut new_stacks);
-                        // Re-process this stack with the reduced symbol
-                        self.pending_stacks.push_back(stack_idx);
+                        let mut reduced_stack = stack.clone();
+                        self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
+                        new_stacks.push(reduced_stack);
+                        // Mark for re-processing after reductions
                     }
                     
                     Action::Fork(actions) => {
                         // Handle GLR fork - create multiple stacks
-                        for (i, fork_action) in actions.iter().enumerate() {
+                        for (_i, fork_action) in actions.iter().enumerate() {
                             match fork_action {
                                 Action::Shift(new_state) => {
                                     let mut forked = stack.fork(self.next_stack_id);
@@ -158,17 +161,11 @@ impl GLRParser {
                                 }
                                 
                                 Action::Reduce(rule_id) => {
-                                    if i == 0 {
-                                        // First reduction uses original stack
-                                        self.perform_reduction(stack_idx, *rule_id, &mut new_stacks);
-                                        self.pending_stacks.push_back(stack_idx);
-                                    } else {
-                                        // Additional reductions fork the stack
-                                        let forked = stack.fork(self.next_stack_id);
-                                        self.next_stack_id += 1;
-                                        new_stacks.push(forked);
-                                        self.perform_reduction(new_stacks.len() - 1, *rule_id, &mut new_stacks);
-                                    }
+                                    let mut forked = stack.fork(self.next_stack_id);
+                                    self.next_stack_id += 1;
+                                    self.perform_reduction_on_stack(&mut forked, *rule_id);
+                                    new_stacks.push(forked);
+                                    // Mark for re-processing
                                 }
                                 
                                 _ => {}
@@ -199,11 +196,10 @@ impl GLRParser {
         self.pending_stacks = (0..self.stacks.len()).collect();
     }
     
-    /// Perform a reduction
-    fn perform_reduction(&mut self, stack_idx: usize, rule_id: RuleId, new_stacks: &mut Vec<ParseStack>) {
+    /// Perform a reduction on a specific stack
+    fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
         // Find the rule in the grammar
         if let Some(rule) = self.grammar.rules.values().find(|r| r.production_id.0 == rule_id.0) {
-            let stack = &mut self.stacks[stack_idx];
             let children = stack.pop(rule.rhs.len());
             
             // Create new subtree for the reduction
@@ -219,7 +215,7 @@ impl GLRParser {
             
             // Check if this rule has dynamic precedence
             let dynamic_prec = if let Some(rust_sitter_ir::PrecedenceKind::Dynamic(prec)) = &rule.precedence {
-                *prec
+                *prec as i32
             } else {
                 0
             };
