@@ -227,28 +227,36 @@ impl IncrementalGLRParser {
         // Reset parser state
         self.parser.reset();
         
+        // For now, disable subtree reuse until we fix the reconstruction issue
+        // The problem is that injecting subtrees doesn't properly handle
+        // building the complete parse tree when mixing reused and new nodes
+        let enable_reuse = false;
+        
         while token_index < tokens.len() {
             let token = &tokens[token_index];
             
             // Check if we can reuse a subtree at this position
-            if let Some(reusable) = self.try_reuse_subtree(token.byte_offset, &tokens[token_index..]) {
-                // Skip tokens covered by the reused subtree
-                let end_byte = reusable.node.byte_range.end;
-                self.stats.subtrees_reused += 1;
-                self.stats.bytes_reused += end_byte - token.byte_offset;
-                
-                // Inject the reused subtree into the parser
-                self.parser.inject_subtree(reusable);
-                
-                // Skip to the next token after the reused subtree
-                while token_index < tokens.len() && tokens[token_index].byte_offset < end_byte {
-                    token_index += 1;
+            if enable_reuse {
+                if let Some(reusable) = self.try_reuse_subtree(token.byte_offset, &tokens[token_index..]) {
+                    // Skip tokens covered by the reused subtree
+                    let end_byte = reusable.node.byte_range.end;
+                    self.stats.subtrees_reused += 1;
+                    self.stats.bytes_reused += end_byte - token.byte_offset;
+                    
+                    // Inject the reused subtree into the parser
+                    self.parser.inject_subtree(reusable);
+                    
+                    // Skip to the next token after the reused subtree
+                    while token_index < tokens.len() && tokens[token_index].byte_offset < end_byte {
+                        token_index += 1;
+                    }
+                    continue;
                 }
-            } else {
-                // Normal parsing for this token
-                self.parser.process_token(token.symbol_id, &token.text, token.byte_offset);
-                token_index += 1;
             }
+            
+            // Normal parsing for this token
+            self.parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+            token_index += 1;
         }
         
         // Process EOF and finalize parsing

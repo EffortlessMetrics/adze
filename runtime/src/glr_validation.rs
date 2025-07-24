@@ -564,39 +564,219 @@ impl GLRGrammarValidator {
     }
 
     fn check_ambiguity(&mut self, grammar: &Grammar, stats: &mut GrammarStats) {
-        // Simple ambiguity detection based on common patterns
+        // Detect ambiguity by analyzing the grammar for conflicts
         
-        // Check for multiple rules with same prefix
-        let mut prefix_map: HashMap<Vec<SymbolId>, Vec<SymbolId>> = HashMap::new();
+        // 1. Check for direct ambiguity (multiple rules with same RHS)
+        self.check_direct_ambiguity(grammar, stats);
+        
+        // 2. Check for shift/reduce and reduce/reduce conflicts
+        self.check_lr_conflicts(grammar, stats);
+        
+        // 3. Check for common ambiguous patterns
+        self.check_ambiguous_patterns(grammar, stats);
+    }
+    
+    fn check_direct_ambiguity(&mut self, grammar: &Grammar, stats: &mut GrammarStats) {
+        // Group rules by their RHS
+        let mut rhs_map: HashMap<Vec<Symbol>, Vec<SymbolId>> = HashMap::new();
         
         for (symbol, rule) in &grammar.rules {
-            if rule.rhs.len() >= 2 {
-                let prefix: Vec<_> = rule.rhs.iter().take(2).map(|s| match s {
-                    Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
-                    Symbol::External(ext) => SymbolId(ext.0),
-                }).collect();
-                
-                prefix_map.entry(prefix).or_default().push(*symbol);
-            }
+            let rhs = rule.rhs.clone();
+            rhs_map.entry(rhs).or_default().push(*symbol);
         }
         
-        for (prefix, symbols) in prefix_map {
+        // Check for multiple rules with the same RHS
+        for (rhs, symbols) in rhs_map {
             if symbols.len() > 1 {
-                stats.requires_glr = true;
-                
-                let prefix_str = prefix.iter()
-                    .map(|s| self.get_symbol_name(*s))
+                let rhs_str = rhs.iter()
+                    .map(|s| match s {
+                        Symbol::Terminal(id) | Symbol::NonTerminal(id) => self.get_symbol_name(*id),
+                        Symbol::External(ext) => format!("external_{}", ext.0),
+                    })
                     .collect::<Vec<_>>()
                     .join(" ");
                 
                 self.warnings.push(ValidationWarning {
-                    message: format!("Potential ambiguity: multiple rules start with '{}'", prefix_str),
-                    location: format!("Rules for: {}", symbols.iter()
+                    message: format!("Direct ambiguity: multiple non-terminals produce '{}'", rhs_str),
+                    location: format!("Non-terminals: {}", symbols.iter()
                         .map(|s| self.get_symbol_name(*s))
                         .collect::<Vec<_>>()
                         .join(", ")),
-                    suggestion: Some("GLR parsing will handle this ambiguity correctly".to_string()),
+                    suggestion: Some("Consider merging these rules or adding precedence".to_string()),
                 });
+                
+                stats.requires_glr = true;
+            }
+        }
+    }
+    
+    fn check_lr_conflicts(&mut self, grammar: &Grammar, stats: &mut GrammarStats) {
+        // Check for common LR conflict patterns
+        
+        // 1. Check for left-recursive and right-recursive rules for the same non-terminal
+        for (symbol, rule) in &grammar.rules {
+            let has_left_rec = !rule.rhs.is_empty() && match &rule.rhs[0] {
+                Symbol::NonTerminal(id) => id == symbol,
+                _ => false,
+            };
+            
+            let has_right_rec = rule.rhs.len() > 1 && match rule.rhs.last() {
+                Some(Symbol::NonTerminal(id)) => id == symbol,
+                _ => false,
+            };
+            
+            // Check if there are both left and right recursive rules for the same symbol
+            if has_left_rec || has_right_rec {
+                let other_rules: Vec<_> = grammar.rules.iter()
+                    .filter(|(s, _)| *s == symbol)
+                    .filter(|(_, r)| {
+                        let other_left_rec = !r.rhs.is_empty() && match &r.rhs[0] {
+                            Symbol::NonTerminal(id) => id == symbol,
+                            _ => false,
+                        };
+                        let other_right_rec = r.rhs.len() > 1 && match r.rhs.last() {
+                            Some(Symbol::NonTerminal(id)) => id == symbol,
+                            _ => false,
+                        };
+                        (has_left_rec && other_right_rec) || (has_right_rec && other_left_rec)
+                    })
+                    .collect();
+                
+                if !other_rules.is_empty() {
+                    self.warnings.push(ValidationWarning {
+                        message: format!("Mixed left/right recursion for '{}'", 
+                                       self.get_symbol_name(*symbol)),
+                        location: format!("Non-terminal '{}'", self.get_symbol_name(*symbol)),
+                        suggestion: Some("This creates shift/reduce conflicts - GLR will handle it".to_string()),
+                    });
+                    stats.requires_glr = true;
+                }
+            }
+        }
+        
+        // 2. Check for common prefix ambiguity
+        let mut prefix_map: HashMap<Vec<SymbolId>, Vec<(SymbolId, usize)>> = HashMap::new();
+        
+        for (symbol, rule) in &grammar.rules {
+            for prefix_len in 1..=rule.rhs.len().min(3) {
+                let prefix: Vec<_> = rule.rhs.iter().take(prefix_len).map(|s| match s {
+                    Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
+                    Symbol::External(ext) => SymbolId(ext.0),
+                }).collect();
+                
+                prefix_map.entry(prefix).or_default().push((*symbol, rule.rhs.len()));
+            }
+        }
+        
+        for (prefix, occurrences) in prefix_map {
+            if occurrences.len() > 1 {
+                // Check if the rules have different lengths (shift/reduce conflict)
+                let lengths: HashSet<_> = occurrences.iter().map(|(_, len)| *len).collect();
+                if lengths.len() > 1 && prefix.len() < *lengths.iter().min().unwrap() {
+                    let prefix_str = prefix.iter()
+                        .map(|s| self.get_symbol_name(*s))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    
+                    self.warnings.push(ValidationWarning {
+                        message: format!("Shift/reduce conflict: rules with common prefix '{}'", prefix_str),
+                        location: format!("Rules: {}", occurrences.iter()
+                            .map(|(s, _)| self.get_symbol_name(*s))
+                            .collect::<Vec<_>>()
+                            .join(", ")),
+                        suggestion: Some("GLR parsing will explore both possibilities".to_string()),
+                    });
+                    stats.requires_glr = true;
+                }
+            }
+        }
+    }
+    
+    fn check_ambiguous_patterns(&mut self, grammar: &Grammar, stats: &mut GrammarStats) {
+        // Check for classic ambiguous patterns
+        
+        // 0. Check for E → E E pattern (highly ambiguous)
+        for (_key, rule) in &grammar.rules {
+            if rule.rhs.len() == 2 {
+                if let (Symbol::NonTerminal(id1), Symbol::NonTerminal(id2)) = (&rule.rhs[0], &rule.rhs[1]) {
+                    if *id1 == rule.lhs && *id2 == rule.lhs {
+                        self.warnings.push(ValidationWarning {
+                            message: format!("Highly ambiguous pattern: '{}' → '{}' '{}'", 
+                                           self.get_symbol_name(rule.lhs),
+                                           self.get_symbol_name(rule.lhs),
+                                           self.get_symbol_name(rule.lhs)),
+                            location: format!("Non-terminal '{}'", self.get_symbol_name(rule.lhs)),
+                            suggestion: Some("This creates extreme ambiguity - GLR required".to_string()),
+                        });
+                        stats.requires_glr = true;
+                    }
+                }
+            }
+        }
+        
+        // 1. Dangling else pattern (if-then-else ambiguity)
+        for (_symbol, rule) in &grammar.rules {
+            let rule_str = rule.rhs.iter()
+                .map(|s| match s {
+                    Symbol::Terminal(id) | Symbol::NonTerminal(id) => self.get_symbol_name(*id),
+                    Symbol::External(ext) => format!("external_{}", ext.0),
+                })
+                .collect::<Vec<_>>();
+            
+            // Look for patterns like: if expr then stmt | if expr then stmt else stmt
+            if rule_str.len() >= 4 {
+                let has_if_pattern = rule_str.windows(4).any(|w| {
+                    w[0].contains("if") && w[2].contains("then")
+                });
+                
+                if has_if_pattern {
+                    let has_optional_else = grammar.rules.values().any(|r| {
+                        let other_str = r.rhs.iter()
+                            .map(|s| match s {
+                                Symbol::Terminal(id) | Symbol::NonTerminal(id) => self.get_symbol_name(*id),
+                                Symbol::External(ext) => format!("external_{}", ext.0),
+                            })
+                            .collect::<Vec<_>>();
+                        
+                        other_str.len() > rule_str.len() && 
+                        other_str.contains(&"else".to_string())
+                    });
+                    
+                    if has_optional_else {
+                        self.warnings.push(ValidationWarning {
+                            message: "Potential 'dangling else' ambiguity detected".to_string(),
+                            location: "Conditional statement rules".to_string(),
+                            suggestion: Some("Use precedence or GLR parsing to resolve".to_string()),
+                        });
+                        stats.requires_glr = true;
+                    }
+                }
+            }
+        }
+        
+        // 2. Expression ambiguity (like E → E + E | E * E)
+        let mut symbol_binary_ops: HashMap<SymbolId, Vec<&Rule>> = HashMap::new();
+        
+        for (_key, rule) in &grammar.rules {
+            if rule.rhs.len() == 3 {
+                if let (Symbol::NonTerminal(id1), _, Symbol::NonTerminal(id2)) = 
+                    (&rule.rhs[0], &rule.rhs[1], &rule.rhs[2]) {
+                    if *id1 == rule.lhs && *id2 == rule.lhs {
+                        symbol_binary_ops.entry(rule.lhs).or_default().push(rule);
+                    }
+                }
+            }
+        }
+        
+        for (symbol, binary_ops) in symbol_binary_ops {
+            if binary_ops.len() > 1 {
+                let symbol_name = self.get_symbol_name(symbol);
+                self.warnings.push(ValidationWarning {
+                    message: format!("Expression ambiguity: '{}' has multiple binary operators", symbol_name),
+                    location: format!("Non-terminal '{}'", symbol_name),
+                    suggestion: Some("Define precedence levels or use GLR parsing".to_string()),
+                });
+                stats.requires_glr = true;
             }
         }
     }
