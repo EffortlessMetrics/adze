@@ -13,6 +13,7 @@ pub mod advanced_conflict;
 pub mod version_info;
 pub mod precedence_compare;
 pub mod conflict_visualizer;
+pub mod symbol_comparison;
 
 pub use advanced_conflict::{ConflictAnalyzer, PrecedenceResolver, ConflictStats, PrecedenceDecision};
 pub use version_info::{VersionInfo, CompareResult, compare_versions};
@@ -20,6 +21,7 @@ pub use precedence_compare::{
     StaticPrecedenceResolver, PrecedenceInfo, PrecedenceComparison, compare_precedences
 };
 pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
+pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
 
 /// FIRST/FOLLOW sets computation for GLR parsing
 #[derive(Debug, Clone)]
