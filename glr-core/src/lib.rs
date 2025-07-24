@@ -709,18 +709,9 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             if item.is_reduce_item(grammar) {
                 // Add reduce action
                 if let Some(&lookahead_idx) = symbol_to_index.get(&item.lookahead) {
-                    // Check if this is reducing the start rule with EOF lookahead
-                    if let Some(start_rule) = grammar.rules.values().next() {
-                        if item.rule_id.0 == start_rule.production_id.0 && item.lookahead == SymbolId(0) {
-                            // This is the accept state
-                            action_table[state_idx][lookahead_idx] = Action::Accept;
-                        } else {
-                            // Normal reduce
-                            action_table[state_idx][lookahead_idx] = Action::Reduce(item.rule_id);
-                        }
-                    } else {
-                        action_table[state_idx][lookahead_idx] = Action::Reduce(item.rule_id);
-                    }
+                    // For now, always use Reduce action
+                    // The parser will handle accept conditions
+                    action_table[state_idx][lookahead_idx] = Action::Reduce(item.rule_id);
                 }
             } else if let Some(next_symbol) = item.next_symbol(grammar) {
                 let symbol_id = match &next_symbol {

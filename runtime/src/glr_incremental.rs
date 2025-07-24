@@ -251,7 +251,8 @@ impl IncrementalGLRParser {
             }
         }
         
-        // Finalize parsing
+        // Process EOF and finalize parsing
+        self.parser.process_eof();
         self.parser.finish()
     }
 

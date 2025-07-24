@@ -193,21 +193,6 @@ impl<'a> QueryParser<'a> {
         // Check for anchor
         let is_anchor = self.consume_char('.');
 
-        // Check for capture
-        let capture = if self.peek_char() == Some('@') {
-            self.advance();
-            let name = self.parse_identifier()?;
-            if !capture_names.contains_key(&name) {
-                capture_names.insert(name.clone(), *next_capture_id);
-                *next_capture_id += 1;
-            }
-            Some(name)
-        } else {
-            None
-        };
-
-        self.skip_whitespace();
-
         // Parse node type or wildcard
         let symbol = if self.consume_char('_') {
             None // Wildcard
@@ -275,6 +260,20 @@ impl<'a> QueryParser<'a> {
         if !self.consume_char(')') {
             return Err(QueryError::ExpectedCloseParen(self.position));
         }
+
+        // Check for capture after the node
+        self.skip_whitespace();
+        let capture = if self.peek_char() == Some('@') {
+            self.advance();
+            let name = self.parse_identifier()?;
+            if !capture_names.contains_key(&name) {
+                capture_names.insert(name.clone(), *next_capture_id);
+                *next_capture_id += 1;
+            }
+            Some(name)
+        } else {
+            None
+        };
 
         Ok(PatternNode {
             symbol,
@@ -795,7 +794,7 @@ mod tests {
         grammar.rule_names.insert(expr_id, "expression".to_string());
 
         // Parse query with captures
-        let parser = QueryParser::new(&grammar, "(expression @expr)");
+        let parser = QueryParser::new(&grammar, "(expression) @expr");
         let query = parser.parse().unwrap();
         
         assert_eq!(query.patterns.len(), 1);

@@ -223,7 +223,10 @@ impl GLRGrammarValidator {
         
         // Collect defined symbols
         defined_symbols.extend(grammar.tokens.keys());
-        defined_symbols.extend(grammar.rules.keys());
+        // Add non-terminals (LHS of rules)
+        for rule in grammar.rules.values() {
+            defined_symbols.insert(rule.lhs);
+        }
         for external in &grammar.externals {
             defined_symbols.insert(external.symbol_id);
         }
@@ -353,22 +356,26 @@ impl GLRGrammarValidator {
         let mut reachable = HashSet::new();
         let mut queue = VecDeque::new();
         
-        // Start from the first rule or explicit start
-        if let Some(start) = grammar.rules.keys().next() {
-            queue.push_back(*start);
-            reachable.insert(*start);
+        // Start from the LHS of the first rule (start symbol)
+        if let Some(start_rule) = grammar.rules.values().next() {
+            let start_symbol = start_rule.lhs;
+            queue.push_back(start_symbol);
+            reachable.insert(start_symbol);
         }
         
         while let Some(symbol) = queue.pop_front() {
-            if let Some(rule) = grammar.rules.get(&symbol) {
-                for rhs_symbol in &rule.rhs {
-                    let id = match rhs_symbol {
-                        Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
-                        Symbol::External(ext) => SymbolId(ext.0),
-                    };
-                    
-                    if reachable.insert(id) {
-                        queue.push_back(id);
+            // Find all rules with this symbol as LHS
+            for rule in grammar.rules.values() {
+                if rule.lhs == symbol {
+                    for rhs_symbol in &rule.rhs {
+                        let id = match rhs_symbol {
+                            Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
+                            Symbol::External(ext) => SymbolId(ext.0),
+                        };
+                        
+                        if reachable.insert(id) {
+                            queue.push_back(id);
+                        }
                     }
                 }
             }
@@ -391,8 +398,9 @@ impl GLRGrammarValidator {
         while changed {
             changed = false;
             
-            for (symbol, rule) in &grammar.rules {
-                if !productive.contains(symbol) {
+            for rule in grammar.rules.values() {
+                let symbol = rule.lhs;
+                if !productive.contains(&symbol) {
                     let all_productive = rule.rhs.iter().all(|sym| {
                         match sym {
                             Symbol::Terminal(id) | Symbol::NonTerminal(id) => productive.contains(id),
@@ -401,7 +409,7 @@ impl GLRGrammarValidator {
                     });
                     
                     if all_productive {
-                        productive.insert(*symbol);
+                        productive.insert(symbol);
                         changed = true;
                     }
                 }
@@ -412,12 +420,18 @@ impl GLRGrammarValidator {
     }
 
     fn validate_reachability(&mut self, reachable: &HashSet<SymbolId>, grammar: &Grammar) {
-        for symbol in grammar.rules.keys() {
-            if !reachable.contains(symbol) {
+        // Check all non-terminals (LHS of rules)
+        let mut non_terminals = HashSet::new();
+        for rule in grammar.rules.values() {
+            non_terminals.insert(rule.lhs);
+        }
+        
+        for symbol in non_terminals {
+            if !reachable.contains(&symbol) {
                 self.warnings.push(ValidationWarning {
                     message: format!("Symbol '{}' is defined but not reachable from start symbol", 
-                                   self.get_symbol_name(*symbol)),
-                    location: format!("Rule definition for '{}'", self.get_symbol_name(*symbol)),
+                                   self.get_symbol_name(symbol)),
+                    location: format!("Rule definition for '{}'", self.get_symbol_name(symbol)),
                     suggestion: Some("Remove unused rules or ensure they are referenced".to_string()),
                 });
             }
@@ -436,11 +450,17 @@ impl GLRGrammarValidator {
     }
 
     fn validate_productivity(&mut self, productive: &HashSet<SymbolId>, grammar: &Grammar) {
-        for symbol in grammar.rules.keys() {
-            if !productive.contains(symbol) {
+        // Check all non-terminals (LHS of rules)
+        let mut non_terminals = HashSet::new();
+        for rule in grammar.rules.values() {
+            non_terminals.insert(rule.lhs);
+        }
+        
+        for symbol in non_terminals {
+            if !productive.contains(&symbol) {
                 // Find why it's not productive
                 let mut cycle_symbols = vec![];
-                self.find_non_productive_cycle(*symbol, grammar, &mut cycle_symbols, &mut HashSet::new());
+                self.find_non_productive_cycle(symbol, grammar, &mut cycle_symbols, &mut HashSet::new());
                 
                 let mut related = vec![];
                 for sym in &cycle_symbols {
@@ -453,12 +473,12 @@ impl GLRGrammarValidator {
                 self.errors.push(ValidationError {
                     kind: ErrorKind::NonProductiveSymbol,
                     message: format!("Symbol '{}' cannot derive any terminal strings", 
-                                   self.get_symbol_name(*symbol)),
+                                   self.get_symbol_name(symbol)),
                     location: ErrorLocation {
-                        symbol: Some(*symbol),
+                        symbol: Some(symbol),
                         rule_index: None,
                         position: None,
-                        description: format!("Rule for '{}'", self.get_symbol_name(*symbol)),
+                        description: format!("Rule for '{}'", self.get_symbol_name(symbol)),
                     },
                     suggestion: Some("Add a rule that derives terminals or break the cycle".to_string()),
                     related,

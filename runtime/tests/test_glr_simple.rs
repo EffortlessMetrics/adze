@@ -21,15 +21,15 @@ use subtree::Subtree;
 fn create_number_grammar() -> Grammar {
     let mut grammar = Grammar::new("number".to_string());
     
-    // Define terminals
-    let number_id = SymbolId(0);
+    // Define terminals (SymbolId(0) is reserved for EOF)
+    let number_id = SymbolId(1);
     grammar.tokens.insert(number_id, Token {
         name: "number".to_string(),
         pattern: TokenPattern::Regex(r"\d+".to_string()),
         fragile: false,
     });
     
-    let plus_id = SymbolId(1);
+    let plus_id = SymbolId(2);
     grammar.tokens.insert(plus_id, Token {
         name: "plus".to_string(),
         pattern: TokenPattern::String("+".to_string()),
@@ -40,9 +40,9 @@ fn create_number_grammar() -> Grammar {
     let expr_id = SymbolId(10);
     grammar.rule_names.insert(expr_id, "expression".to_string());
     
-    // Define rules
-    // Rule 1: expression → number
-    let number_rule_id = SymbolId(20);
+    // Define rules (use ProductionId for rule IDs, not SymbolId)
+    // Rule 0: expression → number
+    let number_rule_id = SymbolId(0);
     grammar.rules.insert(number_rule_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(number_id)],
@@ -52,8 +52,8 @@ fn create_number_grammar() -> Grammar {
         fields: vec![],
     });
     
-    // Rule 2: expression → expression + expression
-    let add_rule_id = SymbolId(21);
+    // Rule 1: expression → expression + expression
+    let add_rule_id = SymbolId(1);
     grammar.rules.insert(add_rule_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(plus_id), Symbol::NonTerminal(expr_id)],
@@ -71,6 +71,15 @@ fn test_simple_number_parsing() {
     let grammar = create_number_grammar();
     
     // Build parse table
+    println!("\nGrammar structure:");
+    println!("  Tokens: {:?}", grammar.tokens.keys().collect::<Vec<_>>());
+    println!("  Rules: {:?}", grammar.rules.keys().collect::<Vec<_>>());
+    println!("  Rule names: {:?}", grammar.rule_names);
+    println!("  Rule details:");
+    for (id, rule) in &grammar.rules {
+        println!("    Rule {:?}: {:?} -> {:?}", id, rule.lhs, rule.rhs);
+    }
+    
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
@@ -111,6 +120,10 @@ fn test_simple_number_parsing() {
         parser.process_eof();
         
         let result = parser.finish();
+        match &result {
+            Ok(tree) => println!("Parse succeeded for addition: {:?}", tree),
+            Err(e) => println!("Parse failed for addition: {}", e),
+        }
         assert!(result.is_ok(), "Failed to parse addition");
         println!("✓ Successfully parsed addition");
     }
@@ -131,6 +144,10 @@ fn test_simple_number_parsing() {
         parser.process_eof();
         
         let result = parser.finish();
+        match &result {
+            Ok(tree) => println!("Parse succeeded: {:?}", tree),
+            Err(e) => println!("Parse failed: {:?}", e),
+        }
         assert!(result.is_ok(), "Failed to parse chained addition");
         println!("✓ Successfully parsed chained addition");
         
@@ -145,8 +162,8 @@ fn test_glr_ambiguity() {
     // Create a truly ambiguous grammar
     let mut grammar = Grammar::new("ambiguous".to_string());
     
-    // Terminal 'a'
-    let a_id = SymbolId(0);
+    // Terminal 'a' (SymbolId(0) is reserved for EOF)
+    let a_id = SymbolId(1);
     grammar.tokens.insert(a_id, Token {
         name: "a".to_string(),
         pattern: TokenPattern::String("a".to_string()),
