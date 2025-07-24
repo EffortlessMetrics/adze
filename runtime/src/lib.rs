@@ -22,6 +22,7 @@ pub mod query;
 pub mod subtree;
 pub mod error_reporting;
 pub mod glr_lexer;
+pub mod glr_tree_bridge;
 #[cfg(feature = "serialization")]
 pub mod serialization;
 pub mod simd_lexer {
