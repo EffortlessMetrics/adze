@@ -11,22 +11,35 @@ use std::ops::Range;
 pub struct Edit {
     /// The byte range that was replaced
     pub old_range: Range<usize>,
-    /// The new length after replacement
-    pub new_length: usize,
+    /// The new text that replaces the old range
+    pub new_text: String,
 }
 
 impl Edit {
     /// Create a new edit
-    pub fn new(start: usize, old_end: usize, new_end: usize) -> Self {
+    pub fn new(start: usize, old_end: usize, new_text: String) -> Self {
         Edit {
             old_range: start..old_end,
-            new_length: new_end - start,
+            new_text,
         }
+    }
+    
+    /// Create an edit with text
+    pub fn with_text(old_range: Range<usize>, new_text: String) -> Self {
+        Edit {
+            old_range,
+            new_text,
+        }
+    }
+
+    /// Get the new length after replacement
+    pub fn new_length(&self) -> usize {
+        self.new_text.len()
     }
 
     /// Get the change in length
     pub fn delta(&self) -> isize {
-        self.new_length as isize - self.old_range.len() as isize
+        self.new_text.len() as isize - self.old_range.len() as isize
     }
 }
 
@@ -91,18 +104,10 @@ impl IncrementalTree {
             }
         }
 
-        // Update text - for now, just update the length
-        // In a real implementation, the new text would be provided
+        // Update text with the actual new text from the edit
         let prefix = &self.text[..edit.old_range.start];
         let suffix = &self.text[edit.old_range.end..];
-        // For the test, we'll simulate "hello" -> "hi" by taking the first 2 chars
-        let new_text = if edit.new_length == 2 && edit.old_range.start == 0 {
-            "hi".to_string()
-        } else {
-            // Default: repeat 'x' for the new length
-            "x".repeat(edit.new_length)
-        };
-        self.text = format!("{}{}{}", prefix, new_text, suffix);
+        self.text = format!("{}{}{}", prefix, &edit.new_text, suffix);
 
         // Adjust node ranges after the edit
         let delta = edit.delta();
@@ -166,7 +171,7 @@ impl IncrementalParser {
         // If edits are small and localized, try to reuse unaffected subtrees
         
         let total_edit_size: usize = edits.iter()
-            .map(|e| e.old_range.len() + e.new_length)
+            .map(|e| e.old_range.len() + e.new_length())
             .sum();
         
         let text_size = old_tree.text.len();
@@ -224,7 +229,7 @@ mod tests {
         let mut tree = IncrementalTree::new(root, "hello world".to_string());
         
         // Replace "hello" with "hi"
-        let edit = Edit::new(0, 5, 2);
+        let edit = Edit::new(0, 5, "hi".to_string());
         let affected = tree.apply_edit(&edit);
         
         assert_eq!(tree.text, "hi world");
@@ -234,15 +239,15 @@ mod tests {
     #[test]
     fn test_edit_delta() {
         // Insertion
-        let edit = Edit::new(5, 5, 8);
+        let edit = Edit::new(5, 5, "abc".to_string());
         assert_eq!(edit.delta(), 3);
 
         // Deletion
-        let edit = Edit::new(5, 10, 5);
+        let edit = Edit::new(5, 10, "".to_string());
         assert_eq!(edit.delta(), -5);
 
         // Replacement (same size)
-        let edit = Edit::new(5, 10, 10);
+        let edit = Edit::new(5, 10, "hello".to_string());
         assert_eq!(edit.delta(), 0);
     }
 
@@ -285,7 +290,7 @@ mod tests {
         let mut tree = IncrementalTree::new(root, "abcdefghijkl".to_string());
         
         // Edit in the middle
-        let edit = Edit::new(4, 8, 6);
+        let edit = Edit::new(4, 8, "XY".to_string());
         let affected = tree.apply_edit(&edit);
         
         // Should affect middle nodes

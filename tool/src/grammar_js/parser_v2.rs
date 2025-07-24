@@ -30,7 +30,8 @@ impl ImprovedGrammarJsParser {
     
     fn parse(&self) -> Result<GrammarJs> {
         // First, find the module.exports pattern
-        let exports_regex = Regex::new(r"module\.exports\s*=\s*grammar\s*\(")?;
+        // Handle potential newlines and extra whitespace
+        let exports_regex = Regex::new(r"module\.exports\s*=\s*grammar\s*\(\s*")?;
         
         let grammar_content = if let Some(mat) = exports_regex.find(&self.content) {
             // Found the start, now find the matching closing parenthesis
@@ -698,40 +699,85 @@ impl ImprovedGrammarJsParser {
         }
     }
     
-    /// Find the matching closing parenthesis
+    /// Find the matching closing parenthesis, considering all bracket types
     fn find_matching_paren(&self, content: &str) -> Result<usize> {
         let chars: Vec<char> = content.chars().collect();
-        let mut depth = 1;
+        let mut paren_depth = 1;  // We're looking for the closing ) of grammar(
+        let mut brace_depth = 0;
+        let mut bracket_depth = 0;
         let mut i = 0;
         let mut in_string = false;
         let mut string_char = ' ';
         let mut escape_next = false;
+        let mut in_regex = false;
         
-        while i < chars.len() && depth > 0 {
+        while i < chars.len() {
             if escape_next {
                 escape_next = false;
-            } else if chars[i] == '\\' {
+                i += 1;
+                continue;
+            }
+            
+            let ch = chars[i];
+            
+            if ch == '\\' {
                 escape_next = true;
-            } else if !in_string && (chars[i] == '\'' || chars[i] == '"' || chars[i] == '`') {
+            } else if !in_string && !in_regex && ch == '/' {
+                // Check if this starts a regex
+                // Look for preceding context to determine if it's a regex
+                let is_regex_context = i == 0 || {
+                    // Check previous non-whitespace character
+                    let mut j = i.saturating_sub(1);
+                    while j > 0 && chars[j].is_whitespace() {
+                        j -= 1;
+                    }
+                    // Regex typically follows these characters
+                    matches!(chars[j], '=' | '(' | '[' | ',' | ':' | ';' | '!' | '&' | '|' | '?' | '+' | '-' | '*' | '/' | '%' | '^' | '~' | '<' | '>')
+                };
+                
+                if is_regex_context && i + 1 < chars.len() && !matches!(chars[i + 1], '/' | '*') {
+                    in_regex = true;
+                }
+            } else if in_regex && ch == '/' && !escape_next {
+                // End of regex
+                in_regex = false;
+            } else if !in_string && !in_regex && (ch == '\'' || ch == '"' || ch == '`') {
                 in_string = true;
-                string_char = chars[i];
-            } else if in_string && chars[i] == string_char {
+                string_char = ch;
+            } else if in_string && ch == string_char {
                 in_string = false;
-            } else if !in_string {
-                match chars[i] {
-                    '(' => depth += 1,
-                    ')' => depth -= 1,
-                    _ => {}
+            } else if !in_string && !in_regex {
+                // Check for spread operator ...
+                if ch == '.' && i + 2 < chars.len() && chars[i + 1] == '.' && chars[i + 2] == '.' {
+                    // Skip the spread operator
+                    i += 2;
+                } else {
+                    match ch {
+                        '(' => paren_depth += 1,
+                        ')' => {
+                            paren_depth -= 1;
+                            if paren_depth == 0 && brace_depth == 0 && bracket_depth == 0 {
+                                // Found the matching closing paren for grammar(
+                                return Ok(i);
+                            }
+                        },
+                        '{' => brace_depth += 1,
+                        '}' => brace_depth -= 1,
+                        '[' => bracket_depth += 1,
+                        ']' => bracket_depth -= 1,
+                        _ => {}
+                    }
                 }
             }
             i += 1;
         }
         
-        if depth == 0 {
-            Ok(i - 1) // Position of the closing paren
-        } else {
-            bail!("No matching closing parenthesis found")
-        }
+        // If we get here, we didn't find the closing paren
+        // Find the position where we got unbalanced
+        let problem_pos = i.min(100);
+        let problem_context = &content[..problem_pos];
+        bail!("No matching closing parenthesis found for grammar(...). Depths: paren={}, brace={}, bracket={}. Stopped at pos {} in: '{}'", 
+              paren_depth, brace_depth, bracket_depth, i, problem_context)
     }
     
     /// Find the end position of a regex pattern, handling escaped slashes
