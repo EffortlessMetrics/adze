@@ -25,6 +25,7 @@ pub mod glr_lexer;
 pub mod glr_tree_bridge;
 pub mod glr_incremental;
 pub mod glr_validation;
+pub mod glr_query;
 #[cfg(feature = "serialization")]
 pub mod serialization;
 pub mod simd_lexer {
