@@ -17,7 +17,7 @@ pub mod debug_macros;
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Grammar {
     pub name: String,
-    pub rules: IndexMap<SymbolId, Rule>,
+    pub rules: IndexMap<SymbolId, Vec<Rule>>,
     pub tokens: IndexMap<SymbolId, Token>,
     pub precedences: Vec<Precedence>,
     pub conflicts: Vec<ConflictDeclaration>,
@@ -29,6 +29,31 @@ pub struct Grammar {
     pub production_ids: IndexMap<RuleId, ProductionId>,
     pub max_alias_sequence_length: usize,
     pub rule_names: IndexMap<SymbolId, String>, // Maps symbol IDs to rule names
+}
+
+impl Grammar {
+    /// Add a rule to the grammar
+    pub fn add_rule(&mut self, rule: Rule) {
+        self.rules.entry(rule.lhs).or_insert_with(Vec::new).push(rule);
+    }
+    
+    /// Get all rules for a given LHS symbol
+    pub fn get_rules_for_symbol(&self, symbol: SymbolId) -> Option<&Vec<Rule>> {
+        self.rules.get(&symbol)
+    }
+    
+    /// Iterate over all rules in the grammar
+    pub fn all_rules(&self) -> impl Iterator<Item = &Rule> {
+        self.rules.values().flat_map(|rules| rules.iter())
+    }
+    
+    /// Get the start symbol (LHS of the first rule)
+    pub fn start_symbol(&self) -> Option<SymbolId> {
+        self.rules.values()
+            .next()
+            .and_then(|rules| rules.first())
+            .map(|rule| rule.lhs)
+    }
 }
 
 /// Grammar rule supporting GLR multiple actions per state

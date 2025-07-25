@@ -43,7 +43,7 @@ fn test_action_table_compression_round_trip() {
     
     // Rules to create diverse actions
     // S → A c
-    grammar.rules.insert(s_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(0),
         lhs: s_id,
         rhs: vec![Symbol::NonTerminal(a_nt_id), Symbol::Terminal(c_id)],
@@ -53,7 +53,7 @@ fn test_action_table_compression_round_trip() {
     });
     
     // A → a b
-    grammar.rules.insert(a_nt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(1),
         lhs: a_nt_id,
         rhs: vec![Symbol::Terminal(a_id), Symbol::Terminal(b_id)],
@@ -63,7 +63,7 @@ fn test_action_table_compression_round_trip() {
     });
     
     // A → a (creates shift-reduce conflict)
-    grammar.rules.insert(a_nt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(2),
         lhs: a_nt_id,
         rhs: vec![Symbol::Terminal(a_id)],
@@ -118,7 +118,7 @@ fn test_goto_table_compression_round_trip() {
     grammar.rule_names.insert(b_nt_id, "B".to_string());
     
     // S → A B
-    grammar.rules.insert(s_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(0),
         lhs: s_id,
         rhs: vec![Symbol::NonTerminal(a_nt_id), Symbol::NonTerminal(b_nt_id)],
@@ -128,7 +128,7 @@ fn test_goto_table_compression_round_trip() {
     });
     
     // A → a
-    grammar.rules.insert(a_nt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(1),
         lhs: a_nt_id,
         rhs: vec![Symbol::Terminal(a_id)],
@@ -138,7 +138,7 @@ fn test_goto_table_compression_round_trip() {
     });
     
     // B → a
-    grammar.rules.insert(b_nt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(2),
         lhs: b_nt_id,
         rhs: vec![Symbol::Terminal(a_id)],
@@ -219,7 +219,7 @@ fn test_compression_with_fork_actions() {
     grammar.rule_names.insert(expr_id, "expr".to_string());
     
     // stmt → if expr then stmt
-    grammar.rules.insert(stmt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(0),
         lhs: stmt_id,
         rhs: vec![
@@ -234,7 +234,7 @@ fn test_compression_with_fork_actions() {
     });
     
     // stmt → if expr then stmt else stmt (dangling else conflict)
-    grammar.rules.insert(stmt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(1),
         lhs: stmt_id,
         rhs: vec![
@@ -251,7 +251,7 @@ fn test_compression_with_fork_actions() {
     });
     
     // stmt → expr
-    grammar.rules.insert(stmt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(2),
         lhs: stmt_id,
         rhs: vec![Symbol::NonTerminal(expr_id)],
@@ -261,7 +261,7 @@ fn test_compression_with_fork_actions() {
     });
     
     // expr → if (simple expression)
-    grammar.rules.insert(expr_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(3),
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(if_id)],
@@ -371,12 +371,13 @@ fn test_compression_with_fork_actions() {
     
     // Print grammar rules for reference
     println!("\n=== Grammar Rules ===");
-    for (symbol_id, rule) in &grammar.rules {
-        println!("Rule for {} (SymbolId {}):", 
+    for (symbol_id, rules) in &grammar.rules {
+        println!("Rules for {} (SymbolId {}):", 
                  grammar.rule_names.get(symbol_id).unwrap_or(&"Unknown".to_string()),
                  symbol_id.0);
-        println!("  Production {}: {} ->", rule.production_id.0, rule.lhs.0);
-        for symbol in &rule.rhs {
+        for rule in rules {
+            println!("  Production {}: {} ->", rule.production_id.0, rule.lhs.0);
+            for symbol in &rule.rhs {
             match symbol {
                 Symbol::Terminal(id) => {
                     if let Some(token) = grammar.tokens.get(id) {
@@ -398,6 +399,7 @@ fn test_compression_with_fork_actions() {
             }
         }
         println!();
+        }
     }
     
     println!("\n=== Fork Action Count: {} ===", fork_count);
@@ -632,7 +634,7 @@ fn create_conflict_grammar() -> Grammar {
     
     // Rules creating shift-reduce conflict
     // stmt -> if expr then stmt
-    grammar.rules.insert(stmt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(0),
         lhs: stmt_id,
         rhs: vec![
@@ -647,7 +649,7 @@ fn create_conflict_grammar() -> Grammar {
     });
     
     // stmt -> if expr then stmt else stmt
-    grammar.rules.insert(stmt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(1),
         lhs: stmt_id,
         rhs: vec![
@@ -664,7 +666,7 @@ fn create_conflict_grammar() -> Grammar {
     });
     
     // stmt -> other
-    grammar.rules.insert(stmt_id, Rule {
+    grammar.add_rule(Rule {
         production_id: ProductionId(2),
         lhs: stmt_id,
         rhs: vec![Symbol::Terminal(other_id)],
@@ -714,7 +716,7 @@ fn create_large_grammar(num_rules: usize) -> Grammar {
         };
         
         let lhs = if i == 0 { start_id } else { SymbolId((i % 5 + 11) as u16) };
-        grammar.rules.insert(lhs, Rule {
+        grammar.add_rule(Rule {
             production_id: rule_id,
             lhs,
             rhs,

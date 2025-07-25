@@ -59,7 +59,7 @@ impl FirstFollowSets {
         while changed {
             changed = false;
             
-            for rule in grammar.rules.values() {
+            for rule in grammar.all_rules() {
                 let lhs = rule.lhs;
                 let mut rule_nullable = true;
                 
@@ -106,7 +106,7 @@ impl FirstFollowSets {
         while changed {
             changed = false;
             
-            for rule in grammar.rules.values() {
+            for rule in grammar.all_rules() {
                 for (i, symbol) in rule.rhs.iter().enumerate() {
                     if let Symbol::NonTerminal(id) | Symbol::External(id) = symbol {
                         // Add FIRST of remaining symbols to FOLLOW of current symbol
@@ -225,7 +225,7 @@ impl LRItem {
 
     /// Check if this item is at the end of the rule (reduce item)
     pub fn is_reduce_item(&self, grammar: &Grammar) -> bool {
-        if let Some(rule) = grammar.rules.values().find(|r| r.production_id.0 == self.rule_id.0) {
+        if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == self.rule_id.0) {
             self.position >= rule.rhs.len()
         } else {
             false
@@ -234,7 +234,7 @@ impl LRItem {
 
     /// Get the symbol after the dot (next symbol to parse)
     pub fn next_symbol<'a>(&self, grammar: &'a Grammar) -> Option<&'a Symbol> {
-        if let Some(rule) = grammar.rules.values().find(|r| r.production_id.0 == self.rule_id.0) {
+        if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == self.rule_id.0) {
             rule.rhs.get(self.position)
         } else {
             None
@@ -271,12 +271,12 @@ impl ItemSet {
             for item in current_items {
                 if let Some(Symbol::NonTerminal(symbol_id)) = item.next_symbol(grammar) {
                     // Find all rules with this symbol as LHS
-                    for rule in grammar.rules.values() {
-                        if rule.lhs == *symbol_id {
+                    if let Some(rules) = grammar.get_rules_for_symbol(*symbol_id) {
+                        for rule in rules {
                             // Compute FIRST of β α where β is the rest of the current rule
                             // and α is the lookahead
                             let mut beta = Vec::new();
-                            if let Some(current_rule) = grammar.rules.values()
+                            if let Some(current_rule) = grammar.all_rules()
                                 .find(|r| r.production_id.0 == item.rule_id.0) {
                                 beta.extend_from_slice(&current_rule.rhs[item.position + 1..]);
                             }
@@ -354,12 +354,11 @@ impl ItemSetCollection {
         let mut initial_set = ItemSet::new(StateId(0));
         
         // Find the start symbol (LHS of the first rule in grammar)
-        if let Some(start_rule) = grammar.rules.values().next() {
-            let start_symbol = start_rule.lhs;
+        if let Some(start_symbol) = grammar.start_symbol() {
             
             // Add items for ALL rules with the start symbol as LHS
-            for rule in grammar.rules.values() {
-                if rule.lhs == start_symbol {
+            if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
+                for rule in start_rules {
                     let start_item = LRItem::new(
                         RuleId(rule.production_id.0),
                         0,
@@ -678,7 +677,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     
     // Map all non-terminal symbols (LHS of rules)
     let mut non_terminals = HashSet::new();
-    for rule in grammar.rules.values() {
+    for rule in grammar.all_rules() {
         non_terminals.insert(rule.lhs);
     }
     for &symbol_id in &non_terminals {
@@ -789,7 +788,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     }
     
     // Add non-terminal symbols
-    for (symbol_id, _) in &grammar.rules {
+    for symbol_id in grammar.rules.keys() {
         let is_supertype = grammar.supertypes.contains(symbol_id);
         symbol_metadata.push(SymbolMetadata {
             name: format!("rule_{}", symbol_id.0),
