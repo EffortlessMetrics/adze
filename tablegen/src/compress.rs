@@ -116,27 +116,34 @@ impl TableCompressor {
     }
     
     /// Encode an action for small tables
-    pub fn encode_action_small(&self, action: &Action) -> Result<u16, String> {
+    pub fn encode_action_small(&self, action: &Action) -> Result<u16, TableGenError> {
         match action {
             Action::Shift(state) => {
-                // Shift actions: state << 2 | 0
-                Ok((state.0 as u16) << 2)
+                if state.0 >= 0x8000 {
+                    return Err(TableGenError::CompressionError(
+                        format!("Shift state {} too large for small table encoding", state.0)
+                    ));
+                }
+                Ok(state.0)
             }
-            Action::Reduce(rule_id) => {
-                // Reduce actions: rule_id << 2 | 1
-                Ok(((rule_id.0 as u16) << 2) | 1)
+            Action::Reduce(rule) => {
+                if rule.0 >= 0x4000 {
+                    return Err(TableGenError::CompressionError(
+                        format!("Reduce rule {} too large for small table encoding", rule.0)
+                    ));
+                }
+                // Reduce actions are encoded with high bit set
+                // bit 15: 1 (indicates reduce)
+                // bits 14-1: rule_id
+                // bit 0: has_precedence (0 for now)
+                Ok(0x8000 | (rule.0 << 1))
             }
-            Action::Accept => {
-                // Accept action: special value
-                Ok(0xFFFF)
-            }
-            Action::Error => {
-                // Error action: 0
-                Ok(0)
-            }
+            Action::Accept => Ok(0xFFFF),
+            Action::Error => Ok(0xFFFE),
             Action::Fork(_) => {
-                // Fork actions need special handling
-                Err("Fork actions not yet supported in small tables".to_string())
+                // GLR fork points need special handling
+                // For now, treat as error
+                Ok(0xFFFE)
             }
         }
     }
@@ -244,10 +251,18 @@ impl TableCompressor {
                     run_length += 1;
                 } else {
                     if run_length > 0 {
-                        entries.push(CompressedGotoEntry::RunLength {
-                            state: last_state.unwrap(),
-                            count: run_length,
-                        });
+                        // Emit previous run
+                        if run_length > 2 {
+                            entries.push(CompressedGotoEntry::RunLength {
+                                state: last_state.unwrap(),
+                                count: run_length,
+                            });
+                        } else {
+                            // For short runs, individual entries are more efficient
+                            for _ in 0..run_length {
+                                entries.push(CompressedGotoEntry::Single(last_state.unwrap()));
+                            }
+                        }
                     }
                     last_state = Some(state_id.0);
                     run_length = 1;
@@ -255,13 +270,15 @@ impl TableCompressor {
             }
             
             if run_length > 0 {
-                if run_length == 1 {
-                    entries.push(CompressedGotoEntry::Single(last_state.unwrap()));
-                } else {
+                if run_length > 2 {
                     entries.push(CompressedGotoEntry::RunLength {
                         state: last_state.unwrap(),
                         count: run_length,
                     });
+                } else {
+                    for _ in 0..run_length {
+                        entries.push(CompressedGotoEntry::Single(last_state.unwrap()));
+                    }
                 }
             }
         }

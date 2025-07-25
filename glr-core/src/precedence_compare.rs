@@ -38,14 +38,16 @@ impl StaticPrecedenceResolver {
         }
         
         // Extract rule precedences
-        for rule in grammar.rules.values() {
-            if let Some(PrecedenceKind::Static(level)) = &rule.precedence {
-                let assoc = rule.associativity.unwrap_or(Associativity::None);
-                rule_precedences.insert(RuleId(rule.production_id.0), PrecedenceInfo {
-                    level: *level,
-                    associativity: assoc,
-                    is_fragile: false,
-                });
+        for rules in grammar.rules.values() {
+            for rule in rules {
+                if let Some(PrecedenceKind::Static(level)) = &rule.precedence {
+                    let assoc = rule.associativity.unwrap_or(Associativity::None);
+                    rule_precedences.insert(RuleId(rule.production_id.0), PrecedenceInfo {
+                        level: *level,
+                        associativity: assoc,
+                        is_fragile: false,
+                    });
+                }
             }
         }
         

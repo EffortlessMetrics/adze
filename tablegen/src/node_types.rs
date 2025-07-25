@@ -82,29 +82,31 @@ impl<'a> NodeTypesGenerator<'a> {
         let _supertypes: HashMap<rust_sitter_ir::SymbolId, Vec<rust_sitter_ir::SymbolId>> = HashMap::new();
         
         // Analyze rule relationships to find choice patterns
-        for (symbol_id, rule) in &self.grammar.rules {
+        for (symbol_id, rules) in &self.grammar.rules {
             if processed.contains(symbol_id) {
                 continue;
             }
             
-            eprintln!("Debug: Processing rule {} with {} fields", symbol_id.0, rule.fields.len());
+            eprintln!("Debug: Processing symbol {} with {} rules", symbol_id.0, rules.len());
             
             // Get the rule name
             if let Some(name) = self.get_rule_name(*symbol_id) {
                 // Skip internal rules (starting with _)
                 let is_internal = name.starts_with('_');
                 
-                // Collect fields if any
+                // Collect fields from all rules for this symbol
                 let mut fields = HashMap::new();
-                for (field_id, position) in &rule.fields {
-                    if let Some(field_name) = self.grammar.fields.get(field_id) {
-                        if let Some(symbol) = rule.rhs.get(*position) {
-                            let type_ref = self.symbol_to_type_ref(symbol, &symbol_names);
-                            fields.insert(field_name.clone(), FieldInfo {
-                                multiple: false, // TODO: Detect repetition
-                                required: true,  // TODO: Detect optionality
-                                types: vec![type_ref],
-                            });
+                for rule in rules {
+                    for (field_id, position) in &rule.fields {
+                        if let Some(field_name) = self.grammar.fields.get(field_id) {
+                            if let Some(symbol) = rule.rhs.get(*position) {
+                                let type_ref = self.symbol_to_type_ref(symbol, &symbol_names);
+                                fields.insert(field_name.clone(), FieldInfo {
+                                    multiple: false, // TODO: Detect repetition
+                                    required: true,  // TODO: Detect optionality
+                                    types: vec![type_ref],
+                                });
+                            }
                         }
                     }
                 }
@@ -229,7 +231,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.insert(SymbolId(1), rule);
+        grammar.add_rule(rule);
         
         let generator = NodeTypesGenerator::new(&grammar);
         let result = generator.generate().unwrap();

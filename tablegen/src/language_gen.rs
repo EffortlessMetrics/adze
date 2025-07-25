@@ -141,12 +141,12 @@ impl<'a> LanguageGenerator<'a> {
             names.push(token.name.clone());
         }
         
-        // Add rules
-        for (_id, rule) in &self.grammar.rules {
+        // Add rules (non-terminals)
+        for (id, _rules) in &self.grammar.rules {
             // Use rule_names if available, otherwise generate
-            let name = self.grammar.rule_names.get(&rule.lhs)
+            let name = self.grammar.rule_names.get(id)
                 .cloned()
-                .unwrap_or_else(|| format!("rule_{}", rule.lhs.0));
+                .unwrap_or_else(|| format!("rule_{}", id.0));
             names.push(name);
         }
         
@@ -223,7 +223,6 @@ impl<'a> LanguageGenerator<'a> {
 mod tests {
     use super::*;
     use rust_sitter_ir::*;
-    use indexmap::IndexMap;
     
     #[test]
     fn test_language_generation() {

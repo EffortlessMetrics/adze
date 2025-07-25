@@ -83,11 +83,13 @@ impl PrecedenceResolver {
         }
         
         // Extract precedence from rules
-        for (symbol_id, rule) in &grammar.rules {
-            if let Some(prec_kind) = &rule.precedence {
-                if let PrecedenceKind::Static(level) = prec_kind {
-                    if let Some(assoc) = rule.associativity {
-                        symbol_precedences.insert(*symbol_id, (*level, assoc));
+        for (symbol_id, rules) in &grammar.rules {
+            for rule in rules {
+                if let Some(prec_kind) = &rule.precedence {
+                    if let PrecedenceKind::Static(level) = prec_kind {
+                        if let Some(assoc) = rule.associativity {
+                            symbol_precedences.insert(*symbol_id, (*level, assoc));
+                        }
                     }
                 }
             }

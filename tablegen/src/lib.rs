@@ -64,7 +64,7 @@ impl StaticLanguageGenerator {
         let mut types = Vec::new();
         
         // Generate node types for non-terminal rules
-        for (symbol_id, _rule) in &self.grammar.rules {
+        for (symbol_id, rules) in &self.grammar.rules {
             // For now, use generated rule names
             // TODO: Add proper symbol name mapping to Grammar
             let rule_name = format!("rule_{}", symbol_id.0);
@@ -79,12 +79,15 @@ impl StaticLanguageGenerator {
                 "named": true
             });
             
-            // Add fields if this rule has any
-            if !_rule.fields.is_empty() {
-                let mut fields = serde_json::Map::new();
-                for (field_id, _position) in &_rule.fields {
+            // Collect fields from all rules for this symbol
+            let mut all_fields = serde_json::Map::new();
+            let mut has_children = false;
+            
+            for rule in rules {
+                // Add fields if this rule has any
+                for (field_id, _position) in &rule.fields {
                     if let Some(field_name) = self.grammar.fields.get(field_id) {
-                        fields.insert(
+                        all_fields.insert(
                             field_name.clone(),
                             json!({
                                 "multiple": false,
@@ -94,11 +97,20 @@ impl StaticLanguageGenerator {
                         );
                     }
                 }
-                node_type["fields"] = json!(fields);
+                
+                // Check if rule has children
+                if !rule.rhs.is_empty() {
+                    has_children = true;
+                }
             }
             
-            // Add children if rule has any
-            if !_rule.rhs.is_empty() {
+            // Add fields if any
+            if !all_fields.is_empty() {
+                node_type["fields"] = json!(all_fields);
+            }
+            
+            // Add children if any rule has RHS
+            if has_children {
                 let mut children = serde_json::Map::new();
                 children.insert(
                     "multiple".to_string(),
@@ -106,7 +118,7 @@ impl StaticLanguageGenerator {
                 );
                 children.insert(
                     "required".to_string(),
-                    json!(!_rule.rhs.is_empty())
+                    json!(true)
                 );
                 // TODO: Add proper child types based on rule.rhs
                 children.insert(
@@ -796,7 +808,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.insert(SymbolId(1), rule);
+        grammar.add_rule(rule);
         
         let parse_table = ParseTable {
             action_table: vec![],

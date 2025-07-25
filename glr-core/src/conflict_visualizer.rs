@@ -1,10 +1,10 @@
 // Conflict visualization and debugging tools for GLR parsing
 
 use crate::{
-    Conflict, ConflictType, Action, StateId, SymbolId, RuleId,
+    Conflict, ConflictType, Action, SymbolId, RuleId,
     ItemSet, LRItem, ItemSetCollection,
 };
-use rust_sitter_ir::{Grammar, Symbol};
+use rust_sitter_ir::{Grammar, Symbol, StateId};
 use std::fmt::Write;
 
 /// Visualize conflicts in a human-readable format
@@ -133,37 +133,47 @@ impl<'a> ConflictVisualizer<'a> {
     
     /// Format a rule with a dot at the given position
     fn format_rule_with_dot(&self, rule_id: RuleId, position: usize) -> String {
-        if let Some(rule) = self.grammar.rules.values().find(|r| r.production_id.0 == rule_id.0) {
-            let mut result = format!("{} ->", self.symbol_name(rule.lhs));
-            
-            for (i, symbol) in rule.rhs.iter().enumerate() {
-                if i == position {
-                    result.push_str(" •");
+        // Find the rule by iterating through all rules
+        for rules in self.grammar.rules.values() {
+            for rule in rules {
+                if rule.production_id.0 == rule_id.0 {
+                    let mut result = format!("{} ->", self.symbol_name(rule.lhs));
+                    
+                    for (i, symbol) in rule.rhs.iter().enumerate() {
+                        if i == position {
+                            result.push_str(" •");
+                        }
+                        result.push(' ');
+                        result.push_str(&self.format_symbol(symbol));
+                    }
+                    
+                    if position >= rule.rhs.len() {
+                        result.push_str(" •");
+                    }
+                    
+                    return result;
                 }
-                result.push(' ');
-                result.push_str(&self.format_symbol(symbol));
             }
-            
-            if position >= rule.rhs.len() {
-                result.push_str(" •");
-            }
-            
-            result
-        } else {
-            format!("Rule {}", rule_id.0)
         }
+        
+        format!("Rule {}", rule_id.0)
     }
     
     /// Format a rule
     fn format_rule(&self, rule_id: RuleId) -> String {
-        if let Some(rule) = self.grammar.rules.values().find(|r| r.production_id.0 == rule_id.0) {
-            let rhs: Vec<String> = rule.rhs.iter()
-                .map(|s| self.format_symbol(s))
-                .collect();
-            format!("{} -> {}", self.symbol_name(rule.lhs), rhs.join(" "))
-        } else {
-            format!("Rule {}", rule_id.0)
+        // Find the rule by iterating through all rules
+        for rules in self.grammar.rules.values() {
+            for rule in rules {
+                if rule.production_id.0 == rule_id.0 {
+                    let rhs: Vec<String> = rule.rhs.iter()
+                        .map(|s| self.format_symbol(s))
+                        .collect();
+                    return format!("{} -> {}", self.symbol_name(rule.lhs), rhs.join(" "));
+                }
+            }
         }
+        
+        format!("Rule {}", rule_id.0)
     }
     
     /// Format a symbol
