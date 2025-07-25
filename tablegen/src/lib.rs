@@ -2,6 +2,7 @@
 // This module implements Tree-sitter's exact table compression algorithms
 
 pub mod abi;
+pub mod abi_builder;
 pub mod compress;
 pub mod compression;
 pub mod external_scanner;
@@ -9,6 +10,7 @@ pub mod external_scanner_v2;
 pub mod generate;
 pub mod language_gen;
 pub mod node_types;
+pub mod serializer;
 pub mod validation;
 
 // Re-export key types
