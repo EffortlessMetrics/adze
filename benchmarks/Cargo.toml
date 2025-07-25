@@ -8,7 +8,7 @@ name = "parse_bench"
 harness = false
 
 [dependencies]
-rust-sitter-runtime = { path = "../runtime" }
+rust-sitter = { path = "../runtime" }
 tree-sitter = "0.20"
 criterion = "0.5"
 

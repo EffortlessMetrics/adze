@@ -25,6 +25,7 @@ tree-sitter-runtime-standard = { package = "tree-sitter", version = "0.25.2", op
 rust-sitter-macro = { version = "0.5.0-beta", path = "../macro" }
 rust-sitter-ir = { version = "0.5.0-beta", path = "../ir" }
 rust-sitter-glr-core = { version = "0.5.0-beta", path = "../glr-core" }
+rust-sitter-tablegen = { version = "0.5.0-beta", path = "../tablegen" }
 regex = "1.10"
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
