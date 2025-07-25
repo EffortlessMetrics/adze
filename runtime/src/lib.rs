@@ -28,6 +28,7 @@ pub mod glr_validation;
 pub mod glr_query;
 #[cfg(feature = "serialization")]
 pub mod serialization;
+pub mod pure_parser;
 pub mod simd_lexer {
     pub use super::simd_lexer_v2::*;
 }

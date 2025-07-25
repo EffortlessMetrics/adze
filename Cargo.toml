@@ -17,4 +17,5 @@ members = [
   "lsp-generator",
   "playground",
   "cli",
+  "benchmarks",
 ]
