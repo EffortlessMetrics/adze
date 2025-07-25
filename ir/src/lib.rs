@@ -226,7 +226,7 @@ impl Grammar {
         }
 
         // Validate symbol references
-        for rule in self.rules.values() {
+        for rule in self.all_rules() {
             for symbol in &rule.rhs {
                 match symbol {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) => {
@@ -449,7 +449,7 @@ mod tests {
             fields: vec![(FieldId(0), 0)],
             production_id: ProductionId(0),
         };
-        grammar.rules.insert(SymbolId(0), rule);
+        grammar.add_rule(rule);
         
         // Add a token
         let token = Token {
@@ -487,7 +487,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.insert(SymbolId(0), rule);
+        grammar.add_rule(rule);
         
         // Validation should fail
         assert!(grammar.validate().is_err());
@@ -511,7 +511,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.insert(SymbolId(0), rule);
+        grammar.add_rule(rule);
         
         // Validation should fail
         assert!(grammar.validate().is_err());

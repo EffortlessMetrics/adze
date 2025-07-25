@@ -229,20 +229,21 @@ impl GrammarValidator {
         // Gather statistics
         stats.total_symbols = defined_symbols.len();
         stats.total_tokens = grammar.tokens.len();
-        stats.total_rules = grammar.rules.len();
+        stats.total_rules = grammar.rules.values().map(|v| v.len()).sum();
         stats.reachable_symbols = reachable.len();
         stats.productive_symbols = productive.len();
         stats.external_tokens = grammar.externals.len();
         
         if !grammar.rules.is_empty() {
-            let total_length: usize = grammar.rules.values()
+            let all_rules: Vec<_> = grammar.all_rules().collect();
+            let total_length: usize = all_rules.iter()
                 .map(|r| r.rhs.len())
                 .sum();
-            stats.max_rule_length = grammar.rules.values()
+            stats.max_rule_length = all_rules.iter()
                 .map(|r| r.rhs.len())
                 .max()
                 .unwrap_or(0);
-            stats.avg_rule_length = total_length as f64 / grammar.rules.len() as f64;
+            stats.avg_rule_length = total_length as f64 / all_rules.len() as f64;
         }
         
         ValidationResult {
@@ -280,12 +281,12 @@ impl GrammarValidator {
         let mut used = HashSet::new();
         
         // First rule's LHS is implicitly the start symbol
-        if let Some((start_symbol, _)) = grammar.rules.first() {
-            used.insert(*start_symbol);
+        if let Some(start_symbol) = grammar.start_symbol() {
+            used.insert(start_symbol);
         }
         
         // Symbols in rule RHS are used
-        for rule in grammar.rules.values() {
+        for rule in grammar.all_rules() {
             for symbol in &rule.rhs {
                 match symbol {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) => {
@@ -311,14 +312,16 @@ impl GrammarValidator {
             if !defined.contains(symbol) {
                 // Find where it's used
                 let mut location = String::from("unknown");
-                for (rule_sym, rule) in &grammar.rules {
-                    for rhs_sym in &rule.rhs {
-                        match rhs_sym {
-                            Symbol::Terminal(id) | Symbol::NonTerminal(id) if id == symbol => {
-                                location = format!("rule for {:?}", rule_sym);
-                                break;
+                for (rule_sym, rules) in &grammar.rules {
+                    for rule in rules {
+                        for rhs_sym in &rule.rhs {
+                            match rhs_sym {
+                                Symbol::Terminal(id) | Symbol::NonTerminal(id) if id == symbol => {
+                                    location = format!("rule for {:?}", rule_sym);
+                                    break;
+                                }
+                                _ => {}
                             }
-                            _ => {}
                         }
                     }
                 }
@@ -336,22 +339,24 @@ impl GrammarValidator {
         let mut queue = VecDeque::new();
         
         // Start from the first rule (implicit start symbol)
-        if let Some((start, _)) = grammar.rules.first() {
-            queue.push_back(*start);
-            reachable.insert(*start);
+        if let Some(start) = grammar.start_symbol() {
+            queue.push_back(start);
+            reachable.insert(start);
         }
         
         // BFS to find all reachable symbols
         while let Some(symbol) = queue.pop_front() {
-            if let Some(rule) = grammar.rules.get(&symbol) {
-                for rhs_symbol in &rule.rhs {
-                    let id = match rhs_symbol {
+            if let Some(rules) = grammar.rules.get(&symbol) {
+                for rule in rules {
+                    for rhs_symbol in &rule.rhs {
+                        let id = match rhs_symbol {
                         Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                         Symbol::External(ext_id) => SymbolId(ext_id.0),
                     };
                     
                     if reachable.insert(id) {
                         queue.push_back(id);
+                    }
                     }
                 }
             }
@@ -366,7 +371,7 @@ impl GrammarValidator {
         defined: &HashSet<SymbolId>,
         grammar: &Grammar,
     ) {
-        let start_symbol = grammar.rules.first().map(|(s, _)| *s);
+        let start_symbol = grammar.start_symbol();
         
         for symbol in defined {
             if !reachable.contains(symbol) && Some(*symbol) != start_symbol {
@@ -395,17 +400,20 @@ impl GrammarValidator {
         while changed {
             changed = false;
             
-            for (symbol, rule) in &grammar.rules {
+            for (symbol, rules) in &grammar.rules {
                 if !productive.contains(symbol) {
-                    // Check if all RHS symbols are productive
-                    let all_productive = rule.rhs.iter().all(|rhs_sym| {
-                        match rhs_sym {
-                            Symbol::Terminal(id) | Symbol::NonTerminal(id) => productive.contains(id),
-                            Symbol::External(ext_id) => productive.contains(&SymbolId(ext_id.0)),
-                        }
+                    // Check if any rule for this symbol is productive
+                    let any_productive = rules.iter().any(|rule| {
+                        // Check if all RHS symbols are productive
+                        rule.rhs.iter().all(|rhs_sym| {
+                            match rhs_sym {
+                                Symbol::Terminal(id) | Symbol::NonTerminal(id) => productive.contains(id),
+                                Symbol::External(ext_id) => productive.contains(&SymbolId(ext_id.0)),
+                            }
+                        })
                     });
                     
-                    if all_productive {
+                    if any_productive {
                         productive.insert(*symbol);
                         changed = true;
                     }
@@ -473,22 +481,24 @@ impl GrammarValidator {
     }
     
     fn validate_fields(&mut self, grammar: &Grammar) {
-        for (symbol, rule) in &grammar.rules {
-            // Check that field indices are valid
-            for (field_id, index) in &rule.fields {
-                if *index >= rule.rhs.len() {
-                    self.errors.push(ValidationError::InvalidField {
-                        field_id: *field_id,
+        for (symbol, rules) in &grammar.rules {
+            for rule in rules {
+                // Check that field indices are valid
+                for (field_id, index) in &rule.fields {
+                    if *index >= rule.rhs.len() {
+                        self.errors.push(ValidationError::InvalidField {
+                            field_id: *field_id,
+                            rule_symbol: *symbol,
+                        });
+                    }
+                }
+                
+                // Warn about missing field names
+                if rule.fields.is_empty() && rule.rhs.len() > 1 {
+                    self.warnings.push(ValidationWarning::MissingFieldNames {
                         rule_symbol: *symbol,
                     });
                 }
-            }
-            
-            // Warn about missing field names
-            if rule.fields.is_empty() && rule.rhs.len() > 1 {
-                self.warnings.push(ValidationWarning::MissingFieldNames {
-                    rule_symbol: *symbol,
-                });
             }
         }
     }
@@ -565,9 +575,10 @@ impl GrammarValidator {
         rec_stack.insert(symbol);
         path.push(symbol);
         
-        if let Some(rule) = grammar.rules.get(&symbol) {
-            for rhs_symbol in &rule.rhs {
-                if let Symbol::NonTerminal(id) = rhs_symbol {
+        if let Some(rules) = grammar.rules.get(&symbol) {
+            for rule in rules {
+                for rhs_symbol in &rule.rhs {
+                    if let Symbol::NonTerminal(id) = rhs_symbol {
                     if !visited.contains(id) {
                         if self.has_cycle(*id, grammar, visited, rec_stack, path) {
                             return true;
@@ -575,6 +586,7 @@ impl GrammarValidator {
                     } else if rec_stack.contains(id) {
                         // Found a cycle
                         return true;
+                    }
                     }
                 }
             }
@@ -586,23 +598,25 @@ impl GrammarValidator {
     }
     
     fn check_inefficiencies(&mut self, grammar: &Grammar) {
-        for (symbol, rule) in &grammar.rules {
-            // Check for trivial rules (A -> B)
-            if rule.rhs.len() == 1 {
-                if let Symbol::NonTerminal(_) = &rule.rhs[0] {
+        for (symbol, rules) in &grammar.rules {
+            for rule in rules {
+                // Check for trivial rules (A -> B)
+                if rule.rhs.len() == 1 {
+                    if let Symbol::NonTerminal(_) = &rule.rhs[0] {
+                        self.warnings.push(ValidationWarning::InefficientRule {
+                            symbol: *symbol,
+                            suggestion: "Consider inlining trivial rules".to_string(),
+                        });
+                    }
+                }
+                
+                // Check for very long rules
+                if rule.rhs.len() > 10 {
                     self.warnings.push(ValidationWarning::InefficientRule {
                         symbol: *symbol,
-                        suggestion: "Consider inlining trivial rules".to_string(),
+                        suggestion: format!("Rule has {} symbols, consider breaking it down", rule.rhs.len()),
                     });
                 }
-            }
-            
-            // Check for very long rules
-            if rule.rhs.len() > 10 {
-                self.warnings.push(ValidationWarning::InefficientRule {
-                    symbol: *symbol,
-                    suggestion: format!("Rule has {} symbols, consider breaking it down", rule.rhs.len()),
-                });
             }
         }
     }
@@ -646,7 +660,7 @@ mod tests {
         let expr = SymbolId(1);
         let undefined = SymbolId(99);
         
-        grammar.rules.insert(expr, Rule {
+        grammar.add_rule(Rule {
             lhs: expr,
             rhs: vec![Symbol::NonTerminal(undefined)],
             precedence: None,
@@ -670,7 +684,7 @@ mod tests {
         let b = SymbolId(2);
         
         // A -> B
-        grammar.rules.insert(a, Rule {
+        grammar.add_rule(Rule {
             lhs: a,
             rhs: vec![Symbol::NonTerminal(b)],
             precedence: None,
@@ -680,7 +694,7 @@ mod tests {
         });
         
         // B -> A (circular, non-productive)
-        grammar.rules.insert(b, Rule {
+        grammar.add_rule(Rule {
             lhs: b,
             rhs: vec![Symbol::NonTerminal(a)],
             precedence: None,
@@ -711,7 +725,7 @@ mod tests {
         });
         
         // expr -> num
-        grammar.rules.insert(expr, Rule {
+        grammar.add_rule(Rule {
             lhs: expr,
             rhs: vec![Symbol::Terminal(num)],
             precedence: None,

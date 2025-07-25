@@ -251,28 +251,33 @@ impl GrammarOptimizer {
         }
 
         // For each unit rule A -> B, add rules A -> γ for each B -> γ
+        let mut new_rules = Vec::new();
         for unit_rule in unit_rules {
             if let Symbol::NonTerminal(target) = &unit_rule.rhs[0] {
                 if let Some(target_rules) = grammar.get_rules_for_symbol(*target) {
                     for target_rule in target_rules {
-                    // Create new rule A -> γ
-                    let new_rule = Rule {
-                        lhs: unit_rule.lhs,
-                        rhs: target_rule.rhs.clone(),
-                        precedence: target_rule.precedence.or(unit_rule.precedence),
-                        associativity: target_rule.associativity.or(unit_rule.associativity),
-                        fields: target_rule.fields.clone(),
-                        production_id: self.create_new_production_id(grammar),
-                    };
-
-                    grammar.add_rule(new_rule);
-                    eliminated += 1;
+                        // Create new rule A -> γ
+                        let new_rule = Rule {
+                            lhs: unit_rule.lhs,
+                            rhs: target_rule.rhs.clone(),
+                            precedence: target_rule.precedence.or(unit_rule.precedence),
+                            associativity: target_rule.associativity.or(unit_rule.associativity),
+                            fields: target_rule.fields.clone(),
+                            production_id: self.create_new_production_id(grammar),
+                        };
+                        new_rules.push(new_rule);
+                        eliminated += 1;
                     }
                 }
                 // Remove the unit rule
                 // TODO: Fix this for new Grammar structure
                 // grammar.rules.retain(|_, r| r != &unit_rule);
             }
+        }
+
+        // Add all new rules
+        for rule in new_rules {
+            grammar.add_rule(rule);
         }
 
         eliminated
@@ -385,7 +390,7 @@ impl GrammarOptimizer {
         // Remove original rules
         // TODO: Fix this for new Grammar structure
         // grammar.rules.retain(|_, r| r.lhs != original_symbol);
-        grammar.rules.remove(&original_symbol);
+        grammar.rules.shift_remove(&original_symbol);
 
         // Add transformed base rules: A -> β A'
         for base_rule in base_rules {
@@ -615,7 +620,7 @@ mod tests {
         
         println!("Used symbols: {:?}", optimizer.used_symbols);
         println!("Tokens before: {:?}", grammar.tokens.keys().collect::<Vec<_>>());
-        println!("Rules: {:?}", grammar.rules.values().map(|r| (r.lhs, &r.rhs)).collect::<Vec<_>>());
+        println!("Rules: {:?}", grammar.all_rules().map(|r| (r.lhs, &r.rhs)).collect::<Vec<_>>());
         
         let removed = optimizer.remove_unused_symbols(&mut grammar);
         
