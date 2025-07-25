@@ -44,6 +44,7 @@ pub struct TSLanguage {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct TSParseAction {
     pub action_type: u8,
     pub extra: u8,
@@ -52,6 +53,7 @@ pub struct TSParseAction {
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct ExternalScanner {
     pub scan: Option<unsafe extern "C" fn(*mut c_void, *mut c_void, *const bool) -> bool>,
 }
@@ -249,21 +251,24 @@ impl Parser {
             };
             
             // Lex next token
-            let token = self.lex_token(source, position, current_state);
+            let token = self.lex_token(language, current_state, position, &mut point);
             
             // Get action for current state and token
             match self.get_action(language, current_state, token.symbol) {
                 Action::Shift(next_state) => {
                     // Create leaf node
+                    let end_point = advance_point(point, &source[position..position + token.length]);
                     let subtree = Subtree {
                         symbol: token.symbol,
                         children: Vec::new(),
                         start_byte: position,
                         end_byte: position + token.length,
                         start_point: point,
-                        end_point: advance_point(point, &source[position..position + token.length]),
-                        is_extra: false,
+                        end_point,
+                        is_extra: token.is_extra,
                         is_error: false,
+                        is_missing: false,
+                        production_id: 0,
                     };
                     
                     // Push onto stack
@@ -331,15 +336,15 @@ impl Parser {
         
         // Get lex state for current parser state
         let lex_mode = unsafe {
-            if state.0 < language.state_count as u16 {
-                *language.lex_modes.add(state.0 as usize)
+            if state < language.state_count as u16 {
+                *language.lex_modes.add(state as usize)
             } else {
-                TSLexState { lex_state: 0, external_lex_state: 0 }
+                0 // Default lex state
             }
         };
         
         // Try external scanner first if available
-        if lex_mode.external_lex_state != 0 && language.external_scanner.scan.is_some() {
+        if lex_mode != 0 && language.external_scanner.scan.is_some() {
             // TODO: Implement external scanner support
         }
         
@@ -386,22 +391,22 @@ impl Parser {
         // Look up action in parse table
         unsafe {
             // Small parse table lookup
-            if state.0 < language.large_state_count as u16 {
-                let state_offset = (*language.small_parse_table_map.add(state.0 as usize)) as usize;
+            if state < language.large_state_count as u16 {
+                let state_offset = (*language.small_parse_table_map.add(state as usize)) as usize;
                 let entry_count = *language.small_parse_table.add(state_offset) as usize;
                 
                 // Search for symbol in entries
                 for i in 0..entry_count {
                     let entry_symbol = *language.small_parse_table.add(state_offset + 1 + i * 2);
-                    if entry_symbol == symbol.0 {
+                    if entry_symbol == symbol {
                         let action_index = *language.small_parse_table.add(state_offset + 2 + i * 2) as usize;
                         return self.decode_action(language, action_index);
                     }
                 }
             } else {
                 // Large parse table lookup
-                let table_offset = (state.0 - language.large_state_count as u16) as usize * language.symbol_count as usize;
-                let action_index = *language.parse_table.add(table_offset + symbol.0 as usize) as usize;
+                let table_offset = (state - language.large_state_count as u16) as usize * language.symbol_count as usize;
+                let action_index = *language.parse_table.add(table_offset + symbol as usize) as usize;
                 if action_index != 0 {
                     return self.decode_action(language, action_index);
                 }
@@ -417,7 +422,7 @@ impl Parser {
             let action = *language.parse_actions.add(action_index);
             match action.action_type {
                 0 => Action::Shift(action.symbol), // Shift
-                1 => Action::Reduce(action.symbol.0 as u16),    // Reduce
+                1 => Action::Reduce(action.symbol as u16),    // Reduce
                 2 => Action::Accept,                             // Accept
                 _ => Action::Error,                              // Error or other
             }
@@ -502,24 +507,24 @@ impl Parser {
         let goto_symbol = symbol.0 - terminal_count as u16;
         
         unsafe {
-            if state.0 < language.large_state_count as u16 {
+            if state < language.large_state_count as u16 {
                 // Small parse table lookup for gotos
-                let state_offset = (*language.small_parse_table_map.add(state.0 as usize)) as usize;
+                let state_offset = (*language.small_parse_table_map.add(state as usize)) as usize;
                 let entry_count = *language.small_parse_table.add(state_offset) as usize;
                 
                 // Skip terminal entries to find non-terminal entries
                 let mut offset = state_offset + 1;
                 for _ in 0..entry_count {
                     let entry_symbol = *language.small_parse_table.add(offset);
-                    if entry_symbol >= terminal_count as u16 && entry_symbol == symbol.0 {
+                    if entry_symbol >= terminal_count as u16 && entry_symbol == symbol {
                         return *language.small_parse_table.add(offset + 1);
                     }
                     offset += 2;
                 }
             } else {
                 // Large parse table lookup
-                let table_offset = (state.0 - language.large_state_count as u16) as usize * language.symbol_count as usize;
-                let goto_index = table_offset + symbol.0 as usize;
+                let table_offset = (state - language.large_state_count as u16) as usize * language.symbol_count as usize;
+                let goto_index = table_offset + symbol as usize;
                 return *language.parse_table.add(goto_index);
             }
         }

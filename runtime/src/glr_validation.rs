@@ -361,17 +361,20 @@ impl GLRGrammarValidator {
         let mut queue = VecDeque::new();
         
         // Start from the LHS of the first rule (start symbol)
-        if let Some(start_rule) = grammar.rules.values().next() {
-            let start_symbol = start_rule.lhs;
-            queue.push_back(start_symbol);
-            reachable.insert(start_symbol);
+        if let Some(start_rules) = grammar.rules.values().next() {
+            if let Some(start_rule) = start_rules.first() {
+                let start_symbol = start_rule.lhs;
+                queue.push_back(start_symbol);
+                reachable.insert(start_symbol);
+            }
         }
         
         while let Some(symbol) = queue.pop_front() {
             // Find all rules with this symbol as LHS
-            for rule in grammar.rules.values() {
-                if rule.lhs == symbol {
-                    for rhs_symbol in &rule.rhs {
+            for rules in grammar.rules.values() {
+                for rule in rules {
+                    if rule.lhs == symbol {
+                        for rhs_symbol in &rule.rhs {
                         let id = match rhs_symbol {
                             Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                             Symbol::External(ext) => SymbolId(ext.0),
@@ -381,6 +384,7 @@ impl GLRGrammarValidator {
                             queue.push_back(id);
                         }
                     }
+                }
                 }
             }
         }
@@ -402,10 +406,11 @@ impl GLRGrammarValidator {
         while changed {
             changed = false;
             
-            for rule in grammar.rules.values() {
-                let symbol = rule.lhs;
-                if !productive.contains(&symbol) {
-                    let all_productive = rule.rhs.iter().all(|sym| {
+            for rules in grammar.rules.values() {
+                for rule in rules {
+                    let symbol = rule.lhs;
+                    if !productive.contains(&symbol) {
+                        let all_productive = rule.rhs.iter().all(|sym| {
                         match sym {
                             Symbol::Terminal(id) | Symbol::NonTerminal(id) => productive.contains(id),
                             Symbol::External(ext) => productive.contains(&SymbolId(ext.0)),
@@ -417,6 +422,7 @@ impl GLRGrammarValidator {
                         changed = true;
                     }
                 }
+                }
             }
         }
         
@@ -426,8 +432,10 @@ impl GLRGrammarValidator {
     fn validate_reachability(&mut self, reachable: &HashSet<SymbolId>, grammar: &Grammar) {
         // Check all non-terminals (LHS of rules)
         let mut non_terminals = HashSet::new();
-        for rule in grammar.rules.values() {
-            non_terminals.insert(rule.lhs);
+        for rules in grammar.rules.values() {
+            for rule in rules {
+                non_terminals.insert(rule.lhs);
+            }
         }
         
         for symbol in non_terminals {
