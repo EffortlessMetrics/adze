@@ -131,16 +131,19 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
         .context("Failed to build LR(1) automaton")?;
     
     // Step 3: Generate static language code using ABI builder
-    let mut abi_builder = AbiLanguageBuilder::new(grammar.clone(), parse_table.clone());
-    
-    // Compress tables if requested
-    if options.compress_tables {
-        abi_builder.compress_tables()
-            .context("Failed to compress tables")?;
-    }
+    let abi_builder = if options.compress_tables {
+        // Compress tables
+        let compressor = rust_sitter_tablegen::TableCompressor::new();
+        let compressed = compressor.compress(&parse_table)
+            .map_err(|e| anyhow::anyhow!("Failed to compress tables: {}", e))?;
+        AbiLanguageBuilder::new(&grammar, &parse_table)
+            .with_compressed_tables(&compressed)
+    } else {
+        AbiLanguageBuilder::new(&grammar, &parse_table)
+    };
     
     // Generate the Rust code
-    let language_code = abi_builder.generate_language_module();
+    let language_code = abi_builder.generate();
     
     // Step 4: Generate NODE_TYPES.json
     let node_types_gen = NodeTypesGenerator::new(&grammar);

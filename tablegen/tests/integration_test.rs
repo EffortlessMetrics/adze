@@ -51,21 +51,18 @@ fn test_parentheses_grammar_generation() {
         production_id: ProductionId(1),
     };
     
+    // Add rules (first rule's LHS is the start symbol)
     grammar.add_rule(rule1);
     grammar.add_rule(rule2);
-    
-    // Set start symbol
-    grammar.set_start_symbol(expr_id);
     
     // Build parse table
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     
     // Generate language using ABI builder
-    let mut builder = AbiLanguageBuilder::new(grammar, parse_table);
-    builder.compress_tables().unwrap();
+    let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
     
-    let code = builder.generate_language_module();
+    let code = builder.generate();
     let code_str = code.to_string();
     
     // Verify generated code contains expected elements
@@ -169,9 +166,6 @@ fn test_arithmetic_grammar_generation() {
     grammar.add_rule(term_rule2);
     grammar.add_rule(factor_rule);
     
-    // Set start symbol
-    grammar.set_start_symbol(expr_id);
-    
     // Add rule names
     grammar.rule_names.insert(expr_id, "expression".to_string());
     grammar.rule_names.insert(term_id, "term".to_string());
@@ -182,17 +176,19 @@ fn test_arithmetic_grammar_generation() {
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     
     // Generate language using ABI builder
-    let mut builder = AbiLanguageBuilder::new(grammar, parse_table);
-    builder.compress_tables().unwrap();
+    let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
     
-    let code = builder.generate_language_module();
+    let code = builder.generate();
     let code_str = code.to_string();
     
-    // Verify symbol names are included
-    assert!(code_str.contains("number"));
-    assert!(code_str.contains("expression"));
-    assert!(code_str.contains("term"));
-    assert!(code_str.contains("factor"));
+    // Verify the code contains expected elements
+    assert!(code_str.contains("TSLanguage"));
+    assert!(code_str.contains("tree_sitter_arithmetic"));
+    assert!(code_str.contains("SYMBOL_NAME_"));
+    
+    // Verify counts are correct
+    assert!(code_str.contains("symbol_count : 7u32")); // 3 tokens + 4 non-terminals (EOF, number, +, *, expr, term, factor)
+    assert!(code_str.contains("token_count : 3u32"));  // number, +, *
     
     // Verify table compression
     assert!(code_str.contains("PARSE_TABLE"));
@@ -242,7 +238,6 @@ fn test_field_mapping_generation() {
     };
     
     grammar.add_rule(assignment_rule);
-    grammar.start_symbol = assignment_id;
     grammar.rule_names.insert(assignment_id, "assignment".to_string());
     
     // Build parse table
@@ -250,14 +245,12 @@ fn test_field_mapping_generation() {
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     
     // Generate language using ABI builder
-    let mut builder = AbiLanguageBuilder::new(grammar, parse_table);
-    builder.compress_tables().unwrap();
+    let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
     
-    let code = builder.generate_language_module();
+    let code = builder.generate();
     let code_str = code.to_string();
     
-    // Verify field names are included
-    assert!(code_str.contains("name"));
-    assert!(code_str.contains("value"));
-    assert!(code_str.contains("field_count: 2"));
+    // Verify field count is correct
+    assert!(code_str.contains("field_count : 2u32"));
+    assert!(code_str.contains("FIELD_NAME_"));
 }

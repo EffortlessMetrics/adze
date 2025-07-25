@@ -177,7 +177,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let mut rules: Vec<_> = self.grammar.rules.iter().collect();
         rules.sort_by_key(|(id, _)| id.0);
         
-        for (i, (id, _)) in rules.iter().enumerate() {
+        for (i, &(id, _)) in rules.iter().enumerate() {
             let idx = tokens.len() + i + 1;
             let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
             let name = self.grammar.rule_names.get(id)
@@ -256,7 +256,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let mut rules: Vec<_> = self.grammar.rules.iter().collect();
         rules.sort_by_key(|(id, _)| id.0);
         
-        for (id, _) in rules {
+        for &(id, _) in &rules {
             let name = self.grammar.rule_names.get(id)
                 .cloned()
                 .unwrap_or_else(|| format!("rule_{}", id.0));
