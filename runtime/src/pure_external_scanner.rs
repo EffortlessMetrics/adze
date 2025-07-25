@@ -136,7 +136,7 @@ impl ExternalScannerRegistry {
     }
     
     /// Get a mutable scanner by name
-    pub fn get_mut(&mut self, name: &str) -> Option<&mut dyn ExternalScanner> {
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut (dyn ExternalScanner + 'static)> {
         self.scanners.get_mut(name).map(|s| s.as_mut())
     }
 }
@@ -155,7 +155,9 @@ pub mod ffi {
     /// Destroy a scanner instance
     pub unsafe extern "C" fn external_scanner_destroy(scanner: *mut c_void) {
         if !scanner.is_null() {
-            let _ = Box::from_raw(scanner as *mut ExternalScannerRegistry);
+            unsafe {
+                let _ = Box::from_raw(scanner as *mut ExternalScannerRegistry);
+            }
         }
     }
     
@@ -170,8 +172,8 @@ pub mod ffi {
             return false;
         }
         
-        let _registry = &mut *(scanner as *mut ExternalScannerRegistry);
-        let valid_symbols = slice::from_raw_parts(valid_symbols, valid_symbol_count as usize);
+        let _registry = unsafe { &mut *(scanner as *mut ExternalScannerRegistry) };
+        let _valid_symbols = unsafe { slice::from_raw_parts(valid_symbols, valid_symbol_count as usize) };
         
         // In a real implementation, this would:
         // 1. Cast lexer to the appropriate type
@@ -191,8 +193,8 @@ pub mod ffi {
             return 0;
         }
         
-        let _registry = &*(scanner as *mut ExternalScannerRegistry);
-        let _buffer = slice::from_raw_parts_mut(buffer, buffer_size as usize);
+        let _registry = unsafe { &*(scanner as *mut ExternalScannerRegistry) };
+        let _buffer = unsafe { slice::from_raw_parts_mut(buffer, buffer_size as usize) };
         
         // In a real implementation, serialize the current scanner state
         0
@@ -208,8 +210,8 @@ pub mod ffi {
             return;
         }
         
-        let _registry = &mut *(scanner as *mut ExternalScannerRegistry);
-        let _buffer = slice::from_raw_parts(buffer, length as usize);
+        let _registry = unsafe { &mut *(scanner as *mut ExternalScannerRegistry) };
+        let _buffer = unsafe { slice::from_raw_parts(buffer, length as usize) };
         
         // In a real implementation, deserialize the scanner state
     }

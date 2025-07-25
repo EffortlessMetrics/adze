@@ -31,6 +31,8 @@ pub mod serialization;
 pub mod pure_parser;
 pub mod pure_incremental;
 pub mod pure_external_scanner;
+pub mod unified_parser;
+pub mod optimizations;
 pub mod simd_lexer {
     pub use super::simd_lexer_v2::*;
 }
@@ -40,22 +42,47 @@ pub mod parallel_parser {
 }
 mod parallel_parser_v2;
 
+#[cfg(feature = "pure-rust")]
+mod tree_sitter_compat;
+
 use std::ops::Deref;
 
 pub use rust_sitter_macro::*;
 
-#[cfg(feature = "tree-sitter-standard")]
+#[cfg(all(feature = "tree-sitter-standard", not(feature = "pure-rust")))]
 pub use tree_sitter_runtime_standard as tree_sitter;
 
-#[cfg(feature = "tree-sitter-c2rust")]
+#[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
 pub use tree_sitter_runtime_c2rust as tree_sitter;
+
+#[cfg(feature = "pure-rust")]
+pub mod tree_sitter {
+    // Re-export pure-Rust types with Tree-sitter compatible names
+    pub use crate::pure_parser::{Parser, TSLanguage as Language};
+    pub use crate::pure_parser::{ParsedNode as Node, ParseResult};
+    pub use crate::pure_incremental::{Tree, Edit};
+    pub use crate::pure_parser::Point;
+    
+    // Re-export constants
+    pub const LANGUAGE_VERSION: u32 = 14;
+    pub const MIN_COMPATIBLE_LANGUAGE_VERSION: u32 = 13;
+}
 
 /// Defines the logic used to convert a node in a Tree Sitter tree to
 /// the corresponding Rust type.
 pub trait Extract<Output> {
     type LeafFn: ?Sized;
+    #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
+        source: &[u8],
+        last_idx: usize,
+        leaf_fn: Option<&Self::LeafFn>,
+    ) -> Output;
+    
+    #[cfg(feature = "pure-rust")]
+    fn extract(
+        node: Option<&tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -69,6 +96,7 @@ pub struct WithLeaf<L> {
 impl<L> Extract<L> for WithLeaf<L> {
     type LeafFn = dyn Fn(&str) -> L;
 
+    #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
         source: &[u8],
@@ -79,12 +107,38 @@ impl<L> Extract<L> for WithLeaf<L> {
             .map(|s| leaf_fn.unwrap()(s))
             .unwrap()
     }
+    
+    #[cfg(feature = "pure-rust")]
+    fn extract(
+        node: Option<&tree_sitter::Node>,
+        source: &[u8],
+        _last_idx: usize,
+        leaf_fn: Option<&Self::LeafFn>,
+    ) -> L {
+        node.and_then(|n| {
+            let compat = crate::tree_sitter_compat::NodeCompat::new(n, source);
+            compat.utf8_text(source).ok()
+        })
+        .map(|s| leaf_fn.unwrap()(s))
+        .unwrap()
+    }
 }
 
 impl Extract<()> for () {
     type LeafFn = ();
+    
+    #[cfg(not(feature = "pure-rust"))]
     fn extract(
         _node: Option<tree_sitter::Node>,
+        _source: &[u8],
+        _last_idx: usize,
+        _leaf_fn: Option<&Self::LeafFn>,
+    ) {
+    }
+    
+    #[cfg(feature = "pure-rust")]
+    fn extract(
+        _node: Option<&tree_sitter::Node>,
         _source: &[u8],
         _last_idx: usize,
         _leaf_fn: Option<&Self::LeafFn>,
@@ -94,8 +148,20 @@ impl Extract<()> for () {
 
 impl<T: Extract<U>, U> Extract<Option<U>> for Option<T> {
     type LeafFn = T::LeafFn;
+    
+    #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
+        source: &[u8],
+        last_idx: usize,
+        leaf_fn: Option<&Self::LeafFn>,
+    ) -> Option<U> {
+        node.map(|n| T::extract(Some(n), source, last_idx, leaf_fn))
+    }
+    
+    #[cfg(feature = "pure-rust")]
+    fn extract(
+        node: Option<&tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -106,8 +172,20 @@ impl<T: Extract<U>, U> Extract<Option<U>> for Option<T> {
 
 impl<T: Extract<U>, U> Extract<Box<U>> for Box<T> {
     type LeafFn = T::LeafFn;
+    
+    #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
+        source: &[u8],
+        last_idx: usize,
+        leaf_fn: Option<&Self::LeafFn>,
+    ) -> Box<U> {
+        Box::new(T::extract(node, source, last_idx, leaf_fn))
+    }
+    
+    #[cfg(feature = "pure-rust")]
+    fn extract(
+        node: Option<&tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -118,6 +196,8 @@ impl<T: Extract<U>, U> Extract<Box<U>> for Box<T> {
 
 impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
     type LeafFn = T::LeafFn;
+    
+    #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
         source: &[u8],
@@ -146,6 +226,27 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
         })
         .unwrap_or_default()
     }
+    
+    #[cfg(feature = "pure-rust")]
+    fn extract(
+        node: Option<&tree_sitter::Node>,
+        source: &[u8],
+        mut last_idx: usize,
+        leaf_fn: Option<&Self::LeafFn>,
+    ) -> Vec<U> {
+        node.map(|node| {
+            let compat = crate::tree_sitter_compat::NodeCompat::new(node, source);
+            let mut out = vec![];
+            for (i, child) in node.children.iter().enumerate() {
+                if compat.field_name_for_child(i).is_some() {
+                    out.push(T::extract(Some(child), source, last_idx, leaf_fn));
+                }
+                last_idx = child.end_byte;
+            }
+            out
+        })
+        .unwrap_or_default()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -168,6 +269,8 @@ impl<T> Deref for Spanned<T> {
 
 impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
     type LeafFn = T::LeafFn;
+    
+    #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
         source: &[u8],
@@ -181,14 +284,32 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
                 .unwrap_or((last_idx, last_idx)),
         }
     }
+    
+    #[cfg(feature = "pure-rust")]
+    fn extract(
+        node: Option<&tree_sitter::Node>,
+        source: &[u8],
+        last_idx: usize,
+        leaf_fn: Option<&Self::LeafFn>,
+    ) -> Spanned<U> {
+        Spanned {
+            value: T::extract(node, source, last_idx, leaf_fn),
+            span: node
+                .map(|n| (n.start_byte, n.end_byte))
+                .unwrap_or((last_idx, last_idx)),
+        }
+    }
 }
 
 pub mod errors {
-    #[cfg(feature = "tree-sitter-standard")]
+    #[cfg(all(feature = "tree-sitter-standard", not(feature = "pure-rust")))]
     use tree_sitter_runtime_standard as tree_sitter;
 
-    #[cfg(feature = "tree-sitter-c2rust")]
+    #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
     use tree_sitter_runtime_c2rust as tree_sitter;
+    
+    #[cfg(feature = "pure-rust")]
+    use crate::tree_sitter;
 
     #[derive(Debug)]
     /// An explanation for an error that occurred during parsing.
@@ -214,6 +335,7 @@ pub mod errors {
 
     /// Given the root node of a Tree Sitter parsing result, accumulates all
     /// errors that were emitted.
+    #[cfg(not(feature = "pure-rust"))]
     pub fn collect_parsing_errors(
         node: &tree_sitter::Node,
         source: &[u8],
@@ -258,6 +380,57 @@ pub mod errors {
             let mut cursor = node.walk();
             node.children(&mut cursor)
                 .for_each(|c| collect_parsing_errors(&c, source, errors));
+        }
+    }
+    
+    /// Given the root node of a Tree Sitter parsing result, accumulates all
+    /// errors that were emitted.
+    #[cfg(feature = "pure-rust")]
+    pub fn collect_parsing_errors(
+        node: &tree_sitter::Node,
+        source: &[u8],
+        errors: &mut Vec<ParseError>,
+    ) {
+        let compat = crate::tree_sitter_compat::NodeCompat::new(node, source);
+        if compat.is_error() {
+            if compat.child(0).is_some() {
+                // we managed to parse some children, so collect underlying errors for this node
+                let mut inner_errors = vec![];
+                for child in compat.children() {
+                    collect_parsing_errors(child.inner, source, &mut inner_errors);
+                }
+
+                errors.push(ParseError {
+                    reason: ParseErrorReason::FailedNode(inner_errors),
+                    start: compat.start_byte(),
+                    end: compat.end_byte(),
+                })
+            } else {
+                let contents = compat.utf8_text(source).unwrap_or("");
+                if !contents.is_empty() {
+                    errors.push(ParseError {
+                        reason: ParseErrorReason::UnexpectedToken(contents.to_string()),
+                        start: compat.start_byte(),
+                        end: compat.end_byte(),
+                    })
+                } else {
+                    errors.push(ParseError {
+                        reason: ParseErrorReason::FailedNode(vec![]),
+                        start: compat.start_byte(),
+                        end: compat.end_byte(),
+                    })
+                }
+            }
+        } else if compat.is_missing() {
+            errors.push(ParseError {
+                reason: ParseErrorReason::MissingToken(compat.kind().to_string()),
+                start: compat.start_byte(),
+                end: compat.end_byte(),
+            })
+        } else if compat.has_error() {
+            for child in compat.children() {
+                collect_parsing_errors(child.inner, source, errors);
+            }
         }
     }
 }

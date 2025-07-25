@@ -14,10 +14,13 @@ categories = ["development-tools"]
 path = "src/lib.rs"
 
 [features]
-default = ["tree-sitter-c2rust"]
+default = ["pure-rust"]
+pure-rust = []
 tree-sitter-c2rust = ["tree-sitter-runtime-c2rust"]
 tree-sitter-standard = ["tree-sitter-runtime-standard"]
 serialization = ["serde", "serde_json"]
+wasm = ["wasm-bindgen", "pure-rust"]
+simd = ["pure-rust"]
 
 [dependencies]
 tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
@@ -33,6 +36,9 @@ anyhow = "1.0"
 indexmap = "2.0"
 thiserror = "1.0"
 rayon = "1.7"
+ahash = "0.8"
+log = "0.4"
+wasm-bindgen = { version = "0.2", optional = true }
 
 [dev-dependencies]
 insta = "1.39"

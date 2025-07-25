@@ -23,7 +23,7 @@ pub struct Tree {
 
 /// Node that can be reused during incremental parsing
 #[derive(Debug, Clone)]
-struct ReusableNode {
+pub struct ReusableNode {
     node: ParsedNode,
     byte_range: Range<usize>,
     is_error: bool,
@@ -112,6 +112,16 @@ impl IncrementalParser {
         self.parser.set_language(language)
     }
     
+    /// Set timeout for parsing
+    pub fn set_timeout_micros(&mut self, timeout: u64) {
+        self.parser.set_timeout_micros(timeout);
+    }
+    
+    /// Set cancellation flag
+    pub fn set_cancellation_flag(&mut self, flag: Option<*const std::sync::atomic::AtomicBool>) {
+        self.parser.set_cancellation_flag(flag);
+    }
+    
     /// Parse with incremental reuse
     pub fn parse(&mut self, source: &str, old_tree: Option<&Tree>) -> ParseResult {
         // If we have an old tree, try to reuse nodes
@@ -146,18 +156,18 @@ impl IncrementalParser {
     pub fn parse_with_edits(
         &mut self,
         source: &str,
-        old_tree: Option<&mut Tree>,
+        mut old_tree: Option<Tree>,
         edits: &[Edit]
     ) -> ParseResult {
         // Apply edits to the old tree
-        if let Some(tree) = old_tree {
+        if let Some(ref mut tree) = old_tree {
             for edit in edits {
                 tree.edit(edit);
             }
         }
         
         // Parse with the edited tree
-        self.parse(source, old_tree.as_deref())
+        self.parse(source, old_tree.as_ref())
     }
 }
 

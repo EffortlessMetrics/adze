@@ -464,8 +464,10 @@ impl GLRGrammarValidator {
     fn validate_productivity(&mut self, productive: &HashSet<SymbolId>, grammar: &Grammar) {
         // Check all non-terminals (LHS of rules)
         let mut non_terminals = HashSet::new();
-        for rule in grammar.rules.values() {
-            non_terminals.insert(rule.lhs);
+        for rules in grammar.rules.values() {
+            for rule in rules {
+                non_terminals.insert(rule.lhs);
+            }
         }
         
         for symbol in non_terminals {
@@ -507,11 +509,13 @@ impl GLRGrammarValidator {
         visited.insert(start);
         path.push(start);
         
-        if let Some(rule) = grammar.rules.get(&start) {
-            for symbol in &rule.rhs {
-                if let Symbol::NonTerminal(id) = symbol {
-                    if self.find_non_productive_cycle(*id, grammar, path, visited) {
-                        return true;
+        if let Some(rules) = grammar.rules.get(&start) {
+            for rule in rules {
+                for symbol in &rule.rhs {
+                    if let Symbol::NonTerminal(id) = symbol {
+                        if self.find_non_productive_cycle(*id, grammar, path, visited) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -522,11 +526,12 @@ impl GLRGrammarValidator {
     }
 
     fn check_left_recursion(&mut self, grammar: &Grammar, stats: &mut GrammarStats) {
-        for (symbol, rule) in &grammar.rules {
-            // Check direct left recursion
-            if let Some(Symbol::NonTerminal(first)) = rule.rhs.first() {
-                if first == symbol {
-                    stats.has_left_recursion = true;
+        for (symbol, rules) in &grammar.rules {
+            for rule in rules {
+                // Check direct left recursion
+                if let Some(Symbol::NonTerminal(first)) = rule.rhs.first() {
+                    if first == symbol {
+                        stats.has_left_recursion = true;
                     
                     self.warnings.push(ValidationWarning {
                         message: format!("Direct left recursion in rule for '{}'", 
@@ -536,6 +541,7 @@ impl GLRGrammarValidator {
                                         self.get_symbol_name(*first)),
                         suggestion: Some("Consider rewriting to eliminate left recursion or use GLR parsing".to_string()),
                     });
+                    }
                 }
             }
             
@@ -563,12 +569,16 @@ impl GLRGrammarValidator {
         }
         visited.insert(from);
         
-        if let Some(rule) = grammar.rules.get(&from) {
-            if let Some(Symbol::NonTerminal(first)) = rule.rhs.first() {
-                if *first == target {
-                    return true;
+        if let Some(rules) = grammar.rules.get(&from) {
+            for rule in rules {
+                if let Some(Symbol::NonTerminal(first)) = rule.rhs.first() {
+                    if *first == target {
+                        return true;
+                    }
+                    if self.can_derive_left(*first, target, grammar, visited) {
+                        return true;
+                    }
                 }
-                return self.can_derive_left(*first, target, grammar, visited);
             }
         }
         
@@ -592,9 +602,11 @@ impl GLRGrammarValidator {
         // Group rules by their RHS
         let mut rhs_map: HashMap<Vec<Symbol>, Vec<SymbolId>> = HashMap::new();
         
-        for (symbol, rule) in &grammar.rules {
-            let rhs = rule.rhs.clone();
-            rhs_map.entry(rhs).or_default().push(*symbol);
+        for (symbol, rules) in &grammar.rules {
+            for rule in rules {
+                let rhs = rule.rhs.clone();
+                rhs_map.entry(rhs).or_default().push(*symbol);
+            }
         }
         
         // Check for multiple rules with the same RHS
@@ -626,13 +638,14 @@ impl GLRGrammarValidator {
         // Check for common LR conflict patterns
         
         // 1. Check for left-recursive and right-recursive rules for the same non-terminal
-        for (symbol, rule) in &grammar.rules {
-            let has_left_rec = !rule.rhs.is_empty() && match &rule.rhs[0] {
-                Symbol::NonTerminal(id) => id == symbol,
-                _ => false,
-            };
-            
-            let has_right_rec = rule.rhs.len() > 1 && match rule.rhs.last() {
+        for (symbol, rules) in &grammar.rules {
+            for rule in rules {
+                let has_left_rec = !rule.rhs.is_empty() && match &rule.rhs[0] {
+                    Symbol::NonTerminal(id) => id == symbol,
+                    _ => false,
+                };
+                
+                let has_right_rec = rule.rhs.len() > 1 && match rule.rhs.last() {
                 Some(Symbol::NonTerminal(id)) => id == symbol,
                 _ => false,
             };
@@ -641,7 +654,8 @@ impl GLRGrammarValidator {
             if has_left_rec || has_right_rec {
                 let other_rules: Vec<_> = grammar.rules.iter()
                     .filter(|(s, _)| *s == symbol)
-                    .filter(|(_, r)| {
+                    .flat_map(|(_, rules)| rules.iter())
+                    .filter(|r| {
                         let other_left_rec = !r.rhs.is_empty() && match &r.rhs[0] {
                             Symbol::NonTerminal(id) => id == symbol,
                             _ => false,
@@ -664,19 +678,22 @@ impl GLRGrammarValidator {
                     stats.requires_glr = true;
                 }
             }
+            }
         }
         
         // 2. Check for common prefix ambiguity
         let mut prefix_map: HashMap<Vec<SymbolId>, Vec<(SymbolId, usize)>> = HashMap::new();
         
-        for (symbol, rule) in &grammar.rules {
-            for prefix_len in 1..=rule.rhs.len().min(3) {
-                let prefix: Vec<_> = rule.rhs.iter().take(prefix_len).map(|s| match s {
+        for (symbol, rules) in &grammar.rules {
+            for rule in rules {
+                for prefix_len in 1..=rule.rhs.len().min(3) {
+                    let prefix: Vec<_> = rule.rhs.iter().take(prefix_len).map(|s| match s {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                     Symbol::External(ext) => SymbolId(ext.0),
                 }).collect();
                 
-                prefix_map.entry(prefix).or_default().push((*symbol, rule.rhs.len()));
+                    prefix_map.entry(prefix).or_default().push((*symbol, rule.rhs.len()));
+                }
             }
         }
         
@@ -708,9 +725,10 @@ impl GLRGrammarValidator {
         // Check for classic ambiguous patterns
         
         // 0. Check for E → E E pattern (highly ambiguous)
-        for (_key, rule) in &grammar.rules {
-            if rule.rhs.len() == 2 {
-                if let (Symbol::NonTerminal(id1), Symbol::NonTerminal(id2)) = (&rule.rhs[0], &rule.rhs[1]) {
+        for (_key, rules) in &grammar.rules {
+            for rule in rules {
+                if rule.rhs.len() == 2 {
+                    if let (Symbol::NonTerminal(id1), Symbol::NonTerminal(id2)) = (&rule.rhs[0], &rule.rhs[1]) {
                     if *id1 == rule.lhs && *id2 == rule.lhs {
                         self.warnings.push(ValidationWarning {
                             message: format!("Highly ambiguous pattern: '{}' → '{}' '{}'", 
@@ -724,11 +742,13 @@ impl GLRGrammarValidator {
                     }
                 }
             }
+            }
         }
         
         // 1. Dangling else pattern (if-then-else ambiguity)
-        for (_symbol, rule) in &grammar.rules {
-            let rule_str = rule.rhs.iter()
+        for (_symbol, rules) in &grammar.rules {
+            for rule in rules {
+                let rule_str = rule.rhs.iter()
                 .map(|s| match s {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) => self.get_symbol_name(*id),
                     Symbol::External(ext) => format!("external_{}", ext.0),
@@ -742,16 +762,18 @@ impl GLRGrammarValidator {
                 });
                 
                 if has_if_pattern {
-                    let has_optional_else = grammar.rules.values().any(|r| {
-                        let other_str = r.rhs.iter()
+                    let has_optional_else = grammar.rules.values().any(|rules| {
+                        rules.iter().any(|r| {
+                            let other_str = r.rhs.iter()
                             .map(|s| match s {
                                 Symbol::Terminal(id) | Symbol::NonTerminal(id) => self.get_symbol_name(*id),
                                 Symbol::External(ext) => format!("external_{}", ext.0),
                             })
                             .collect::<Vec<_>>();
                         
-                        other_str.len() > rule_str.len() && 
-                        other_str.contains(&"else".to_string())
+                            other_str.len() > rule_str.len() && 
+                            other_str.contains(&"else".to_string())
+                        })
                     });
                     
                     if has_optional_else {
@@ -764,19 +786,22 @@ impl GLRGrammarValidator {
                     }
                 }
             }
+            }
         }
         
         // 2. Expression ambiguity (like E → E + E | E * E)
         let mut symbol_binary_ops: HashMap<SymbolId, Vec<&Rule>> = HashMap::new();
         
-        for (_key, rule) in &grammar.rules {
-            if rule.rhs.len() == 3 {
-                if let (Symbol::NonTerminal(id1), _, Symbol::NonTerminal(id2)) = 
+        for (_key, rules) in &grammar.rules {
+            for rule in rules {
+                if rule.rhs.len() == 3 {
+                    if let (Symbol::NonTerminal(id1), _, Symbol::NonTerminal(id2)) = 
                     (&rule.rhs[0], &rule.rhs[1], &rule.rhs[2]) {
                     if *id1 == rule.lhs && *id2 == rule.lhs {
                         symbol_binary_ops.entry(rule.lhs).or_default().push(rule);
                     }
                 }
+            }
             }
         }
         
@@ -942,9 +967,12 @@ impl GLRGrammarValidator {
         stats.total_symbols = grammar.tokens.len() + grammar.rules.len() + grammar.externals.len();
         stats.terminal_count = grammar.tokens.len();
         stats.nonterminal_count = grammar.rules.len();
-        stats.rule_count = grammar.rules.len();
+        stats.rule_count = grammar.rules.values()
+            .map(|rules| rules.len())
+            .sum();
         
         stats.max_rule_length = grammar.rules.values()
+            .flat_map(|rules| rules.iter())
             .map(|r| r.rhs.len())
             .max()
             .unwrap_or(0);
@@ -1012,14 +1040,14 @@ mod tests {
         grammar.rule_names.insert(SymbolId(1), "number".to_string());
         
         // Use undefined symbol "numbr" (typo)
-        grammar.rules.insert(SymbolId(2), Rule {
+        grammar.rules.insert(SymbolId(2), vec![Rule {
             lhs: SymbolId(2),
             rhs: vec![Symbol::Terminal(SymbolId(99))], // undefined
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        });
+        }]);
         grammar.rule_names.insert(SymbolId(2), "expr".to_string());
         grammar.rule_names.insert(SymbolId(99), "numbr".to_string()); // typo
         
@@ -1056,7 +1084,7 @@ mod tests {
             fragile: false,
         });
         
-        grammar.rules.insert(expr_id, Rule {
+        grammar.rules.insert(expr_id, vec![Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::NonTerminal(expr_id),
@@ -1067,7 +1095,7 @@ mod tests {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        });
+        }]);
         
         grammar.rule_names.insert(expr_id, "expr".to_string());
         

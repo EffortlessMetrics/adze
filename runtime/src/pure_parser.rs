@@ -174,12 +174,22 @@ impl Parser {
     
     /// Parse a string of source code
     pub fn parse_string(&mut self, source: &str) -> ParseResult {
+        self.parse_string_with_tree(source, None)
+    }
+    
+    /// Parse a string with an old tree for incremental parsing
+    pub fn parse_string_with_tree(&mut self, source: &str, old_tree: Option<&crate::pure_incremental::Tree>) -> ParseResult {
         let bytes = source.as_bytes();
-        self.parse_bytes(bytes)
+        self.parse_bytes_with_tree(bytes, old_tree)
     }
     
     /// Parse bytes of source code
     pub fn parse_bytes(&mut self, source: &[u8]) -> ParseResult {
+        self.parse_bytes_with_tree(source, None)
+    }
+    
+    /// Parse bytes with an old tree for incremental parsing
+    pub fn parse_bytes_with_tree(&mut self, source: &[u8], old_tree: Option<&crate::pure_incremental::Tree>) -> ParseResult {
         let language = match self.language {
             Some(lang) => lang,
             None => return ParseResult {
@@ -207,6 +217,9 @@ impl Parser {
             position: 0,
             external_scanner: None,
         });
+        
+        // Get reusable nodes from old tree if available
+        let _reusable_nodes = old_tree.map(|tree| tree.get_reusable_nodes());
         
         let mut errors = Vec::new();
         let mut position = 0;
@@ -504,7 +517,7 @@ impl Parser {
     fn get_goto_state(&self, language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> TSStateId {
         // Goto table is encoded in the parse table after terminals
         let terminal_count = language.token_count;
-        let goto_symbol = symbol.0 - terminal_count as u16;
+        let goto_symbol = symbol - terminal_count as u16;
         
         unsafe {
             if state < language.large_state_count as u16 {

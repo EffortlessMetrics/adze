@@ -3,6 +3,8 @@
 
 use wasm_bindgen::prelude::*;
 use crate::pure_parser::{Parser, TSLanguage, ParsedNode, ParseResult};
+use crate::pure_incremental::{Edit as IncrementalEdit, Tree};
+use serde::{Serialize, Deserialize};
 
 /// WASM-compatible parser wrapper
 #[wasm_bindgen]
