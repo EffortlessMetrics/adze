@@ -7,7 +7,7 @@ use std::io::Write;
 use anyhow::{Result, Context};
 use rust_sitter_ir::{Grammar, optimize_grammar};
 use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
-use rust_sitter_tablegen::{StaticLanguageGenerator, NodeTypesGenerator};
+use rust_sitter_tablegen::{NodeTypesGenerator, AbiLanguageBuilder};
 use crate::grammar_js::{parse_grammar_js_v2, GrammarJsConverter};
 use serde_json::Value;
 
@@ -130,17 +130,17 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
     let parse_table = build_lr1_automaton(&grammar, &first_follow)
         .context("Failed to build LR(1) automaton")?;
     
-    // Step 3: Generate static language code
-    let mut generator = StaticLanguageGenerator::new(grammar.clone(), parse_table);
+    // Step 3: Generate static language code using ABI builder
+    let mut abi_builder = AbiLanguageBuilder::new(grammar.clone(), parse_table.clone());
     
     // Compress tables if requested
     if options.compress_tables {
-        let compressed = rust_sitter_tablegen::compress::CompressedParseTable::from_parse_table(&generator.parse_table);
-        generator.compressed_tables = Some(compressed.into());
+        abi_builder.compress_tables()
+            .context("Failed to compress tables")?;
     }
     
     // Generate the Rust code
-    let language_code = generator.generate_language_code();
+    let language_code = abi_builder.generate_language_module();
     
     // Step 4: Generate NODE_TYPES.json
     let node_types_gen = NodeTypesGenerator::new(&grammar);

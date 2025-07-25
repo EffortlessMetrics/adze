@@ -56,6 +56,7 @@ pub struct TSLanguage {
     pub production_id_count: u32,
     pub field_count: u32,
     pub max_alias_sequence_length: u16,
+    pub production_id_map: *const u16,
     pub parse_table: *const u16,
     pub small_parse_table: *const u16,
     pub small_parse_table_map: *const u32,

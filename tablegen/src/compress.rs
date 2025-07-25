@@ -37,6 +37,24 @@ impl CompressedParseTable {
     }
 }
 
+impl From<CompressedParseTable> for CompressedTables {
+    fn from(_compressed_parse_table: CompressedParseTable) -> Self {
+        // Create dummy compressed tables for now
+        CompressedTables {
+            action_table: CompressedActionTable {
+                data: Vec::new(),
+                row_offsets: Vec::new(),
+                default_actions: Vec::new(),
+            },
+            goto_table: CompressedGotoTable {
+                data: Vec::new(),
+                row_offsets: Vec::new(),
+            },
+            small_table_threshold: 32768,
+        }
+    }
+}
+
 /// Complete compressed tables for Tree-sitter
 pub struct CompressedTables {
     pub action_table: CompressedActionTable,
@@ -292,19 +310,3 @@ impl TableCompressor {
     }
 }
 
-impl From<CompressedParseTable> for CompressedTables {
-    fn from(_compressed: CompressedParseTable) -> Self {
-        CompressedTables {
-            action_table: CompressedActionTable { 
-                data: Vec::new(),
-                row_offsets: Vec::new(),
-                default_actions: Vec::new(),
-            },
-            goto_table: CompressedGotoTable { 
-                data: Vec::new(),
-                row_offsets: Vec::new(),
-            },
-            small_table_threshold: 256,
-        }
-    }
-}

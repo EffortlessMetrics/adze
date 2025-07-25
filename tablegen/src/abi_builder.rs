@@ -44,6 +44,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let (field_map_slices, field_map_entries) = self.generate_field_maps();
         let public_symbol_map = self.generate_public_symbol_map();
         let primary_state_ids = self.generate_primary_state_ids();
+        let production_id_map = self.generate_production_id_map();
         
         // Count elements
         let counts = self.calculate_counts();
@@ -103,6 +104,9 @@ impl<'a> AbiLanguageBuilder<'a> {
             // Primary state IDs
             static PRIMARY_STATE_IDS: &[TSStateId] = &[#(#primary_state_ids),*];
             
+            // Production ID map (maps production IDs to rule IDs)
+            static PRODUCTION_ID_MAP: &[u16] = &[#(#production_id_map),*];
+            
             // The language structure
             static LANGUAGE: TSLanguage = TSLanguage {
                 version: TREE_SITTER_LANGUAGE_VERSION,
@@ -115,6 +119,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 production_id_count: #production_id_count,
                 field_count: #field_count,
                 max_alias_sequence_length: #max_alias_sequence_length,
+                production_id_map: PRODUCTION_ID_MAP.as_ptr(),
                 parse_table: PARSE_TABLE.as_ptr(),
                 small_parse_table: std::ptr::null(),
                 small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
@@ -361,6 +366,25 @@ impl<'a> AbiLanguageBuilder<'a> {
         (0..self.parse_table.state_count).map(|i| {
             quote! { TSStateId(#i as u16) }
         }).collect()
+    }
+    
+    /// Generate production ID map
+    fn generate_production_id_map(&self) -> Vec<TokenStream> {
+        // Map production IDs to rule symbols
+        let mut production_map = Vec::new();
+        
+        // Sort rules by production ID for deterministic output
+        let mut rules: Vec<_> = self.grammar.rules.iter()
+            .flat_map(|(_, rules)| rules.iter())
+            .collect();
+        rules.sort_by_key(|rule| rule.production_id.0);
+        
+        for rule in rules {
+            let rule_symbol = rule.lhs.0 as u16;
+            production_map.push(quote! { #rule_symbol });
+        }
+        
+        production_map
     }
     
     /// Calculate counts for the language structure
