@@ -671,7 +671,9 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     // Map all token IDs
     for &symbol_id in grammar.tokens.keys() {
         max_symbol_id = max_symbol_id.max(symbol_id.0);
-        symbol_to_index.insert(symbol_id, symbol_to_index.len());
+        if !symbol_to_index.contains_key(&symbol_id) {
+            symbol_to_index.insert(symbol_id, symbol_to_index.len());
+        }
     }
     
     // Map all non-terminal symbols (LHS of rules)
@@ -681,20 +683,27 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     }
     for &symbol_id in &non_terminals {
         max_symbol_id = max_symbol_id.max(symbol_id.0);
-        symbol_to_index.insert(symbol_id, symbol_to_index.len());
+        if !symbol_to_index.contains_key(&symbol_id) {
+            symbol_to_index.insert(symbol_id, symbol_to_index.len());
+        }
     }
     
     // Map all external IDs
     for external in &grammar.externals {
         max_symbol_id = max_symbol_id.max(external.symbol_id.0);
-        symbol_to_index.insert(external.symbol_id, symbol_to_index.len());
+        if !symbol_to_index.contains_key(&external.symbol_id) {
+            symbol_to_index.insert(external.symbol_id, symbol_to_index.len());
+        }
     }
     
-    // Calculate the final symbol count before adding EOF
-    let indexed_symbol_count = symbol_to_index.len() + 1; // +1 for EOF
-    
     // Add EOF symbol (ID 0 is reserved for EOF in Tree-sitter)
-    symbol_to_index.insert(SymbolId(0), symbol_to_index.len());
+    if !symbol_to_index.contains_key(&SymbolId(0)) {
+        symbol_to_index.insert(SymbolId(0), symbol_to_index.len());
+    }
+    
+    // Calculate the final symbol count after adding all symbols including EOF
+    let indexed_symbol_count = symbol_to_index.len();
+    
     
     // Create parse table with proper dimensions
     let state_count = collection.sets.len();
@@ -749,6 +758,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     
     // Convert conflicts to Fork actions
     for ((state_idx, symbol_idx), actions) in conflicts_by_state {
+        
         if actions.len() > 1 {
             action_table[state_idx][symbol_idx] = Action::Fork(actions);
         } else if let Some(action) = actions.into_iter().next() {
@@ -819,10 +829,9 @@ fn add_action_with_conflict(
 ) {
     // Bounds check
     if state_idx >= action_table.len() || symbol_idx >= action_table[0].len() {
-        eprintln!("WARNING: Index out of bounds in add_action_with_conflict: state_idx={}, symbol_idx={}, table_size={}x{}", 
-                  state_idx, symbol_idx, action_table.len(), 
-                  if action_table.is_empty() { 0 } else { action_table[0].len() });
-        return;
+        panic!("Index out of bounds in add_action_with_conflict: state_idx={}, symbol_idx={}, table_size={}x{}", 
+               state_idx, symbol_idx, action_table.len(), 
+               if action_table.is_empty() { 0 } else { action_table[0].len() });
     }
     
     let current_action = &action_table[state_idx][symbol_idx];
