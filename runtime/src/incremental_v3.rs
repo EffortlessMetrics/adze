@@ -352,6 +352,7 @@ impl<'a> IncrementalParseSession<'a> {
     fn reduce(&mut self, rule_id: RuleId) -> Result<()> {
         // Find the rule
         let rule = self.grammar.rules.values()
+            .flat_map(|rules| rules.iter())
             .find(|r| {
                 // Match by production ID or other criteria
                 self.grammar.production_ids.iter()

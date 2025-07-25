@@ -224,16 +224,19 @@ impl GLRGrammarValidator {
         // Collect defined symbols
         defined_symbols.extend(grammar.tokens.keys());
         // Add non-terminals (LHS of rules)
-        for rule in grammar.rules.values() {
-            defined_symbols.insert(rule.lhs);
+        for rules in grammar.rules.values() {
+            for rule in rules {
+                defined_symbols.insert(rule.lhs);
+            }
         }
         for external in &grammar.externals {
             defined_symbols.insert(external.symbol_id);
         }
         
         // Collect used symbols and check for undefined
-        for (rule_id, rule) in &grammar.rules {
-            for (pos, symbol) in rule.rhs.iter().enumerate() {
+        for (_symbol_id, rules) in &grammar.rules {
+            for rule in rules {
+                for (pos, symbol) in rule.rhs.iter().enumerate() {
                 let symbol_id = match symbol {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                     Symbol::External(ext) => SymbolId(ext.0),
@@ -257,16 +260,17 @@ impl GLRGrammarValidator {
                         kind: ErrorKind::UndefinedSymbol,
                         message: format!("Symbol '{}' is not defined", self.get_symbol_name(symbol_id)),
                         location: ErrorLocation {
-                            symbol: Some(*rule_id),
+                            symbol: Some(rule.lhs),
                             rule_index: None,
                             position: Some(pos),
                             description: format!("In rule '{}' at position {}", 
-                                              self.get_symbol_name(*rule_id), pos),
+                                              self.get_symbol_name(rule.lhs), pos),
                         },
                         suggestion: Some("Define the symbol as a token or rule before using it".to_string()),
                         related,
                     });
                 }
+            }
             }
         }
         

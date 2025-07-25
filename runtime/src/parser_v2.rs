@@ -78,10 +78,12 @@ impl ParseNode {
         }
         
         // Then try rules
-        if let Some(rule) = grammar.rules.get(&self.symbol) {
-            // Use the rule symbol name if available
-            return grammar.tokens.get(&rule.lhs)
-                .map(|t| t.name.as_str());
+        if let Some(rules) = grammar.rules.get(&self.symbol) {
+            // Use the first rule's lhs symbol name if available
+            if let Some(rule) = rules.first() {
+                return grammar.tokens.get(&rule.lhs)
+                    .map(|t| t.name.as_str());
+            }
         }
         
         None
@@ -114,11 +116,14 @@ impl ParserV2 {
     pub fn new(grammar: Grammar, parse_table: ParseTable) -> Self {
         // Build rule map for quick lookup
         let mut rule_map = HashMap::new();
-        for (symbol_id, rule) in &grammar.rules {
-            // Create a rule ID from the symbol ID
-            // In a real implementation, rules would have their own IDs
-            let rule_id = RuleId(symbol_id.0);
-            rule_map.insert(rule_id, rule.clone());
+        let mut rule_counter = 0u16;
+        for (_symbol_id, rules) in &grammar.rules {
+            for rule in rules {
+                // Create a unique rule ID for each rule
+                let rule_id = RuleId(rule_counter);
+                rule_counter += 1;
+                rule_map.insert(rule_id, rule.clone());
+            }
         }
         
         Self {

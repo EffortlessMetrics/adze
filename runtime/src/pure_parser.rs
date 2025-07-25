@@ -416,7 +416,7 @@ impl Parser {
         unsafe {
             let action = *language.parse_actions.add(action_index);
             match action.action_type {
-                0 => Action::Shift(TSStateId(action.symbol.0)), // Shift
+                0 => Action::Shift(action.symbol), // Shift
                 1 => Action::Reduce(action.symbol.0 as u16),    // Reduce
                 2 => Action::Accept,                             // Accept
                 _ => Action::Error,                              // Error or other
@@ -512,7 +512,7 @@ impl Parser {
                 for _ in 0..entry_count {
                     let entry_symbol = *language.small_parse_table.add(offset);
                     if entry_symbol >= terminal_count as u16 && entry_symbol == symbol.0 {
-                        return TSStateId(*language.small_parse_table.add(offset + 1));
+                        return *language.small_parse_table.add(offset + 1);
                     }
                     offset += 2;
                 }
@@ -520,11 +520,11 @@ impl Parser {
                 // Large parse table lookup
                 let table_offset = (state.0 - language.large_state_count as u16) as usize * language.symbol_count as usize;
                 let goto_index = table_offset + symbol.0 as usize;
-                return TSStateId(*language.parse_table.add(goto_index));
+                return *language.parse_table.add(goto_index);
             }
         }
         
-        TSStateId(0) // Error state
+        0 // Error state
     }
     
     /// Get expected symbols for error reporting

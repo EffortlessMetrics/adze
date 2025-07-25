@@ -333,6 +333,7 @@ impl<'a> IncrementalParserState<'a> {
     fn reduce(&mut self, rule_id: RuleId) -> Result<(), ParseError> {
         // Find the rule
         let rule = self.grammar.rules.values()
+            .flat_map(|rules| rules.iter())
             .find(|r| r.production_id.0 == rule_id.0)
             .ok_or(ParseError::UnexpectedToken {
                 expected: vec![],

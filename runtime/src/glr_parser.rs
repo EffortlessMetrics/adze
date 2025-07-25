@@ -360,7 +360,9 @@ impl GLRParser {
     fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
         // println!("  Performing reduction of rule {}", rule_id.0);
         // Find the rule in the grammar
-        if let Some(rule) = self.grammar.rules.values().find(|r| r.production_id.0 == rule_id.0) {
+        if let Some(rule) = self.grammar.rules.values()
+            .flat_map(|rules| rules.iter())
+            .find(|r| r.production_id.0 == rule_id.0) {
             let children = stack.pop(rule.rhs.len());
             
             // Create new subtree for the reduction
@@ -580,7 +582,8 @@ impl GLRParser {
             let mut has_reduction = false;
             
             // Check all possible reductions in this state
-            for (rule_id, rule) in &self.grammar.rules {
+            for (_symbol_id, rules) in &self.grammar.rules {
+                for rule in rules {
                 // Check if we can reduce by this rule
                 if self.can_reduce(&current_stack, rule) {
                     // After reduction, we need to find the goto state
@@ -650,6 +653,7 @@ impl GLRParser {
                             }
                         }
                     }
+                }
                 }
             }
             

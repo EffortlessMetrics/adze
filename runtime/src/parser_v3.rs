@@ -333,9 +333,11 @@ impl Parser {
         for (rid, &prod_id) in &self.grammar.production_ids {
             if *rid == rule_id {
                 // Find the rule with this production ID
-                for rule in self.grammar.rules.values() {
-                    if rule.production_id == prod_id {
-                        return Ok(rule);
+                for rules in self.grammar.rules.values() {
+                    for rule in rules {
+                        if rule.production_id == prod_id {
+                            return Ok(rule);
+                        }
                     }
                 }
             }
