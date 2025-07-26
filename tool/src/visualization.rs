@@ -322,14 +322,14 @@ mod tests {
         });
         
         let expr_sym = SymbolId(2);
-        grammar.rules.insert(expr_sym, Rule {
+        grammar.rules.insert(expr_sym, vec![Rule {
             lhs: expr_sym,
             rhs: vec![Symbol::Terminal(id_sym)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        });
+        }]);
         
         let visualizer = GrammarVisualizer::new(grammar);
         let text = visualizer.to_text();

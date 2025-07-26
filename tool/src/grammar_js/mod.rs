@@ -14,6 +14,7 @@ pub mod parser_v2_test;
 pub mod parser_v3;
 pub mod converter;
 pub mod helpers;
+pub mod json_converter;
 
 pub use parser::parse_grammar_js;
 pub use parser_v2::parse_grammar_js_v2;
@@ -226,9 +227,8 @@ impl GrammarJs {
 
 /// Convert a JSON value to a GrammarJs structure
 pub fn from_json(value: &Value) -> Result<GrammarJs> {
-    // Try to deserialize directly
-    serde_json::from_value(value.clone())
-        .map_err(|e| anyhow::anyhow!("Failed to deserialize grammar JSON: {}", e))
+    // Use the Tree-sitter JSON converter
+    json_converter::from_tree_sitter_json(value)
 }
 
 #[cfg(test)]

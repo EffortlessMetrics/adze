@@ -9,7 +9,57 @@ use crate::Extract;
 #[cfg(not(feature = "pure-rust"))]
 use crate::tree_sitter;
 #[cfg(feature = "pure-rust")]
-use crate::tree_sitter_compat as tree_sitter;
+use crate::pure_parser::ParsedNode;
+
+#[cfg(feature = "pure-rust")]
+/// A cursor for navigating parsed nodes in pure-rust mode
+pub struct TreeCursor<'a> {
+    node: &'a ParsedNode,
+    children: &'a [ParsedNode],
+    current_index: usize,
+}
+
+#[cfg(feature = "pure-rust")]
+impl<'a> TreeCursor<'a> {
+    pub fn new(node: &'a ParsedNode) -> Self {
+        Self {
+            node,
+            children: &node.children,
+            current_index: 0,
+        }
+    }
+    
+    pub fn goto_first_child(&mut self) -> bool {
+        if !self.children.is_empty() {
+            self.current_index = 0;
+            true
+        } else {
+            false
+        }
+    }
+    
+    pub fn goto_next_sibling(&mut self) -> bool {
+        if self.current_index + 1 < self.children.len() {
+            self.current_index += 1;
+            true
+        } else {
+            false
+        }
+    }
+    
+    pub fn node(&self) -> &'a ParsedNode {
+        if self.current_index < self.children.len() {
+            &self.children[self.current_index]
+        } else {
+            self.node
+        }
+    }
+    
+    fn field_name(&self) -> Option<&str> {
+        // TODO: Implement field names
+        None
+    }
+}
 
 #[cfg(not(feature = "pure-rust"))]
 pub fn extract_struct_or_variant<T>(
@@ -29,18 +79,17 @@ pub fn extract_struct_or_variant<T>(
 
 #[cfg(feature = "pure-rust")]
 pub fn extract_struct_or_variant<T>(
-    node: tree_sitter::Node,
-    construct_expr: impl Fn(&mut Option<tree_sitter::TreeCursor>, &mut usize) -> T,
+    node: &ParsedNode,
+    construct_expr: impl Fn(&mut Option<TreeCursor>, &mut usize) -> T,
 ) -> T {
-    let mut parent_cursor = node.walk();
-    construct_expr(
-        &mut if parent_cursor.goto_first_child() {
-            Some(parent_cursor)
-        } else {
-            None
-        },
-        &mut node.start_byte(),
-    )
+    let mut cursor = TreeCursor::new(node);
+    let mut cursor_opt = if cursor.goto_first_child() {
+        Some(cursor)
+    } else {
+        None
+    };
+    let mut start_byte = node.start_byte;
+    construct_expr(&mut cursor_opt, &mut start_byte)
 }
 
 #[cfg(not(feature = "pure-rust"))]
@@ -83,7 +132,7 @@ pub fn extract_field<LT: Extract<T>, T>(
 
 #[cfg(feature = "pure-rust")]
 pub fn extract_field<LT: Extract<T>, T>(
-    cursor_opt: &mut Option<tree_sitter::TreeCursor>,
+    cursor_opt: &mut Option<TreeCursor>,
     source: &[u8],
     last_idx: &mut usize,
     field_name: &str,
@@ -92,27 +141,16 @@ pub fn extract_field<LT: Extract<T>, T>(
     if let Some(cursor) = cursor_opt.as_mut() {
         loop {
             let n = cursor.node();
-            if let Some(name) = cursor.field_name() {
-                if name == field_name {
-                    let out = LT::extract(Some(n.inner), source, *last_idx, closure_ref);
-
-                    if !cursor.goto_next_sibling() {
-                        *cursor_opt = None;
-                    };
-
-                    *last_idx = n.inner.end_byte();
-
-                    return out;
-                } else {
-                    return LT::extract(None, source, *last_idx, closure_ref);
-                }
-            } else {
-                *last_idx = n.inner.end_byte();
-            }
-
+            // TODO: Field names are not yet supported in pure-rust parser
+            // For now, we'll just get the next child
+            let out = LT::extract(Some(n), source, *last_idx, closure_ref);
+            
             if !cursor.goto_next_sibling() {
-                return LT::extract(None, source, *last_idx, closure_ref);
+                *cursor_opt = None;
             }
+            
+            *last_idx = n.end_byte;
+            return out;
         }
     } else {
         LT::extract(None, source, *last_idx, closure_ref)

@@ -252,10 +252,29 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             type LeafFn = ();
 
                             #[allow(non_snake_case)]
+                            #[cfg(not(feature = "pure-rust"))]
                             fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
 
                                 let mut cursor = node.walk();
+                                assert!(cursor.goto_first_child(), "Could not find a child corresponding to any enum branch");
+                                loop {
+                                    let node = cursor.node();
+                                    match node.kind() {
+                                        #(#match_cases),*,
+                                        _ => if !cursor.goto_next_sibling() {
+                                            panic!("Could not find a child corresponding to any enum branch")
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            #[allow(non_snake_case)]
+                            #[cfg(feature = "pure-rust")]
+                            fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                                let node = node.unwrap();
+
+                                let mut cursor = ::rust_sitter::__private::TreeCursor::new(node);
                                 assert!(cursor.goto_first_child(), "Could not find a child corresponding to any enum branch");
                                 loop {
                                     let node = cursor.node();
@@ -292,7 +311,15 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             type LeafFn = ();
 
                             #[allow(non_snake_case)]
+                            #[cfg(not(feature = "pure-rust"))]
                             fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                                let node = node.unwrap();
+                                #extract_expr
+                            }
+                            
+                            #[allow(non_snake_case)]
+                            #[cfg(feature = "pure-rust")]
+                            fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
                                 #extract_expr
                             }
@@ -308,17 +335,35 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
     let tree_sitter_ident = Ident::new(&format!("tree_sitter_{grammar_name}"), Span::call_site());
 
+    // For C backend compatibility
+    #[cfg(not(feature = "pure-rust"))]
     transformed.push(syn::parse_quote! {
         unsafe extern "C" {
             fn #tree_sitter_ident() -> ::rust_sitter::tree_sitter::Language;
         }
     });
 
+    #[cfg(not(feature = "pure-rust"))]
     transformed.push(syn::parse_quote! {
         pub fn language() -> ::rust_sitter::tree_sitter::Language {
             unsafe { #tree_sitter_ident() }
         }
     });
+    
+    // For pure-rust backend
+    #[cfg(feature = "pure-rust")]
+    {
+        // Generate a function that includes the generated parser at runtime
+        transformed.push(syn::parse_quote! {
+            include!(concat!(env!("OUT_DIR"), "/grammar_", #grammar_name, "/parser_", #grammar_name, ".rs"));
+        });
+        
+        transformed.push(syn::parse_quote! {
+            pub fn language() -> &'static ::rust_sitter::pure_parser::TSLanguage {
+                unsafe { &LANGUAGE }
+            }
+        });
+    }
 
     let root_type_docstr = format!("[`{root_type}`]");
     transformed.push(syn::parse_quote! {

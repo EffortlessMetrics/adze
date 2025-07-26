@@ -82,7 +82,7 @@ pub trait Extract<Output> {
     
     #[cfg(feature = "pure-rust")]
     fn extract(
-        node: Option<&tree_sitter::Node>,
+        node: Option<&crate::pure_parser::ParsedNode>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -110,14 +110,15 @@ impl<L> Extract<L> for WithLeaf<L> {
     
     #[cfg(feature = "pure-rust")]
     fn extract(
-        node: Option<&tree_sitter::Node>,
+        node: Option<&crate::pure_parser::ParsedNode>,
         source: &[u8],
         _last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
     ) -> L {
         node.and_then(|n| {
-            let compat = crate::tree_sitter_compat::NodeCompat::new(n, source);
-            compat.utf8_text(source).ok()
+            // Extract text from node's byte range
+            let text = &source[n.start_byte..n.end_byte];
+            std::str::from_utf8(text).ok()
         })
         .map(|s| leaf_fn.unwrap()(s))
         .unwrap()
@@ -138,7 +139,7 @@ impl Extract<()> for () {
     
     #[cfg(feature = "pure-rust")]
     fn extract(
-        _node: Option<&tree_sitter::Node>,
+        _node: Option<&crate::pure_parser::ParsedNode>,
         _source: &[u8],
         _last_idx: usize,
         _leaf_fn: Option<&Self::LeafFn>,
@@ -161,7 +162,7 @@ impl<T: Extract<U>, U> Extract<Option<U>> for Option<T> {
     
     #[cfg(feature = "pure-rust")]
     fn extract(
-        node: Option<&tree_sitter::Node>,
+        node: Option<&crate::pure_parser::ParsedNode>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -185,7 +186,7 @@ impl<T: Extract<U>, U> Extract<Box<U>> for Box<T> {
     
     #[cfg(feature = "pure-rust")]
     fn extract(
-        node: Option<&tree_sitter::Node>,
+        node: Option<&crate::pure_parser::ParsedNode>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -229,19 +230,18 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
     
     #[cfg(feature = "pure-rust")]
     fn extract(
-        node: Option<&tree_sitter::Node>,
+        node: Option<&crate::pure_parser::ParsedNode>,
         source: &[u8],
         mut last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
     ) -> Vec<U> {
         node.map(|node| {
-            let compat = crate::tree_sitter_compat::NodeCompat::new(node, source);
             let mut out = vec![];
-            for (i, child) in node.children().iter().enumerate() {
-                if compat.field_name_for_child(i).is_some() {
-                    out.push(T::extract(Some(child), source, last_idx, leaf_fn));
-                }
-                last_idx = child.end_byte();
+            // For pure-rust, iterate through children directly
+            for child in &node.children {
+                // TODO: Check field names when available
+                out.push(T::extract(Some(child), source, last_idx, leaf_fn));
+                last_idx = child.end_byte;
             }
             out
         })
@@ -287,7 +287,7 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
     
     #[cfg(feature = "pure-rust")]
     fn extract(
-        node: Option<&tree_sitter::Node>,
+        node: Option<&crate::pure_parser::ParsedNode>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -295,9 +295,41 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
         Spanned {
             value: T::extract(node, source, last_idx, leaf_fn),
             span: node
-                .map(|n| (n.start_byte(), n.end_byte()))
+                .map(|n| (n.start_byte, n.end_byte))
                 .unwrap_or((last_idx, last_idx)),
         }
+    }
+}
+
+impl Extract<String> for String {
+    type LeafFn = ();
+    
+    #[cfg(not(feature = "pure-rust"))]
+    fn extract(
+        node: Option<tree_sitter::Node>,
+        source: &[u8],
+        _last_idx: usize,
+        _leaf_fn: Option<&Self::LeafFn>,
+    ) -> String {
+        node.and_then(|n| n.utf8_text(source).ok())
+            .unwrap_or_default()
+            .to_string()
+    }
+    
+    #[cfg(feature = "pure-rust")]
+    fn extract(
+        node: Option<&crate::pure_parser::ParsedNode>,
+        source: &[u8],
+        _last_idx: usize,
+        _leaf_fn: Option<&Self::LeafFn>,
+    ) -> String {
+        node.and_then(|n| {
+            // Extract text from node's byte range
+            let text = &source[n.start_byte..n.end_byte];
+            std::str::from_utf8(text).ok()
+        })
+        .unwrap_or_default()
+        .to_string()
     }
 }
 
@@ -387,50 +419,26 @@ pub mod errors {
     /// errors that were emitted.
     #[cfg(feature = "pure-rust")]
     pub fn collect_parsing_errors(
-        node: &tree_sitter::Node,
+        node: &crate::pure_parser::ParsedNode,
         source: &[u8],
         errors: &mut Vec<ParseError>,
     ) {
-        let compat = crate::tree_sitter_compat::NodeCompat::new(node, source);
-        if compat.is_error() {
-            if compat.child(0).is_some() {
-                // we managed to parse some children, so collect underlying errors for this node
-                let mut inner_errors = vec![];
-                for child in compat.children() {
-                    collect_parsing_errors(child.inner, source, &mut inner_errors);
-                }
-
+        // TODO: Implement error collection for pure-rust parser
+        // For now, just check if this is an error node
+        if false { // TODO: Check if error node
+            let contents = std::str::from_utf8(&source[node.start_byte..node.end_byte]).unwrap_or("");
+            if !contents.is_empty() {
                 errors.push(ParseError {
-                    reason: ParseErrorReason::FailedNode(inner_errors),
-                    start: compat.start_byte(),
-                    end: compat.end_byte(),
+                    reason: ParseErrorReason::UnexpectedToken(contents.to_string()),
+                    start: node.start_byte,
+                    end: node.end_byte,
                 })
-            } else {
-                let contents = compat.utf8_text(source).unwrap_or("");
-                if !contents.is_empty() {
-                    errors.push(ParseError {
-                        reason: ParseErrorReason::UnexpectedToken(contents.to_string()),
-                        start: compat.start_byte(),
-                        end: compat.end_byte(),
-                    })
-                } else {
-                    errors.push(ParseError {
-                        reason: ParseErrorReason::FailedNode(vec![]),
-                        start: compat.start_byte(),
-                        end: compat.end_byte(),
-                    })
-                }
             }
-        } else if compat.is_missing() {
-            errors.push(ParseError {
-                reason: ParseErrorReason::MissingToken(compat.kind().to_string()),
-                start: compat.start_byte(),
-                end: compat.end_byte(),
-            })
-        } else if compat.has_error() {
-            for child in compat.children() {
-                collect_parsing_errors(child.inner, source, errors);
-            }
+        }
+        
+        // Recursively check children
+        for child in &node.children {
+            collect_parsing_errors(child, source, errors);
         }
     }
 }

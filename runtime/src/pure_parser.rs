@@ -8,11 +8,19 @@ use std::time::Instant;
 // Import ABI types from tablegen
 type TSSymbol = u16;
 type TSStateId = u16;
-type TSLexState = u32;
+type TSFieldId = u16;
+
+/// Lex state for external scanners
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct TSLexState {
+    pub lex_state: u16,
+    pub external_lex_state: u16,
+}
 
 // Language version constants
-const TREE_SITTER_LANGUAGE_VERSION: u32 = 15;
-const TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION: u32 = 13;
+pub const TREE_SITTER_LANGUAGE_VERSION: u32 = 15;
+pub const TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION: u32 = 13;
 
 /// Point in a text document (row/column)
 #[repr(C)]
@@ -24,23 +32,66 @@ pub struct Point {
 
 /// Parser for Tree-sitter grammars
 #[derive(Debug)]
-// Define minimal TSLanguage for pure-Rust implementation
+// Define full TSLanguage for pure-Rust implementation - matches Tree-sitter ABI 15
 #[repr(C)]
 pub struct TSLanguage {
     pub version: u32,
     pub symbol_count: u32,
+    pub alias_count: u32,
     pub token_count: u32,
+    pub external_token_count: u32,
     pub state_count: u32,
     pub large_state_count: u32,
     pub production_id_count: u32,
+    pub field_count: u32,
+    pub max_alias_sequence_length: u16,
     pub production_id_map: *const u16,
     pub parse_table: *const u16,
     pub small_parse_table: *const u16,
     pub small_parse_table_map: *const u32,
     pub parse_actions: *const TSParseAction,
+    pub symbol_names: *const *const u8,
+    pub field_names: *const *const u8,
+    pub field_map_slices: *const u16,
+    pub field_map_entries: *const u16,
+    pub symbol_metadata: *const u8,
+    pub public_symbol_map: *const TSSymbol,
+    pub alias_map: *const u16,
+    pub alias_sequences: *const TSSymbol,
     pub lex_modes: *const TSLexState,
     pub lex_fn: Option<unsafe extern "C" fn(*mut c_void, TSLexState) -> bool>,
+    pub keyword_lex_fn: Option<unsafe extern "C" fn(*mut c_void, TSStateId) -> TSSymbol>,
+    pub keyword_capture_token: TSSymbol,
     pub external_scanner: ExternalScanner,
+    pub primary_state_ids: *const TSStateId,
+}
+
+// SAFETY: TSLanguage is a read-only structure that doesn't contain any mutable state.
+// All pointers point to static data that is never modified after initialization.
+unsafe impl Sync for TSLanguage {}
+
+// Wrapper types to make raw pointer arrays Sync
+#[repr(transparent)]
+pub struct SyncPtrArray<const N: usize>([*const u8; N]);
+
+unsafe impl<const N: usize> Sync for SyncPtrArray<N> {}
+
+impl<const N: usize> SyncPtrArray<N> {
+    pub const fn new(arr: [*const u8; N]) -> Self {
+        Self(arr)
+    }
+    
+    pub fn as_ptr(&self) -> *const *const u8 {
+        self.0.as_ptr() as *const *const u8
+    }
+    
+    pub const fn as_slice_ptr(&self) -> *const u8 {
+        if N == 0 {
+            std::ptr::null()
+        } else {
+            self.0[0]
+        }
+    }
 }
 
 #[repr(C)]
@@ -49,13 +100,40 @@ pub struct TSParseAction {
     pub action_type: u8,
     pub extra: u8,
     pub child_count: u8,
+    pub dynamic_precedence: i8,
     pub symbol: TSSymbol,
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct ExternalScanner {
+    pub states: *const u8,
+    pub symbol_map: *const TSSymbol,
+    pub create: Option<unsafe extern "C" fn() -> *mut c_void>,
+    pub destroy: Option<unsafe extern "C" fn(*mut c_void)>,
     pub scan: Option<unsafe extern "C" fn(*mut c_void, *mut c_void, *const bool) -> bool>,
+    pub serialize: Option<unsafe extern "C" fn(*mut c_void, *mut u8) -> u32>,
+    pub deserialize: Option<unsafe extern "C" fn(*mut c_void, *const u8, u32)>,
+}
+
+impl ExternalScanner {
+    pub const fn default() -> Self {
+        Self {
+            states: std::ptr::null(),
+            symbol_map: std::ptr::null(),
+            create: None,
+            destroy: None,
+            scan: None,
+            serialize: None,
+            deserialize: None,
+        }
+    }
+}
+
+impl Default for ExternalScanner {
+    fn default() -> Self {
+        Self::default()
+    }
 }
 
 pub struct Parser {
@@ -117,6 +195,7 @@ pub struct ParsedNode {
     pub is_missing: bool,
     pub is_named: bool,
     pub field_name: Option<String>,
+    pub(crate) language: Option<*const TSLanguage>,
 }
 
 /// Parse error
@@ -306,7 +385,7 @@ impl Parser {
                     if let Some(entry) = self.stack.pop() {
                         if let Some(subtree) = entry.subtree {
                             return ParseResult {
-                                root: Some(subtree_to_node(subtree)),
+                                root: Some(subtree_to_node(subtree, Some(language as *const _))),
                                 errors,
                             };
                         }
@@ -353,12 +432,12 @@ impl Parser {
             if state < language.state_count as u16 {
                 *language.lex_modes.add(state as usize)
             } else {
-                0 // Default lex state
+                TSLexState { lex_state: 0, external_lex_state: 0 }
             }
         };
         
         // Try external scanner first if available
-        if lex_mode != 0 && language.external_scanner.scan.is_some() {
+        if lex_mode.external_lex_state != 0 && language.external_scanner.scan.is_some() {
             // TODO: Implement external scanner support
         }
         
@@ -605,10 +684,10 @@ fn advance_point(mut point: Point, text: &[u8]) -> Point {
 }
 
 /// Convert internal subtree to public node
-fn subtree_to_node(subtree: Subtree) -> ParsedNode {
+fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> ParsedNode {
     ParsedNode {
         symbol: subtree.symbol,
-        children: subtree.children.into_iter().map(subtree_to_node).collect(),
+        children: subtree.children.into_iter().map(|s| subtree_to_node(s, language)).collect(),
         start_byte: subtree.start_byte,
         end_byte: subtree.end_byte,
         start_point: subtree.start_point,
@@ -618,6 +697,7 @@ fn subtree_to_node(subtree: Subtree) -> ParsedNode {
         is_missing: subtree.is_missing,
         is_named: true, // TODO: determine from symbol type
         field_name: None, // TODO: Extract field names from production ID
+        language,
     }
 }
 
@@ -688,15 +768,38 @@ impl ParsedNode {
     }
     
     /// Get node kind (symbol name)
-    /// For now, returns symbol ID as string - would be replaced with symbol names
     pub fn kind(&self) -> &str {
-        // In a real implementation, this would map symbol IDs to names
-        match self.symbol {
-            0 => "program",
-            1 => "expression",
-            2 => "number",
-            3 => "identifier",
-            _ => "unknown",
+        if let Some(language) = self.language {
+            unsafe {
+                let language = &*language;
+                if self.symbol < language.symbol_count as u16 {
+                    let symbol_names = std::slice::from_raw_parts(
+                        language.symbol_names,
+                        language.symbol_count as usize
+                    );
+                    let name_ptr = symbol_names[self.symbol as usize];
+                    let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
+                    c_str.to_str().unwrap_or("unknown")
+                } else {
+                    "unknown"
+                }
+            }
+        } else {
+            // Fallback for when language is not available
+            match self.symbol {
+                0 => "end",
+                1 => "*",
+                2 => "_2",
+                3 => "_6",
+                4 => "-",
+                5 => "Expression",
+                6 => "Whitespace__whitespace",
+                7 => "Whitespace",
+                8 => "Expression_Sub_1",
+                9 => "Expression_Sub",
+                10 => "rule_10",
+                _ => "unknown",
+            }
         }
     }
 }

@@ -58,24 +58,37 @@ impl<'a> AbiLanguageBuilder<'a> {
         let field_count = counts.field_count;
         let max_alias_sequence_length = counts.max_alias_sequence_length;
         
+        // Generate field names array - handle empty case
+        let field_names_array = if field_count == 0 {
+            quote! {
+                static FIELD_NAME_PTRS: SyncPtrArray<0> = SyncPtrArray::new([]);
+            }
+        } else {
+            quote! {
+                const FIELD_NAME_PTRS_LEN: usize = #field_count as usize;
+                static FIELD_NAME_PTRS: SyncPtrArray<FIELD_NAME_PTRS_LEN> = SyncPtrArray::new([
+                    #(#field_name_ptrs),*
+                ]);
+            }
+        };
+        
         quote! {
-            use crate::abi::*;
+            use ::rust_sitter::pure_parser::*;
             
             // Symbol names (null-terminated strings)
             #(#symbol_names)*
             
-            // Symbol name pointers array
-            static SYMBOL_NAME_PTRS: &[*const u8] = &[
+            // Symbol name pointers array - we use a wrapper to make it Sync
+            const SYMBOL_NAME_PTRS_LEN: usize = #symbol_count as usize;
+            static SYMBOL_NAME_PTRS: SyncPtrArray<SYMBOL_NAME_PTRS_LEN> = SyncPtrArray::new([
                 #(#symbol_name_ptrs),*
-            ];
+            ]);
             
             // Field names (null-terminated strings)
             #(#field_names)*
             
-            // Field name pointers array
-            static FIELD_NAME_PTRS: &[*const u8] = &[
-                #(#field_name_ptrs),*
-            ];
+            // Field name pointers array - handle empty case specially
+            #field_names_array
             
             // Symbol metadata (visibility, named, etc.)
             static SYMBOL_METADATA: &[u8] = &[#(#symbol_metadata),*];
@@ -99,51 +112,66 @@ impl<'a> AbiLanguageBuilder<'a> {
             static FIELD_MAP_ENTRIES: &[u16] = &[#(#field_map_entries),*];
             
             // Public symbol map
-            static PUBLIC_SYMBOL_MAP: &[TSSymbol] = &[#(#public_symbol_map),*];
+            static PUBLIC_SYMBOL_MAP: &[u16] = &[#(#public_symbol_map),*];
             
             // Primary state IDs
-            static PRIMARY_STATE_IDS: &[TSStateId] = &[#(#primary_state_ids),*];
+            static PRIMARY_STATE_IDS: &[u16] = &[#(#primary_state_ids),*];
             
             // Production ID map (maps production IDs to rule IDs)
             static PRODUCTION_ID_MAP: &[u16] = &[#(#production_id_map),*];
             
-            // The language structure
-            static LANGUAGE: TSLanguage = TSLanguage {
-                version: TREE_SITTER_LANGUAGE_VERSION,
-                symbol_count: #symbol_count,
-                alias_count: #alias_count,
-                token_count: #token_count,
-                external_token_count: #external_token_count,
-                state_count: #state_count,
-                large_state_count: #large_state_count,
-                production_id_count: #production_id_count,
-                field_count: #field_count,
-                max_alias_sequence_length: #max_alias_sequence_length,
-                production_id_map: PRODUCTION_ID_MAP.as_ptr(),
-                parse_table: PARSE_TABLE.as_ptr(),
-                small_parse_table: std::ptr::null(),
-                small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
-                parse_actions: PARSE_ACTIONS.as_ptr(),
-                symbol_names: SYMBOL_NAME_PTRS.as_ptr(),
-                field_names: FIELD_NAME_PTRS.as_ptr(),
-                field_map_slices: FIELD_MAP_SLICES.as_ptr(),
-                field_map_entries: FIELD_MAP_ENTRIES.as_ptr(),
-                symbol_metadata: SYMBOL_METADATA.as_ptr(),
-                public_symbol_map: PUBLIC_SYMBOL_MAP.as_ptr(),
-                alias_map: std::ptr::null(),
-                alias_sequences: std::ptr::null(),
-                lex_modes: LEX_MODES.as_ptr(),
-                lex_fn: None,
-                keyword_lex_fn: None,
-                keyword_capture_token: TSSymbol(0),
-                external_scanner: ExternalScanner::default(),
-                primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
+            // The language structure - use a lazy static
+            static mut LANGUAGE_DATA: Option<TSLanguage> = None;
+            static INIT: std::sync::Once = std::sync::Once::new();
+            
+            fn get_language() -> &'static TSLanguage {
+                unsafe {
+                    INIT.call_once(|| {
+                        LANGUAGE_DATA = Some(TSLanguage {
+                            version: TREE_SITTER_LANGUAGE_VERSION,
+                            symbol_count: #symbol_count,
+                            alias_count: #alias_count,
+                            token_count: #token_count,
+                            external_token_count: #external_token_count,
+                            state_count: #state_count,
+                            large_state_count: #large_state_count,
+                            production_id_count: #production_id_count,
+                            field_count: #field_count,
+                            max_alias_sequence_length: #max_alias_sequence_length,
+                            production_id_map: PRODUCTION_ID_MAP.as_ptr(),
+                            parse_table: PARSE_TABLE.as_ptr(),
+                            small_parse_table: std::ptr::null(),
+                            small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
+                            parse_actions: PARSE_ACTIONS.as_ptr(),
+                            symbol_names: SYMBOL_NAME_PTRS.as_ptr(),
+                            field_names: FIELD_NAME_PTRS.as_ptr(),
+                            field_map_slices: FIELD_MAP_SLICES.as_ptr(),
+                            field_map_entries: FIELD_MAP_ENTRIES.as_ptr(),
+                            symbol_metadata: SYMBOL_METADATA.as_ptr(),
+                            public_symbol_map: PUBLIC_SYMBOL_MAP.as_ptr(),
+                            alias_map: std::ptr::null(),
+                            alias_sequences: std::ptr::null::<u16>(),
+                            lex_modes: LEX_MODES.as_ptr(),
+                            lex_fn: None,
+                            keyword_lex_fn: None,
+                            keyword_capture_token: 0,
+                            external_scanner: ExternalScanner::default(),
+                            primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
+                        });
+                    });
+                    LANGUAGE_DATA.as_ref().unwrap()
+                }
+            }
+            
+            static LANGUAGE: &TSLanguage = unsafe { 
+                // This is safe because get_language() returns a static reference
+                std::mem::transmute::<&TSLanguage, &'static TSLanguage>(get_language())
             };
             
             /// Get the Tree-sitter Language for this grammar
             #[no_mangle]
             pub extern "C" fn #language_fn_ident() -> *const TSLanguage {
-                &LANGUAGE as *const TSLanguage
+                get_language() as *const TSLanguage
             }
         }
     }
@@ -326,7 +354,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 extra: 0,
                 child_count: 0,
                 dynamic_precedence: 0,
-                symbol: TSSymbol(0),
+                symbol: 0,
             }
         }]
     }
@@ -357,14 +385,14 @@ impl<'a> AbiLanguageBuilder<'a> {
     fn generate_public_symbol_map(&self) -> Vec<TokenStream> {
         let symbol_count = self.calculate_symbol_count();
         (0..symbol_count).map(|i| {
-            quote! { TSSymbol(#i as u16) }
+            quote! { #i as u16 }
         }).collect()
     }
     
     /// Generate primary state IDs
     fn generate_primary_state_ids(&self) -> Vec<TokenStream> {
         (0..self.parse_table.state_count).map(|i| {
-            quote! { TSStateId(#i as u16) }
+            quote! { #i as u16 }
         }).collect()
     }
     
