@@ -72,6 +72,7 @@ pub struct SubtreePool {
     /// Subtrees indexed by byte range
     subtrees_by_range: HashMap<(usize, usize), Vec<Arc<Subtree>>>,
     /// Grammar for symbol lookup
+    #[allow(dead_code)]
     grammar: Arc<Grammar>,
 }
 

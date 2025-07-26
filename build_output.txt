@@ -1,0 +1,111 @@
+warning: unused variable: `tree_sitter_ident`
+   --> macro/src/expansion.rs:336:9
+    |
+336 |     let tree_sitter_ident = Ident::new(&format!("tree_sitter_{grammar_name}"), Span::call_site());
+    |         ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tree_sitter_ident`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: `rust-sitter-macro` (lib) generated 1 warning
+   Compiling rust-sitter v0.5.0-beta (/home/steven/code/rust-sitter/runtime)
+error[E0308]: mismatched types
+   --> runtime/src/glr_parser.rs:155:29
+    |
+154 |                         new_stack.push(
+    |                                   ---- arguments to this method are incorrect
+155 |                             new_state,
+    |                             ^^^^^^^^^ expected `StateId`, found `&StateId`
+    |
+note: method defined here
+   --> runtime/src/glr_parser.rs:48:8
+    |
+48  |     fn push(&mut self, state: StateId, node: Arc<Subtree>) {
+    |        ^^^^            --------------
+help: consider dereferencing the borrow
+    |
+155 |                             *new_state,
+    |                             +
+
+error[E0308]: mismatched types
+   --> runtime/src/glr_parser.rs:171:77
+    |
+171 |                         self.perform_reduction_on_stack(&mut reduced_stack, rule_id);
+    |                              --------------------------                     ^^^^^^^ expected `RuleId`, found `&RuleId`
+    |                              |
+    |                              arguments to this method are incorrect
+    |
+note: method defined here
+   --> runtime/src/glr_parser.rs:362:8
+    |
+362 |     fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^                                    ---------------
+help: consider dereferencing the borrow
+    |
+171 |                         self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
+    |                                                                             +
+
+error[E0308]: mismatched types
+   --> runtime/src/glr_parser.rs:187:41
+    |
+186 | ...                   reduced_stack.push(
+    |                                     ---- arguments to this method are incorrect
+187 | ...                       shift_state,
+    |                           ^^^^^^^^^^^ expected `StateId`, found `&StateId`
+    |
+note: method defined here
+   --> runtime/src/glr_parser.rs:48:8
+    |
+48  |     fn push(&mut self, state: StateId, node: Arc<Subtree>) {
+    |        ^^^^            --------------
+help: consider dereferencing the borrow
+    |
+187 |                                         *shift_state,
+    |                                         +
+
+error[E0308]: mismatched types
+   --> runtime/src/glr_parser.rs:278:69
+    |
+278 | ...                   recovery_stack.push(new_state, error_node);
+    |                                      ---- ^^^^^^^^^ expected `StateId`, found `&StateId`
+    |                                      |
+    |                                      arguments to this method are incorrect
+    |
+note: method defined here
+   --> runtime/src/glr_parser.rs:48:8
+    |
+48  |     fn push(&mut self, state: StateId, node: Arc<Subtree>) {
+    |        ^^^^            --------------
+help: consider dereferencing the borrow
+    |
+278 |                                                 recovery_stack.push(*new_state, error_node);
+    |                                                                     +
+
+error[E0308]: mismatched types
+   --> runtime/src/glr_parser.rs:342:77
+    |
+342 |                         self.perform_reduction_on_stack(&mut reduced_stack, rule_id);
+    |                              --------------------------                     ^^^^^^^ expected `RuleId`, found `&RuleId`
+    |                              |
+    |                              arguments to this method are incorrect
+    |
+note: method defined here
+   --> runtime/src/glr_parser.rs:362:8
+    |
+362 |     fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^                                    ---------------
+help: consider dereferencing the borrow
+    |
+342 |                         self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
+    |                                                                             +
+
+warning: unnecessary `unsafe` block
+   --> runtime/src/external_scanner_ffi.rs:153:13
+    |
+153 |             unsafe {
+    |             ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` on by default
+
+For more information about this error, try `rustc --explain E0308`.
+warning: `rust-sitter` (lib) generated 1 warning
+error: could not compile `rust-sitter` (lib) due to 5 previous errors; 1 warning emitted

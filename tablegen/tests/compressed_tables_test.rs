@@ -75,7 +75,8 @@ fn test_compressed_table_generation() {
 
 #[test]
 fn test_table_compression_algorithms() {
-    use rust_sitter_glr_core::{Action, StateId, RuleId};
+    use rust_sitter_glr_core::Action;
+    use rust_sitter_ir::{StateId, RuleId};
     use rust_sitter_tablegen::compress::*;
     
     let compressor = TableCompressor::new();
@@ -100,7 +101,7 @@ fn test_table_compression_algorithms() {
 
 #[test]
 fn test_goto_table_compression() {
-    use rust_sitter_glr_core::{StateId};
+    use rust_sitter_ir::StateId;
     use rust_sitter_tablegen::compress::*;
     
     let compressor = TableCompressor::new();

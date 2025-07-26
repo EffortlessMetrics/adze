@@ -4,7 +4,7 @@ use crate::{
     Conflict, ConflictType, Action, SymbolId, RuleId,
     ItemSet, LRItem, ItemSetCollection,
 };
-use rust_sitter_ir::{Grammar, Symbol, StateId};
+use rust_sitter_ir::{Grammar, Symbol};
 use std::fmt::Write;
 
 /// Visualize conflicts in a human-readable format

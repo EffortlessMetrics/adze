@@ -1,5 +1,5 @@
 // Syntax highlighting support using queries
-use super::{Query, QueryMatch, QueryCursor};
+use super::{Query, QueryCursor};
 use crate::parser_v3::ParseNode;
 use std::collections::HashMap;
 

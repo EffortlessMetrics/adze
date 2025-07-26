@@ -3,8 +3,11 @@ use crate::pure_parser::{ParsedNode, Parser as PureParser};
 use crate::pure_incremental::{Tree as PureTree};
 
 // Type aliases for compatibility
+#[allow(dead_code)]
 pub type Node<'a> = NodeCompat<'a>;
+#[allow(dead_code)]
 pub type Parser = ParserCompat;
+#[allow(dead_code)]
 pub type Language = &'static crate::pure_parser::TSLanguage;
 
 /// Compatibility wrapper for ParsedNode to work with Extract trait
@@ -13,6 +16,7 @@ pub struct NodeCompat<'a> {
     source: &'a [u8],
 }
 
+#[allow(dead_code)]
 impl<'a> NodeCompat<'a> {
     pub fn new(node: &'a ParsedNode, source: &'a [u8]) -> Self {
         NodeCompat { inner: node, source }
@@ -75,7 +79,7 @@ impl<'a> NodeCompat<'a> {
         }
     }
     
-    pub fn field_name_for_child(&self, index: usize) -> Option<&str> {
+    pub fn field_name_for_child(&self, _index: usize) -> Option<&str> {
         // In pure-Rust, field names would come from the language definition
         // For now, return None
         None
@@ -96,11 +100,13 @@ impl<'a> Clone for NodeCompat<'a> {
 }
 
 /// Tree cursor for traversing the parse tree
+#[allow(dead_code)]
 pub struct TreeCursor<'a> {
     node: NodeCompat<'a>,
     index: usize,
 }
 
+#[allow(dead_code)]
 impl<'a> TreeCursor<'a> {
     pub fn node(&self) -> NodeCompat<'a> {
         self.node.clone()
@@ -133,9 +139,11 @@ impl<'a> TreeCursor<'a> {
 
 /// Parser wrapper for compatibility
 pub struct ParserCompat {
+    #[allow(dead_code)]
     inner: PureParser,
 }
 
+#[allow(dead_code)]
 impl ParserCompat {
     pub fn new() -> Self {
         ParserCompat {
@@ -144,7 +152,7 @@ impl ParserCompat {
     }
     
     pub fn set_language(&mut self, language: &'static crate::pure_parser::TSLanguage) -> Result<(), String> {
-        self.inner.set_language(language);
+        let _ = self.inner.set_language(language);
         Ok(())
     }
     

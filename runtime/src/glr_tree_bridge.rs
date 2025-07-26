@@ -1,8 +1,8 @@
 // Bridge between GLR Subtree and Tree-sitter Node/Tree structures
 // This module provides conversion and compatibility layer
 
-use crate::subtree::{Subtree, SubtreeNode};
-use rust_sitter_ir::{Grammar, SymbolId};
+use crate::subtree::Subtree;
+use rust_sitter_ir::Grammar;
 use std::sync::Arc;
 use std::collections::HashMap;
 
@@ -16,7 +16,9 @@ use tree_sitter_runtime_c2rust as tree_sitter;
 // Provide a default for when no features are enabled
 #[cfg(not(any(feature = "tree-sitter-standard", feature = "tree-sitter-c2rust")))]
 mod tree_sitter {
+    #[allow(dead_code)]
     pub struct Node;
+    #[allow(dead_code)]
     pub struct Tree;
 }
 

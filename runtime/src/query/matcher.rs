@@ -27,6 +27,7 @@ struct MatchState {
     /// Current captures
     captures: HashMap<u32, ParseNode>,
     /// Whether the match succeeded
+    #[allow(dead_code)]
     success: bool,
 }
 
@@ -319,6 +320,7 @@ impl<'a> QueryMatcher<'a> {
 pub struct QueryMatches<'a> {
     matcher: QueryMatcher<'a>,
     root: &'a ParseNode,
+    #[allow(dead_code)]
     pattern_index: usize,
     done: bool,
 }

@@ -340,8 +340,6 @@ pub mod errors {
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
     use tree_sitter_runtime_c2rust as tree_sitter;
     
-    #[cfg(feature = "pure-rust")]
-    use crate::tree_sitter;
 
     #[derive(Debug)]
     /// An explanation for an error that occurred during parsing.

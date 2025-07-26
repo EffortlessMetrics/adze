@@ -104,7 +104,18 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
     
     // Debug: Print the JSON structure
     eprintln!("Debug: Grammar JSON structure:");
-    eprintln!("{}", serde_json::to_string_pretty(&grammar_value).unwrap_or("Failed to pretty print".to_string()));
+    let json_str = serde_json::to_string_pretty(&grammar_value).unwrap_or("Failed to pretty print".to_string());
+    eprintln!("{}", &json_str);
+    
+    // Extract grammar name from JSON
+    let grammar_name = grammar_value.get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    
+    // Also write to a temp file for inspection
+    let debug_json_path = std::env::temp_dir().join(format!("rust_sitter_grammar_{}.json", grammar_name));
+    fs::write(&debug_json_path, &json_str)?;
+    eprintln!("Debug: Grammar JSON written to {:?}", debug_json_path);
     
     // Convert directly from JSON to GrammarJs structure
     let grammar_js = crate::grammar_js::from_json(&grammar_value)
@@ -139,6 +150,15 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
         grammar.tokens.values().map(|t| &t.name).collect::<Vec<_>>())?;
     writeln!(debug_file, "Debug: Rule names: {:?}", 
         grammar.rule_names.values().collect::<Vec<_>>())?;
+    
+    // Debug: Print all rules in the grammar
+    writeln!(debug_file, "Debug: All rules in grammar:")?;
+    for (symbol_id, rules) in &grammar.rules {
+        writeln!(debug_file, "  Symbol {:?} has {} rules:", symbol_id, rules.len())?;
+        for rule in rules {
+            writeln!(debug_file, "    {:?} -> {:?}", rule.lhs, rule.rhs)?;
+        }
+    }
     
     // Step 2: Build LR(1) automaton
     let parse_table = build_lr1_automaton(&grammar, &first_follow)

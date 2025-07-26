@@ -8,6 +8,7 @@ use std::time::Instant;
 // Import ABI types from tablegen
 type TSSymbol = u16;
 type TSStateId = u16;
+#[allow(dead_code)]
 type TSFieldId = u16;
 
 /// Lex state for external scanners
@@ -143,6 +144,7 @@ pub struct Parser {
 struct StackEntry {
     state: TSStateId,
     subtree: Option<Subtree>,
+    #[allow(dead_code)]
     position: usize,
 }
 
@@ -150,7 +152,9 @@ struct StackEntry {
 #[derive(Debug)]
 struct Lexer {
     input: Vec<u8>,
+    #[allow(dead_code)]
     position: usize,
+    #[allow(dead_code)]
     external_scanner: Option<*mut c_void>,
 }
 
@@ -166,6 +170,7 @@ struct Subtree {
     is_extra: bool,
     is_error: bool,
     is_missing: bool,
+    #[allow(dead_code)]
     production_id: u16,
 }
 
@@ -591,7 +596,7 @@ impl Parser {
     fn get_goto_state(&self, language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> TSStateId {
         // Goto table is encoded in the parse table after terminals
         let terminal_count = language.token_count;
-        let goto_symbol = symbol - terminal_count as u16;
+        let _goto_symbol = symbol - terminal_count as u16;
         
         unsafe {
             if state < language.large_state_count as u16 {
@@ -623,13 +628,11 @@ impl Parser {
     fn get_expected_symbols(&self, language: &TSLanguage, state: TSStateId) -> Vec<TSSymbol> {
         let mut expected = Vec::new();
         
-        unsafe {
-            // Check all possible symbols for valid actions
-            for symbol in 0..language.symbol_count as u16 {
-                let action = self.get_action(language, state, symbol);
-                if !matches!(action, Action::Error) {
-                    expected.push(symbol);
-                }
+        // Check all possible symbols for valid actions
+        for symbol in 0..language.symbol_count as u16 {
+            let action = self.get_action(language, state, symbol);
+            if !matches!(action, Action::Error) {
+                expected.push(symbol);
             }
         }
         

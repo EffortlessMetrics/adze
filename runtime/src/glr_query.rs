@@ -44,6 +44,7 @@ pub struct PatternNode {
     /// Child patterns
     children: Vec<PatternChild>,
     /// Whether this is an anchor (must match at root)
+    #[allow(dead_code)]
     is_anchor: bool,
 }
 
@@ -55,6 +56,7 @@ pub struct PatternChild {
     /// Quantifier for this child
     quantifier: Quantifier,
     /// Whether this is a field name match
+    #[allow(dead_code)]
     field_name: Option<String>,
 }
 

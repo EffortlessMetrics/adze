@@ -4,7 +4,8 @@
 
 use std::collections::{HashSet, VecDeque};
 use rust_sitter_ir::{Grammar, SymbolId};
-use rust_sitter_glr_core::{ParseTable, StateId};
+use rust_sitter_glr_core::ParseTable;
+use rust_sitter_ir::StateId;
 
 /// Error recovery strategies that can be applied during parsing
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -20,7 +20,7 @@ impl Parser {
     /// Set the language for this parser
     pub fn set_language(&mut self, language: &'static TSLanguage) -> Result<(), String> {
         self.pure_parser.set_language(language)?;
-        self.incremental_parser.set_language(language);
+        let _ = self.incremental_parser.set_language(language);
         Ok(())
     }
     

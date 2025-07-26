@@ -3,7 +3,7 @@
 
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
-use crate::parser_v3::{ParseNode, ParseError};
+use crate::parser_v3::ParseNode;
 use std::collections::{HashMap, HashSet};
 use anyhow::Result;
 
@@ -237,6 +237,7 @@ struct IncrementalParseSession<'a> {
     state_stack: Vec<StateId>,
     node_stack: Vec<ParseNode>,
     reused_count: usize,
+    #[allow(dead_code)]
     edits: &'a [Edit],
 }
 
@@ -460,6 +461,7 @@ impl<'a> IncrementalParseSession<'a> {
 #[derive(Debug, Clone)]
 struct Token {
     pub symbol: SymbolId,
+    #[allow(dead_code)]
     pub text: Vec<u8>,
     pub start: usize,
     pub end: usize,

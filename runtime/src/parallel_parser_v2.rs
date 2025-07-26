@@ -6,7 +6,7 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use crate::parser_v3::{Parser, ParseNode};
-use rust_sitter_ir::{Grammar, SymbolId};
+use rust_sitter_ir::Grammar;
 use rust_sitter_glr_core::ParseTable;
 
 /// Parallel parser configuration
@@ -41,7 +41,9 @@ pub struct ParallelParser {
 #[derive(Debug)]
 struct ParseChunk {
     id: usize,
+    #[allow(dead_code)]
     start: usize,
+    #[allow(dead_code)]
     end: usize,
     content: String,
 }
@@ -51,6 +53,7 @@ struct ParseChunk {
 struct ChunkResult {
     chunk_id: usize,
     tree: Option<ParseNode>,
+    #[allow(dead_code)]
     parse_time_ms: f64,
 }
 

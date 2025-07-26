@@ -11,7 +11,7 @@ pub trait ExternalScanner: Send + Sync {
     fn scan(&mut self, lexer: &mut Lexer, valid_symbols: &[bool]) -> bool;
     
     /// Serialize scanner state
-    fn serialize(&self, buffer: &mut [u8]) -> usize {
+    fn serialize(&self, _buffer: &mut [u8]) -> usize {
         0 // Default: no state
     }
     

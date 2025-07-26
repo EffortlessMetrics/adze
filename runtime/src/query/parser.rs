@@ -581,6 +581,7 @@ impl<'a> QueryParser<'a> {
         }
     }
     
+    #[allow(dead_code)]
     fn peek_identifier(&mut self) -> Result<String, QueryError> {
         let saved_pos = self.position;
         let result = self.parse_identifier();

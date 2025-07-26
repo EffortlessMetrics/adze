@@ -1,7 +1,7 @@
 // User-friendly error reporting for the GLR parser
 use crate::glr_parser::GLRParser;
 use crate::subtree::Subtree;
-use rust_sitter_glr_core::{StateId, SymbolId, Action};
+use rust_sitter_ir::SymbolId;
 use std::fmt;
 use std::sync::Arc;
 
@@ -138,7 +138,7 @@ impl ErrorReportingExt for GLRParser {
             
             // Check if all stacks died (parse error)
             if self.stack_count() == 0 && initial_stack_count > 0 {
-                errors.push(reporter.error_at_current(self, Some(token_text)));
+                errors.push(reporter.error_at_current(self, Some(token_text.clone())));
                 return Err(errors);
             }
         }

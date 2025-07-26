@@ -2,7 +2,7 @@
 // This implements a complete LR parser with grammar-aware reductions
 
 use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId};
+use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId};
 use std::collections::HashMap;
 
 /// Enhanced parser that knows about grammar rules

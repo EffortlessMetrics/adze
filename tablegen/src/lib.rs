@@ -164,6 +164,7 @@ impl StaticLanguageGenerator {
             .unwrap_or_else(|_| "[]".to_string())
     }
 
+    #[allow(dead_code)]
     fn generate_symbol_names(&self) -> Vec<String> {
         let mut names = Vec::new();
         
@@ -185,6 +186,7 @@ impl StaticLanguageGenerator {
         names
     }
 
+    #[allow(dead_code)]
     fn generate_symbol_metadata(&self) -> Vec<TokenStream> {
         let mut metadata = Vec::new();
         
@@ -244,11 +246,13 @@ impl StaticLanguageGenerator {
         metadata
     }
 
+    #[allow(dead_code)]
     fn generate_field_names(&self) -> Vec<String> {
         // Fields must be in lexicographic order (already validated in Grammar)
         self.grammar.fields.values().cloned().collect()
     }
 
+    #[allow(dead_code)]
     fn generate_uncompressed_tables(&self) -> (TokenStream, TokenStream) {
         // Generate uncompressed action and goto tables
         let action_entries = self.generate_action_table_entries();
@@ -265,6 +269,7 @@ impl StaticLanguageGenerator {
         (action_table, goto_table)
     }
 
+    #[allow(dead_code)]
     fn generate_compressed_tables(&self, compressed: &CompressedTables) -> (TokenStream, TokenStream) {
         // Generate compressed tables using Tree-sitter's format
         
@@ -275,6 +280,7 @@ impl StaticLanguageGenerator {
         }
     }
     
+    #[allow(dead_code)]
     fn generate_small_compressed_tables(&self, compressed: &CompressedTables) -> (TokenStream, TokenStream) {
         // Generate Tree-sitter's small table format
         // Action table: flat array of u16 values with encoded actions
@@ -298,12 +304,14 @@ impl StaticLanguageGenerator {
         (action_table, goto_table)
     }
     
+    #[allow(dead_code)]
     fn generate_large_compressed_tables(&self, compressed: &CompressedTables) -> (TokenStream, TokenStream) {
         // For large tables, use pointer arrays
         // This is rarely needed but essential for grammars like C++
         self.generate_small_compressed_tables(compressed) // Simplified for now
     }
     
+    #[allow(dead_code)]
     fn generate_small_action_entries(&self, action_table: &CompressedActionTable) -> Vec<TokenStream> {
         let mut entries = Vec::new();
         let compressor = TableCompressor::new();
@@ -319,6 +327,7 @@ impl StaticLanguageGenerator {
         entries
     }
     
+    #[allow(dead_code)]
     fn generate_small_goto_entries(&self, goto_table: &CompressedGotoTable) -> Vec<TokenStream> {
         let mut entries = Vec::new();
         
@@ -339,6 +348,7 @@ impl StaticLanguageGenerator {
         entries
     }
     
+    #[allow(dead_code)]
     fn count_goto_entries(&self, goto_table: &CompressedGotoTable) -> usize {
         goto_table.data.iter().map(|entry| match entry {
             CompressedGotoEntry::Single(_) => 1,
@@ -346,6 +356,7 @@ impl StaticLanguageGenerator {
         }).sum()
     }
 
+    #[allow(dead_code)]
     fn generate_action_table_entries(&self) -> Vec<TokenStream> {
         let mut entries = Vec::new();
         
@@ -455,6 +466,7 @@ impl StaticLanguageGenerator {
         entries
     }
 
+    #[allow(dead_code)]
     fn generate_goto_table_entries(&self) -> Vec<TokenStream> {
         let mut entries = Vec::new();
         

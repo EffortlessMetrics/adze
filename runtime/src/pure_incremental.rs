@@ -18,14 +18,18 @@ pub struct Edit {
 pub struct Tree {
     pub root: ParsedNode,
     pub language: &'static TSLanguage,
+    #[allow(dead_code)]
     source: Vec<u8>,
 }
 
 /// Node that can be reused during incremental parsing
 #[derive(Debug, Clone)]
 pub struct ReusableNode {
+    #[allow(dead_code)]
     node: ParsedNode,
+    #[allow(dead_code)]
     byte_range: Range<usize>,
+    #[allow(dead_code)]
     is_error: bool,
 }
 
@@ -59,8 +63,8 @@ impl Tree {
         
         // If node starts after the edit, shift its positions
         if node.start_byte() >= edit.old_end_byte {
-            let byte_delta = (edit.new_end_byte as isize) - (edit.old_end_byte as isize);
-            let row_delta = edit.new_end_point.row as i32 - edit.old_end_point.row as i32;
+            let _byte_delta = (edit.new_end_byte as isize) - (edit.old_end_byte as isize);
+            let _row_delta = edit.new_end_point.row as i32 - edit.old_end_point.row as i32;
             
             // Update positions (would need mutable access to ParsedNode fields)
             // node.start_byte += byte_delta;
@@ -134,7 +138,7 @@ impl IncrementalParser {
             self.previous_tree = Some(tree.clone());
             
             // Get reusable nodes
-            let reusable_nodes = tree.get_reusable_nodes();
+            let _reusable_nodes = tree.get_reusable_nodes();
             
             // TODO: Implement actual incremental parsing logic
             // For now, fall back to full reparse

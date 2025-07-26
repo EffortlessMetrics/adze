@@ -6,7 +6,6 @@
 use super::{GrammarJs, Rule, ExternalToken};
 use serde_json::Value;
 use anyhow::{Result, Context};
-use std::collections::HashMap;
 
 /// Convert Tree-sitter JSON format to GrammarJs
 pub fn from_tree_sitter_json(value: &Value) -> Result<GrammarJs> {

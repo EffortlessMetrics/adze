@@ -4,8 +4,6 @@
 use fixedbitset::FixedBitSet;
 use indexmap::IndexMap;
 use rust_sitter_ir::*;
-// Re-export commonly used types
-pub use rust_sitter_ir::{SymbolId, RuleId, StateId};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -355,10 +353,14 @@ impl ItemSetCollection {
         
         // Find the start symbol (LHS of the first rule in grammar)
         if let Some(start_symbol) = grammar.start_symbol() {
+            eprintln!("Debug: Start symbol is {:?}", start_symbol);
+            eprintln!("Debug: Looking for rules with symbol {:?}", start_symbol);
             
             // Add items for ALL rules with the start symbol as LHS
             if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
+                eprintln!("Debug: Found {} rules for start symbol", start_rules.len());
                 for rule in start_rules {
+                    eprintln!("Debug: Adding rule {:?} -> {:?}", rule.lhs, rule.rhs);
                     let start_item = LRItem::new(
                         RuleId(rule.production_id.0),
                         0,
@@ -366,6 +368,8 @@ impl ItemSetCollection {
                     );
                     initial_set.add_item(start_item);
                 }
+            } else {
+                eprintln!("Debug: No rules found for start symbol!");
             }
             
             // Compute closure

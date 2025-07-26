@@ -6,7 +6,7 @@ use crate::compress::CompressedTables;
 use rust_sitter_ir::Grammar;
 use rust_sitter_glr_core::ParseTable;
 use serde::{Serialize, Deserialize};
-use std::collections::BTreeMap;
+// use std::collections::BTreeMap; // Currently unused
 
 /// Serializable representation of a Language for testing
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

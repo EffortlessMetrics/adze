@@ -55,6 +55,7 @@ impl<'a> TreeCursor<'a> {
         }
     }
     
+    #[allow(dead_code)]
     fn field_name(&self) -> Option<&str> {
         // TODO: Implement field names
         None
@@ -135,7 +136,7 @@ pub fn extract_field<LT: Extract<T>, T>(
     cursor_opt: &mut Option<TreeCursor>,
     source: &[u8],
     last_idx: &mut usize,
-    field_name: &str,
+    _field_name: &str,
     closure_ref: Option<&LT::LeafFn>,
 ) -> T {
     if let Some(cursor) = cursor_opt.as_mut() {

@@ -203,7 +203,7 @@ impl GrammarJsConverter {
             JsRule::Seq { members } => {
                 let mut rhs = Vec::new();
                 for member in members {
-                    if let Some(symbol) = self.rule_to_symbol(member) {
+                    if let Some(symbol) = self.rule_to_symbol(grammar, member) {
                         rhs.push(symbol);
                     }
                 }
@@ -243,7 +243,7 @@ impl GrammarJsConverter {
                 let field_id = self.get_or_create_field(name);
                 
                 // Convert the content
-                if let Some(symbol) = self.rule_to_symbol(content) {
+                if let Some(symbol) = self.rule_to_symbol(grammar, content) {
                     let rule = Rule {
                         lhs,
                         rhs: vec![symbol],
@@ -286,12 +286,68 @@ impl GrammarJsConverter {
         Ok(())
     }
     
-    fn rule_to_symbol(&self, rule: &JsRule) -> Option<Symbol> {
+    fn get_or_create_string_token(&mut self, grammar: &mut Grammar, value: &str) -> SymbolId {
+        // Check if we already have this token
+        for (id, token) in &grammar.tokens {
+            if let TokenPattern::String(s) = &token.pattern {
+                if s == value {
+                    return *id;
+                }
+            }
+        }
+        
+        // Create new token
+        let id = SymbolId(self.next_symbol_id.try_into().unwrap());
+        self.next_symbol_id += 1;
+        let token = Token {
+            name: format!("\"{}\"", value),
+            pattern: TokenPattern::String(value.to_string()),
+            fragile: false,
+        };
+        grammar.tokens.insert(id, token);
+        id
+    }
+    
+    fn get_or_create_pattern_token(&mut self, grammar: &mut Grammar, pattern: &str) -> SymbolId {
+        // Check if we already have this token
+        for (id, token) in &grammar.tokens {
+            if let TokenPattern::Regex(p) = &token.pattern {
+                if p == pattern {
+                    return *id;
+                }
+            }
+        }
+        
+        // Create new token
+        let id = SymbolId(self.next_symbol_id.try_into().unwrap());
+        self.next_symbol_id += 1;
+        let token = Token {
+            name: format!("/{}/", pattern),
+            pattern: TokenPattern::Regex(pattern.to_string()),
+            fragile: false,
+        };
+        grammar.tokens.insert(id, token);
+        id
+    }
+    
+    fn rule_to_symbol(&mut self, grammar: &mut Grammar, rule: &JsRule) -> Option<Symbol> {
         match rule {
             JsRule::Symbol { name } => {
                 self.symbol_names.get(name).map(|&id| Symbol::NonTerminal(id))
             }
-            _ => None, // Simplified for MVP
+            JsRule::String { value } => {
+                // Create inline token
+                Some(Symbol::Terminal(self.get_or_create_string_token(grammar, value)))
+            }
+            JsRule::Pattern { value } => {
+                // Create pattern token
+                Some(Symbol::Terminal(self.get_or_create_pattern_token(grammar, value)))
+            }
+            JsRule::Field { content, .. } => {
+                // For fields, return the symbol of the content
+                self.rule_to_symbol(grammar, content)
+            }
+            _ => None, // Other types not yet handled
         }
     }
     
@@ -313,7 +369,7 @@ impl GrammarJsConverter {
     }
     
     fn add_repeat_rule(&mut self, grammar: &mut Grammar, content: &JsRule, lhs: SymbolId, _is_repeat1: bool) -> Result<()> {
-        if let Some(symbol) = self.rule_to_symbol(content) {
+        if let Some(symbol) = self.rule_to_symbol(grammar, content) {
             // Add recursive rule: lhs -> lhs symbol
             let rhs = vec![Symbol::NonTerminal(lhs), symbol];
             self.add_rule(grammar, lhs, rhs, None, None);
@@ -327,14 +383,14 @@ impl GrammarJsConverter {
             JsRule::Seq { members } => {
                 let mut rhs = Vec::new();
                 for member in members {
-                    if let Some(symbol) = self.rule_to_symbol(member) {
+                    if let Some(symbol) = self.rule_to_symbol(grammar, member) {
                         rhs.push(symbol);
                     }
                 }
                 self.add_rule(grammar, lhs, rhs, precedence, associativity);
             }
             _ => {
-                if let Some(symbol) = self.rule_to_symbol(content) {
+                if let Some(symbol) = self.rule_to_symbol(grammar, content) {
                     self.add_rule(grammar, lhs, vec![symbol], precedence, associativity);
                 }
             }

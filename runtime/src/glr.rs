@@ -3,7 +3,7 @@
 
 use crate::parser_v3::{ParseNode, ParserState};
 use rust_sitter_glr_core::Action;
-use rust_sitter_ir::{StateId, SymbolId, RuleId};
+use rust_sitter_ir::{StateId, SymbolId};
 use std::collections::{HashMap, VecDeque};
 use anyhow::Result;
 

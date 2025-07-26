@@ -541,8 +541,6 @@ impl Parser {
         // 4. Create error node as last resort
         // Always allow error node creation as fallback
         return Ok(Some(RecoveryAction::CreateErrorNode(vec![token.symbol])));
-        
-        Ok(None)
     }
     
     /// Create an error node containing problematic tokens

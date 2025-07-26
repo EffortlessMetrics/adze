@@ -1,10 +1,12 @@
 // Table compression algorithms for parse tables
-use rust_sitter_glr_core::{Action, StateId};
+use rust_sitter_glr_core::Action;
+use rust_sitter_ir::StateId;
 use std::collections::HashMap;
 
 /// Compressed representation of action table
 pub struct CompressedActionTable {
     // Row compression: map identical rows to a single index
+    #[allow(dead_code)]
     row_map: HashMap<Vec<Action>, usize>,
     unique_rows: Vec<Vec<Action>>,
     state_to_row: Vec<usize>,
@@ -14,7 +16,9 @@ pub struct CompressedActionTable {
 pub struct CompressedGotoTable {
     // Sparse representation: only store non-None entries
     entries: HashMap<(usize, usize), StateId>,
+    #[allow(dead_code)]
     state_count: usize,
+    #[allow(dead_code)]
     symbol_count: usize,
 }
 
@@ -91,6 +95,7 @@ pub struct BitPackedActionTable {
     reduce_data: Vec<u32>, // Rule IDs for reduce actions
     fork_data: HashMap<(usize, usize), Vec<Action>>, // Full data for fork actions
     
+    #[allow(dead_code)]
     state_count: usize,
     symbol_count: usize,
 }

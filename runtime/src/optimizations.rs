@@ -1,5 +1,4 @@
 // Performance optimizations for pure-Rust parser
-use std::hint::black_box;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Performance statistics collector

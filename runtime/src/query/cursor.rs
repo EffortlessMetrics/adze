@@ -54,6 +54,7 @@ impl QueryCursor {
     }
     
     /// Check if a node is within the configured byte range
+    #[allow(dead_code)]
     fn is_in_range(&self, node: &ParseNode) -> bool {
         if let Some(ref range) = self.byte_range {
             node.start_byte >= range.start && node.end_byte <= range.end

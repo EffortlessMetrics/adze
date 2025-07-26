@@ -1,11 +1,12 @@
 // Enhanced external scanner generator with state-based validity computation
 use rust_sitter_ir::{ExternalToken, Grammar, SymbolId};
-use rust_sitter_glr_core::{ParseTable, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::ParseTable;
 use std::collections::{HashMap, HashSet};
 use quote::quote;
 
 /// Enhanced external scanner generator that computes state-based validity
 pub struct ExternalScannerGenerator {
+    #[allow(dead_code)]
     grammar: Grammar,
     external_tokens: Vec<ExternalToken>,
     /// Maps symbol IDs to their indices in the external scanner
@@ -181,7 +182,7 @@ impl ExternalScannerGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_glr_core::Action;
+    use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
     
     #[test]
     fn test_state_validity_computation() {

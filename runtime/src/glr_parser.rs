@@ -4,9 +4,10 @@
 use crate::subtree::{Subtree, SubtreeNode};
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use rust_sitter_glr_core::{
-    Action, ParseTable, StateId, SymbolId, RuleId,
+    Action, ParseTable,
     VersionInfo, CompareResult, compare_versions,
 };
+use rust_sitter_ir::{StateId, SymbolId, RuleId};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use std::collections::{VecDeque, HashMap};
 use std::sync::Arc;
@@ -24,6 +25,7 @@ pub struct ParseStack {
     version: VersionInfo,
     
     /// Unique ID for this fork
+    #[allow(dead_code)]
     id: usize,
 }
 
@@ -137,7 +139,7 @@ impl GLRParser {
                     // println!("    No action for token {} in state {}", token.0, state.0);
                     // Check all possible actions in this state
                     // println!("    Available actions in state {}:", state.0);
-                    for (sym_id, sym_idx) in &self.table.symbol_to_index {
+                    for (_sym_id, sym_idx) in &self.table.symbol_to_index {
                         let act = &self.table.action_table[state.0 as usize][*sym_idx];
                         if !matches!(act, Action::Error) {
                             // println!("      For symbol {} (idx {}): {:?}", sym_id.0, sym_idx, act);
@@ -573,12 +575,12 @@ impl GLRParser {
     }
     
     /// Perform all possible reductions on a stack until no more are possible
-    fn perform_all_reductions(&self, mut stack: ParseStack) -> Vec<ParseStack> {
+    fn perform_all_reductions(&self, stack: ParseStack) -> Vec<ParseStack> {
         let mut result_stacks = vec![];
         let mut work_list = vec![stack];
         
-        while let Some(mut current_stack) = work_list.pop() {
-            let state = current_stack.current_state();
+        while let Some(current_stack) = work_list.pop() {
+            let _state = current_stack.current_state();
             let mut has_reduction = false;
             
             // Check all possible reductions in this state
