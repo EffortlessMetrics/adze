@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use anyhow::{Result, bail};
 
 pub mod parser;
@@ -221,6 +222,13 @@ impl GrammarJs {
     fn is_external(&self, name: &str) -> bool {
         self.externals.iter().any(|ext| ext.name == name)
     }
+}
+
+/// Convert a JSON value to a GrammarJs structure
+pub fn from_json(value: &Value) -> Result<GrammarJs> {
+    // Try to deserialize directly
+    serde_json::from_value(value.clone())
+        .map_err(|e| anyhow::anyhow!("Failed to deserialize grammar JSON: {}", e))
 }
 
 #[cfg(test)]

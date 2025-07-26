@@ -87,7 +87,9 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
     let grammars = crate::generate_grammars(root_file);
     
     for grammar_json in grammars {
-        let result = build_parser_from_json(grammar_json, options.clone())?;
+        // Convert serde_json::Value to string
+        let grammar_json_str = grammar_json.to_string();
+        let result = build_parser_from_json(grammar_json_str, options.clone())?;
         results.push(result);
     }
     
@@ -95,17 +97,18 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
 }
 
 /// Build a parser from a JSON grammar (Tree-sitter format)
-pub fn build_parser_from_json(grammar_json: Value, options: BuildOptions) -> Result<BuildResult> {
-    // Parse grammar name
-    let _grammar_name = grammar_json["name"]
-        .as_str()
-        .ok_or_else(|| anyhow::anyhow!("Grammar missing name field"))?
-        .to_string();
-    
-    // Convert JSON to grammar.js structure, then to IR
-    let grammar_js_str = serde_json::to_string(&grammar_json)?;
-    let grammar_js = parse_grammar_js_v2(&format!("module.exports = {}", grammar_js_str))
+pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Result<BuildResult> {
+    // Parse the JSON string
+    let grammar_value: Value = serde_json::from_str(&grammar_json)
         .context("Failed to parse grammar JSON")?;
+    
+    // Debug: Print the JSON structure
+    eprintln!("Debug: Grammar JSON structure:");
+    eprintln!("{}", serde_json::to_string_pretty(&grammar_value).unwrap_or("Failed to pretty print".to_string()));
+    
+    // Convert directly from JSON to GrammarJs structure
+    let grammar_js = crate::grammar_js::from_json(&grammar_value)
+        .context("Failed to convert JSON to GrammarJs")?;
     
     let converter = GrammarJsConverter::new(grammar_js);
     let mut grammar = converter.convert()
@@ -131,19 +134,18 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
         .context("Failed to build LR(1) automaton")?;
     
     // Step 3: Generate static language code using ABI builder
-    let abi_builder = if options.compress_tables {
+    let language_code = if options.compress_tables {
         // Compress tables
         let compressor = rust_sitter_tablegen::TableCompressor::new();
         let compressed = compressor.compress(&parse_table)
             .map_err(|e| anyhow::anyhow!("Failed to compress tables: {}", e))?;
-        AbiLanguageBuilder::new(&grammar, &parse_table)
-            .with_compressed_tables(&compressed)
+        let abi_builder = AbiLanguageBuilder::new(&grammar, &parse_table)
+            .with_compressed_tables(&compressed);
+        abi_builder.generate()
     } else {
-        AbiLanguageBuilder::new(&grammar, &parse_table)
+        let abi_builder = AbiLanguageBuilder::new(&grammar, &parse_table);
+        abi_builder.generate()
     };
-    
-    // Generate the Rust code
-    let language_code = abi_builder.generate();
     
     // Step 4: Generate NODE_TYPES.json
     let node_types_gen = NodeTypesGenerator::new(&grammar);

@@ -44,8 +44,9 @@ impl GrammarVisualizer {
         }
         
         writeln!(&mut output, "\n  // Rules").unwrap();
-        for (lhs, rule) in &self.grammar.rules {
-            for (i, symbol) in rule.rhs.iter().enumerate() {
+        for (lhs, rules) in &self.grammar.rules {
+            for rule in rules {
+                for (i, symbol) in rule.rhs.iter().enumerate() {
                 let from = format!("n{}", lhs.0);
                 let to = match symbol {
                     Symbol::Terminal(id) => format!("t{}", id.0),
@@ -60,6 +61,7 @@ impl GrammarVisualizer {
                 };
                 
                 writeln!(&mut output, "  {} -> {} [label=\"{}\"];", from, to, label).unwrap();
+                }
             }
         }
         
@@ -82,16 +84,17 @@ impl GrammarVisualizer {
         writeln!(&mut output, r#"  </style>"#).unwrap();
         
         // Draw each rule
-        for (lhs, rule) in &self.grammar.rules {
+        for (lhs, rules) in &self.grammar.rules {
             let rule_name = self.get_symbol_name(*lhs);
             
-            // Rule name
-            writeln!(&mut output, r#"  <text x="10" y="{}" class="rule-name">{} ::=</text>"#, 
-                y_offset, self.escape_xml(&rule_name)).unwrap();
-            
-            // Rule diagram
-            let mut x_offset = 150;
-            for symbol in &rule.rhs {
+            for rule in rules {
+                // Rule name
+                writeln!(&mut output, r#"  <text x="10" y="{}" class="rule-name">{} ::=</text>"#, 
+                    y_offset, self.escape_xml(&rule_name)).unwrap();
+                
+                // Rule diagram
+                let mut x_offset = 150;
+                for symbol in &rule.rhs {
                 let (text, class) = match symbol {
                     Symbol::Terminal(id) => {
                         let token = self.grammar.tokens.get(id)
@@ -124,9 +127,10 @@ impl GrammarVisualizer {
                 }
                 
                 x_offset += text_width + 20;
+                }
+                
+                y_offset += 60;
             }
-            
-            y_offset += 60;
         }
         
         writeln!(&mut output, "</svg>").unwrap();
@@ -160,11 +164,12 @@ impl GrammarVisualizer {
         
         // Rules
         writeln!(&mut output, "\nRules:").unwrap();
-        for (lhs, rule) in &self.grammar.rules {
+        for (lhs, rules) in &self.grammar.rules {
             let lhs_name = self.get_symbol_name(*lhs);
-            write!(&mut output, "  {} ::=", lhs_name).unwrap();
-            
-            for symbol in &rule.rhs {
+            for rule in rules {
+                write!(&mut output, "  {} ::=", lhs_name).unwrap();
+                
+                for symbol in &rule.rhs {
                 match symbol {
                     Symbol::Terminal(id) => {
                         let name = self.grammar.tokens.get(id)
@@ -179,17 +184,18 @@ impl GrammarVisualizer {
                         write!(&mut output, " ${}", id.0).unwrap();
                     }
                 }
+                }
+                
+                // Add metadata
+                if let Some(prec) = &rule.precedence {
+                    write!(&mut output, " [precedence: {:?}]", prec).unwrap();
+                }
+                if let Some(assoc) = &rule.associativity {
+                    write!(&mut output, " [associativity: {:?}]", assoc).unwrap();
+                }
+                
+                writeln!(&mut output).unwrap();
             }
-            
-            // Add metadata
-            if let Some(prec) = &rule.precedence {
-                write!(&mut output, " [precedence: {:?}]", prec).unwrap();
-            }
-            if let Some(assoc) = &rule.associativity {
-                write!(&mut output, " [associativity: {:?}]", assoc).unwrap();
-            }
-            
-            writeln!(&mut output).unwrap();
         }
         
         // Precedences
@@ -225,14 +231,16 @@ impl GrammarVisualizer {
         let mut dependencies: HashMap<SymbolId, HashSet<SymbolId>> = HashMap::new();
         
         // Build dependency map
-        for (lhs, rule) in &self.grammar.rules {
+        for (lhs, rules) in &self.grammar.rules {
             let deps = dependencies.entry(*lhs).or_insert_with(HashSet::new);
-            for symbol in &rule.rhs {
-                match symbol {
-                    Symbol::NonTerminal(id) => {
-                        deps.insert(*id);
+            for rule in rules {
+                for symbol in &rule.rhs {
+                    match symbol {
+                        Symbol::NonTerminal(id) => {
+                            deps.insert(*id);
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 }
             }
         }

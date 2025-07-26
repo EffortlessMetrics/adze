@@ -4,7 +4,7 @@
 //! It handles most common grammar patterns and can parse real-world grammars.
 
 use super::{GrammarJs, Rule, ExternalToken};
-use anyhow::{Result, bail, Context};
+use anyhow::{Result, bail, Context, anyhow};
 use regex::Regex;
 use std::collections::HashMap;
 

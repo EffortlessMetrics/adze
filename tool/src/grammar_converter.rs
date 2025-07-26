@@ -40,7 +40,7 @@ impl GrammarConverter {
         
         // Add rules
         // expr -> identifier
-        grammar.rules.insert(expr_symbol, Rule {
+        grammar.rules.entry(expr_symbol).or_insert_with(Vec::new).push(Rule {
             lhs: expr_symbol,
             rhs: vec![Symbol::Terminal(id_symbol)],
             precedence: None,
@@ -50,7 +50,7 @@ impl GrammarConverter {
         });
         
         // expr -> number
-        grammar.rules.insert(expr_symbol, Rule {
+        grammar.rules.entry(expr_symbol).or_insert_with(Vec::new).push(Rule {
             lhs: expr_symbol,
             rhs: vec![Symbol::Terminal(num_symbol)],
             precedence: None,
@@ -60,7 +60,7 @@ impl GrammarConverter {
         });
         
         // expr -> expr + expr
-        grammar.rules.insert(expr_symbol, Rule {
+        grammar.rules.entry(expr_symbol).or_insert_with(Vec::new).push(Rule {
             lhs: expr_symbol,
             rhs: vec![
                 Symbol::NonTerminal(expr_symbol),

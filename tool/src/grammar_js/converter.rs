@@ -256,7 +256,7 @@ impl GrammarJsConverter {
                     
                     let rule_id = RuleId(grammar.rules.len().try_into().unwrap());
                     grammar.production_ids.insert(rule_id, rule.production_id);
-                    grammar.rules.insert(lhs, rule);
+                    grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
                 }
             }
             
@@ -309,7 +309,7 @@ impl GrammarJsConverter {
         
         let rule_id = RuleId(grammar.rules.len().try_into().unwrap());
         grammar.production_ids.insert(rule_id, rule.production_id);
-        grammar.rules.insert(lhs, rule);
+        grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
     }
     
     fn add_repeat_rule(&mut self, grammar: &mut Grammar, content: &JsRule, lhs: SymbolId, _is_repeat1: bool) -> Result<()> {
