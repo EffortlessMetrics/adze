@@ -59,10 +59,17 @@ impl<'a> AbiLanguageBuilder<'a> {
         let max_alias_sequence_length = counts.max_alias_sequence_length;
         
         // Generate field names array
-        let field_names_array = quote! {
-            static FIELD_NAME_PTRS: &[*const u8] = &[
-                #(#field_name_ptrs),*
-            ];
+        let field_names_array = if field_count == 0 {
+            quote! {
+                static FIELD_NAME_PTRS: [SyncPtr; 0] = [];
+            }
+        } else {
+            quote! {
+                const FIELD_NAME_PTRS_LEN: usize = #field_count as usize;
+                static FIELD_NAME_PTRS: [SyncPtr; FIELD_NAME_PTRS_LEN] = [
+                    #(#field_name_ptrs),*
+                ];
+            }
         };
         
         quote! {
@@ -72,7 +79,8 @@ impl<'a> AbiLanguageBuilder<'a> {
             #(#symbol_names)*
             
             // Symbol name pointers array
-            static SYMBOL_NAME_PTRS: &[*const u8] = &[
+            const SYMBOL_NAME_PTRS_LEN: usize = #symbol_count as usize;
+            static SYMBOL_NAME_PTRS: [SyncPtr; SYMBOL_NAME_PTRS_LEN] = [
                 #(#symbol_name_ptrs),*
             ];
             
@@ -113,7 +121,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             static PRODUCTION_ID_MAP: &[u16] = &[#(#production_id_map),*];
             
             // The language structure
-            static LANGUAGE: TSLanguage = TSLanguage {
+            pub static LANGUAGE: TSLanguage = TSLanguage {
                 version: TREE_SITTER_LANGUAGE_VERSION,
                 symbol_count: #symbol_count,
                 alias_count: #alias_count,
@@ -129,8 +137,8 @@ impl<'a> AbiLanguageBuilder<'a> {
                 small_parse_table: std::ptr::null(),
                 small_parse_table_map: unsafe { SMALL_PARSE_TABLE_MAP.as_ptr() },
                 parse_actions: unsafe { PARSE_ACTIONS.as_ptr() },
-                symbol_names: unsafe { SYMBOL_NAME_PTRS.as_ptr() as *const *const u8 },
-                field_names: unsafe { FIELD_NAME_PTRS.as_ptr() as *const *const u8 },
+                symbol_names: SYMBOL_NAME_PTRS.as_ptr() as *const SyncPtr as *const *const u8,
+                field_names: FIELD_NAME_PTRS.as_ptr() as *const SyncPtr as *const *const u8,
                 field_map_slices: unsafe { FIELD_MAP_SLICES.as_ptr() },
                 field_map_entries: unsafe { FIELD_MAP_ENTRIES.as_ptr() },
                 symbol_metadata: unsafe { SYMBOL_METADATA.as_ptr() },
@@ -154,7 +162,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             };
             
             /// Get the Tree-sitter Language for this grammar
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             pub extern "C" fn #language_fn_ident() -> *const TSLanguage {
                 &LANGUAGE as *const TSLanguage
             }
@@ -215,7 +223,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         }
         
         let ptrs = name_idents.iter().map(|ident| {
-            quote! { #ident.as_ptr() }
+            quote! { SyncPtr::new(#ident.as_ptr()) }
         }).collect();
         
         (names, ptrs)
@@ -240,7 +248,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         }
         
         let ptrs = name_idents.iter().map(|ident| {
-            quote! { #ident.as_ptr() }
+            quote! { SyncPtr::new(#ident.as_ptr()) }
         }).collect();
         
         (names, ptrs)

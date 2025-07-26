@@ -1,0 +1,1343 @@
+warning: unused variable: `tree_sitter_ident`
+   --> macro/src/expansion.rs:336:9
+    |
+336 |     let tree_sitter_ident = Ident::new(&format!("tree_sitter_{grammar_name}"), Span::call_site());
+    |         ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tree_sitter_ident`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: `rust-sitter-macro` (lib) generated 1 warning
+warning: unused import: `StateId`
+ --> glr-core/src/conflict_visualizer.rs:7:39
+  |
+7 | use rust_sitter_ir::{Grammar, Symbol, StateId};
+  |                                       ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `rust-sitter-glr-core` (lib) generated 1 warning (run `cargo fix --lib -p rust-sitter-glr-core` to apply 1 suggestion)
+warning: unused imports: `FirstFollowSets` and `build_lr1_automaton`
+ --> tablegen/src/external_scanner_v2.rs:3:40
+  |
+3 | use rust_sitter_glr_core::{ParseTable, FirstFollowSets, build_lr1_automaton};
+  |                                        ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::collections::BTreeMap`
+ --> tablegen/src/serializer.rs:9:5
+  |
+9 | use std::collections::BTreeMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple methods are never used
+   --> tablegen/src/lib.rs:167:8
+    |
+47  | impl StaticLanguageGenerator {
+    | ---------------------------- methods in this implementation
+...
+167 |     fn generate_symbol_names(&self) -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+188 |     fn generate_symbol_metadata(&self) -> Vec<TokenStream> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+247 |     fn generate_field_names(&self) -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+252 |     fn generate_uncompressed_tables(&self) -> (TokenStream, TokenStream) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+268 |     fn generate_compressed_tables(&self, compressed: &CompressedTables) -> (TokenStream, TokenStream) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+278 |     fn generate_small_compressed_tables(&self, compressed: &CompressedTables) -> (TokenStream, TokenStream) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+301 |     fn generate_large_compressed_tables(&self, compressed: &CompressedTables) -> (TokenStream, TokenStream) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+307 |     fn generate_small_action_entries(&self, action_table: &CompressedActionTable) -> Vec<TokenStream> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+322 |     fn generate_small_goto_entries(&self, goto_table: &CompressedGotoTable) -> Vec<TokenStream> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+342 |     fn count_goto_entries(&self, goto_table: &CompressedGotoTable) -> usize {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+349 |     fn generate_action_table_entries(&self) -> Vec<TokenStream> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+458 |     fn generate_goto_table_entries(&self) -> Vec<TokenStream> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: field `row_map` is never read
+ --> tablegen/src/compression.rs:8:5
+  |
+6 | pub struct CompressedActionTable {
+  |            --------------------- field in this struct
+7 |     // Row compression: map identical rows to a single index
+8 |     row_map: HashMap<Vec<Action>, usize>,
+  |     ^^^^^^^
+
+warning: fields `state_count` and `symbol_count` are never read
+  --> tablegen/src/compression.rs:17:5
+   |
+14 | pub struct CompressedGotoTable {
+   |            ------------------- fields in this struct
+...
+17 |     state_count: usize,
+   |     ^^^^^^^^^^^
+18 |     symbol_count: usize,
+   |     ^^^^^^^^^^^^
+
+warning: field `state_count` is never read
+  --> tablegen/src/compression.rs:94:5
+   |
+87 | pub struct BitPackedActionTable {
+   |            -------------------- field in this struct
+...
+94 |     state_count: usize,
+   |     ^^^^^^^^^^^
+
+warning: field `grammar` is never read
+ --> tablegen/src/external_scanner_v2.rs:9:5
+  |
+8 | pub struct ExternalScannerGenerator {
+  |            ------------------------ field in this struct
+9 |     grammar: Grammar,
+  |     ^^^^^^^
+
+warning: `rust-sitter-glr-core` (lib) generated 1 warning (1 duplicate)
+warning: `rust-sitter-tablegen` (lib) generated 7 warnings (run `cargo fix --lib -p rust-sitter-tablegen` to apply 2 suggestions)
+warning: `rust-sitter-tablegen` (lib) generated 7 warnings (7 duplicates)
+warning: unused import: `ParseError`
+ --> runtime/src/incremental_v3.rs:6:35
+  |
+6 | use crate::parser_v3::{ParseNode, ParseError};
+  |                                   ^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ProductionId` and `Symbol`
+ --> runtime/src/parser_v2.rs:5:31
+  |
+5 | use rust_sitter_ir::{Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId};
+  |                               ^^^^^^^^^^^^                         ^^^^^^
+
+warning: unused import: `RuleId`
+ --> runtime/src/glr.rs:6:41
+  |
+6 | use rust_sitter_ir::{StateId, SymbolId, RuleId};
+  |                                         ^^^^^^
+
+warning: unused import: `QueryMatch`
+ --> runtime/src/query/highlights.rs:2:20
+  |
+2 | use super::{Query, QueryMatch, QueryCursor};
+  |                    ^^^^^^^^^^
+
+warning: unused imports: `Action` and `StateId`
+ --> runtime/src/error_reporting.rs:4:28
+  |
+4 | use rust_sitter_glr_core::{StateId, SymbolId, Action};
+  |                            ^^^^^^^            ^^^^^^
+
+warning: unused import: `SubtreeNode`
+ --> runtime/src/glr_tree_bridge.rs:4:31
+  |
+4 | use crate::subtree::{Subtree, SubtreeNode};
+  |                               ^^^^^^^^^^^
+
+warning: unused import: `SymbolId`
+ --> runtime/src/glr_tree_bridge.rs:5:31
+  |
+5 | use rust_sitter_ir::{Grammar, SymbolId};
+  |                               ^^^^^^^^
+
+warning: unused import: `std::hint::black_box`
+ --> runtime/src/optimizations.rs:2:5
+  |
+2 | use std::hint::black_box;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `SymbolId`
+ --> runtime/src/parallel_parser_v2.rs:9:31
+  |
+9 | use rust_sitter_ir::{Grammar, SymbolId};
+  |                               ^^^^^^^^
+
+warning: unused import: `crate::tree_sitter`
+   --> runtime/src/lib.rs:344:9
+    |
+344 |     use crate::tree_sitter;
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: unreachable expression
+   --> runtime/src/parser_v3.rs:545:9
+    |
+543 |         return Ok(Some(RecoveryAction::CreateErrorNode(vec![token.symbol])));
+    |         -------------------------------------------------------------------- any code following this expression is unreachable
+544 |         
+545 |         Ok(None)
+    |         ^^^^^^^^ unreachable expression
+    |
+    = note: `#[warn(unreachable_code)]` on by default
+
+warning: unused variable: `field_name`
+   --> runtime/src/__private.rs:138:5
+    |
+138 |     field_name: &str,
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_field_name`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unnecessary `unsafe` block
+   --> runtime/src/external_scanner_ffi.rs:153:13
+    |
+153 |             unsafe {
+    |             ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` on by default
+
+warning: unused variable: `sym_id`
+   --> runtime/src/glr_parser.rs:140:26
+    |
+140 |                     for (sym_id, sym_idx) in &self.table.symbol_to_index {
+    |                          ^^^^^^ help: if this is intentional, prefix it with an underscore: `_sym_id`
+
+warning: unused variable: `state`
+   --> runtime/src/glr_parser.rs:581:17
+    |
+581 |             let state = current_stack.current_state();
+    |                 ^^^^^ help: if this is intentional, prefix it with an underscore: `_state`
+
+warning: variable does not need to be mutable
+   --> runtime/src/glr_parser.rs:576:38
+    |
+576 |     fn perform_all_reductions(&self, mut stack: ParseStack) -> Vec<ParseStack> {
+    |                                      ----^^^^^
+    |                                      |
+    |                                      help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> runtime/src/glr_parser.rs:580:24
+    |
+580 |         while let Some(mut current_stack) = work_list.pop() {
+    |                        ----^^^^^^^^^^^^^
+    |                        |
+    |                        help: remove this `mut`
+
+warning: unused variable: `goto_symbol`
+   --> runtime/src/pure_parser.rs:578:13
+    |
+578 |         let goto_symbol = symbol - terminal_count as u16;
+    |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_goto_symbol`
+
+warning: unnecessary `unsafe` block
+   --> runtime/src/pure_parser.rs:610:9
+    |
+610 |         unsafe {
+    |         ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `byte_delta`
+  --> runtime/src/pure_incremental.rs:62:17
+   |
+62 |             let byte_delta = (edit.new_end_byte as isize) - (edit.old_end_byte as isize);
+   |                 ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_byte_delta`
+
+warning: unused variable: `row_delta`
+  --> runtime/src/pure_incremental.rs:63:17
+   |
+63 |             let row_delta = edit.new_end_point.row as i32 - edit.old_end_point.row as i32;
+   |                 ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_row_delta`
+
+warning: unused variable: `reusable_nodes`
+   --> runtime/src/pure_incremental.rs:137:17
+    |
+137 |             let reusable_nodes = tree.get_reusable_nodes();
+    |                 ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_reusable_nodes`
+
+warning: unused variable: `buffer`
+  --> runtime/src/pure_external_scanner.rs:14:25
+   |
+14 |     fn serialize(&self, buffer: &mut [u8]) -> usize {
+   |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_buffer`
+
+warning: unused variable: `index`
+  --> runtime/src/tree_sitter_compat.rs:78:40
+   |
+78 |     pub fn field_name_for_child(&self, index: usize) -> Option<&str> {
+   |                                        ^^^^^ help: if this is intentional, prefix it with an underscore: `_index`
+
+warning: method `field_name` is never used
+  --> runtime/src/__private.rs:58:8
+   |
+23 | impl<'a> TreeCursor<'a> {
+   | ----------------------- method in this implementation
+...
+58 |     fn field_name(&self) -> Option<&str> {
+   |        ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: field `edits` is never read
+   --> runtime/src/incremental_v3.rs:240:5
+    |
+231 | struct IncrementalParseSession<'a> {
+    |        ----------------------- field in this struct
+...
+240 |     edits: &'a [Edit],
+    |     ^^^^^
+
+warning: field `text` is never read
+   --> runtime/src/incremental_v3.rs:463:9
+    |
+461 | struct Token {
+    |        ----- field in this struct
+462 |     pub symbol: SymbolId,
+463 |     pub text: Vec<u8>,
+    |         ^^^^
+    |
+    = note: `Token` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `id` is never read
+  --> runtime/src/glr_parser.rs:27:5
+   |
+16 | pub struct ParseStack {
+   |            ---------- field in this struct
+...
+27 |     id: usize,
+   |     ^^
+   |
+   = note: `ParseStack` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `is_in_range` is never used
+  --> runtime/src/query/cursor.rs:57:8
+   |
+14 | impl QueryCursor {
+   | ---------------- method in this implementation
+...
+57 |     fn is_in_range(&self, node: &ParseNode) -> bool {
+   |        ^^^^^^^^^^^
+
+warning: field `success` is never read
+  --> runtime/src/query/matcher.rs:30:5
+   |
+26 | struct MatchState {
+   |        ---------- field in this struct
+...
+30 |     success: bool,
+   |     ^^^^^^^
+   |
+   = note: `MatchState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `pattern_index` is never read
+   --> runtime/src/query/matcher.rs:322:5
+    |
+319 | pub struct QueryMatches<'a> {
+    |            ------------ field in this struct
+...
+322 |     pattern_index: usize,
+    |     ^^^^^^^^^^^^^
+
+warning: method `peek_identifier` is never used
+   --> runtime/src/query/parser.rs:584:8
+    |
+17  | impl<'a> QueryParser<'a> {
+    | ------------------------ method in this implementation
+...
+584 |     fn peek_identifier(&mut self) -> Result<String, QueryError> {
+    |        ^^^^^^^^^^^^^^^
+
+warning: struct `Node` is never constructed
+  --> runtime/src/glr_tree_bridge.rs:19:16
+   |
+19 |     pub struct Node;
+   |                ^^^^
+
+warning: struct `Tree` is never constructed
+  --> runtime/src/glr_tree_bridge.rs:20:16
+   |
+20 |     pub struct Tree;
+   |                ^^^^
+
+warning: field `grammar` is never read
+  --> runtime/src/glr_incremental.rs:75:5
+   |
+69 | pub struct SubtreePool {
+   |            ----------- field in this struct
+...
+75 |     grammar: Arc<Grammar>,
+   |     ^^^^^^^
+
+warning: field `is_anchor` is never read
+  --> runtime/src/glr_query.rs:47:5
+   |
+39 | pub struct PatternNode {
+   |            ----------- field in this struct
+...
+47 |     is_anchor: bool,
+   |     ^^^^^^^^^
+   |
+   = note: `PatternNode` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `field_name` is never read
+  --> runtime/src/glr_query.rs:58:5
+   |
+52 | pub struct PatternChild {
+   |            ------------ field in this struct
+...
+58 |     field_name: Option<String>,
+   |     ^^^^^^^^^^
+   |
+   = note: `PatternChild` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: type alias `TSFieldId` is never used
+  --> runtime/src/pure_parser.rs:11:6
+   |
+11 | type TSFieldId = u16;
+   |      ^^^^^^^^^
+
+warning: field `position` is never read
+   --> runtime/src/pure_parser.rs:130:5
+    |
+127 | struct StackEntry {
+    |        ---------- field in this struct
+...
+130 |     position: usize,
+    |     ^^^^^^^^
+    |
+    = note: `StackEntry` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `position` and `external_scanner` are never read
+   --> runtime/src/pure_parser.rs:137:5
+    |
+135 | struct Lexer {
+    |        ----- fields in this struct
+136 |     input: Vec<u8>,
+137 |     position: usize,
+    |     ^^^^^^^^
+138 |     external_scanner: Option<*mut c_void>,
+    |     ^^^^^^^^^^^^^^^^
+    |
+    = note: `Lexer` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `production_id` is never read
+   --> runtime/src/pure_parser.rs:153:5
+    |
+143 | struct Subtree {
+    |        ------- field in this struct
+...
+153 |     production_id: u16,
+    |     ^^^^^^^^^^^^^
+    |
+    = note: `Subtree` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `source` is never read
+  --> runtime/src/pure_incremental.rs:21:5
+   |
+18 | pub struct Tree {
+   |            ---- field in this struct
+...
+21 |     source: Vec<u8>,
+   |     ^^^^^^
+   |
+   = note: `Tree` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `node`, `byte_range`, and `is_error` are never read
+  --> runtime/src/pure_incremental.rs:27:5
+   |
+26 | pub struct ReusableNode {
+   |            ------------ fields in this struct
+27 |     node: ParsedNode,
+   |     ^^^^
+28 |     byte_range: Range<usize>,
+   |     ^^^^^^^^^^
+29 |     is_error: bool,
+   |     ^^^^^^^^
+   |
+   = note: `ReusableNode` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `start` and `end` are never read
+  --> runtime/src/parallel_parser_v2.rs:44:5
+   |
+42 | struct ParseChunk {
+   |        ---------- fields in this struct
+43 |     id: usize,
+44 |     start: usize,
+   |     ^^^^^
+45 |     end: usize,
+   |     ^^^
+   |
+   = note: `ParseChunk` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `parse_time_ms` is never read
+  --> runtime/src/parallel_parser_v2.rs:54:5
+   |
+51 | struct ChunkResult {
+   |        ----------- field in this struct
+...
+54 |     parse_time_ms: f64,
+   |     ^^^^^^^^^^^^^
+   |
+   = note: `ChunkResult` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: type alias `Node` is never used
+ --> runtime/src/tree_sitter_compat.rs:6:10
+  |
+6 | pub type Node<'a> = NodeCompat<'a>;
+  |          ^^^^
+
+warning: type alias `Parser` is never used
+ --> runtime/src/tree_sitter_compat.rs:7:10
+  |
+7 | pub type Parser = ParserCompat;
+  |          ^^^^^^
+
+warning: type alias `Language` is never used
+ --> runtime/src/tree_sitter_compat.rs:8:10
+  |
+8 | pub type Language = &'static crate::pure_parser::TSLanguage;
+  |          ^^^^^^^^
+
+warning: multiple associated items are never used
+  --> runtime/src/tree_sitter_compat.rs:17:12
+   |
+16 | impl<'a> NodeCompat<'a> {
+   | ----------------------- associated items in this implementation
+17 |     pub fn new(node: &'a ParsedNode, source: &'a [u8]) -> Self {
+   |            ^^^
+...
+21 |     pub fn kind(&self) -> &str {
+   |            ^^^^
+...
+33 |     pub fn start_byte(&self) -> usize {
+   |            ^^^^^^^^^^
+...
+37 |     pub fn end_byte(&self) -> usize {
+   |            ^^^^^^^^
+...
+41 |     pub fn utf8_text<'b>(&self, source: &'b [u8]) -> Result<&'b str, std::str::Utf8Error> {
+   |            ^^^^^^^^^
+...
+46 |     pub fn is_error(&self) -> bool {
+   |            ^^^^^^^^
+...
+50 |     pub fn is_missing(&self) -> bool {
+   |            ^^^^^^^^^^
+...
+54 |     pub fn has_error(&self) -> bool {
+   |            ^^^^^^^^^
+...
+59 |     pub fn is_named(&self) -> bool {
+   |            ^^^^^^^^
+...
+63 |     pub fn child(&self, index: usize) -> Option<NodeCompat<'a>> {
+   |            ^^^^^
+...
+67 |     pub fn children<'b>(&'b self) -> impl Iterator<Item = NodeCompat<'a>> + 'b {
+   |            ^^^^^^^^
+...
+71 |     pub fn walk(&self) -> TreeCursor<'a> {
+   |            ^^^^
+...
+78 |     pub fn field_name_for_child(&self, index: usize) -> Option<&str> {
+   |            ^^^^^^^^^^^^^^^^^^^^
+...
+84 |     pub fn reset(&mut self, node: Node<'a>) {
+   |            ^^^^^
+
+warning: struct `TreeCursor` is never constructed
+  --> runtime/src/tree_sitter_compat.rs:99:12
+   |
+99 | pub struct TreeCursor<'a> {
+   |            ^^^^^^^^^^
+
+warning: methods `node`, `goto_first_child`, `goto_next_sibling`, `field_name`, and `reset` are never used
+   --> runtime/src/tree_sitter_compat.rs:105:12
+    |
+104 | impl<'a> TreeCursor<'a> {
+    | ----------------------- methods in this implementation
+105 |     pub fn node(&self) -> NodeCompat<'a> {
+    |            ^^^^
+...
+109 |     pub fn goto_first_child(&mut self) -> bool {
+    |            ^^^^^^^^^^^^^^^^
+...
+119 |     pub fn goto_next_sibling(&mut self) -> bool {
+    |            ^^^^^^^^^^^^^^^^^
+...
+124 |     pub fn field_name(&self) -> Option<&str> {
+    |            ^^^^^^^^^^
+...
+128 |     pub fn reset(&mut self, node: Node<'a>) {
+    |            ^^^^^
+
+warning: field `inner` is never read
+   --> runtime/src/tree_sitter_compat.rs:136:5
+    |
+135 | pub struct ParserCompat {
+    |            ------------ field in this struct
+136 |     inner: PureParser,
+    |     ^^^^^
+
+warning: methods `set_language`, `parse`, and `set_timeout_micros` are never used
+   --> runtime/src/tree_sitter_compat.rs:146:12
+    |
+139 | impl ParserCompat {
+    | ----------------- methods in this implementation
+...
+146 |     pub fn set_language(&mut self, language: &'static crate::pure_parser::TSLanguage) -> Result<(), String> {
+    |            ^^^^^^^^^^^^
+...
+151 |     pub fn parse(&mut self, source: &str, old_tree: Option<&PureTree>) -> Option<PureTree> {
+    |            ^^^^^
+...
+164 |     pub fn set_timeout_micros(&mut self, timeout: u64) {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: unused `Result` that must be used
+  --> runtime/src/unified_parser.rs:23:9
+   |
+23 |         self.incremental_parser.set_language(language);
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+   = note: `#[warn(unused_must_use)]` on by default
+help: use `let _ = ...` to ignore the resulting value
+   |
+23 |         let _ = self.incremental_parser.set_language(language);
+   |         +++++++
+
+warning: unused `Result` that must be used
+   --> runtime/src/tree_sitter_compat.rs:147:9
+    |
+147 |         self.inner.set_language(language);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+147 |         let _ = self.inner.set_language(language);
+    |         +++++++
+
+warning: `rust-sitter` (lib) generated 55 warnings (run `cargo fix --lib -p rust-sitter` to apply 12 suggestions)
+warning: unused import: `std::collections::HashMap`
+ --> tool/src/grammar_js/json_converter.rs:9:5
+  |
+9 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: function `parse_with_rust_parser` is never used
+  --> tool/src/cli/parse.rs:83:8
+   |
+83 | pub fn parse_with_rust_parser(
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `auto_detect_parser` is never used
+  --> tool/src/cli/parse.rs:98:8
+   |
+98 | pub fn auto_detect_parser(file_path: &Path) -> Option<String> {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `generate_corpus` is never used
+   --> tool/src/cli/test.rs:172:8
+    |
+172 | pub fn generate_corpus(
+    |        ^^^^^^^^^^^^^^^
+
+warning: `rust-sitter-tool` (lib) generated 4 warnings (run `cargo fix --lib -p rust-sitter-tool` to apply 1 suggestion)
+   Compiling rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)
+warning: unused import: `rust_sitter::Extract`
+ --> example/src/external_word_example.rs:3:5
+  |
+3 | use rust_sitter::Extract;
+  |     ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::time::Instant`
+  --> example/src/performance_test.rs:2:5
+   |
+2  | use std::time::Instant;
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> example/src/main.rs:14:1
+   |
+14 | mod performance_test;
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:1086
+  |
+9 | ... 0u8] ; static SYMBOL_NAME_PTRS : & [* const u8] = & [SYMBOL_NAME_0 . as_ptr () , SYMBOL_NAME_1 . as_ptr () , SYMBOL_NAME_2 . as_ptr (...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:1441
+  |
+9 | ...tr ()] ; static FIELD_NAME_PTRS : & [* const u8] = & [] ; static SYMBOL_METADATA : & [u8] = & [1u8 , 1u8 , 0u8 , 1u8 , 0u8 , 3u8 , 3u8...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:584
+  |
+9 | ... 0u8] ; static SYMBOL_NAME_PTRS : & [* const u8] = & [SYMBOL_NAME_0 . as_ptr () , SYMBOL_NAME_1 . as_ptr () , SYMBOL_NAME_2 . as_ptr (...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:826
+  |
+9 | ...tr ()] ; static FIELD_NAME_PTRS : & [* const u8] = & [] ; static SYMBOL_METADATA : & [u8] = & [1u8 , 0u8 , 0u8 , 1u8 , 3u8 , 3u8 , 3u8...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:971
+  |
+9 | ... 0u8] ; static SYMBOL_NAME_PTRS : & [* const u8] = & [SYMBOL_NAME_0 . as_ptr () , SYMBOL_NAME_1 . as_ptr () , SYMBOL_NAME_2 . as_ptr (...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:1241
+  |
+9 | ...tr ()] ; static FIELD_NAME_PTRS : & [* const u8] = & [] ; static SYMBOL_METADATA : & [u8] = & [1u8 , 0u8 , 1u8 , 0u8 , 3u8 , 3u8 , 3u8...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:742
+  |
+9 | ... 0u8] ; static SYMBOL_NAME_PTRS : & [* const u8] = & [SYMBOL_NAME_0 . as_ptr () , SYMBOL_NAME_1 . as_ptr () , SYMBOL_NAME_2 . as_ptr (...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:1229
+  |
+9 | ..., 0u8] ; static FIELD_NAME_PTRS : & [* const u8] = & [FIELD_NAME_0 . as_ptr ()] ; static SYMBOL_METADATA : & [u8] = & [1u8 , 0u8 , 0u8...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:788
+  |
+9 | ... 0u8] ; static SYMBOL_NAME_PTRS : & [* const u8] = & [SYMBOL_NAME_0 . as_ptr () , SYMBOL_NAME_1 . as_ptr () , SYMBOL_NAME_2 . as_ptr (...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:1058
+  |
+9 | ...tr ()] ; static FIELD_NAME_PTRS : & [* const u8] = & [] ; static SYMBOL_METADATA : & [u8] = & [1u8 , 0u8 , 1u8 , 0u8 , 3u8 , 3u8 , 3u8...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:569
+  |
+9 | ... 0u8] ; static SYMBOL_NAME_PTRS : & [* const u8] = & [SYMBOL_NAME_0 . as_ptr () , SYMBOL_NAME_1 . as_ptr () , SYMBOL_NAME_2 . as_ptr (...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:811
+  |
+9 | ...tr ()] ; static FIELD_NAME_PTRS : & [* const u8] = & [] ; static SYMBOL_METADATA : & [u8] = & [1u8 , 1u8 , 0u8 , 0u8 , 3u8 , 3u8 , 3u8...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:2231
+  |
+9 | ... 0u8] ; static SYMBOL_NAME_PTRS : & [* const u8] = & [SYMBOL_NAME_0 . as_ptr () , SYMBOL_NAME_1 . as_ptr () , SYMBOL_NAME_2 . as_ptr (...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+error[E0277]: `*const u8` cannot be shared between threads safely
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:3075
+  |
+9 | ..., 0u8] ; static FIELD_NAME_PTRS : & [* const u8] = & [FIELD_NAME_0 . as_ptr ()] ; static SYMBOL_METADATA : & [u8] = & [1u8 , 0u8 , 1u8...
+  |                                      ^^^^^^^^^^^^^^ `*const u8` cannot be shared between threads safely
+  |
+  = help: within `&'static [*const u8]`, the trait `Sync` is not implemented for `*const u8`
+  = note: required because it appears within the type `[*const u8]`
+  = note: required because it appears within the type `&'static [*const u8]`
+  = note: shared static variables must have a type that implements `Sync`
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:2821
+  |
+9 | ...lias_sequence_length : 0u16 , production_id_map : unsafe { PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_p...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+  |
+  = note: `#[warn(unused_unsafe)]` on by default
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:2878
+  |
+9 | ...{ PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_ptr () } , small_parse_table : std :: ptr :: null () , sma...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:2983
+  |
+9 | ...: std :: ptr :: null () , small_parse_table_map : unsafe { SMALL_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTION...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:3046
+  |
+9 | ...L_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:3100
+  |
+9 | ...fe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as_ptr () as * const * const u8 } , field_names : unsafe...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:3178
+  |
+9 | ...as_ptr () as * const * const u8 } , field_names : unsafe { FIELD_NAME_PTRS . as_ptr () as * const * const u8 } , field_map_slices : un...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:3260
+  |
+9 | ...r () as * const * const u8 } , field_map_slices : unsafe { FIELD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:3322
+  |
+9 | ...LD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADAT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:3383
+  |
+9 | ...ELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:3444
+  |
+9 | ...MBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_MAP . as_ptr () } , alias_map : std :: ptr :: null () , alias...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:3588
+  |
+9 | ... : std :: ptr :: null :: < u16 > () , lex_modes : unsafe { LEX_MODES . as_ptr () } , lex_fn : None , keyword_lex_fn : None , keyword_c...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:3909
+  |
+9 | ...ne , deserialize : None , } , primary_state_ids : unsafe { PRIMARY_STATE_IDS . as_ptr () } , } ; # [doc = r" Get the Tree-sitter Langu...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2022
+  |
+9 | ...lias_sequence_length : 0u16 , production_id_map : unsafe { PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_p...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2079
+  |
+9 | ...{ PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_ptr () } , small_parse_table : std :: ptr :: null () , sma...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2184
+  |
+9 | ...: std :: ptr :: null () , small_parse_table_map : unsafe { SMALL_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTION...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2247
+  |
+9 | ...L_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2301
+  |
+9 | ...fe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as_ptr () as * const * const u8 } , field_names : unsafe...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2379
+  |
+9 | ...as_ptr () as * const * const u8 } , field_names : unsafe { FIELD_NAME_PTRS . as_ptr () as * const * const u8 } , field_map_slices : un...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2461
+  |
+9 | ...r () as * const * const u8 } , field_map_slices : unsafe { FIELD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2523
+  |
+9 | ...LD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADAT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2584
+  |
+9 | ...ELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2645
+  |
+9 | ...MBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_MAP . as_ptr () } , alias_map : std :: ptr :: null () , alias...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:2789
+  |
+9 | ... : std :: ptr :: null :: < u16 > () , lex_modes : unsafe { LEX_MODES . as_ptr () } , lex_fn : None , keyword_lex_fn : None , keyword_c...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:3110
+  |
+9 | ...ne , deserialize : None , } , primary_state_ids : unsafe { PRIMARY_STATE_IDS . as_ptr () } , } ; # [doc = r" Get the Tree-sitter Langu...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:2466
+  |
+9 | ...lias_sequence_length : 0u16 , production_id_map : unsafe { PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_p...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:2523
+  |
+9 | ...{ PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_ptr () } , small_parse_table : std :: ptr :: null () , sma...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:2628
+  |
+9 | ...: std :: ptr :: null () , small_parse_table_map : unsafe { SMALL_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTION...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:2691
+  |
+9 | ...L_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:2745
+  |
+9 | ...fe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as_ptr () as * const * const u8 } , field_names : unsafe...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:2823
+  |
+9 | ...as_ptr () as * const * const u8 } , field_names : unsafe { FIELD_NAME_PTRS . as_ptr () as * const * const u8 } , field_map_slices : un...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:2905
+  |
+9 | ...r () as * const * const u8 } , field_map_slices : unsafe { FIELD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:2967
+  |
+9 | ...LD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADAT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:3028
+  |
+9 | ...ELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:3089
+  |
+9 | ...MBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_MAP . as_ptr () } , alias_map : std :: ptr :: null () , alias...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:3233
+  |
+9 | ... : std :: ptr :: null :: < u16 > () , lex_modes : unsafe { LEX_MODES . as_ptr () } , lex_fn : None , keyword_lex_fn : None , keyword_c...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:3554
+  |
+9 | ...ne , deserialize : None , } , primary_state_ids : unsafe { PRIMARY_STATE_IDS . as_ptr () } , } ; # [doc = r" Get the Tree-sitter Langu...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:2427
+  |
+9 | ...lias_sequence_length : 0u16 , production_id_map : unsafe { PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_p...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:2484
+  |
+9 | ...{ PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_ptr () } , small_parse_table : std :: ptr :: null () , sma...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:2589
+  |
+9 | ...: std :: ptr :: null () , small_parse_table_map : unsafe { SMALL_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTION...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:2652
+  |
+9 | ...L_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:2706
+  |
+9 | ...fe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as_ptr () as * const * const u8 } , field_names : unsafe...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:2784
+  |
+9 | ...as_ptr () as * const * const u8 } , field_names : unsafe { FIELD_NAME_PTRS . as_ptr () as * const * const u8 } , field_map_slices : un...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:2866
+  |
+9 | ...r () as * const * const u8 } , field_map_slices : unsafe { FIELD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:2928
+  |
+9 | ...LD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADAT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:2989
+  |
+9 | ...ELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:3050
+  |
+9 | ...MBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_MAP . as_ptr () } , alias_map : std :: ptr :: null () , alias...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:3194
+  |
+9 | ... : std :: ptr :: null :: < u16 > () , lex_modes : unsafe { LEX_MODES . as_ptr () } , lex_fn : None , keyword_lex_fn : None , keyword_c...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:3515
+  |
+9 | ...ne , deserialize : None , } , primary_state_ids : unsafe { PRIMARY_STATE_IDS . as_ptr () } , } ; # [doc = r" Get the Tree-sitter Langu...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2283
+  |
+9 | ...lias_sequence_length : 0u16 , production_id_map : unsafe { PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_p...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2340
+  |
+9 | ...{ PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_ptr () } , small_parse_table : std :: ptr :: null () , sma...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2445
+  |
+9 | ...: std :: ptr :: null () , small_parse_table_map : unsafe { SMALL_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTION...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2508
+  |
+9 | ...L_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2562
+  |
+9 | ...fe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as_ptr () as * const * const u8 } , field_names : unsafe...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2640
+  |
+9 | ...as_ptr () as * const * const u8 } , field_names : unsafe { FIELD_NAME_PTRS . as_ptr () as * const * const u8 } , field_map_slices : un...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2722
+  |
+9 | ...r () as * const * const u8 } , field_map_slices : unsafe { FIELD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2784
+  |
+9 | ...LD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADAT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2845
+  |
+9 | ...ELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:2906
+  |
+9 | ...MBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_MAP . as_ptr () } , alias_map : std :: ptr :: null () , alias...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:3050
+  |
+9 | ... : std :: ptr :: null :: < u16 > () , lex_modes : unsafe { LEX_MODES . as_ptr () } , lex_fn : None , keyword_lex_fn : None , keyword_c...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:3371
+  |
+9 | ...ne , deserialize : None , } , primary_state_ids : unsafe { PRIMARY_STATE_IDS . as_ptr () } , } ; # [doc = r" Get the Tree-sitter Langu...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2007
+  |
+9 | ...lias_sequence_length : 0u16 , production_id_map : unsafe { PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_p...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2064
+  |
+9 | ...{ PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_ptr () } , small_parse_table : std :: ptr :: null () , sma...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2169
+  |
+9 | ...: std :: ptr :: null () , small_parse_table_map : unsafe { SMALL_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTION...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2232
+  |
+9 | ...L_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2286
+  |
+9 | ...fe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as_ptr () as * const * const u8 } , field_names : unsafe...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2364
+  |
+9 | ...as_ptr () as * const * const u8 } , field_names : unsafe { FIELD_NAME_PTRS . as_ptr () as * const * const u8 } , field_map_slices : un...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2446
+  |
+9 | ...r () as * const * const u8 } , field_map_slices : unsafe { FIELD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2508
+  |
+9 | ...LD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADAT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2569
+  |
+9 | ...ELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2630
+  |
+9 | ...MBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_MAP . as_ptr () } , alias_map : std :: ptr :: null () , alias...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:2774
+  |
+9 | ... : std :: ptr :: null :: < u16 > () , lex_modes : unsafe { LEX_MODES . as_ptr () } , lex_fn : None , keyword_lex_fn : None , keyword_c...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:3095
+  |
+9 | ...ne , deserialize : None , } , primary_state_ids : unsafe { PRIMARY_STATE_IDS . as_ptr () } , } ; # [doc = r" Get the Tree-sitter Langu...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:4695
+  |
+9 | ...lias_sequence_length : 0u16 , production_id_map : unsafe { PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_p...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:4752
+  |
+9 | ...{ PRODUCTION_ID_MAP . as_ptr () } , parse_table : unsafe { PARSE_TABLE . as_ptr () } , small_parse_table : std :: ptr :: null () , sma...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:4857
+  |
+9 | ...: std :: ptr :: null () , small_parse_table_map : unsafe { SMALL_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTION...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:4920
+  |
+9 | ...L_PARSE_TABLE_MAP . as_ptr () } , parse_actions : unsafe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:4974
+  |
+9 | ...fe { PARSE_ACTIONS . as_ptr () } , symbol_names : unsafe { SYMBOL_NAME_PTRS . as_ptr () as * const * const u8 } , field_names : unsafe...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:5052
+  |
+9 | ...as_ptr () as * const * const u8 } , field_names : unsafe { FIELD_NAME_PTRS . as_ptr () as * const * const u8 } , field_map_slices : un...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:5134
+  |
+9 | ...r () as * const * const u8 } , field_map_slices : unsafe { FIELD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:5196
+  |
+9 | ...LD_MAP_SLICES . as_ptr () } , field_map_entries : unsafe { FIELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADAT...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:5257
+  |
+9 | ...ELD_MAP_ENTRIES . as_ptr () } , symbol_metadata : unsafe { SYMBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:5318
+  |
+9 | ...MBOL_METADATA . as_ptr () } , public_symbol_map : unsafe { PUBLIC_SYMBOL_MAP . as_ptr () } , alias_map : std :: ptr :: null () , alias...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:5462
+  |
+9 | ... : std :: ptr :: null :: < u16 > () , lex_modes : unsafe { LEX_MODES . as_ptr () } , lex_fn : None , keyword_lex_fn : None , keyword_c...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:5783
+  |
+9 | ...ne , deserialize : None , } , primary_state_ids : unsafe { PRIMARY_STATE_IDS . as_ptr () } , } ; # [doc = r" Get the Tree-sitter Langu...
+  |                                                      ^^^^^^ unnecessary `unsafe` block
+
+For more information about this error, try `rustc --explain E0277`.
+warning: `rust-sitter-example` (bin "rust-sitter-example") generated 86 warnings
+error: could not compile `rust-sitter-example` (bin "rust-sitter-example") due to 14 previous errors; 86 warnings emitted

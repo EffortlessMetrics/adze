@@ -22,6 +22,22 @@ pub struct TSLexState {
 pub const TREE_SITTER_LANGUAGE_VERSION: u32 = 15;
 pub const TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION: u32 = 13;
 
+/// Wrapper for raw pointers to make them Sync
+#[repr(transparent)]
+pub struct SyncPtr(*const u8);
+
+unsafe impl Sync for SyncPtr {}
+
+impl SyncPtr {
+    pub const fn new(ptr: *const u8) -> Self {
+        Self(ptr)
+    }
+    
+    pub const fn as_ptr(&self) -> *const u8 {
+        self.0
+    }
+}
+
 /// Point in a text document (row/column)
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
