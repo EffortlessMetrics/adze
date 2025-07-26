@@ -34,6 +34,7 @@ pub struct Point {
 #[derive(Debug)]
 // Define full TSLanguage for pure-Rust implementation - matches Tree-sitter ABI 15
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct TSLanguage {
     pub version: u32,
     pub symbol_count: u32,
@@ -70,29 +71,6 @@ pub struct TSLanguage {
 // All pointers point to static data that is never modified after initialization.
 unsafe impl Sync for TSLanguage {}
 
-// Wrapper types to make raw pointer arrays Sync
-#[repr(transparent)]
-pub struct SyncPtrArray<const N: usize>([*const u8; N]);
-
-unsafe impl<const N: usize> Sync for SyncPtrArray<N> {}
-
-impl<const N: usize> SyncPtrArray<N> {
-    pub const fn new(arr: [*const u8; N]) -> Self {
-        Self(arr)
-    }
-    
-    pub fn as_ptr(&self) -> *const *const u8 {
-        self.0.as_ptr() as *const *const u8
-    }
-    
-    pub const fn as_slice_ptr(&self) -> *const u8 {
-        if N == 0 {
-            std::ptr::null()
-        } else {
-            self.0[0]
-        }
-    }
-}
 
 #[repr(C)]
 #[derive(Copy, Clone)]
