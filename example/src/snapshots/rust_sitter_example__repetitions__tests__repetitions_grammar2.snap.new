@@ -1,0 +1,16 @@
+---
+source: example/src/repetitions.rs
+assertion_line: 82
+expression: "grammar2::parse(\"\")"
+---
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 0",
+            ),
+            start: 0,
+            end: 0,
+        },
+    ],
+)

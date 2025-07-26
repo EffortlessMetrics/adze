@@ -6,7 +6,7 @@ use std::fs;
 use std::io::Write;
 use anyhow::{Result, Context};
 use rust_sitter_ir::{Grammar, optimize_grammar};
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, Action};
 use rust_sitter_tablegen::{NodeTypesGenerator, AbiLanguageBuilder};
 use crate::grammar_js::{parse_grammar_js_v2, GrammarJsConverter};
 use serde_json::Value;
@@ -129,9 +129,37 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
     // Step 1: Compute FIRST/FOLLOW sets
     let first_follow = FirstFollowSets::compute(&grammar);
     
+    // Write debug info to a file
+    let debug_file_path = std::env::temp_dir().join(format!("rust_sitter_debug_{}.log", grammar_name));
+    let mut debug_file = fs::File::create(&debug_file_path)?;
+    
+    writeln!(debug_file, "Debug: Grammar has {} tokens, {} rules", 
+        grammar.tokens.len(), grammar.rules.len())?;
+    writeln!(debug_file, "Debug: Token names: {:?}", 
+        grammar.tokens.values().map(|t| &t.name).collect::<Vec<_>>())?;
+    writeln!(debug_file, "Debug: Rule names: {:?}", 
+        grammar.rule_names.values().collect::<Vec<_>>())?;
+    
     // Step 2: Build LR(1) automaton
     let parse_table = build_lr1_automaton(&grammar, &first_follow)
         .context("Failed to build LR(1) automaton")?;
+    
+    writeln!(debug_file, "Debug: Parse table has {} states, {} symbols", 
+        parse_table.state_count, parse_table.symbol_count)?;
+    writeln!(debug_file, "Debug: Action table has {} entries", parse_table.action_table.len())?;
+    writeln!(debug_file, "Debug: Goto table has {} entries", parse_table.goto_table.len())?;
+    
+    // Debug: Print action table content
+    for (state_idx, actions) in parse_table.action_table.iter().enumerate() {
+        let non_error_actions: Vec<_> = actions.iter().enumerate()
+            .filter(|(_, a)| !matches!(a, Action::Error))
+            .collect();
+        if !non_error_actions.is_empty() {
+            writeln!(debug_file, "Debug: State {} has {} non-error actions", state_idx, non_error_actions.len())?;
+        }
+    }
+    
+    eprintln!("Debug info written to: {:?}", debug_file_path);
     
     // Step 3: Generate static language code using ABI builder
     let language_code = if options.compress_tables {
