@@ -1,7 +1,11 @@
 // Parse tree visitor API for the pure-Rust Tree-sitter implementation
 // This module provides flexible visitor patterns for traversing and analyzing parse trees
 
+#[cfg(not(feature = "pure-rust"))]
 use crate::tree_sitter::Node;
+#[cfg(feature = "pure-rust")]
+use crate::pure_parser::ParsedNode as Node;
+
 use std::collections::VecDeque;
 
 /// Visitor trait for traversing parse trees
@@ -48,11 +52,32 @@ impl<'a> TreeWalker<'a> {
         Self { source }
     }
     
+    #[cfg(feature = "pure-rust")]
+    fn get_node_text(&self, node: &Node) -> String {
+        let start = node.start_byte();
+        let end = node.end_byte();
+        if start < self.source.len() && end <= self.source.len() && start < end {
+            std::str::from_utf8(&self.source[start..end])
+                .unwrap_or("")
+                .to_string()
+        } else {
+            String::new()
+        }
+    }
+    
     /// Walk the tree depth-first with the given visitor
+    #[cfg(not(feature = "pure-rust"))]
     pub fn walk<V: Visitor>(&self, root: Node, visitor: &mut V) {
         self.walk_node(root, visitor);
     }
     
+    /// Walk the tree depth-first with the given visitor
+    #[cfg(feature = "pure-rust")]
+    pub fn walk<V: Visitor>(&self, root: &Node, visitor: &mut V) {
+        self.walk_node(root, visitor);
+    }
+    
+    #[cfg(not(feature = "pure-rust"))]
     fn walk_node<V: Visitor>(&self, node: Node, visitor: &mut V) {
         // Handle special node types
         if node.is_error() {
@@ -92,6 +117,40 @@ impl<'a> TreeWalker<'a> {
         // Leave the node
         visitor.leave_node(&node);
     }
+    
+    #[cfg(feature = "pure-rust")]
+    fn walk_node<V: Visitor>(&self, node: &Node, visitor: &mut V) {
+        // Handle special node types
+        if node.is_error() {
+            visitor.visit_error(&node);
+            return;
+        }
+        
+        // Enter the node
+        let action = visitor.enter_node(&node);
+        
+        match action {
+            VisitorAction::Stop => return,
+            VisitorAction::SkipChildren => {
+                visitor.leave_node(&node);
+                return;
+            }
+            VisitorAction::Continue => {}
+        }
+        
+        // Process children or leaf content
+        if node.child_count() == 0 {
+            let text = self.get_node_text(node);
+            visitor.visit_leaf(&node, &text);
+        } else {
+            for child in node.children() {
+                self.walk_node(child, visitor);
+            }
+        }
+        
+        // Leave the node
+        visitor.leave_node(&node);
+    }
 }
 
 /// Breadth-first tree walker
@@ -105,6 +164,7 @@ impl<'a> BreadthFirstWalker<'a> {
     }
     
     /// Walk the tree breadth-first with the given visitor
+    #[cfg(not(feature = "pure-rust"))]
     pub fn walk<V: Visitor>(&self, root: Node, visitor: &mut V) {
         let mut queue = VecDeque::new();
         queue.push_back(root);
@@ -139,6 +199,42 @@ impl<'a> BreadthFirstWalker<'a> {
                             break;
                         }
                     }
+                }
+            }
+        }
+    }
+    
+    /// Walk the tree breadth-first with the given visitor
+    #[cfg(feature = "pure-rust")]
+    pub fn walk<V: Visitor>(&self, root: &Node, visitor: &mut V) {
+        let mut queue = VecDeque::new();
+        queue.push_back(root);
+        
+        while let Some(node) = queue.pop_front() {
+            // Handle special node types
+            if node.is_error() {
+                visitor.visit_error(&node);
+                continue;
+            }
+            
+            // Visit the node
+            let action = visitor.enter_node(&node);
+            
+            match action {
+                VisitorAction::Stop => return,
+                VisitorAction::SkipChildren => continue,
+                VisitorAction::Continue => {}
+            }
+            
+            // Process leaf or queue children
+            if node.child_count() == 0 {
+                let text = &self.source[node.start_byte()..node.end_byte()];
+                if let Ok(text_str) = std::str::from_utf8(text) {
+                    visitor.visit_leaf(&node, text_str);
+                }
+            } else {
+                for child in node.children() {
+                    queue.push_back(child);
                 }
             }
         }
@@ -294,10 +390,17 @@ impl<'a> TransformWalker<'a> {
         Self { source }
     }
     
+    #[cfg(not(feature = "pure-rust"))]
     pub fn walk<T: TransformVisitor>(&self, root: Node, visitor: &mut T) -> T::Output {
         self.transform_node(root, visitor)
     }
     
+    #[cfg(feature = "pure-rust")]
+    pub fn walk<T: TransformVisitor>(&self, root: &Node, visitor: &mut T) -> T::Output {
+        self.transform_node(root, visitor)
+    }
+    
+    #[cfg(not(feature = "pure-rust"))]
     fn transform_node<T: TransformVisitor>(&self, node: Node, visitor: &mut T) -> T::Output {
         if node.is_error() {
             return visitor.transform_error(&node);
@@ -318,6 +421,26 @@ impl<'a> TransformWalker<'a> {
                     break;
                 }
             }
+        }
+        
+        visitor.transform_node(&node, children)
+    }
+    
+    #[cfg(feature = "pure-rust")]
+    fn transform_node<T: TransformVisitor>(&self, node: &Node, visitor: &mut T) -> T::Output {
+        if node.is_error() {
+            return visitor.transform_error(&node);
+        }
+        
+        if node.child_count() == 0 {
+            let text = &self.source[node.start_byte()..node.end_byte()];
+            let text_str = std::str::from_utf8(text).unwrap_or("");
+            return visitor.transform_leaf(&node, text_str);
+        }
+        
+        let mut children = Vec::new();
+        for child in node.children() {
+            children.push(self.transform_node(child, visitor));
         }
         
         visitor.transform_node(&node, children)

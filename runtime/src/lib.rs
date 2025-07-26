@@ -237,11 +237,11 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
         node.map(|node| {
             let compat = crate::tree_sitter_compat::NodeCompat::new(node, source);
             let mut out = vec![];
-            for (i, child) in node.children.iter().enumerate() {
+            for (i, child) in node.children().iter().enumerate() {
                 if compat.field_name_for_child(i).is_some() {
                     out.push(T::extract(Some(child), source, last_idx, leaf_fn));
                 }
-                last_idx = child.end_byte;
+                last_idx = child.end_byte();
             }
             out
         })
@@ -295,7 +295,7 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
         Spanned {
             value: T::extract(node, source, last_idx, leaf_fn),
             span: node
-                .map(|n| (n.start_byte, n.end_byte))
+                .map(|n| (n.start_byte(), n.end_byte()))
                 .unwrap_or((last_idx, last_idx)),
         }
     }

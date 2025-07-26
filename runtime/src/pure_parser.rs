@@ -106,16 +106,17 @@ pub struct ParseResult {
 /// Parsed node
 #[derive(Debug, Clone)]
 pub struct ParsedNode {
-    symbol: TSSymbol,
-    children: Vec<ParsedNode>,
-    start_byte: usize,
-    end_byte: usize,
-    start_point: Point,
-    end_point: Point,
-    is_extra: bool,
-    is_error: bool,
-    is_missing: bool,
-    field_name: Option<String>,
+    pub symbol: TSSymbol,
+    pub children: Vec<ParsedNode>,
+    pub start_byte: usize,
+    pub end_byte: usize,
+    pub start_point: Point,
+    pub end_point: Point,
+    pub is_extra: bool,
+    pub is_error: bool,
+    pub is_missing: bool,
+    pub is_named: bool,
+    pub field_name: Option<String>,
 }
 
 /// Parse error
@@ -615,6 +616,7 @@ fn subtree_to_node(subtree: Subtree) -> ParsedNode {
         is_extra: subtree.is_extra,
         is_error: subtree.is_error,
         is_missing: subtree.is_missing,
+        is_named: true, // TODO: determine from symbol type
         field_name: None, // TODO: Extract field names from production ID
     }
 }
@@ -668,6 +670,34 @@ impl ParsedNode {
     /// Check if node is error
     pub fn is_error(&self) -> bool {
         self.is_error
+    }
+    
+    /// Check if node is missing
+    pub fn is_missing(&self) -> bool {
+        self.is_missing
+    }
+    
+    /// Check if node has error
+    pub fn has_error(&self) -> bool {
+        self.is_error || self.children.iter().any(|c| c.has_error())
+    }
+    
+    /// Check if node is named
+    pub fn is_named(&self) -> bool {
+        self.is_named
+    }
+    
+    /// Get node kind (symbol name)
+    /// For now, returns symbol ID as string - would be replaced with symbol names
+    pub fn kind(&self) -> &str {
+        // In a real implementation, this would map symbol IDs to names
+        match self.symbol {
+            0 => "program",
+            1 => "expression",
+            2 => "number",
+            3 => "identifier",
+            _ => "unknown",
+        }
     }
 }
 

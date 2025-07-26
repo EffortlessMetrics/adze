@@ -2,6 +2,11 @@
 use crate::pure_parser::{ParsedNode, Parser as PureParser};
 use crate::pure_incremental::{Tree as PureTree};
 
+// Type aliases for compatibility
+pub type Node<'a> = NodeCompat<'a>;
+pub type Parser = ParserCompat;
+pub type Language = &'static crate::pure_parser::TSLanguage;
+
 /// Compatibility wrapper for ParsedNode to work with Extract trait
 pub struct NodeCompat<'a> {
     pub inner: &'a ParsedNode,
@@ -56,11 +61,11 @@ impl<'a> NodeCompat<'a> {
     }
     
     pub fn child(&self, index: usize) -> Option<NodeCompat<'a>> {
-        self.inner.children.get(index).map(|c| NodeCompat::new(c, self.source))
+        self.inner.child(index).map(|c| NodeCompat::new(c, self.source))
     }
     
     pub fn children<'b>(&'b self) -> impl Iterator<Item = NodeCompat<'a>> + 'b {
-        self.inner.children.iter().map(move |c| NodeCompat::new(c, self.source))
+        self.inner.children().iter().map(move |c| NodeCompat::new(c, self.source))
     }
     
     pub fn walk(&self) -> TreeCursor<'a> {
@@ -74,6 +79,10 @@ impl<'a> NodeCompat<'a> {
         // In pure-Rust, field names would come from the language definition
         // For now, return None
         None
+    }
+    
+    pub fn reset(&mut self, node: Node<'a>) {
+        *self = node;
     }
 }
 
@@ -98,8 +107,8 @@ impl<'a> TreeCursor<'a> {
     }
     
     pub fn goto_first_child(&mut self) -> bool {
-        if !self.node.inner.children.is_empty() {
-            self.node = NodeCompat::new(&self.node.inner.children[0], self.node.source);
+        if let Some(first_child) = self.node.child(0) {
+            self.node = first_child;
             self.index = 0;
             true
         } else {
@@ -115,6 +124,11 @@ impl<'a> TreeCursor<'a> {
     pub fn field_name(&self) -> Option<&str> {
         None
     }
+    
+    pub fn reset(&mut self, node: Node<'a>) {
+        self.node = node;
+        self.index = 0;
+    }
 }
 
 /// Parser wrapper for compatibility
@@ -129,8 +143,9 @@ impl ParserCompat {
         }
     }
     
-    pub fn set_language(&mut self, language: &crate::pure_parser::TSLanguage) -> Result<(), String> {
-        self.inner.set_language(language)
+    pub fn set_language(&mut self, language: &'static crate::pure_parser::TSLanguage) -> Result<(), String> {
+        self.inner.set_language(language);
+        Ok(())
     }
     
     pub fn parse(&mut self, source: &str, old_tree: Option<&PureTree>) -> Option<PureTree> {
@@ -140,7 +155,10 @@ impl ParserCompat {
             self.inner.parse_string(source)
         };
         
-        result.root.map(|root| PureTree::new(root, self.inner.language().unwrap(), source.as_bytes()))
+        result.root.map(|root| {
+            // Create tree with source
+            PureTree::new(root, self.inner.language().unwrap(), source.as_bytes())
+        })
     }
     
     pub fn set_timeout_micros(&mut self, timeout: u64) {

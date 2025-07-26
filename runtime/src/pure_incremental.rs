@@ -39,6 +39,11 @@ impl Tree {
         }
     }
     
+    /// Get the root node of the tree
+    pub fn root_node(&self) -> &ParsedNode {
+        &self.root
+    }
+    
     /// Edit the tree to reflect changes in the source code
     pub fn edit(&mut self, edit: &Edit) {
         // Update byte positions in the tree
