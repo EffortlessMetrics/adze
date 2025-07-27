@@ -6,8 +6,8 @@ fn main() {
         println!("Testing pure-Rust arithmetic parser...");
         
         // Import the generated arithmetic grammar
-        // Note: In examples, we use the crate relative path
-        use crate::arithmetic::grammar;
+        // Note: In examples, we use the crate name
+        use rust_sitter_example::arithmetic::grammar;
         
         // Test parsing simple expressions
         let test_cases = vec![

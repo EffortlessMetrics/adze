@@ -208,3 +208,166 @@ impl LanguageBuilder {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_sitter_ir::*;
+    use rust_sitter_glr_core::Action;
+    use indexmap::IndexMap;
+    
+    fn create_test_grammar() -> Grammar {
+        let mut grammar = Grammar::default();
+        grammar.name = "test".to_string();
+        
+        // Add a simple token
+        grammar.tokens.insert(SymbolId(1), Token {
+            name: "number".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        });
+        
+        // Add a simple rule
+        grammar.add_rule(Rule {
+            lhs: SymbolId(0),
+            rhs: vec![Symbol::Terminal(SymbolId(1))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        
+        // Add field names
+        grammar.fields.insert(FieldId(0), "value".to_string());
+        
+        grammar
+    }
+    
+    fn create_test_parse_table() -> ParseTable {
+        let mut table = ParseTable::new();
+        table.symbol_count = 2;
+        table.state_count = 3;
+        
+        // Add some basic actions
+        table.actions.insert((StateId(0), SymbolId(1)), Action::Shift(StateId(1)));
+        table.actions.insert((StateId(1), SymbolId(0)), Action::Reduce(RuleId(0)));
+        
+        table
+    }
+    
+    #[test]
+    fn test_language_builder_creation() {
+        let grammar = create_test_grammar();
+        let parse_table = create_test_parse_table();
+        let builder = LanguageBuilder::new(grammar, parse_table);
+        
+        // Just verify it can be created
+        assert!(builder.grammar.name == "test");
+    }
+    
+    #[test]
+    fn test_generate_language() {
+        let grammar = create_test_grammar();
+        let parse_table = create_test_parse_table();
+        let builder = LanguageBuilder::new(grammar, parse_table);
+        
+        let result = builder.generate_language();
+        assert!(result.is_ok());
+        
+        let language = result.unwrap();
+        assert_eq!(language.version, 15);
+        assert_eq!(language.symbol_count, 2);
+        assert_eq!(language.state_count, 3);
+    }
+    
+    #[test]
+    fn test_build_symbol_names() {
+        let grammar = create_test_grammar();
+        let parse_table = create_test_parse_table();
+        let builder = LanguageBuilder::new(grammar, parse_table);
+        
+        let names = builder.build_symbol_names();
+        assert!(names.len() > 0);
+        // Should have at least the token name
+        assert!(names.iter().any(|&name| unsafe { 
+            std::ffi::CStr::from_ptr(name).to_str().unwrap() == "number" 
+        }));
+    }
+    
+    #[test]
+    fn test_build_field_names() {
+        let grammar = create_test_grammar();
+        let parse_table = create_test_parse_table();
+        let builder = LanguageBuilder::new(grammar, parse_table);
+        
+        let names = builder.build_field_names();
+        assert_eq!(names.len(), 1);
+        assert_eq!(
+            unsafe { std::ffi::CStr::from_ptr(names[0]).to_str().unwrap() },
+            "value"
+        );
+    }
+    
+    #[test]
+    fn test_build_symbol_metadata() {
+        let grammar = create_test_grammar();
+        let parse_table = create_test_parse_table();
+        let builder = LanguageBuilder::new(grammar, parse_table);
+        
+        let metadata = builder.build_symbol_metadata();
+        assert!(metadata.len() > 0);
+    }
+    
+    #[test]
+    fn test_language_generator_code() {
+        let grammar = create_test_grammar();
+        let parse_table = create_test_parse_table();
+        let builder = LanguageBuilder::new(grammar, parse_table);
+        
+        let code = builder.generate_language_code();
+        let code_str = code.to_string();
+        
+        // Check for key elements
+        assert!(code_str.contains("language"));
+        assert!(code_str.contains("TSLanguage"));
+    }
+    
+    #[test]
+    fn test_language_with_externals() {
+        let mut grammar = create_test_grammar();
+        
+        // Add external token
+        grammar.externals.push(ExternalToken {
+            name: "comment".to_string(),
+            symbol_id: SymbolId(100),
+        });
+        
+        let parse_table = create_test_parse_table();
+        let builder = LanguageBuilder::new(grammar, parse_table);
+        
+        let result = builder.generate_language();
+        assert!(result.is_ok());
+        
+        let language = result.unwrap();
+        assert_eq!(language.external_token_count, 1);
+    }
+    
+    #[test]
+    fn test_language_with_multiple_fields() {
+        let mut grammar = create_test_grammar();
+        
+        // Add more fields
+        grammar.fields.insert(FieldId(1), "left".to_string());
+        grammar.fields.insert(FieldId(2), "operator".to_string());
+        grammar.fields.insert(FieldId(3), "right".to_string());
+        
+        let parse_table = create_test_parse_table();
+        let builder = LanguageBuilder::new(grammar, parse_table);
+        
+        let result = builder.generate_language();
+        assert!(result.is_ok());
+        
+        let language = result.unwrap();
+        assert_eq!(language.field_count, 4);
+    }
+}

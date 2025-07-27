@@ -521,3 +521,172 @@ impl ErrorRecoveryState {
         Some(RecoveryAction::CreateErrorNode(vec![unexpected_token]))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_recovery_strategy() {
+        // Test enum equality
+        assert_eq!(RecoveryStrategy::PanicMode, RecoveryStrategy::PanicMode);
+        assert_ne!(RecoveryStrategy::PanicMode, RecoveryStrategy::TokenInsertion);
+    }
+    
+    #[test]
+    fn test_recovery_action() {
+        let action = RecoveryAction::InsertToken(SymbolId(42));
+        match action {
+            RecoveryAction::InsertToken(id) => assert_eq!(id, SymbolId(42)),
+            _ => panic!("Expected InsertToken"),
+        }
+        
+        let delete_action = RecoveryAction::DeleteToken;
+        assert!(matches!(delete_action, RecoveryAction::DeleteToken));
+    }
+    
+    #[test]
+    fn test_error_recovery_config_default() {
+        let config = ErrorRecoveryConfig::default();
+        
+        assert_eq!(config.max_panic_skip, 50);
+        assert!(config.sync_tokens.is_empty());
+        assert!(config.insertable_tokens.is_empty());
+        assert_eq!(config.max_consecutive_errors, 10);
+        assert!(config.enable_phrase_recovery);
+        assert!(config.enable_scope_recovery);
+        assert!(config.scope_delimiters.is_empty());
+        assert!(!config.enable_indentation_recovery);
+    }
+    
+    #[test]
+    fn test_error_recovery_config_can_delete() {
+        let mut config = ErrorRecoveryConfig::default();
+        config.sync_tokens.insert(10);
+        config.sync_tokens.insert(20);
+        
+        // Can delete non-sync tokens
+        assert!(config.can_delete_token(SymbolId(5)));
+        assert!(config.can_delete_token(SymbolId(15)));
+        
+        // Cannot delete sync tokens
+        assert!(!config.can_delete_token(SymbolId(10)));
+        assert!(!config.can_delete_token(SymbolId(20)));
+    }
+    
+    #[test]
+    fn test_error_recovery_config_can_replace() {
+        let mut config = ErrorRecoveryConfig::default();
+        config.sync_tokens.insert(30);
+        
+        // Can replace non-sync tokens
+        assert!(config.can_replace_token(SymbolId(25)));
+        
+        // Cannot replace sync tokens
+        assert!(!config.can_replace_token(SymbolId(30)));
+    }
+    
+    #[test]
+    fn test_error_recovery_state_creation() {
+        let config = ErrorRecoveryConfig::default();
+        let state = ErrorRecoveryState::new(config.clone());
+        
+        assert_eq!(state.consecutive_errors, 0);
+        assert!(state.scope_stack.is_empty());
+        assert!(state.recent_tokens.is_empty());
+        assert!(state.error_nodes.is_empty());
+    }
+    
+    #[test]
+    fn test_error_recovery_state_increment_errors() {
+        let config = ErrorRecoveryConfig::default();
+        let mut state = ErrorRecoveryState::new(config);
+        
+        assert_eq!(state.consecutive_errors, 0);
+        state.increment_error_count();
+        assert_eq!(state.consecutive_errors, 1);
+        state.increment_error_count();
+        assert_eq!(state.consecutive_errors, 2);
+    }
+    
+    #[test]
+    fn test_error_recovery_state_reset_errors() {
+        let config = ErrorRecoveryConfig::default();
+        let mut state = ErrorRecoveryState::new(config);
+        
+        state.consecutive_errors = 5;
+        state.reset_error_count();
+        assert_eq!(state.consecutive_errors, 0);
+    }
+    
+    #[test]
+    fn test_error_recovery_state_should_give_up() {
+        let mut config = ErrorRecoveryConfig::default();
+        config.max_consecutive_errors = 3;
+        let mut state = ErrorRecoveryState::new(config);
+        
+        assert!(!state.should_give_up());
+        state.consecutive_errors = 2;
+        assert!(!state.should_give_up());
+        state.consecutive_errors = 3;
+        assert!(state.should_give_up());
+        state.consecutive_errors = 4;
+        assert!(state.should_give_up());
+    }
+    
+    #[test]
+    fn test_error_recovery_state_scope_operations() {
+        let config = ErrorRecoveryConfig::default();
+        let mut state = ErrorRecoveryState::new(config);
+        
+        // Push scope
+        state.push_scope(100);
+        assert_eq!(state.scope_stack.len(), 1);
+        assert_eq!(state.scope_stack[0], 100);
+        
+        // Push another
+        state.push_scope(200);
+        assert_eq!(state.scope_stack.len(), 2);
+        
+        // Pop scope
+        assert_eq!(state.pop_scope(), Some(200));
+        assert_eq!(state.scope_stack.len(), 1);
+        assert_eq!(state.pop_scope(), Some(100));
+        assert_eq!(state.scope_stack.len(), 0);
+        assert_eq!(state.pop_scope(), None);
+    }
+    
+    #[test]
+    fn test_error_recovery_state_update_recent_tokens() {
+        let config = ErrorRecoveryConfig::default();
+        let mut state = ErrorRecoveryState::new(config);
+        
+        // Add tokens
+        state.update_recent_tokens(SymbolId(1));
+        assert_eq!(state.recent_tokens.len(), 1);
+        
+        // Add more tokens
+        for i in 2..15 {
+            state.update_recent_tokens(SymbolId(i));
+        }
+        
+        // Should maintain max of 10
+        assert_eq!(state.recent_tokens.len(), 10);
+        // First token should be removed
+        assert_eq!(state.recent_tokens[0], SymbolId(5));
+        assert_eq!(state.recent_tokens[9], SymbolId(14));
+    }
+    
+    #[test]
+    fn test_recovery_heuristics() {
+        // Test scope delimiter matching
+        let delimiters = vec![(1, 2), (3, 4), (5, 6)];
+        assert!(ErrorRecoveryState::is_scope_delimiter(1, &delimiters));
+        assert!(ErrorRecoveryState::is_scope_delimiter(3, &delimiters));
+        assert!(!ErrorRecoveryState::is_scope_delimiter(7, &delimiters));
+        
+        assert!(ErrorRecoveryState::is_matching_delimiter(1, 2, &delimiters));
+        assert!(ErrorRecoveryState::is_matching_delimiter(5, 6, &delimiters));
+        assert!(!ErrorRecoveryState::is_matching_delimiter(1, 4, &delimiters));
+    }
+}

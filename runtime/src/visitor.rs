@@ -490,3 +490,116 @@ mod tests {
     //     assert!(output.contains("hello"));
     // }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[derive(Default)]
+    struct TestVisitor {
+        entered_nodes: Vec<String>,
+        left_nodes: Vec<String>,
+        leaves: Vec<String>,
+        errors: Vec<String>,
+    }
+    
+    impl Visitor for TestVisitor {
+        fn enter_node(&mut self, _node: &Node) -> VisitorAction {
+            self.entered_nodes.push("node".to_string());
+            VisitorAction::Continue
+        }
+        
+        fn leave_node(&mut self, _node: &Node) {
+            self.left_nodes.push("node".to_string());
+        }
+        
+        fn visit_leaf(&mut self, _node: &Node, text: &str) {
+            self.leaves.push(text.to_string());
+        }
+        
+        fn visit_error(&mut self, _node: &Node) {
+            self.errors.push("error".to_string());
+        }
+    }
+    
+    #[test]
+    fn test_visitor_action() {
+        assert_eq!(VisitorAction::Continue, VisitorAction::Continue);
+        assert_ne!(VisitorAction::Continue, VisitorAction::Stop);
+        assert_ne!(VisitorAction::SkipChildren, VisitorAction::Stop);
+    }
+    
+    #[test]
+    fn test_tree_walker_creation() {
+        let source = b"test source";
+        let walker = TreeWalker::new(source);
+        assert_eq!(walker.source, source);
+    }
+    
+    #[test]
+    fn test_stop_visitor() {
+        struct StopVisitor {
+            count: usize,
+        }
+        
+        impl Visitor for StopVisitor {
+            fn enter_node(&mut self, _node: &Node) -> VisitorAction {
+                self.count += 1;
+                if self.count > 2 {
+                    VisitorAction::Stop
+                } else {
+                    VisitorAction::Continue
+                }
+            }
+        }
+        
+        let mut visitor = StopVisitor { count: 0 };
+        // Test that stop action is respected
+        let _ = visitor.enter_node(&Default::default());
+        let _ = visitor.enter_node(&Default::default());
+        let action = visitor.enter_node(&Default::default());
+        assert_eq!(action, VisitorAction::Stop);
+    }
+    
+    #[test]
+    fn test_skip_children_visitor() {
+        struct SkipVisitor {
+            depth: usize,
+        }
+        
+        impl Visitor for SkipVisitor {
+            fn enter_node(&mut self, _node: &Node) -> VisitorAction {
+                self.depth += 1;
+                if self.depth > 1 {
+                    VisitorAction::SkipChildren
+                } else {
+                    VisitorAction::Continue
+                }
+            }
+        }
+        
+        let mut visitor = SkipVisitor { depth: 0 };
+        assert_eq!(visitor.enter_node(&Default::default()), VisitorAction::Continue);
+        assert_eq!(visitor.enter_node(&Default::default()), VisitorAction::SkipChildren);
+    }
+    
+    #[test]
+    fn test_breadth_first_visitor() {
+        let source = b"test";
+        let visitor = BreadthFirstVisitor::new(source);
+        assert_eq!(visitor.source, source);
+    }
+    
+    #[test]
+    fn test_filter_iterator() {
+        let filters = vec![
+            NodeFilter::Kind("function"),
+            NodeFilter::Field("name"),
+        ];
+        
+        let mut iter = FilterIterator::new(vec![].into_iter(), filters);
+        
+        // Just test that it can be created
+        assert!(iter.next().is_none());
+    }
+}

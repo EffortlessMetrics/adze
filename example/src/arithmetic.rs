@@ -106,4 +106,29 @@ mod tests {
         insta::assert_debug_snapshot!(grammar::parse("a1"));
         insta::assert_debug_snapshot!(grammar::parse("1a"));
     }
+
+    #[cfg(feature = "pure-rust")]
+    #[test]
+    fn test_pure_rust_parser() {
+        println!("Testing pure-Rust arithmetic parser...");
+        
+        // Test successful parses
+        let result = grammar::parse("42");
+        assert!(result.is_ok(), "Failed to parse '42': {:?}", result);
+        
+        let result = grammar::parse("1 - 2");
+        assert!(result.is_ok(), "Failed to parse '1 - 2': {:?}", result);
+        
+        let result = grammar::parse("2 * 3");
+        assert!(result.is_ok(), "Failed to parse '2 * 3': {:?}", result);
+        
+        let result = grammar::parse("1 * 2 - 3");
+        assert!(result.is_ok(), "Failed to parse '1 * 2 - 3': {:?}", result);
+        
+        // Test failed parses (plus is not supported)
+        let result = grammar::parse("1 + 2");
+        assert!(result.is_err(), "Expected '1 + 2' to fail parsing");
+        
+        println!("Pure-Rust parser tests passed!");
+    }
 }

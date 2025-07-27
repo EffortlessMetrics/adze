@@ -150,6 +150,7 @@ impl CExternalScanner {
 impl Drop for CExternalScanner {
     fn drop(&mut self) {
         if let Some(destroy_fn) = self.destroy {
+            #[allow(unused_unsafe)]
             unsafe {
                 destroy_fn(self.payload);
             }

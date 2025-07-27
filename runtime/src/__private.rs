@@ -98,7 +98,7 @@ pub fn extract_field<LT: Extract<T>, T>(
     cursor_opt: &mut Option<tree_sitter::TreeCursor>,
     source: &[u8],
     last_idx: &mut usize,
-    field_name: &str,
+    _field_name: &str,
     closure_ref: Option<&LT::LeafFn>,
 ) -> T {
     if let Some(cursor) = cursor_opt.as_mut() {
