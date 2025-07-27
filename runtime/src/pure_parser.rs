@@ -306,7 +306,20 @@ impl Parser {
         let start_time = Instant::now();
         
         // Main parsing loop
+        let mut iteration_count = 0;
         loop {
+            iteration_count += 1;
+            if iteration_count > 10000 {
+                eprintln!("WARNING: Parser exceeded 10000 iterations, likely infinite loop");
+                errors.push(ParseError {
+                    position,
+                    point,
+                    expected: vec![],
+                    found: 0,
+                });
+                break;
+            }
+            
             // Check timeout
             if self.timeout_micros > 0 {
                 let elapsed = start_time.elapsed().as_micros() as u64;
@@ -444,9 +457,11 @@ impl Parser {
         if let Some(lex_fn) = language.lex_fn {
             unsafe {
                 let mut lex_state = LexerState {
-                    input: &lexer.input,
+                    input: lexer.input.as_ptr(),
+                    input_len: lexer.input.len(),
                     position,
-                    point: *point,
+                    point_row: point.row,
+                    point_column: point.column,
                     result_symbol: 0,
                     result_length: 0,
                 };
@@ -650,10 +665,12 @@ struct Token {
 
 /// Lexer state for C callback
 #[repr(C)]
-struct LexerState<'a> {
-    input: &'a [u8],
+struct LexerState {
+    input: *const u8,
+    input_len: usize,
     position: usize,
-    point: Point,
+    point_row: u32,
+    point_column: u32,
     result_symbol: TSSymbol,
     result_length: usize,
 }

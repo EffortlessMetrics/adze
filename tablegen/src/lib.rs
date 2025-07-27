@@ -9,6 +9,7 @@ pub mod external_scanner;
 pub mod external_scanner_v2;
 pub mod generate;
 pub mod language_gen;
+pub mod lexer_gen;
 pub mod node_types;
 pub mod parser;
 pub mod serializer;

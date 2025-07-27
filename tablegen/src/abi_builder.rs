@@ -72,8 +72,14 @@ impl<'a> AbiLanguageBuilder<'a> {
             }
         };
         
+        // Generate lexer function
+        let lexer_code = crate::lexer_gen::generate_lexer(self.grammar);
+        
         quote! {
             use ::rust_sitter::pure_parser::*;
+            
+            // Lexer implementation
+            #lexer_code
             
             // Symbol names (null-terminated strings)
             #(#symbol_names)*
@@ -146,7 +152,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 alias_map: std::ptr::null(),
                 alias_sequences: std::ptr::null::<u16>(),
                 lex_modes: LEX_MODES.as_ptr(),
-                lex_fn: None,
+                lex_fn: Some(lexer_fn),
                 keyword_lex_fn: None,
                 keyword_capture_token: 0,
                 external_scanner: ExternalScanner { 

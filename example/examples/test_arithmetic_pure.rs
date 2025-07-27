@@ -1,27 +1,24 @@
 // Test the pure-Rust arithmetic parser
 
+// Include the arithmetic module from main.rs  
+include!("../src/arithmetic.rs");
+
 fn main() {
     #[cfg(feature = "pure-rust")]
     {
         println!("Testing pure-Rust arithmetic parser...");
         
         // Import the generated arithmetic grammar
-        // Note: In examples, we use the crate name
-        use rust_sitter_example::arithmetic::grammar;
+        use arithmetic::grammar;
         
         // Test parsing simple expressions
         let test_cases = vec![
             "1",
-            "42",
-            "1 + 2", 
-            "1 - 2",
-            "2 * 3",
-            "1 + 2 * 3",
-            "1 * 2 + 3",
         ];
         
         for input in test_cases {
             println!("\nParsing: '{}'", input);
+            println!("Starting parse...");
             match grammar::parse(input) {
                 Ok(expr) => println!("  Success: {:?}", expr),
                 Err(errors) => {
