@@ -5,7 +5,7 @@ use anyhow::Result;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
-    response::{Html, IntoResponse, Json},
+    response::{Html, IntoResponse, Json, Response},
     routing::{get, post},
     Router,
 };
@@ -56,8 +56,10 @@ pub fn launch_server(session: PlaygroundSession, port: u16) -> Result<()> {
         let addr = format!("0.0.0.0:{}", port).parse().unwrap();
         println!("🚀 Playground server running at http://localhost:{}", port);
         
-        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-        axum::serve(listener, app).await.unwrap();
+        axum::Server::bind(&addr)
+            .serve(app.into_make_service())
+            .await
+            .unwrap();
     });
     
     Ok(())
@@ -70,7 +72,7 @@ async fn index_handler() -> Html<&'static str> {
 async fn parse_handler(
     State(session): State<SharedSession>,
     Json(req): Json<ParseRequest>,
-) -> impl IntoResponse {
+) -> Response {
     let session = session.lock().await;
     
     match session.parse(&req.input) {
@@ -80,7 +82,7 @@ async fn parse_handler(
                     result.visualization = session.visualize_tree(tree).ok();
                 }
             }
-            Json(result)
+            Json(result).into_response()
         }
         Err(e) => {
             let error_response = serde_json::json!({
@@ -118,11 +120,11 @@ async fn tests_handler(
 
 async fn analyze_handler(
     State(session): State<SharedSession>,
-) -> impl IntoResponse {
+) -> Response {
     let mut session = session.lock().await;
     
     match session.analyze_grammar() {
-        Ok(analysis) => Json(serde_json::to_value(analysis).unwrap()),
+        Ok(analysis) => Json(serde_json::to_value(analysis).unwrap()).into_response(),
         Err(e) => {
             let error_response = serde_json::json!({
                 "error": e.to_string()
@@ -155,11 +157,11 @@ async fn export_handler(
 async fn import_handler(
     State(session): State<SharedSession>,
     body: String,
-) -> impl IntoResponse {
+) -> Response {
     let mut session = session.lock().await;
     
     match session.import(&body) {
-        Ok(_) => Json(serde_json::json!({ "success": true })),
+        Ok(_) => Json(serde_json::json!({ "success": true })).into_response(),
         Err(e) => {
             let error_response = serde_json::json!({
                 "error": e.to_string()

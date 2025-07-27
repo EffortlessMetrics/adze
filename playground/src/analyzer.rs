@@ -1,9 +1,9 @@
 // Grammar analyzer for the rust-sitter playground
 
-use crate::{AnalysisResult, GrammarStats, Conflict, ConflictKind, Ambiguity, Suggestion, SuggestionLevel};
-use rust_sitter_ir::{Grammar, Rule, Symbol};
+use crate::{AnalysisResult, GrammarStats, Conflict, Ambiguity, Suggestion, SuggestionLevel};
+use rust_sitter_ir::{Grammar, Symbol, SymbolId};
 use anyhow::Result;
-use std::collections::{HashSet, HashMap};
+use std::collections::HashSet;
 
 /// Analyze a grammar and return insights
 pub fn analyze_grammar(grammar: &Grammar) -> Result<AnalysisResult> {
@@ -33,40 +33,53 @@ fn compute_stats(grammar: &Grammar) -> GrammarStats {
     let mut terminals = HashSet::new();
     let mut nonterminals = HashSet::new();
     
-    for rule in &grammar.rules {
-        nonterminals.insert(&rule.name);
-        let rule_length = count_symbols(&rule.body);
-        total_rule_length += rule_length;
-        max_rule_length = max_rule_length.max(rule_length);
-        
-        // Check for nullable rules
-        if is_nullable(&rule.body) {
-            nullable_rules += 1;
+    let mut rule_count = 0;
+    
+    for (symbol_id, rules) in &grammar.rules {
+        nonterminals.insert(symbol_id.0.to_string());
+        for rule in rules {
+            let rule_length = rule.rhs.len();
+            total_rule_length += rule_length;
+            max_rule_length = max_rule_length.max(rule_length);
+            rule_count += 1;
+            
+            // Check for nullable rules
+            if rule.rhs.is_empty() {
+                nullable_rules += 1;
+            }
+            
+            // Check for left recursion
+            if let Some(first) = rule.rhs.first() {
+                if is_left_recursive(symbol_id, first) {
+                    left_recursive_rules += 1;
+                }
+            }
+            
+            // Check for right recursion
+            if let Some(last) = rule.rhs.last() {
+                if is_right_recursive(symbol_id, last) {
+                    right_recursive_rules += 1;
+                }
+            }
+            
+            // Collect terminals
+            for symbol in &rule.rhs {
+                collect_terminals(symbol, &mut terminals);
+            }
         }
-        
-        // Check for recursion
-        if is_left_recursive(&rule.name, &rule.body) {
-            left_recursive_rules += 1;
-        }
-        if is_right_recursive(&rule.name, &rule.body) {
-            right_recursive_rules += 1;
-        }
-        
-        // Collect terminals
-        collect_terminals(&rule.body, &mut terminals);
     }
     
     terminal_count = terminals.len();
     nonterminal_count = nonterminals.len();
     
-    let avg_rule_length = if grammar.rules.is_empty() {
+    let avg_rule_length = if rule_count == 0 {
         0.0
     } else {
-        total_rule_length as f64 / grammar.rules.len() as f64
+        total_rule_length as f64 / rule_count as f64
     };
     
     GrammarStats {
-        rule_count: grammar.rules.len(),
+        rule_count,
         terminal_count,
         nonterminal_count,
         max_rule_length,
@@ -78,76 +91,35 @@ fn compute_stats(grammar: &Grammar) -> GrammarStats {
 }
 
 fn count_symbols(symbol: &Symbol) -> usize {
-    match symbol {
-        Symbol::Terminal(_) | Symbol::NonTerminal(_) => 1,
-        Symbol::Sequence(seq) => seq.iter().map(count_symbols).sum(),
-        Symbol::Choice(choices) => choices.iter().map(count_symbols).max().unwrap_or(0),
-        Symbol::Repeat(inner) | Symbol::Optional(inner) => count_symbols(inner),
-        _ => 0,
-    }
+    // For now, just count individual symbols
+    // In the future, this would traverse the expression tree
+    1
 }
 
 fn is_nullable(symbol: &Symbol) -> bool {
+    // For now, just return false
+    // In the future, this would analyze the full expression
+    false
+}
+
+fn is_left_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
     match symbol {
-        Symbol::Terminal(_) => false,
-        Symbol::NonTerminal(_) => false, // Would need to check rule definitions
-        Symbol::Optional(_) => true,
-        Symbol::Repeat(_) => true,
-        Symbol::Sequence(seq) => seq.iter().all(is_nullable),
-        Symbol::Choice(choices) => choices.iter().any(is_nullable),
+        Symbol::NonTerminal(name) => name == rule_symbol,
         _ => false,
     }
 }
 
-fn is_left_recursive(rule_name: &str, symbol: &Symbol) -> bool {
+fn is_right_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
     match symbol {
-        Symbol::NonTerminal(name) => name == rule_name,
-        Symbol::Sequence(seq) => {
-            if let Some(first) = seq.first() {
-                is_left_recursive(rule_name, first)
-            } else {
-                false
-            }
-        }
-        Symbol::Choice(choices) => choices.iter().any(|s| is_left_recursive(rule_name, s)),
-        _ => false,
-    }
-}
-
-fn is_right_recursive(rule_name: &str, symbol: &Symbol) -> bool {
-    match symbol {
-        Symbol::NonTerminal(name) => name == rule_name,
-        Symbol::Sequence(seq) => {
-            if let Some(last) = seq.last() {
-                is_right_recursive(rule_name, last)
-            } else {
-                false
-            }
-        }
-        Symbol::Choice(choices) => choices.iter().any(|s| is_right_recursive(rule_name, s)),
+        Symbol::NonTerminal(name) => name == rule_symbol,
         _ => false,
     }
 }
 
 fn collect_terminals(symbol: &Symbol, terminals: &mut HashSet<String>) {
     match symbol {
-        Symbol::Terminal(term) => {
-            if let Some(value) = &term.value {
-                terminals.insert(value.clone());
-            }
-        }
-        Symbol::Sequence(seq) => {
-            for s in seq {
-                collect_terminals(s, terminals);
-            }
-        }
-        Symbol::Choice(choices) => {
-            for s in choices {
-                collect_terminals(s, terminals);
-            }
-        }
-        Symbol::Repeat(inner) | Symbol::Optional(inner) => {
-            collect_terminals(inner, terminals);
+        Symbol::Terminal(term_id) => {
+            terminals.insert(term_id.0.to_string());
         }
         _ => {}
     }
@@ -163,29 +135,21 @@ fn detect_ambiguities(grammar: &Grammar) -> Vec<Ambiguity> {
     let mut ambiguities = Vec::new();
     
     // Detect common ambiguity patterns
-    for rule in &grammar.rules {
+    for (symbol_id, rules) in &grammar.rules {
         // Check for ambiguous operator precedence
-        if is_potentially_ambiguous(&rule.body) {
-            ambiguities.push(Ambiguity {
-                rule: rule.name.clone(),
-                example: generate_ambiguous_example(&rule.name),
-                parse_count: 2,
-            });
+        for _rule in rules {
+            // For now, skip ambiguity detection
+            // In the future, this would analyze rule patterns
         }
     }
     
     ambiguities
 }
 
-fn is_potentially_ambiguous(symbol: &Symbol) -> bool {
-    // Simple heuristic: repeated binary operators without precedence
-    match symbol {
-        Symbol::Choice(choices) => {
-            // Check if multiple choices could match similar patterns
-            choices.len() > 1 && choices.iter().any(|s| matches!(s, Symbol::Sequence(_)))
-        }
-        _ => false,
-    }
+fn is_potentially_ambiguous(_symbol: &Symbol) -> bool {
+    // For now, just return false
+    // In the future, this would analyze expression patterns
+    false
 }
 
 fn generate_ambiguous_example(rule_name: &str) -> String {
