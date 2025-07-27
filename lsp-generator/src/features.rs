@@ -1,6 +1,6 @@
 // LSP feature implementations for rust-sitter grammars
 
-use rust_sitter_ir::{Grammar, Symbol, TokenPattern};
+use rust_sitter_ir::{Grammar, TokenPattern};
 
 /// Trait for LSP features
 pub trait LspFeature: Send + Sync {
@@ -41,7 +41,7 @@ impl CompletionProvider {
         }
         
         // Extract symbols from rule names
-        for (symbol_id, name) in &grammar.rule_names {
+        for (_symbol_id, name) in &grammar.rule_names {
             symbols.push(name.clone());
         }
         
@@ -139,7 +139,7 @@ impl HoverProvider {
         let mut documentation = std::collections::HashMap::new();
         
         // Generate documentation from grammar rules
-        for (symbol_id, rule_name) in &grammar.rule_names {
+        for (_symbol_id, rule_name) in &grammar.rule_names {
             let doc = format!("Grammar rule: {}", rule_name);
             documentation.insert(rule_name.clone(), doc);
         }

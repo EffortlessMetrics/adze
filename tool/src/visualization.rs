@@ -52,6 +52,12 @@ impl GrammarVisualizer {
                     Symbol::Terminal(id) => format!("t{}", id.0),
                     Symbol::NonTerminal(id) => format!("n{}", id.0),
                     Symbol::External(id) => format!("e{}", id.0),
+                    Symbol::Optional(_) => format!("opt{}", i),
+                    Symbol::Repeat(_) => format!("rep{}", i),
+                    Symbol::RepeatOne(_) => format!("rep1{}", i),
+                    Symbol::Choice(_) => format!("choice{}", i),
+                    Symbol::Sequence(_) => format!("seq{}", i),
+                    Symbol::Epsilon => continue, // Skip epsilon transitions in visualization
                 };
                 
                 let label = if rule.rhs.len() > 1 {
@@ -107,6 +113,32 @@ impl GrammarVisualizer {
                     }
                     Symbol::External(id) => {
                         (format!("External{}", id.0), "terminal")
+                    }
+                    Symbol::Optional(inner) => {
+                        (format!("{}?", self.format_symbol_simple(inner)), "optional")
+                    }
+                    Symbol::Repeat(inner) => {
+                        (format!("{}*", self.format_symbol_simple(inner)), "repeat")
+                    }
+                    Symbol::RepeatOne(inner) => {
+                        (format!("{}+", self.format_symbol_simple(inner)), "repeat")
+                    }
+                    Symbol::Choice(choices) => {
+                        let choice_text = choices.iter()
+                            .map(|s| self.format_symbol_simple(s))
+                            .collect::<Vec<_>>()
+                            .join(" | ");
+                        (format!("({})", choice_text), "choice")
+                    }
+                    Symbol::Sequence(seq) => {
+                        let seq_text = seq.iter()
+                            .map(|s| self.format_symbol_simple(s))
+                            .collect::<Vec<_>>()
+                            .join(" ");
+                        (seq_text, "sequence")
+                    }
+                    Symbol::Epsilon => {
+                        ("ε".to_string(), "epsilon")
                     }
                 };
                 
@@ -182,6 +214,33 @@ impl GrammarVisualizer {
                     }
                     Symbol::External(id) => {
                         write!(&mut output, " ${}", id.0).unwrap();
+                    }
+                    Symbol::Optional(inner) => {
+                        write!(&mut output, " {}?", self.format_symbol_simple(inner)).unwrap();
+                    }
+                    Symbol::Repeat(inner) => {
+                        write!(&mut output, " {}*", self.format_symbol_simple(inner)).unwrap();
+                    }
+                    Symbol::RepeatOne(inner) => {
+                        write!(&mut output, " {}+", self.format_symbol_simple(inner)).unwrap();
+                    }
+                    Symbol::Choice(choices) => {
+                        write!(&mut output, " (").unwrap();
+                        for (i, choice) in choices.iter().enumerate() {
+                            if i > 0 {
+                                write!(&mut output, " | ").unwrap();
+                            }
+                            write!(&mut output, "{}", self.format_symbol_simple(choice)).unwrap();
+                        }
+                        write!(&mut output, ")").unwrap();
+                    }
+                    Symbol::Sequence(seq) => {
+                        for s in seq {
+                            write!(&mut output, " {}", self.format_symbol_simple(s)).unwrap();
+                        }
+                    }
+                    Symbol::Epsilon => {
+                        write!(&mut output, " ε").unwrap();
                     }
                 }
                 }
@@ -284,6 +343,30 @@ impl GrammarVisualizer {
         }
         
         format!("symbol_{}", id.0)
+    }
+    
+    fn format_symbol_simple(&self, symbol: &Symbol) -> String {
+        match symbol {
+            Symbol::Terminal(id) => {
+                self.grammar.tokens.get(id)
+                    .map(|t| t.name.clone())
+                    .unwrap_or_else(|| format!("T{}", id.0))
+            }
+            Symbol::NonTerminal(id) => self.get_symbol_name(*id),
+            Symbol::External(id) => format!("External{}", id.0),
+            Symbol::Optional(inner) => format!("{}?", self.format_symbol_simple(inner)),
+            Symbol::Repeat(inner) => format!("{}*", self.format_symbol_simple(inner)),
+            Symbol::RepeatOne(inner) => format!("{}+", self.format_symbol_simple(inner)),
+            Symbol::Choice(choices) => {
+                let parts: Vec<_> = choices.iter().map(|s| self.format_symbol_simple(s)).collect();
+                format!("({})", parts.join("|"))
+            }
+            Symbol::Sequence(seq) => {
+                let parts: Vec<_> = seq.iter().map(|s| self.format_symbol_simple(s)).collect();
+                parts.join(" ")
+            }
+            Symbol::Epsilon => "ε".to_string(),
+        }
     }
     
     fn escape_dot(&self, s: &str) -> String {

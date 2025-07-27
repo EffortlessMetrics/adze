@@ -7,10 +7,10 @@ use std::sync::Arc;
 use std::collections::HashMap;
 
 // Re-export the tree-sitter types based on feature
-#[cfg(feature = "tree-sitter-standard")]
+#[cfg(all(feature = "tree-sitter-standard", not(feature = "tree-sitter-c2rust")))]
 use tree_sitter_runtime_standard as tree_sitter;
 
-#[cfg(feature = "tree-sitter-c2rust")]
+#[cfg(all(feature = "tree-sitter-c2rust", not(feature = "tree-sitter-standard")))]
 use tree_sitter_runtime_c2rust as tree_sitter;
 
 // Provide a default for when no features are enabled

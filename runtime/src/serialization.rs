@@ -1,7 +1,17 @@
 // Parse tree serialization for the pure-Rust Tree-sitter implementation
 // This module provides serialization and deserialization of parse trees
 
-use crate::tree_sitter::{Node, Tree, TreeCursor};
+#[cfg(feature = "pure-rust")]
+use crate::pure_parser::{ParsedNode as Node};
+#[cfg(feature = "pure-rust")]
+use crate::pure_incremental::Tree;
+
+#[cfg(not(feature = "pure-rust"))]
+use crate::tree_sitter::{Node, Tree};
+#[cfg(all(feature = "tree-sitter-standard", not(feature = "pure-rust")))]
+use tree_sitter_runtime_standard::TreeCursor;
+#[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
+use tree_sitter_runtime_c2rust::TreeCursor;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -62,11 +72,56 @@ impl<'a> TreeSerializer<'a> {
     
     /// Serialize a tree to JSON
     pub fn serialize_tree(&self, tree: &Tree) -> Result<String, serde_json::Error> {
+        #[cfg(feature = "pure-rust")]
+        let root = self.serialize_node(&tree.root);
+        #[cfg(not(feature = "pure-rust"))]
         let root = self.serialize_node(tree.root_node());
         serde_json::to_string_pretty(&root)
     }
     
     /// Serialize a single node
+    #[cfg(feature = "pure-rust")]
+    pub fn serialize_node(&self, node: &Node) -> SerializedNode {
+        let mut serialized = SerializedNode {
+            kind: format!("symbol_{}", node.symbol), // Convert symbol to string
+            is_named: node.is_named,
+            field_name: node.field_name.clone(),
+            start_position: (node.start_point.row as usize, node.start_point.column as usize),
+            end_position: (node.end_point.row as usize, node.end_point.column as usize),
+            start_byte: node.start_byte,
+            end_byte: node.end_byte,
+            text: None,
+            children: Vec::new(),
+            is_error: node.is_error,
+            is_missing: node.is_missing,
+        };
+        
+        // Add text for leaf nodes
+        if node.children.is_empty() {
+            let text = String::from_utf8_lossy(&self.source[node.start_byte..node.end_byte]);
+            let text = if let Some(max_len) = self.max_text_length {
+                if text.len() > max_len {
+                    format!("{}...", &text[..max_len])
+                } else {
+                    text.to_string()
+                }
+            } else {
+                text.to_string()
+            };
+            serialized.text = Some(text);
+        }
+        
+        // Serialize children
+        if self.include_children {
+            for child in &node.children {
+                serialized.children.push(self.serialize_node(child));
+            }
+        }
+        
+        serialized
+    }
+    
+    #[cfg(not(feature = "pure-rust"))]
     pub fn serialize_node(&self, node: Node) -> SerializedNode {
         let mut serialized = SerializedNode {
             kind: node.kind().to_string(),

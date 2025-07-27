@@ -28,14 +28,7 @@ use quote::quote;
 use rust_sitter_glr_core::*;
 use rust_sitter_ir::*;
 
-// Use the appropriate tree-sitter backend
-#[cfg(feature = "tree-sitter-standard")]
-use tree_sitter as _ts;
-
-
-// Ensure ts is available even if neither feature is enabled (for tests)
-#[cfg(all(not(feature = "tree-sitter-standard"), not(feature = "tree-sitter-c2rust")))]
-use tree_sitter_c2rust as _ts;
+// Tree-sitter backend selection will be done in the relevant modules
 
 /// Static Language generator that produces Rust code
 pub struct StaticLanguageGenerator {

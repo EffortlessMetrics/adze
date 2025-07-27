@@ -74,15 +74,16 @@ pub mod simd {
     /// Find the next newline character using SIMD
     #[target_feature(enable = "sse2")]
     pub unsafe fn find_newline_simd_impl(data: &[u8]) -> Option<usize> {
-        let newline = _mm_set1_epi8(b'\n' as i8);
-        let len = data.len();
-        let mut i = 0;
-        
-        // Process 16 bytes at a time with SSE2
-        while i + 16 <= len {
-            let chunk = _mm_loadu_si128(data.as_ptr().add(i) as *const __m128i);
-            let cmp = _mm_cmpeq_epi8(chunk, newline);
-            let mask = _mm_movemask_epi8(cmp);
+        unsafe {
+            let newline = _mm_set1_epi8(b'\n' as i8);
+            let len = data.len();
+            let mut i = 0;
+            
+            // Process 16 bytes at a time with SSE2
+            while i + 16 <= len {
+                let chunk = _mm_loadu_si128(data.as_ptr().add(i) as *const __m128i);
+                let cmp = _mm_cmpeq_epi8(chunk, newline);
+                let mask = _mm_movemask_epi8(cmp);
             
             if mask != 0 {
                 return Some(i + mask.trailing_zeros() as usize);
@@ -91,15 +92,16 @@ pub mod simd {
             i += 16;
         }
         
-        // Handle remaining bytes
-        while i < len {
-            if data[i] == b'\n' {
-                return Some(i);
+            // Handle remaining bytes
+            while i < len {
+                if data[i] == b'\n' {
+                    return Some(i);
+                }
+                i += 1;
             }
-            i += 1;
+            
+            None
         }
-        
-        None
     }
     
     /// Safe wrapper for find_newline
@@ -114,17 +116,18 @@ pub mod simd {
     /// Count whitespace characters using SIMD
     #[target_feature(enable = "sse2")]
     pub unsafe fn count_whitespace_simd_impl(data: &[u8]) -> usize {
-        let space = _mm_set1_epi8(b' ' as i8);
-        let tab = _mm_set1_epi8(b'\t' as i8);
-        let newline = _mm_set1_epi8(b'\n' as i8);
-        let cr = _mm_set1_epi8(b'\r' as i8);
-        
-        let mut count = 0;
-        let mut i = 0;
-        
-        // Process 16 bytes at a time
-        while i + 16 <= data.len() {
-            let chunk = _mm_loadu_si128(data.as_ptr().add(i) as *const __m128i);
+        unsafe {
+            let space = _mm_set1_epi8(b' ' as i8);
+            let tab = _mm_set1_epi8(b'\t' as i8);
+            let newline = _mm_set1_epi8(b'\n' as i8);
+            let cr = _mm_set1_epi8(b'\r' as i8);
+            
+            let mut count = 0;
+            let mut i = 0;
+            
+            // Process 16 bytes at a time
+            while i + 16 <= data.len() {
+                let chunk = _mm_loadu_si128(data.as_ptr().add(i) as *const __m128i);
             
             let is_space = _mm_cmpeq_epi8(chunk, space);
             let is_tab = _mm_cmpeq_epi8(chunk, tab);
