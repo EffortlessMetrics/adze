@@ -240,6 +240,10 @@ impl GLRGrammarValidator {
                 let symbol_id = match symbol {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                     Symbol::External(ext) => SymbolId(ext.0),
+                    Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                    Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                        continue; // Skip complex symbols in reachability analysis
+                    }
                 };
                 
                 used_symbols.insert(symbol_id);
@@ -378,6 +382,10 @@ impl GLRGrammarValidator {
                         let id = match rhs_symbol {
                             Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                             Symbol::External(ext) => SymbolId(ext.0),
+                            Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                            Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                                continue; // Skip complex symbols
+                            }
                         };
                         
                         if reachable.insert(id) {
@@ -390,6 +398,19 @@ impl GLRGrammarValidator {
         }
         
         reachable
+    }
+
+    /// Helper to check if a symbol is productive
+    fn is_symbol_productive(symbol: &Symbol, productive: &HashSet<SymbolId>) -> bool {
+        match symbol {
+            Symbol::Terminal(id) | Symbol::NonTerminal(id) => productive.contains(id),
+            Symbol::External(ext) => productive.contains(&SymbolId(ext.0)),
+            Symbol::Optional(_) | Symbol::Repeat(_) => true, // Always productive (can be empty)
+            Symbol::RepeatOne(inner) => Self::is_symbol_productive(inner, productive),
+            Symbol::Choice(choices) => choices.iter().any(|s| Self::is_symbol_productive(s, productive)),
+            Symbol::Sequence(seq) => seq.iter().all(|s| Self::is_symbol_productive(s, productive)),
+            Symbol::Epsilon => true,
+        }
     }
 
     fn find_productive_symbols(&self, grammar: &Grammar) -> HashSet<SymbolId> {
@@ -414,6 +435,11 @@ impl GLRGrammarValidator {
                         match sym {
                             Symbol::Terminal(id) | Symbol::NonTerminal(id) => productive.contains(id),
                             Symbol::External(ext) => productive.contains(&SymbolId(ext.0)),
+                            Symbol::Optional(_) | Symbol::Repeat(_) => true, // Always productive (can be empty)
+                            Symbol::RepeatOne(inner) => Self::is_symbol_productive(inner, &productive),
+                            Symbol::Choice(choices) => choices.iter().any(|s| Self::is_symbol_productive(s, &productive)),
+                            Symbol::Sequence(seq) => seq.iter().all(|s| Self::is_symbol_productive(s, &productive)),
+                            Symbol::Epsilon => true,
                         }
                     });
                     
@@ -616,6 +642,10 @@ impl GLRGrammarValidator {
                     .map(|s| match s {
                         Symbol::Terminal(id) | Symbol::NonTerminal(id) => self.get_symbol_name(*id),
                         Symbol::External(ext) => format!("external_{}", ext.0),
+                        Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                        Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                            "<complex>".to_string()
+                        }
                     })
                     .collect::<Vec<_>>()
                     .join(" ");
@@ -690,6 +720,10 @@ impl GLRGrammarValidator {
                     let prefix: Vec<_> = rule.rhs.iter().take(prefix_len).map(|s| match s {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                     Symbol::External(ext) => SymbolId(ext.0),
+                    Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                    Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                        panic!("Complex symbols should be normalized before validation");
+                    }
                 }).collect();
                 
                     prefix_map.entry(prefix).or_default().push((*symbol, rule.rhs.len()));
@@ -752,6 +786,10 @@ impl GLRGrammarValidator {
                 .map(|s| match s {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) => self.get_symbol_name(*id),
                     Symbol::External(ext) => format!("external_{}", ext.0),
+                    Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                    Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                        "<complex>".to_string()
+                    }
                 })
                 .collect::<Vec<_>>();
             
@@ -768,6 +806,10 @@ impl GLRGrammarValidator {
                             .map(|s| match s {
                                 Symbol::Terminal(id) | Symbol::NonTerminal(id) => self.get_symbol_name(*id),
                                 Symbol::External(ext) => format!("external_{}", ext.0),
+                                Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                                Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                                    "<complex>".to_string()
+                                }
                             })
                             .collect::<Vec<_>>();
                         

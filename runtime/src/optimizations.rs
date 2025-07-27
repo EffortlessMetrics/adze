@@ -145,10 +145,11 @@ pub mod simd {
             i += 16;
         }
         
-        // Handle remaining bytes
-        count += data[i..].iter().filter(|&&b| matches!(b, b' ' | b'\t' | b'\n' | b'\r')).count();
-        
-        count
+            // Handle remaining bytes
+            count += data[i..].iter().filter(|&&b| matches!(b, b' ' | b'\t' | b'\n' | b'\r')).count();
+            
+            count
+        }
     }
     
     /// Safe wrapper for count_whitespace
@@ -167,12 +168,13 @@ pub mod simd {
             return false;
         }
         
-        let mut i = 0;
-        
-        // Compare 16 bytes at a time
-        while i + 16 <= a.len() {
-            let chunk_a = _mm_loadu_si128(a.as_ptr().add(i) as *const __m128i);
-            let chunk_b = _mm_loadu_si128(b.as_ptr().add(i) as *const __m128i);
+        unsafe {
+            let mut i = 0;
+            
+            // Compare 16 bytes at a time
+            while i + 16 <= a.len() {
+                let chunk_a = _mm_loadu_si128(a.as_ptr().add(i) as *const __m128i);
+                let chunk_b = _mm_loadu_si128(b.as_ptr().add(i) as *const __m128i);
             
             let cmp = _mm_cmpeq_epi8(chunk_a, chunk_b);
             let mask = _mm_movemask_epi8(cmp);
@@ -184,8 +186,9 @@ pub mod simd {
             i += 16;
         }
         
-        // Compare remaining bytes
-        a[i..] == b[i..]
+            // Compare remaining bytes
+            a[i..] == b[i..]
+        }
     }
     
     /// Safe wrapper for compare_bytes

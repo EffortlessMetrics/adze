@@ -680,6 +680,10 @@ impl GLRParser {
             let node_symbol = match symbol {
                 Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                 Symbol::External(id) => *id,
+                Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                    panic!("Complex symbols should be normalized before GLR parsing");
+                }
             };
             if stack.nodes[start_idx + i].node.symbol_id != node_symbol {
                 return false;
