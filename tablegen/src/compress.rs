@@ -310,3 +310,127 @@ impl TableCompressor {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_sitter_glr_core::Action;
+    use rust_sitter_ir::{RuleId, StateId};
+    
+    #[test]
+    fn test_compressed_parse_table_creation() {
+        let table = CompressedParseTable::new_for_testing(10, 20);
+        assert_eq!(table.symbol_count(), 10);
+        assert_eq!(table.state_count(), 20);
+    }
+    
+    #[test]
+    fn test_compressed_parse_table_from_parse_table() {
+        let parse_table = ParseTable {
+            action_table: vec![],
+            goto_table: vec![],
+            symbol_metadata: vec![],
+            symbol_count: 5,
+            state_count: 10,
+            symbol_to_index: Default::default(),
+        };
+        
+        let compressed = CompressedParseTable::from_parse_table(&parse_table);
+        assert_eq!(compressed.symbol_count(), 5);
+        assert_eq!(compressed.state_count(), 10);
+    }
+    
+    #[test]
+    fn test_compressed_action_entry() {
+        let entry = CompressedActionEntry::new(42, Action::Shift(StateId(5)));
+        assert_eq!(entry.symbol, 42);
+        match entry.action {
+            Action::Shift(StateId(5)) => {},
+            _ => panic!("Expected shift action"),
+        }
+    }
+    
+    #[test]
+    fn test_table_compressor_creation() {
+        let compressor = TableCompressor::new();
+        // Just verify it can be created
+        assert!(compressor.small_table_threshold > 0);
+    }
+    
+    #[test]
+    fn test_compress_empty_action_table() {
+        let compressor = TableCompressor::new();
+        let action_table = vec![vec![]; 5]; // 5 empty states
+        
+        let result = compressor.compress_action_table_small(&action_table);
+        assert!(result.is_ok());
+        
+        let compressed = result.unwrap();
+        assert_eq!(compressed.row_offsets.len(), 6); // n_states + 1
+        assert_eq!(compressed.default_actions.len(), 5);
+        assert!(compressed.data.is_empty());
+    }
+    
+    #[test]
+    fn test_compress_action_table_with_default_reduce() {
+        let compressor = TableCompressor::new();
+        let reduce_action = Action::Reduce(RuleId(1));
+        let action_table = vec![
+            vec![reduce_action.clone(); 10], // All same reduce action
+        ];
+        
+        let result = compressor.compress_action_table_small(&action_table);
+        assert!(result.is_ok());
+        
+        let compressed = result.unwrap();
+        assert_eq!(compressed.default_actions[0], reduce_action);
+        assert!(compressed.data.is_empty()); // All actions are default
+    }
+    
+    #[test]
+    fn test_compress_goto_table_with_runs() {
+        let compressor = TableCompressor::new();
+        let goto_table = vec![
+            vec![StateId(1), StateId(1), StateId(1), StateId(2), StateId(2)],
+        ];
+        
+        let result = compressor.compress_goto_table_small(&goto_table);
+        assert!(result.is_ok());
+        
+        let compressed = result.unwrap();
+        assert!(!compressed.data.is_empty());
+        
+        // Should have a run length entry for the three 1s
+        let has_run_length = compressed.data.iter().any(|entry| {
+            matches!(entry, CompressedGotoEntry::RunLength { state: 1, count: 3 })
+        });
+        assert!(has_run_length);
+    }
+    
+    #[test]
+    fn test_compressed_tables_validation() {
+        let tables = CompressedTables {
+            action_table: CompressedActionTable {
+                data: vec![],
+                row_offsets: vec![],
+                default_actions: vec![],
+            },
+            goto_table: CompressedGotoTable {
+                data: vec![],
+                row_offsets: vec![],
+            },
+            small_table_threshold: 32768,
+        };
+        
+        let parse_table = ParseTable {
+            action_table: vec![],
+            goto_table: vec![],
+            symbol_metadata: vec![],
+            symbol_count: 0,
+            state_count: 0,
+            symbol_to_index: Default::default(),
+        };
+        let result = tables.validate(&parse_table);
+        assert!(result.is_ok());
+    }
+}
+

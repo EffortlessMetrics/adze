@@ -187,4 +187,94 @@ mod tests {
         assert_eq!(builder.version, "1.0.0");
         assert_eq!(builder.features.len(), 2);
     }
+
+    #[test]
+    fn test_lsp_generator_creation() {
+        let grammar = Grammar::default();
+        let generator = LspGenerator::new(grammar);
+        
+        assert!(generator.features.is_empty());
+        assert_eq!(generator.config.name, "rust-sitter-lsp");
+    }
+
+    #[test]
+    fn test_lsp_generator_with_config() {
+        let grammar = Grammar::default();
+        let config = LspConfig {
+            name: "test-lsp".to_string(),
+            version: "0.2.0".to_string(),
+            ..Default::default()
+        };
+        
+        let generator = LspGenerator::new(grammar).with_config(config);
+        assert_eq!(generator.config.name, "test-lsp");
+        assert_eq!(generator.config.version, "0.2.0");
+    }
+
+    #[test]
+    fn test_lsp_builder_default_values() {
+        let builder = LspBuilder::new("test");
+        
+        assert_eq!(builder.name, "test");
+        assert_eq!(builder.version, "0.1.0");
+        assert!(builder.grammar_path.as_os_str().is_empty());
+        assert!(builder.output_dir.as_os_str().is_empty());
+        assert!(builder.features.is_empty());
+    }
+
+    #[test]
+    fn test_lsp_builder_fluent_api() {
+        let builder = LspBuilder::new("lang-server")
+            .version("2.0.0")
+            .grammar_path("/path/to/grammar.rs")
+            .output_dir("/path/to/output")
+            .feature("completion")
+            .feature("hover")
+            .feature("diagnostics");
+
+        assert_eq!(builder.name, "lang-server");
+        assert_eq!(builder.version, "2.0.0");
+        assert_eq!(builder.grammar_path, PathBuf::from("/path/to/grammar.rs"));
+        assert_eq!(builder.output_dir, PathBuf::from("/path/to/output"));
+        assert_eq!(builder.features, vec!["completion", "hover", "diagnostics"]);
+    }
+
+    #[test]
+    fn test_lsp_generator_with_features() {
+        let grammar = Grammar::default();
+        let generator = LspGenerator::new(grammar.clone())
+            .with_completion()
+            .with_hover()
+            .with_diagnostics();
+        
+        assert_eq!(generator.features.len(), 3);
+    }
+
+    #[test]
+    fn test_lsp_generator_with_all_features() {
+        let grammar = Grammar::default();
+        let generator = LspGenerator::new(grammar).with_all_features();
+        
+        // with_all_features should add completion, hover, and diagnostics
+        assert_eq!(generator.features.len(), 3);
+    }
+
+    #[test]
+    fn test_lsp_builder_feature_recognition() {
+        let features = vec!["completion", "hover", "diagnostics", "all", "unknown"];
+        let builder = LspBuilder::new("test");
+        
+        // Test that all feature strings are accepted
+        let mut b = builder;
+        for feature in features {
+            b = b.feature(feature);
+        }
+        
+        assert_eq!(b.features.len(), 5);
+        assert!(b.features.contains(&"completion".to_string()));
+        assert!(b.features.contains(&"hover".to_string()));
+        assert!(b.features.contains(&"diagnostics".to_string()));
+        assert!(b.features.contains(&"all".to_string()));
+        assert!(b.features.contains(&"unknown".to_string()));
+    }
 }

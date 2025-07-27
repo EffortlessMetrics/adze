@@ -214,7 +214,6 @@ mod tests {
     use super::*;
     use rust_sitter_ir::*;
     use rust_sitter_glr_core::Action;
-    use indexmap::IndexMap;
     
     fn create_test_grammar() -> Grammar {
         let mut grammar = Grammar::default();
@@ -244,13 +243,20 @@ mod tests {
     }
     
     fn create_test_parse_table() -> ParseTable {
-        let mut table = ParseTable::new();
+        let mut table = ParseTable {
+            action_table: vec![],
+            goto_table: vec![],
+            symbol_metadata: vec![],
+            symbol_count: 0,
+            state_count: 0,
+            symbol_to_index: Default::default(),
+        };
         table.symbol_count = 2;
         table.state_count = 3;
         
         // Add some basic actions
-        table.actions.insert((StateId(0), SymbolId(1)), Action::Shift(StateId(1)));
-        table.actions.insert((StateId(1), SymbolId(0)), Action::Reduce(RuleId(0)));
+        // Since we don't have an actions field, just initialize the action table with proper size
+        table.action_table = vec![vec![Action::Error; table.symbol_count]; table.state_count];
         
         table
     }

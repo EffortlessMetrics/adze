@@ -643,7 +643,7 @@ impl GrammarValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Grammar, Rule, Symbol, Token, TokenPattern, ProductionId, SymbolId};
+    use crate::{Grammar, Rule, Symbol, Token, TokenPattern, ProductionId, SymbolId, Precedence, FieldId};
     
     #[test]
     fn test_empty_grammar_validation() {
@@ -742,5 +742,129 @@ mod tests {
         assert!(result.errors.is_empty());
         assert_eq!(result.stats.total_symbols, 2);
         assert_eq!(result.stats.productive_symbols, 2);
+    }
+
+    #[test]
+    fn test_duplicate_token_patterns() {
+        let mut grammar = Grammar::new("test".to_string());
+        
+        // Add two tokens with the same pattern
+        grammar.tokens.insert(SymbolId(1), Token {
+            name: "plus1".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        });
+        
+        grammar.tokens.insert(SymbolId(2), Token {
+            name: "plus2".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        });
+        
+        let mut validator = GrammarValidator::new();
+        let result = validator.validate(&grammar);
+        
+        assert!(result.warnings.iter().any(|w| {
+            matches!(w, ValidationWarning::DuplicateTokenPattern { pattern, .. } if pattern == "+")
+        }));
+    }
+
+    #[test]
+    fn test_invalid_field_index() {
+        let mut grammar = Grammar::new("test".to_string());
+        let expr = SymbolId(1);
+        let num = SymbolId(2);
+        
+        grammar.tokens.insert(num, Token {
+            name: "number".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        });
+        
+        // Rule with invalid field index
+        grammar.add_rule(Rule {
+            lhs: expr,
+            rhs: vec![Symbol::Terminal(num)],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(0), 5)], // Index 5 is out of bounds
+            production_id: ProductionId(0),
+        });
+        
+        let mut validator = GrammarValidator::new();
+        let result = validator.validate(&grammar);
+        
+        assert!(result.errors.iter().any(|e| {
+            matches!(e, ValidationError::InvalidField { .. })
+        }));
+    }
+
+    #[test]
+    fn test_cyclic_rules() {
+        let mut grammar = Grammar::new("test".to_string());
+        let a = SymbolId(1);
+        let b = SymbolId(2);
+        let c = SymbolId(3);
+        
+        // Create a cycle: A -> B -> C -> A
+        grammar.add_rule(Rule {
+            lhs: a,
+            rhs: vec![Symbol::NonTerminal(b)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        
+        grammar.add_rule(Rule {
+            lhs: b,
+            rhs: vec![Symbol::NonTerminal(c)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        });
+        
+        grammar.add_rule(Rule {
+            lhs: c,
+            rhs: vec![Symbol::NonTerminal(a)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(2),
+        });
+        
+        let mut validator = GrammarValidator::new();
+        let result = validator.validate(&grammar);
+        
+        assert!(result.errors.iter().any(|e| {
+            matches!(e, ValidationError::CyclicRule { .. })
+        }));
+    }
+
+    #[test]
+    fn test_conflicting_precedence() {
+        let mut grammar = Grammar::new("test".to_string());
+        let plus = SymbolId(1);
+        
+        // Add conflicting precedence declarations
+        grammar.precedences.push(Precedence {
+            level: 1,
+            associativity: crate::Associativity::Left,
+            symbols: vec![plus],
+        });
+        
+        grammar.precedences.push(Precedence {
+            level: 2,
+            associativity: crate::Associativity::Right,
+            symbols: vec![plus],
+        });
+        
+        let mut validator = GrammarValidator::new();
+        let result = validator.validate(&grammar);
+        
+        assert!(result.errors.iter().any(|e| {
+            matches!(e, ValidationError::ConflictingPrecedence { symbol, .. } if *symbol == plus)
+        }));
     }
 }

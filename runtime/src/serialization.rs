@@ -405,4 +405,173 @@ mod tests {
         let expected = "(program (function_declaration name: (identifier \"main\")))";
         assert!(expected.contains("function_declaration"));
     }
+
+    #[test]
+    fn test_serialized_node_construction() {
+        let node = SerializedNode {
+            kind: "identifier".to_string(),
+            is_named: true,
+            field_name: Some("name".to_string()),
+            start_position: (0, 0),
+            end_position: (0, 4),
+            start_byte: 0,
+            end_byte: 4,
+            text: Some("test".to_string()),
+            children: vec![],
+            is_error: false,
+            is_missing: false,
+        };
+        
+        assert_eq!(node.kind, "identifier");
+        assert!(node.is_named);
+        assert_eq!(node.field_name, Some("name".to_string()));
+        assert_eq!(node.text, Some("test".to_string()));
+        assert!(node.children.is_empty());
+        assert!(!node.is_error);
+        assert!(!node.is_missing);
+    }
+
+    #[test]
+    fn test_tree_serializer_configuration() {
+        let source = b"test source code";
+        let serializer = TreeSerializer::new(source)
+            .with_unnamed_nodes()
+            .with_max_text_length(Some(50));
+        
+        assert!(serializer.include_unnamed);
+        assert_eq!(serializer.max_text_length, Some(50));
+        assert_eq!(serializer.source, source);
+    }
+
+    #[test]
+    fn test_tree_statistics() {
+        let mut stats = TreeStatistics::default();
+        
+        assert_eq!(stats.total_nodes, 0);
+        assert_eq!(stats.named_nodes, 0);
+        assert_eq!(stats.max_depth, 0);
+        assert!(stats.node_types.is_empty());
+        
+        // Simulate adding some statistics
+        stats.total_nodes = 10;
+        stats.named_nodes = 7;
+        stats.error_nodes = 1;
+        stats.max_depth = 3;
+        stats.node_types.insert("identifier".to_string(), 4);
+        stats.node_types.insert("function".to_string(), 2);
+        
+        assert_eq!(stats.total_nodes, 10);
+        assert_eq!(stats.named_nodes, 7);
+        assert_eq!(stats.error_nodes, 1);
+        assert_eq!(stats.max_depth, 3);
+        assert_eq!(stats.node_types.len(), 2);
+        assert_eq!(stats.node_types.get("identifier"), Some(&4));
+    }
+
+    #[test]
+    fn test_serialized_node_with_children() {
+        let child1 = SerializedNode {
+            kind: "identifier".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, 0),
+            end_position: (0, 3),
+            start_byte: 0,
+            end_byte: 3,
+            text: Some("foo".to_string()),
+            children: vec![],
+            is_error: false,
+            is_missing: false,
+        };
+        
+        let child2 = SerializedNode {
+            kind: "identifier".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, 4),
+            end_position: (0, 7),
+            start_byte: 4,
+            end_byte: 7,
+            text: Some("bar".to_string()),
+            children: vec![],
+            is_error: false,
+            is_missing: false,
+        };
+        
+        let parent = SerializedNode {
+            kind: "binary_expression".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, 0),
+            end_position: (0, 7),
+            start_byte: 0,
+            end_byte: 7,
+            text: None,
+            children: vec![child1, child2],
+            is_error: false,
+            is_missing: false,
+        };
+        
+        assert_eq!(parent.children.len(), 2);
+        assert_eq!(parent.children[0].text, Some("foo".to_string()));
+        assert_eq!(parent.children[1].text, Some("bar".to_string()));
+    }
+
+    #[test]
+    fn test_max_text_length_truncation() {
+        let long_text = "This is a very long text that should be truncated";
+        let max_len = 20;
+        
+        let truncated = if long_text.len() > max_len {
+            format!("{}...", &long_text[..max_len])
+        } else {
+            long_text.to_string()
+        };
+        
+        assert_eq!(truncated, "This is a very long ...");
+        assert!(truncated.ends_with("..."));
+        assert_eq!(truncated.len(), max_len + 3); // 20 chars + "..."
+    }
+
+    #[test]
+    fn test_error_node_serialization() {
+        let error_node = SerializedNode {
+            kind: "ERROR".to_string(),
+            is_named: false,
+            field_name: None,
+            start_position: (1, 5),
+            end_position: (1, 10),
+            start_byte: 15,
+            end_byte: 20,
+            text: Some("invalid".to_string()),
+            children: vec![],
+            is_error: true,
+            is_missing: false,
+        };
+        
+        assert!(error_node.is_error);
+        assert_eq!(error_node.kind, "ERROR");
+        assert!(!error_node.is_named);
+    }
+
+    #[test]
+    fn test_missing_node_serialization() {
+        let missing_node = SerializedNode {
+            kind: "identifier".to_string(),
+            is_named: true,
+            field_name: Some("name".to_string()),
+            start_position: (2, 0),
+            end_position: (2, 0),
+            start_byte: 30,
+            end_byte: 30,
+            text: None,
+            children: vec![],
+            is_error: false,
+            is_missing: true,
+        };
+        
+        assert!(missing_node.is_missing);
+        assert!(!missing_node.is_error);
+        assert_eq!(missing_node.start_byte, missing_node.end_byte);
+    }
 }

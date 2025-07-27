@@ -1,8 +1,0 @@
----
-source: example/src/arithmetic.rs
-assertion_line: 104
-expression: "grammar::parse(\"1 + 2\")"
----
-Err(
-    [],
-)
