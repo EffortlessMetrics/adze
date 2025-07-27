@@ -200,6 +200,42 @@ impl<'a> NodeTypesGenerator<'a> {
                     named: true,
                 }
             }
+            Symbol::Optional(inner) => self.symbol_to_type_ref(inner, symbol_names),
+            Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+                let inner_ref = self.symbol_to_type_ref(inner, symbol_names);
+                TypeRef {
+                    type_name: inner_ref.type_name,
+                    named: inner_ref.named,
+                }
+            }
+            Symbol::Choice(choices) => {
+                // For now, just use the first choice
+                if let Some(first) = choices.first() {
+                    self.symbol_to_type_ref(first, symbol_names)
+                } else {
+                    TypeRef {
+                        type_name: "empty".to_string(),
+                        named: false,
+                    }
+                }
+            }
+            Symbol::Sequence(seq) => {
+                // For sequences, we might want to create a composite type
+                if let Some(first) = seq.first() {
+                    self.symbol_to_type_ref(first, symbol_names)
+                } else {
+                    TypeRef {
+                        type_name: "empty".to_string(),
+                        named: false,
+                    }
+                }
+            }
+            Symbol::Epsilon => {
+                TypeRef {
+                    type_name: "empty".to_string(),
+                    named: false,
+                }
+            }
         }
     }
 }

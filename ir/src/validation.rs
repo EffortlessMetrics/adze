@@ -277,6 +277,32 @@ impl GrammarValidator {
         defined
     }
     
+    /// Helper to collect used symbols from a symbol recursively
+    fn collect_used_in_symbol(symbol: &Symbol, used: &mut HashSet<SymbolId>) {
+        match symbol {
+            Symbol::Terminal(id) | Symbol::NonTerminal(id) => {
+                used.insert(*id);
+            }
+            Symbol::External(id) => {
+                used.insert(SymbolId(id.0));
+            }
+            Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+                Self::collect_used_in_symbol(inner, used);
+            }
+            Symbol::Choice(choices) => {
+                for s in choices {
+                    Self::collect_used_in_symbol(s, used);
+                }
+            }
+            Symbol::Sequence(seq) => {
+                for s in seq {
+                    Self::collect_used_in_symbol(s, used);
+                }
+            }
+            Symbol::Epsilon => {}
+        }
+    }
+
     fn collect_used_symbols(&self, grammar: &Grammar) -> HashSet<SymbolId> {
         let mut used = HashSet::new();
         
@@ -288,14 +314,7 @@ impl GrammarValidator {
         // Symbols in rule RHS are used
         for rule in grammar.all_rules() {
             for symbol in &rule.rhs {
-                match symbol {
-                    Symbol::Terminal(id) | Symbol::NonTerminal(id) => {
-                        used.insert(*id);
-                    }
-                    Symbol::External(id) => {
-                        used.insert(SymbolId(id.0));
-                    }
-                }
+                Self::collect_used_in_symbol(symbol, &mut used);
             }
         }
         
@@ -334,6 +353,41 @@ impl GrammarValidator {
         }
     }
     
+    /// Helper to add reachable symbols from a symbol
+    fn add_reachable_from_symbol(
+        symbol: &Symbol,
+        reachable: &mut HashSet<SymbolId>,
+        queue: &mut VecDeque<SymbolId>,
+    ) {
+        match symbol {
+            Symbol::Terminal(id) | Symbol::NonTerminal(id) => {
+                if reachable.insert(*id) {
+                    queue.push_back(*id);
+                }
+            }
+            Symbol::External(ext_id) => {
+                let id = SymbolId(ext_id.0);
+                if reachable.insert(id) {
+                    queue.push_back(id);
+                }
+            }
+            Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+                Self::add_reachable_from_symbol(inner, reachable, queue);
+            }
+            Symbol::Choice(choices) => {
+                for s in choices {
+                    Self::add_reachable_from_symbol(s, reachable, queue);
+                }
+            }
+            Symbol::Sequence(seq) => {
+                for s in seq {
+                    Self::add_reachable_from_symbol(s, reachable, queue);
+                }
+            }
+            Symbol::Epsilon => {}
+        }
+    }
+
     fn find_reachable_symbols(&self, grammar: &Grammar) -> HashSet<SymbolId> {
         let mut reachable = HashSet::new();
         let mut queue = VecDeque::new();
@@ -349,14 +403,7 @@ impl GrammarValidator {
             if let Some(rules) = grammar.rules.get(&symbol) {
                 for rule in rules {
                     for rhs_symbol in &rule.rhs {
-                        let id = match rhs_symbol {
-                        Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
-                        Symbol::External(ext_id) => SymbolId(ext_id.0),
-                    };
-                    
-                    if reachable.insert(id) {
-                        queue.push_back(id);
-                    }
+                        Self::add_reachable_from_symbol(rhs_symbol, &mut reachable, &mut queue);
                     }
                 }
             }
@@ -384,6 +431,20 @@ impl GrammarValidator {
         }
     }
     
+    /// Helper to check if a symbol is productive
+    fn is_symbol_productive(symbol: &Symbol, productive: &HashSet<SymbolId>) -> bool {
+        match symbol {
+            Symbol::Terminal(id) | Symbol::NonTerminal(id) => productive.contains(id),
+            Symbol::External(ext_id) => productive.contains(&SymbolId(ext_id.0)),
+            Symbol::Epsilon => true, // Epsilon is always productive
+            Symbol::Optional(_) => true, // Optional is always productive (can be empty)
+            Symbol::Repeat(_) => true, // Repeat is always productive (can be empty)
+            Symbol::RepeatOne(inner) => Self::is_symbol_productive(inner, productive),
+            Symbol::Choice(choices) => choices.iter().any(|s| Self::is_symbol_productive(s, productive)),
+            Symbol::Sequence(seq) => seq.iter().all(|s| Self::is_symbol_productive(s, productive)),
+        }
+    }
+    
     fn find_productive_symbols(&self, grammar: &Grammar) -> HashSet<SymbolId> {
         let mut productive = HashSet::new();
         let mut changed = true;
@@ -405,12 +466,7 @@ impl GrammarValidator {
                     // Check if any rule for this symbol is productive
                     let any_productive = rules.iter().any(|rule| {
                         // Check if all RHS symbols are productive
-                        rule.rhs.iter().all(|rhs_sym| {
-                            match rhs_sym {
-                                Symbol::Terminal(id) | Symbol::NonTerminal(id) => productive.contains(id),
-                                Symbol::External(ext_id) => productive.contains(&SymbolId(ext_id.0)),
-                            }
-                        })
+                        rule.rhs.iter().all(|rhs_sym| Self::is_symbol_productive(rhs_sym, &productive))
                     });
                     
                     if any_productive {

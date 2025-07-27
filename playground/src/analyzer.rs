@@ -91,20 +91,33 @@ fn compute_stats(grammar: &Grammar) -> GrammarStats {
 }
 
 fn count_symbols(symbol: &Symbol) -> usize {
-    // For now, just count individual symbols
-    // In the future, this would traverse the expression tree
-    1
+    match symbol {
+        Symbol::Terminal(_) | Symbol::NonTerminal(_) | Symbol::External(_) | Symbol::Epsilon => 1,
+        Symbol::Sequence(seq) | Symbol::Choice(seq) => seq.iter().map(count_symbols).sum(),
+        Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+            count_symbols(inner)
+        }
+    }
 }
 
 fn is_nullable(symbol: &Symbol) -> bool {
-    // For now, just return false
-    // In the future, this would analyze the full expression
-    false
+    match symbol {
+        Symbol::Terminal(_) | Symbol::NonTerminal(_) | Symbol::External(_) => false,
+        Symbol::Epsilon | Symbol::Optional(_) | Symbol::Repeat(_) => true,
+        Symbol::RepeatOne(_) => false,
+        Symbol::Sequence(seq) => seq.iter().all(is_nullable),
+        Symbol::Choice(choices) => choices.iter().any(is_nullable),
+    }
 }
 
 fn is_left_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
     match symbol {
         Symbol::NonTerminal(name) => name == rule_symbol,
+        Symbol::Sequence(seq) => seq.first().map_or(false, |s| is_left_recursive(rule_symbol, s)),
+        Symbol::Choice(choices) => choices.iter().any(|s| is_left_recursive(rule_symbol, s)),
+        Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+            is_left_recursive(rule_symbol, inner)
+        }
         _ => false,
     }
 }
@@ -112,6 +125,11 @@ fn is_left_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
 fn is_right_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
     match symbol {
         Symbol::NonTerminal(name) => name == rule_symbol,
+        Symbol::Sequence(seq) => seq.last().map_or(false, |s| is_right_recursive(rule_symbol, s)),
+        Symbol::Choice(choices) => choices.iter().any(|s| is_right_recursive(rule_symbol, s)),
+        Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+            is_right_recursive(rule_symbol, inner)
+        }
         _ => false,
     }
 }
@@ -120,6 +138,14 @@ fn collect_terminals(symbol: &Symbol, terminals: &mut HashSet<String>) {
     match symbol {
         Symbol::Terminal(term_id) => {
             terminals.insert(term_id.0.to_string());
+        }
+        Symbol::Sequence(seq) | Symbol::Choice(seq) => {
+            for s in seq {
+                collect_terminals(s, terminals);
+            }
+        }
+        Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+            collect_terminals(inner, terminals);
         }
         _ => {}
     }

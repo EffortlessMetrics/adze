@@ -333,6 +333,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         })
         .sift::<Vec<_>>()?.into_iter().flatten().collect();
 
+    #[cfg(not(feature = "pure-rust"))]
     let tree_sitter_ident = Ident::new(&format!("tree_sitter_{grammar_name}"), Span::call_site());
 
     // For C backend compatibility

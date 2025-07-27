@@ -46,6 +46,29 @@ impl GrammarOptimizer {
         stats
     }
 
+    /// Mark a symbol and all its sub-symbols as used
+    fn mark_used_in_symbol(&mut self, symbol: &Symbol) {
+        match symbol {
+            Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
+                self.used_symbols.insert(*id);
+            }
+            Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+                self.mark_used_in_symbol(inner);
+            }
+            Symbol::Choice(choices) => {
+                for s in choices {
+                    self.mark_used_in_symbol(s);
+                }
+            }
+            Symbol::Sequence(seq) => {
+                for s in seq {
+                    self.mark_used_in_symbol(s);
+                }
+            }
+            Symbol::Epsilon => {}
+        }
+    }
+
     /// Analyze the grammar to collect information for optimization
     fn analyze_grammar(&mut self, grammar: &Grammar) {
         // Mark start symbol as used
@@ -67,6 +90,20 @@ impl GrammarOptimizer {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
                         self.used_symbols.insert(*id);
                     }
+                    Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+                        self.mark_used_in_symbol(inner);
+                    }
+                    Symbol::Choice(choices) => {
+                        for s in choices {
+                            self.mark_used_in_symbol(s);
+                        }
+                    }
+                    Symbol::Sequence(seq) => {
+                        for s in seq {
+                            self.mark_used_in_symbol(s);
+                        }
+                    }
+                    Symbol::Epsilon => {}
                 }
             }
 
@@ -442,6 +479,31 @@ impl GrammarOptimizer {
         grammar.add_rule(epsilon_rule);
     }
 
+    /// Helper to renumber a symbol recursively
+    fn renumber_symbol(&self, symbol: &mut Symbol, old_to_new: &HashMap<SymbolId, SymbolId>) {
+        match symbol {
+            Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
+                if let Some(&new_id) = old_to_new.get(id) {
+                    *id = new_id;
+                }
+            }
+            Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+                self.renumber_symbol(inner, old_to_new);
+            }
+            Symbol::Choice(choices) => {
+                for s in choices {
+                    self.renumber_symbol(s, old_to_new);
+                }
+            }
+            Symbol::Sequence(seq) => {
+                for s in seq {
+                    self.renumber_symbol(s, old_to_new);
+                }
+            }
+            Symbol::Epsilon => {}
+        }
+    }
+
     /// Renumber symbols to be contiguous
     fn renumber_symbols(&mut self, grammar: &mut Grammar) {
         let mut old_to_new: HashMap<SymbolId, SymbolId> = HashMap::new();
@@ -476,13 +538,7 @@ impl GrammarOptimizer {
 
                 // Update RHS
                 for symbol in &mut rule.rhs {
-                    match symbol {
-                        Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
-                            if let Some(&new_id) = old_to_new.get(id) {
-                                *id = new_id;
-                            }
-                        }
-                    }
+                    self.renumber_symbol(symbol, &old_to_new);
                 }
             }
             

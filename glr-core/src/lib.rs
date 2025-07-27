@@ -89,6 +89,15 @@ impl FirstFollowSets {
                                 break;
                             }
                         }
+                        Symbol::Epsilon => {
+                            // Epsilon doesn't contribute to FIRST set
+                            // but keeps rule nullable
+                        }
+                        Symbol::Optional(_) | Symbol::Repeat(_) | 
+                        Symbol::RepeatOne(_) | Symbol::Choice(_) | Symbol::Sequence(_) => {
+                            // These should be normalized before FIRST/FOLLOW computation
+                            panic!("Complex symbols should be normalized before FIRST/FOLLOW computation");
+                        }
                     }
                 }
                 
@@ -164,6 +173,9 @@ impl FirstFollowSets {
                     result.insert(id.0 as usize);
                     break;
                 }
+                Symbol::Epsilon => {
+                    // Epsilon doesn't contribute to FIRST set, continue to next symbol
+                }
                 Symbol::NonTerminal(id) | Symbol::External(id) => {
                     if let Some(symbol_first) = first.get(id) {
                         result.union_with(symbol_first);
@@ -172,6 +184,10 @@ impl FirstFollowSets {
                     if !nullable.contains(id.0 as usize) {
                         break;
                     }
+                }
+                Symbol::Optional(_) | Symbol::Repeat(_) | 
+                Symbol::RepeatOne(_) | Symbol::Choice(_) | Symbol::Sequence(_) => {
+                    panic!("Complex symbols should be normalized before FIRST/FOLLOW computation");
                 }
             }
         }
@@ -184,6 +200,11 @@ impl FirstFollowSets {
             Symbol::Terminal(_) => false,
             Symbol::NonTerminal(id) | Symbol::External(id) => {
                 nullable.contains(id.0 as usize)
+            }
+            Symbol::Epsilon => true,
+            Symbol::Optional(_) | Symbol::Repeat(_) | 
+            Symbol::RepeatOne(_) | Symbol::Choice(_) | Symbol::Sequence(_) => {
+                panic!("Complex symbols should be normalized before FIRST/FOLLOW computation");
             }
         })
     }
@@ -417,6 +438,10 @@ impl ItemSetCollection {
                     // Add to GOTO table
                     let symbol_id = match symbol {
                         Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
+                        Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                        Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                            panic!("Complex symbols should be normalized before LR item generation");
+                        }
                     };
                     collection.goto_table.insert((current_set.id, symbol_id), target_state);
                 }
@@ -509,6 +534,10 @@ impl ConflictResolver {
                     // Shift action
                     let symbol_id = match symbol {
                         Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => *id,
+                        Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                        Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                            panic!("Complex symbols should be normalized before LR item generation");
+                        }
                     };
                     
                     if let Some(target_state) = item_sets.goto_table.get(&(item_set.id, symbol_id)) {
@@ -738,6 +767,10 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             } else if let Some(next_symbol) = item.next_symbol(grammar) {
                 let symbol_id = match &next_symbol {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
+                    Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                    Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                        panic!("Complex symbols should be normalized before conflict analysis");
+                    }
                 };
                 
                 if let Some(&symbol_idx) = symbol_to_index.get(symbol_id) {

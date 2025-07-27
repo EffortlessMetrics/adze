@@ -95,6 +95,12 @@ pub enum Symbol {
     Terminal(SymbolId),
     NonTerminal(SymbolId),
     External(SymbolId),
+    Optional(Box<Symbol>),
+    Repeat(Box<Symbol>),
+    RepeatOne(Box<Symbol>), // One or more repetitions
+    Choice(Vec<Symbol>),
+    Sequence(Vec<Symbol>),
+    Epsilon, // Empty production
 }
 
 /// Alias sequence for node renaming
@@ -215,6 +221,37 @@ impl Grammar {
         serde_json::from_str(data).map_err(GrammarError::ParseError)
     }
 
+    /// Helper to validate a symbol recursively
+    fn validate_symbol(&self, symbol: &Symbol) -> Result<(), GrammarError> {
+        match symbol {
+            Symbol::Terminal(id) | Symbol::NonTerminal(id) => {
+                if !self.rules.contains_key(id) && !self.tokens.contains_key(id) {
+                    return Err(GrammarError::UnresolvedSymbol(*id));
+                }
+            }
+            Symbol::External(id) => {
+                if !self.externals.iter().any(|ext| ext.symbol_id == *id) {
+                    return Err(GrammarError::UnresolvedExternalSymbol(*id));
+                }
+            }
+            Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+                self.validate_symbol(inner)?;
+            }
+            Symbol::Choice(choices) => {
+                for s in choices {
+                    self.validate_symbol(s)?;
+                }
+            }
+            Symbol::Sequence(seq) => {
+                for s in seq {
+                    self.validate_symbol(s)?;
+                }
+            }
+            Symbol::Epsilon => {}
+        }
+        Ok(())
+    }
+
     /// Validate grammar consistency and detect issues
     pub fn validate(&self) -> Result<(), GrammarError> {
         // Validate field name ordering (must be lexicographic)
@@ -228,18 +265,7 @@ impl Grammar {
         // Validate symbol references
         for rule in self.all_rules() {
             for symbol in &rule.rhs {
-                match symbol {
-                    Symbol::Terminal(id) | Symbol::NonTerminal(id) => {
-                        if !self.rules.contains_key(id) && !self.tokens.contains_key(id) {
-                            return Err(GrammarError::UnresolvedSymbol(*id));
-                        }
-                    }
-                    Symbol::External(id) => {
-                        if !self.externals.iter().any(|ext| ext.symbol_id == *id) {
-                            return Err(GrammarError::UnresolvedExternalSymbol(*id));
-                        }
-                    }
-                }
+                self.validate_symbol(symbol)?;
             }
         }
 
@@ -252,6 +278,141 @@ impl Grammar {
         // Inline simple rules where beneficial
         // Optimize precedence declarations
         // This will be implemented based on Tree-sitter's optimization strategies
+    }
+    
+    /// Normalize complex symbols by creating auxiliary rules
+    /// This expands Optional, Repeat, Choice, etc. into standard rules
+    pub fn normalize(&mut self) -> Vec<Rule> {
+        let mut new_rules = Vec::new();
+        let mut aux_counter = 0;
+        
+        // Process each existing rule
+        let rules_to_process: Vec<(SymbolId, Rule)> = self.rules.iter()
+            .flat_map(|(lhs, rules)| rules.iter().map(|r| (*lhs, r.clone())))
+            .collect();
+            
+        for (_lhs, mut rule) in rules_to_process {
+            let mut new_rhs = Vec::new();
+            
+            for symbol in rule.rhs {
+                match symbol {
+                    Symbol::Optional(inner) => {
+                        // Create aux rule: aux -> inner | ε
+                        let aux_id = SymbolId(9000 + aux_counter);
+                        aux_counter += 1;
+                        
+                        // aux -> inner
+                        new_rules.push(Rule {
+                            lhs: aux_id,
+                            rhs: vec![*inner.clone()],
+                            precedence: None,
+                            associativity: None,
+                            fields: vec![],
+                            production_id: ProductionId(0),
+                        });
+                        
+                        // aux -> ε
+                        new_rules.push(Rule {
+                            lhs: aux_id,
+                            rhs: vec![Symbol::Epsilon],
+                            precedence: None,
+                            associativity: None,
+                            fields: vec![],
+                            production_id: ProductionId(0),
+                        });
+                        
+                        new_rhs.push(Symbol::NonTerminal(aux_id));
+                    }
+                    Symbol::Repeat(inner) => {
+                        // Create aux rule: aux -> aux inner | ε
+                        let aux_id = SymbolId(9000 + aux_counter);
+                        aux_counter += 1;
+                        
+                        // aux -> aux inner
+                        new_rules.push(Rule {
+                            lhs: aux_id,
+                            rhs: vec![Symbol::NonTerminal(aux_id), *inner.clone()],
+                            precedence: None,
+                            associativity: None,
+                            fields: vec![],
+                            production_id: ProductionId(0),
+                        });
+                        
+                        // aux -> ε
+                        new_rules.push(Rule {
+                            lhs: aux_id,
+                            rhs: vec![Symbol::Epsilon],
+                            precedence: None,
+                            associativity: None,
+                            fields: vec![],
+                            production_id: ProductionId(0),
+                        });
+                        
+                        new_rhs.push(Symbol::NonTerminal(aux_id));
+                    }
+                    Symbol::RepeatOne(inner) => {
+                        // Create aux rule: aux -> aux inner | inner
+                        let aux_id = SymbolId(9000 + aux_counter);
+                        aux_counter += 1;
+                        
+                        // aux -> aux inner
+                        new_rules.push(Rule {
+                            lhs: aux_id,
+                            rhs: vec![Symbol::NonTerminal(aux_id), *inner.clone()],
+                            precedence: None,
+                            associativity: None,
+                            fields: vec![],
+                            production_id: ProductionId(0),
+                        });
+                        
+                        // aux -> inner
+                        new_rules.push(Rule {
+                            lhs: aux_id,
+                            rhs: vec![*inner],
+                            precedence: None,
+                            associativity: None,
+                            fields: vec![],
+                            production_id: ProductionId(0),
+                        });
+                        
+                        new_rhs.push(Symbol::NonTerminal(aux_id));
+                    }
+                    Symbol::Choice(choices) => {
+                        // Create aux rules: aux -> choice1 | choice2 | ...
+                        let aux_id = SymbolId(9000 + aux_counter);
+                        aux_counter += 1;
+                        
+                        for choice in choices {
+                            new_rules.push(Rule {
+                                lhs: aux_id,
+                                rhs: vec![choice],
+                                precedence: None,
+                                associativity: None,
+                                fields: vec![],
+                                production_id: ProductionId(0),
+                            });
+                        }
+                        
+                        new_rhs.push(Symbol::NonTerminal(aux_id));
+                    }
+                    Symbol::Sequence(seq) => {
+                        // Flatten sequence into the current rule
+                        new_rhs.extend(seq);
+                    }
+                    other => new_rhs.push(other),
+                }
+            }
+            
+            rule.rhs = new_rhs;
+            new_rules.push(rule);
+        }
+        
+        // Add new rules to the grammar
+        for rule in &new_rules {
+            self.add_rule(rule.clone());
+        }
+        
+        new_rules
     }
 }
 

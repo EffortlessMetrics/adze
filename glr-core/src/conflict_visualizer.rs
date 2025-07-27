@@ -119,6 +119,11 @@ impl<'a> ConflictVisualizer<'a> {
                         return true;
                     }
                 }
+                Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) | 
+                Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                    // Complex symbols should have been normalized
+                    return false;
+                }
             }
         }
         
@@ -182,6 +187,18 @@ impl<'a> ConflictVisualizer<'a> {
             Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
                 self.symbol_name(*id)
             }
+            Symbol::Optional(inner) => format!("{}?", self.format_symbol(inner)),
+            Symbol::Repeat(inner) => format!("{}*", self.format_symbol(inner)),
+            Symbol::RepeatOne(inner) => format!("{}+", self.format_symbol(inner)),
+            Symbol::Choice(choices) => {
+                let formatted: Vec<_> = choices.iter().map(|s| self.format_symbol(s)).collect();
+                format!("({})", formatted.join(" | "))
+            }
+            Symbol::Sequence(seq) => {
+                let formatted: Vec<_> = seq.iter().map(|s| self.format_symbol(s)).collect();
+                formatted.join(" ")
+            }
+            Symbol::Epsilon => "ε".to_string(),
         }
     }
     
