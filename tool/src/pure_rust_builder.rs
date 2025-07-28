@@ -151,6 +151,12 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
     writeln!(debug_file, "Debug: Rule names: {:?}", 
         grammar.rule_names.values().collect::<Vec<_>>())?;
     
+    // Debug symbol name to ID mapping
+    writeln!(debug_file, "Debug: Symbol name to ID mapping in grammar.rule_names:")?;
+    for (symbol_id, name) in &grammar.rule_names {
+        writeln!(debug_file, "  '{}' -> SymbolId({})", name, symbol_id.0)?;
+    }
+    
     // Debug: Print all rules in the grammar
     writeln!(debug_file, "Debug: All rules in grammar:")?;
     for (symbol_id, rules) in &grammar.rules {
@@ -168,6 +174,12 @@ pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResu
         parse_table.state_count, parse_table.symbol_count)?;
     writeln!(debug_file, "Debug: Action table has {} entries", parse_table.action_table.len())?;
     writeln!(debug_file, "Debug: Goto table has {} entries", parse_table.goto_table.len())?;
+    
+    // Debug: Print detailed action table content
+    writeln!(debug_file, "Debug: Action table contents:")?;
+    for (state_idx, state_actions) in parse_table.action_table.iter().enumerate() {
+        writeln!(debug_file, "  State {}: {:?}", state_idx, state_actions)?;
+    }
     
     // Debug: Print action table content
     for (state_idx, actions) in parse_table.action_table.iter().enumerate() {

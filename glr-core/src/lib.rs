@@ -384,6 +384,12 @@ impl ItemSetCollection {
             eprintln!("Debug: Start symbol is {:?}", start_symbol);
             eprintln!("Debug: Looking for rules with symbol {:?}", start_symbol);
             
+            // Debug: print symbol name mapping
+            eprintln!("Debug: Grammar rule_names has {} entries", grammar.rule_names.len());
+            for (id, name) in &grammar.rule_names {
+                eprintln!("Debug:   SymbolId({}) -> '{}'", id.0, name);
+            }
+            
             // Debug: print all rules in grammar
             eprintln!("Debug: Grammar has {} symbol groups with rules", grammar.rules.len());
             for (symbol_id, rules) in &grammar.rules {

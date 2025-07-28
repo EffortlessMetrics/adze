@@ -50,15 +50,24 @@ impl Grammar {
     /// Get the start symbol (LHS of the first rule)
     pub fn start_symbol(&self) -> Option<SymbolId> {
         // For Tree-sitter compatibility, look for "source_file" symbol
+        // But we need to find the actual symbol that has rules, not just the name mapping
         if let Some(source_file_id) = self.find_symbol_by_name("source_file") {
-            return Some(source_file_id);
+            // Check if this symbol actually has rules
+            if self.rules.contains_key(&source_file_id) {
+                return Some(source_file_id);
+            }
+            // If not, look for a symbol with rules that matches source_file
+            for (symbol_id, _rules) in &self.rules {
+                if let Some(name) = self.rule_names.get(symbol_id) {
+                    if name == "source_file" {
+                        return Some(*symbol_id);
+                    }
+                }
+            }
         }
         
-        // Otherwise, use the first rule's LHS
-        self.rules.values()
-            .next()
-            .and_then(|rules| rules.first())
-            .map(|rule| rule.lhs)
+        // Otherwise, use the first symbol that has rules
+        self.rules.keys().next().copied()
     }
     
     /// Find a symbol by its name in rule_names
