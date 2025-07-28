@@ -110,6 +110,9 @@ impl GrammarJsConverter {
         for rule_name in self.grammar_js.rules.keys() {
             let symbol_id = SymbolId(self.next_symbol_id.try_into().unwrap());
             eprintln!("Debug: Collecting symbol '{}' as SymbolId({})", rule_name, self.next_symbol_id);
+            if rule_name == "source_file" {
+                eprintln!("Debug: FOUND source_file! Adding to symbol_names and rule_names as SymbolId({})", symbol_id.0);
+            }
             self.symbol_names.insert(rule_name.clone(), symbol_id);
             grammar.rule_names.insert(symbol_id, rule_name.clone());
             self.next_symbol_id += 1;
@@ -171,6 +174,9 @@ impl GrammarJsConverter {
                 .context(format!("Symbol {} not found", rule_name))?;
             
             eprintln!("Debug: Converting rule '{}' (symbol {})", rule_name, lhs_symbol.0);
+            if rule_name == "source_file" {
+                eprintln!("Debug: Converting source_file rule!");
+            }
             eprintln!("Debug: Rule body type: {:?}", std::mem::discriminant(&rule_body));
             self.convert_rule_body(grammar, &rule_body, lhs_symbol)?;
         }

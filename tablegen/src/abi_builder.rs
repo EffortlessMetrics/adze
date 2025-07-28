@@ -72,8 +72,8 @@ impl<'a> AbiLanguageBuilder<'a> {
             }
         };
         
-        // Generate lexer function
-        let lexer_code = crate::lexer_gen::generate_lexer(self.grammar);
+        // Generate lexer function with symbol mapping
+        let lexer_code = crate::lexer_gen::generate_lexer(self.grammar, &self.parse_table.symbol_to_index);
         
         quote! {
             use ::rust_sitter::pure_parser::*;
@@ -189,6 +189,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         // Sort tokens by ID for deterministic ordering
         let mut tokens: Vec<_> = self.grammar.tokens.iter().collect();
         tokens.sort_by_key(|(id, _)| id.0);
+        
         
         for (i, (_id, token)) in tokens.iter().enumerate() {
             let idx = i + 1;
@@ -338,6 +339,8 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // Record the starting offset for this state
                 map_data.push(quote! { #current_offset });
                 
+                eprintln!("State {}: offset {}", state_idx, current_offset);
+                
                 // Add entries for this state (only non-error actions)
                 for symbol_idx in 0..self.parse_table.symbol_count {
                     let action = if state_idx < self.parse_table.action_table.len() 
@@ -349,8 +352,18 @@ impl<'a> AbiLanguageBuilder<'a> {
                     
                     // Only add non-error entries as (symbol, action) pairs
                     if !matches!(action, Action::Error) {
-                        let symbol = symbol_idx as u16;
-                        table_data.push(quote! { #symbol });
+                        eprintln!("  Symbol {} -> Action {:?}", symbol_idx, action);
+                        
+                        // Find the actual SymbolId for this table index
+                        let actual_symbol_id = self.parse_table.symbol_to_index
+                            .iter()
+                            .find(|(_, idx)| **idx == symbol_idx)
+                            .map(|(symbol_id, _)| symbol_id.0)
+                            .unwrap_or(symbol_idx as u16);
+                        
+                        eprintln!("    Mapped to actual symbol ID: {}", actual_symbol_id);
+                        
+                        table_data.push(quote! { #actual_symbol_id });
                         
                         if let Ok(encoded) = self.encode_action(action) {
                             table_data.push(quote! { #encoded });
@@ -397,7 +410,6 @@ impl<'a> AbiLanguageBuilder<'a> {
         });
         
         // Generate actions for each production rule
-        let mut rule_id = 0u16;
         for (symbol_id, rules) in &self.grammar.rules {
             for rule in rules {
                 let child_count = rule.rhs.len() as u8;
@@ -412,8 +424,6 @@ impl<'a> AbiLanguageBuilder<'a> {
                         symbol: #symbol,
                     }
                 });
-                
-                rule_id += 1;
             }
         }
         

@@ -391,7 +391,7 @@ fn gen_struct_or_variant(
 pub fn generate_grammar(module: &ItemMod) -> Value {
     let mut rules_map = Map::new();
     // for some reason, source_file must be the first key for things to work
-    rules_map.insert("source_file".to_string(), json!({}));
+    // We'll insert it after we find the root type
 
     let mut extras_list = vec![];
     let mut externals_list = vec![];
@@ -437,6 +437,12 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
         })
         .expect("Each parser must have the root type annotated with `#[rust_sitter::language]`")
         .to_string();
+
+    // Insert source_file rule that references the root type
+    rules_map.insert("source_file".to_string(), json!({
+        "type": "SYMBOL",
+        "name": root_type.to_string()
+    }));
 
     // Optionally locate the rule annotated with `#[rust_sitter::word]`.
     let mut word_rule = None;
@@ -527,10 +533,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
         }
     });
 
-    rules_map.insert(
-        "source_file".to_string(),
-        rules_map.get(&root_type).unwrap().clone(),
-    );
+    // source_file rule already inserted above - don't overwrite it!
 
     let mut grammar = json!({
         "name": grammar_name,

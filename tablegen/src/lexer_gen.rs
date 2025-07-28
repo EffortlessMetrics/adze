@@ -1,27 +1,32 @@
 // Lexer generation for pure-Rust parser
 use proc_macro2::TokenStream;
 use quote::quote;
-use rust_sitter_ir::{Grammar, TokenPattern};
+use rust_sitter_ir::{Grammar, TokenPattern, SymbolId};
+use std::collections::HashMap;
 
 /// Generate a simple lexer function for the grammar
-pub fn generate_lexer(grammar: &Grammar) -> TokenStream {
+pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &HashMap<SymbolId, usize>) -> TokenStream {
     // Collect all tokens and their patterns
     let mut token_matches = Vec::new();
     
-    // The lexer needs to return symbols that match what the parser expects.
-    // Symbol 0 is always EOF (end), handled by the parser itself.
-    // Tokens start at symbol 1.
+    // The lexer needs to return symbol indices that match the parse table.
+    // We use the symbol_to_index mapping from the parse table to ensure consistency.
     
-    // Sort tokens by ID for deterministic ordering
+    // Sort tokens by ID for deterministic ordering in the generated code
     let mut tokens: Vec<_> = grammar.tokens.iter().collect();
     tokens.sort_by_key(|(id, _)| id.0);
     
-    // Generate token matches in the correct order
-    // The symbol IDs in the lexer must match the symbol table ordering:
-    // 0 = EOF, 1+ = tokens (sorted by ID), then non-terminals
-    let mut symbol_index = 1u16; // Start after EOF
-    
-    for (_token_id, token) in &tokens {
+    // Generate token matches for each token
+    for (token_id, token) in &tokens {
+        // Get the parse table index for this symbol
+        let symbol_index = match symbol_to_index.get(token_id) {
+            Some(&idx) => idx as u16,
+            None => {
+                // If not in the mapping, skip this token
+                // This shouldn't happen in a well-formed grammar
+                continue;
+            }
+        };
         match &token.pattern {
             TokenPattern::String(lit) => {
                 // Single character or string literal
@@ -78,7 +83,6 @@ pub fn generate_lexer(grammar: &Grammar) -> TokenStream {
                 // TODO: Add more pattern support
             }
         }
-        symbol_index += 1;
     }
     
     quote! {

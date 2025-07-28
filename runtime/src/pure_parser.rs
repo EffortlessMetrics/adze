@@ -656,11 +656,14 @@ impl Parser {
     fn get_expected_symbols(&self, language: &TSLanguage, state: TSStateId) -> Vec<TSSymbol> {
         let mut expected = Vec::new();
         
-        // Check only terminal symbols (tokens) for valid actions
-        // Terminals are symbols 0 to token_count (excluding EOF which is 0)
-        let token_count = unsafe { language.token_count as u16 };
+        // Check all possible symbols in the parse table
+        // The parse table uses the symbol_to_index mapping, so we need to check
+        // all symbols from 0 to symbol_count
+        let symbol_count = unsafe { language.symbol_count as u16 };
         
-        for symbol in 1..token_count {
+        // For now, check all symbols to see what's valid
+        // We can optimize this later to only check terminals
+        for symbol in 0..symbol_count {
             let action = self.get_action(language, state, symbol);
             if !matches!(action, Action::Error) {
                 expected.push(symbol);
