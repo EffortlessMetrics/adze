@@ -358,6 +358,23 @@ impl Parser {
             // Lex next token
             let token = self.lex_token(language, current_state, position, &mut point);
             
+            // Debug log
+            if iteration_count <= 5 {
+                eprintln!("Iteration {}: state={}, token={} ({}), pos={}", 
+                    iteration_count, current_state, token.symbol, 
+                    if (token.symbol as u32) < language.symbol_count {
+                        unsafe {
+                            let sym_name_ptr = *language.symbol_names.add(token.symbol as usize);
+                            std::ffi::CStr::from_ptr(sym_name_ptr as *const i8)
+                                .to_string_lossy()
+                                .to_string()
+                        }
+                    } else {
+                        "unknown".to_string()
+                    },
+                    position);
+            }
+            
             // Get action for current state and token
             match self.get_action(language, current_state, token.symbol) {
                 Action::Shift(next_state) => {

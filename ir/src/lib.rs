@@ -49,10 +49,26 @@ impl Grammar {
     
     /// Get the start symbol (LHS of the first rule)
     pub fn start_symbol(&self) -> Option<SymbolId> {
+        // For Tree-sitter compatibility, look for "source_file" symbol
+        if let Some(source_file_id) = self.find_symbol_by_name("source_file") {
+            return Some(source_file_id);
+        }
+        
+        // Otherwise, use the first rule's LHS
         self.rules.values()
             .next()
             .and_then(|rules| rules.first())
             .map(|rule| rule.lhs)
+    }
+    
+    /// Find a symbol by its name in rule_names
+    pub fn find_symbol_by_name(&self, name: &str) -> Option<SymbolId> {
+        for (symbol_id, symbol_name) in &self.rule_names {
+            if symbol_name == name {
+                return Some(*symbol_id);
+            }
+        }
+        None
     }
 }
 

@@ -282,9 +282,14 @@ impl ItemSet {
 
     /// Compute closure of this item set
     pub fn closure(&mut self, grammar: &Grammar, first_follow: &FirstFollowSets) {
+        let initial_size = self.items.len();
+        eprintln!("Debug: Computing closure for item set with {} initial items", initial_size);
+        
         let mut added = true;
+        let mut iteration = 0;
         while added {
             added = false;
+            iteration += 1;
             let current_items: Vec<_> = self.items.iter().cloned().collect();
             
             for item in current_items {
@@ -321,6 +326,8 @@ impl ItemSet {
                 }
             }
         }
+        
+        eprintln!("Debug: Closure complete after {} iterations. Final size: {} items", iteration, self.items.len());
     }
 
     /// Compute GOTO for a given symbol
@@ -377,6 +384,12 @@ impl ItemSetCollection {
             eprintln!("Debug: Start symbol is {:?}", start_symbol);
             eprintln!("Debug: Looking for rules with symbol {:?}", start_symbol);
             
+            // Debug: print all rules in grammar
+            eprintln!("Debug: Grammar has {} symbol groups with rules", grammar.rules.len());
+            for (symbol_id, rules) in &grammar.rules {
+                eprintln!("Debug:   Symbol {:?} has {} rules", symbol_id, rules.len());
+            }
+            
             // Add items for ALL rules with the start symbol as LHS
             if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
                 eprintln!("Debug: Found {} rules for start symbol", start_rules.len());
@@ -395,6 +408,15 @@ impl ItemSetCollection {
             
             // Compute closure
             initial_set.closure(grammar, first_follow);
+        }
+        
+        // Only add initial set if it has items
+        if initial_set.items.is_empty() {
+            eprintln!("Debug: Initial set is empty after closure! This will result in parse table with only 1 state.");
+            eprintln!("Debug: Grammar rules summary:");
+            for (sym_id, rules) in &grammar.rules {
+                eprintln!("  Symbol {:?}: {} rules", sym_id, rules.len());
+            }
         }
         
         collection.sets.push(initial_set);

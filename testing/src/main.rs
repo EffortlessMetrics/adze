@@ -109,7 +109,7 @@ fn test_single_grammar(
     let config = TestConfig {
         grammar_path: path,
         test_files: files,
-        tree_sitter_path: tree_sitter,
+        tree_sitter_path: tree_sitter.clone(),
         compare_output: tree_sitter.is_some(),
         benchmark,
         external_scanner: scanner,

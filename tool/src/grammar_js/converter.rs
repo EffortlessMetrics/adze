@@ -15,6 +15,7 @@ use indexmap::IndexMap;
 pub struct GrammarJsConverter {
     grammar_js: GrammarJs,
     symbol_names: HashMap<String, SymbolId>,
+    pattern_symbols: HashMap<SymbolId, SymbolId>, // Maps pattern rule symbols to their token IDs
     next_symbol_id: usize,
     next_production_id: usize,
     next_field_id: usize,
@@ -26,6 +27,7 @@ impl GrammarJsConverter {
         Self {
             grammar_js,
             symbol_names: HashMap::new(),
+            pattern_symbols: HashMap::new(),
             next_symbol_id: 0,
             next_production_id: 0,
             next_field_id: 0,
@@ -107,6 +109,7 @@ impl GrammarJsConverter {
         // Add all rule names as non-terminals
         for rule_name in self.grammar_js.rules.keys() {
             let symbol_id = SymbolId(self.next_symbol_id.try_into().unwrap());
+            eprintln!("Debug: Collecting symbol '{}' as SymbolId({})", rule_name, self.next_symbol_id);
             self.symbol_names.insert(rule_name.clone(), symbol_id);
             grammar.rule_names.insert(symbol_id, rule_name.clone());
             self.next_symbol_id += 1;
@@ -168,10 +171,19 @@ impl GrammarJsConverter {
                 .context(format!("Symbol {} not found", rule_name))?;
             
             eprintln!("Debug: Converting rule '{}' (symbol {})", rule_name, lhs_symbol.0);
+            eprintln!("Debug: Rule body type: {:?}", std::mem::discriminant(&rule_body));
             self.convert_rule_body(grammar, &rule_body, lhs_symbol)?;
         }
         
         eprintln!("Debug: After conversion, grammar has {} IR rules", grammar.rules.len());
+        
+        // Check which symbols are referenced but have no rules
+        eprintln!("Debug: Checking for symbols without rules...");
+        for (name, &symbol_id) in &self.symbol_names {
+            if !grammar.rules.contains_key(&symbol_id) || grammar.rules[&symbol_id].is_empty() {
+                eprintln!("  WARNING: Symbol '{}' (SymbolId({})) has no rules!", name, symbol_id.0);
+            }
+        }
         
         Ok(())
     }
@@ -189,6 +201,8 @@ impl GrammarJsConverter {
                 // Create a regex token rule  
                 let token_name = format!("_{}", lhs.0); // Generate token name
                 let token_id = self.get_or_create_token(grammar, &token_name, TokenPattern::Regex(value.clone()));
+                // Track that this symbol is actually a pattern that resolves to a token
+                self.pattern_symbols.insert(lhs, token_id);
                 let rhs = vec![Symbol::Terminal(token_id)];
                 self.add_rule(grammar, lhs, rhs, None, None);
             }
@@ -211,9 +225,18 @@ impl GrammarJsConverter {
             }
             
             JsRule::Choice { members } => {
-                // Each choice member becomes a separate rule
-                for member in members {
-                    self.convert_rule_body(grammar, member, lhs)?;
+                // For CHOICE, we need to create rules: lhs -> member1 | lhs -> member2 | ...
+                eprintln!("Debug: Converting CHOICE for {} with {} members", lhs.0, members.len());
+                for (i, member) in members.iter().enumerate() {
+                    // Convert each member to a symbol
+                    eprintln!("Debug: Converting choice member {} for {}", i, lhs.0);
+                    if let Some(symbol) = self.rule_to_symbol(grammar, member) {
+                        eprintln!("Debug: Adding rule {} -> {:?}", lhs.0, symbol);
+                        // Create a rule: lhs -> symbol
+                        self.add_rule(grammar, lhs, vec![symbol], None, None);
+                    } else {
+                        eprintln!("Debug: Failed to convert choice member {} for {}", i, lhs.0);
+                    }
                 }
             }
             
@@ -242,8 +265,21 @@ impl GrammarJsConverter {
                 // Get or create field ID
                 let field_id = self.get_or_create_field(name);
                 
+                // First, ensure the content rule is converted if it's a symbol
+                if let JsRule::Symbol { name: content_name } = content.as_ref() {
+                    if let Some(&content_symbol_id) = self.symbol_names.get(content_name) {
+                        // Check if this symbol needs its rule converted
+                        if let Some(content_rule) = self.grammar_js.rules.get(content_name).cloned() {
+                            eprintln!("Debug: Converting nested rule {} for field", content_name);
+                            self.convert_rule_body(grammar, &content_rule, content_symbol_id)?;
+                        }
+                    }
+                }
+                
                 // Convert the content
+                eprintln!("Debug: FIELD conversion - lhs: SymbolId({}), field: {}, content: {:?}", lhs.0, name, content);
                 if let Some(symbol) = self.rule_to_symbol(grammar, content) {
+                    eprintln!("Debug: FIELD resolved to symbol: {:?}", symbol);
                     let rule = Rule {
                         lhs,
                         rhs: vec![symbol],
@@ -333,7 +369,21 @@ impl GrammarJsConverter {
     fn rule_to_symbol(&mut self, grammar: &mut Grammar, rule: &JsRule) -> Option<Symbol> {
         match rule {
             JsRule::Symbol { name } => {
-                self.symbol_names.get(name).map(|&id| Symbol::NonTerminal(id))
+                eprintln!("Debug: rule_to_symbol for Symbol '{}'", name);
+                if let Some(&id) = self.symbol_names.get(name) {
+                    eprintln!("Debug:   Found symbol ID {}", id.0);
+                    // Check if this symbol is actually a pattern that maps to a token
+                    if let Some(&token_id) = self.pattern_symbols.get(&id) {
+                        eprintln!("Debug:   Symbol {} is a pattern, returning Terminal({})", id.0, token_id.0);
+                        Some(Symbol::Terminal(token_id))
+                    } else {
+                        eprintln!("Debug:   Symbol {} is not a pattern, returning NonTerminal", id.0);
+                        Some(Symbol::NonTerminal(id))
+                    }
+                } else {
+                    eprintln!("Debug:   Symbol '{}' not found in symbol_names", name);
+                    None
+                }
             }
             JsRule::String { value } => {
                 // Create inline token
@@ -353,6 +403,7 @@ impl GrammarJsConverter {
     
     fn add_rule(&mut self, grammar: &mut Grammar, lhs: SymbolId, rhs: Vec<Symbol>, 
                 precedence: Option<PrecedenceKind>, associativity: Option<Associativity>) {
+        eprintln!("Debug: Adding rule for SymbolId({}) -> {:?}", lhs.0, rhs);
         let rule = Rule {
             lhs,
             rhs,
