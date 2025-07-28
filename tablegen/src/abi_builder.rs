@@ -328,8 +328,44 @@ impl<'a> AbiLanguageBuilder<'a> {
             
             (table_data, map_data)
         } else {
-            // Fallback: empty tables
-            (vec![quote! { 0u16 }], vec![quote! { 0u32 }])
+            // Fallback: generate compressed table format without proper compression
+            // This stores only non-error entries as (symbol, action) pairs
+            let mut table_data = Vec::new();
+            let mut map_data = Vec::new();
+            let mut current_offset = 0u32;
+            
+            for state_idx in 0..self.parse_table.state_count {
+                // Record the starting offset for this state
+                map_data.push(quote! { #current_offset });
+                
+                // Add entries for this state (only non-error actions)
+                for symbol_idx in 0..self.parse_table.symbol_count {
+                    let action = if state_idx < self.parse_table.action_table.len() 
+                        && symbol_idx < self.parse_table.action_table[state_idx].len() {
+                        &self.parse_table.action_table[state_idx][symbol_idx]
+                    } else {
+                        &Action::Error
+                    };
+                    
+                    // Only add non-error entries as (symbol, action) pairs
+                    if !matches!(action, Action::Error) {
+                        let symbol = symbol_idx as u16;
+                        table_data.push(quote! { #symbol });
+                        
+                        if let Ok(encoded) = self.encode_action(action) {
+                            table_data.push(quote! { #encoded });
+                        } else {
+                            table_data.push(quote! { 0u16 });
+                        }
+                        current_offset += 2;
+                    }
+                }
+            }
+            
+            // Add final offset for end of table
+            map_data.push(quote! { #current_offset });
+            
+            (table_data, map_data)
         }
     }
     
@@ -337,17 +373,20 @@ impl<'a> AbiLanguageBuilder<'a> {
     fn encode_action(&self, action: &Action) -> Result<u16, String> {
         match action {
             Action::Shift(state) => Ok(state.0),
-            Action::Reduce(rule) => Ok(0x8000 | (rule.0 << 1)),
-            Action::Accept => Ok(0xFFFF),
-            Action::Error => Ok(0xFFFE),
-            Action::Fork(_) => Ok(0xFFFE), // Treat as error for now
+            Action::Reduce(rule) => Ok(0x8000 | rule.0), // Don't shift rule ID
+            Action::Accept => Ok(0x7FFF),  // Use 0x7FFF for accept to match parser
+            Action::Error => Ok(0),         // Use 0 for error to match parser expectation
+            Action::Fork(_) => Ok(0),       // Treat fork as error for now
         }
     }
     
     /// Generate parse actions
     fn generate_parse_actions(&self) -> Vec<TokenStream> {
-        // For now, generate a minimal set of actions
-        vec![quote! {
+        // Generate production information for reduce actions
+        let mut actions = Vec::new();
+        
+        // Add a dummy action at index 0
+        actions.push(quote! {
             TSParseAction {
                 action_type: 0,
                 extra: 0,
@@ -355,7 +394,30 @@ impl<'a> AbiLanguageBuilder<'a> {
                 dynamic_precedence: 0,
                 symbol: 0,
             }
-        }]
+        });
+        
+        // Generate actions for each production rule
+        let mut rule_id = 0u16;
+        for (symbol_id, rules) in &self.grammar.rules {
+            for rule in rules {
+                let child_count = rule.rhs.len() as u8;
+                let symbol = symbol_id.0;
+                
+                actions.push(quote! {
+                    TSParseAction {
+                        action_type: 1, // Reduce
+                        extra: 0,
+                        child_count: #child_count,
+                        dynamic_precedence: 0,
+                        symbol: #symbol,
+                    }
+                });
+                
+                rule_id += 1;
+            }
+        }
+        
+        actions
     }
     
     /// Generate lex modes

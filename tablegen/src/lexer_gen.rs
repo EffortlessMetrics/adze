@@ -16,16 +16,20 @@ pub fn generate_lexer(grammar: &Grammar) -> TokenStream {
     let mut tokens: Vec<_> = grammar.tokens.iter().collect();
     tokens.sort_by_key(|(id, _)| id.0);
     
-    for (symbol_id, token) in &tokens {
+    // Generate token matches in the correct order
+    // The symbol IDs in the lexer must match the symbol table ordering:
+    // 0 = EOF, 1+ = tokens (sorted by ID), then non-terminals
+    let mut symbol_index = 1u16; // Start after EOF
+    
+    for (_token_id, token) in &tokens {
         match &token.pattern {
             TokenPattern::String(lit) => {
                 // Single character or string literal
                 if lit.len() == 1 {
                     let ch = lit.chars().next().unwrap();
-                    let symbol = symbol_id.0 as u16;
                     token_matches.push(quote! {
                         if input[position] == #ch as u8 {
-                            state.result_symbol = #symbol;
+                            state.result_symbol = #symbol_index;
                             state.result_length = 1;
                             return true;
                         }
@@ -33,11 +37,10 @@ pub fn generate_lexer(grammar: &Grammar) -> TokenStream {
                 } else {
                     let bytes = lit.as_bytes();
                     let len = bytes.len();
-                    let symbol = symbol_id.0 as u16;
                     let byte_values = bytes.iter().map(|&b| b).collect::<Vec<_>>();
                     token_matches.push(quote! {
                         if position + #len <= input.len() && &input[position..position + #len] == &[#(#byte_values),*] {
-                            state.result_symbol = #symbol;
+                            state.result_symbol = #symbol_index;
                             state.result_length = #len;
                             return true;
                         }
@@ -47,29 +50,26 @@ pub fn generate_lexer(grammar: &Grammar) -> TokenStream {
             TokenPattern::Regex(pattern) => {
                 // Handle common patterns
                 if pattern == r"\d+" {
-                    // For the arithmetic grammar, number token should be symbol 2
-                    let symbol = symbol_id.0 as u16;
                     token_matches.push(quote! {
                         if input[position].is_ascii_digit() {
                             let mut len = 1;
                             while position + len < input.len() && input[position + len].is_ascii_digit() {
                                 len += 1;
                             }
-                            state.result_symbol = #symbol;
+                            state.result_symbol = #symbol_index;
                             state.result_length = len;
                             return true;
                         }
                     });
                 } else if pattern == r"\s" || pattern == r"\s+" {
                     // Whitespace is typically an extra token
-                    let symbol = symbol_id.0 as u16;
                     token_matches.push(quote! {
                         if input[position].is_ascii_whitespace() {
                             let mut len = 1;
                             while position + len < input.len() && input[position + len].is_ascii_whitespace() {
                                 len += 1;
                             }
-                            state.result_symbol = #symbol;
+                            state.result_symbol = #symbol_index;
                             state.result_length = len;
                             return true;
                         }
@@ -78,6 +78,7 @@ pub fn generate_lexer(grammar: &Grammar) -> TokenStream {
                 // TODO: Add more pattern support
             }
         }
+        symbol_index += 1;
     }
     
     quote! {

@@ -423,6 +423,12 @@ impl ItemSetCollection {
             for (sym_id, rules) in &grammar.rules {
                 eprintln!("  Symbol {:?}: {} rules", sym_id, rules.len());
             }
+        } else {
+            eprintln!("Debug: Initial set has {} items", initial_set.items.len());
+            for item in &initial_set.items {
+                eprintln!("Debug:   Item: rule_id={}, position={}, lookahead={}", 
+                    item.rule_id.0, item.position, item.lookahead.0);
+            }
         }
         
         collection.sets.push(initial_set);

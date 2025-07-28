@@ -284,8 +284,12 @@ impl Parser {
         
         // Initialize parser state
         self.stack.clear();
+        
+        // The initial state is always state 0 in a properly generated parser
+        let initial_state = 0;
+        
         self.stack.push(StackEntry {
-            state: 0,
+            state: initial_state,
             subtree: None,
             position: 0,
         });
@@ -358,22 +362,7 @@ impl Parser {
             // Lex next token
             let token = self.lex_token(language, current_state, position, &mut point);
             
-            // Debug log
-            if iteration_count <= 5 {
-                eprintln!("Iteration {}: state={}, token={} ({}), pos={}", 
-                    iteration_count, current_state, token.symbol, 
-                    if (token.symbol as u32) < language.symbol_count {
-                        unsafe {
-                            let sym_name_ptr = *language.symbol_names.add(token.symbol as usize);
-                            std::ffi::CStr::from_ptr(sym_name_ptr as *const i8)
-                                .to_string_lossy()
-                                .to_string()
-                        }
-                    } else {
-                        "unknown".to_string()
-                    },
-                    position);
-            }
+            // Track parsing progress
             
             // Get action for current state and token
             match self.get_action(language, current_state, token.symbol) {
@@ -529,20 +518,40 @@ impl Parser {
                     }
                 }
             } else {
-                // Large parse table lookup (or all states when large_state_count == 0)
-                let table_offset = if language.large_state_count == 0 {
-                    state as usize * language.symbol_count as usize
+                // The parse table is stored in compressed format using SMALL_PARSE_TABLE_MAP
+                // Each state's entries start at the offset given in the map
+                let state_offset = (*language.small_parse_table_map.add(state as usize)) as usize;
+                
+                // Find the next state's offset to know where this state's entries end
+                let next_offset = if (state + 1) < language.state_count as u16 {
+                    (*language.small_parse_table_map.add((state + 1) as usize)) as usize
                 } else {
-                    (state - language.large_state_count as u16) as usize * language.symbol_count as usize
+                    // For the last state, we need to find the end of the table
+                    // This is a bit tricky - let's use a larger limit
+                    let mut max_offset = state_offset;
+                    // Find the maximum offset in the map
+                    for i in 0..language.state_count {
+                        let offset = (*language.small_parse_table_map.add(i as usize)) as usize;
+                        if offset > max_offset {
+                            max_offset = offset;
+                        }
+                    }
+                    // Assume at most 20 entries for the last state
+                    max_offset + 40
                 };
                 
-                if (table_offset + symbol as usize) < (language.state_count as usize * language.symbol_count as usize) {
-                    let action_index = *language.parse_table.add(table_offset + symbol as usize) as u16;
-                    eprintln!("Debug: get_action state={}, symbol={}, table_offset={}, action_index={}", 
-                        state, symbol, table_offset, action_index);
-                    if action_index != 0 && action_index != 0xFFFE { // 0xFFFE = 65534 = error marker
-                        return self.decode_action(language, action_index as usize);
+                // Search for the symbol in this state's entries
+                let mut offset = state_offset;
+                while offset + 1 < next_offset && offset + 1 < 1000 { // Safety check
+                    let entry_symbol = *language.parse_table.add(offset) as u16;
+                    if entry_symbol == symbol {
+                        let action_value = *language.parse_table.add(offset + 1) as u16;
+                        if action_value != 0 {
+                            return self.decode_action(language, action_value as usize);
+                        }
+                        break;
                     }
+                    offset += 2;
                 }
             }
         }
@@ -552,30 +561,30 @@ impl Parser {
     
     /// Decode action from parse table
     fn decode_action(&self, _language: &TSLanguage, action_index: usize) -> Action {
-        eprintln!("Debug: decode_action index={}", action_index);
+        // Decode action from index
         
         // In the pure-Rust implementation, actions are encoded directly in the parse table
         // High bit set = reduce, otherwise shift
         if action_index & 0x8000 != 0 {
             // Reduce action
             let production_id = (action_index & 0x7FFF) as u16;
-            eprintln!("Debug: Reduce action, production_id={}", production_id);
+            // Reduce action
             Action::Reduce(production_id)
         } else if action_index == 0x7FFF {
             // Accept action
-            eprintln!("Debug: Accept action");
+            // Accept action
             Action::Accept
         } else {
             // Shift action
             let next_state = action_index as u16;
-            eprintln!("Debug: Shift action, next_state={}", next_state);
+            // Shift action
             Action::Shift(next_state)
         }
     }
     
     /// Perform a reduction
     fn reduce(&mut self, language: &TSLanguage, production_id: u16) {
-        eprintln!("Debug: reduce called with production_id={}", production_id);
+        // Perform reduction
         
         // For the pure-Rust implementation, we need a different approach
         // since parse_actions might not be properly populated
@@ -585,7 +594,7 @@ impl Parser {
         
         // Pop one entry (simplified for testing)
         if let Some(entry) = self.stack.pop() {
-            eprintln!("Debug: Popped state {} from stack", entry.state);
+            // Pop entry from stack
             
             // Create a simple parent node for testing
             let parent = Subtree {
@@ -603,7 +612,7 @@ impl Parser {
             
             // For testing, just push back with state 0
             if let Some(prev_entry) = self.stack.last() {
-                eprintln!("Debug: Previous state on stack: {}", prev_entry.state);
+                // Get previous state
                 self.stack.push(StackEntry {
                     state: 0, // Placeholder state
                     subtree: Some(parent),
@@ -611,7 +620,7 @@ impl Parser {
                 });
             } else {
                 // If stack is empty, this might be the final reduction
-                eprintln!("Debug: Stack is empty after pop, pushing final node");
+                // Stack empty - final reduction
                 self.stack.push(StackEntry {
                     state: 0,
                     subtree: Some(parent),
@@ -634,7 +643,7 @@ impl Parser {
     
     /// Get goto state after reduction
     fn get_goto_state(&self, _language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> TSStateId {
-        eprintln!("Debug: get_goto_state called with state={}, symbol={}", state, symbol);
+        // Get goto state
         
         // For the pure-Rust implementation, we need to implement proper goto lookup
         // For now, return state 0 to allow testing to continue
@@ -647,8 +656,11 @@ impl Parser {
     fn get_expected_symbols(&self, language: &TSLanguage, state: TSStateId) -> Vec<TSSymbol> {
         let mut expected = Vec::new();
         
-        // Check all possible symbols for valid actions
-        for symbol in 0..language.symbol_count as u16 {
+        // Check only terminal symbols (tokens) for valid actions
+        // Terminals are symbols 0 to token_count (excluding EOF which is 0)
+        let token_count = unsafe { language.token_count as u16 };
+        
+        for symbol in 1..token_count {
             let action = self.get_action(language, state, symbol);
             if !matches!(action, Action::Error) {
                 expected.push(symbol);
