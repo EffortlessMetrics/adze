@@ -381,26 +381,9 @@ impl ItemSetCollection {
         
         // Find the start symbol (LHS of the first rule in grammar)
         if let Some(start_symbol) = grammar.start_symbol() {
-            eprintln!("Debug: Start symbol is {:?}", start_symbol);
-            eprintln!("Debug: Looking for rules with symbol {:?}", start_symbol);
-            
-            // Debug: print symbol name mapping
-            eprintln!("Debug: Grammar rule_names has {} entries", grammar.rule_names.len());
-            for (id, name) in &grammar.rule_names {
-                eprintln!("Debug:   SymbolId({}) -> '{}'", id.0, name);
-            }
-            
-            // Debug: print all rules in grammar
-            eprintln!("Debug: Grammar has {} symbol groups with rules", grammar.rules.len());
-            for (symbol_id, rules) in &grammar.rules {
-                eprintln!("Debug:   Symbol {:?} has {} rules", symbol_id, rules.len());
-            }
-            
             // Add items for ALL rules with the start symbol as LHS
             if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
-                eprintln!("Debug: Found {} rules for start symbol", start_rules.len());
                 for rule in start_rules {
-                    eprintln!("Debug: Adding rule {:?} -> {:?}", rule.lhs, rule.rhs);
                     let start_item = LRItem::new(
                         RuleId(rule.production_id.0),
                         0,

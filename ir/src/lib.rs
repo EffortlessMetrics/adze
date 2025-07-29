@@ -22,6 +22,7 @@ pub struct Grammar {
     pub precedences: Vec<Precedence>,
     pub conflicts: Vec<ConflictDeclaration>,
     pub externals: Vec<ExternalToken>,
+    pub extras: Vec<SymbolId>, // Extra tokens (e.g., whitespace, comments)
     pub fields: IndexMap<FieldId, String>, // Maintained in lexicographic order
     pub supertypes: Vec<SymbolId>,
     pub inline_rules: Vec<SymbolId>,
@@ -50,23 +51,37 @@ impl Grammar {
     /// Get the start symbol (LHS of the first rule)
     pub fn start_symbol(&self) -> Option<SymbolId> {
         // For Tree-sitter compatibility, look for "source_file" symbol
-        // But we need to find the actual symbol that has rules, not just the name mapping
         if let Some(source_file_id) = self.find_symbol_by_name("source_file") {
             // Check if this symbol actually has rules
             if self.rules.contains_key(&source_file_id) {
                 return Some(source_file_id);
             }
-            // If not, look for a symbol with rules that matches source_file
-            for (symbol_id, _rules) in &self.rules {
-                if let Some(name) = self.rule_names.get(symbol_id) {
-                    if name == "source_file" {
-                        return Some(*symbol_id);
-                    }
+        }
+        
+        // In rust-sitter, source_file is often just a reference to the actual language type
+        // So let's look for the language type that's marked with #[rust_sitter::language]
+        // This is typically the first non-terminal that has rules
+        
+        // Try common patterns first
+        for name in &["Expression", "Statement", "Program", "Module"] {
+            if let Some(symbol_id) = self.find_symbol_by_name(name) {
+                if self.rules.contains_key(&symbol_id) {
+                    return Some(symbol_id);
                 }
             }
         }
         
-        // Otherwise, use the first symbol that has rules
+        // Otherwise, use the first symbol that has rules and isn't a leaf/token
+        for (symbol_id, rules) in &self.rules {
+            // Skip symbols that look like internal/generated names
+            if let Some(name) = self.rule_names.get(symbol_id) {
+                if !name.contains('_') && !rules.is_empty() {
+                    return Some(*symbol_id);
+                }
+            }
+        }
+        
+        // Final fallback: just use the first symbol with rules
         self.rules.keys().next().copied()
     }
     
@@ -230,6 +245,7 @@ impl Grammar {
             precedences: Vec::new(),
             conflicts: Vec::new(),
             externals: Vec::new(),
+            extras: Vec::new(),
             fields: IndexMap::new(),
             supertypes: Vec::new(),
             inline_rules: Vec::new(),

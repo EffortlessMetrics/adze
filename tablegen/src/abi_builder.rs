@@ -273,10 +273,11 @@ impl<'a> AbiLanguageBuilder<'a> {
         let mut tokens: Vec<_> = self.grammar.tokens.iter().collect();
         tokens.sort_by_key(|(id, _)| id.0);
         
-        for (_id, token) in tokens {
+        for (id, token) in tokens {
             let visible = !token.name.starts_with('_');
             let named = visible && matches!(&token.pattern, TokenPattern::Regex(_));
-            let meta_byte = create_symbol_metadata(visible, named, false, false, false);
+            let hidden = self.grammar.extras.contains(id); // Check if this token is an extra
+            let meta_byte = create_symbol_metadata(visible, named, hidden, false, false);
             metadata.push(quote! { #meta_byte });
         }
         
@@ -290,8 +291,9 @@ impl<'a> AbiLanguageBuilder<'a> {
                 .unwrap_or_else(|| format!("rule_{}", id.0));
             let visible = !name.starts_with('_');
             let named = visible;
+            let hidden = self.grammar.extras.contains(id); // Check if this rule is an extra
             let supertype = self.grammar.supertypes.contains(id);
-            let meta_byte = create_symbol_metadata(visible, named, false, false, supertype);
+            let meta_byte = create_symbol_metadata(visible, named, hidden, false, supertype);
             metadata.push(quote! { #meta_byte });
         }
         
@@ -339,6 +341,15 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // Record the starting offset for this state
                 map_data.push(quote! { #current_offset });
                 
+                // Debug state 0
+                if state_idx == 0 {
+                    eprintln!("=== Generating parse table for state 0 ===");
+                    eprintln!("  symbol_count: {}", self.parse_table.symbol_count);
+                    eprintln!("  action_table.len(): {}", self.parse_table.action_table.len());
+                    if !self.parse_table.action_table.is_empty() {
+                        eprintln!("  action_table[0].len(): {}", self.parse_table.action_table[0].len());
+                    }
+                }
                 
                 // Add entries for this state (only non-error actions)
                 for symbol_idx in 0..self.parse_table.symbol_count {
@@ -348,6 +359,11 @@ impl<'a> AbiLanguageBuilder<'a> {
                     } else {
                         &Action::Error
                     };
+                    
+                    // Debug state 0 actions
+                    if state_idx == 0 {
+                        eprintln!("    symbol[{}]: {:?}", symbol_idx, action);
+                    }
                     
                     // Only add non-error entries as (symbol, action) pairs
                     if !matches!(action, Action::Error) {

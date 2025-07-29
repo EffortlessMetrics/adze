@@ -419,7 +419,19 @@ impl Parser {
                 }
                 
                 Action::Reduce(rule_id) => {
-                    self.reduce(language, rule_id);
+                    if !self.reduce(language, rule_id, source) {
+                        // Reduction failed - record error and try to recover
+                        errors.push(ParseError {
+                            position,
+                            point,
+                            expected: self.get_expected_symbols(language, current_state),
+                            found: token.symbol,
+                        });
+                        
+                        // Simple recovery: skip token and continue
+                        position += token.length;
+                        point = advance_point(point, &source[position - token.length..position]);
+                    }
                 }
                 
                 Action::Accept => {
@@ -541,50 +553,41 @@ impl Parser {
     fn get_action(&self, language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> Action {
         // Look up action in parse table
         unsafe {
-            // Check if we have a small parse table
-            if !language.small_parse_table.is_null() && state < language.large_state_count as u16 {
-                // Small parse table lookup
-                let state_offset = (*language.small_parse_table_map.add(state as usize)) as usize;
-                let entry_count = *language.small_parse_table.add(state_offset) as usize;
-                
-                // Search for symbol in entries
-                for i in 0..entry_count {
-                    let entry_symbol = *language.small_parse_table.add(state_offset + 1 + i * 2);
-                    if entry_symbol == symbol {
-                        let action_index = *language.small_parse_table.add(state_offset + 2 + i * 2) as usize;
-                        return self.decode_action(language, action_index);
-                    }
-                }
+            // Check bounds
+            if state >= language.state_count as u16 || symbol >= language.symbol_count as u16 {
+                return Action::Error;
+            }
+            
+            // The parse table is stored in compressed format
+            // All states use SMALL_PARSE_TABLE_MAP for offsets
+            let state_offset = (*language.small_parse_table_map.add(state as usize)) as usize;
+            
+            // Find the next state's offset to know where this state's entries end
+            let next_offset = if (state + 1) < language.state_count as u16 {
+                (*language.small_parse_table_map.add((state + 1) as usize)) as usize
             } else {
-                // The parse table is stored in compressed format using SMALL_PARSE_TABLE_MAP
-                // Each state's entries start at the offset given in the map
-                let state_offset = (*language.small_parse_table_map.add(state as usize)) as usize;
+                // For the last state, use the last entry in the map
+                // The map has state_count + 1 entries
+                (*language.small_parse_table_map.add(language.state_count as usize)) as usize
+            };
+            
+            // The parse table stores entries as pairs: (symbol, action)
+            // Each entry takes 2 u16 values
+            let mut offset = state_offset * 2; // Convert from entry index to array index
+            let end_offset = next_offset * 2;
+            
+            while offset + 1 < end_offset {
+                let entry_symbol = *language.parse_table.add(offset) as u16;
+                let action_value = *language.parse_table.add(offset + 1) as u16;
                 
-                
-                // Find the next state's offset to know where this state's entries end
-                let next_offset = if (state + 1) < language.state_count as u16 {
-                    (*language.small_parse_table_map.add((state + 1) as usize)) as usize
-                } else {
-                    // For the last state, use the last entry in the map
-                    // The map has state_count + 1 entries
-                    (*language.small_parse_table_map.add(language.state_count as usize)) as usize
-                };
-                
-                
-                // Search for the symbol in this state's entries
-                let mut offset = state_offset;
-                while offset < next_offset && offset + 1 < 1000 { // Safety check
-                    let entry_symbol = *language.parse_table.add(offset) as u16;
-                    let action_value = *language.parse_table.add(offset + 1) as u16;
-                    if entry_symbol == symbol {
-                        if action_value != 0 {
-                            let action = self.decode_action(language, action_value as usize);
-                            return action;
-                        }
-                        break;
+                if entry_symbol == symbol {
+                    if action_value != 0 {
+                        let action = self.decode_action(language, action_value as usize);
+                        return action;
                     }
-                    offset += 2;
+                    break;
                 }
+                offset += 2;
             }
         }
         
@@ -615,49 +618,99 @@ impl Parser {
     }
     
     /// Perform a reduction
-    fn reduce(&mut self, language: &TSLanguage, production_id: u16) {
-        // Perform reduction
-        
-        // For the pure-Rust implementation, we need a different approach
-        // since parse_actions might not be properly populated
-        
-        // For now, implement a minimal reduction that allows testing to continue
-        // TODO: Implement proper production lookup from grammar data
-        
-        // Pop one entry (simplified for testing)
-        if let Some(entry) = self.stack.pop() {
-            // Pop entry from stack
+    fn reduce(&mut self, language: &TSLanguage, production_id: u16, _source: &[u8]) -> bool {
+        unsafe {
+            // Look up the parse action for this production
+            if production_id == 0 || production_id >= language.production_id_count as u16 {
+                return false;
+            }
             
-            // Create a simple parent node for testing
+            let action = &*language.parse_actions.add(production_id as usize);
+            let child_count = action.child_count as usize;
+            let symbol = action.symbol;
+            
+            // Check if we have enough stack entries
+            if self.stack.len() < child_count {
+                return false;
+            }
+            
+            // Pop child_count entries from the stack
+            let mut children = Vec::new();
+            let mut start_byte = usize::MAX;
+            let mut end_byte = 0;
+            let mut start_point = Point { row: u32::MAX, column: u32::MAX };
+            let mut end_point = Point { row: 0, column: 0 };
+            
+            // Pop children in reverse order
+            for _ in 0..child_count {
+                if let Some(entry) = self.stack.pop() {
+                    if let Some(subtree) = entry.subtree {
+                        // Update bounds
+                        if subtree.start_byte < start_byte {
+                            start_byte = subtree.start_byte;
+                            start_point = subtree.start_point;
+                        }
+                        if subtree.end_byte > end_byte {
+                            end_byte = subtree.end_byte;
+                            end_point = subtree.end_point;
+                        }
+                        children.push(subtree);
+                    }
+                }
+            }
+            
+            // Reverse children to correct order
+            children.reverse();
+            
+            // Handle empty reduction
+            if children.is_empty() && child_count == 0 {
+                // For empty reductions, use position from top of stack
+                if let Some(top) = self.stack.last() {
+                    start_byte = top.position;
+                    end_byte = top.position;
+                    start_point = Point { row: 0, column: top.position as u32 };
+                    end_point = start_point;
+                }
+            }
+            
+            // Create parent node
             let parent = Subtree {
-                symbol: 1, // Placeholder symbol
-                children: vec![],
-                start_byte: 0,
-                end_byte: entry.position,
-                start_point: Point { row: 0, column: 0 },
-                end_point: Point { row: 0, column: entry.position as u32 },
+                symbol,
+                children,
+                start_byte,
+                end_byte,
+                start_point,
+                end_point,
                 is_extra: false,
                 is_error: false,
                 is_missing: false,
-                production_id: 0,
+                production_id,
             };
             
-            // For testing, just push back with state 0
-            if let Some(prev_entry) = self.stack.last() {
-                // Get previous state
-                self.stack.push(StackEntry {
-                    state: 0, // Placeholder state
-                    subtree: Some(parent),
-                    position: entry.position,
-                });
+            // Get the goto state for the reduced symbol
+            let prev_state = if let Some(entry) = self.stack.last() {
+                entry.state
             } else {
-                // If stack is empty, this might be the final reduction
-                // Stack empty - final reduction
-                self.stack.push(StackEntry {
-                    state: 0,
-                    subtree: Some(parent),
-                    position: entry.position,
-                });
+                0
+            };
+            
+            // Look up goto state using the parse table
+            let goto_action = self.get_action(language, prev_state, symbol);
+            
+            match goto_action {
+                Action::Shift(next_state) => {
+                    // Push the reduced node with the goto state
+                    self.stack.push(StackEntry {
+                        state: next_state,
+                        subtree: Some(parent),
+                        position: end_byte,
+                    });
+                    true
+                }
+                _ => {
+                    // If no valid goto found, this is an error
+                    false
+                }
             }
         }
     }
@@ -674,7 +727,7 @@ impl Parser {
     }
     
     /// Get goto state after reduction
-    fn get_goto_state(&self, _language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> TSStateId {
+    fn get_goto_state(&self, _language: &TSLanguage, _state: TSStateId, _symbol: TSSymbol) -> TSStateId {
         // Get goto state
         
         // For the pure-Rust implementation, we need to implement proper goto lookup

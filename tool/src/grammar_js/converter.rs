@@ -44,6 +44,7 @@ impl GrammarJsConverter {
             precedences: Vec::new(),
             conflicts: Vec::new(),
             externals: Vec::new(),
+            extras: Vec::new(),
             fields: IndexMap::new(),
             supertypes: Vec::new(),
             inline_rules: Vec::new(),
@@ -96,6 +97,13 @@ impl GrammarJsConverter {
         for supertype in &self.grammar_js.supertypes {
             if let Some(&symbol_id) = self.symbol_names.get(supertype) {
                 grammar.supertypes.push(symbol_id);
+            }
+        }
+        
+        // Handle extras
+        for extra in &self.grammar_js.extras {
+            if let Some(symbol_id) = self.find_extra_symbol(extra) {
+                grammar.extras.push(symbol_id);
             }
         }
         
@@ -370,6 +378,15 @@ impl GrammarJsConverter {
         };
         grammar.tokens.insert(id, token);
         id
+    }
+    
+    fn find_extra_symbol(&self, rule: &JsRule) -> Option<SymbolId> {
+        match rule {
+            JsRule::Symbol { name } => {
+                self.symbol_names.get(name).copied()
+            }
+            _ => None
+        }
     }
     
     fn rule_to_symbol(&mut self, grammar: &mut Grammar, rule: &JsRule) -> Option<Symbol> {
