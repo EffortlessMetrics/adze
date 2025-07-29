@@ -389,7 +389,8 @@ impl Parser {
             // Track parsing progress
             
             // Get action for current state and token
-            match self.get_action(language, current_state, token.symbol) {
+            let action = self.get_action(language, current_state, token.symbol);
+            match action {
                 Action::Shift(next_state) => {
                     // Create leaf node
                     let end_point = advance_point(point, &source[position..position + token.length]);
@@ -416,6 +417,9 @@ impl Parser {
                     // Advance position
                     position += token.length;
                     point = advance_point(point, &source[position - token.length..position]);
+                    
+                    // Break to get next token
+                    break;
                 }
                 
                 Action::Reduce(rule_id) => {
@@ -432,6 +436,9 @@ impl Parser {
                         position += token.length;
                         point = advance_point(point, &source[position - token.length..position]);
                     }
+                    // Important: Don't advance position after reduce!
+                    // The same token needs to be processed again with the new state
+                    continue;
                 }
                 
                 Action::Accept => {
@@ -579,6 +586,7 @@ impl Parser {
             while offset + 1 < end_offset {
                 let entry_symbol = *language.parse_table.add(offset) as u16;
                 let action_value = *language.parse_table.add(offset + 1) as u16;
+                
                 
                 if entry_symbol == symbol {
                     if action_value != 0 {

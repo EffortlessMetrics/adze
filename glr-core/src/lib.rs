@@ -754,31 +754,60 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     // IMPORTANT: EOF symbol (ID 0) must always have index 0 in Tree-sitter
     symbol_to_index.insert(SymbolId(0), 0);
     
-    // Map all token IDs
+    // Collect and sort symbols with proper ordering:
+    // 1. Tokens first (terminals)
+    // 2. Then non-terminals
+    // 3. Then externals
+    // Within each category, sort by symbol ID for determinism
+    
+    let mut token_symbols = Vec::new();
+    let mut non_terminal_symbols = Vec::new();
+    let mut external_symbols = Vec::new();
+    
+    // Collect token IDs
     for &symbol_id in grammar.tokens.keys() {
+        token_symbols.push(symbol_id);
         max_symbol_id = max_symbol_id.max(symbol_id.0);
-        if !symbol_to_index.contains_key(&symbol_id) {
-            symbol_to_index.insert(symbol_id, symbol_to_index.len());
-        }
     }
+    token_symbols.sort_by_key(|s| s.0);
     
-    // Map all non-terminal symbols (LHS of rules)
-    let mut non_terminals = HashSet::new();
+    // Collect non-terminal symbols (LHS of rules)
+    let mut non_terminals_set = HashSet::new();
     for rule in grammar.all_rules() {
-        non_terminals.insert(rule.lhs);
+        non_terminals_set.insert(rule.lhs);
     }
-    for &symbol_id in &non_terminals {
-        max_symbol_id = max_symbol_id.max(symbol_id.0);
+    for &symbol_id in &non_terminals_set {
+        // Skip if already in tokens (shouldn't happen but be safe)
+        if !grammar.tokens.contains_key(&symbol_id) {
+            non_terminal_symbols.push(symbol_id);
+            max_symbol_id = max_symbol_id.max(symbol_id.0);
+        }
+    }
+    non_terminal_symbols.sort_by_key(|s| s.0);
+    
+    // Collect external IDs
+    for external in &grammar.externals {
+        external_symbols.push(external.symbol_id);
+        max_symbol_id = max_symbol_id.max(external.symbol_id.0);
+    }
+    external_symbols.sort_by_key(|s| s.0);
+    
+    // Now assign indices: tokens first, then non-terminals, then externals
+    for symbol_id in token_symbols {
         if !symbol_to_index.contains_key(&symbol_id) {
             symbol_to_index.insert(symbol_id, symbol_to_index.len());
         }
     }
     
-    // Map all external IDs
-    for external in &grammar.externals {
-        max_symbol_id = max_symbol_id.max(external.symbol_id.0);
-        if !symbol_to_index.contains_key(&external.symbol_id) {
-            symbol_to_index.insert(external.symbol_id, symbol_to_index.len());
+    for symbol_id in non_terminal_symbols {
+        if !symbol_to_index.contains_key(&symbol_id) {
+            symbol_to_index.insert(symbol_id, symbol_to_index.len());
+        }
+    }
+    
+    for symbol_id in external_symbols {
+        if !symbol_to_index.contains_key(&symbol_id) {
+            symbol_to_index.insert(symbol_id, symbol_to_index.len());
         }
     }
     
