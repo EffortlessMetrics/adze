@@ -181,53 +181,67 @@ impl<'a> AbiLanguageBuilder<'a> {
         let mut names = Vec::new();
         let mut name_idents = Vec::new();
         
-        // First symbol is always "end" (EOF)
-        names.push(quote! {
-            static SYMBOL_NAME_0: &[u8] = b"end\0";
-        });
-        name_idents.push(quote::format_ident!("SYMBOL_NAME_0"));
-        
-        // Sort tokens by ID for deterministic ordering
-        let mut tokens: Vec<_> = self.grammar.tokens.iter().collect();
-        tokens.sort_by_key(|(id, _)| id.0);
-        
-        
-        for (i, (_id, token)) in tokens.iter().enumerate() {
-            let idx = i + 1;
-            let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
-            let name_bytes = format!("{}\0", token.name).into_bytes();
+        // Use the symbol registry if available for consistent ordering
+        if let Some(registry) = &self.grammar.symbol_registry {
+            // Generate names in registry order
+            for (i, (name, _info)) in registry.iter().enumerate() {
+                let ident = quote::format_ident!("SYMBOL_NAME_{}", i);
+                let name_bytes = format!("{}\0", name).into_bytes();
+                names.push(quote! {
+                    static #ident: &[u8] = &[#(#name_bytes),*];
+                });
+                name_idents.push(ident);
+            }
+        } else {
+            // Fallback to old behavior if no registry
+            // First symbol is always "end" (EOF)
             names.push(quote! {
-                static #ident: &[u8] = &[#(#name_bytes),*];
+                static SYMBOL_NAME_0: &[u8] = b"end\0";
             });
-            name_idents.push(ident);
-        }
-        
-        // Sort non-terminals by ID
-        let mut rules: Vec<_> = self.grammar.rules.iter().collect();
-        rules.sort_by_key(|(id, _)| id.0);
-        
-        for (i, &(id, _)) in rules.iter().enumerate() {
-            let idx = tokens.len() + i + 1;
-            let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
-            let name = self.grammar.rule_names.get(id)
-                .cloned()
-                .unwrap_or_else(|| format!("rule_{}", id.0));
-            let name_bytes = format!("{}\0", name).into_bytes();
-            names.push(quote! {
-                static #ident: &[u8] = &[#(#name_bytes),*];
-            });
-            name_idents.push(ident);
-        }
-        
-        // Add externals
-        for (i, external) in self.grammar.externals.iter().enumerate() {
-            let idx = tokens.len() + rules.len() + i + 1;
-            let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
-            let name_bytes = format!("{}\0", external.name).into_bytes();
-            names.push(quote! {
-                static #ident: &[u8] = &[#(#name_bytes),*];
-            });
-            name_idents.push(ident);
+            name_idents.push(quote::format_ident!("SYMBOL_NAME_0"));
+            
+            // Sort tokens by ID for deterministic ordering
+            let mut tokens: Vec<_> = self.grammar.tokens.iter().collect();
+            tokens.sort_by_key(|(id, _)| id.0);
+            
+            
+            for (i, (_id, token)) in tokens.iter().enumerate() {
+                let idx = i + 1;
+                let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
+                let name_bytes = format!("{}\0", token.name).into_bytes();
+                names.push(quote! {
+                    static #ident: &[u8] = &[#(#name_bytes),*];
+                });
+                name_idents.push(ident);
+            }
+            
+            // Sort non-terminals by ID
+            let mut rules: Vec<_> = self.grammar.rules.iter().collect();
+            rules.sort_by_key(|(id, _)| id.0);
+            
+            for (i, &(id, _)) in rules.iter().enumerate() {
+                let idx = tokens.len() + i + 1;
+                let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
+                let name = self.grammar.rule_names.get(id)
+                    .cloned()
+                    .unwrap_or_else(|| format!("rule_{}", id.0));
+                let name_bytes = format!("{}\0", name).into_bytes();
+                names.push(quote! {
+                    static #ident: &[u8] = &[#(#name_bytes),*];
+                });
+                name_idents.push(ident);
+            }
+            
+            // Add externals
+            for (i, external) in self.grammar.externals.iter().enumerate() {
+                let idx = tokens.len() + rules.len() + i + 1;
+                let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
+                let name_bytes = format!("{}\0", external.name).into_bytes();
+                names.push(quote! {
+                    static #ident: &[u8] = &[#(#name_bytes),*];
+                });
+                name_idents.push(ident);
+            }
         }
         
         let ptrs = name_idents.iter().map(|ident| {
@@ -269,13 +283,35 @@ impl<'a> AbiLanguageBuilder<'a> {
         // First, find all terminal tokens that should be marked as extras
         let extra_tokens = self.find_extra_tokens();
         
-        // EOF symbol
-        let eof_meta = create_symbol_metadata(true, false, false, false, false);
-        metadata.push(quote! { #eof_meta });
-        
-        // Tokens
-        let mut tokens: Vec<_> = self.grammar.tokens.iter().collect();
-        tokens.sort_by_key(|(id, _)| id.0);
+        // Use the symbol registry if available for consistent ordering
+        if let Some(registry) = &self.grammar.symbol_registry {
+            // Generate metadata in registry order
+            for (_name, info) in registry.iter() {
+                let hidden = if info.metadata.terminal {
+                    extra_tokens.contains(&info.id)
+                } else {
+                    false
+                };
+                
+                let supertype = self.grammar.supertypes.contains(&info.id);
+                let meta_byte = create_symbol_metadata(
+                    info.metadata.visible,
+                    info.metadata.named,
+                    hidden,
+                    supertype,
+                    false
+                );
+                metadata.push(quote! { #meta_byte });
+            }
+        } else {
+            // Fallback to old behavior if no registry
+            // EOF symbol
+            let eof_meta = create_symbol_metadata(true, false, false, false, false);
+            metadata.push(quote! { #eof_meta });
+            
+            // Tokens
+            let mut tokens: Vec<_> = self.grammar.tokens.iter().collect();
+            tokens.sort_by_key(|(id, _)| id.0);
         
         for (id, token) in tokens {
             let visible = !token.name.starts_with('_');
@@ -301,12 +337,13 @@ impl<'a> AbiLanguageBuilder<'a> {
             metadata.push(quote! { #meta_byte });
         }
         
-        // Externals
-        for external in &self.grammar.externals {
-            let visible = !external.name.starts_with('_');
-            let named = visible;
-            let meta_byte = create_symbol_metadata(visible, named, false, false, false);
-            metadata.push(quote! { #meta_byte });
+            // Externals
+            for external in &self.grammar.externals {
+                let visible = !external.name.starts_with('_');
+                let named = visible;
+                let meta_byte = create_symbol_metadata(visible, named, false, false, false);
+                metadata.push(quote! { #meta_byte });
+            }
         }
         
         metadata
@@ -513,10 +550,14 @@ impl<'a> AbiLanguageBuilder<'a> {
     }
     
     fn calculate_symbol_count(&self) -> usize {
-        1 + // EOF
-        self.grammar.tokens.len() +
-        self.grammar.rules.len() +
-        self.grammar.externals.len()
+        if let Some(registry) = &self.grammar.symbol_registry {
+            registry.len()
+        } else {
+            1 + // EOF
+            self.grammar.tokens.len() +
+            self.grammar.rules.len() +
+            self.grammar.externals.len()
+        }
     }
     
     fn calculate_production_count(&self) -> usize {

@@ -134,8 +134,11 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
 }
 
 /// Build a parser from an IR Grammar
-pub fn build_parser(grammar: Grammar, options: BuildOptions) -> Result<BuildResult> {
+pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<BuildResult> {
     let grammar_name = grammar.name.clone();
+    
+    // Ensure the grammar has a symbol registry
+    let _ = grammar.get_or_build_registry();
     
     // Step 1: Compute FIRST/FOLLOW sets
     let first_follow = FirstFollowSets::compute(&grammar);

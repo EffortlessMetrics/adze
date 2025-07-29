@@ -12,6 +12,8 @@ pub mod validation;
 pub use validation::{GrammarValidator, ValidationError, ValidationWarning, ValidationResult};
 
 pub mod debug_macros;
+pub mod symbol_registry;
+pub use symbol_registry::{SymbolRegistry, SymbolInfo};
 
 /// Core grammar representation supporting all Tree-sitter features including GLR
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -30,6 +32,7 @@ pub struct Grammar {
     pub production_ids: IndexMap<RuleId, ProductionId>,
     pub max_alias_sequence_length: usize,
     pub rule_names: IndexMap<SymbolId, String>, // Maps symbol IDs to rule names
+    pub symbol_registry: Option<SymbolRegistry>, // Centralized symbol registry
 }
 
 impl Grammar {
@@ -93,6 +96,67 @@ impl Grammar {
             }
         }
         None
+    }
+    
+    /// Build or get the symbol registry
+    pub fn get_or_build_registry(&mut self) -> &SymbolRegistry {
+        if self.symbol_registry.is_none() {
+            self.symbol_registry = Some(self.build_registry());
+        }
+        self.symbol_registry.as_ref().unwrap()
+    }
+    
+    /// Build a new symbol registry from the grammar
+    pub fn build_registry(&self) -> SymbolRegistry {
+        let mut registry = SymbolRegistry::new();
+        
+        // Sort tokens deterministically: underscore-prefixed last
+        let mut token_entries: Vec<_> = self.tokens.iter().collect();
+        token_entries.sort_by_key(|(id, token)| {
+            let name = &token.name;
+            (name.starts_with('_'), name.clone())
+        });
+        
+        // Register all tokens
+        for (symbol_id, token) in token_entries {
+            let metadata = SymbolMetadata {
+                visible: !token.name.starts_with('_'),
+                named: false,
+                hidden: self.extras.contains(&symbol_id),
+                terminal: true,
+            };
+            registry.register(&token.name, metadata);
+        }
+        
+        // Sort non-terminals deterministically
+        let mut rule_entries: Vec<_> = self.rule_names.iter().collect();
+        rule_entries.sort_by_key(|(_, name)| (*name).clone());
+        
+        // Register all non-terminals
+        for (symbol_id, name) in rule_entries {
+            if !self.tokens.contains_key(symbol_id) {
+                let metadata = SymbolMetadata {
+                    visible: true,
+                    named: true,
+                    hidden: false,
+                    terminal: false,
+                };
+                registry.register(name, metadata);
+            }
+        }
+        
+        // Register externals
+        for external in &self.externals {
+            let metadata = SymbolMetadata {
+                visible: true,
+                named: false,
+                hidden: false,
+                terminal: true,
+            };
+            registry.register(&external.name, metadata);
+        }
+        
+        registry
     }
 }
 
@@ -234,6 +298,15 @@ impl fmt::Display for ProductionId {
     }
 }
 
+/// Metadata for a symbol in the language
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SymbolMetadata {
+    pub visible: bool,
+    pub named: bool,
+    pub hidden: bool,
+    pub terminal: bool,
+}
+
 /// Grammar validation and processing
 impl Grammar {
     /// Create a new empty grammar
@@ -253,6 +326,7 @@ impl Grammar {
             production_ids: IndexMap::new(),
             max_alias_sequence_length: 0,
             rule_names: IndexMap::new(),
+            symbol_registry: None,
         }
     }
 

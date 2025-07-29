@@ -381,15 +381,21 @@ impl ItemSetCollection {
         
         // Find the start symbol (LHS of the first rule in grammar)
         if let Some(start_symbol) = grammar.start_symbol() {
+            eprintln!("Debug: Start symbol is {:?}", start_symbol);
+            eprintln!("Debug: Start symbol name: {:?}", grammar.rule_names.get(&start_symbol));
+            
             // Add items for ALL rules with the start symbol as LHS
             if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
-                for rule in start_rules {
+                eprintln!("Debug: Found {} rules for start symbol", start_rules.len());
+                for (idx, rule) in start_rules.iter().enumerate() {
+                    eprintln!("Debug: Start rule {}: {:?} -> {:?} (production_id={})", idx, rule.lhs, rule.rhs, rule.production_id.0);
                     let start_item = LRItem::new(
                         RuleId(rule.production_id.0),
                         0,
                         SymbolId(0), // EOF symbol
                     );
                     initial_set.add_item(start_item);
+                    eprintln!("Debug: Added item: rule_id={}, position=0, lookahead=0", rule.production_id.0);
                 }
             } else {
                 eprintln!("Debug: No rules found for start symbol!");
@@ -429,6 +435,8 @@ impl ItemSetCollection {
                     symbols.insert(symbol.clone());
                 }
             }
+            
+            eprintln!("Debug: State {} has {} items, {} shiftable symbols", i, current_set.items.len(), symbols.len());
             
             // Compute GOTO for each symbol
             for symbol in symbols {

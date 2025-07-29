@@ -52,6 +52,7 @@ impl GrammarJsConverter {
             production_ids: IndexMap::new(),
             max_alias_sequence_length: 0,
             rule_names: IndexMap::new(),
+            symbol_registry: None,
         };
         
         // First pass: collect all symbols (rules and tokens)
