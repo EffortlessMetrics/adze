@@ -339,7 +339,6 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // Record the starting offset for this state
                 map_data.push(quote! { #current_offset });
                 
-                eprintln!("State {}: offset {}", state_idx, current_offset);
                 
                 // Add entries for this state (only non-error actions)
                 for symbol_idx in 0..self.parse_table.symbol_count {
@@ -352,18 +351,10 @@ impl<'a> AbiLanguageBuilder<'a> {
                     
                     // Only add non-error entries as (symbol, action) pairs
                     if !matches!(action, Action::Error) {
-                        eprintln!("  Symbol {} -> Action {:?}", symbol_idx, action);
                         
-                        // Find the actual SymbolId for this table index
-                        let actual_symbol_id = self.parse_table.symbol_to_index
-                            .iter()
-                            .find(|(_, idx)| **idx == symbol_idx)
-                            .map(|(symbol_id, _)| symbol_id.0)
-                            .unwrap_or(symbol_idx as u16);
-                        
-                        eprintln!("    Mapped to actual symbol ID: {}", actual_symbol_id);
-                        
-                        table_data.push(quote! { #actual_symbol_id });
+                        // The parse table already uses indices, not symbol IDs
+                        let symbol_index = symbol_idx as u16;
+                        table_data.push(quote! { #symbol_index });
                         
                         if let Ok(encoded) = self.encode_action(action) {
                             table_data.push(quote! { #encoded });

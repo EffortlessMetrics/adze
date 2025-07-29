@@ -522,32 +522,26 @@ impl Parser {
                 // Each state's entries start at the offset given in the map
                 let state_offset = (*language.small_parse_table_map.add(state as usize)) as usize;
                 
+                
                 // Find the next state's offset to know where this state's entries end
                 let next_offset = if (state + 1) < language.state_count as u16 {
                     (*language.small_parse_table_map.add((state + 1) as usize)) as usize
                 } else {
-                    // For the last state, we need to find the end of the table
-                    // This is a bit tricky - let's use a larger limit
-                    let mut max_offset = state_offset;
-                    // Find the maximum offset in the map
-                    for i in 0..language.state_count {
-                        let offset = (*language.small_parse_table_map.add(i as usize)) as usize;
-                        if offset > max_offset {
-                            max_offset = offset;
-                        }
-                    }
-                    // Assume at most 20 entries for the last state
-                    max_offset + 40
+                    // For the last state, use the last entry in the map
+                    // The map has state_count + 1 entries
+                    (*language.small_parse_table_map.add(language.state_count as usize)) as usize
                 };
+                
                 
                 // Search for the symbol in this state's entries
                 let mut offset = state_offset;
-                while offset + 1 < next_offset && offset + 1 < 1000 { // Safety check
+                while offset < next_offset && offset + 1 < 1000 { // Safety check
                     let entry_symbol = *language.parse_table.add(offset) as u16;
+                    let action_value = *language.parse_table.add(offset + 1) as u16;
                     if entry_symbol == symbol {
-                        let action_value = *language.parse_table.add(offset + 1) as u16;
                         if action_value != 0 {
-                            return self.decode_action(language, action_value as usize);
+                            let action = self.decode_action(language, action_value as usize);
+                            return action;
                         }
                         break;
                     }
@@ -659,7 +653,8 @@ impl Parser {
         // Check all possible symbols in the parse table
         // The parse table uses the symbol_to_index mapping, so we need to check
         // all symbols from 0 to symbol_count
-        let symbol_count = unsafe { language.symbol_count as u16 };
+        let symbol_count = language.symbol_count as u16;
+        
         
         // For now, check all symbols to see what's valid
         // We can optimize this later to only check terminals

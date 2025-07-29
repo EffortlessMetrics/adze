@@ -734,6 +734,9 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     let mut symbol_to_index = HashMap::new();
     let mut max_symbol_id = 0u16;
     
+    // IMPORTANT: EOF symbol (ID 0) must always have index 0 in Tree-sitter
+    symbol_to_index.insert(SymbolId(0), 0);
+    
     // Map all token IDs
     for &symbol_id in grammar.tokens.keys() {
         max_symbol_id = max_symbol_id.max(symbol_id.0);
@@ -760,11 +763,6 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         if !symbol_to_index.contains_key(&external.symbol_id) {
             symbol_to_index.insert(external.symbol_id, symbol_to_index.len());
         }
-    }
-    
-    // Add EOF symbol (ID 0 is reserved for EOF in Tree-sitter)
-    if !symbol_to_index.contains_key(&SymbolId(0)) {
-        symbol_to_index.insert(SymbolId(0), symbol_to_index.len());
     }
     
     // Calculate the final symbol count after adding all symbols including EOF
