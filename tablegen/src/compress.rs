@@ -180,7 +180,7 @@ impl TableCompressor {
     
     /// Compress using Tree-sitter's "small table" optimization
     fn compress_small_table(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
-        let compressed_action_table = self.compress_action_table_small(&parse_table.action_table)?;
+        let compressed_action_table = self.compress_action_table_small(&parse_table.action_table, &parse_table.symbol_to_index)?;
         let compressed_goto_table = self.compress_goto_table_small(&parse_table.goto_table)?;
         
         Ok(CompressedTables {
@@ -197,10 +197,16 @@ impl TableCompressor {
     }
     
     /// Compress action table using Tree-sitter's small table format
-    pub fn compress_action_table_small(&self, action_table: &[Vec<Action>]) -> Result<CompressedActionTable, TableGenError> {
+    pub fn compress_action_table_small(&self, action_table: &[Vec<Action>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
         let mut default_actions = Vec::new();
+        
+        // Create inverse mapping from index to symbol ID
+        let mut index_to_symbol = HashMap::new();
+        for (&symbol_id, &index) in symbol_to_index {
+            index_to_symbol.insert(index, symbol_id);
+        }
         
         for actions in action_table {
             // Find the most common action
@@ -232,13 +238,18 @@ impl TableCompressor {
             default_actions.push(default_action.clone());
             row_offsets.push(entries.len() as u16);
             
-            for (symbol_id, action) in actions.iter().enumerate() {
+            for (index, action) in actions.iter().enumerate() {
                 if action == &default_action {
                     continue;
                 }
                 
+                // Get the actual symbol ID from the index
+                let symbol_id = index_to_symbol.get(&index)
+                    .map(|id| id.0)
+                    .unwrap_or(index as u16);
+                
                 entries.push(CompressedActionEntry {
-                    symbol: symbol_id as u16,
+                    symbol: symbol_id,
                     action: action.clone(),
                 });
             }
@@ -361,7 +372,8 @@ mod tests {
         let compressor = TableCompressor::new();
         let action_table = vec![vec![]; 5]; // 5 empty states
         
-        let result = compressor.compress_action_table_small(&action_table);
+        let symbol_to_index = HashMap::new();
+        let result = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(result.is_ok());
         
         let compressed = result.unwrap();
@@ -378,7 +390,8 @@ mod tests {
             vec![reduce_action.clone(); 10], // All same reduce action
         ];
         
-        let result = compressor.compress_action_table_small(&action_table);
+        let symbol_to_index = HashMap::new();
+        let result = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(result.is_ok());
         
         let compressed = result.unwrap();

@@ -504,7 +504,7 @@ impl TableCompressor {
         // 2. Each entry is a u16 encoding action type + data
         // 3. Default reductions stored separately
         
-        let compressed_action_table = self.compress_action_table_small(&parse_table.action_table)?;
+        let compressed_action_table = self.compress_action_table_small(&parse_table.action_table, &parse_table.symbol_to_index)?;
         let compressed_goto_table = self.compress_goto_table_small(&parse_table.goto_table)?;
         
         Ok(CompressedTables {
@@ -519,7 +519,7 @@ impl TableCompressor {
         // For large tables, Tree-sitter uses pointer indirection
         // This is rarely used but necessary for grammars like C++
         
-        let compressed_action_table = self.compress_action_table_large(&parse_table.action_table)?;
+        let compressed_action_table = self.compress_action_table_large(&parse_table.action_table, &parse_table.symbol_to_index)?;
         let compressed_goto_table = self.compress_goto_table_large(&parse_table.goto_table)?;
         
         Ok(CompressedTables {
@@ -530,7 +530,7 @@ impl TableCompressor {
     }
 
     /// Compress action table using Tree-sitter's small table format
-    fn compress_action_table_small(&self, action_table: &[Vec<Action>]) -> Result<CompressedActionTable, TableGenError> {
+    fn compress_action_table_small(&self, action_table: &[Vec<Action>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
         // Tree-sitter's encoding for small tables:
         // - Actions are encoded as u16 values
         // - Shift: 0x0000 | state_id
@@ -541,6 +541,12 @@ impl TableCompressor {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
         let mut default_reductions = Vec::new();
+        
+        // Create inverse mapping from index to symbol ID
+        let mut index_to_symbol = HashMap::new();
+        for (&symbol_id, &index) in symbol_to_index {
+            index_to_symbol.insert(index, symbol_id);
+        }
         
         for (_state_id, actions) in action_table.iter().enumerate() {
             // Find the most common action overall
@@ -575,15 +581,20 @@ impl TableCompressor {
             // Encode non-default actions
             row_offsets.push(entries.len() as u16);
             
-            for (symbol_id, action) in actions.iter().enumerate() {
+            for (index, action) in actions.iter().enumerate() {
                 // Skip if this is the default action
                 if action == &default_action {
                     continue;
                 }
                 
+                // Get the actual symbol ID from the index
+                let symbol_id = index_to_symbol.get(&index)
+                    .map(|id| id.0)
+                    .unwrap_or(index as u16);
+                
                 let _encoded = self.encode_action_small(action)?;
                 entries.push(CompressedActionEntry {
-                    symbol: symbol_id as u16,
+                    symbol: symbol_id,
                     action: action.clone(),
                 });
             }
@@ -600,10 +611,10 @@ impl TableCompressor {
     }
     
     /// Compress action table using large table format
-    fn compress_action_table_large(&self, action_table: &[Vec<Action>]) -> Result<CompressedActionTable, TableGenError> {
+    fn compress_action_table_large(&self, action_table: &[Vec<Action>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
         // For large tables, use pointer indirection
         // This is a simplified version - real Tree-sitter uses more sophisticated compression
-        self.compress_action_table_small(action_table)
+        self.compress_action_table_small(action_table, symbol_to_index)
     }
     
     /// Encode an action as a u16 for small table format
@@ -942,7 +953,8 @@ mod tests {
             vec![Action::Error, Action::Reduce(RuleId(0)), Action::Error],
         ];
         
-        let compressed = compressor.compress_action_table_small(&action_table);
+        let symbol_to_index = HashMap::new();
+        let compressed = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(compressed.is_ok());
         
         let compressed = compressed.unwrap();
@@ -971,7 +983,8 @@ mod tests {
             vec![Action::Reduce(RuleId(1)), Action::Reduce(RuleId(1)), Action::Reduce(RuleId(1))],
         ];
         
-        let compressed = compressor.compress_action_table_small(&action_table);
+        let symbol_to_index = HashMap::new();
+        let compressed = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(compressed.is_ok());
         
         let compressed = compressed.unwrap();

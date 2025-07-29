@@ -3,8 +3,9 @@
 
 use crate::abi::*;
 use crate::compress::CompressedTables;
-use rust_sitter_ir::{Grammar, TokenPattern};
+use rust_sitter_ir::{Grammar, TokenPattern, Symbol, SymbolId};
 use rust_sitter_glr_core::{ParseTable, Action};
+use std::collections::{HashMap, HashSet};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -265,6 +266,9 @@ impl<'a> AbiLanguageBuilder<'a> {
     fn generate_symbol_metadata(&self) -> Vec<TokenStream> {
         let mut metadata = Vec::new();
         
+        // First, find all terminal tokens that should be marked as extras
+        let extra_tokens = self.find_extra_tokens();
+        
         // EOF symbol
         let eof_meta = create_symbol_metadata(true, false, false, false, false);
         metadata.push(quote! { #eof_meta });
@@ -276,7 +280,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         for (id, token) in tokens {
             let visible = !token.name.starts_with('_');
             let named = visible && matches!(&token.pattern, TokenPattern::Regex(_));
-            let hidden = self.grammar.extras.contains(id); // Check if this token is an extra
+            let hidden = extra_tokens.contains(id); // Check if this token is an extra
             let meta_byte = create_symbol_metadata(visible, named, hidden, false, false);
             metadata.push(quote! { #meta_byte });
         }
@@ -291,7 +295,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 .unwrap_or_else(|| format!("rule_{}", id.0));
             let visible = !name.starts_with('_');
             let named = visible;
-            let hidden = self.grammar.extras.contains(id); // Check if this rule is an extra
+            let hidden = false; // Non-terminals are never hidden
             let supertype = self.grammar.supertypes.contains(id);
             let meta_byte = create_symbol_metadata(visible, named, hidden, false, supertype);
             metadata.push(quote! { #meta_byte });
@@ -519,6 +523,30 @@ impl<'a> AbiLanguageBuilder<'a> {
         self.grammar.rules.values()
             .flat_map(|rules| rules.iter())
             .count()
+    }
+    
+    /// Find all terminal tokens that should be marked as extras
+    fn find_extra_tokens(&self) -> HashSet<SymbolId> {
+        let mut extra_tokens = HashSet::new();
+        
+        // For each extra non-terminal, find all terminal tokens it can produce
+        for &extra_symbol in &self.grammar.extras {
+            // If it's already a terminal token, add it directly
+            if self.grammar.tokens.contains_key(&extra_symbol) {
+                extra_tokens.insert(extra_symbol);
+            } else if let Some(rules) = self.grammar.rules.get(&extra_symbol) {
+                // For non-terminals, find all terminal tokens in their rules
+                for rule in rules {
+                    for symbol in &rule.rhs {
+                        if let Symbol::Terminal(token_id) = symbol {
+                            extra_tokens.insert(*token_id);
+                        }
+                    }
+                }
+            }
+        }
+        
+        extra_tokens
     }
 }
 
