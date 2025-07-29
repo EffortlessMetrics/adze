@@ -362,6 +362,30 @@ impl Parser {
             // Lex next token
             let token = self.lex_token(language, current_state, position, &mut point);
             
+            // Handle extra tokens (like whitespace)
+            if token.is_extra {
+                // Create extra node and attach it to the previous node on stack
+                let end_point = advance_point(point, &source[position..position + token.length]);
+                let extra_subtree = Subtree {
+                    symbol: token.symbol,
+                    children: Vec::new(),
+                    start_byte: position,
+                    end_byte: position + token.length,
+                    start_point: point,
+                    end_point,
+                    is_extra: true,
+                    is_error: false,
+                    is_missing: false,
+                    production_id: 0,
+                };
+                
+                // TODO: Attach extra tokens to the parse tree properly
+                // For now, just skip them
+                position += token.length;
+                point = advance_point(point, &source[position - token.length..position]);
+                continue;
+            }
+            
             // Track parsing progress
             
             // Get action for current state and token
@@ -474,10 +498,11 @@ impl Parser {
                 
                 let lex_state_ptr = &mut lex_state as *mut _ as *mut c_void;
                 if lex_fn(lex_state_ptr, lex_mode) {
+                    let symbol = lex_state.result_symbol;
                     return Token {
-                        symbol: lex_state.result_symbol,
+                        symbol,
                         length: lex_state.result_length,
-                        is_extra: false,
+                        is_extra: self.is_extra_symbol(language, symbol),
                     };
                 }
             }
@@ -497,6 +522,19 @@ impl Parser {
         
         // Single character tokens
         Token { symbol: ch as u16, length: 1, is_extra: false }
+    }
+    
+    /// Check if a symbol is marked as extra (e.g., whitespace)
+    fn is_extra_symbol(&self, language: &TSLanguage, symbol: TSSymbol) -> bool {
+        unsafe {
+            if symbol < language.symbol_count as u16 {
+                let metadata = *language.symbol_metadata.add(symbol as usize);
+                // Check if HIDDEN flag is set (0x04)
+                (metadata & 0x04) != 0
+            } else {
+                false
+            }
+        }
     }
     
     /// Get parse action for state and symbol
