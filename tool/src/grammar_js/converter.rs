@@ -185,6 +185,7 @@ impl GrammarJsConverter {
             eprintln!("Debug: Converting rule '{}' (symbol {})", rule_name, lhs_symbol.0);
             if rule_name == "source_file" {
                 eprintln!("Debug: Converting source_file rule!");
+                eprintln!("Debug: source_file rule body: {:?}", rule_body);
             }
             eprintln!("Debug: Rule body type: {:?}", std::mem::discriminant(&rule_body));
             self.convert_rule_body(grammar, &rule_body, lhs_symbol)?;
@@ -223,9 +224,19 @@ impl GrammarJsConverter {
             }
             
             JsRule::Symbol { name } => {
+                let lhs_name = self.symbol_names.iter()
+                    .find(|(_, id)| **id == lhs)
+                    .map(|(n, _)| n.as_str())
+                    .unwrap_or("?");
+                eprintln!("Debug: Converting SYMBOL rule: {} -> {}", lhs_name, name);
+                
                 if let Some(&symbol_id) = self.symbol_names.get(name) {
+                    eprintln!("Debug: Found symbol {} with ID {}", name, symbol_id.0);
                     let rhs = vec![Symbol::NonTerminal(symbol_id)];
+                    eprintln!("Debug: Creating rule SymbolId({}) -> [NonTerminal(SymbolId({}))]", lhs.0, symbol_id.0);
                     self.add_rule(grammar, lhs, rhs, None, None);
+                } else {
+                    eprintln!("Debug: Symbol {} not found in symbol_names!", name);
                 }
             }
             

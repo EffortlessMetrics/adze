@@ -76,6 +76,11 @@ impl GrammarOptimizer {
             self.used_symbols.insert(start_symbol);
         }
         
+        // Always mark source_file as used if it exists (Tree-sitter compatibility)
+        if let Some(source_file_id) = grammar.find_symbol_by_name("source_file") {
+            self.used_symbols.insert(source_file_id);
+        }
+        
         // Also mark all rule LHS as used (they define the symbols)
         for symbol_id in grammar.rules.keys() {
             self.used_symbols.insert(*symbol_id);

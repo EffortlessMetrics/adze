@@ -12,21 +12,17 @@ pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &HashMap<SymbolId, usi
     // The lexer needs to return symbol indices that match the parse table.
     // We use the symbol_to_index mapping from the parse table to ensure consistency.
     
-    // Sort tokens by ID for deterministic ordering in the generated code
-    let mut tokens: Vec<_> = grammar.tokens.iter().collect();
-    tokens.sort_by_key(|(id, _)| id.0);
+    // Sort tokens by their parse table index for deterministic ordering
+    let mut tokens: Vec<_> = grammar.tokens.iter()
+        .filter_map(|(id, token)| {
+            symbol_to_index.get(id).map(|&idx| (idx, id, token))
+        })
+        .collect();
+    tokens.sort_by_key(|(idx, _, _)| *idx);
     
     // Generate token matches for each token
-    for (token_id, token) in &tokens {
-        // Get the parse table index for this symbol
-        let symbol_index = match symbol_to_index.get(token_id) {
-            Some(&idx) => idx as u16,
-            None => {
-                // If not in the mapping, skip this token
-                // This shouldn't happen in a well-formed grammar
-                continue;
-            }
-        };
+    for (idx, token_id, token) in &tokens {
+        let symbol_index = *idx as u16;
         match &token.pattern {
             TokenPattern::String(lit) => {
                 // Single character or string literal
