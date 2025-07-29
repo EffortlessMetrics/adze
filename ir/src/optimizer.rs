@@ -571,10 +571,17 @@ impl GrammarOptimizer {
 
         // Renumber symbols to be contiguous
         
-        // Assign new IDs
-        for old_id in grammar.tokens.keys().chain(grammar.rules.keys()) {
-            if !old_to_new.contains_key(old_id) {
-                old_to_new.insert(*old_id, SymbolId(next_id));
+        // Collect and sort all symbol IDs for deterministic ordering
+        let mut all_symbols: Vec<_> = grammar.tokens.keys()
+            .chain(grammar.rules.keys())
+            .copied()
+            .collect();
+        all_symbols.sort_by_key(|id| id.0);
+        
+        // Assign new IDs in deterministic order
+        for old_id in all_symbols {
+            if !old_to_new.contains_key(&old_id) {
+                old_to_new.insert(old_id, SymbolId(next_id));
                 next_id += 1;
             }
         }
