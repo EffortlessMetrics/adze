@@ -56,24 +56,20 @@ pub fn build_parser_from_grammar_js(grammar_js_path: &Path, options: BuildOption
     let grammar_js = parse_grammar_js_v2(&grammar_js_content)
         .context("Failed to parse grammar.js")?;
     
-    eprintln!("Debug: Parsed grammar.js has {} rules", grammar_js.rules.len());
-    eprintln!("Debug: Grammar name: {}", grammar_js.name);
-    if !grammar_js.rules.is_empty() {
-        let first_rule = grammar_js.rules.iter().next();
-        eprintln!("Debug: First rule: {:?}", first_rule);
-    }
+    // Parse grammar.js successfully
     
     // Convert to IR
     let converter = GrammarJsConverter::new(grammar_js);
     let mut grammar = converter.convert()
         .context("Failed to convert grammar.js to IR")?;
     
-    eprintln!("Debug: Converted grammar has {} rules and {} tokens", 
-        grammar.rules.len(), grammar.tokens.len());
+    // Grammar converted successfully
     
     // Optimize the grammar
     grammar = optimize_grammar(grammar)
         .context("Failed to optimize grammar")?;
+    
+    // Grammar optimized successfully
     
     // Build the parser
     build_parser(grammar, options)
@@ -102,20 +98,10 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
     let grammar_value: Value = serde_json::from_str(&grammar_json)
         .context("Failed to parse grammar JSON")?;
     
-    // Debug: Print the JSON structure
-    eprintln!("Debug: Grammar JSON structure:");
-    let json_str = serde_json::to_string_pretty(&grammar_value).unwrap_or("Failed to pretty print".to_string());
-    eprintln!("{}", &json_str);
-    
     // Extract grammar name from JSON
     let grammar_name = grammar_value.get("name")
         .and_then(|v| v.as_str())
         .unwrap_or("unknown");
-    
-    // Also write to a temp file for inspection
-    let debug_json_path = std::env::temp_dir().join(format!("rust_sitter_grammar_{}.json", grammar_name));
-    fs::write(&debug_json_path, &json_str)?;
-    eprintln!("Debug: Grammar JSON written to {:?}", debug_json_path);
     
     // Convert directly from JSON to GrammarJs structure
     let grammar_js = crate::grammar_js::from_json(&grammar_value)
@@ -125,9 +111,13 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
     let mut grammar = converter.convert()
         .context("Failed to convert grammar JSON to IR")?;
     
+    // Grammar converted from JSON
+    
     // Optimize the grammar
     grammar = optimize_grammar(grammar)
         .context("Failed to optimize grammar")?;
+    
+    // Grammar optimized successfully
     
     // Build the parser
     build_parser(grammar, options)
@@ -194,7 +184,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         }
     }
     
-    eprintln!("Debug info written to: {:?}", debug_file_path);
+    // Debug info written to temp file
     
     // Step 3: Generate static language code using ABI builder
     let language_code = if options.compress_tables {

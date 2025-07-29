@@ -15,6 +15,8 @@ pub struct GrammarOptimizer {
     inlinable_rules: HashSet<SymbolId>,
     /// Track left-recursive rules for special handling
     left_recursive_rules: HashSet<SymbolId>,
+    /// Track the source_file symbol ID to prevent inlining
+    source_file_id: Option<SymbolId>,
 }
 
 impl GrammarOptimizer {
@@ -23,6 +25,7 @@ impl GrammarOptimizer {
             used_symbols: HashSet::new(),
             inlinable_rules: HashSet::new(),
             left_recursive_rules: HashSet::new(),
+            source_file_id: None,
         }
     }
 
@@ -30,18 +33,41 @@ impl GrammarOptimizer {
     pub fn optimize(&mut self, grammar: &mut Grammar) -> OptimizationStats {
         let mut stats = OptimizationStats::default();
 
+        // Check source_file status after each optimization
+        let check_source_file = |grammar: &Grammar, phase: &str| {
+            if let Some(sf_id) = grammar.find_symbol_by_name("source_file") {
+                let has_rules = grammar.rules.contains_key(&sf_id);
+                let rule_count = grammar.rules.get(&sf_id).map(|r| r.len()).unwrap_or(0);
+                eprintln!("Debug after {}: source_file is SymbolId({}), has_rules={}, rule_count={}", 
+                    phase, sf_id.0, has_rules, rule_count);
+            } else {
+                eprintln!("Debug after {}: source_file not found!", phase);
+            }
+        };
+
         // Phase 1: Analysis
         self.analyze_grammar(grammar);
+        check_source_file(grammar, "analysis");
 
         // Phase 2: Optimizations
         stats.removed_unused_symbols = self.remove_unused_symbols(grammar);
+        check_source_file(grammar, "remove_unused_symbols");
+        
         stats.inlined_rules = self.inline_simple_rules(grammar);
+        check_source_file(grammar, "inline_simple_rules");
+        
         stats.merged_tokens = self.merge_equivalent_tokens(grammar);
+        check_source_file(grammar, "merge_equivalent_tokens");
+        
         stats.optimized_left_recursion = self.optimize_left_recursion(grammar);
+        check_source_file(grammar, "optimize_left_recursion");
+        
         stats.eliminated_unit_rules = self.eliminate_unit_rules(grammar);
+        check_source_file(grammar, "eliminate_unit_rules");
 
         // Phase 3: Cleanup
         self.renumber_symbols(grammar);
+        check_source_file(grammar, "renumber_symbols");
 
         stats
     }
@@ -78,7 +104,27 @@ impl GrammarOptimizer {
         
         // Always mark source_file as used if it exists (Tree-sitter compatibility)
         if let Some(source_file_id) = grammar.find_symbol_by_name("source_file") {
+            self.source_file_id = Some(source_file_id);
             self.used_symbols.insert(source_file_id);
+            
+            // Also mark symbols referenced by source_file
+            if let Some(rules) = grammar.rules.get(&source_file_id) {
+                for rule in rules {
+                    for symbol in &rule.rhs {
+                        match symbol {
+                            Symbol::NonTerminal(id) => {
+                                self.used_symbols.insert(*id);
+                            }
+                            Symbol::Terminal(id) => {
+                                self.used_symbols.insert(*id);
+                            }
+                            _ => {
+                                // Other symbol types don't directly reference IDs that need marking
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         // Also mark all rule LHS as used (they define the symbols)
@@ -113,8 +159,13 @@ impl GrammarOptimizer {
             }
 
             // Check if rule is inlinable (simple, non-recursive)
-            if rule.rhs.len() == 1 && !self.is_recursive_rule(rule, grammar) {
+            // Never inline source_file as it's the start symbol
+            if rule.rhs.len() == 1 
+                && !self.is_recursive_rule(rule, grammar)
+                && Some(rule.lhs) != self.source_file_id {
                 self.inlinable_rules.insert(rule.lhs);
+            } else if Some(rule.lhs) == self.source_file_id && rule.rhs.len() == 1 {
+                // source_file is not inlinable
             }
 
             // Check for left recursion
@@ -160,6 +211,8 @@ impl GrammarOptimizer {
 
     /// Inline simple rules that just reference another symbol
     fn inline_simple_rules(&mut self, grammar: &mut Grammar) -> usize {
+        // Process inlinable rules
+        
         let mut inlined = 0;
         let mut replacements = HashMap::new();
 
@@ -172,6 +225,8 @@ impl GrammarOptimizer {
                         replacements.insert(*symbol_id, target.clone());
                     }
                 }
+            } else if Some(*symbol_id) == self.source_file_id {
+                // source_file is not inlined
             }
         }
 
@@ -514,6 +569,8 @@ impl GrammarOptimizer {
         let mut old_to_new: HashMap<SymbolId, SymbolId> = HashMap::new();
         let mut next_id = 1u16; // 0 is reserved for EOF
 
+        // Renumber symbols to be contiguous
+        
         // Assign new IDs
         for old_id in grammar.tokens.keys().chain(grammar.rules.keys()) {
             if !old_to_new.contains_key(old_id) {
@@ -521,6 +578,8 @@ impl GrammarOptimizer {
                 next_id += 1;
             }
         }
+        
+        // Apply renumbering mappings
 
         // Update tokens
         let mut new_tokens = IndexMap::new();
@@ -533,7 +592,11 @@ impl GrammarOptimizer {
 
         // Update rules
         let mut new_rules = IndexMap::new();
+        // Process rules
+        
         for (old_id, mut rules) in grammar.rules.drain(..) {
+            // Process rules for this symbol
+            
             // Update each rule in the vector
             for rule in &mut rules {
                 // Update LHS
@@ -549,13 +612,34 @@ impl GrammarOptimizer {
             
             // Insert with possibly updated key
             let new_key = if let Some(&new_id) = old_to_new.get(&old_id) {
+                // Renumber symbol
                 new_id
             } else {
+                // Keep original ID
                 old_id
             };
             new_rules.insert(new_key, rules);
         }
+        
+        // Update grammar rules
         grammar.rules = new_rules;
+
+        // Update source_file_id if it was renumbered
+        if let Some(sf_id) = self.source_file_id {
+            if let Some(&new_id) = old_to_new.get(&sf_id) {
+                // Update source_file_id
+                self.source_file_id = Some(new_id);
+            }
+        }
+
+        // Update rule_names
+        let mut new_rule_names = IndexMap::new();
+        for (old_id, name) in grammar.rule_names.drain(..) {
+            if let Some(&new_id) = old_to_new.get(&old_id) {
+                new_rule_names.insert(new_id, name);
+            }
+        }
+        grammar.rule_names = new_rule_names;
 
         // Update other references
         grammar.supertypes = grammar.supertypes
