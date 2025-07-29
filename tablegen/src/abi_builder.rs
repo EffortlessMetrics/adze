@@ -382,15 +382,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // Record the starting offset for this state
                 map_data.push(quote! { #current_offset });
                 
-                // Debug state 0
-                if state_idx == 0 {
-                    eprintln!("=== Generating parse table for state 0 ===");
-                    eprintln!("  symbol_count: {}", self.parse_table.symbol_count);
-                    eprintln!("  action_table.len(): {}", self.parse_table.action_table.len());
-                    if !self.parse_table.action_table.is_empty() {
-                        eprintln!("  action_table[0].len(): {}", self.parse_table.action_table[0].len());
-                    }
-                }
+                
                 
                 // Add entries for this state (only non-error actions)
                 for symbol_idx in 0..self.parse_table.symbol_count {
@@ -401,10 +393,6 @@ impl<'a> AbiLanguageBuilder<'a> {
                         &Action::Error
                     };
                     
-                    // Debug state 0 actions
-                    if state_idx == 0 {
-                        eprintln!("    symbol[{}]: {:?}", symbol_idx, action);
-                    }
                     
                     // Only add non-error entries as (symbol, action) pairs
                     if !matches!(action, Action::Error) {

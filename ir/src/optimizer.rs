@@ -540,6 +540,28 @@ impl GrammarOptimizer {
     }
 
     /// Helper to renumber a symbol recursively
+    fn collect_symbol_ids(&self, symbol: &Symbol, ids: &mut HashSet<SymbolId>) {
+        match symbol {
+            Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
+                ids.insert(*id);
+            }
+            Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+                self.collect_symbol_ids(inner, ids);
+            }
+            Symbol::Choice(choices) => {
+                for s in choices {
+                    self.collect_symbol_ids(s, ids);
+                }
+            }
+            Symbol::Sequence(seq) => {
+                for s in seq {
+                    self.collect_symbol_ids(s, ids);
+                }
+            }
+            Symbol::Epsilon => {}
+        }
+    }
+    
     fn renumber_symbol(&self, symbol: &mut Symbol, old_to_new: &HashMap<SymbolId, SymbolId>) {
         match symbol {
             Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
@@ -572,10 +594,28 @@ impl GrammarOptimizer {
         // Renumber symbols to be contiguous
         
         // Collect and sort all symbol IDs for deterministic ordering
-        let mut all_symbols: Vec<_> = grammar.tokens.keys()
-            .chain(grammar.rules.keys())
-            .copied()
-            .collect();
+        let mut all_symbols: HashSet<SymbolId> = HashSet::new();
+        
+        // Add tokens and rules
+        all_symbols.extend(grammar.tokens.keys().copied());
+        all_symbols.extend(grammar.rules.keys().copied());
+        
+        // Add all symbols referenced in rule RHS
+        for rules in grammar.rules.values() {
+            for rule in rules {
+                for symbol in &rule.rhs {
+                    self.collect_symbol_ids(symbol, &mut all_symbols);
+                }
+            }
+        }
+        
+        // Add external symbols
+        for external in &grammar.externals {
+            all_symbols.insert(external.symbol_id);
+        }
+        
+        // Sort for deterministic ordering
+        let mut all_symbols: Vec<_> = all_symbols.into_iter().collect();
         all_symbols.sort_by_key(|id| id.0);
         
         // Assign new IDs in deterministic order

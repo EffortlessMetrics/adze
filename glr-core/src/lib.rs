@@ -34,13 +34,39 @@ pub struct FirstFollowSets {
 }
 
 impl FirstFollowSets {
+    fn get_max_symbol_id(symbol: &Symbol) -> u16 {
+        match symbol {
+            Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id.0,
+            Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+                Self::get_max_symbol_id(inner)
+            }
+            Symbol::Choice(choices) => {
+                choices.iter().map(|s| Self::get_max_symbol_id(s)).max().unwrap_or(0)
+            }
+            Symbol::Sequence(seq) => {
+                seq.iter().map(|s| Self::get_max_symbol_id(s)).max().unwrap_or(0)
+            }
+            Symbol::Epsilon => 0,
+        }
+    }
     /// Compute FIRST/FOLLOW sets for the given grammar
     pub fn compute(grammar: &Grammar) -> Self {
         // Find the maximum symbol ID to determine the size needed
         let max_rule_id = grammar.rules.keys().map(|id| id.0).max().unwrap_or(0);
         let max_token_id = grammar.tokens.keys().map(|id| id.0).max().unwrap_or(0);
         let max_external_id = grammar.externals.iter().map(|e| e.symbol_id.0).max().unwrap_or(0);
-        let symbol_count = (max_rule_id.max(max_token_id).max(max_external_id) + 1) as usize;
+        
+        // Also check max symbol ID in all rule RHS
+        let mut max_rhs_id = 0u16;
+        for rules in grammar.rules.values() {
+            for rule in rules {
+                for symbol in &rule.rhs {
+                    max_rhs_id = max_rhs_id.max(Self::get_max_symbol_id(symbol));
+                }
+            }
+        }
+        
+        let symbol_count = (max_rule_id.max(max_token_id).max(max_external_id).max(max_rhs_id) + 1) as usize;
         
         let mut first = IndexMap::new();
         let mut follow = IndexMap::new();
@@ -165,7 +191,7 @@ impl FirstFollowSets {
         first: &IndexMap<SymbolId, FixedBitSet>,
         nullable: &FixedBitSet,
     ) -> FixedBitSet {
-        let mut result = FixedBitSet::with_capacity(first.len());
+        let mut result = FixedBitSet::with_capacity(nullable.len());
         
         for symbol in symbols {
             match symbol {
@@ -797,9 +823,11 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
                 };
                 
                 if let Some(&symbol_idx) = symbol_to_index.get(symbol_id) {
-                    if let Symbol::Terminal(_) = next_symbol {
-                        // Add shift action
-                        if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id)) {
+                    // Check if we have a goto entry for this symbol
+                    if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id)) {
+                        // For terminals, add shift action
+                        // For non-terminals in state 0, also add shift action (needed for start symbol)
+                        if matches!(next_symbol, Symbol::Terminal(_)) || state_idx == 0 {
                             let new_action = Action::Shift(goto_state);
                             add_action_with_conflict(
                                 &mut action_table,
