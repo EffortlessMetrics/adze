@@ -623,7 +623,21 @@ impl Parser {
                 eprintln!("DEBUG get_action: state={}, looking for symbol={}, found entry_symbol={}, action_value={}", 
                     state, symbol, entry_symbol, action_value);
                 
-                if entry_symbol == symbol {
+                // Check if this is a default reduce entry
+                // In Tree-sitter's format, reduce entries have the high bit set in the symbol field
+                if entry_symbol & 0x8000 != 0 {
+                    // This is a default reduce action that applies to all lookahead symbols
+                    if action_value != 0 {
+                        let action = self.decode_action(language, action_value as usize);
+                        eprintln!("DEBUG get_action: DEFAULT REDUCE! Returning action: {:?}", action);
+                        return action;
+                    } else {
+                        // The actual reduce production ID is encoded in the symbol field
+                        let production_id = entry_symbol & 0x7FFF;
+                        eprintln!("DEBUG get_action: DEFAULT REDUCE! Returning Reduce({})", production_id);
+                        return Action::Reduce(production_id);
+                    }
+                } else if entry_symbol == symbol {
                     if action_value != 0 {
                         let action = self.decode_action(language, action_value as usize);
                         eprintln!("DEBUG get_action: MATCH! Returning action: {:?}", action);

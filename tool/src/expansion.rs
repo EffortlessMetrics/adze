@@ -246,6 +246,8 @@ fn gen_struct_or_variant(
     out: &mut Map<String, Value>,
     word_rule: &mut Option<String>,
 ) -> Option<Value> {
+    eprintln!("DEBUG gen_struct_or_variant: path={}, fields={:?}", path, fields);
+    
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
     if let Fields::Unnamed(fields_unnamed) = &fields {
         if fields_unnamed.unnamed.len() == 1 {
@@ -528,6 +530,11 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                     .iter()
                     .any(|a| a.path() == &syn::parse_quote!(rust_sitter::external));
                 
+                // Check if this is an extra token
+                let is_extra = s.attrs
+                    .iter()
+                    .any(|a| a.path() == &syn::parse_quote!(rust_sitter::extra));
+                
                 // Check if this is the word token
                 let is_word = s.attrs
                     .iter()
@@ -540,7 +547,8 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                     word_rule = Some(s.ident.to_string());
                 }
                 
-                if !is_external {
+                // Generate rules for non-external structs AND extra structs (even if they're not referenced)
+                if !is_external || is_extra {
                     let _ = gen_struct_or_variant(
                         s.ident.to_string(),
                         s.attrs.clone(),
@@ -583,6 +591,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
     // source_file rule already inserted above - don't overwrite it!
 
     eprintln!("DEBUG expansion: extras_list = {:?}", extras_list);
+    eprintln!("DEBUG expansion: rules_map keys = {:?}", rules_map.keys().collect::<Vec<_>>());
     let mut grammar = json!({
         "name": grammar_name,
         "word": word_rule,

@@ -364,9 +364,12 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // Record the starting offset for this state
                 map_data.push(quote! { #current_offset });
                 
+                // Check if this state has a default reduce action
+                // (all non-error actions are the same reduce action)
+                let mut default_reduce = None;
+                let mut has_non_reduce = false;
+                let mut non_error_actions = Vec::new();
                 
-                
-                // Add entries for this state (only non-error actions)
                 for symbol_idx in 0..self.parse_table.symbol_count {
                     let action = if state_idx < self.parse_table.action_table.len() 
                         && symbol_idx < self.parse_table.action_table[state_idx].len() {
@@ -375,21 +378,51 @@ impl<'a> AbiLanguageBuilder<'a> {
                         &Action::Error
                     };
                     
-                    
-                    // Only add non-error entries as (symbol, action) pairs
-                    if !matches!(action, Action::Error) {
-                        
-                        // The parse table already uses indices, not symbol IDs
-                        let symbol_index = symbol_idx as u16;
-                        table_data.push(quote! { #symbol_index });
-                        
-                        if let Ok(encoded) = self.encode_action(action) {
-                            table_data.push(quote! { #encoded });
-                        } else {
-                            table_data.push(quote! { 0u16 });
+                    match action {
+                        Action::Error => continue,
+                        Action::Reduce(prod_id) => {
+                            non_error_actions.push((symbol_idx, action));
+                            if let Some(default_prod) = &default_reduce {
+                                if default_prod != &prod_id {
+                                    // Different reduce actions, no default
+                                    has_non_reduce = true;
+                                }
+                            } else {
+                                default_reduce = Some(prod_id);
+                            }
                         }
-                        current_offset += 2;
+                        _ => {
+                            // Shift, Accept, or Fork - no default reduce
+                            has_non_reduce = true;
+                            non_error_actions.push((symbol_idx, action));
+                        }
                     }
+                }
+                
+                // If all actions are the same reduce, emit a default reduce entry
+                if let Some(prod_id) = default_reduce {
+                    if !has_non_reduce && !non_error_actions.is_empty() {
+                        // Emit default reduce entry with high bit set in symbol
+                        let symbol_with_high_bit = 0x8000u16 | prod_id.0;
+                        table_data.push(quote! { #symbol_with_high_bit });
+                        table_data.push(quote! { 0u16 }); // action value (unused for default reduce)
+                        current_offset += 2;
+                        continue; // Skip to next state
+                    }
+                }
+                
+                // Add entries for this state (only non-error actions)
+                for (symbol_idx, action) in non_error_actions {
+                    // The parse table already uses indices, not symbol IDs
+                    let symbol_index = symbol_idx as u16;
+                    table_data.push(quote! { #symbol_index });
+                    
+                    if let Ok(encoded) = self.encode_action(action) {
+                        table_data.push(quote! { #encoded });
+                    } else {
+                        table_data.push(quote! { 0u16 });
+                    }
+                    current_offset += 2;
                 }
             }
             
