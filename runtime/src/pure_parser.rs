@@ -942,6 +942,28 @@ fn advance_point(mut point: Point, text: &[u8]) -> Point {
 
 /// Convert internal subtree to public node
 fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> ParsedNode {
+    eprintln!("DEBUG subtree_to_node: Converting subtree with symbol {}, children: {}, extra: {}", 
+        subtree.symbol, subtree.children.len(), subtree.is_extra);
+    
+    // Determine if the node is named based on symbol metadata
+    let is_named = if let Some(lang_ptr) = language {
+        unsafe {
+            let lang = &*lang_ptr;
+            if subtree.symbol < lang.symbol_count as u16 {
+                let metadata = *lang.symbol_metadata.add(subtree.symbol as usize);
+                // In Tree-sitter, metadata & 1 == 0 means named
+                // metadata values: 0 = unnamed extra, 1 = unnamed, 3 = named
+                metadata >= 2
+            } else {
+                false
+            }
+        }
+    } else {
+        true // Default to named if no language info
+    };
+    
+    eprintln!("  Symbol {} is_named: {}", subtree.symbol, is_named);
+    
     ParsedNode {
         symbol: subtree.symbol,
         children: subtree.children.into_iter().map(|s| subtree_to_node(s, language)).collect(),
@@ -952,7 +974,7 @@ fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> Par
         is_extra: subtree.is_extra,
         is_error: subtree.is_error,
         is_missing: subtree.is_missing,
-        is_named: true, // TODO: determine from symbol type
+        is_named,
         field_name: None, // TODO: Extract field names from production ID
         language,
     }
