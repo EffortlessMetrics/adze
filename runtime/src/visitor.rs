@@ -492,7 +492,7 @@ mod tests {
 }
 
 #[cfg(test)]
-mod tests {
+mod tests2 {
     use super::*;
     
     #[derive(Default)]

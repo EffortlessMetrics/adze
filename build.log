@@ -1,0 +1,337 @@
+warning: unused variable: `id`
+   --> ir/src/lib.rs:115:37
+    |
+115 |         token_entries.sort_by_key(|(id, token)| {
+    |                                     ^^ help: if this is intentional, prefix it with an underscore: `_id`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: `rust-sitter-ir` (lib) generated 1 warning
+warning: `rust-sitter-ir` (lib) generated 1 warning (1 duplicate)
+warning: unused variable: `token_id`
+  --> tablegen/src/lexer_gen.rs:24:15
+   |
+24 |     for (idx, token_id, token) in &tokens {
+   |               ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_token_id`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `rust-sitter-tablegen` (lib) generated 1 warning
+warning: unused variable: `extra_subtree`
+   --> runtime/src/pure_parser.rs:370:21
+    |
+370 |                 let extra_subtree = Subtree {
+    |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extra_subtree`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: methods `get_production_id` and `get_goto_state` are never used
+   --> runtime/src/pure_parser.rs:795:8
+    |
+209 | impl Parser {
+    | ----------- methods in this implementation
+...
+795 |     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
+    |        ^^^^^^^^^^^^^^^^^
+...
+806 |     fn get_goto_state(&self, _language: &TSLanguage, _state: TSStateId, _symbol: TSSymbol) -> TSStateId {
+    |        ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: `rust-sitter-tablegen` (lib) generated 1 warning (1 duplicate)
+warning: `rust-sitter` (lib) generated 2 warnings
+warning: unused variable: `grammar_name`
+   --> tool/src/pure_rust_builder.rs:102:9
+    |
+102 |     let grammar_name = grammar_value.get("name")
+    |         ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_grammar_name`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: function `parse_with_rust_parser` is never used
+  --> tool/src/cli/parse.rs:83:8
+   |
+83 | pub fn parse_with_rust_parser(
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `auto_detect_parser` is never used
+  --> tool/src/cli/parse.rs:98:8
+   |
+98 | pub fn auto_detect_parser(file_path: &Path) -> Option<String> {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `generate_corpus` is never used
+   --> tool/src/cli/test.rs:172:8
+    |
+172 | pub fn generate_corpus(
+    |        ^^^^^^^^^^^^^^^
+
+warning: `rust-sitter-tool` (lib) generated 4 warnings
+   Compiling rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)
+warning: unused import: `rust_sitter::Extract`
+ --> example/src/external_word_example.rs:3:5
+  |
+3 | use rust_sitter::Extract;
+  |     ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::time::Instant`
+  --> example/src/performance_test.rs:2:5
+   |
+2  | use std::time::Instant;
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> example/src/main.rs:14:1
+   |
+14 | mod performance_test;
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+warning[E0133]: dereference of raw pointer is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:169
+  |
+9 | ...exState) -> bool { let state = & mut * (state_ptr as * mut LexerState) ; let input = std :: slice :: from_raw_parts (state . input , s...
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ dereference of raw pointer
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: raw pointers may be null, dangling or unaligned; they can violate aliasing rules and cause data races: all of these are undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:42
+  |
+9 | ...parser :: * ; unsafe extern "C" fn lexer_fn (state_ptr : * mut :: std :: ffi :: c_void , _lex_mode : TSLexState) -> bool { let state =...
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: `#[warn(unsafe_op_in_unsafe_fn)]` on by default
+
+warning[E0133]: call to unsafe function `std::slice::from_raw_parts` is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_arithmetic/parser_arithmetic.rs:9:217
+  |
+9 | ...rState) ; let input = std :: slice :: from_raw_parts (state . input , state . input_len) ; let position = state . position ; if positi...
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: consult the function's documentation for information on how to avoid undefined behavior
+
+warning[E0133]: dereference of raw pointer is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:169
+  |
+9 | ...exState) -> bool { let state = & mut * (state_ptr as * mut LexerState) ; let input = std :: slice :: from_raw_parts (state . input , s...
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ dereference of raw pointer
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: raw pointers may be null, dangling or unaligned; they can violate aliasing rules and cause data races: all of these are undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:42
+  |
+9 | ...parser :: * ; unsafe extern "C" fn lexer_fn (state_ptr : * mut :: std :: ffi :: c_void , _lex_mode : TSLexState) -> bool { let state =...
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning[E0133]: call to unsafe function `std::slice::from_raw_parts` is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_optionals/parser_optionals.rs:9:217
+  |
+9 | ...rState) ; let input = std :: slice :: from_raw_parts (state . input , state . input_len) ; let position = state . position ; if positi...
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: consult the function's documentation for information on how to avoid undefined behavior
+
+warning[E0133]: dereference of raw pointer is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:169
+  |
+9 | ...exState) -> bool { let state = & mut * (state_ptr as * mut LexerState) ; let input = std :: slice :: from_raw_parts (state . input , s...
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ dereference of raw pointer
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: raw pointers may be null, dangling or unaligned; they can violate aliasing rules and cause data races: all of these are undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:42
+  |
+9 | ...parser :: * ; unsafe extern "C" fn lexer_fn (state_ptr : * mut :: std :: ffi :: c_void , _lex_mode : TSLexState) -> bool { let state =...
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning[E0133]: call to unsafe function `std::slice::from_raw_parts` is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions/parser_repetitions.rs:9:217
+  |
+9 | ...rState) ; let input = std :: slice :: from_raw_parts (state . input , state . input_len) ; let position = state . position ; if positi...
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: consult the function's documentation for information on how to avoid undefined behavior
+
+warning[E0133]: dereference of raw pointer is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:169
+  |
+9 | ...exState) -> bool { let state = & mut * (state_ptr as * mut LexerState) ; let input = std :: slice :: from_raw_parts (state . input , s...
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ dereference of raw pointer
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: raw pointers may be null, dangling or unaligned; they can violate aliasing rules and cause data races: all of these are undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:42
+  |
+9 | ...parser :: * ; unsafe extern "C" fn lexer_fn (state_ptr : * mut :: std :: ffi :: c_void , _lex_mode : TSLexState) -> bool { let state =...
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning[E0133]: call to unsafe function `std::slice::from_raw_parts` is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_without_delim/parser_repetitions_without_delim.rs:9:217
+  |
+9 | ...rState) ; let input = std :: slice :: from_raw_parts (state . input , state . input_len) ; let position = state . position ; if positi...
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: consult the function's documentation for information on how to avoid undefined behavior
+
+warning[E0133]: dereference of raw pointer is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:169
+  |
+9 | ...exState) -> bool { let state = & mut * (state_ptr as * mut LexerState) ; let input = std :: slice :: from_raw_parts (state . input , s...
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ dereference of raw pointer
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: raw pointers may be null, dangling or unaligned; they can violate aliasing rules and cause data races: all of these are undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:42
+  |
+9 | ...parser :: * ; unsafe extern "C" fn lexer_fn (state_ptr : * mut :: std :: ffi :: c_void , _lex_mode : TSLexState) -> bool { let state =...
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning[E0133]: call to unsafe function `std::slice::from_raw_parts` is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_repetitions_optional_elem/parser_repetitions_optional_elem.rs:9:217
+  |
+9 | ...rState) ; let input = std :: slice :: from_raw_parts (state . input , state . input_len) ; let position = state . position ; if positi...
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: consult the function's documentation for information on how to avoid undefined behavior
+
+warning[E0133]: dereference of raw pointer is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:169
+  |
+9 | ...exState) -> bool { let state = & mut * (state_ptr as * mut LexerState) ; let input = std :: slice :: from_raw_parts (state . input , s...
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ dereference of raw pointer
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: raw pointers may be null, dangling or unaligned; they can violate aliasing rules and cause data races: all of these are undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:42
+  |
+9 | ...parser :: * ; unsafe extern "C" fn lexer_fn (state_ptr : * mut :: std :: ffi :: c_void , _lex_mode : TSLexState) -> bool { let state =...
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning[E0133]: call to unsafe function `std::slice::from_raw_parts` is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_words/parser_words.rs:9:217
+  |
+9 | ...rState) ; let input = std :: slice :: from_raw_parts (state . input , state . input_len) ; let position = state . position ; if positi...
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: consult the function's documentation for information on how to avoid undefined behavior
+
+warning[E0133]: dereference of raw pointer is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:169
+  |
+9 | ...exState) -> bool { let state = & mut * (state_ptr as * mut LexerState) ; let input = std :: slice :: from_raw_parts (state . input , s...
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ dereference of raw pointer
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: raw pointers may be null, dangling or unaligned; they can violate aliasing rules and cause data races: all of these are undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:42
+  |
+9 | ...parser :: * ; unsafe extern "C" fn lexer_fn (state_ptr : * mut :: std :: ffi :: c_void , _lex_mode : TSLexState) -> bool { let state =...
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning[E0133]: call to unsafe function `std::slice::from_raw_parts` is unsafe and requires unsafe block
+ --> /home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out/grammar_python_like/parser_python_like.rs:9:217
+  |
+9 | ...rState) ; let input = std :: slice :: from_raw_parts (state . input , state . input_len) ; let position = state . position ; if positi...
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+  |
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+  = note: consult the function's documentation for information on how to avoid undefined behavior
+
+warning: field `0` is never read
+ --> example/src/external_word_example.rs:9:12
+  |
+9 |         If(IfStatement),
+  |         -- ^^^^^^^^^^^
+  |         |
+  |         field in this variant
+  |
+  = note: `#[warn(dead_code)]` on by default
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+  |
+9 -         If(IfStatement),
+9 +         If(()),
+  |
+
+warning: field `0` is never read
+  --> example/src/external_word_example.rs:10:20
+   |
+10 |         Expression(Expression),
+   |         ---------- ^^^^^^^^^^
+   |         |
+   |         field in this variant
+   |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+10 -         Expression(Expression),
+10 +         Expression(()),
+   |
+
+warning: fields `condition` and `body` are never read
+  --> example/src/external_word_example.rs:16:9
+   |
+13 |     pub struct IfStatement {
+   |                ----------- fields in this struct
+...
+16 |         condition: Expression,
+   |         ^^^^^^^^^
+...
+19 |         body: Vec<Statement>,
+   |         ^^^^
+
+warning: field `0` is never read
+  --> example/src/external_word_example.rs:23:20
+   |
+23 |         Identifier(Identifier),
+   |         ---------- ^^^^^^^^^^
+   |         |
+   |         field in this variant
+   |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+23 -         Identifier(Identifier),
+23 +         Identifier(()),
+   |
+
+warning: field `0` is never read
+  --> example/src/external_word_example.rs:26:13
+   |
+24 |         Number(
+   |         ------ field in this variant
+25 |             #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+26 |             i32
+   |             ^^^
+   |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+26 -             i32
+26 +             ()
+   |
+
+warning: field `name` is never read
+  --> example/src/external_word_example.rs:34:9
+   |
+32 |     pub struct Identifier {
+   |                ---------- field in this struct
+33 |         #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+34 |         name: String,
+   |         ^^^^
+
+For more information about this error, try `rustc --explain E0133`.
+warning: `rust-sitter-example` (bin "rust-sitter-example") generated 22 warnings (run `cargo fix --bin "rust-sitter-example"` to apply 9 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.48s

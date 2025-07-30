@@ -33,6 +33,9 @@ pub mod pure_incremental;
 pub mod pure_external_scanner;
 pub mod unified_parser;
 pub mod optimizations;
+
+#[cfg(all(test, feature = "pure-rust"))]
+mod test_metadata;
 pub mod simd_lexer {
     pub use super::simd_lexer_v2::*;
 }
