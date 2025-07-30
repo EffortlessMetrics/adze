@@ -517,6 +517,8 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
             .any(|a| a.path() == &syn::parse_quote!(rust_sitter::extra))
         {
             eprintln!("DEBUG expansion: Found rust_sitter::extra on symbol '{}'", symbol);
+            // For extras, we want to reference the generated rule directly
+            // The Whitespace struct generates a rule like "Whitespace" which contains the pattern
             extras_list.push(json!({
                 "type": "SYMBOL",
                 "name": symbol

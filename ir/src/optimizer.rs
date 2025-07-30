@@ -599,37 +599,90 @@ impl GrammarOptimizer {
         let mut old_to_new: HashMap<SymbolId, SymbolId> = HashMap::new();
         let mut next_id = 1u16; // 0 is reserved for EOF
 
-        // Renumber symbols to be contiguous
+        // Renumber symbols to be contiguous while preserving parse table ordering
         
-        // Collect and sort all symbol IDs for deterministic ordering
-        let mut all_symbols: HashSet<SymbolId> = HashSet::new();
+        // Collect all symbols
+        let mut token_symbols: HashSet<SymbolId> = HashSet::new();
+        let mut non_terminal_symbols: HashSet<SymbolId> = HashSet::new();
+        let mut external_symbols: HashSet<SymbolId> = HashSet::new();
         
-        // Add tokens and rules
-        all_symbols.extend(grammar.tokens.keys().copied());
-        all_symbols.extend(grammar.rules.keys().copied());
+        // Categorize symbols
+        token_symbols.extend(grammar.tokens.keys().copied());
+        
+        // Add all symbols from rules
+        for (symbol_id, _) in &grammar.rules {
+            if !token_symbols.contains(symbol_id) {
+                non_terminal_symbols.insert(*symbol_id);
+            }
+        }
         
         // Add all symbols referenced in rule RHS
         for rules in grammar.rules.values() {
             for rule in rules {
                 for symbol in &rule.rhs {
-                    self.collect_symbol_ids(symbol, &mut all_symbols);
+                    match symbol {
+                        Symbol::Terminal(id) => { token_symbols.insert(*id); }
+                        Symbol::NonTerminal(id) => { non_terminal_symbols.insert(*id); }
+                        Symbol::External(id) => { external_symbols.insert(*id); }
+                        _ => {
+                            let mut ids = HashSet::new();
+                            self.collect_symbol_ids(symbol, &mut ids);
+                            for id in ids {
+                                // Determine category based on existing knowledge
+                                if grammar.tokens.contains_key(&id) {
+                                    token_symbols.insert(id);
+                                } else if grammar.externals.iter().any(|e| e.symbol_id == id) {
+                                    external_symbols.insert(id);
+                                } else {
+                                    non_terminal_symbols.insert(id);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
         
         // Add external symbols
         for external in &grammar.externals {
-            all_symbols.insert(external.symbol_id);
+            external_symbols.insert(external.symbol_id);
         }
         
-        // Sort for deterministic ordering
-        let mut all_symbols: Vec<_> = all_symbols.into_iter().collect();
-        all_symbols.sort_by_key(|id| id.0);
+        // Sort each category for deterministic ordering
+        let mut token_vec: Vec<_> = token_symbols.into_iter().collect();
+        let mut non_terminal_vec: Vec<_> = non_terminal_symbols.into_iter().collect();
+        let mut external_vec: Vec<_> = external_symbols.into_iter().collect();
         
-        // Assign new IDs in deterministic order
-        for old_id in all_symbols {
+        token_vec.sort_by_key(|id| id.0);
+        non_terminal_vec.sort_by_key(|id| id.0);
+        external_vec.sort_by_key(|id| id.0);
+        
+        // Assign new IDs preserving parse table ordering: tokens first, then non-terminals, then externals
+        eprintln!("DEBUG renumber_symbols: Assigning new IDs");
+        eprintln!("  Tokens: {:?}", token_vec);
+        eprintln!("  Non-terminals: {:?}", non_terminal_vec);
+        eprintln!("  Externals: {:?}", external_vec);
+        
+        for old_id in token_vec {
             if !old_to_new.contains_key(&old_id) {
                 old_to_new.insert(old_id, SymbolId(next_id));
+                eprintln!("  Token {:?} -> {:?}", old_id, SymbolId(next_id));
+                next_id += 1;
+            }
+        }
+        
+        for old_id in non_terminal_vec {
+            if !old_to_new.contains_key(&old_id) {
+                old_to_new.insert(old_id, SymbolId(next_id));
+                eprintln!("  Non-terminal {:?} -> {:?}", old_id, SymbolId(next_id));
+                next_id += 1;
+            }
+        }
+        
+        for old_id in external_vec {
+            if !old_to_new.contains_key(&old_id) {
+                old_to_new.insert(old_id, SymbolId(next_id));
+                eprintln!("  External {:?} -> {:?}", old_id, SymbolId(next_id));
                 next_id += 1;
             }
         }
@@ -713,6 +766,22 @@ impl GrammarOptimizer {
                 external.symbol_id = new_id;
             }
         }
+        
+        // Update extras
+        eprintln!("DEBUG renumber_symbols: Updating extras");
+        eprintln!("  Old extras: {:?}", grammar.extras);
+        grammar.extras = grammar.extras.iter()
+            .filter_map(|&old_id| {
+                if let Some(&new_id) = old_to_new.get(&old_id) {
+                    eprintln!("  Extra {:?} -> {:?}", old_id, new_id);
+                    Some(new_id)
+                } else {
+                    eprintln!("  WARNING: Extra {:?} not found in renumbering map!", old_id);
+                    None
+                }
+            })
+            .collect();
+        eprintln!("  New extras: {:?}", grammar.extras);
     }
 }
 

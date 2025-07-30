@@ -259,72 +259,71 @@ impl<'a> AbiLanguageBuilder<'a> {
         eprintln!("\nDEBUG generate_symbol_metadata: Starting metadata generation");
         eprintln!("  grammar.extras = {:?}", self.grammar.extras);
         
+        // Debug: Check all tokens in the grammar
+        eprintln!("  All tokens in grammar:");
+        for (id, token) in &self.grammar.tokens {
+            eprintln!("    Token {:?}: name='{}', pattern={:?}", id, token.name, token.pattern);
+        }
+        
         // First, find all terminal tokens that should be marked as extras
         let extra_tokens = self.find_extra_tokens();
         eprintln!("  extra_tokens found = {:?}", extra_tokens);
         
-        // Use the symbol registry if available for consistent ordering
-        if let Some(registry) = &self.grammar.symbol_registry {
-            // Generate metadata in registry order
-            for (_name, info) in registry.iter() {
-                let hidden = if info.metadata.terminal {
-                    extra_tokens.contains(&info.id)
-                } else {
-                    false
-                };
-                
-                let supertype = self.grammar.supertypes.contains(&info.id);
-                let meta_byte = create_symbol_metadata(
-                    info.metadata.visible,
-                    info.metadata.named,
-                    hidden,
-                    supertype,
-                    false
-                );
-                metadata.push(quote! { #meta_byte });
+        // Generate metadata in parse table order using symbol_to_index mapping
+        let mut index_to_symbol: Vec<Option<SymbolId>> = vec![None; self.parse_table.symbol_count];
+        for (symbol_id, &index) in &self.parse_table.symbol_to_index {
+            if index < self.parse_table.symbol_count {
+                index_to_symbol[index] = Some(*symbol_id);
             }
-        } else {
-            // Fallback to old behavior if no registry
-            // EOF symbol
-            let eof_meta = create_symbol_metadata(true, false, false, false, false);
-            metadata.push(quote! { #eof_meta });
-            
-            // Tokens
-            let mut tokens: Vec<_> = self.grammar.tokens.iter().collect();
-            tokens.sort_by_key(|(id, _)| id.0);
-        
-        for (id, token) in tokens {
-            let visible = !token.name.starts_with('_');
-            let named = visible && matches!(&token.pattern, TokenPattern::Regex(_));
-            let hidden = extra_tokens.contains(id); // Check if this token is an extra
-            let meta_byte = create_symbol_metadata(visible, named, hidden, false, false);
-            eprintln!("  Token {} (id={:?}): visible={}, named={}, hidden={}, meta_byte={}", 
-                     token.name, id, visible, named, hidden, meta_byte);
-            metadata.push(quote! { #meta_byte });
         }
         
-        // Non-terminals
-        let mut rules: Vec<_> = self.grammar.rules.iter().collect();
-        rules.sort_by_key(|(id, _)| id.0);
-        
-        for &(id, _) in &rules {
-            let name = self.grammar.rule_names.get(id)
-                .cloned()
-                .unwrap_or_else(|| format!("rule_{}", id.0));
-            let visible = !name.starts_with('_');
-            let named = visible;
-            let hidden = false; // Non-terminals are never hidden
-            let supertype = self.grammar.supertypes.contains(id);
-            let meta_byte = create_symbol_metadata(visible, named, hidden, false, supertype);
-            metadata.push(quote! { #meta_byte });
-        }
-        
-            // Externals
-            for external in &self.grammar.externals {
-                let visible = !external.name.starts_with('_');
-                let named = visible;
-                let meta_byte = create_symbol_metadata(visible, named, false, false, false);
-                metadata.push(quote! { #meta_byte });
+        eprintln!("  Generating metadata in parse table order:");
+        for (idx, symbol_id_opt) in index_to_symbol.iter().enumerate() {
+            if let Some(symbol_id) = symbol_id_opt {
+                if symbol_id.0 == 0 {
+                    // EOF symbol
+                    let meta_byte = create_symbol_metadata(true, false, false, false, false);
+                    eprintln!("    Index {}: EOF, metadata={:#x}", idx, meta_byte);
+                    metadata.push(quote! { #meta_byte });
+                } else if let Some(token) = self.grammar.tokens.get(symbol_id) {
+                    // Terminal token
+                    let visible = !token.name.starts_with('_');
+                    let named = visible && matches!(&token.pattern, TokenPattern::Regex(_));
+                    let hidden = extra_tokens.contains(symbol_id);
+                    let meta_byte = create_symbol_metadata(visible, named, hidden, false, false);
+                    eprintln!("    Index {}: Token {} (id={:?}): visible={}, named={}, hidden={}, metadata={:#x}", 
+                             idx, token.name, symbol_id, visible, named, hidden, meta_byte);
+                    metadata.push(quote! { #meta_byte });
+                } else if self.grammar.rules.contains_key(symbol_id) {
+                    // Non-terminal
+                    let name = self.grammar.rule_names.get(symbol_id)
+                        .cloned()
+                        .unwrap_or_else(|| format!("rule_{}", symbol_id.0));
+                    let visible = !name.starts_with('_');
+                    let named = visible;
+                    let hidden = false; // Non-terminals are never hidden
+                    let supertype = self.grammar.supertypes.contains(symbol_id);
+                    let meta_byte = create_symbol_metadata(visible, named, hidden, false, supertype);
+                    eprintln!("    Index {}: Non-terminal {} (id={:?}): visible={}, named={}, supertype={}, metadata={:#x}", 
+                             idx, name, symbol_id, visible, named, supertype, meta_byte);
+                    metadata.push(quote! { #meta_byte });
+                } else if let Some(external) = self.grammar.externals.iter().find(|e| e.symbol_id == *symbol_id) {
+                    // External token
+                    let visible = !external.name.starts_with('_');
+                    let named = visible;
+                    let meta_byte = create_symbol_metadata(visible, named, false, false, false);
+                    eprintln!("    Index {}: External {} (id={:?}): visible={}, named={}, metadata={:#x}", 
+                             idx, external.name, symbol_id, visible, named, meta_byte);
+                    metadata.push(quote! { #meta_byte });
+                } else {
+                    // Unknown symbol - shouldn't happen
+                    eprintln!("    Index {}: WARNING: Unknown symbol id={:?}", idx, symbol_id);
+                    metadata.push(quote! { 0u8 });
+                }
+            } else {
+                // No symbol for this index - shouldn't happen
+                eprintln!("    Index {}: WARNING: No symbol mapped", idx);
+                metadata.push(quote! { 0u8 });
             }
         }
         
@@ -541,6 +540,14 @@ impl<'a> AbiLanguageBuilder<'a> {
         let mut visited = HashSet::new();
         
         eprintln!("DEBUG find_extra_tokens: grammar.extras = {:?}", self.grammar.extras);
+        
+        // Check if any extras directly refer to tokens
+        for &extra_symbol in &self.grammar.extras {
+            if self.grammar.tokens.contains_key(&extra_symbol) {
+                eprintln!("  Extra symbol {:?} is directly a token!", extra_symbol);
+                extra_tokens.insert(extra_symbol);
+            }
+        }
         
         // For each extra symbol, find all terminal tokens it can produce (recursively)
         for &extra_symbol in &self.grammar.extras {

@@ -364,6 +364,7 @@ impl Parser {
             
             // Handle extra tokens (like whitespace)
             if token.is_extra {
+                eprintln!("DEBUG: Skipping extra token symbol={} at position={}", token.symbol, position);
                 // Create extra node and attach it to the previous node on stack
                 let end_point = advance_point(point, &source[position..position + token.length]);
                 let extra_subtree = Subtree {
@@ -523,10 +524,12 @@ impl Parser {
                 let lex_state_ptr = &mut lex_state as *mut _ as *mut c_void;
                 if lex_fn(lex_state_ptr, lex_mode) {
                     let symbol = lex_state.result_symbol;
+                    let is_extra = self.is_extra_symbol(language, symbol);
+                    eprintln!("DEBUG lex_token: lexer returned symbol={}, is_extra={}", symbol, is_extra);
                     return Token {
                         symbol,
                         length: lex_state.result_length,
-                        is_extra: self.is_extra_symbol(language, symbol),
+                        is_extra,
                     };
                 }
             }
@@ -554,7 +557,9 @@ impl Parser {
             if symbol < language.symbol_count as u16 {
                 let metadata = *language.symbol_metadata.add(symbol as usize);
                 // Check if HIDDEN flag is set (0x04)
-                (metadata & 0x04) != 0
+                let is_hidden = (metadata & 0x04) != 0;
+                eprintln!("DEBUG is_extra_symbol: symbol={}, metadata={:#x}, is_hidden={}", symbol, metadata, is_hidden);
+                is_hidden
             } else {
                 false
             }
