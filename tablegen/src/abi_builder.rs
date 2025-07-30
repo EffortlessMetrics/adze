@@ -348,8 +348,11 @@ impl<'a> AbiLanguageBuilder<'a> {
             }
             
             // Add row offsets to map
+            // Note: row_offsets are in terms of entries, but the parse table
+            // uses u16 indices, so we need to multiply by 2
             for &offset in &compressed.action_table.row_offsets {
-                map_data.push(quote! { #offset as u32 });
+                let u16_offset = offset * 2;
+                map_data.push(quote! { #u16_offset as u32 });
             }
             
             (table_data, map_data)
@@ -362,7 +365,10 @@ impl<'a> AbiLanguageBuilder<'a> {
             
             for state_idx in 0..self.parse_table.state_count {
                 // Record the starting offset for this state
+                eprintln!("DEBUG: State {} starts at offset {} (u16 index)", state_idx, current_offset);
                 map_data.push(quote! { #current_offset });
+                
+                eprintln!("DEBUG: Processing state {}", state_idx);
                 
                 // Check if this state has a default reduce action
                 // (all non-error actions are the same reduce action)
@@ -370,6 +376,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 let mut has_non_reduce = false;
                 let mut non_error_actions = Vec::new();
                 
+                eprintln!("DEBUG: State {} iterating through {} symbols", state_idx, self.parse_table.symbol_count);
                 for symbol_idx in 0..self.parse_table.symbol_count {
                     let action = if state_idx < self.parse_table.action_table.len() 
                         && symbol_idx < self.parse_table.action_table[state_idx].len() {
@@ -377,22 +384,26 @@ impl<'a> AbiLanguageBuilder<'a> {
                     } else {
                         &Action::Error
                     };
+                    eprintln!("DEBUG: State {} symbol_idx={} action={:?}", state_idx, symbol_idx, action);
                     
                     match action {
                         Action::Error => continue,
                         Action::Reduce(prod_id) => {
                             non_error_actions.push((symbol_idx, action));
                             if let Some(default_prod) = &default_reduce {
-                                if default_prod != &prod_id {
+                                if default_prod != prod_id {
                                     // Different reduce actions, no default
+                                    eprintln!("DEBUG: State {} has different reduce actions: {:?} vs {:?}", state_idx, default_prod, prod_id);
                                     has_non_reduce = true;
                                 }
                             } else {
-                                default_reduce = Some(prod_id);
+                                eprintln!("DEBUG: State {} setting default_reduce to {:?}", state_idx, prod_id);
+                                default_reduce = Some(prod_id.clone());
                             }
                         }
                         _ => {
                             // Shift, Accept, or Fork - no default reduce
+                            eprintln!("DEBUG: State {} has non-reduce action: {:?}", state_idx, action);
                             has_non_reduce = true;
                             non_error_actions.push((symbol_idx, action));
                         }
@@ -402,7 +413,9 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // If all actions are the same reduce, emit a default reduce entry
                 if let Some(prod_id) = default_reduce {
                     if !has_non_reduce && !non_error_actions.is_empty() {
+                        eprintln!("DEBUG: State {} has default reduce to production {}", state_idx, prod_id.0);
                         // Emit default reduce entry with high bit set in symbol
+                        // The symbol field contains the production ID with high bit set
                         let symbol_with_high_bit = 0x8000u16 | prod_id.0;
                         table_data.push(quote! { #symbol_with_high_bit });
                         table_data.push(quote! { 0u16 }); // action value (unused for default reduce)
@@ -411,22 +424,61 @@ impl<'a> AbiLanguageBuilder<'a> {
                     }
                 }
                 
-                // Add entries for this state (only non-error actions)
-                for (symbol_idx, action) in non_error_actions {
-                    // The parse table already uses indices, not symbol IDs
-                    let symbol_index = symbol_idx as u16;
-                    table_data.push(quote! { #symbol_index });
-                    
-                    if let Ok(encoded) = self.encode_action(action) {
-                        table_data.push(quote! { #encoded });
-                    } else {
-                        table_data.push(quote! { 0u16 });
+                // Check if all non-error actions are the same reduce
+                // This is a more comprehensive check for default reduce
+                let mut all_same_reduce = true;
+                let mut common_reduce = None;
+                for (_, action) in &non_error_actions {
+                    match action {
+                        Action::Reduce(prod_id) => {
+                            if let Some(common) = &common_reduce {
+                                if common != prod_id {
+                                    all_same_reduce = false;
+                                    break;
+                                }
+                            } else {
+                                common_reduce = Some(prod_id.clone());
+                            }
+                        }
+                        _ => {
+                            all_same_reduce = false;
+                            break;
+                        }
                     }
-                    current_offset += 2;
                 }
+                
+                // If all non-error actions are the same reduce, emit a default reduce
+                if all_same_reduce {
+                    if let Some(prod_id) = common_reduce {
+                        eprintln!("DEBUG: State {} has default reduce to production {} (fallback check)", state_idx, prod_id.0);
+                        // Emit default reduce entry with high bit set in symbol
+                        let symbol_with_high_bit = 0x8000u16 | prod_id.0;
+                        table_data.push(quote! { #symbol_with_high_bit });
+                        table_data.push(quote! { 0u16 }); // action value (unused for default reduce)
+                        current_offset += 2;
+                    }
+                } else {
+                    // Add entries for this state (only non-error actions)
+                    eprintln!("DEBUG: State {} has {} non-error actions", state_idx, non_error_actions.len());
+                    for (symbol_idx, action) in non_error_actions {
+                        // The parse table already uses indices, not symbol IDs
+                        let symbol_index = symbol_idx as u16;
+                        table_data.push(quote! { #symbol_index });
+                        
+                        if let Ok(encoded) = self.encode_action(action) {
+                            eprintln!("DEBUG: State {} entry: symbol={}, action={:?}, encoded={}", state_idx, symbol_index, action, encoded);
+                            table_data.push(quote! { #encoded });
+                        } else {
+                            table_data.push(quote! { 0u16 });
+                        }
+                        current_offset += 2;
+                    }
+                }
+                eprintln!("DEBUG: State {} ends at offset {}", state_idx, current_offset);
             }
             
             // Add final offset for end of table
+            eprintln!("DEBUG: Final offset: {}", current_offset);
             map_data.push(quote! { #current_offset });
             
             (table_data, map_data)
