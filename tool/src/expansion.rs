@@ -245,7 +245,41 @@ fn gen_struct_or_variant(
     fields: Fields,
     out: &mut Map<String, Value>,
     word_rule: &mut Option<String>,
-) {
+) -> Option<Value> {
+    // Check if this is a single-leaf variant (enum variant with a single leaf field)
+    if let Fields::Unnamed(fields_unnamed) = &fields {
+        if fields_unnamed.unnamed.len() == 1 {
+            let field = &fields_unnamed.unnamed[0];
+            if let Some(leaf_attrs) = field.attrs.iter().find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf)) {
+                // This is a single-leaf variant - return the token directly
+                let params = leaf_attrs.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated).ok();
+                if let Some(params) = params {
+                    if let Some(pattern) = params.iter()
+                        .find(|param| param.path == "pattern")
+                        .map(|p| p.expr.clone()) {
+                        if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = pattern {
+                            // Return a PATTERN rule directly
+                            return Some(json!({
+                                "type": "PATTERN",
+                                "value": s.value(),
+                            }));
+                        }
+                    } else if let Some(text) = params.iter()
+                        .find(|param| param.path == "text")
+                        .map(|p| p.expr.clone()) {
+                        if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = text {
+                            // Return a STRING rule directly
+                            return Some(json!({
+                                "type": "STRING",
+                                "value": s.value(),
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     fn gen_field_optional(
         path: &str,
         field: &Field,
@@ -390,6 +424,7 @@ fn gen_struct_or_variant(
     };
 
     out.insert(path, rule);
+    None  // Return None for non-single-leaf variants
 }
 
 pub fn generate_grammar(module: &ItemMod) -> Value {
@@ -453,23 +488,28 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
     contents.iter().for_each(|c| {
         let (symbol, attrs) = match c {
             Item::Enum(e) => {
+                let mut members: Vec<Value> = vec![];
+                
                 e.variants.iter().for_each(|v| {
-                    gen_struct_or_variant(
-                        format!("{}_{}", e.ident, v.ident),
+                    let variant_path = format!("{}_{}", e.ident, v.ident);
+                    
+                    // Try to inline single-leaf variants
+                    if let Some(inlined_rule) = gen_struct_or_variant(
+                        variant_path.clone(),
                         v.attrs.clone(),
                         v.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
-                    )
-                });
-
-                let mut members: Vec<Value> = vec![];
-                e.variants.iter().for_each(|v| {
-                    let variant_path = format!("{}_{}", e.ident.clone(), v.ident);
-                    members.push(json!({
-                        "type": "SYMBOL",
-                        "name": variant_path
-                    }))
+                    ) {
+                        // This is a single-leaf variant - use the token directly
+                        members.push(inlined_rule);
+                    } else {
+                        // This is a complex variant - reference the generated rule
+                        members.push(json!({
+                            "type": "SYMBOL",
+                            "name": variant_path
+                        }));
+                    }
                 });
 
                 let rule = json!({
@@ -501,7 +541,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                 }
                 
                 if !is_external {
-                    gen_struct_or_variant(
+                    let _ = gen_struct_or_variant(
                         s.ident.to_string(),
                         s.attrs.clone(),
                         s.fields.clone(),
