@@ -463,6 +463,27 @@ impl ItemSetCollection {
             }
             
             eprintln!("Debug: State {} has {} items, {} shiftable symbols", i, current_set.items.len(), symbols.len());
+            if i == 0 {
+                eprintln!("Debug: State 0 items:");
+                for item in &current_set.items {
+                    if let Some(symbol) = item.next_symbol(grammar) {
+                        let symbol_id = match &symbol {
+                            Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
+                            _ => panic!("Complex symbol"),
+                        };
+                        eprintln!("  Item rule_id={}, position={}, next_symbol={:?} (id={})", 
+                            item.rule_id.0, item.position, symbol, symbol_id.0);
+                    }
+                }
+                eprintln!("Debug: State 0 will create goto entries for:");
+                for symbol in &symbols {
+                    let symbol_id = match symbol {
+                        Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
+                        _ => panic!("Complex symbol"),
+                    };
+                    eprintln!("  Symbol {:?} (id={})", symbol, symbol_id.0);
+                }
+            }
             
             // Compute GOTO for each symbol
             for symbol in symbols {
@@ -495,6 +516,7 @@ impl ItemSetCollection {
                         }
                     };
                     collection.goto_table.insert((current_set.id, symbol_id), target_state);
+                    eprintln!("DEBUG: Added goto({}, {}) = {}", current_set.id.0, symbol_id.0, target_state.0);
                 }
             }
             
@@ -570,8 +592,22 @@ impl ConflictResolver {
             // Collect all possible actions for each symbol in this state
             for item in &item_set.items {
                 if item.is_reduce_item(grammar) {
-                    // Reduce action
-                    let action = if item.rule_id.0 == 0 { // Assuming rule 0 is the augmented start rule
+                    // Check if this is a reduction to the start symbol with EOF lookahead
+                    let mut is_accept = false;
+                    
+                    // Find the rule that corresponds to this rule ID
+                    if let Some(start_symbol) = grammar.start_symbol() {
+                        // Look through all rules to find the one with this rule ID
+                        for rule in grammar.all_rules() {
+                            if rule.production_id.0 == item.rule_id.0 {
+                                // Check if this rule reduces to the start symbol and we have EOF lookahead
+                                is_accept = rule.lhs == start_symbol && item.lookahead == SymbolId(0);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    let action = if is_accept {
                         Action::Accept
                     } else {
                         Action::Reduce(item.rule_id)
@@ -825,6 +861,12 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     // Track conflicts as we build the table
     let mut conflicts_by_state: HashMap<(usize, usize), Vec<Action>> = HashMap::new();
     
+    // Debug: Print goto table entries
+    eprintln!("DEBUG: Collection goto table has {} entries", collection.goto_table.len());
+    for ((from_state, symbol), to_state) in &collection.goto_table {
+        eprintln!("  goto({}, {}) = {}", from_state.0, symbol.0, to_state.0);
+    }
+    
     // Fill action table
     for item_set in &collection.sets {
         let state_idx = item_set.id.0 as usize;
@@ -855,17 +897,21 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
                     // Check if we have a goto entry for this symbol
                     if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id)) {
                         // For terminals, add shift action
-                        // For non-terminals in state 0, also add shift action (needed for start symbol)
-                        if matches!(next_symbol, Symbol::Terminal(_)) || state_idx == 0 {
-                            let new_action = Action::Shift(goto_state);
-                            add_action_with_conflict(
-                                &mut action_table,
-                                &mut conflicts_by_state,
-                                state_idx,
-                                symbol_idx,
-                                new_action
-                            );
-                        }
+                        // For non-terminals, also add shift action (for goto after reduction)
+                        // In a unified table approach, both shifts and gotos are represented as shifts
+                        eprintln!("DEBUG: Adding action for state {} symbol {} (id={}) -> goto state {}", 
+                            state_idx, symbol_idx, symbol_id.0, goto_state.0);
+                        let new_action = Action::Shift(goto_state);
+                        add_action_with_conflict(
+                            &mut action_table,
+                            &mut conflicts_by_state,
+                            state_idx,
+                            symbol_idx,
+                            new_action
+                        );
+                    } else {
+                        eprintln!("DEBUG: No goto entry found for state {} symbol {} (id={})", 
+                            state_idx, symbol_idx, symbol_id.0);
                     }
                 }
             }
@@ -882,7 +928,28 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         }
     }
     
-    // Fill goto table from collection's goto_table
+    // Add all goto entries from collection's goto_table to the action table
+    // This ensures that goto entries are available even if no items have the symbol as next_symbol
+    for ((from_state, symbol), to_state) in &collection.goto_table {
+        if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
+            let state_idx = from_state.0 as usize;
+            if state_idx < action_table.len() && symbol_idx < action_table[state_idx].len() {
+                // Add as a shift action in the unified table
+                let new_action = Action::Shift(*to_state);
+                eprintln!("DEBUG: Adding goto as shift: state {} symbol {} (id={}) -> state {}", 
+                    state_idx, symbol_idx, symbol.0, to_state.0);
+                    
+                // Only add if there's no existing action (to avoid overwriting reduce/accept)
+                if matches!(action_table[state_idx][symbol_idx], Action::Error) {
+                    action_table[state_idx][symbol_idx] = new_action;
+                } else {
+                    eprintln!("DEBUG: Skipping goto - action already exists at [{}, {}]", state_idx, symbol_idx);
+                }
+            }
+        }
+    }
+    
+    // Fill goto table from collection's goto_table (kept for compatibility)
     for ((from_state, symbol), to_state) in &collection.goto_table {
         let from_idx = from_state.0 as usize;
         if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
@@ -1066,7 +1133,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.insert(SymbolId(0), rule);
+        grammar.rules.entry(SymbolId(0)).or_insert_with(Vec::new).push(rule);
         
         // Add the terminal token
         let token = Token {
@@ -1101,7 +1168,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.insert(SymbolId(0), rule);
+        grammar.rules.entry(SymbolId(0)).or_insert_with(Vec::new).push(rule);
         
         let first_follow = FirstFollowSets::compute(&grammar);
         
@@ -1274,7 +1341,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.insert(SymbolId(0), rule);
+        grammar.rules.entry(SymbolId(0)).or_insert_with(Vec::new).push(rule);
         
         // Item at position 0: S -> • a b
         let item1 = LRItem::new(RuleId(0), 0, SymbolId(0));
@@ -1302,7 +1369,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.insert(SymbolId(0), rule);
+        grammar.rules.entry(SymbolId(0)).or_insert_with(Vec::new).push(rule);
         
         // Item at position 0: S -> • a b
         let item1 = LRItem::new(RuleId(0), 0, SymbolId(0));

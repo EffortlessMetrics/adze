@@ -390,8 +390,11 @@ impl Parser {
             
             // Get action for current state and token
             let action = self.get_action(language, current_state, token.symbol);
+            eprintln!("DEBUG: State {}, token symbol={}, action={:?}", current_state, token.symbol, action);
+            eprintln!("DEBUG: Stack size: {}", self.stack.len());
             match action {
                 Action::Shift(next_state) => {
+                    eprintln!("DEBUG: Shifting to state {}", next_state);
                     // Create leaf node
                     let end_point = advance_point(point, &source[position..position + token.length]);
                     let subtree = Subtree {
@@ -418,8 +421,9 @@ impl Parser {
                     position += token.length;
                     point = advance_point(point, &source[position - token.length..position]);
                     
-                    // Break to get next token
-                    break;
+                    eprintln!("DEBUG: Advanced position to {}, continuing to next token", position);
+                    // Don't break here! We need to continue the loop
+                    // break;
                 }
                 
                 Action::Reduce(rule_id) => {
@@ -442,6 +446,7 @@ impl Parser {
                 }
                 
                 Action::Accept => {
+                    eprintln!("DEBUG: Got ACCEPT action!");
                     // Parse successful
                     if let Some(entry) = self.stack.pop() {
                         if let Some(subtree) = entry.subtree {
@@ -578,6 +583,9 @@ impl Parser {
                 (*language.small_parse_table_map.add(language.state_count as usize)) as usize
             };
             
+            eprintln!("DEBUG get_action: state={}, symbol={}, state_offset={}, next_offset={}, entries_count={}", 
+                state, symbol, state_offset, next_offset, next_offset - state_offset);
+            
             // The parse table stores entries as pairs: (symbol, action)
             // Each entry takes 2 u16 values
             let mut offset = state_offset * 2; // Convert from entry index to array index
@@ -587,10 +595,14 @@ impl Parser {
                 let entry_symbol = *language.parse_table.add(offset) as u16;
                 let action_value = *language.parse_table.add(offset + 1) as u16;
                 
+                // Debug output to understand why lookups fail
+                eprintln!("DEBUG get_action: state={}, looking for symbol={}, found entry_symbol={}, action_value={}", 
+                    state, symbol, entry_symbol, action_value);
                 
                 if entry_symbol == symbol {
                     if action_value != 0 {
                         let action = self.decode_action(language, action_value as usize);
+                        eprintln!("DEBUG get_action: MATCH! Returning action: {:?}", action);
                         return action;
                     }
                     break;
@@ -627,15 +639,32 @@ impl Parser {
     
     /// Perform a reduction
     fn reduce(&mut self, language: &TSLanguage, production_id: u16, _source: &[u8]) -> bool {
+        eprintln!("DEBUG reduce: Reducing with production_id={}", production_id);
+        eprintln!("DEBUG reduce: Stack before reduction has {} entries", self.stack.len());
+        for (i, entry) in self.stack.iter().enumerate() {
+            eprintln!("  Stack[{}]: state={}, has_subtree={}", i, entry.state, entry.subtree.is_some());
+        }
+        
         unsafe {
             // Look up the parse action for this production
             if production_id == 0 || production_id >= language.production_id_count as u16 {
+                eprintln!("DEBUG reduce: Invalid production_id");
                 return false;
             }
             
             let action = &*language.parse_actions.add(production_id as usize);
             let child_count = action.child_count as usize;
             let symbol = action.symbol;
+            
+            eprintln!("DEBUG reduce: Production {} reduces to symbol {} with {} children", 
+                production_id, symbol, child_count);
+            
+            // If child_count is 3 but we only have 2 items on stack, something is wrong
+            if child_count > self.stack.len() {
+                eprintln!("DEBUG reduce: ERROR! Need {} children but stack only has {} items", 
+                    child_count, self.stack.len());
+                return false;
+            }
             
             // Check if we have enough stack entries
             if self.stack.len() < child_count {
@@ -695,6 +724,13 @@ impl Parser {
                 production_id,
             };
             
+            // Check if this is the start symbol (source_file)
+            // The start symbol is typically the one that appears on the left side of the start rule
+            // In Tree-sitter, the start symbol is typically called "source_file" or similar
+            // We need to determine this dynamically from the language structure
+            
+            eprintln!("DEBUG reduce: After reduction, stack size would be: {}", self.stack.len());
+            
             // Get the goto state for the reduced symbol
             let prev_state = if let Some(entry) = self.stack.last() {
                 entry.state
@@ -702,11 +738,16 @@ impl Parser {
                 0
             };
             
+            eprintln!("DEBUG reduce: Looking up goto for symbol {} from state {}", symbol, prev_state);
+            
             // Look up goto state using the parse table
             let goto_action = self.get_action(language, prev_state, symbol);
             
+            eprintln!("DEBUG reduce: Goto action: {:?}", goto_action);
+            
             match goto_action {
                 Action::Shift(next_state) => {
+                    eprintln!("DEBUG reduce: Pushing reduced node with state {}", next_state);
                     // Push the reduced node with the goto state
                     self.stack.push(StackEntry {
                         state: next_state,
@@ -716,6 +757,7 @@ impl Parser {
                     true
                 }
                 _ => {
+                    eprintln!("DEBUG reduce: No valid goto found - error!");
                     // If no valid goto found, this is an error
                     false
                 }

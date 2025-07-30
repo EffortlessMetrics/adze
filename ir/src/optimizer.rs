@@ -340,6 +340,9 @@ impl GrammarOptimizer {
         let mut eliminated = 0;
         let mut unit_rules = Vec::new();
 
+        // Get the start symbol to prevent creating terminal productions for it
+        let start_symbol = grammar.start_symbol();
+
         // Find unit rules
         for rule in grammar.all_rules() {
             if rule.rhs.len() == 1 {
@@ -355,6 +358,11 @@ impl GrammarOptimizer {
             if let Symbol::NonTerminal(target) = &unit_rule.rhs[0] {
                 if let Some(target_rules) = grammar.get_rules_for_symbol(*target) {
                     for target_rule in target_rules {
+                        // Skip if this would create a terminal production for the start symbol
+                        if Some(unit_rule.lhs) == start_symbol && target_rule.rhs.iter().any(|s| matches!(s, Symbol::Terminal(_))) {
+                            continue;
+                        }
+                        
                         // Create new rule A -> γ
                         let new_rule = Rule {
                             lhs: unit_rule.lhs,

@@ -12,6 +12,7 @@ mod external_word_example;
 // mod json;
 // mod c_like;
 mod performance_test;
+mod test_whitespace;
 
 fn convert_parse_error_to_diagnostics(
     file_span: &codemap::Span,
@@ -63,6 +64,10 @@ fn convert_parse_error_to_diagnostics(
 }
 
 fn main() {
+    // Run whitespace tests first
+    test_whitespace::test_whitespace_parsing();
+    println!("\n---\n");
+
     let stdin = std::io::stdin();
 
     loop {

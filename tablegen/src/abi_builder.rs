@@ -5,7 +5,7 @@ use crate::abi::*;
 use crate::compress::CompressedTables;
 use rust_sitter_ir::{Grammar, TokenPattern, Symbol, SymbolId};
 use rust_sitter_glr_core::{ParseTable, Action};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -181,67 +181,43 @@ impl<'a> AbiLanguageBuilder<'a> {
         let mut names = Vec::new();
         let mut name_idents = Vec::new();
         
-        // Use the symbol registry if available for consistent ordering
-        if let Some(registry) = &self.grammar.symbol_registry {
-            // Generate names in registry order
-            for (i, (name, _info)) in registry.iter().enumerate() {
-                let ident = quote::format_ident!("SYMBOL_NAME_{}", i);
-                let name_bytes = format!("{}\0", name).into_bytes();
-                names.push(quote! {
-                    static #ident: &[u8] = &[#(#name_bytes),*];
-                });
-                name_idents.push(ident);
+        // Use the parse table's symbol ordering
+        // Create reverse mapping from index to symbol ID
+        let mut index_to_symbol: Vec<Option<SymbolId>> = vec![None; self.parse_table.symbol_count];
+        for (symbol_id, &index) in &self.parse_table.symbol_to_index {
+            if index < self.parse_table.symbol_count {
+                index_to_symbol[index] = Some(*symbol_id);
             }
-        } else {
-            // Fallback to old behavior if no registry
-            // First symbol is always "end" (EOF)
+        }
+        
+        // Generate names in parse table order
+        for (idx, symbol_id_opt) in index_to_symbol.iter().enumerate() {
+            let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
+            
+            let name_str = if let Some(symbol_id) = symbol_id_opt {
+                if symbol_id.0 == 0 {
+                    // EOF symbol
+                    "end".to_string()
+                } else if let Some(token) = self.grammar.tokens.get(symbol_id) {
+                    // Terminal symbol
+                    token.name.clone()
+                } else if let Some(rule_name) = self.grammar.rule_names.get(symbol_id) {
+                    // Non-terminal with explicit name
+                    rule_name.clone()
+                } else {
+                    // Non-terminal without name - generate one
+                    format!("rule_{}", symbol_id.0)
+                }
+            } else {
+                // Should not happen
+                format!("unknown_{}", idx)
+            };
+            
+            let name_bytes = format!("{}\0", name_str).into_bytes();
             names.push(quote! {
-                static SYMBOL_NAME_0: &[u8] = b"end\0";
+                static #ident: &[u8] = &[#(#name_bytes),*];
             });
-            name_idents.push(quote::format_ident!("SYMBOL_NAME_0"));
-            
-            // Sort tokens by ID for deterministic ordering
-            let mut tokens: Vec<_> = self.grammar.tokens.iter().collect();
-            tokens.sort_by_key(|(id, _)| id.0);
-            
-            
-            for (i, (_id, token)) in tokens.iter().enumerate() {
-                let idx = i + 1;
-                let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
-                let name_bytes = format!("{}\0", token.name).into_bytes();
-                names.push(quote! {
-                    static #ident: &[u8] = &[#(#name_bytes),*];
-                });
-                name_idents.push(ident);
-            }
-            
-            // Sort non-terminals by ID
-            let mut rules: Vec<_> = self.grammar.rules.iter().collect();
-            rules.sort_by_key(|(id, _)| id.0);
-            
-            for (i, &(id, _)) in rules.iter().enumerate() {
-                let idx = tokens.len() + i + 1;
-                let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
-                let name = self.grammar.rule_names.get(id)
-                    .cloned()
-                    .unwrap_or_else(|| format!("rule_{}", id.0));
-                let name_bytes = format!("{}\0", name).into_bytes();
-                names.push(quote! {
-                    static #ident: &[u8] = &[#(#name_bytes),*];
-                });
-                name_idents.push(ident);
-            }
-            
-            // Add externals
-            for (i, external) in self.grammar.externals.iter().enumerate() {
-                let idx = tokens.len() + rules.len() + i + 1;
-                let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
-                let name_bytes = format!("{}\0", external.name).into_bytes();
-                names.push(quote! {
-                    static #ident: &[u8] = &[#(#name_bytes),*];
-                });
-                name_idents.push(ident);
-            }
+            name_idents.push(ident);
         }
         
         let ptrs = name_idents.iter().map(|ident| {
@@ -280,8 +256,12 @@ impl<'a> AbiLanguageBuilder<'a> {
     fn generate_symbol_metadata(&self) -> Vec<TokenStream> {
         let mut metadata = Vec::new();
         
+        eprintln!("\nDEBUG generate_symbol_metadata: Starting metadata generation");
+        eprintln!("  grammar.extras = {:?}", self.grammar.extras);
+        
         // First, find all terminal tokens that should be marked as extras
         let extra_tokens = self.find_extra_tokens();
+        eprintln!("  extra_tokens found = {:?}", extra_tokens);
         
         // Use the symbol registry if available for consistent ordering
         if let Some(registry) = &self.grammar.symbol_registry {
@@ -318,6 +298,8 @@ impl<'a> AbiLanguageBuilder<'a> {
             let named = visible && matches!(&token.pattern, TokenPattern::Regex(_));
             let hidden = extra_tokens.contains(id); // Check if this token is an extra
             let meta_byte = create_symbol_metadata(visible, named, hidden, false, false);
+            eprintln!("  Token {} (id={:?}): visible={}, named={}, hidden={}, meta_byte={}", 
+                     token.name, id, visible, named, hidden, meta_byte);
             metadata.push(quote! { #meta_byte });
         }
         
@@ -432,10 +414,16 @@ impl<'a> AbiLanguageBuilder<'a> {
     /// Generate parse actions
     fn generate_parse_actions(&self) -> Vec<TokenStream> {
         // Generate production information for reduce actions
-        let mut actions = Vec::new();
+        // The array must be indexed by production ID, not sequential
         
-        // Add a dummy action at index 0
-        actions.push(quote! {
+        // First, find the maximum production ID to size the array
+        let max_production_id = self.grammar.all_rules()
+            .map(|rule| rule.production_id.0)
+            .max()
+            .unwrap_or(0);
+        
+        // Create array with dummy entries
+        let mut actions = vec![quote! {
             TSParseAction {
                 action_type: 0,
                 extra: 0,
@@ -443,24 +431,23 @@ impl<'a> AbiLanguageBuilder<'a> {
                 dynamic_precedence: 0,
                 symbol: 0,
             }
-        });
+        }; (max_production_id + 1) as usize];
         
-        // Generate actions for each production rule
-        for (symbol_id, rules) in &self.grammar.rules {
-            for rule in rules {
-                let child_count = rule.rhs.len() as u8;
-                let symbol = symbol_id.0;
-                
-                actions.push(quote! {
-                    TSParseAction {
-                        action_type: 1, // Reduce
-                        extra: 0,
-                        child_count: #child_count,
-                        dynamic_precedence: 0,
-                        symbol: #symbol,
-                    }
-                });
-            }
+        // Fill in the actual productions at their correct indices
+        for rule in self.grammar.all_rules() {
+            let index = rule.production_id.0 as usize;
+            let child_count = rule.rhs.len() as u8;
+            let symbol = rule.lhs.0;
+            
+            actions[index] = quote! {
+                TSParseAction {
+                    action_type: 1, // Reduce
+                    extra: 0,
+                    child_count: #child_count,
+                    dynamic_precedence: 0,
+                    symbol: #symbol,
+                }
+            };
         }
         
         actions
@@ -538,14 +525,8 @@ impl<'a> AbiLanguageBuilder<'a> {
     }
     
     fn calculate_symbol_count(&self) -> usize {
-        if let Some(registry) = &self.grammar.symbol_registry {
-            registry.len()
-        } else {
-            1 + // EOF
-            self.grammar.tokens.len() +
-            self.grammar.rules.len() +
-            self.grammar.externals.len()
-        }
+        // Use the parse table's symbol count which is the correct count after processing
+        self.parse_table.symbol_count
     }
     
     fn calculate_production_count(&self) -> usize {
@@ -557,25 +538,64 @@ impl<'a> AbiLanguageBuilder<'a> {
     /// Find all terminal tokens that should be marked as extras
     fn find_extra_tokens(&self) -> HashSet<SymbolId> {
         let mut extra_tokens = HashSet::new();
+        let mut visited = HashSet::new();
         
-        // For each extra non-terminal, find all terminal tokens it can produce
+        eprintln!("DEBUG find_extra_tokens: grammar.extras = {:?}", self.grammar.extras);
+        
+        // For each extra symbol, find all terminal tokens it can produce (recursively)
         for &extra_symbol in &self.grammar.extras {
-            // If it's already a terminal token, add it directly
-            if self.grammar.tokens.contains_key(&extra_symbol) {
-                extra_tokens.insert(extra_symbol);
-            } else if let Some(rules) = self.grammar.rules.get(&extra_symbol) {
-                // For non-terminals, find all terminal tokens in their rules
-                for rule in rules {
-                    for symbol in &rule.rhs {
-                        if let Symbol::Terminal(token_id) = symbol {
-                            extra_tokens.insert(*token_id);
+            eprintln!("  Processing extra symbol: {:?}", extra_symbol);
+            self.find_terminals_recursive(extra_symbol, &mut extra_tokens, &mut visited);
+        }
+        
+        eprintln!("DEBUG find_extra_tokens: result = {:?}", extra_tokens);
+        extra_tokens
+    }
+    
+    /// Recursively find all terminal tokens reachable from a symbol
+    fn find_terminals_recursive(
+        &self,
+        symbol: SymbolId,
+        terminals: &mut HashSet<SymbolId>,
+        visited: &mut HashSet<SymbolId>
+    ) {
+        // Avoid infinite recursion
+        if !visited.insert(symbol) {
+            return;
+        }
+        
+        // If it's a terminal token, add it
+        if self.grammar.tokens.contains_key(&symbol) {
+            eprintln!("    Found terminal: {:?}", symbol);
+            terminals.insert(symbol);
+            return;
+        }
+        
+        // If it's a non-terminal, explore all its rules
+        if let Some(rules) = self.grammar.rules.get(&symbol) {
+            eprintln!("    Exploring non-terminal {:?} with {} rules", symbol, rules.len());
+            for rule in rules {
+                eprintln!("      Rule: {:?} -> {:?}", rule.lhs, rule.rhs);
+                for sym in &rule.rhs {
+                    match sym {
+                        Symbol::Terminal(token_id) => {
+                            eprintln!("        Found terminal in rule: {:?}", token_id);
+                            terminals.insert(*token_id);
+                        }
+                        Symbol::NonTerminal(nt_id) => {
+                            eprintln!("        Recursing into non-terminal: {:?}", nt_id);
+                            self.find_terminals_recursive(*nt_id, terminals, visited);
+                        }
+                        Symbol::External(_) | Symbol::Optional(_) | Symbol::Repeat(_) | 
+                        Symbol::RepeatOne(_) | Symbol::Choice(_) | Symbol::Sequence(_) |
+                        Symbol::Epsilon => {
+                            // These symbol types are not expected in the IR at this stage
+                            eprintln!("        WARNING: Unexpected symbol type in rule: {:?}", sym);
                         }
                     }
                 }
             }
         }
-        
-        extra_tokens
     }
 }
 

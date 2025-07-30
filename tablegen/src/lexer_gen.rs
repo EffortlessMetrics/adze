@@ -20,12 +20,6 @@ pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &HashMap<SymbolId, usi
         .collect();
     tokens.sort_by_key(|(idx, _, _)| *idx);
     
-    // Debug: print token mapping
-    eprintln!("Lexer generation token mapping:");
-    for (idx, id, token) in &tokens {
-        eprintln!("  Token {:?} -> index {}", id, idx);
-    }
-    
     // Generate token matches for each token
     for (idx, _token_id, token) in &tokens {
         let symbol_index = *idx as u16;

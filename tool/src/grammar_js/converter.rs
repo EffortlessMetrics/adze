@@ -393,11 +393,31 @@ impl GrammarJsConverter {
     }
     
     fn find_extra_symbol(&self, rule: &JsRule) -> Option<SymbolId> {
+        eprintln!("DEBUG find_extra_symbol: rule = {:?}", rule);
         match rule {
             JsRule::Symbol { name } => {
-                self.symbol_names.get(name).copied()
+                let result = self.symbol_names.get(name).copied();
+                eprintln!("  Symbol '{}' -> {:?}", name, result);
+                result
             }
-            _ => None
+            JsRule::Pattern { value } => {
+                // Look for a token with matching pattern
+                eprintln!("  Looking for pattern '{}' in tokens", value);
+                // Special handling for whitespace patterns
+                if value.contains(r"\s") {
+                    // Look for the whitespace token we added
+                    if let Some(&id) = self.symbol_names.get("_WHITESPACE") {
+                        eprintln!("    Found whitespace token with id {:?}", id);
+                        return Some(id);
+                    }
+                }
+                eprintln!("  Pattern '{}' not found in tokens", value);
+                None
+            }
+            _ => {
+                eprintln!("  Unhandled rule type");
+                None
+            }
         }
     }
     

@@ -516,6 +516,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
             .iter()
             .any(|a| a.path() == &syn::parse_quote!(rust_sitter::extra))
         {
+            eprintln!("DEBUG expansion: Found rust_sitter::extra on symbol '{}'", symbol);
             extras_list.push(json!({
                 "type": "SYMBOL",
                 "name": symbol
@@ -535,6 +536,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
     // source_file rule already inserted above - don't overwrite it!
 
+    eprintln!("DEBUG expansion: extras_list = {:?}", extras_list);
     let mut grammar = json!({
         "name": grammar_name,
         "word": word_rule,

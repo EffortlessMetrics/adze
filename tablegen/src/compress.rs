@@ -208,7 +208,14 @@ impl TableCompressor {
             index_to_symbol.insert(index, symbol_id);
         }
         
-        for actions in action_table {
+        eprintln!("DEBUG compress: symbol_to_index has {} entries", symbol_to_index.len());
+        eprintln!("DEBUG compress: index_to_symbol mapping:");
+        for i in 0..action_table.first().map(|a| a.len()).unwrap_or(0) {
+            eprintln!("  Index {} -> Symbol {}", i, 
+                index_to_symbol.get(&i).map(|id| id.0).unwrap_or(i as u16));
+        }
+        
+        for (state_idx, actions) in action_table.iter().enumerate() {
             // Find the most common action
             let mut action_counts: HashMap<&Action, usize> = HashMap::new();
             let mut has_shift = false;
@@ -238,6 +245,11 @@ impl TableCompressor {
             default_actions.push(default_action.clone());
             row_offsets.push(entries.len() as u16);
             
+            if state_idx == 0 {
+                eprintln!("DEBUG compress: State 0 actions:");
+                eprintln!("  Default action: {:?}", default_action);
+            }
+            
             for (index, action) in actions.iter().enumerate() {
                 if action == &default_action {
                     continue;
@@ -247,6 +259,10 @@ impl TableCompressor {
                 let symbol_id = index_to_symbol.get(&index)
                     .map(|id| id.0)
                     .unwrap_or(index as u16);
+                
+                if state_idx == 0 {
+                    eprintln!("  Index {} (symbol {}) -> action {:?}", index, symbol_id, action);
+                }
                 
                 entries.push(CompressedActionEntry {
                     symbol: symbol_id,
