@@ -391,8 +391,11 @@ impl Parser {
             
             // Get action for current state and token
             let action = self.get_action(language, current_state, token.symbol);
-            eprintln!("DEBUG: State {}, token symbol={}, action={:?}", current_state, token.symbol, action);
-            eprintln!("DEBUG: Stack size: {}", self.stack.len());
+            // Only log for the first few iterations to avoid spam
+            if position < 10 {
+                eprintln!("DEBUG: Position={}, State={}, token symbol={}, action={:?}", position, current_state, token.symbol, action);
+                eprintln!("DEBUG: Stack size: {}", self.stack.len());
+            }
             match action {
                 Action::Shift(next_state) => {
                     eprintln!("DEBUG: Shifting to state {}", next_state);
@@ -592,9 +595,9 @@ impl Parser {
                 state, symbol, state_offset, next_offset, next_offset - state_offset);
             
             // The parse table stores entries as pairs: (symbol, action)
-            // Each entry takes 2 u16 values
-            let mut offset = state_offset * 2; // Convert from entry index to array index
-            let end_offset = next_offset * 2;
+            // state_offset and next_offset are indices into the parse_table array
+            let mut offset = state_offset as usize;
+            let end_offset = next_offset as usize;
             
             while offset + 1 < end_offset {
                 let entry_symbol = *language.parse_table.add(offset) as u16;
@@ -644,10 +647,12 @@ impl Parser {
     
     /// Perform a reduction
     fn reduce(&mut self, language: &TSLanguage, production_id: u16, _source: &[u8]) -> bool {
-        eprintln!("DEBUG reduce: Reducing with production_id={}", production_id);
-        eprintln!("DEBUG reduce: Stack before reduction has {} entries", self.stack.len());
-        for (i, entry) in self.stack.iter().enumerate() {
-            eprintln!("  Stack[{}]: state={}, has_subtree={}", i, entry.state, entry.subtree.is_some());
+        if production_id < 10 {
+            eprintln!("DEBUG reduce: Reducing with production_id={}", production_id);
+            eprintln!("DEBUG reduce: Stack before reduction has {} entries", self.stack.len());
+            for (i, entry) in self.stack.iter().enumerate() {
+                eprintln!("  Stack[{}]: state={}, has_subtree={}", i, entry.state, entry.subtree.is_some());
+            }
         }
         
         unsafe {

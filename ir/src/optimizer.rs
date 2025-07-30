@@ -648,14 +648,29 @@ impl GrammarOptimizer {
             external_symbols.insert(external.symbol_id);
         }
         
-        // Sort each category for deterministic ordering
+        // Sort each category for deterministic ordering by symbol name
         let mut token_vec: Vec<_> = token_symbols.into_iter().collect();
         let mut non_terminal_vec: Vec<_> = non_terminal_symbols.into_iter().collect();
         let mut external_vec: Vec<_> = external_symbols.into_iter().collect();
         
-        token_vec.sort_by_key(|id| id.0);
-        non_terminal_vec.sort_by_key(|id| id.0);
-        external_vec.sort_by_key(|id| id.0);
+        // Sort by symbol name for deterministic ordering
+        token_vec.sort_by_key(|id| {
+            grammar.tokens.get(id)
+                .map(|t| t.name.clone())
+                .unwrap_or_else(|| format!("_token_{}", id.0))
+        });
+        non_terminal_vec.sort_by_key(|id| {
+            // Try to find the symbol name from rule_names
+            grammar.rule_names.get(id)
+                .cloned()
+                .unwrap_or_else(|| format!("_nt_{}", id.0))
+        });
+        external_vec.sort_by_key(|id| {
+            grammar.externals.iter()
+                .find(|e| e.symbol_id == *id)
+                .map(|e| e.name.clone())
+                .unwrap_or_else(|| format!("_ext_{}", id.0))
+        });
         
         // Assign new IDs preserving parse table ordering: tokens first, then non-terminals, then externals
         eprintln!("DEBUG renumber_symbols: Assigning new IDs");
