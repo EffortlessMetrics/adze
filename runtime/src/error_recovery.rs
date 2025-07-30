@@ -523,6 +523,7 @@ impl ErrorRecoveryState {
 }
 
 #[cfg(test)]
+mod tests2 {
     use super::*;
     
     #[test]

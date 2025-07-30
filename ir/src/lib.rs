@@ -112,7 +112,7 @@ impl Grammar {
         
         // Sort tokens deterministically: underscore-prefixed last
         let mut token_entries: Vec<_> = self.tokens.iter().collect();
-        token_entries.sort_by_key(|(id, token)| {
+        token_entries.sort_by_key(|(_id, token)| {
             let name = &token.name;
             (name.starts_with('_'), name.clone())
         });

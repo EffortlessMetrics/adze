@@ -21,7 +21,7 @@ pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &HashMap<SymbolId, usi
     tokens.sort_by_key(|(idx, _, _)| *idx);
     
     // Generate token matches for each token
-    for (idx, token_id, token) in &tokens {
+    for (idx, _token_id, token) in &tokens {
         // Use the parse table index, not the token ID
         let symbol_index = *idx as u16;
         match &token.pattern {
@@ -84,8 +84,10 @@ pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &HashMap<SymbolId, usi
     
     quote! {
         unsafe extern "C" fn lexer_fn(state_ptr: *mut ::std::ffi::c_void, _lex_mode: TSLexState) -> bool {
-            let state = &mut *(state_ptr as *mut LexerState);
-            let input = std::slice::from_raw_parts(state.input, state.input_len);
+            // SAFETY: state_ptr is guaranteed to be a valid pointer to LexerState by the Tree-sitter runtime
+            let state = unsafe { &mut *(state_ptr as *mut LexerState) };
+            // SAFETY: input pointer and length are provided by Tree-sitter runtime and guaranteed to be valid
+            let input = unsafe { std::slice::from_raw_parts(state.input, state.input_len) };
             let position = state.position;
             
             if position >= input.len() {
