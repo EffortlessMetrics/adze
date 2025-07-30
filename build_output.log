@@ -1,69 +1,54 @@
-warning: variable `rule_id` is assigned to, but never used
-   --> tablegen/src/abi_builder.rs:406:17
+warning: unused variable: `id`
+   --> ir/src/lib.rs:115:37
     |
-406 |         let mut rule_id = 0u16;
-    |                 ^^^^^^^
+115 |         token_entries.sort_by_key(|(id, token)| {
+    |                                     ^^ help: if this is intentional, prefix it with an underscore: `_id`
     |
-    = note: consider using `_rule_id` instead
     = note: `#[warn(unused_variables)]` on by default
+
+warning: `rust-sitter-ir` (lib) generated 1 warning
+warning: `rust-sitter-ir` (lib) generated 1 warning (1 duplicate)
+warning: unused variable: `token_id`
+  --> tablegen/src/lexer_gen.rs:24:15
+   |
+24 |     for (idx, token_id, token) in &tokens {
+   |               ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_token_id`
+   |
+   = note: `#[warn(unused_variables)]` on by default
 
 warning: `rust-sitter-tablegen` (lib) generated 1 warning
-warning: `rust-sitter-tablegen` (lib) generated 1 warning (1 duplicate)
-warning: unused variable: `prev_entry`
-   --> runtime/src/pure_parser.rs:614:25
+warning: unused variable: `extra_subtree`
+   --> runtime/src/pure_parser.rs:370:21
     |
-614 |             if let Some(prev_entry) = self.stack.last() {
-    |                         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_prev_entry`
+370 |                 let extra_subtree = Subtree {
+    |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extra_subtree`
     |
     = note: `#[warn(unused_variables)]` on by default
 
-warning: unused variable: `language`
-   --> runtime/src/pure_parser.rs:586:26
-    |
-586 |     fn reduce(&mut self, language: &TSLanguage, production_id: u16) {
-    |                          ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language`
-
-warning: unused variable: `production_id`
-   --> runtime/src/pure_parser.rs:586:49
-    |
-586 |     fn reduce(&mut self, language: &TSLanguage, production_id: u16) {
-    |                                                 ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_production_id`
-
-warning: unused variable: `state`
-   --> runtime/src/pure_parser.rs:645:54
-    |
-645 |     fn get_goto_state(&self, _language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> TSStateId {
-    |                                                      ^^^^^ help: if this is intentional, prefix it with an underscore: `_state`
-
-warning: unused variable: `symbol`
-   --> runtime/src/pure_parser.rs:645:72
-    |
-645 |     fn get_goto_state(&self, _language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> TSStateId {
-    |                                                                        ^^^^^^ help: if this is intentional, prefix it with an underscore: `_symbol`
-
-warning: unnecessary `unsafe` block
-   --> runtime/src/pure_parser.rs:661:27
-    |
-661 |         let token_count = unsafe { language.token_count as u16 };
-    |                           ^^^^^^ unnecessary `unsafe` block
-    |
-    = note: `#[warn(unused_unsafe)]` on by default
-
 warning: methods `get_production_id` and `get_goto_state` are never used
-   --> runtime/src/pure_parser.rs:634:8
+   --> runtime/src/pure_parser.rs:795:8
     |
 209 | impl Parser {
     | ----------- methods in this implementation
 ...
-634 |     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
+795 |     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
     |        ^^^^^^^^^^^^^^^^^
 ...
-645 |     fn get_goto_state(&self, _language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> TSStateId {
+806 |     fn get_goto_state(&self, _language: &TSLanguage, _state: TSStateId, _symbol: TSSymbol) -> TSStateId {
     |        ^^^^^^^^^^^^^^
     |
     = note: `#[warn(dead_code)]` on by default
 
-warning: `rust-sitter` (lib) generated 7 warnings
+warning: `rust-sitter-tablegen` (lib) generated 1 warning (1 duplicate)
+warning: `rust-sitter` (lib) generated 2 warnings
+warning: unused variable: `grammar_name`
+   --> tool/src/pure_rust_builder.rs:102:9
+    |
+102 |     let grammar_name = grammar_value.get("name")
+    |         ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_grammar_name`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
 warning: function `parse_with_rust_parser` is never used
   --> tool/src/cli/parse.rs:83:8
    |
@@ -84,7 +69,7 @@ warning: function `generate_corpus` is never used
 172 | pub fn generate_corpus(
     |        ^^^^^^^^^^^^^^^
 
-warning: `rust-sitter-tool` (lib) generated 3 warnings
+warning: `rust-sitter-tool` (lib) generated 4 warnings
    Compiling rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)
 warning: unused import: `rust_sitter::Extract`
  --> example/src/external_word_example.rs:3:5
@@ -349,4 +334,4 @@ warning: field `name` is never read
 
 For more information about this error, try `rustc --explain E0133`.
 warning: `rust-sitter-example` (bin "rust-sitter-example") generated 22 warnings (run `cargo fix --bin "rust-sitter-example"` to apply 9 suggestions)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.87s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.48s

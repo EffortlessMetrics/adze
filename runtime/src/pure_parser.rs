@@ -558,10 +558,26 @@ impl Parser {
     fn is_extra_symbol(&self, language: &TSLanguage, symbol: TSSymbol) -> bool {
         unsafe {
             if symbol < language.symbol_count as u16 {
-                let metadata = *language.symbol_metadata.add(symbol as usize);
+                let metadata_ptr = language.symbol_metadata;
+                if metadata_ptr.is_null() {
+                    eprintln!("ERROR: metadata_ptr is NULL!");
+                    return false;
+                }
+                
+                // Debug: print first few metadata bytes
+                if symbol == 3 || symbol == 4 {
+                    eprintln!("DEBUG metadata array dump for symbol {}:", symbol);
+                    for i in 0..std::cmp::min(9, language.symbol_count) {
+                        let byte = *metadata_ptr.add(i as usize);
+                        eprintln!("  metadata[{}] = {:#x}", i, byte);
+                    }
+                }
+                
+                let metadata = *metadata_ptr.add(symbol as usize);
                 // Check if HIDDEN flag is set (0x04)
                 let is_hidden = (metadata & 0x04) != 0;
-                eprintln!("DEBUG is_extra_symbol: symbol={}, metadata={:#x}, is_hidden={}", symbol, metadata, is_hidden);
+                eprintln!("DEBUG is_extra_symbol: symbol={}, metadata_ptr={:p}, offset={}, metadata={:#x}, is_hidden={}", 
+                         symbol, metadata_ptr, symbol as usize, metadata, is_hidden);
                 is_hidden
             } else {
                 false

@@ -278,6 +278,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         }
         
         eprintln!("  Generating metadata in parse table order:");
+        eprintln!("  symbol_to_index mapping: {:?}", self.parse_table.symbol_to_index);
         for (idx, symbol_id_opt) in index_to_symbol.iter().enumerate() {
             if let Some(symbol_id) = symbol_id_opt {
                 if symbol_id.0 == 0 {

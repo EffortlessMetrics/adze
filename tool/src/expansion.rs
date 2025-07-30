@@ -297,7 +297,11 @@ fn gen_struct_or_variant(
                     .ident
                     .as_ref()
                     .map(|v| v.to_string())
-                    .unwrap_or(format!("{i}"));
+                    .unwrap_or_else(|| {
+                        // Generate a deterministic name based on the path and field index
+                        // This ensures consistent naming across builds
+                        format!("{path}_{i}")
+                    });
 
                 Some(gen_field_optional(&path, field, word_rule, out, ident_str))
             }

@@ -21,7 +21,8 @@ pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &HashMap<SymbolId, usi
     tokens.sort_by_key(|(idx, _, _)| *idx);
     
     // Generate token matches for each token
-    for (idx, _token_id, token) in &tokens {
+    for (idx, token_id, token) in &tokens {
+        // Use the parse table index, not the token ID
         let symbol_index = *idx as u16;
         match &token.pattern {
             TokenPattern::String(lit) => {
