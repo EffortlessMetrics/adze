@@ -443,6 +443,27 @@ impl Parser {
                         // Simple recovery: skip token and continue
                         position += token.length;
                         point = advance_point(point, &source[position - token.length..position]);
+                    } else {
+                        // Check if the reduction resulted in accepting the parse
+                        // This happens when we reduce to the root symbol in state 0
+                        if self.stack.len() >= 2 {
+                            let top = &self.stack[self.stack.len() - 1];
+                            let below = &self.stack[self.stack.len() - 2];
+                            
+                            // Check if we have the root symbol (source_file = 8) on top of state 0
+                            if below.state == 0 && top.subtree.is_some() {
+                                if let Some(ref subtree) = top.subtree {
+                                    if subtree.symbol == 8 && token.symbol == 0 { // EOF
+                                        // Parse successful!
+                                        eprintln!("DEBUG: Parse accepted! Root symbol found.");
+                                        return ParseResult {
+                                            root: Some(subtree_to_node(subtree.clone(), Some(language as *const _))),
+                                            errors,
+                                        };
+                                    }
+                                }
+                            }
+                        }
                     }
                     // Important: Don't advance position after reduce!
                     // The same token needs to be processed again with the new state
@@ -678,7 +699,7 @@ impl Parser {
     /// Perform a reduction
     fn reduce(&mut self, language: &TSLanguage, production_id: u16, _source: &[u8]) -> bool {
         if production_id < 10 {
-            eprintln!("DEBUG reduce: Reducing with production_id={}", production_id);
+            eprintln!("DEBUG reduce: Reducing with production_id={} (from parse table)", production_id);
             eprintln!("DEBUG reduce: Stack before reduction has {} entries", self.stack.len());
             for (i, entry) in self.stack.iter().enumerate() {
                 eprintln!("  Stack[{}]: state={}, has_subtree={}", i, entry.state, entry.subtree.is_some());
@@ -686,13 +707,22 @@ impl Parser {
         }
         
         unsafe {
-            // Look up the parse action for this production
-            if production_id == 0 || production_id >= language.production_id_count as u16 {
-                eprintln!("DEBUG reduce: Invalid production_id");
+            // Tree-sitter uses 1-based production IDs in the parse table, but 0-based indexing
+            // in the parse_actions array. So we need to subtract 1.
+            if production_id == 0 {
+                eprintln!("DEBUG reduce: Invalid production_id=0 (production IDs are 1-based)");
                 return false;
             }
             
-            let action = &*language.parse_actions.add(production_id as usize);
+            let production_index = production_id - 1;
+            
+            // Look up the parse action for this production
+            if production_index >= language.production_id_count as u16 {
+                eprintln!("DEBUG reduce: Invalid production_index {} (>= {})", production_index, language.production_id_count);
+                return false;
+            }
+            
+            let action = &*language.parse_actions.add(production_index as usize);
             let child_count = action.child_count as usize;
             let symbol = action.symbol;
             
@@ -779,6 +809,24 @@ impl Parser {
             };
             
             eprintln!("DEBUG reduce: Looking up goto for symbol {} from state {}", symbol, prev_state);
+            
+            // Check if this is an accept condition
+            // In Tree-sitter, when we reduce to the root symbol (typically source_file, which seems to be symbol 8)
+            // and we're in state 0, we should accept
+            let is_root_symbol = symbol == 8;  // source_file is symbol 8 based on the debug output
+            let is_initial_state = prev_state == 0;
+            
+            if is_root_symbol && is_initial_state {
+                eprintln!("DEBUG reduce: Accept condition met - reduced to root symbol {} in state 0", symbol);
+                // This is a successful parse!
+                // Push the final node onto the stack
+                self.stack.push(StackEntry {
+                    state: 0,
+                    subtree: Some(parent),
+                    position: end_byte,
+                });
+                return true;
+            }
             
             // Look up goto state using the parse table
             let goto_action = self.get_action(language, prev_state, symbol);

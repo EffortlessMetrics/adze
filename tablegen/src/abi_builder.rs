@@ -378,18 +378,42 @@ impl<'a> AbiLanguageBuilder<'a> {
                 
                 eprintln!("DEBUG: State {} iterating through {} symbols", state_idx, self.parse_table.symbol_count);
                 for symbol_idx in 0..self.parse_table.symbol_count {
-                    let action = if state_idx < self.parse_table.action_table.len() 
-                        && symbol_idx < self.parse_table.action_table[state_idx].len() {
-                        &self.parse_table.action_table[state_idx][symbol_idx]
+                    // Check if this symbol is a terminal or non-terminal
+                    // For terminals, use action_table; for non-terminals, use goto_table
+                    let is_terminal = symbol_idx < self.parse_table.action_table.get(state_idx).map_or(0, |row| row.len());
+                    
+                    // Create owned action to avoid borrowing issues
+                    let action_owned = if is_terminal {
+                        // Terminal symbol - use action table
+                        if state_idx < self.parse_table.action_table.len() 
+                            && symbol_idx < self.parse_table.action_table[state_idx].len() {
+                            self.parse_table.action_table[state_idx][symbol_idx].clone()
+                        } else {
+                            Action::Error
+                        }
                     } else {
-                        &Action::Error
+                        // Non-terminal symbol - use goto table
+                        let goto_idx = symbol_idx - self.parse_table.action_table.get(state_idx).map_or(0, |row| row.len());
+                        if state_idx < self.parse_table.goto_table.len() 
+                            && goto_idx < self.parse_table.goto_table[state_idx].len() {
+                            let goto_state = self.parse_table.goto_table[state_idx][goto_idx];
+                            if goto_state.0 > 0 {
+                                // Convert goto to a shift action for Tree-sitter compatibility
+                                Action::Shift(goto_state)
+                            } else {
+                                Action::Error
+                            }
+                        } else {
+                            Action::Error
+                        }
                     };
-                    eprintln!("DEBUG: State {} symbol_idx={} action={:?}", state_idx, symbol_idx, action);
+                    let action = &action_owned;
+                    eprintln!("DEBUG: State {} symbol_idx={} is_terminal={} action={:?}", state_idx, symbol_idx, is_terminal, action);
                     
                     match action {
                         Action::Error => continue,
                         Action::Reduce(prod_id) => {
-                            non_error_actions.push((symbol_idx, action));
+                            non_error_actions.push((symbol_idx, action_owned.clone()));
                             if let Some(default_prod) = &default_reduce {
                                 if default_prod != prod_id {
                                     // Different reduce actions, no default
@@ -405,7 +429,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                             // Shift, Accept, or Fork - no default reduce
                             eprintln!("DEBUG: State {} has non-reduce action: {:?}", state_idx, action);
                             has_non_reduce = true;
-                            non_error_actions.push((symbol_idx, action));
+                            non_error_actions.push((symbol_idx, action_owned.clone()));
                         }
                     }
                 }
@@ -465,7 +489,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                         let symbol_index = symbol_idx as u16;
                         table_data.push(quote! { #symbol_index });
                         
-                        if let Ok(encoded) = self.encode_action(action) {
+                        if let Ok(encoded) = self.encode_action(&action) {
                             eprintln!("DEBUG: State {} entry: symbol={}, action={:?}, encoded={}", state_idx, symbol_index, action, encoded);
                             table_data.push(quote! { #encoded });
                         } else {
@@ -489,7 +513,11 @@ impl<'a> AbiLanguageBuilder<'a> {
     fn encode_action(&self, action: &Action) -> Result<u16, String> {
         match action {
             Action::Shift(state) => Ok(state.0),
-            Action::Reduce(rule) => Ok(0x8000 | rule.0), // Don't shift rule ID
+            Action::Reduce(rule) => {
+                // Tree-sitter uses 1-based production IDs in the parse table
+                // So we need to add 1 to the rule ID
+                Ok(0x8000 | (rule.0 + 1))
+            },
             Action::Accept => Ok(0x7FFF),  // Use 0x7FFF for accept to match parser
             Action::Error => Ok(0),         // Use 0 for error to match parser expectation
             Action::Fork(_) => Ok(0),       // Treat fork as error for now
