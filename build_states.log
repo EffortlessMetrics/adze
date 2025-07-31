@@ -1,15 +1,15 @@
    Compiling rust-sitter-glr-core v0.5.0-beta (/home/steven/code/rust-sitter/glr-core)
    Compiling rust-sitter-tablegen v0.5.0-beta (/home/steven/code/rust-sitter/tablegen)
-warning: unused import: `RuleId`
- --> tablegen/src/abi_builder.rs:6:63
-  |
-6 | use rust_sitter_ir::{Grammar, TokenPattern, Symbol, SymbolId, RuleId};
-  |                                                               ^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
    Compiling rust-sitter-tool v0.5.0-beta (/home/steven/code/rust-sitter/tool)
    Compiling rust-sitter v0.5.0-beta (/home/steven/code/rust-sitter/runtime)
+warning: unused variable: `extra_subtree`
+   --> runtime/src/pure_parser.rs:370:21
+    |
+370 |                 let extra_subtree = Subtree {
+    |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extra_subtree`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
 warning: function `parse_with_rust_parser` is never used
   --> tool/src/cli/parse.rs:83:8
    |
@@ -30,15 +30,6 @@ warning: function `generate_corpus` is never used
 172 | pub fn generate_corpus(
     |        ^^^^^^^^^^^^^^^
 
-warning: unused variable: `extra_subtree`
-   --> runtime/src/pure_parser.rs:370:21
-    |
-370 |                 let extra_subtree = Subtree {
-    |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extra_subtree`
-    |
-    = note: `#[warn(unused_variables)]` on by default
-
-warning: `rust-sitter-tablegen` (lib) generated 1 warning (1 duplicate)
 warning: methods `get_production_id` and `get_goto_state` are never used
    --> runtime/src/pure_parser.rs:872:8
     |
@@ -53,7 +44,6 @@ warning: methods `get_production_id` and `get_goto_state` are never used
     |
     = note: `#[warn(dead_code)]` on by default
 
-warning: `rust-sitter-tablegen` (lib) generated 1 warning (run `cargo fix --lib -p rust-sitter-tablegen` to apply 1 suggestion)
 warning: `rust-sitter-tool` (lib) generated 3 warnings
    Compiling rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)
 warning: `rust-sitter` (lib) generated 2 warnings
@@ -157,4 +147,4 @@ warning: field `name` is never read
    |         ^^^^
 
 warning: `rust-sitter-example` (bin "rust-sitter-example") generated 8 warnings (run `cargo fix --bin "rust-sitter-example"` to apply 2 suggestions)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.99s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.38s

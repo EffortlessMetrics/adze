@@ -8,8 +8,32 @@ warning: unused import: `RuleId`
   |
   = note: `#[warn(unused_imports)]` on by default
 
-   Compiling rust-sitter-tool v0.5.0-beta (/home/steven/code/rust-sitter/tool)
    Compiling rust-sitter v0.5.0-beta (/home/steven/code/rust-sitter/runtime)
+   Compiling rust-sitter-tool v0.5.0-beta (/home/steven/code/rust-sitter/tool)
+warning: `rust-sitter-tablegen` (lib) generated 1 warning (run `cargo fix --lib -p rust-sitter-tablegen` to apply 1 suggestion)
+warning: `rust-sitter-tablegen` (lib) generated 1 warning (1 duplicate)
+warning: unused variable: `extra_subtree`
+   --> runtime/src/pure_parser.rs:370:21
+    |
+370 |                 let extra_subtree = Subtree {
+    |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extra_subtree`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: methods `get_production_id` and `get_goto_state` are never used
+   --> runtime/src/pure_parser.rs:872:8
+    |
+209 | impl Parser {
+    | ----------- methods in this implementation
+...
+872 |     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
+    |        ^^^^^^^^^^^^^^^^^
+...
+883 |     fn get_goto_state(&self, _language: &TSLanguage, _state: TSStateId, _symbol: TSSymbol) -> TSStateId {
+    |        ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
 warning: function `parse_with_rust_parser` is never used
   --> tool/src/cli/parse.rs:83:8
    |
@@ -30,30 +54,6 @@ warning: function `generate_corpus` is never used
 172 | pub fn generate_corpus(
     |        ^^^^^^^^^^^^^^^
 
-warning: unused variable: `extra_subtree`
-   --> runtime/src/pure_parser.rs:370:21
-    |
-370 |                 let extra_subtree = Subtree {
-    |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extra_subtree`
-    |
-    = note: `#[warn(unused_variables)]` on by default
-
-warning: `rust-sitter-tablegen` (lib) generated 1 warning (1 duplicate)
-warning: methods `get_production_id` and `get_goto_state` are never used
-   --> runtime/src/pure_parser.rs:872:8
-    |
-209 | impl Parser {
-    | ----------- methods in this implementation
-...
-872 |     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
-    |        ^^^^^^^^^^^^^^^^^
-...
-883 |     fn get_goto_state(&self, _language: &TSLanguage, _state: TSStateId, _symbol: TSSymbol) -> TSStateId {
-    |        ^^^^^^^^^^^^^^
-    |
-    = note: `#[warn(dead_code)]` on by default
-
-warning: `rust-sitter-tablegen` (lib) generated 1 warning (run `cargo fix --lib -p rust-sitter-tablegen` to apply 1 suggestion)
 warning: `rust-sitter-tool` (lib) generated 3 warnings
    Compiling rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)
 warning: `rust-sitter` (lib) generated 2 warnings
@@ -157,4 +157,4 @@ warning: field `name` is never read
    |         ^^^^
 
 warning: `rust-sitter-example` (bin "rust-sitter-example") generated 8 warnings (run `cargo fix --bin "rust-sitter-example"` to apply 2 suggestions)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.99s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.41s

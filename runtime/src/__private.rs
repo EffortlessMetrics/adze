@@ -212,8 +212,18 @@ pub fn parse<T: Extract<T>>(
 
         Err(errors)
     } else {
+        // Check if the root node is source_file wrapper
+        // In the augmented grammar, we have S' -> source_file -> actual_language_root
+        let extract_node = if root_node.symbol == 8 && root_node.children.len() == 1 {
+            // This is source_file, extract from its first child
+            &root_node.children[0]
+        } else {
+            // Extract from root directly
+            &root_node
+        };
+        
         Ok(<T as crate::Extract<_>>::extract(
-            Some(&root_node),
+            Some(extract_node),
             input.as_bytes(),
             0,
             None,

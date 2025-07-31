@@ -3,7 +3,7 @@
 
 use crate::abi::*;
 use crate::compress::CompressedTables;
-use rust_sitter_ir::{Grammar, TokenPattern, Symbol, SymbolId, RuleId};
+use rust_sitter_ir::{Grammar, TokenPattern, Symbol, SymbolId};
 use rust_sitter_glr_core::{ParseTable, Action};
 use std::collections::HashSet;
 use proc_macro2::TokenStream;
@@ -547,7 +547,28 @@ impl<'a> AbiLanguageBuilder<'a> {
             },
             Action::Accept => Ok(0x7FFF),  // Use 0x7FFF for accept to match parser
             Action::Error => Ok(0),         // Use 0 for error to match parser expectation
-            Action::Fork(_) => Ok(0),       // Treat fork as error for now
+            Action::Fork(actions) => {
+                // For Fork actions, we need to choose one action from the fork
+                // For now, let's prefer reduce actions over shift actions
+                // This is a simplified conflict resolution strategy
+                
+                // First, try to find a reduce action
+                for action in actions {
+                    if let Action::Reduce(_) = action {
+                        return self.encode_action(action);
+                    }
+                }
+                
+                // If no reduce action, take the first non-error action
+                for action in actions {
+                    if !matches!(action, Action::Error) {
+                        return self.encode_action(action);
+                    }
+                }
+                
+                // If all actions are errors (shouldn't happen), return error
+                Ok(0)
+            }
         }
     }
     

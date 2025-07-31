@@ -2,10 +2,10 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use rust_sitter_ir::{Grammar, TokenPattern, SymbolId};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Generate a simple lexer function for the grammar
-pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &HashMap<SymbolId, usize>) -> TokenStream {
+pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &BTreeMap<SymbolId, usize>) -> TokenStream {
     // Collect all tokens and their patterns
     let mut token_matches = Vec::new();
     

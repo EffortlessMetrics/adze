@@ -5,7 +5,7 @@ use fixedbitset::FixedBitSet;
 use indexmap::IndexMap;
 use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub mod advanced_conflict;
 pub mod version_info;
@@ -252,7 +252,7 @@ impl FirstFollowSets {
 }
 
 /// LR(1) item for GLR parsing
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LRItem {
     pub rule_id: RuleId,
     pub position: usize,
@@ -290,14 +290,14 @@ impl LRItem {
 /// Set of LR(1) items representing a parser state
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ItemSet {
-    pub items: HashSet<LRItem>,
+    pub items: BTreeSet<LRItem>,
     pub id: StateId,
 }
 
 impl ItemSet {
     pub fn new(id: StateId) -> Self {
         Self {
-            items: HashSet::new(),
+            items: BTreeSet::new(),
             id,
         }
     }
@@ -395,6 +395,123 @@ pub struct ItemSetCollection {
 }
 
 impl ItemSetCollection {
+    /// Build canonical collection of LR(1) item sets for augmented grammar
+    pub fn build_canonical_collection_augmented(
+        grammar: &Grammar, 
+        first_follow: &FirstFollowSets,
+        augmented_start: SymbolId,
+        original_start: SymbolId,
+    ) -> Self {
+        let mut collection = Self {
+            sets: Vec::new(),
+            goto_table: IndexMap::new(),
+        };
+
+        // Create initial state with the augmented start rule S' -> S $
+        let mut initial_set = ItemSet::new(StateId(0));
+        
+        // Find the augmented start rule
+        if let Some(augmented_rules) = grammar.get_rules_for_symbol(augmented_start) {
+            eprintln!("Debug: Found {} augmented start rules", augmented_rules.len());
+            for rule in augmented_rules {
+                // Add S' -> • S with lookahead $ (EOF)
+                let start_item = LRItem::new(
+                    RuleId(rule.production_id.0),
+                    0,
+                    SymbolId(0), // EOF symbol
+                );
+                initial_set.add_item(start_item);
+                eprintln!("Debug: Added augmented start item: rule_id={}, position=0, lookahead=0", rule.production_id.0);
+            }
+        }
+        
+        // Compute closure
+        initial_set.closure(grammar, first_follow);
+        
+        eprintln!("Debug: Initial set after closure has {} items", initial_set.items.len());
+        for item in &initial_set.items {
+            eprintln!("Debug:   Item: rule_id={}, position={}, lookahead={}", 
+                item.rule_id.0, item.position, item.lookahead.0);
+        }
+        
+        collection.sets.push(initial_set);
+        let mut state_counter = 1;
+
+        // Build all reachable states (same as before)
+        let mut i = 0;
+        while i < collection.sets.len() {
+            let current_set = collection.sets[i].clone();
+            
+            // Debug: Print all items in this state
+            eprintln!("\n=== State {} ===", i);
+            for item in &current_set.items {
+                if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
+                    let mut rhs_str = String::new();
+                    for (idx, sym) in rule.rhs.iter().enumerate() {
+                        if idx == item.position {
+                            rhs_str.push_str(" • ");
+                        }
+                        rhs_str.push_str(&format!("{:?} ", sym));
+                    }
+                    if item.position == rule.rhs.len() {
+                        rhs_str.push_str(" • ");
+                    }
+                    eprintln!("  [{}] {:?} -> {} , lookahead={}", 
+                        item.rule_id.0, rule.lhs, rhs_str, item.lookahead.0);
+                }
+            }
+            
+            // Find all symbols that can be shifted from this state
+            let mut symbols = BTreeSet::new();
+            for item in &current_set.items {
+                if let Some(symbol) = item.next_symbol(grammar) {
+                    symbols.insert(symbol.clone());
+                }
+            }
+            
+            eprintln!("  Shiftable symbols: {} total", symbols.len());
+            
+            // Compute GOTO for each symbol
+            for symbol in symbols {
+                let goto_set = current_set.goto(&symbol, grammar, first_follow);
+                
+                if !goto_set.items.is_empty() {
+                    // Check if this set already exists
+                    let existing_state = collection.sets.iter()
+                        .find(|set| set.items == goto_set.items)
+                        .map(|set| set.id);
+                    
+                    let target_state = if let Some(existing_id) = existing_state {
+                        existing_id
+                    } else {
+                        // Add new state
+                        let new_id = StateId(state_counter);
+                        let mut new_set = goto_set;
+                        new_set.id = new_id;
+                        collection.sets.push(new_set);
+                        state_counter += 1;
+                        new_id
+                    };
+                    
+                    // Add to GOTO table
+                    let symbol_id = match symbol {
+                        Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
+                        Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
+                        Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                            panic!("Complex symbols should be normalized before LR item generation");
+                        }
+                    };
+                    collection.goto_table.insert((current_set.id, symbol_id), target_state);
+                    eprintln!("DEBUG: Added goto({}, {}) = {}", current_set.id.0, symbol_id.0, target_state.0);
+                }
+            }
+            
+            i += 1;
+        }
+
+        collection
+    }
+    
     /// Build canonical collection of LR(1) item sets
     pub fn build_canonical_collection(grammar: &Grammar, first_follow: &FirstFollowSets) -> Self {
         let mut collection = Self {
@@ -454,15 +571,34 @@ impl ItemSetCollection {
         while i < collection.sets.len() {
             let current_set = collection.sets[i].clone();
             
+            // Debug: Print all items in this state
+            eprintln!("\n=== State {} ===", i);
+            for item in &current_set.items {
+                if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
+                    let mut rhs_str = String::new();
+                    for (idx, sym) in rule.rhs.iter().enumerate() {
+                        if idx == item.position {
+                            rhs_str.push_str(" • ");
+                        }
+                        rhs_str.push_str(&format!("{:?} ", sym));
+                    }
+                    if item.position == rule.rhs.len() {
+                        rhs_str.push_str(" • ");
+                    }
+                    eprintln!("  [{}] {:?} -> {} , lookahead={}", 
+                        item.rule_id.0, rule.lhs, rhs_str, item.lookahead.0);
+                }
+            }
+            
             // Find all symbols that can be shifted from this state
-            let mut symbols = HashSet::new();
+            let mut symbols = BTreeSet::new();
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
                     symbols.insert(symbol.clone());
                 }
             }
             
-            eprintln!("Debug: State {} has {} items, {} shiftable symbols", i, current_set.items.len(), symbols.len());
+            eprintln!("  Shiftable symbols: {} total", symbols.len());
             if i == 0 {
                 eprintln!("Debug: State 0 items:");
                 for item in &current_set.items {
@@ -535,7 +671,7 @@ pub struct ParseTable {
     pub symbol_metadata: Vec<SymbolMetadata>,
     pub state_count: usize,
     pub symbol_count: usize,
-    pub symbol_to_index: HashMap<SymbolId, usize>,
+    pub symbol_to_index: BTreeMap<SymbolId, usize>,
 }
 
 /// Actions in GLR parse table (supporting multiple actions per state)
@@ -778,13 +914,59 @@ pub enum GLRError {
     StateMachine(String),
 }
 
+/// Check if a symbol can derive the start symbol through unit productions
+fn can_derive_start(grammar: &Grammar, symbol: SymbolId, start: SymbolId) -> bool {
+    if symbol == start {
+        return true;
+    }
+    
+    // Check if there's a rule symbol -> start
+    if let Some(rules) = grammar.get_rules_for_symbol(symbol) {
+        for rule in rules {
+            if rule.rhs.len() == 1 {
+                if let Symbol::NonTerminal(target) = &rule.rhs[0] {
+                    if *target == start {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    
+    false
+}
+
 /// Build LR(1) automaton (parse table) from grammar
 pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) -> Result<ParseTable, GLRError> {
-    // Build canonical collection of LR(1) item sets
-    let collection = ItemSetCollection::build_canonical_collection(grammar, first_follow);
+    // Create augmented grammar with S' -> S $ rule
+    let mut augmented_grammar = grammar.clone();
+    
+    // Find the original start symbol
+    let original_start = grammar.start_symbol()
+        .ok_or_else(|| GLRError::GrammarError(GrammarError::UnresolvedSymbol(SymbolId(0))))?;
+    
+    // Create a new start symbol S' with a high ID that won't conflict
+    let augmented_start = SymbolId(65535); // High ID to avoid conflicts
+    
+    // Add S' -> S rule (we'll handle $ implicitly in the LR construction)
+    let augmented_rule = Rule {
+        lhs: augmented_start,
+        rhs: vec![Symbol::NonTerminal(original_start)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(65535), // High ID to avoid conflicts
+    };
+    augmented_grammar.rules.insert(augmented_start, vec![augmented_rule]);
+    augmented_grammar.rule_names.insert(augmented_start, "$start".to_string());
+    
+    eprintln!("DEBUG: Added augmented start rule: {} -> {}", augmented_start.0, original_start.0);
+    
+    // Build canonical collection of LR(1) item sets with augmented grammar
+    let collection = ItemSetCollection::build_canonical_collection_augmented(&augmented_grammar, first_follow, augmented_start, original_start);
     
     // Create mapping from symbol IDs to table indices
-    let mut symbol_to_index = HashMap::new();
+    let mut symbol_to_index = BTreeMap::new();
     let mut max_symbol_id = 0u16;
     
     // IMPORTANT: EOF symbol (ID 0) must always have index 0 in Tree-sitter
@@ -808,7 +990,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     token_symbols.sort_by_key(|s| s.0);
     
     // Collect non-terminal symbols (LHS of rules)
-    let mut non_terminals_set = HashSet::new();
+    let mut non_terminals_set = BTreeSet::new();
     for rule in grammar.all_rules() {
         non_terminals_set.insert(rule.lhs);
     }
@@ -859,7 +1041,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
     let mut goto_table = vec![vec![StateId(0); indexed_symbol_count]; state_count];
     
     // Track conflicts as we build the table
-    let mut conflicts_by_state: HashMap<(usize, usize), Vec<Action>> = HashMap::new();
+    let mut conflicts_by_state: BTreeMap<(usize, usize), Vec<Action>> = BTreeMap::new();
     
     // Debug: Print goto table entries
     eprintln!("DEBUG: Collection goto table has {} entries", collection.goto_table.len());
@@ -872,23 +1054,40 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         let state_idx = item_set.id.0 as usize;
         
         for item in &item_set.items {
-            if item.is_reduce_item(grammar) {
-                // Add reduce action
-                if let Some(&lookahead_idx) = symbol_to_index.get(&item.lookahead) {
-                    let new_action = Action::Reduce(item.rule_id);
-                    add_action_with_conflict(
-                        &mut action_table,
-                        &mut conflicts_by_state,
-                        state_idx,
-                        lookahead_idx,
-                        new_action
-                    );
-                    
-                    // Debug: Log reduce actions being added
-                    eprintln!("DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}", 
-                        state_idx, lookahead_idx, item.lookahead.0, item.rule_id.0);
+            if item.is_reduce_item(&augmented_grammar) {
+                // Check if this is a reduce by the augmented start rule
+                if let Some(rule) = augmented_grammar.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
+                    if rule.lhs == augmented_start && item.lookahead == SymbolId(0) {
+                        // This is S' -> S • with lookahead $, add accept action
+                        if let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0)) {
+                            eprintln!("DEBUG: State {} - Adding ACCEPT action for EOF", state_idx);
+                            add_action_with_conflict(
+                                &mut action_table,
+                                &mut conflicts_by_state,
+                                state_idx,
+                                eof_idx,
+                                Action::Accept
+                            );
+                        }
+                    } else {
+                        // Regular reduce action
+                        if let Some(&lookahead_idx) = symbol_to_index.get(&item.lookahead) {
+                            let new_action = Action::Reduce(item.rule_id);
+                            add_action_with_conflict(
+                                &mut action_table,
+                                &mut conflicts_by_state,
+                                state_idx,
+                                lookahead_idx,
+                                new_action
+                            );
+                            
+                            // Debug: Log reduce actions being added
+                            eprintln!("DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}", 
+                                state_idx, lookahead_idx, item.lookahead.0, item.rule_id.0);
+                        }
+                    }
                 }
-            } else if let Some(next_symbol) = item.next_symbol(grammar) {
+            } else if let Some(next_symbol) = item.next_symbol(&augmented_grammar) {
                 let symbol_id = match &next_symbol {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
                     Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
@@ -946,8 +1145,10 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
                 // Only add if there's no existing action (to avoid overwriting reduce/accept)
                 if matches!(action_table[state_idx][symbol_idx], Action::Error) {
                     action_table[state_idx][symbol_idx] = new_action;
+                    eprintln!("DEBUG: Successfully added goto entry to action table at [{}, {}]", state_idx, symbol_idx);
                 } else {
-                    eprintln!("DEBUG: Skipping goto - action already exists at [{}, {}]", state_idx, symbol_idx);
+                    eprintln!("DEBUG: Skipping goto - action already exists at [{}, {}]: {:?}", 
+                        state_idx, symbol_idx, action_table[state_idx][symbol_idx]);
                 }
             }
         }
@@ -961,61 +1162,34 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         }
     }
     
-    // Post-process: Ensure states that can end valid parses have EOF reduce actions
-    // This is a workaround for cases where the LR construction misses some EOF reductions
+    // Post-process is no longer needed with proper augmentation
+    // The accept action is added when we see S' -> S • with EOF lookahead
+    
+    // But we still need to handle the original grammar's symbol mapping
     if let Some(start_symbol) = grammar.start_symbol() {
-        eprintln!("DEBUG: Post-processing for start symbol {:?}", start_symbol);
+        eprintln!("DEBUG: Start symbol is {:?}", start_symbol);
         
-        // First pass: identify states that need EOF reduce actions
-        let mut states_needing_eof = Vec::new();
-        
-        for (state_idx, state_actions) in action_table.iter().enumerate() {
-            // Check if this state has only error actions
-            let has_only_errors = state_actions.iter().all(|a| matches!(a, Action::Error));
+        // Find all states and check if they need EOF reduce actions
+        for (state_idx, item_set) in collection.sets.iter().enumerate() {
+            // Check if this state contains only items that have completed a rule
+            // that could be a valid parse ending
+            let mut needs_eof_reduce = false;
+            let mut reduce_rule_id = None;
             
-            if has_only_errors {
-                eprintln!("DEBUG: State {} has only error actions - checking if it needs EOF handling", state_idx);
-                
-                // Check if any state can shift to this state via a non-terminal that reduces to start
-                // This is a heuristic approach
-                let mut needs_eof_reduce = false;
-                
-                // Look for states that shift to this state
-                for (prev_state_idx, prev_actions) in action_table.iter().enumerate() {
-                    for (symbol_idx, action) in prev_actions.iter().enumerate() {
-                        if let Action::Shift(target) = action {
-                            if target.0 as usize == state_idx {
-                                // Check if the symbol is a non-terminal that can reduce to start
-                                if let Some(symbol_id) = symbol_to_index.iter()
-                                    .find(|&(_, &idx)| idx == symbol_idx)
-                                    .map(|(id, _)| id) {
-                                    eprintln!("  State {} can be reached from state {} via symbol {:?}", 
-                                        state_idx, prev_state_idx, symbol_id);
-                                    
-                                    // If this is a non-terminal that can be the start symbol
-                                    if !grammar.tokens.contains_key(symbol_id) {
-                                        needs_eof_reduce = true;
-                                    }
-                                }
-                            }
+            // Skip this post-processing - handled by augmentation
+            needs_eof_reduce = false;
+            reduce_rule_id = None;
+            
+            // If we found a reduce item that needs EOF action, ensure it's in the action table
+            if needs_eof_reduce {
+                if let Some(rule_id) = reduce_rule_id {
+                    if let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0)) {
+                        // Check if EOF action already exists
+                        if matches!(action_table[state_idx][eof_idx], Action::Error) {
+                            eprintln!("  Adding missing EOF reduce action to state {}", state_idx);
+                            action_table[state_idx][eof_idx] = Action::Reduce(rule_id);
                         }
                     }
-                }
-                
-                if needs_eof_reduce {
-                    states_needing_eof.push(state_idx);
-                }
-            }
-        }
-        
-        // Second pass: add EOF reduce actions to identified states
-        for state_idx in states_needing_eof {
-            eprintln!("  Adding EOF reduce action to state {}", state_idx);
-            // Add a reduce action to the start symbol
-            // This is a heuristic - find a rule that reduces to start
-            if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
-                if let Some(rule) = start_rules.first() {
-                    action_table[state_idx][0] = Action::Reduce(RuleId(rule.production_id.0));
                 }
             }
         }
@@ -1069,7 +1243,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
 /// Add an action to the parse table, tracking conflicts
 fn add_action_with_conflict(
     action_table: &mut Vec<Vec<Action>>,
-    conflicts_by_state: &mut HashMap<(usize, usize), Vec<Action>>,
+    conflicts_by_state: &mut BTreeMap<(usize, usize), Vec<Action>>,
     state_idx: usize,
     symbol_idx: usize,
     new_action: Action,
@@ -1145,7 +1319,7 @@ mod tests {
         assert_ne!(item1, item3);
         
         // Test hashing
-        let mut set = std::collections::HashSet::new();
+        let mut set = std::collections::BTreeSet::new();
         set.insert(item1.clone());
         assert!(set.contains(&item1));
         assert!(set.contains(&item2));
@@ -1381,7 +1555,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 3,
             symbol_count: 5,
-            symbol_to_index: HashMap::new(),
+            symbol_to_index: BTreeMap::new(),
         };
         
         assert_eq!(parse_table.state_count, 3);

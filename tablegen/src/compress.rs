@@ -1,6 +1,6 @@
 use rust_sitter_glr_core::{ParseTable, Action};
 use rust_sitter_ir::{SymbolId, StateId};
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use crate::TableGenError;
 
 /// Compressed parse table representation
@@ -197,7 +197,7 @@ impl TableCompressor {
     }
     
     /// Compress action table using Tree-sitter's small table format
-    pub fn compress_action_table_small(&self, action_table: &[Vec<Action>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
+    pub fn compress_action_table_small(&self, action_table: &[Vec<Action>], symbol_to_index: &BTreeMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
         let mut default_actions = Vec::new();
