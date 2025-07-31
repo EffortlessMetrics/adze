@@ -628,20 +628,35 @@ impl Parser {
                 (*language.small_parse_table_map.add(language.state_count as usize)) as usize
             };
             
+            let byte_count = next_offset - state_offset;
+            let entries_count = byte_count / 2; // Each entry is 2 bytes (symbol + action)
             eprintln!("DEBUG get_action: state={}, symbol={}, state_offset={}, next_offset={}, entries_count={}", 
-                state, symbol, state_offset, next_offset, next_offset - state_offset);
+                state, symbol, state_offset, next_offset, entries_count);
             
             // The parse table stores entries as pairs: (symbol, action)
             // state_offset and next_offset are indices into the parse_table array
             let mut offset = state_offset as usize;
             let end_offset = next_offset as usize;
             
+            // Debug: print all entries for this state
+            eprintln!("DEBUG get_action: All entries for state {}:", state);
+            let mut debug_offset = state_offset as usize;
+            let mut entry_num = 0;
+            while debug_offset + 1 < end_offset {
+                let debug_symbol = *language.parse_table.add(debug_offset) as u16;
+                let debug_action = *language.parse_table.add(debug_offset + 1) as u16;
+                eprintln!("  Entry {}: offset={}, symbol={:#x}, action={:#x}", 
+                    entry_num, debug_offset, debug_symbol, debug_action);
+                debug_offset += 2;
+                entry_num += 1;
+            }
+            
             while offset + 1 < end_offset {
                 let entry_symbol = *language.parse_table.add(offset) as u16;
                 let action_value = *language.parse_table.add(offset + 1) as u16;
                 
                 // Debug output to understand why lookups fail
-                eprintln!("DEBUG get_action: state={}, looking for symbol={}, found entry_symbol={}, action_value={}", 
+                eprintln!("DEBUG get_action: state={}, looking for symbol={}, found entry_symbol={:#x}, action_value={:#x}", 
                     state, symbol, entry_symbol, action_value);
                 
                 // Check if this is a default reduce entry

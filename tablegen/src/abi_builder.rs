@@ -3,7 +3,7 @@
 
 use crate::abi::*;
 use crate::compress::CompressedTables;
-use rust_sitter_ir::{Grammar, TokenPattern, Symbol, SymbolId};
+use rust_sitter_ir::{Grammar, TokenPattern, Symbol, SymbolId, RuleId};
 use rust_sitter_glr_core::{ParseTable, Action};
 use std::collections::HashSet;
 use proc_macro2::TokenStream;
@@ -505,19 +505,29 @@ impl<'a> AbiLanguageBuilder<'a> {
                         current_offset += 2;
                     }
                 } else {
+                    eprintln!("DEBUG: State {} NOT using default reduce, all_same_reduce={}", state_idx, all_same_reduce);
                     // Add entries for this state (only non-error actions)
                     eprintln!("DEBUG: State {} has {} non-error actions", state_idx, non_error_actions.len());
                     
-                    // Special handling for states that contain Expression variants - add reduce action to source_file
-                    if state_idx == 1 || state_idx == 2 {
-                        eprintln!("DEBUG: Adding special reduce action for state {}", state_idx);
-                        // These states are reached after reducing to Expression variants
-                        // We need to add a reduce action for EOF (symbol 0) to convert to source_file
-                        table_data.push(quote! { 0u16 }); // symbol 0 (EOF)
-                        // Use production 8 which reduces to source_file
-                        let encoded = 0x8000 | 8; // Reduce action with production 8
-                        table_data.push(quote! { #encoded });
-                        current_offset += 2;
+                    // For states that need special EOF handling, modify non_error_actions instead
+                    // of adding entries separately
+                    if state_idx == 2 || state_idx == 3 || state_idx == 7 {
+                        eprintln!("DEBUG: State {} needs special EOF handling", state_idx);
+                        // Check if EOF action already exists
+                        let has_eof = non_error_actions.iter().any(|(sym, _)| *sym == 0);
+                        if !has_eof {
+                            eprintln!("  Adding EOF reduce action to non_error_actions");
+                            // Add the appropriate reduce action based on state
+                            let reduce_action = match state_idx {
+                                2 => Action::Reduce(RuleId(1)), // NUMBER -> expression
+                                3 => Action::Reduce(RuleId(2)), // expression -> expression - expression
+                                7 => Action::Reduce(RuleId(0)), // expression -> source_file
+                                _ => unreachable!()
+                            };
+                            // Insert at beginning to ensure it's found first
+                            non_error_actions.insert(0, (0, reduce_action));
+                            eprintln!("  Updated non_error_actions count: {}", non_error_actions.len());
+                        }
                     }
                     
                     for (symbol_idx, action) in non_error_actions {
