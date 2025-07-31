@@ -1,7 +1,7 @@
 // Tree-sitter compatible precedence comparison logic
 // Direct port of precedence comparison from Tree-sitter's C implementation
 
-use rust_sitter_ir::{Associativity, SymbolId, RuleId, Grammar, PrecedenceKind};
+use rust_sitter_ir::{Associativity, SymbolId, RuleId, Grammar, PrecedenceKind, Symbol};
 use std::collections::HashMap;
 
 /// Precedence information for a symbol or rule
@@ -47,6 +47,21 @@ impl StaticPrecedenceResolver {
                         associativity: assoc,
                         is_fragile: false,
                     });
+                    
+                    // Also extract token precedences from rules with precedence
+                    // This is how Tree-sitter determines token precedence - from the rules that use them
+                    for symbol in &rule.rhs {
+                        if let Symbol::Terminal(token_id) = symbol {
+                            // Only set if not already set by explicit precedence declaration
+                            if !token_precedences.contains_key(token_id) {
+                                token_precedences.insert(*token_id, PrecedenceInfo {
+                                    level: *level,
+                                    associativity: assoc,
+                                    is_fragile: false,
+                                });
+                            }
+                        }
+                    }
                 }
             }
         }

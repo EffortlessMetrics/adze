@@ -393,8 +393,14 @@ impl Parser {
             let action = self.get_action(language, current_state, token.symbol);
             // Only log for the first few iterations to avoid spam
             if position < 10 {
-                eprintln!("DEBUG: Position={}, State={}, token symbol={}, action={:?}", position, current_state, token.symbol, action);
-                eprintln!("DEBUG: Stack size: {}", self.stack.len());
+                let byte_repr = if position < source.len() { 
+                    format!("'{}' (0x{:02x})", source[position] as char, source[position])
+                } else { 
+                    "EOF".to_string() 
+                };
+                eprintln!("DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}", 
+                    position, current_state, token.symbol, action, byte_repr);
+                eprintln!("DEBUG: Stack size: {}, token.length={}", self.stack.len(), token.length);
             }
             match action {
                 Action::Shift(next_state) => {
@@ -425,7 +431,9 @@ impl Parser {
                     position += token.length;
                     point = advance_point(point, &source[position - token.length..position]);
                     
-                    eprintln!("DEBUG: Advanced position to {}, continuing to next token", position);
+                    if position < 10 {
+                        eprintln!("DEBUG: Advanced position to {} (after {} bytes), continuing to next token", position, token.length);
+                    }
                     // Don't break here! We need to continue the loop
                     // break;
                 }
@@ -741,8 +749,24 @@ impl Parser {
             let child_count = action.child_count as usize;
             let symbol = action.symbol;
             
-            eprintln!("DEBUG reduce: Production {} reduces to symbol {} with {} children", 
-                production_id, symbol, child_count);
+            // Debug: map production IDs to understand the grammar
+            let rule_desc = match production_id {
+                1 => "source_file -> Expression",
+                2 => "Whitespace -> ε", 
+                3 => "Number -> /\\d+/",
+                4 => "Expression_Sub1 -> Box<Expr>",
+                5 => "Expression_Sub -> Expr - Expr (prec=1)",
+                6 => "Expression_Sub -> Expr - Expr (variant)",
+                7 => "Expression -> Number",
+                8 => "Expression -> Number (from rule)",
+                9 => "Expression -> Expression_Mul",
+                10 => "Expression_Mul -> Expr * Expr (prec=2)",
+                11 => "Expression -> Expression_Sub",
+                _ => "Unknown production",
+            };
+            
+            eprintln!("DEBUG reduce: Production {} ({}) reduces to symbol {} with {} children", 
+                production_id, rule_desc, symbol, child_count);
             
             // If child_count is 3 but we only have 2 items on stack, something is wrong
             if child_count > self.stack.len() {

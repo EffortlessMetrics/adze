@@ -153,20 +153,17 @@ mod tests {
         ));
         
         // Test precedence: multiplication binds tighter than subtraction
-        // TODO: This test is currently failing due to a precedence handling issue in the pure-rust parser
-        // The parser is creating Mul(Sub(1, 2), 3) instead of Sub(1, Mul(2, 3))
-        // let result = grammar::parse("1 - 2 * 3");
-        // println!("Parse result for '1 - 2 * 3': {:?}", result);
-        // assert!(result.is_ok(), "Failed to parse '1 - 2 * 3': {:?}", result);
-        // assert_eq!(result.unwrap(), Expression::Sub(
-        //     Box::new(Expression::Number(1)),
-        //     (),
-        //     Box::new(Expression::Mul(
-        //         Box::new(Expression::Number(2)),
-        //         (),
-        //         Box::new(Expression::Number(3))
-        //     ))
-        // ));
+        println!("\n=== Testing precedence: '1 - 2 * 3' ===");
+        let result = grammar::parse("1 - 2 * 3");
+        println!("Parse result for '1 - 2 * 3': {:?}", result);
+        match &result {
+            Ok(expr) => {
+                println!("Parsed as: {:?}", expr);
+                // Expected: Sub(Number(1), (), Mul(Number(2), (), Number(3)))
+                // Actually getting: Mul(Sub(Number(1), (), Number(2)), (), Number(3))
+            }
+            Err(e) => println!("Parse error: {:?}", e),
+        }
         
         println!("Test completed!");
     }
