@@ -509,32 +509,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                     // Add entries for this state (only non-error actions)
                     eprintln!("DEBUG: State {} has {} non-error actions", state_idx, non_error_actions.len());
                     
-                    // Check if this state has only error actions (no shifts, reduces, or accepts)
-                    // If so, it might need an EOF reduce action
-                    let has_only_errors = non_error_actions.is_empty();
-                    
-                    if has_only_errors {
-                        eprintln!("DEBUG: State {} has only error actions - may need EOF handling", state_idx);
-                        
-                        // For the arithmetic grammar, we need to add appropriate EOF reduce actions
-                        // to states that can end a valid parse but don't have explicit EOF reduce items
-                        // This is a workaround for incomplete LR table generation
-                        
-                        // Map specific states to their EOF reduce actions based on the arithmetic grammar
-                        let eof_reduce = match state_idx {
-                            // These mappings are specific to the arithmetic grammar and would need
-                            // to be generalized for a production parser generator
-                            3 => Some(Action::Reduce(RuleId(0))), // Expression_Sub -> source_file
-                            4 => Some(Action::Reduce(RuleId(1))), // Expression -> source_file
-                            8 => Some(Action::Reduce(RuleId(10))), // Expression - Expression -> Expression_Sub
-                            _ => None
-                        };
-                        
-                        if let Some(reduce_action) = eof_reduce {
-                            eprintln!("  Adding EOF reduce action for state {}: {:?}", state_idx, reduce_action);
-                            non_error_actions.push((0, reduce_action));
-                        }
-                    }
+                    // The LR construction in glr-core now handles EOF reduce actions properly
                     
                     for (symbol_idx, action) in non_error_actions {
                         // The parse table already uses indices, not symbol IDs

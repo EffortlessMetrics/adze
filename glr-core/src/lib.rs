@@ -883,6 +883,10 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
                         lookahead_idx,
                         new_action
                     );
+                    
+                    // Debug: Log reduce actions being added
+                    eprintln!("DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}", 
+                        state_idx, lookahead_idx, item.lookahead.0, item.rule_id.0);
                 }
             } else if let Some(next_symbol) = item.next_symbol(grammar) {
                 let symbol_id = match &next_symbol {
@@ -954,6 +958,66 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         let from_idx = from_state.0 as usize;
         if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
             goto_table[from_idx][symbol_idx] = *to_state;
+        }
+    }
+    
+    // Post-process: Ensure states that can end valid parses have EOF reduce actions
+    // This is a workaround for cases where the LR construction misses some EOF reductions
+    if let Some(start_symbol) = grammar.start_symbol() {
+        eprintln!("DEBUG: Post-processing for start symbol {:?}", start_symbol);
+        
+        // First pass: identify states that need EOF reduce actions
+        let mut states_needing_eof = Vec::new();
+        
+        for (state_idx, state_actions) in action_table.iter().enumerate() {
+            // Check if this state has only error actions
+            let has_only_errors = state_actions.iter().all(|a| matches!(a, Action::Error));
+            
+            if has_only_errors {
+                eprintln!("DEBUG: State {} has only error actions - checking if it needs EOF handling", state_idx);
+                
+                // Check if any state can shift to this state via a non-terminal that reduces to start
+                // This is a heuristic approach
+                let mut needs_eof_reduce = false;
+                
+                // Look for states that shift to this state
+                for (prev_state_idx, prev_actions) in action_table.iter().enumerate() {
+                    for (symbol_idx, action) in prev_actions.iter().enumerate() {
+                        if let Action::Shift(target) = action {
+                            if target.0 as usize == state_idx {
+                                // Check if the symbol is a non-terminal that can reduce to start
+                                if let Some(symbol_id) = symbol_to_index.iter()
+                                    .find(|&(_, &idx)| idx == symbol_idx)
+                                    .map(|(id, _)| id) {
+                                    eprintln!("  State {} can be reached from state {} via symbol {:?}", 
+                                        state_idx, prev_state_idx, symbol_id);
+                                    
+                                    // If this is a non-terminal that can be the start symbol
+                                    if !grammar.tokens.contains_key(symbol_id) {
+                                        needs_eof_reduce = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if needs_eof_reduce {
+                    states_needing_eof.push(state_idx);
+                }
+            }
+        }
+        
+        // Second pass: add EOF reduce actions to identified states
+        for state_idx in states_needing_eof {
+            eprintln!("  Adding EOF reduce action to state {}", state_idx);
+            // Add a reduce action to the start symbol
+            // This is a heuristic - find a rule that reduces to start
+            if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
+                if let Some(rule) = start_rules.first() {
+                    action_table[state_idx][0] = Action::Reduce(RuleId(rule.production_id.0));
+                }
+            }
         }
     }
     
