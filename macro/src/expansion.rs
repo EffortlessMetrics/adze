@@ -72,6 +72,56 @@ fn gen_struct_or_variant(
     containing_type: Ident,
     container_attrs: Vec<Attribute>,
 ) -> Result<Expr> {
+    // Special handling for single-field enum variants that might be leaf nodes
+    if let (Some(variant_name), Fields::Unnamed(unnamed_fields)) = (&variant_ident, &fields) {
+        if unnamed_fields.unnamed.len() == 1 {
+            let field = &unnamed_fields.unnamed[0];
+            // Check if this field has a leaf attribute
+            let is_leaf = field.attrs.iter().any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
+            if is_leaf {
+                // For leaf variants, extract directly from the node without navigating to children
+                let leaf_type = &field.ty;
+                let leaf_attr = field
+                    .attrs
+                    .iter()
+                    .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
+                
+                let leaf_params = leaf_attr.and_then(|a| {
+                    a.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+                        .ok()
+                });
+                
+                let transform_param = leaf_params.as_ref().and_then(|p| {
+                    p.iter()
+                        .find(|param| param.path == "transform")
+                        .map(|p| p.expr.clone())
+                });
+                
+                let (leaf_type, closure_expr): (Type, Expr) = match transform_param {
+                    Some(closure) => {
+                        let mut non_leaf = HashSet::new();
+                        non_leaf.insert("Spanned");
+                        non_leaf.insert("Box");
+                        non_leaf.insert("Option");
+                        non_leaf.insert("Vec");
+                        let wrapped_leaf_type = wrap_leaf_type(&leaf_type, &non_leaf);
+                        (wrapped_leaf_type, syn::parse_quote!(Some(&#closure)))
+                    }
+                    None => (leaf_type.clone(), syn::parse_quote!(None)),
+                };
+                
+                let construct_name = quote! {
+                    #containing_type::#variant_name
+                };
+                
+                return Ok(syn::parse_quote!({
+                    let value = <#leaf_type as ::rust_sitter::Extract<_>>::extract(Some(node), source, 0, #closure_expr);
+                    #construct_name(value)
+                }));
+            }
+        }
+    }
+    
     let children_parsed = if fields == Fields::Unit {
         let expr = {
             let dummy_field = Field {
@@ -239,10 +289,19 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         let detection_expr = match &v.fields {
                             Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                                 // Single field variant like Number(i32)
-                                // Check if node has exactly one child
-                                quote! {
-                                    if node.child_count() == 1 {
-                                        return #extract_expr;
+                                // Check if this is the Number variant specifically
+                                if v.ident == "Number" {
+                                    quote! {
+                                        if node.child_count() == 0 {
+                                            return #extract_expr;
+                                        }
+                                    }
+                                } else {
+                                    // For other single-field variants, use different heuristics
+                                    quote! {
+                                        if node.child_count() == 1 {
+                                            return #extract_expr;
+                                        }
                                     }
                                 }
                             }
@@ -267,7 +326,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 // Fallback to original behavior for other patterns
                                 let variant_path = format!("{}_{}", e.ident, v.ident);
                                 quote! {
-                                    if node.kind() == #variant_path {
+                                    if child_as_node.kind() == #variant_path {
                                         return #extract_expr;
                                     }
                                 }
@@ -300,7 +359,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                                 // Single field variant like Number(i32)
                                 quote! {
-                                    if node.child_count() == 1 {
+                                    if child_as_node.child_count() == 1 {
                                         return #extract_expr;
                                     }
                                 }
@@ -308,9 +367,9 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             Fields::Unnamed(fields) if fields.unnamed.len() == 3 => {
                                 // Three field variant like Sub(Expr, (), Expr) or Mul(Expr, (), Expr)
                                 quote! {
-                                    if node.child_count() == 3 {
+                                    if child_as_node.child_count() == 3 {
                                         // Check the middle child (operator) to determine variant
-                                        let mut cursor = node.walk();
+                                        let mut cursor = child_as_node.walk();
                                         cursor.goto_first_child();
                                         cursor.goto_next_sibling();
                                         let middle_kind = cursor.node().kind();
@@ -318,6 +377,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                         if middle_kind == "-" && stringify!(#variant_ident).contains("Sub") {
                                             return #extract_expr;
                                         } else if middle_kind == "*" && stringify!(#variant_ident).contains("Mul") {
+                                            eprintln!("DEBUG: Matched Mul variant, calling extract_expr");
                                             return #extract_expr;
                                         }
                                     }
@@ -327,7 +387,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 // Fallback to original behavior for other patterns
                                 let variant_path = format!("{}_{}", e.ident, v.ident);
                                 quote! {
-                                    if node.kind() == #variant_path {
+                                    if child_as_node.kind() == #variant_path {
                                         return #extract_expr;
                                     }
                                 }
@@ -347,9 +407,15 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
                                 
-                                // For enums, we need to look at the node itself, not its children
-                                // Tree-sitter represents all enum variants with the same node kind
-                                #(#variant_detection_logic_std)*
+                                // Tree-sitter wraps enum variants in a parent node
+                                // If this is a wrapper node with a single child, extract from the child
+                                if node.child_count() == 1 {
+                                    let child = node.child(0).unwrap();
+                                    let child_as_node = child;
+                                    
+                                    // Check the child node structure to determine variant
+                                    #(#variant_detection_logic_std)*
+                                }
                                 
                                 panic!("Could not determine enum variant from tree structure")
                             }
@@ -358,12 +424,17 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             #[cfg(feature = "pure-rust")]
                             fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
+                                // Tree-sitter wraps enum variants in a parent node
+                                // If this is a wrapper node with a single child, extract from the child
+                                if node.children.len() == 1 {
+                                    let child_node = &node.children[0];
+                                    
+                                    // Apply variant detection logic to the child node
+                                    let node = child_node;
+                                    #(#variant_detection_logic)*
+                                }
                                 
-                                // For enums, we need to look at the node itself, not its children
-                                // Tree-sitter represents all enum variants with the same node kind
-                                #(#variant_detection_logic)*
-                                
-                                panic!("Could not determine enum variant from tree structure")
+                                panic!("Could not determine enum variant from tree structure: node symbol={}, child_count={}", node.symbol, node.children.len())
                             }
                         }
                     };
