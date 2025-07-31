@@ -1,0 +1,474 @@
+warning: unused variable: `extra_subtree`
+   --> runtime/src/pure_parser.rs:370:21
+    |
+370 |                 let extra_subtree = Subtree {
+    |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extra_subtree`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: methods `get_production_id` and `get_goto_state` are never used
+   --> runtime/src/pure_parser.rs:857:8
+    |
+209 | impl Parser {
+    | ----------- methods in this implementation
+...
+857 |     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
+    |        ^^^^^^^^^^^^^^^^^
+...
+868 |     fn get_goto_state(&self, _language: &TSLanguage, _state: TSStateId, _symbol: TSSymbol) -> TSStateId {
+    |        ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: `rust-sitter` (lib) generated 2 warnings
+warning: function `parse_with_rust_parser` is never used
+  --> tool/src/cli/parse.rs:83:8
+   |
+83 | pub fn parse_with_rust_parser(
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `auto_detect_parser` is never used
+  --> tool/src/cli/parse.rs:98:8
+   |
+98 | pub fn auto_detect_parser(file_path: &Path) -> Option<String> {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `generate_corpus` is never used
+   --> tool/src/cli/test.rs:172:8
+    |
+172 | pub fn generate_corpus(
+    |        ^^^^^^^^^^^^^^^
+
+warning: `rust-sitter-tool` (lib) generated 3 warnings
+   Compiling rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)
+warning: unused import: `rust_sitter::Extract`
+ --> example/src/external_word_example.rs:3:5
+  |
+3 | use rust_sitter::Extract;
+  |     ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::time::Instant`
+  --> example/src/performance_test.rs:2:5
+   |
+2  | use std::time::Instant;
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> example/src/main.rs:14:1
+   |
+14 | mod performance_test;
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::*`
+  --> example/src/external_word_example.rs:61:9
+   |
+61 |     use super::*;
+   |         ^^^^^^^^
+
+warning: field `0` is never read
+ --> example/src/external_word_example.rs:9:12
+  |
+9 |         If(IfStatement),
+  |         -- ^^^^^^^^^^^
+  |         |
+  |         field in this variant
+  |
+  = note: `#[warn(dead_code)]` on by default
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+  |
+9 -         If(IfStatement),
+9 +         If(()),
+  |
+
+warning: field `0` is never read
+  --> example/src/external_word_example.rs:10:20
+   |
+10 |         Expression(Expression),
+   |         ---------- ^^^^^^^^^^
+   |         |
+   |         field in this variant
+   |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+10 -         Expression(Expression),
+10 +         Expression(()),
+   |
+
+warning: fields `condition` and `body` are never read
+  --> example/src/external_word_example.rs:16:9
+   |
+13 |     pub struct IfStatement {
+   |                ----------- fields in this struct
+...
+16 |         condition: Expression,
+   |         ^^^^^^^^^
+...
+19 |         body: Vec<Statement>,
+   |         ^^^^
+
+warning: field `0` is never read
+  --> example/src/external_word_example.rs:23:20
+   |
+23 |         Identifier(Identifier),
+   |         ---------- ^^^^^^^^^^
+   |         |
+   |         field in this variant
+   |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+23 -         Identifier(Identifier),
+23 +         Identifier(()),
+   |
+
+warning: field `0` is never read
+  --> example/src/external_word_example.rs:26:13
+   |
+24 |         Number(
+   |         ------ field in this variant
+25 |             #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+26 |             i32
+   |             ^^^
+   |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+26 -             i32
+26 +             ()
+   |
+
+warning: field `name` is never read
+  --> example/src/external_word_example.rs:34:9
+   |
+32 |     pub struct Identifier {
+   |                ---------- field in this struct
+33 |         #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+34 |         name: String,
+   |         ^^^^
+
+warning: `rust-sitter-example` (bin "rust-sitter-example") generated 8 warnings (run `cargo fix --bin "rust-sitter-example"` to apply 2 suggestions)
+warning: `rust-sitter-example` (bin "rust-sitter-example" test) generated 8 warnings (7 duplicates) (run `cargo fix --bin "rust-sitter-example" --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.91s
+     Running unittests src/main.rs (/home/steven/code/rust-sitter/target/debug/deps/rust_sitter_example-599bc34a0d99df60)
+
+running 1 test
+Testing pure-Rust arithmetic parser...
+DEBUG metadata array dump for symbol 3:
+  metadata[0] = 0x1
+  metadata[1] = 0x1
+  metadata[2] = 0x1
+  metadata[3] = 0x3
+  metadata[4] = 0x0
+  metadata[5] = 0x3
+  metadata[6] = 0x3
+  metadata[7] = 0x3
+  metadata[8] = 0x3
+DEBUG is_extra_symbol: symbol=3, metadata_ptr=0x570f008a41c8, offset=3, metadata=0x3, is_hidden=false
+DEBUG lex_token: lexer returned symbol=3, is_extra=false
+DEBUG get_action: state=0, symbol=3, state_offset=0, next_offset=8, entries_count=8
+DEBUG get_action: state=0, looking for symbol=3, found entry_symbol=3, action_value=4
+DEBUG get_action: MATCH! Returning action: Shift(4)
+DEBUG: Position=0, State=0, token symbol=3, action=Shift(4)
+DEBUG: Stack size: 1
+DEBUG: Shifting to state 4
+DEBUG: Advanced position to 2, continuing to next token
+DEBUG get_action: state=4, symbol=0, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=0, found entry_symbol=0, action_value=32774
+DEBUG get_action: MATCH! Returning action: Reduce(6)
+DEBUG: Position=2, State=4, token symbol=0, action=Reduce(6)
+DEBUG: Stack size: 2
+DEBUG reduce: Reducing with production_id=6 (from parse table)
+DEBUG reduce: Stack before reduction has 2 entries
+  Stack[0]: state=0, has_subtree=false
+  Stack[1]: state=4, has_subtree=true
+DEBUG reduce: Production 6 reduces to symbol 5 with 1 children
+DEBUG reduce: After reduction, stack size would be: 1
+DEBUG reduce: Looking up goto for symbol 5 from state 0
+DEBUG get_action: state=0, symbol=5, state_offset=0, next_offset=8, entries_count=8
+DEBUG get_action: state=0, looking for symbol=5, found entry_symbol=3, action_value=4
+DEBUG get_action: state=0, looking for symbol=5, found entry_symbol=5, action_value=2
+DEBUG get_action: MATCH! Returning action: Shift(2)
+DEBUG reduce: Goto action: Shift(2)
+DEBUG reduce: Pushing reduced node with state 2
+DEBUG get_action: state=2, symbol=0, state_offset=14, next_offset=20, entries_count=6
+DEBUG get_action: state=2, looking for symbol=0, found entry_symbol=0, action_value=32777
+DEBUG get_action: MATCH! Returning action: Reduce(9)
+DEBUG: Position=2, State=2, token symbol=0, action=Reduce(9)
+DEBUG: Stack size: 2
+DEBUG reduce: Reducing with production_id=9 (from parse table)
+DEBUG reduce: Stack before reduction has 2 entries
+  Stack[0]: state=0, has_subtree=false
+  Stack[1]: state=2, has_subtree=true
+DEBUG reduce: Production 9 reduces to symbol 8 with 1 children
+DEBUG reduce: After reduction, stack size would be: 1
+DEBUG reduce: Looking up goto for symbol 8 from state 0
+DEBUG reduce: Accept condition met - reduced to root symbol 8 in state 0
+DEBUG: Parse accepted! Root symbol found.
+DEBUG subtree_to_node: Converting subtree with symbol 8, children: 1, extra: false
+  Symbol 8 is_named: true
+DEBUG subtree_to_node: Converting subtree with symbol 5, children: 1, extra: false
+  Symbol 5 is_named: true
+DEBUG subtree_to_node: Converting subtree with symbol 3, children: 0, extra: false
+  Symbol 3 is_named: true
+Parse result for '42': Ok(Number(42))
+DEBUG metadata array dump for symbol 3:
+  metadata[0] = 0x1
+  metadata[1] = 0x1
+  metadata[2] = 0x1
+  metadata[3] = 0x3
+  metadata[4] = 0x0
+  metadata[5] = 0x3
+  metadata[6] = 0x3
+  metadata[7] = 0x3
+  metadata[8] = 0x3
+DEBUG is_extra_symbol: symbol=3, metadata_ptr=0x570f008a41c8, offset=3, metadata=0x3, is_hidden=false
+DEBUG lex_token: lexer returned symbol=3, is_extra=false
+DEBUG get_action: state=0, symbol=3, state_offset=0, next_offset=8, entries_count=8
+DEBUG get_action: state=0, looking for symbol=3, found entry_symbol=3, action_value=4
+DEBUG get_action: MATCH! Returning action: Shift(4)
+DEBUG: Position=0, State=0, token symbol=3, action=Shift(4)
+DEBUG: Stack size: 1
+DEBUG: Shifting to state 4
+DEBUG: Advanced position to 1, continuing to next token
+DEBUG metadata array dump for symbol 4:
+  metadata[0] = 0x1
+  metadata[1] = 0x1
+  metadata[2] = 0x1
+  metadata[3] = 0x3
+  metadata[4] = 0x0
+  metadata[5] = 0x3
+  metadata[6] = 0x3
+  metadata[7] = 0x3
+  metadata[8] = 0x3
+DEBUG is_extra_symbol: symbol=4, metadata_ptr=0x570f008a41c8, offset=4, metadata=0x0, is_hidden=false
+DEBUG lex_token: lexer returned symbol=4, is_extra=false
+DEBUG get_action: state=4, symbol=4, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=4, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=4, found entry_symbol=1, action_value=32774
+DEBUG get_action: state=4, looking for symbol=4, found entry_symbol=2, action_value=32774
+DEBUG: Position=1, State=4, token symbol=4, action=Error
+DEBUG: Stack size: 2
+DEBUG get_action: state=4, symbol=0, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=0, found entry_symbol=0, action_value=32774
+DEBUG get_action: MATCH! Returning action: Reduce(6)
+DEBUG get_action: state=4, symbol=1, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=1, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=1, found entry_symbol=1, action_value=32774
+DEBUG get_action: MATCH! Returning action: Reduce(6)
+DEBUG get_action: state=4, symbol=2, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=2, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=2, found entry_symbol=1, action_value=32774
+DEBUG get_action: state=4, looking for symbol=2, found entry_symbol=2, action_value=32774
+DEBUG get_action: MATCH! Returning action: Reduce(6)
+DEBUG get_action: state=4, symbol=3, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=3, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=3, found entry_symbol=1, action_value=32774
+DEBUG get_action: state=4, looking for symbol=3, found entry_symbol=2, action_value=32774
+DEBUG get_action: state=4, symbol=4, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=4, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=4, found entry_symbol=1, action_value=32774
+DEBUG get_action: state=4, looking for symbol=4, found entry_symbol=2, action_value=32774
+DEBUG get_action: state=4, symbol=5, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=5, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=5, found entry_symbol=1, action_value=32774
+DEBUG get_action: state=4, looking for symbol=5, found entry_symbol=2, action_value=32774
+DEBUG get_action: state=4, symbol=6, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=6, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=6, found entry_symbol=1, action_value=32774
+DEBUG get_action: state=4, looking for symbol=6, found entry_symbol=2, action_value=32774
+DEBUG get_action: state=4, symbol=7, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=7, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=7, found entry_symbol=1, action_value=32774
+DEBUG get_action: state=4, looking for symbol=7, found entry_symbol=2, action_value=32774
+DEBUG get_action: state=4, symbol=8, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=8, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=8, found entry_symbol=1, action_value=32774
+DEBUG get_action: state=4, looking for symbol=8, found entry_symbol=2, action_value=32774
+DEBUG is_extra_symbol: symbol=2, metadata_ptr=0x570f008a41c8, offset=2, metadata=0x1, is_hidden=false
+DEBUG lex_token: lexer returned symbol=2, is_extra=false
+DEBUG get_action: state=4, symbol=2, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=2, found entry_symbol=0, action_value=32774
+DEBUG get_action: state=4, looking for symbol=2, found entry_symbol=1, action_value=32774
+DEBUG get_action: state=4, looking for symbol=2, found entry_symbol=2, action_value=32774
+DEBUG get_action: MATCH! Returning action: Reduce(6)
+DEBUG: Position=2, State=4, token symbol=2, action=Reduce(6)
+DEBUG: Stack size: 2
+DEBUG reduce: Reducing with production_id=6 (from parse table)
+DEBUG reduce: Stack before reduction has 2 entries
+  Stack[0]: state=0, has_subtree=false
+  Stack[1]: state=4, has_subtree=true
+DEBUG reduce: Production 6 reduces to symbol 5 with 1 children
+DEBUG reduce: After reduction, stack size would be: 1
+DEBUG reduce: Looking up goto for symbol 5 from state 0
+DEBUG get_action: state=0, symbol=5, state_offset=0, next_offset=8, entries_count=8
+DEBUG get_action: state=0, looking for symbol=5, found entry_symbol=3, action_value=4
+DEBUG get_action: state=0, looking for symbol=5, found entry_symbol=5, action_value=2
+DEBUG get_action: MATCH! Returning action: Shift(2)
+DEBUG reduce: Goto action: Shift(2)
+DEBUG reduce: Pushing reduced node with state 2
+DEBUG is_extra_symbol: symbol=2, metadata_ptr=0x570f008a41c8, offset=2, metadata=0x1, is_hidden=false
+DEBUG lex_token: lexer returned symbol=2, is_extra=false
+DEBUG get_action: state=2, symbol=2, state_offset=14, next_offset=20, entries_count=6
+DEBUG get_action: state=2, looking for symbol=2, found entry_symbol=0, action_value=32777
+DEBUG get_action: state=2, looking for symbol=2, found entry_symbol=1, action_value=5
+DEBUG get_action: state=2, looking for symbol=2, found entry_symbol=2, action_value=6
+DEBUG get_action: MATCH! Returning action: Shift(6)
+DEBUG: Position=2, State=2, token symbol=2, action=Shift(6)
+DEBUG: Stack size: 2
+DEBUG: Shifting to state 6
+DEBUG: Advanced position to 3, continuing to next token
+DEBUG metadata array dump for symbol 4:
+  metadata[0] = 0x1
+  metadata[1] = 0x1
+  metadata[2] = 0x1
+  metadata[3] = 0x3
+  metadata[4] = 0x0
+  metadata[5] = 0x3
+  metadata[6] = 0x3
+  metadata[7] = 0x3
+  metadata[8] = 0x3
+DEBUG is_extra_symbol: symbol=4, metadata_ptr=0x570f008a41c8, offset=4, metadata=0x0, is_hidden=false
+DEBUG lex_token: lexer returned symbol=4, is_extra=false
+DEBUG get_action: state=6, symbol=4, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=4, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=4, found entry_symbol=5, action_value=8
+DEBUG get_action: state=6, looking for symbol=4, found entry_symbol=6, action_value=1
+DEBUG get_action: state=6, looking for symbol=4, found entry_symbol=7, action_value=3
+DEBUG: Position=3, State=6, token symbol=4, action=Error
+DEBUG: Stack size: 3
+DEBUG get_action: state=6, symbol=0, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=0, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=0, found entry_symbol=5, action_value=8
+DEBUG get_action: state=6, looking for symbol=0, found entry_symbol=6, action_value=1
+DEBUG get_action: state=6, looking for symbol=0, found entry_symbol=7, action_value=3
+DEBUG get_action: state=6, symbol=1, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=1, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=1, found entry_symbol=5, action_value=8
+DEBUG get_action: state=6, looking for symbol=1, found entry_symbol=6, action_value=1
+DEBUG get_action: state=6, looking for symbol=1, found entry_symbol=7, action_value=3
+DEBUG get_action: state=6, symbol=2, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=2, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=2, found entry_symbol=5, action_value=8
+DEBUG get_action: state=6, looking for symbol=2, found entry_symbol=6, action_value=1
+DEBUG get_action: state=6, looking for symbol=2, found entry_symbol=7, action_value=3
+DEBUG get_action: state=6, symbol=3, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=3, found entry_symbol=3, action_value=4
+DEBUG get_action: MATCH! Returning action: Shift(4)
+DEBUG get_action: state=6, symbol=4, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=4, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=4, found entry_symbol=5, action_value=8
+DEBUG get_action: state=6, looking for symbol=4, found entry_symbol=6, action_value=1
+DEBUG get_action: state=6, looking for symbol=4, found entry_symbol=7, action_value=3
+DEBUG get_action: state=6, symbol=5, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=5, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=5, found entry_symbol=5, action_value=8
+DEBUG get_action: MATCH! Returning action: Shift(8)
+DEBUG get_action: state=6, symbol=6, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=6, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=6, found entry_symbol=5, action_value=8
+DEBUG get_action: state=6, looking for symbol=6, found entry_symbol=6, action_value=1
+DEBUG get_action: MATCH! Returning action: Shift(1)
+DEBUG get_action: state=6, symbol=7, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=7, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=7, found entry_symbol=5, action_value=8
+DEBUG get_action: state=6, looking for symbol=7, found entry_symbol=6, action_value=1
+DEBUG get_action: state=6, looking for symbol=7, found entry_symbol=7, action_value=3
+DEBUG get_action: MATCH! Returning action: Shift(3)
+DEBUG get_action: state=6, symbol=8, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=8, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=8, found entry_symbol=5, action_value=8
+DEBUG get_action: state=6, looking for symbol=8, found entry_symbol=6, action_value=1
+DEBUG get_action: state=6, looking for symbol=8, found entry_symbol=7, action_value=3
+DEBUG metadata array dump for symbol 3:
+  metadata[0] = 0x1
+  metadata[1] = 0x1
+  metadata[2] = 0x1
+  metadata[3] = 0x3
+  metadata[4] = 0x0
+  metadata[5] = 0x3
+  metadata[6] = 0x3
+  metadata[7] = 0x3
+  metadata[8] = 0x3
+DEBUG is_extra_symbol: symbol=3, metadata_ptr=0x570f008a41c8, offset=3, metadata=0x3, is_hidden=false
+DEBUG lex_token: lexer returned symbol=3, is_extra=false
+DEBUG get_action: state=6, symbol=3, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=3, found entry_symbol=3, action_value=4
+DEBUG get_action: MATCH! Returning action: Shift(4)
+DEBUG: Position=4, State=6, token symbol=3, action=Shift(4)
+DEBUG: Stack size: 3
+DEBUG: Shifting to state 4
+DEBUG: Advanced position to 5, continuing to next token
+DEBUG get_action: state=4, symbol=0, state_offset=26, next_offset=32, entries_count=6
+DEBUG get_action: state=4, looking for symbol=0, found entry_symbol=0, action_value=32774
+DEBUG get_action: MATCH! Returning action: Reduce(6)
+DEBUG: Position=5, State=4, token symbol=0, action=Reduce(6)
+DEBUG: Stack size: 4
+DEBUG reduce: Reducing with production_id=6 (from parse table)
+DEBUG reduce: Stack before reduction has 4 entries
+  Stack[0]: state=0, has_subtree=false
+  Stack[1]: state=2, has_subtree=true
+  Stack[2]: state=6, has_subtree=true
+  Stack[3]: state=4, has_subtree=true
+DEBUG reduce: Production 6 reduces to symbol 5 with 1 children
+DEBUG reduce: After reduction, stack size would be: 3
+DEBUG reduce: Looking up goto for symbol 5 from state 6
+DEBUG get_action: state=6, symbol=5, state_offset=40, next_offset=48, entries_count=8
+DEBUG get_action: state=6, looking for symbol=5, found entry_symbol=3, action_value=4
+DEBUG get_action: state=6, looking for symbol=5, found entry_symbol=5, action_value=8
+DEBUG get_action: MATCH! Returning action: Shift(8)
+DEBUG reduce: Goto action: Shift(8)
+DEBUG reduce: Pushing reduced node with state 8
+DEBUG get_action: state=8, symbol=0, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=0, found entry_symbol=0, action_value=0
+DEBUG: Position=5, State=8, token symbol=0, action=Error
+DEBUG: Stack size: 4
+DEBUG get_action: state=8, symbol=0, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=0, found entry_symbol=0, action_value=0
+DEBUG get_action: state=8, symbol=1, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=1, found entry_symbol=0, action_value=0
+DEBUG get_action: state=8, looking for symbol=1, found entry_symbol=1, action_value=0
+DEBUG get_action: state=8, symbol=2, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=2, found entry_symbol=0, action_value=0
+DEBUG get_action: state=8, looking for symbol=2, found entry_symbol=1, action_value=0
+DEBUG get_action: state=8, looking for symbol=2, found entry_symbol=2, action_value=0
+DEBUG get_action: state=8, symbol=3, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=3, found entry_symbol=0, action_value=0
+DEBUG get_action: state=8, looking for symbol=3, found entry_symbol=1, action_value=0
+DEBUG get_action: state=8, looking for symbol=3, found entry_symbol=2, action_value=0
+DEBUG get_action: state=8, symbol=4, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=4, found entry_symbol=0, action_value=0
+DEBUG get_action: state=8, looking for symbol=4, found entry_symbol=1, action_value=0
+DEBUG get_action: state=8, looking for symbol=4, found entry_symbol=2, action_value=0
+DEBUG get_action: state=8, symbol=5, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=5, found entry_symbol=0, action_value=0
+DEBUG get_action: state=8, looking for symbol=5, found entry_symbol=1, action_value=0
+DEBUG get_action: state=8, looking for symbol=5, found entry_symbol=2, action_value=0
+DEBUG get_action: state=8, symbol=6, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=6, found entry_symbol=0, action_value=0
+DEBUG get_action: state=8, looking for symbol=6, found entry_symbol=1, action_value=0
+DEBUG get_action: state=8, looking for symbol=6, found entry_symbol=2, action_value=0
+DEBUG get_action: state=8, symbol=7, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=7, found entry_symbol=0, action_value=0
+DEBUG get_action: state=8, looking for symbol=7, found entry_symbol=1, action_value=0
+DEBUG get_action: state=8, looking for symbol=7, found entry_symbol=2, action_value=0
+DEBUG get_action: state=8, symbol=8, state_offset=54, next_offset=60, entries_count=6
+DEBUG get_action: state=8, looking for symbol=8, found entry_symbol=0, action_value=0
+DEBUG get_action: state=8, looking for symbol=8, found entry_symbol=1, action_value=0
+DEBUG get_action: state=8, looking for symbol=8, found entry_symbol=2, action_value=0
+Parse result for '1 - 2': Err([ParseError { reason: UnexpectedToken("symbol 4"), start: 1, end: 1 }, ParseError { reason: UnexpectedToken("symbol 4"), start: 3, end: 3 }, ParseError { reason: UnexpectedToken("symbol 0"), start: 5, end: 5 }])
+
+thread 'arithmetic::tests::test_pure_rust_parser' panicked at example/src/arithmetic.rs:124:9:
+Failed to parse '1 - 2': Err([ParseError { reason: UnexpectedToken("symbol 4"), start: 1, end: 1 }, ParseError { reason: UnexpectedToken("symbol 4"), start: 3, end: 3 }, ParseError { reason: UnexpectedToken("symbol 0"), start: 5, end: 5 }])
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test arithmetic::tests::test_pure_rust_parser ... FAILED
+
+failures:
+
+failures:
+    arithmetic::tests::test_pure_rust_parser
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin rust-sitter-example`

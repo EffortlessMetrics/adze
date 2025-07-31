@@ -103,6 +103,12 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
         .and_then(|v| v.as_str())
         .unwrap_or("unknown");
     
+    // Debug: Print the grammar JSON to understand the extras
+    if grammar_name.contains("arithmetic") {
+        eprintln!("DEBUG: Arithmetic grammar JSON:");
+        eprintln!("{}", serde_json::to_string_pretty(&grammar_value).unwrap());
+    }
+    
     // Convert directly from JSON to GrammarJs structure
     let grammar_js = crate::grammar_js::from_json(&grammar_value)
         .context("Failed to convert JSON to GrammarJs")?;

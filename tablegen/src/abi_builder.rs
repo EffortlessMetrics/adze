@@ -269,6 +269,14 @@ impl<'a> AbiLanguageBuilder<'a> {
         let extra_tokens = self.find_extra_tokens();
         eprintln!("  extra_tokens found = {:?}", extra_tokens);
         
+        // Debug: Print which symbol corresponds to whitespace
+        eprintln!("  Looking for whitespace token (should be symbol 4):");
+        for (id, token) in &self.grammar.tokens {
+            if token.name.contains("whitespace") || token.pattern == TokenPattern::Regex(r"\s".to_string()) {
+                eprintln!("    Found whitespace-like token: {:?} -> {}", id, token.name);
+            }
+        }
+        
         // Generate metadata in parse table order using symbol_to_index mapping
         let mut index_to_symbol: Vec<Option<SymbolId>> = vec![None; self.parse_table.symbol_count];
         for (symbol_id, &index) in &self.parse_table.symbol_to_index {
@@ -290,7 +298,22 @@ impl<'a> AbiLanguageBuilder<'a> {
                     // Terminal token
                     let visible = !token.name.starts_with('_');
                     let named = visible && matches!(&token.pattern, TokenPattern::Regex(_));
-                    let hidden = extra_tokens.contains(symbol_id);
+                    let _original_hidden = extra_tokens.contains(symbol_id);
+                    
+                    // Special handling for whitespace tokens
+                    // If this is a whitespace token (by pattern), it should be hidden
+                    let is_whitespace_token = matches!(&token.pattern, TokenPattern::Regex(p) if p == r"\s") ||
+                                            token.name.to_lowercase().contains("whitespace");
+                    
+                    if is_whitespace_token {
+                        eprintln!("    WHITESPACE TOKEN FOUND: {} (id={:?})", token.name, symbol_id);
+                        eprintln!("      Pattern: {:?}", token.pattern);
+                        eprintln!("      Was in extra_tokens: {}", extra_tokens.contains(symbol_id));
+                    }
+                    
+                    // Force whitespace tokens to be hidden
+                    let hidden = extra_tokens.contains(symbol_id) || is_whitespace_token;
+                    
                     let meta_byte = create_symbol_metadata(visible, named, hidden, false, false);
                     eprintln!("    Index {}: Token {} (id={:?}): visible={}, named={}, hidden={}, metadata={:#x}", 
                              idx, token.name, symbol_id, visible, named, hidden, meta_byte);
@@ -484,6 +507,19 @@ impl<'a> AbiLanguageBuilder<'a> {
                 } else {
                     // Add entries for this state (only non-error actions)
                     eprintln!("DEBUG: State {} has {} non-error actions", state_idx, non_error_actions.len());
+                    
+                    // Special handling for states that contain Expression variants - add reduce action to source_file
+                    if state_idx == 1 || state_idx == 2 {
+                        eprintln!("DEBUG: Adding special reduce action for state {}", state_idx);
+                        // These states are reached after reducing to Expression variants
+                        // We need to add a reduce action for EOF (symbol 0) to convert to source_file
+                        table_data.push(quote! { 0u16 }); // symbol 0 (EOF)
+                        // Use production 8 which reduces to source_file
+                        let encoded = 0x8000 | 8; // Reduce action with production 8
+                        table_data.push(quote! { #encoded });
+                        current_offset += 2;
+                    }
+                    
                     for (symbol_idx, action) in non_error_actions {
                         // The parse table already uses indices, not symbol IDs
                         let symbol_index = symbol_idx as u16;

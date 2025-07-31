@@ -115,11 +115,18 @@ mod tests {
         // Test successful parses
         let result = grammar::parse("42");
         println!("Parse result for '42': {:?}", result);
+        assert!(result.is_ok(), "Failed to parse '42': {:?}", result);
+        assert_eq!(result.unwrap(), Expression::Number(42));
         
-        // The parse is failing in the Extract trait, which means the parse itself succeeded
-        // but converting the tree to Rust types failed
-        // For now, let's just test that we can parse without the Extract conversion
+        // Test more complex expressions
+        let result = grammar::parse("1 - 2");
+        println!("Parse result for '1 - 2': {:?}", result);
+        assert!(result.is_ok(), "Failed to parse '1 - 2': {:?}", result);
         
-        println!("Pure-Rust parser tests completed!");
+        let result = grammar::parse("2 * 3");
+        println!("Parse result for '2 * 3': {:?}", result);
+        assert!(result.is_ok(), "Failed to parse '2 * 3': {:?}", result);
+        
+        println!("Pure-Rust parser tests passed!");
     }
 }
