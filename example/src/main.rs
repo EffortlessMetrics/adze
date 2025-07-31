@@ -14,6 +14,9 @@ mod external_word_example;
 mod performance_test;
 mod test_whitespace;
 mod test_precedence;
+mod test_precedence_focused;
+mod test_manual_parse;
+mod test_specific_parse;
 
 fn convert_parse_error_to_diagnostics(
     file_span: &codemap::Span,
@@ -71,6 +74,18 @@ fn main() {
     
     // Run precedence tests
     test_precedence::test_precedence();
+    println!("\n---\n");
+    
+    // Run focused precedence test
+    test_precedence_focused::test_precedence_focused();
+    println!("\n---\n");
+    
+    // Run manual parse test
+    test_manual_parse::test_manual_parse();
+    println!("\n---\n");
+    
+    // Run specific parse test
+    test_specific_parse::test_specific_parse();
     println!("\n---\n");
 
     let stdin = std::io::stdin();
