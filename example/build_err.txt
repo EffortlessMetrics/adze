@@ -1,0 +1,258 @@
+   Compiling unicode-ident v1.0.17
+   Compiling proc-macro2 v1.0.93
+   Compiling serde v1.0.218
+   Compiling memchr v2.7.4
+   Compiling hashbrown v0.15.2
+   Compiling itoa v1.0.14
+   Compiling equivalent v1.0.2
+   Compiling ryu v1.0.19
+   Compiling stable_deref_trait v1.2.0
+   Compiling anyhow v1.0.96
+   Compiling serde_json v1.0.139
+   Compiling thiserror v1.0.69
+   Compiling litemap v0.7.4
+   Compiling writeable v0.5.5
+   Compiling regex-syntax v0.8.5
+   Compiling syn v1.0.109
+   Compiling icu_locid_transform_data v1.5.0
+   Compiling once_cell v1.20.3
+   Compiling tree-sitter-language v0.1.5
+   Compiling thiserror v2.0.11
+   Compiling streaming-iterator v0.1.9
+   Compiling icu_properties_data v1.5.0
+   Compiling libc v0.2.169
+   Compiling shlex v1.3.0
+   Compiling utf16_iter v1.0.5
+   Compiling getrandom v0.3.1
+   Compiling tree-sitter-c2rust v0.25.2
+   Compiling utf8_iter v1.0.4
+   Compiling write16 v1.0.0
+   Compiling icu_normalizer_data v1.5.0
+   Compiling smallvec v1.14.0
+   Compiling fixedbitset v0.5.7
+   Compiling crossbeam-utils v0.8.21
+   Compiling cfg-if v1.0.0
+   Compiling utf8parse v0.2.2
+   Compiling colorchoice v1.0.4
+   Compiling heck v0.5.0
+   Compiling anstyle-query v1.1.3
+   Compiling is_terminal_polyfill v1.70.1
+   Compiling rustix v0.38.44
+   Compiling anstyle v1.0.11
+   Compiling anstyle-parse v0.2.7
+   Compiling percent-encoding v2.3.1
+   Compiling semver v1.0.25
+   Compiling clap_lex v0.7.5
+   Compiling tree-sitter-generate v0.25.1
+   Compiling cc v1.2.14
+   Compiling strsim v0.11.1
+   Compiling linux-raw-sys v0.4.15
+   Compiling bitflags v2.9.1
+   Compiling smallbitvec v2.6.0
+   Compiling fastrand v2.3.0
+   Compiling form_urlencoded v1.2.1
+   Compiling anstream v0.6.19
+   Compiling log v0.4.25
+   Compiling rayon-core v1.12.1
+   Compiling zerocopy v0.8.26
+   Compiling version_check v0.9.5
+   Compiling rustc-hash v2.1.1
+   Compiling indoc v2.0.5
+   Compiling glob v0.3.2
+   Compiling either v1.15.0
+   Compiling termcolor v1.4.1
+   Compiling codemap v0.1.3
+   Compiling clap_builder v4.5.41
+   Compiling ahash v0.8.12
+   Compiling aho-corasick v1.1.3
+   Compiling codemap-diagnostic v0.1.2
+   Compiling crossbeam-epoch v0.9.18
+   Compiling quote v1.0.38
+   Compiling crossbeam-deque v0.8.6
+   Compiling syn v2.0.98
+   Compiling rayon v1.10.0
+   Compiling regex-automata v0.4.9
+   Compiling tempfile v3.17.1
+   Compiling c2rust-bitfields-derive v0.2.1
+   Compiling regex v1.11.1
+   Compiling c2rust-bitfields v0.3.0
+   Compiling synstructure v0.13.1
+   Compiling rust-sitter-common v0.5.0-beta (/home/steven/code/rust-sitter/common)
+   Compiling syn-inline-mod v0.6.0
+   Compiling serde_derive v1.0.218
+   Compiling zerofrom-derive v0.1.5
+   Compiling yoke-derive v0.7.5
+   Compiling zerovec-derive v0.10.3
+   Compiling displaydoc v0.2.5
+   Compiling icu_provider_macros v1.5.0
+   Compiling thiserror-impl v1.0.69
+   Compiling thiserror-impl v2.0.11
+   Compiling clap_derive v4.5.41
+   Compiling rust-sitter-macro v0.5.0-beta (/home/steven/code/rust-sitter/macro)
+   Compiling zerofrom v0.1.5
+   Compiling yoke v0.7.5
+   Compiling zerovec v0.10.4
+   Compiling clap v4.5.41
+   Compiling tinystr v0.7.6
+   Compiling icu_collections v1.5.0
+   Compiling icu_locid v1.5.0
+   Compiling icu_provider v1.5.0
+   Compiling icu_locid_transform v1.5.0
+   Compiling icu_properties v1.5.1
+   Compiling indexmap v2.7.1
+   Compiling icu_normalizer v1.5.0
+   Compiling idna_adapter v1.2.0
+   Compiling idna v1.0.3
+   Compiling rust-sitter-ir v0.5.0-beta (/home/steven/code/rust-sitter/ir)
+   Compiling url v2.5.4
+   Compiling tree-sitter v0.25.2
+   Compiling rust-sitter-glr-core v0.5.0-beta (/home/steven/code/rust-sitter/glr-core)
+   Compiling rust-sitter-tablegen v0.5.0-beta (/home/steven/code/rust-sitter/tablegen)
+   Compiling rust-sitter v0.5.0-beta (/home/steven/code/rust-sitter/runtime)
+warning: unused variable: `extra_subtree`
+   --> runtime/src/pure_parser.rs:370:21
+    |
+370 |                 let extra_subtree = Subtree {
+    |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extra_subtree`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: methods `get_production_id` and `get_goto_state` are never used
+   --> runtime/src/pure_parser.rs:872:8
+    |
+209 | impl Parser {
+    | ----------- methods in this implementation
+...
+872 |     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
+    |        ^^^^^^^^^^^^^^^^^
+...
+883 |     fn get_goto_state(&self, _language: &TSLanguage, _state: TSStateId, _symbol: TSSymbol) -> TSStateId {
+    |        ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: `rust-sitter` (lib) generated 2 warnings
+   Compiling rust-sitter-tool v0.5.0-beta (/home/steven/code/rust-sitter/tool)
+warning: function `parse_with_rust_parser` is never used
+  --> tool/src/cli/parse.rs:83:8
+   |
+83 | pub fn parse_with_rust_parser(
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `auto_detect_parser` is never used
+  --> tool/src/cli/parse.rs:98:8
+   |
+98 | pub fn auto_detect_parser(file_path: &Path) -> Option<String> {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `generate_corpus` is never used
+   --> tool/src/cli/test.rs:172:8
+    |
+172 | pub fn generate_corpus(
+    |        ^^^^^^^^^^^^^^^
+
+warning: `rust-sitter-tool` (lib) generated 3 warnings
+   Compiling rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)
+warning: unused import: `rust_sitter::Extract`
+ --> example/src/external_word_example.rs:3:5
+  |
+3 | use rust_sitter::Extract;
+  |     ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::time::Instant`
+  --> example/src/performance_test.rs:2:5
+   |
+2  | use std::time::Instant;
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> example/src/main.rs:14:1
+   |
+14 | mod performance_test;
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `0` is never read
+ --> example/src/external_word_example.rs:9:12
+  |
+9 |         If(IfStatement),
+  |         -- ^^^^^^^^^^^
+  |         |
+  |         field in this variant
+  |
+  = note: `#[warn(dead_code)]` on by default
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+  |
+9 -         If(IfStatement),
+9 +         If(()),
+  |
+
+warning: field `0` is never read
+  --> example/src/external_word_example.rs:10:20
+   |
+10 |         Expression(Expression),
+   |         ---------- ^^^^^^^^^^
+   |         |
+   |         field in this variant
+   |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+10 -         Expression(Expression),
+10 +         Expression(()),
+   |
+
+warning: fields `condition` and `body` are never read
+  --> example/src/external_word_example.rs:16:9
+   |
+13 |     pub struct IfStatement {
+   |                ----------- fields in this struct
+...
+16 |         condition: Expression,
+   |         ^^^^^^^^^
+...
+19 |         body: Vec<Statement>,
+   |         ^^^^
+
+warning: field `0` is never read
+  --> example/src/external_word_example.rs:23:20
+   |
+23 |         Identifier(Identifier),
+   |         ---------- ^^^^^^^^^^
+   |         |
+   |         field in this variant
+   |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+23 -         Identifier(Identifier),
+23 +         Identifier(()),
+   |
+
+warning: field `0` is never read
+  --> example/src/external_word_example.rs:26:13
+   |
+24 |         Number(
+   |         ------ field in this variant
+25 |             #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+26 |             i32
+   |             ^^^
+   |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+26 -             i32
+26 +             ()
+   |
+
+warning: field `name` is never read
+  --> example/src/external_word_example.rs:34:9
+   |
+32 |     pub struct Identifier {
+   |                ---------- field in this struct
+33 |         #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+34 |         name: String,
+   |         ^^^^
+
+warning: `rust-sitter-example` (bin "rust-sitter-example") generated 8 warnings (run `cargo fix --bin "rust-sitter-example"` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.97s

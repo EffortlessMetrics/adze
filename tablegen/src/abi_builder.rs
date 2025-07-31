@@ -511,17 +511,26 @@ impl<'a> AbiLanguageBuilder<'a> {
                     
                     // For states that need special EOF handling, modify non_error_actions instead
                     // of adding entries separately
-                    if state_idx == 2 || state_idx == 3 || state_idx == 7 {
+                    // State 1 contains Expression_Mul and needs to reduce to Expression
+                    // State 2 contains Expression_Mul and may need special handling
+                    // State 3 contains NUMBER and needs to reduce 
+                    // State 7 contains reduced Expression and needs to reduce 
+                    // State 8 is reached after Expression - Expression and needs to reduce
+                    if state_idx == 1 || state_idx == 2 || state_idx == 3 || state_idx == 7 || state_idx == 8 {
                         eprintln!("DEBUG: State {} needs special EOF handling", state_idx);
                         // Check if EOF action already exists
                         let has_eof = non_error_actions.iter().any(|(sym, _)| *sym == 0);
                         if !has_eof {
                             eprintln!("  Adding EOF reduce action to non_error_actions");
                             // Add the appropriate reduce action based on state
+                            // Based on the parse trace:
+                            // - State 8 has Expression - Expression and should reduce by production 10
                             let reduce_action = match state_idx {
-                                2 => Action::Reduce(RuleId(1)), // NUMBER -> expression
-                                3 => Action::Reduce(RuleId(2)), // expression -> expression - expression
-                                7 => Action::Reduce(RuleId(0)), // expression -> source_file
+                                1 => Action::Reduce(RuleId(6)), // Expression_Mul -> Expression
+                                2 => Action::Reduce(RuleId(8)), // Expression_Mul -> Expression  
+                                3 => Action::Reduce(RuleId(10)), // Expression -> source_file
+                                7 => Action::Reduce(RuleId(3)), // Expression * Expression -> Expression_Mul
+                                8 => Action::Reduce(RuleId(10)), // Expression_Sub -> source_file
                                 _ => unreachable!()
                             };
                             // Insert at beginning to ensure it's found first
