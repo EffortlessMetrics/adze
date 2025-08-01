@@ -92,14 +92,19 @@ fn gen_field(
                 panic!("Expected string literal for text");
             }
         } else {
-            let symbol_name = if let Type::Path(p) = filter_inner_type(&leaf_type, &skip_over) {
-                if p.path.segments.len() == 1 {
-                    p.path.segments[0].ident.to_string()
-                } else {
-                    panic!("Expected a single segment path");
+            let symbol_name = match filter_inner_type(&leaf_type, &skip_over) {
+                Type::Path(p) => {
+                    if p.path.segments.len() == 1 {
+                        p.path.segments[0].ident.to_string()
+                    } else {
+                        panic!("Expected a single segment path");
+                    }
                 }
-            } else {
-                panic!("Expected a path");
+                Type::Tuple(t) if t.elems.is_empty() => {
+                    // Unit type () - generate a synthetic name
+                    format!("{path}_unit")
+                }
+                _ => panic!("Expected a path or unit type"),
             };
 
             (
@@ -329,15 +334,25 @@ fn gen_struct_or_variant(
             {
                 None
             } else {
-                let ident_str = field
-                    .ident
-                    .as_ref()
-                    .map(|v| v.to_string())
-                    .unwrap_or_else(|| {
-                        // Generate a deterministic name based on the path and field index
-                        // This ensures consistent naming across builds
-                        format!("{path}_{i}")
+                // Check for #[rust_sitter::field("name")] attribute
+                let field_name = field.attrs.iter()
+                    .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::field))
+                    .and_then(|attr| {
+                        attr.parse_args::<syn::LitStr>().ok()
+                            .map(|lit| lit.value())
                     });
+                
+                let ident_str = field_name.unwrap_or_else(|| {
+                    field
+                        .ident
+                        .as_ref()
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| {
+                            // Generate a deterministic name based on the path and field index
+                            // This ensures consistent naming across builds
+                            format!("{path}_{i}")
+                        })
+                });
 
                 Some(gen_field_optional(&path, field, word_rule, out, ident_str))
             }
