@@ -41,6 +41,8 @@ impl<'a> LanguageGenerator<'a> {
         let field_count = self.grammar.fields.len() as u32;
         let state_count = self.parse_table.state_count as u32;
         let external_token_count = self.grammar.externals.len() as u32;
+        let large_state_count = self.determine_large_state_count() as u32;
+        let production_id_count = self.count_production_ids() as u32;
         
         quote! {
             use rust_sitter::tree_sitter as ts;
@@ -94,12 +96,12 @@ impl<'a> LanguageGenerator<'a> {
                 token_count: #token_count,
                 external_token_count: #external_token_count,
                 state_count: #state_count,
-                large_state_count: 0, // TODO: Determine large states
-                production_id_count: 0, // TODO: Implement production IDs
+                large_state_count: #large_state_count,
+                production_id_count: #production_id_count,
                 field_count: #field_count,
                 max_alias_sequence_length: 0,
                 parse_table: PARSE_TABLE.as_ptr(),
-                small_parse_table: std::ptr::null(), // TODO: Implement small table
+                small_parse_table: PARSE_TABLE.as_ptr().wrapping_add(#large_state_count as usize * #symbol_count as usize),
                 small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
                 parse_actions: PARSE_ACTIONS.as_ptr(),
                 symbol_names: SYMBOL_NAMES_PTRS.as_ptr(),
@@ -207,15 +209,107 @@ impl<'a> LanguageGenerator<'a> {
     }
     
     fn generate_compressed_tables(&self) -> (Vec<u16>, Vec<u32>) {
-        // For now, return dummy data
-        // TODO: Implement proper table compression
-        (vec![0u16; 100], vec![0u32; 10])
+        // Tree-sitter's compression strategy:
+        // - Large states (0 to LARGE_STATE_COUNT) use a 2D table indexed by [state][symbol]
+        // - Small states use a compact format with entries like [count, symbol, action, ...]
+        
+        let large_state_count = self.determine_large_state_count();
+        let mut compressed_table = Vec::new();
+        let mut small_table_map = Vec::new();
+        
+        // For large states, generate the full 2D table
+        for state in 0..large_state_count {
+            for symbol in 0..self.parse_table.symbol_count {
+                let action = self.get_action(state, symbol);
+                compressed_table.push(self.encode_action(action));
+            }
+        }
+        
+        // For small states, use compact representation
+        let mut small_table_data = Vec::new();
+        for state in large_state_count..self.parse_table.state_count {
+            // Store offset into small_table_data for this state
+            small_table_map.push(small_table_data.len() as u32);
+            
+            // Count non-error actions for this state
+            let mut non_error_actions = Vec::new();
+            for symbol in 0..self.parse_table.symbol_count {
+                let action = self.get_action(state, symbol);
+                if !self.is_error_action(action) {
+                    non_error_actions.push((symbol, action));
+                }
+            }
+            
+            // First entry is the count of actions
+            small_table_data.push(non_error_actions.len() as u16);
+            
+            // Then pairs of (symbol, encoded_action)
+            for (symbol, action) in non_error_actions {
+                small_table_data.push(symbol as u16);
+                small_table_data.push(self.encode_action(action));
+            }
+        }
+        
+        // If no small states, add a dummy entry
+        if small_table_map.is_empty() {
+            small_table_map.push(0);
+        }
+        
+        // Combine compressed_table and small_table_data
+        compressed_table.extend(small_table_data);
+        
+        (compressed_table, small_table_map)
+    }
+    
+    fn determine_large_state_count(&self) -> usize {
+        // Tree-sitter typically uses states with the most transitions as large states
+        // For now, use a simple heuristic: first 30% of states are large
+        let large_ratio = 0.3;
+        let large_count = (self.parse_table.state_count as f64 * large_ratio) as usize;
+        large_count.max(1).min(self.parse_table.state_count)
+    }
+    
+    fn get_action(&self, state: usize, symbol: usize) -> u16 {
+        // Get the action from parse table
+        if state < self.parse_table.action_table.len() && symbol < self.parse_table.action_table[state].len() {
+            let action = &self.parse_table.action_table[state][symbol];
+            match action {
+                rust_sitter_glr_core::Action::Shift(s) => s.0,
+                rust_sitter_glr_core::Action::Reduce(r) => 0x8000 | (r.0 << 1),
+                rust_sitter_glr_core::Action::Accept => 0xFFFF,
+                rust_sitter_glr_core::Action::Error => 0xFFFE,
+                rust_sitter_glr_core::Action::Fork(_) => 0xFFFE, // TODO: Handle GLR forks
+            }
+        } else {
+            0xFFFE // Error action
+        }
+    }
+    
+    fn encode_action(&self, action: u16) -> u16 {
+        // Actions are already encoded in get_action
+        action
+    }
+    
+    fn is_error_action(&self, action: u16) -> bool {
+        action == 0xFFFE
     }
     
     fn count_symbols(&self) -> usize {
         1 + // EOF
         self.grammar.tokens.len() +
         self.grammar.rules.len()
+    }
+    
+    fn count_production_ids(&self) -> usize {
+        // Find the maximum production ID in all rules
+        let mut max_production_id = 0;
+        for (_, rules) in &self.grammar.rules {
+            for rule in rules {
+                max_production_id = max_production_id.max(rule.production_id.0);
+            }
+        }
+        // Production ID count is max ID + 1 (since they start at 0)
+        (max_production_id + 1) as usize
     }
 }
 
