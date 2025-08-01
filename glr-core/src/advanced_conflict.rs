@@ -1,9 +1,9 @@
 // Advanced conflict resolution strategies for GLR parsing
 // This module provides additional conflict resolution capabilities beyond the basic resolver
 
-use crate::{ParseTable, Action};
-use rust_sitter_ir::{Grammar, SymbolId, Associativity, PrecedenceKind};
-use std::collections::HashMap;
+use crate::{ParseTable, Action, StateId, RuleId};
+use rust_sitter_ir::{Grammar, SymbolId, Associativity, PrecedenceKind, Precedence, Rule, Symbol, ProductionId};
+use std::collections::{HashMap, BTreeMap};
 
 /// Statistics about conflict resolution
 #[derive(Debug, Clone, Default)]
@@ -147,7 +147,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 1,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: BTreeMap::new(),
         };
         
         let mut analyzer = ConflictAnalyzer::new();
@@ -177,14 +177,14 @@ mod tests {
         });
         
         // Add a rule with precedence
-        grammar.rules.insert(SymbolId(3), Rule {
+        grammar.rules.insert(SymbolId(3), vec![Rule {
             lhs: SymbolId(3),
             rhs: vec![Symbol::Terminal(SymbolId(1))],
             precedence: Some(PrecedenceKind::Static(1)),
             associativity: Some(Associativity::Left),
             fields: vec![],
             production_id: ProductionId(0),
-        });
+        }]);
         
         let resolver = PrecedenceResolver::new(&grammar);
         

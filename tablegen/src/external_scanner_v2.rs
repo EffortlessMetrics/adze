@@ -1,7 +1,7 @@
 // Enhanced external scanner generator with state-based validity computation
 use rust_sitter_ir::{ExternalToken, Grammar, SymbolId};
 use rust_sitter_glr_core::ParseTable;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, BTreeMap};
 use quote::quote;
 
 /// Enhanced external scanner generator that computes state-based validity
@@ -205,7 +205,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 2,
-            symbol_to_index: HashMap::new(),
+            symbol_to_index: BTreeMap::new(),
         };
         
         // Map external symbols to indices

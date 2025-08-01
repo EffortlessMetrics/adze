@@ -18,25 +18,27 @@ fn test_fork_action_generation() {
     let e_id = SymbolId(10);
     grammar.rule_names.insert(e_id, "E".to_string());
     
-    // Rule 1: E → a
-    grammar.rules.insert(SymbolId(20), Rule {
-        lhs: e_id,
-        rhs: vec![Symbol::Terminal(a_id)],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(0),
-        fields: vec![],
-    });
-    
-    // Rule 2: E → E E
-    grammar.rules.insert(SymbolId(21), Rule {
-        lhs: e_id,
-        rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(1),
-        fields: vec![],
-    });
+    // Rules for E
+    grammar.rules.insert(e_id, vec![
+        // Rule 1: E → a
+        Rule {
+            lhs: e_id,
+            rhs: vec![Symbol::Terminal(a_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: vec![],
+        },
+        // Rule 2: E → E E
+        Rule {
+            lhs: e_id,
+            rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(1),
+            fields: vec![],
+        },
+    ]);
     
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();

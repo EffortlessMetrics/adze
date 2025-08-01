@@ -337,7 +337,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 10,
             symbol_count: 5,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let generator = LanguageGenerator::new(&grammar, &parse_table);

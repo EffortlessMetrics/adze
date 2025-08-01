@@ -750,7 +750,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -837,7 +837,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -862,7 +862,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -880,7 +880,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -907,7 +907,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 2,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let mut generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -931,7 +931,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 40000,
             symbol_count: 10,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let compressor = TableCompressor::new();
@@ -953,7 +953,7 @@ mod tests {
             vec![Action::Error, Action::Reduce(RuleId(0)), Action::Error],
         ];
         
-        let symbol_to_index = HashMap::new();
+        let symbol_to_index = std::collections::BTreeMap::new();
         let compressed = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(compressed.is_ok());
         
@@ -983,7 +983,7 @@ mod tests {
             vec![Action::Reduce(RuleId(1)), Action::Reduce(RuleId(1)), Action::Reduce(RuleId(1))],
         ];
         
-        let symbol_to_index = HashMap::new();
+        let symbol_to_index = std::collections::BTreeMap::new();
         let compressed = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(compressed.is_ok());
         
@@ -1084,7 +1084,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 1,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -1112,7 +1112,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 2,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let compressor = TableCompressor::new();
@@ -1180,7 +1180,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 1,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let mut generator = StaticLanguageGenerator::new(grammar, parse_table);

@@ -5,7 +5,7 @@ use crate::abi::*;
 use crate::compress::CompressedTables;
 use rust_sitter_ir::{Grammar, TokenPattern, Symbol, SymbolId, Rule};
 use rust_sitter_glr_core::{ParseTable, Action};
-use std::collections::HashSet;
+use std::collections::{HashSet, BTreeMap};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -867,7 +867,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 3,
-            symbol_to_index: HashMap::new(),
+            symbol_to_index: BTreeMap::new(),
         };
         
         let builder = AbiLanguageBuilder::new(&grammar, &parse_table);

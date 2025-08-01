@@ -48,48 +48,48 @@ fn test_classic_shift_reduce_conflict() {
     let s_id = SymbolId(10);
     grammar.rule_names.insert(s_id, "S".to_string());
     
-    // Rules creating the dangling else problem:
-    // S → if expr then S
-    grammar.rules.insert(SymbolId(20), Rule {
-        lhs: s_id,
-        rhs: vec![
-            Symbol::Terminal(if_id),
-            Symbol::Terminal(expr_id),
-            Symbol::Terminal(then_id),
-            Symbol::NonTerminal(s_id),
-        ],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(0),
-        fields: vec![],
-    });
-    
-    // S → if expr then S else S
-    grammar.rules.insert(SymbolId(21), Rule {
-        lhs: s_id,
-        rhs: vec![
-            Symbol::Terminal(if_id),
-            Symbol::Terminal(expr_id),
-            Symbol::Terminal(then_id),
-            Symbol::NonTerminal(s_id),
-            Symbol::Terminal(else_id),
-            Symbol::NonTerminal(s_id),
-        ],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(1),
-        fields: vec![],
-    });
-    
-    // S → stmt
-    grammar.rules.insert(SymbolId(22), Rule {
-        lhs: s_id,
-        rhs: vec![Symbol::Terminal(stmt_id)],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(2),
-        fields: vec![],
-    });
+    // Rules creating the dangling else problem
+    grammar.rules.insert(s_id, vec![
+        // S → if expr then S
+        Rule {
+            lhs: s_id,
+            rhs: vec![
+                Symbol::Terminal(if_id),
+                Symbol::Terminal(expr_id),
+                Symbol::Terminal(then_id),
+                Symbol::NonTerminal(s_id),
+            ],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: vec![],
+        },
+        // S → if expr then S else S
+        Rule {
+            lhs: s_id,
+            rhs: vec![
+                Symbol::Terminal(if_id),
+                Symbol::Terminal(expr_id),
+                Symbol::Terminal(then_id),
+                Symbol::NonTerminal(s_id),
+                Symbol::Terminal(else_id),
+                Symbol::NonTerminal(s_id),
+            ],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(1),
+            fields: vec![],
+        },
+        // S → stmt
+        Rule {
+            lhs: s_id,
+            rhs: vec![Symbol::Terminal(stmt_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(2),
+            fields: vec![],
+        },
+    ]);
     
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
@@ -155,43 +155,44 @@ fn test_expression_ambiguity() {
     let e_id = SymbolId(10);
     grammar.rule_names.insert(e_id, "E".to_string());
     
-    // E → E + E (no precedence)
-    grammar.rules.insert(SymbolId(20), Rule {
-        lhs: e_id,
-        rhs: vec![
-            Symbol::NonTerminal(e_id),
-            Symbol::Terminal(plus_id),
-            Symbol::NonTerminal(e_id),
-        ],
-        precedence: None, // No precedence!
-        associativity: None,
-        production_id: ProductionId(0),
-        fields: vec![],
-    });
-    
-    // E → E * E (no precedence)
-    grammar.rules.insert(SymbolId(21), Rule {
-        lhs: e_id,
-        rhs: vec![
-            Symbol::NonTerminal(e_id),
-            Symbol::Terminal(times_id),
-            Symbol::NonTerminal(e_id),
-        ],
-        precedence: None, // No precedence!
-        associativity: None,
-        production_id: ProductionId(1),
-        fields: vec![],
-    });
-    
-    // E → num
-    grammar.rules.insert(SymbolId(22), Rule {
-        lhs: e_id,
-        rhs: vec![Symbol::Terminal(num_id)],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(2),
-        fields: vec![],
-    });
+    // Rules for E
+    grammar.rules.insert(e_id, vec![
+        // E → E + E (no precedence)
+        Rule {
+            lhs: e_id,
+            rhs: vec![
+                Symbol::NonTerminal(e_id),
+                Symbol::Terminal(plus_id),
+                Symbol::NonTerminal(e_id),
+            ],
+            precedence: None, // No precedence!
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: vec![],
+        },
+        // E → E * E (no precedence)
+        Rule {
+            lhs: e_id,
+            rhs: vec![
+                Symbol::NonTerminal(e_id),
+                Symbol::Terminal(times_id),
+                Symbol::NonTerminal(e_id),
+            ],
+            precedence: None, // No precedence!
+            associativity: None,
+            production_id: ProductionId(1),
+            fields: vec![],
+        },
+        // E → num
+        Rule {
+            lhs: e_id,
+            rhs: vec![Symbol::Terminal(num_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(2),
+            fields: vec![],
+        },
+    ]);
     
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();

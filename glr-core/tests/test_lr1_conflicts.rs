@@ -19,25 +19,27 @@ fn test_lr1_conflict_detection() {
     let e_id = SymbolId(10);
     grammar.rule_names.insert(e_id, "E".to_string());
     
-    // Rule 0: E → a (production_id = 0)
-    grammar.rules.insert(SymbolId(20), Rule {
-        lhs: e_id,
-        rhs: vec![Symbol::Terminal(a_id)],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(0),
-        fields: vec![],
-    });
-    
-    // Rule 1: E → E E (production_id = 1)
-    grammar.rules.insert(SymbolId(21), Rule {
-        lhs: e_id,
-        rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(1),
-        fields: vec![],
-    });
+    // Rules for E
+    grammar.rules.insert(e_id, vec![
+        // Rule 0: E → a (production_id = 0)
+        Rule {
+            lhs: e_id,
+            rhs: vec![Symbol::Terminal(a_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: vec![],
+        },
+        // Rule 1: E → E E (production_id = 1)
+        Rule {
+            lhs: e_id,
+            rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(1),
+            fields: vec![],
+        },
+    ]);
     
     let first_follow = FirstFollowSets::compute(&grammar);
     println!("\n=== First/Follow Sets ===");
