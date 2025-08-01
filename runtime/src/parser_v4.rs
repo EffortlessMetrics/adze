@@ -459,7 +459,7 @@ impl Parser {
         let mut new_heads = Vec::new();
         
         // Perform reduction starting from this GSS node
-        self.perform_glr_reduce(gss_idx, rule, rule_len, Vec::new(), &mut new_heads)?;
+        self.perform_glr_reduce(gss_idx, rule, rule_id, rule_len, Vec::new(), &mut new_heads)?;
         
         Ok(new_heads)
     }
@@ -469,6 +469,7 @@ impl Parser {
         &mut self,
         current_gss: usize,
         rule: &Rule,
+        rule_id: RuleId,
         remaining: usize,
         mut children: Vec<Rc<ForestNode>>,
         new_heads: &mut Vec<usize>,
@@ -528,6 +529,7 @@ impl Parser {
                 self.perform_glr_reduce(
                     link.parent,
                     rule,
+                    rule_id,
                     remaining - 1,
                     new_children,
                     new_heads,

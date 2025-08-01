@@ -59,7 +59,7 @@ fn create_arithmetic_grammar() -> Grammar {
         fields: vec![],
         production_id: ProductionId(0),
     };
-    grammar.rules.insert(number_expr_id, number_expr_rule);
+    grammar.rules.insert(number_expr_id, vec![number_expr_rule]);
     
     // Binary expression rule: left operator right
     let binary_expr_rule = Rule {
@@ -78,7 +78,7 @@ fn create_arithmetic_grammar() -> Grammar {
         ],
         production_id: ProductionId(1),
     };
-    grammar.rules.insert(binary_expr_id, binary_expr_rule);
+    grammar.rules.insert(binary_expr_id, vec![binary_expr_rule]);
     
     // Expression rule (choice - simplified for now)
     // In a real implementation, this would be multiple rules with the same LHS
@@ -90,7 +90,7 @@ fn create_arithmetic_grammar() -> Grammar {
         fields: vec![],
         production_id: ProductionId(2),
     };
-    grammar.rules.insert(expression_id, expr_rule);
+    grammar.rules.insert(expression_id, vec![expr_rule]);
     
     grammar
 }

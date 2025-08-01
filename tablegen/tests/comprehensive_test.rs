@@ -42,7 +42,7 @@ fn create_test_grammar() -> Grammar {
         production_id: ProductionId(0),
     };
     
-    grammar.rules.insert(SymbolId(10), rule);
+    grammar.rules.insert(SymbolId(10), vec![rule]);
     
     grammar
 }
@@ -55,7 +55,7 @@ fn create_test_parse_table() -> ParseTable {
         symbol_metadata: vec![],
         state_count: 0,
         symbol_count: 0,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
     };
     
     // Add some basic states
@@ -159,11 +159,13 @@ fn test_grammar_with_fields() {
     grammar.fields.insert(FieldId(1), "right".to_string());
     
     // Update rule to have fields
-    if let Some(rule) = grammar.rules.get_mut(&SymbolId(10)) {
-        rule.fields = vec![
-            (FieldId(0), 0), // left field at position 0
-            (FieldId(1), 2), // right field at position 2
-        ];
+    if let Some(rules) = grammar.rules.get_mut(&SymbolId(10)) {
+        if let Some(rule) = rules.get_mut(0) {
+            rule.fields = vec![
+                (FieldId(0), 0), // left field at position 0
+                (FieldId(1), 2), // right field at position 2
+            ];
+        }
     }
     
     let parse_table = create_test_parse_table();
@@ -228,7 +230,7 @@ fn test_precedence_in_rules() {
         production_id: ProductionId(1),
     };
     
-    grammar.rules.insert(SymbolId(11), rule_with_prec);
+    grammar.rules.insert(SymbolId(11), vec![rule_with_prec]);
     
     // Verify grammar validates with precedence
     assert!(grammar.validate().is_ok());

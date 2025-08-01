@@ -396,6 +396,39 @@ fn test_compression_with_fork_actions() {
                 Symbol::External(id) => {
                     print!(" EXT{}", id.0);
                 }
+                Symbol::Optional(s) => {
+                    print!(" (");
+                    // Recursively print the optional symbol
+                    print!("optional");
+                    print!(")");
+                }
+                Symbol::Repeat(s) => {
+                    print!(" (");
+                    print!("repeat");
+                    print!(")");
+                }
+                Symbol::RepeatOne(s) => {
+                    print!(" (");
+                    print!("repeat1");
+                    print!(")");
+                }
+                Symbol::Choice(choices) => {
+                    print!(" (choice");
+                    for _ in choices {
+                        print!(" ...)");
+                    }
+                    print!(")");
+                }
+                Symbol::Sequence(seq) => {
+                    print!(" (seq");
+                    for _ in seq {
+                        print!(" ...)");
+                    }
+                    print!(")");
+                }
+                Symbol::Epsilon => {
+                    print!(" ε");
+                }
             }
         }
         println!();
