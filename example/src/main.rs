@@ -15,6 +15,7 @@ mod performance_test;
 mod test_whitespace;
 mod test_precedence;
 // mod field_test;
+mod ambiguous;
 
 fn convert_parse_error_to_diagnostics(
     file_span: &codemap::Span,

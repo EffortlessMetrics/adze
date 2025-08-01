@@ -4,7 +4,6 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::collections::HashSet;
 
 pub mod optimizer;
 pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};

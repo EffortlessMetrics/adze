@@ -946,7 +946,7 @@ mod tests {
 
     #[test]
     fn test_left_recursion_detection() {
-        let mut grammar = create_test_grammar();
+        let grammar = create_test_grammar();
         let mut optimizer = GrammarOptimizer::new();
         
         optimizer.analyze_grammar(&grammar);

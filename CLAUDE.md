@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Use TDD. Red-Green-Refactor, spec driven design. User-story driven design.
+
 ## Common Development Commands
 
 ### Building
