@@ -6,8 +6,10 @@ use rust_sitter_ir::{Grammar, Rule, StateId, SymbolId, RuleId, TokenPattern};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::external_scanner::ExternalScannerRuntime;
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
+use crate::glr_forest::{GLRParserState, ForestNode, PackedNode, forest_to_parse_tree};
 use anyhow::{Result, bail};
 use std::collections::HashSet;
+use std::rc::Rc;
 
 // Re-export types from parser_v3
 pub use crate::parser_v3::{ParseNode, ParseError, ParserState};
@@ -18,10 +20,8 @@ pub struct Parser {
     grammar: Grammar,
     /// Parse table for the grammar
     parse_table: ParseTable,
-    /// Stack of parser states
-    state_stack: Vec<ParserState>,
-    /// Stack of parse nodes
-    node_stack: Vec<ParseNode>,
+    /// GLR parser state (replaces simple stacks)
+    glr_state: GLRParserState,
     /// Input being parsed
     input: Vec<u8>,
     /// Current position in the input
@@ -61,12 +61,7 @@ impl Parser {
         Self {
             grammar,
             parse_table,
-            state_stack: vec![ParserState {
-                state: StateId(0), // Start state
-                symbol: None,
-                position: 0,
-            }],
-            node_stack: Vec::new(),
+            glr_state: GLRParserState::new(),
             input: Vec::new(),
             position: 0,
             external_scanner,
@@ -79,13 +74,7 @@ impl Parser {
     pub fn parse(&mut self, input: &str) -> Result<ParseNode> {
         self.input = input.as_bytes().to_vec();
         self.position = 0;
-        self.state_stack.clear();
-        self.state_stack.push(ParserState {
-            state: StateId(0),
-            symbol: None,
-            position: 0,
-        });
-        self.node_stack.clear();
+        self.glr_state = GLRParserState::new();
         
         // Create a lexer from the grammar
         let token_patterns: Vec<(SymbolId, TokenPattern, i32)> = self.grammar.tokens
@@ -95,62 +84,83 @@ impl Parser {
         
         let mut lexer = GrammarLexer::new(&token_patterns);
         
-        // Main parse loop
+        // Main GLR parse loop
         loop {
-            // Get current state
-            let current_state = self.state_stack.last()
-                .ok_or_else(|| anyhow::anyhow!(ParseError::InvalidState("Empty state stack".to_string())))?
-                .state;
+            // Process all active heads
+            let mut new_active_heads = Vec::new();
+            let mut accepted_forest = None;
             
-            // Try external scanner first if we have one
-            let token = if let Some(external_token) = self.try_external_scanner(current_state)? {
-                external_token
-            } else {
-                // Fall back to regular lexer
-                match lexer.next_token(&self.input, self.position) {
-                    Some(tok) => tok,
-                    None => bail!("Lexer failed to produce token at position {}", self.position),
-                }
-            };
+            // Get next token (same for all heads)
+            let token = self.get_next_token(&mut lexer)?;
             
-            // Look up action in parse table
-            let action = self.get_action(current_state, token.symbol)?;
-            
-            match action {
-                Action::Shift(next_state) => {
-                    self.handle_shift(next_state, token)?;
-                }
+            // Process each active GSS head
+            let active_heads = self.glr_state.active_heads.clone();
+            for head_idx in active_heads {
+                let current_state = self.glr_state.gss_nodes[head_idx].state;
                 
-                Action::Reduce(rule_id) => {
-                    self.handle_reduce(rule_id)?;
-                    // After reduction, don't advance - re-process with the new top state
-                    continue;
-                }
+                // Look up action in parse table
+                let action = self.get_action(StateId(current_state as u16), token.symbol)?;
                 
-                Action::Accept => {
-                    // Parse complete!
-                    return self.node_stack.pop()
-                        .ok_or_else(|| anyhow::anyhow!(ParseError::InvalidState("No parse tree on accept".to_string())));
-                }
-                
-                Action::Error => {
-                    bail!(ParseError::UnexpectedToken {
-                        expected: self.get_expected_symbols(current_state),
-                        found: token.symbol,
-                        position: self.position,
-                    });
-                }
-                
-                Action::Fork(actions) => {
-                    // For now, take the first non-error action
-                    // TODO: Implement proper GLR forking
-                    for action in actions {
-                        if !matches!(action, Action::Error) {
-                            return self.handle_action(action, token);
+                match action {
+                    Action::Shift(next_state) => {
+                        let new_head = self.handle_glr_shift(head_idx, next_state, token.clone())?;
+                        new_active_heads.push(new_head);
+                    }
+                    
+                    Action::Reduce(rule_id) => {
+                        let new_heads = self.handle_glr_reduce(head_idx, rule_id)?;
+                        new_active_heads.extend(new_heads);
+                    }
+                    
+                    Action::Accept => {
+                        // Found a valid parse!
+                        accepted_forest = Some(self.build_final_tree(head_idx)?);
+                    }
+                    
+                    Action::Error => {
+                        // This head dies, don't add to new_active_heads
+                    }
+                    
+                    Action::Fork(actions) => {
+                        // Handle each forked action
+                        for fork_action in actions {
+                            match fork_action {
+                                Action::Shift(next_state) => {
+                                    let new_head = self.handle_glr_shift(head_idx, next_state, token.clone())?;
+                                    new_active_heads.push(new_head);
+                                }
+                                Action::Reduce(rule_id) => {
+                                    let new_heads = self.handle_glr_reduce(head_idx, rule_id)?;
+                                    new_active_heads.extend(new_heads);
+                                }
+                                _ => {} // Ignore other actions in fork
+                            }
                         }
                     }
-                    bail!("All fork actions were errors");
                 }
+            }
+            
+            // Check if we accepted
+            if let Some(forest) = accepted_forest {
+                return Ok(forest_to_parse_tree(&forest));
+            }
+            
+            // Check if all heads died
+            if new_active_heads.is_empty() {
+                bail!(ParseError::UnexpectedToken {
+                    expected: vec![],
+                    found: token.symbol,
+                    position: self.position,
+                });
+            }
+            
+            // Update active heads
+            self.glr_state.active_heads = new_active_heads;
+            
+            // Advance position if we shifted
+            if matches!(self.get_action(StateId(self.glr_state.gss_nodes[self.glr_state.active_heads[0]].state as u16), token.symbol)?, 
+                       Action::Shift(_) | Action::Fork(_)) {
+                self.position += token.text.len();
             }
         }
     }
@@ -170,15 +180,20 @@ impl Parser {
             return Ok(None);
         }
         
+        // Convert valid externals to bool array
+        let valid_symbols: Vec<bool> = runtime.external_tokens
+            .iter()
+            .map(|token| valid_externals.contains(token))
+            .collect();
+        
         // Try to scan
-        if let Some((symbol, length)) = runtime.scan(
-            scanner.as_mut(),
-            &valid_externals,
+        if let Some(result) = scanner.scan(
+            &valid_symbols,
             &self.input,
             self.position,
         ) {
             // Extract token text
-            let end = self.position + length;
+            let end = self.position + result.length;
             let text = if end <= self.input.len() {
                 self.input[self.position..end].to_vec()
             } else {
@@ -186,7 +201,7 @@ impl Parser {
             };
             
             Ok(Some(LexerToken {
-                symbol,
+                symbol: result.symbol,
                 text,
                 start: self.position,
                 end,
@@ -348,9 +363,10 @@ impl Parser {
     fn get_action(&self, state: StateId, symbol: SymbolId) -> Result<Action> {
         let state_idx = state.0 as usize;
         if state_idx < self.parse_table.action_table.len() {
-            let state_actions = &self.parse_table.action_table[state_idx];
-            if let Some(action) = state_actions.actions.get(&symbol) {
-                return Ok(action.clone());
+            if let Some(&symbol_idx) = self.parse_table.symbol_to_index.get(&symbol) {
+                if symbol_idx < self.parse_table.action_table[state_idx].len() {
+                    return Ok(self.parse_table.action_table[state_idx][symbol_idx].clone());
+                }
             }
         }
         
@@ -379,12 +395,180 @@ impl Parser {
     
     /// Find a rule by its ID
     fn find_rule_by_id(&self, rule_id: RuleId) -> Result<&Rule> {
-        for rule in &self.grammar.rules {
-            if rule.id == rule_id {
-                return Ok(rule);
+        // Rules are stored per symbol, need to search all of them
+        for (_, rules) in &self.grammar.rules {
+            for rule in rules {
+                if rule.production_id.0 == rule_id.0 {
+                    return Ok(rule);
+                }
             }
         }
         bail!("Rule with ID {:?} not found", rule_id)
+    }
+    
+    // GLR-specific methods
+    
+    /// Get next token (handles external scanner)
+    fn get_next_token(&mut self, lexer: &mut GrammarLexer) -> Result<LexerToken> {
+        // Try external scanner on first active head
+        if !self.glr_state.active_heads.is_empty() {
+            let current_state = StateId(self.glr_state.gss_nodes[self.glr_state.active_heads[0]].state as u16);
+            if let Some(external_token) = self.try_external_scanner(current_state)? {
+                return Ok(external_token);
+            }
+        }
+        
+        // Fall back to regular lexer
+        match lexer.next_token(&self.input, self.position) {
+            Some(tok) => Ok(tok),
+            None => bail!("Lexer failed to produce token at position {}", self.position),
+        }
+    }
+    
+    /// Handle shift in GLR mode
+    fn handle_glr_shift(&mut self, gss_idx: usize, next_state: StateId, token: LexerToken) -> Result<usize> {
+        // Create terminal forest node
+        let terminal_node = self.glr_state.get_or_create_forest_node(
+            token.symbol,
+            token.start,
+            token.end,
+            || ForestNode::Terminal {
+                symbol: token.symbol,
+                start: token.start,
+                end: token.end,
+                text: token.text.clone(),
+            },
+        );
+        
+        // Fork or reuse GSS node
+        let new_gss_idx = self.glr_state.fork(gss_idx, next_state.0 as usize);
+        
+        // Add link from new node to parent
+        self.glr_state.gss_nodes[new_gss_idx].parents.push(crate::glr_forest::GSSLink {
+            parent: gss_idx,
+            tree_node: terminal_node,
+        });
+        
+        Ok(new_gss_idx)
+    }
+    
+    /// Handle reduce in GLR mode
+    fn handle_glr_reduce(&mut self, gss_idx: usize, rule_id: RuleId) -> Result<Vec<usize>> {
+        let rule = self.find_rule_by_id(rule_id)?;
+        let rule_len = rule.rhs.len();
+        let mut new_heads = Vec::new();
+        
+        // Perform reduction starting from this GSS node
+        self.perform_glr_reduce(gss_idx, rule, rule_len, Vec::new(), &mut new_heads)?;
+        
+        Ok(new_heads)
+    }
+    
+    /// Recursively perform GLR reduction
+    fn perform_glr_reduce(
+        &mut self,
+        current_gss: usize,
+        rule: &Rule,
+        remaining: usize,
+        mut children: Vec<Rc<ForestNode>>,
+        new_heads: &mut Vec<usize>,
+    ) -> Result<()> {
+        if remaining == 0 {
+            // Reduction complete - create non-terminal node
+            children.reverse(); // Children were collected in reverse order
+            
+            let start = if children.is_empty() {
+                self.position
+            } else {
+                match children.first().unwrap().as_ref() {
+                    ForestNode::Terminal { start, .. } => *start,
+                    ForestNode::NonTerminal { start, .. } => *start,
+                }
+            };
+            
+            let end = if children.is_empty() {
+                self.position
+            } else {
+                match children.last().unwrap().as_ref() {
+                    ForestNode::Terminal { end, .. } => *end,
+                    ForestNode::NonTerminal { end, .. } => *end,
+                }
+            };
+            
+            let packed_node = PackedNode {
+                rule_id,
+                children: children.clone(),
+            };
+            
+            let forest_node = self.glr_state.merge_trees(
+                rule.lhs,
+                start,
+                end,
+                packed_node,
+            );
+            
+            // Get goto state
+            let current_state = self.glr_state.gss_nodes[current_gss].state;
+            let goto_state = self.get_goto_for_state(current_state, rule.lhs)?;
+            
+            // Create or reuse GSS node for goto state
+            let new_gss = self.glr_state.fork(current_gss, goto_state);
+            self.glr_state.gss_nodes[new_gss].parents.push(crate::glr_forest::GSSLink {
+                parent: current_gss,
+                tree_node: forest_node,
+            });
+            
+            new_heads.push(new_gss);
+        } else {
+            // Continue reduction - follow all parent links
+            let parents = self.glr_state.gss_nodes[current_gss].parents.clone();
+            for link in parents {
+                let mut new_children = children.clone();
+                new_children.push(link.tree_node.clone());
+                self.perform_glr_reduce(
+                    link.parent,
+                    rule,
+                    remaining - 1,
+                    new_children,
+                    new_heads,
+                )?;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Get goto state for a given state and symbol
+    fn get_goto_for_state(&self, state: usize, symbol: SymbolId) -> Result<usize> {
+        if state < self.parse_table.action_table.len() {
+            let state_actions = &self.parse_table.action_table[state];
+            if let Some(action) = state_actions.actions.get(&symbol) {
+                if let Action::Shift(goto_state) = action {
+                    return Ok(goto_state.0 as usize);
+                }
+            }
+        }
+        bail!("No goto action for symbol {:?} in state {}", symbol, state)
+    }
+    
+    /// Build final tree from accepted GSS node
+    fn build_final_tree(&self, gss_idx: usize) -> Result<ForestNode> {
+        // Find the path from this node to the start
+        let mut current = gss_idx;
+        let mut nodes = Vec::new();
+        
+        while !self.glr_state.gss_nodes[current].parents.is_empty() {
+            let link = &self.glr_state.gss_nodes[current].parents[0];
+            nodes.push(link.tree_node.clone());
+            current = link.parent;
+        }
+        
+        // The last node should be the root of the parse tree
+        if let Some(root) = nodes.last() {
+            Ok(root.as_ref().clone())
+        } else {
+            bail!("No parse tree found")
+        }
     }
 }
 
