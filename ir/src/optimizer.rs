@@ -376,9 +376,13 @@ impl GrammarOptimizer {
                         eliminated += 1;
                     }
                 }
-                // Remove the unit rule
-                // TODO: Fix this for new Grammar structure
-                // grammar.rules.retain(|_, r| r != &unit_rule);
+                // Remove the unit rule from the appropriate symbol's rules
+                if let Some(symbol_rules) = grammar.rules.get_mut(&unit_rule.lhs) {
+                    symbol_rules.retain(|r| r.production_id != unit_rule.production_id);
+                    if symbol_rules.is_empty() {
+                        grammar.rules.shift_remove(&unit_rule.lhs);
+                    }
+                }
             }
         }
 

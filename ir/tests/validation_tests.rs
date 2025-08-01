@@ -170,3 +170,43 @@ fn test_cyclic_inline_rules() {
     // Should warn about cyclic inline rules
     assert!(result.warnings.len() > 0 || !result.errors.is_empty());
 }
+
+#[test]
+fn test_empty_string_token() {
+    let mut grammar = create_valid_grammar();
+    
+    // Add a token with empty string pattern
+    grammar.tokens.insert(SymbolId(99), Token {
+        name: "empty".to_string(),
+        pattern: TokenPattern::String("".to_string()),
+        fragile: false,
+    });
+    
+    // Check for empty terminals
+    let result = grammar.check_empty_terminals();
+    assert!(result.is_err());
+    
+    let errors = result.unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(errors[0].contains("empty string pattern"));
+}
+
+#[test]
+fn test_empty_regex_token() {
+    let mut grammar = create_valid_grammar();
+    
+    // Add a token with empty regex pattern
+    grammar.tokens.insert(SymbolId(99), Token {
+        name: "empty_regex".to_string(),
+        pattern: TokenPattern::Regex("".to_string()),
+        fragile: false,
+    });
+    
+    // Check for empty terminals
+    let result = grammar.check_empty_terminals();
+    assert!(result.is_err());
+    
+    let errors = result.unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(errors[0].contains("empty regex pattern"));
+}

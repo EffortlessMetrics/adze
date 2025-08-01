@@ -53,6 +53,11 @@ fn gen_field(
     if !is_vec && !is_option {
         if let Some(Expr::Lit(lit)) = pattern_param {
             if let Lit::Str(s) = &lit.lit {
+                // Validate that the pattern is not empty
+                if s.value().is_empty() {
+                    panic!("Empty patterns are not supported. Token '{}' has an empty pattern value.", path);
+                }
+                
                 out.insert(
                     path.clone(),
                     json!({
@@ -73,6 +78,11 @@ fn gen_field(
             }
         } else if let Some(Expr::Lit(lit)) = text_param {
             if let Lit::Str(s) = &lit.lit {
+                // Validate that the string is not empty
+                if s.value().is_empty() {
+                    panic!("Empty string terminals are not supported. Token '{}' has an empty text value.", path);
+                }
+                
                 out.insert(
                     path.clone(),
                     json!({

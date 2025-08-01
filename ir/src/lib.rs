@@ -4,6 +4,7 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::collections::HashSet;
 
 pub mod optimizer;
 pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
@@ -104,6 +105,30 @@ impl Grammar {
             self.symbol_registry = Some(self.build_registry());
         }
         self.symbol_registry.as_ref().unwrap()
+    }
+    
+    /// Check for empty string terminals (separate from main validate)
+    pub fn check_empty_terminals(&self) -> Result<(), Vec<String>> {
+        let mut errors = Vec::new();
+        
+        // Check for empty string terminals
+        for (id, token) in &self.tokens {
+            match &token.pattern {
+                TokenPattern::String(s) if s.is_empty() => {
+                    errors.push(format!("Token '{}' (id={}) has empty string pattern", token.name, id.0));
+                }
+                TokenPattern::Regex(r) if r.is_empty() => {
+                    errors.push(format!("Token '{}' (id={}) has empty regex pattern", token.name, id.0));
+                }
+                _ => {}
+            }
+        }
+        
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
     
     /// Build a new symbol registry from the grammar
