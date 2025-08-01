@@ -183,6 +183,7 @@ impl ExternalScannerGenerator {
 mod tests {
     use super::*;
     use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+    use rust_sitter_ir::{Rule, Symbol, Token, TokenPattern, ProductionId};
     
     #[test]
     fn test_state_validity_computation() {
@@ -231,6 +232,27 @@ mod tests {
     #[test]
     fn test_symbol_map_generation() {
         let mut grammar = Grammar::new("test".to_string());
+        
+        // Add a minimal token and rule to make the grammar valid
+        let start_symbol = SymbolId(1);
+        let dummy_token_id = SymbolId(2);
+        
+        // Add token to grammar
+        grammar.tokens.insert(dummy_token_id, Token {
+            name: "dummy".to_string(),
+            pattern: TokenPattern::String("dummy".to_string()),
+            fragile: false,
+        });
+        
+        // Add rule that uses the token
+        grammar.rules.insert(start_symbol, vec![Rule {
+            lhs: start_symbol,
+            rhs: vec![Symbol::Terminal(dummy_token_id)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        }]);
         
         grammar.externals.push(ExternalToken {
             name: "TOKEN1".to_string(),
