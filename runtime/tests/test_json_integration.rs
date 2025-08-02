@@ -35,8 +35,7 @@ fn test_simple_json_grammar() {
     );
 
     // Add rules: value → number
-    grammar.rules.insert(
-        value_id,
+    grammar.rules.entry(value_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(number_id)],
@@ -48,8 +47,7 @@ fn test_simple_json_grammar() {
     );
 
     // Add another rule: value → string
-    grammar.rules.insert(
-        SymbolId(4),
+    grammar.rules.entry(value_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(string_id)],
@@ -112,8 +110,7 @@ fn test_json_object_grammar() {
     );
 
     // Add rule: object → { }
-    grammar.rules.insert(
-        object_id,
+    grammar.rules.entry(object_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: object_id,
             rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
@@ -198,8 +195,7 @@ fn test_json_array_with_numbers() {
     );
 
     // Rule: array → [ elements ]
-    grammar.rules.insert(
-        array_id,
+    grammar.rules.entry(array_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: array_id,
             rhs: vec![
@@ -215,8 +211,7 @@ fn test_json_array_with_numbers() {
     );
 
     // Rule: elements → number
-    grammar.rules.insert(
-        elements_id,
+    grammar.rules.entry(elements_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: elements_id,
             rhs: vec![Symbol::Terminal(number_id)],
@@ -228,8 +223,7 @@ fn test_json_array_with_numbers() {
     );
 
     // Rule: elements → number , elements
-    grammar.rules.insert(
-        SymbolId(7),
+    grammar.rules.entry(elements_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: elements_id,
             rhs: vec![

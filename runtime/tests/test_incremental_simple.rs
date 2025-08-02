@@ -21,8 +21,7 @@ fn create_simple_grammar() -> Grammar {
     grammar.rule_names.insert(s_id, "S".to_string());
 
     // Rule: S -> identifier
-    grammar.rules.insert(
-        SymbolId(20),
+    grammar.rules.entry(s_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: s_id,
             rhs: vec![Symbol::Terminal(id_token)],

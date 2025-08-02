@@ -40,9 +40,7 @@ fn create_number_grammar() -> Grammar {
 
     // Define rules (use ProductionId for rule IDs, not SymbolId)
     // Rule 0: expression → number
-    let number_rule_id = SymbolId(0);
-    grammar.rules.insert(
-        number_rule_id,
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(number_id)],
@@ -54,9 +52,7 @@ fn create_number_grammar() -> Grammar {
     );
 
     // Rule 1: expression → expression + expression
-    let add_rule_id = SymbolId(1);
-    grammar.rules.insert(
-        add_rule_id,
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: expr_id,
             rhs: vec![
@@ -84,8 +80,10 @@ fn test_simple_number_parsing() {
     println!("  Rules: {:?}", grammar.rules.keys().collect::<Vec<_>>());
     println!("  Rule names: {:?}", grammar.rule_names);
     println!("  Rule details:");
-    for (id, rule) in &grammar.rules {
-        println!("    Rule {:?}: {:?} -> {:?}", id, rule.lhs, rule.rhs);
+    for (id, rules) in &grammar.rules {
+        for rule in rules {
+            println!("    Rule {:?}: {:?} -> {:?}", id, rule.lhs, rule.rhs);
+        }
     }
 
     let first_follow = FirstFollowSets::compute(&grammar);
@@ -207,9 +205,7 @@ fn test_glr_ambiguity() {
     grammar.rule_names.insert(e_id, "E".to_string());
 
     // Rule 1: E → a
-    let terminal_rule_id = SymbolId(20);
-    grammar.rules.insert(
-        terminal_rule_id,
+    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: e_id,
             rhs: vec![Symbol::Terminal(a_id)],
@@ -221,9 +217,7 @@ fn test_glr_ambiguity() {
     );
 
     // Rule 2: E → E E (ambiguous concatenation)
-    let concat_rule_id = SymbolId(21);
-    grammar.rules.insert(
-        concat_rule_id,
+    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: e_id,
             rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],

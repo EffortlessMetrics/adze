@@ -1,4 +1,4 @@
-use rust_sitter::glr_lexer::GLRLexer;
+use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
 // Test for nested parentheses issue in GLR parser
@@ -67,8 +67,7 @@ fn create_expression_grammar() -> Grammar {
     let number_rule_id = SymbolId(25);
 
     // expression → expression + expression
-    grammar.rules.insert(
-        add_rule_id,
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: expr_id,
             rhs: vec![
@@ -84,8 +83,7 @@ fn create_expression_grammar() -> Grammar {
     );
 
     // expression → ( expression )
-    grammar.rules.insert(
-        paren_rule_id,
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: expr_id,
             rhs: vec![
@@ -101,8 +99,7 @@ fn create_expression_grammar() -> Grammar {
     );
 
     // expression → number
-    grammar.rules.insert(
-        number_rule_id,
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(number_id)],

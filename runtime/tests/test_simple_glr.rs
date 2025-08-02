@@ -93,8 +93,7 @@ fn test_simple_expression() {
     let expr_id = SymbolId(10);
 
     // expr -> num
-    grammar.rules.insert(
-        SymbolId(11),
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(SymbolId(0))],
@@ -106,8 +105,7 @@ fn test_simple_expression() {
     );
 
     // expr -> expr + expr
-    grammar.rules.insert(
-        SymbolId(12),
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: expr_id,
             rhs: vec![
