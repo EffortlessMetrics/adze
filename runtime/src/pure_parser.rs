@@ -383,7 +383,7 @@ impl Parser {
                 );
                 // Create extra node and attach it to the previous node on stack
                 let end_point = advance_point(point, &source[position..position + token.length]);
-                let extra_subtree = Subtree {
+                let _extra_subtree = Subtree {
                     symbol: token.symbol,
                     children: Vec::new(),
                     start_byte: position,

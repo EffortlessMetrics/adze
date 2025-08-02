@@ -5,7 +5,9 @@
 pub mod grammar {
     #[rust_sitter::language]
     pub struct Module {
-        #[rust_sitter::repeat]
+        // For an empty module, we need at least one statement
+        // Python allows pass statement or empty lines
+        #[rust_sitter::repeat(non_empty = true)]
         pub statements: Vec<Statement>,
     }
 
@@ -88,10 +90,15 @@ pub mod grammar {
     }
 
     #[rust_sitter::language]
-    pub struct DottedName {
-        pub first: Identifier,
-        #[rust_sitter::repeat]
-        pub rest: Vec<DottedNamePart>,
+    pub enum DottedName {
+        // Single identifier like "os"
+        Single(Identifier),
+        // Dotted name like "os.path"
+        Dotted {
+            first: Identifier,
+            #[rust_sitter::repeat(non_empty = true)]
+            rest: Vec<DottedNamePart>,
+        }
     }
 
     #[rust_sitter::language]
@@ -118,8 +125,16 @@ pub mod grammar {
     pub struct Parameters {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
+        // Allow optional whitespace to prevent empty rule
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws1: (),
         #[rust_sitter::repeat]
+        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub params: Vec<Parameter>,
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws2: (),
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
@@ -152,8 +167,15 @@ pub mod grammar {
     pub struct ClassBases {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws1: (),
         #[rust_sitter::repeat]
+        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub bases: Vec<Expression>,
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws2: (),
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
@@ -348,8 +370,15 @@ pub mod grammar {
     pub struct Arguments {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws1: (),
         #[rust_sitter::repeat]
+        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub args: Vec<Expression>,
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws2: (),
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
@@ -447,8 +476,15 @@ pub mod grammar {
     pub struct ListExpression {
         #[rust_sitter::leaf(text = "[")]
         _open: (),
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws1: (),
         #[rust_sitter::repeat]
+        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub elements: Vec<Expression>,
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws2: (),
         #[rust_sitter::leaf(text = "]")]
         _close: (),
     }
@@ -457,8 +493,15 @@ pub mod grammar {
     pub struct TupleExpression {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws1: (),
         #[rust_sitter::repeat]
+        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub elements: Vec<Expression>,
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws2: (),
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
@@ -467,8 +510,15 @@ pub mod grammar {
     pub struct DictExpression {
         #[rust_sitter::leaf(text = "{")]
         _open: (),
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws1: (),
         #[rust_sitter::repeat]
+        #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub items: Vec<DictItem>,
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        #[rust_sitter::skip]
+        _ws2: (),
         #[rust_sitter::leaf(text = "}")]
         _close: (),
     }
