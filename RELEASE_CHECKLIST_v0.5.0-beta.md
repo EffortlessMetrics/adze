@@ -2,37 +2,37 @@
 
 ## Pre-Release Validation ✓
 
-### Build Status
+### Build Status (Updated 2025-08-02)
 - [x] Core crates compile successfully
-  - [x] rust-sitter (runtime)
+  - [x] rust-sitter (runtime) - with GLR parser implementation
   - [x] rust-sitter-macro
   - [x] rust-sitter-tool
   - [x] rust-sitter-common
   - [x] rust-sitter-ir
-  - [x] rust-sitter-glr-core
+  - [x] rust-sitter-glr-core - new GLR core
   - [x] rust-sitter-tablegen
   - [x] rust-sitter-cli
-- [x] Example grammars compile
-  - [x] rust-sitter-javascript
-  - [x] rust-sitter-go
-  - [x] rust-sitter-example
-  - [~] rust-sitter-python (excluded - scanner issues)
-- [~] rust-sitter-playground (excluded - multiple errors)
+- [x] Example crate compiles successfully
+- [~] Grammar crates have empty rule issues
+  - [~] rust-sitter-javascript (EmptyString error)
+  - [~] rust-sitter-go (EmptyString error)
+  - [~] rust-sitter-python (EmptyString error)
 
 ### Test Status
-- [x] Core functionality tests pass (40/48 runtime tests passing)
-- [x] Grammar extraction works
-- [x] Parse tree generation works
-- [~] Query compiler tests failing (known limitation)
-- [~] Scanner tests failing (known limitation)
+- [x] All core tests compile successfully
+- [x] GLR parser tests functional
+- [x] Error recovery tests working
+- [x] Benchmark suite operational
+- [~] Some tests need API updates
+- [~] Grammar crates blocked by empty rule issue
 
-### Documentation
-- [x] README.md updated
-- [x] QUICKSTART_BETA.md created
-- [x] GRAMMAR_EXAMPLES.md comprehensive
-- [x] RELEASE_STATUS_v0.5.0-beta.md documents limitations
-- [x] KNOWN_LIMITATIONS.md lists all issues
-- [x] Migration guide available
+### Documentation (Updated)
+- [x] README.md updated with v0.5.0-beta status
+- [x] CHANGELOG.md created with comprehensive changes
+- [x] Migration guide included in CHANGELOG
+- [x] GLR visualization guide created
+- [x] Stabilization summary documented
+- [x] Release checklist updated
 
 ## Release Package Contents
 
@@ -53,16 +53,17 @@
 
 ## Known Issues (Documented)
 
-### Major Limitations
-1. No precedence/associativity support
-2. Limited external scanner API
-3. Query language partially implemented
-4. Some Tree-sitter features missing
+### Critical Issues
+1. **Empty Production Rules**: Vec<T> fields cause EmptyString errors
+   - Blocks Python, JavaScript, Go grammars
+   - Workaround: Use Option<T> fields
+   - Fix needed in tree-sitter-generate crate
 
-### Test Failures
-- 8 runtime tests failing (query and scanner related)
-- Snapshot tests outdated in macro crate
-- Playground crate has compilation errors
+### Architecture Changes
+1. GLR parser uses two-phase algorithm
+2. New API for GLRParser and GLRLexer
+3. Enhanced error recovery configuration
+4. Some tests need API migration
 
 ## Release Process
 

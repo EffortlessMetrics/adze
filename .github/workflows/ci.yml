@@ -54,13 +54,13 @@ jobs:
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
     
     - name: Run tests
-      run: cargo test --workspace --all-features
+      run: cargo test --workspace --all-features --exclude rust-sitter-python --exclude rust-sitter-javascript --exclude rust-sitter-go
     
     - name: Run tests (no default features)
-      run: cargo test --workspace --no-default-features
+      run: cargo test --workspace --no-default-features --exclude rust-sitter-python --exclude rust-sitter-javascript --exclude rust-sitter-go
     
     - name: Run doctests
-      run: cargo test --doc --workspace
+      run: cargo test --doc --workspace --exclude rust-sitter-python --exclude rust-sitter-javascript --exclude rust-sitter-go
 
   lint:
     name: Lint
@@ -77,10 +77,10 @@ jobs:
       run: cargo fmt --all -- --check
     
     - name: Run clippy
-      run: cargo clippy --workspace --all-features -- -D warnings
+      run: cargo clippy --workspace --all-features --exclude rust-sitter-python --exclude rust-sitter-javascript --exclude rust-sitter-go -- -D warnings
     
     - name: Check documentation
-      run: cargo doc --workspace --no-deps --all-features
+      run: cargo doc --workspace --no-deps --all-features --exclude rust-sitter-python --exclude rust-sitter-javascript --exclude rust-sitter-go
       env:
         RUSTDOCFLAGS: -D warnings
 

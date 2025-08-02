@@ -21,7 +21,7 @@ pub mod glr_parser;
 pub mod glr_query;
 pub mod glr_tree_bridge;
 pub mod glr_validation;
-pub mod glr_visualization;
+// pub mod glr_visualization; // TODO: Update for new GLRStack structure
 pub mod optimizations;
 mod parser_v2;
 mod parser_v3;

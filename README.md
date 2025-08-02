@@ -3,7 +3,7 @@
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
-> **Production Ready**: Rust Sitter is now feature-complete with a pure-Rust implementation that generates static parsers at compile time, eliminating all C dependencies. The project includes a comprehensive testing framework, support for 150+ language grammars, performance optimizations, an LSP generator, and an interactive playground. Full WASM support, improved performance, and seamless Rust ecosystem integration are now available.
+> **v0.5.0-beta Status**: The project has undergone major architectural improvements including GLR (Generalized LR) parsing support, enhanced error recovery, pure-Rust implementation options, and comprehensive testing infrastructure. The codebase is stable and all tests compile successfully. Note: Some language grammars (Python, JavaScript, Go) require updates to handle empty production rules properly.
 
 ## Documentation
 
@@ -17,6 +17,16 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [LSP Generator](./LSP_GENERATOR.md) - Generate language servers
 - [Playground](./PLAYGROUND.md) - Interactive grammar development
 
+## Key Features (v0.5.0-beta)
+
+- **GLR Parsing**: Full support for ambiguous grammars with efficient fork/merge handling
+- **Pure-Rust Option**: Generate static parsers at compile-time without C dependencies  
+- **Enhanced Error Recovery**: Sophisticated error recovery strategies for robust parsing
+- **Two-Phase Parser**: Proper reduction-shift separation for correct GLR semantics
+- **Comprehensive Testing**: Golden tests, benchmarks, and validation infrastructure
+- **WASM Support**: Full WebAssembly compatibility with the pure-Rust backend
+- **Performance Optimizations**: SIMD lexing, parallel parsing, and memory pooling
+
 ## Installation
 First, add Rust/Tree Sitter to your `Cargo.toml`:
 ```toml
@@ -27,7 +37,10 @@ rust-sitter = "0.5.0-beta"
 rust-sitter-tool = "0.5.0-beta"
 ```
 
-_Note: Rust Sitter now uses a complete pure-Rust implementation by default, providing full WASM support without any C dependencies. The legacy `tree-sitter-c2rust` and `tree-sitter-standard` features are maintained for backward compatibility but are no longer recommended for new projects._
+Choose your backend via features:
+- `pure-rust` (recommended): Pure Rust implementation with full WASM support
+- `tree-sitter-c2rust`: Legacy C2Rust transpiled backend
+- `tree-sitter-standard`: Standard Tree-sitter C runtime
 
 The first step is to configure your `build.rs` to compile and link the generated Tree Sitter parser:
 

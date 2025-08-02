@@ -5,10 +5,8 @@
 pub mod grammar {
     #[rust_sitter::language]
     pub struct Module {
-        // Temporarily comment out vec field to avoid EmptyString error
-        // #[rust_sitter::repeat]
-        // pub statements: Vec<Statement>,
-        pub statement: Option<Statement>,
+        #[rust_sitter::repeat]
+        pub statements: Vec<Statement>,
     }
 
     #[rust_sitter::language]
@@ -92,8 +90,8 @@ pub mod grammar {
     #[rust_sitter::language]
     pub struct DottedName {
         pub first: Identifier,
-        // #[rust_sitter::repeat]
-        pub rest: Option<DottedNamePart>,
+        #[rust_sitter::repeat]
+        pub rest: Vec<DottedNamePart>,
     }
 
     #[rust_sitter::language]
@@ -120,8 +118,8 @@ pub mod grammar {
     pub struct Parameters {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
-        // #[rust_sitter::repeat]
-        pub params: Option<Parameter>,
+        #[rust_sitter::repeat]
+        pub params: Vec<Parameter>,
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
@@ -133,8 +131,8 @@ pub mod grammar {
 
     #[rust_sitter::language]
     pub struct Block {
-        // #[rust_sitter::repeat(non_empty = true)]
-        pub statements: Option<Statement>,
+        #[rust_sitter::repeat(non_empty = true)]
+        pub statements: Vec<Statement>,
     }
 
     #[rust_sitter::language]
@@ -154,8 +152,8 @@ pub mod grammar {
     pub struct ClassBases {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
-        // #[rust_sitter::repeat]
-        pub bases: Option<Expression>,
+        #[rust_sitter::repeat]
+        pub bases: Vec<Expression>,
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
@@ -350,8 +348,8 @@ pub mod grammar {
     pub struct Arguments {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
-        // #[rust_sitter::repeat]
-        pub args: Option<Expression>,
+        #[rust_sitter::repeat]
+        pub args: Vec<Expression>,
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
@@ -449,8 +447,8 @@ pub mod grammar {
     pub struct ListExpression {
         #[rust_sitter::leaf(text = "[")]
         _open: (),
-        // #[rust_sitter::repeat]
-        pub elements: Option<Expression>,
+        #[rust_sitter::repeat]
+        pub elements: Vec<Expression>,
         #[rust_sitter::leaf(text = "]")]
         _close: (),
     }
@@ -459,8 +457,8 @@ pub mod grammar {
     pub struct TupleExpression {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
-        // #[rust_sitter::repeat]
-        pub elements: Option<Expression>,
+        #[rust_sitter::repeat]
+        pub elements: Vec<Expression>,
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
@@ -469,8 +467,8 @@ pub mod grammar {
     pub struct DictExpression {
         #[rust_sitter::leaf(text = "{")]
         _open: (),
-        // #[rust_sitter::repeat]
-        pub items: Option<DictItem>,
+        #[rust_sitter::repeat]
+        pub items: Vec<DictItem>,
         #[rust_sitter::leaf(text = "}")]
         _close: (),
     }

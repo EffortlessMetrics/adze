@@ -1,6 +1,6 @@
 [package]
 name = "rust-sitter-example"
-version = "0.4.5"
+version = "0.5.0-beta"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 edition = "2024"
 publish = false
