@@ -3,6 +3,7 @@
 
 use crate::{Node, Tree, TreeCursor, Point, Range, InputEdit};
 use std::os::raw::c_void;
+use crate::external_scanner_ffi::TSLexer;
 
 /// Parser state for incremental parsing
 #[derive(Debug)]
@@ -40,6 +41,7 @@ struct Subtree {
     end_byte: usize,
     start_point: Point,
     end_point: Point,
+    field_id: Option<u16>,
 }
 
 // FFI types to match Tree-sitter C API
@@ -238,6 +240,7 @@ impl Parser {
                             end_byte: position + token.length,
                             start_point: point,
                             end_point: advance_point(point, &input[..token.length]),
+                            field_id: None,
                         }),
                         position: position + token.length,
                     });
@@ -335,9 +338,74 @@ impl Parser {
     }
     
     /// Lex external token
-    fn lex_external_token(&self, _language: Language, _lex_state: &ffi::TSLexState, _input: &[u8]) -> Option<Token> {
-        // TODO: Implement external scanner support
-        None
+    fn lex_external_token(&self, language: Language, lex_state: &ffi::TSLexState, input: &[u8]) -> Option<Token> {
+        unsafe {
+            let lang = &*language.ptr;
+            
+            // Check if we have an external scanner and need to use it
+            if lex_state.external_lex_state == 0 || lang.external_scanner.scan.is_none() {
+                return None;
+            }
+            
+            // Get the scan function
+            let scan_fn = lang.external_scanner.scan?;
+            
+            // Create lexer interface for the scanner
+            let mut lexer = ExternalLexer {
+                input,
+                position: 0,
+                result_symbol: 0,
+            };
+            
+            // Build valid symbols array based on external lex state
+            let external_token_count = lang.external_token_count as usize;
+            let mut valid_symbols = vec![false; external_token_count];
+            
+            // The external_lex_state is a bitset indicating which external tokens are valid
+            for i in 0..external_token_count {
+                if (lex_state.external_lex_state >> i) & 1 != 0 {
+                    valid_symbols[i] = true;
+                }
+            }
+            
+            // Create scanner instance if needed
+            let scanner_instance = if let Some(create_fn) = lang.external_scanner.create {
+                create_fn()
+            } else {
+                std::ptr::null_mut()
+            };
+            
+            // Call the external scanner
+            let mut ts_lexer = create_ts_lexer(&mut lexer);
+            let success = scan_fn(
+                scanner_instance,
+                &mut ts_lexer as *mut _ as *mut c_void,
+                valid_symbols.as_ptr()
+            );
+            
+            // Clean up scanner instance
+            if !scanner_instance.is_null() {
+                if let Some(destroy_fn) = lang.external_scanner.destroy {
+                    destroy_fn(scanner_instance);
+                }
+            }
+            
+            if success && lexer.result_symbol > 0 {
+                // Map external symbol to actual symbol
+                let symbol = if !lang.external_scanner.symbol_map.is_null() {
+                    *lang.external_scanner.symbol_map.add(lexer.result_symbol as usize)
+                } else {
+                    lexer.result_symbol
+                };
+                
+                Some(Token {
+                    symbol,
+                    length: lexer.position,
+                })
+            } else {
+                None
+            }
+        }
     }
     
     /// Get parse action for state and symbol
@@ -345,33 +413,47 @@ impl Parser {
         unsafe {
             let lang = &*language.ptr;
             
-            // Access parse table
-            let parse_table = std::slice::from_raw_parts(
-                lang.parse_table,
-                lang.state_count as usize * 2
-            );
-            
-            // Get action from compressed table
-            let table_offset = (state as usize) * 2;
-            if table_offset + 1 >= parse_table.len() {
-                return None;
+            // Validate state
+            if state >= lang.state_count as u16 {
+                return Some(Action::Error);
             }
             
-            let entry_count = parse_table[table_offset] as usize;
-            let data_offset = parse_table[table_offset + 1] as usize;
+            // The parse table is stored in compressed format
+            // All states use small_parse_table_map for offsets
+            let state_offset = *lang.small_parse_table_map.add(state as usize) as usize;
             
-            // Search for symbol in action entries
-            for i in 0..entry_count {
-                let entry_offset = data_offset + i * 2;
-                if entry_offset + 1 >= parse_table.len() {
-                    continue;
+            // Find the next state's offset to know where this state's entries end
+            let next_offset = if (state + 1) < lang.state_count as u16 {
+                *lang.small_parse_table_map.add((state + 1) as usize) as usize
+            } else {
+                // For the last state, use the last entry in the map
+                // The map has state_count + 1 entries
+                *lang.small_parse_table_map.add(lang.state_count as usize) as usize
+            };
+            
+            // The parse table stores entries as pairs: (symbol, action)
+            let mut offset = state_offset;
+            let end_offset = next_offset;
+            
+            while offset + 1 < end_offset {
+                let entry_symbol = *lang.parse_table.add(offset);
+                let action_value = *lang.parse_table.add(offset + 1);
+                
+                // Check if this is a default reduce entry
+                // In Tree-sitter's format, reduce entries have the high bit set in the symbol field
+                if entry_symbol & 0x8000 != 0 {
+                    // This is a default reduce action that applies to all lookahead symbols
+                    if action_value != 0 {
+                        return Some(decode_action(action_value));
+                    }
                 }
                 
-                let entry_symbol = parse_table[entry_offset];
+                // Check if this entry matches our symbol
                 if entry_symbol == symbol {
-                    let action_data = parse_table[entry_offset + 1];
-                    return Some(decode_action(action_data));
+                    return Some(decode_action(action_value));
                 }
+                
+                offset += 2;
             }
             
             // Default action (usually Error)
@@ -384,20 +466,19 @@ impl Parser {
         unsafe {
             let lang = &*language.ptr;
             
-            // Get rule info from production ID map
+            // Parse actions contain the full reduction information
+            let parse_actions = std::slice::from_raw_parts(
+                lang.parse_actions,
+                lang.production_id_count as usize
+            );
+            
             if rule_id >= lang.production_id_count as u16 {
                 return None;
             }
             
-            let production_id_map = std::slice::from_raw_parts(
-                lang.production_id_map,
-                lang.production_id_count as usize
-            );
-            
-            let lhs_symbol = production_id_map[rule_id as usize];
-            
-            // TODO: Get actual rule length from grammar
-            let rule_length = 2; // Placeholder
+            let action = &parse_actions[rule_id as usize];
+            let lhs_symbol = action.symbol;
+            let rule_length = action.child_count as usize;
             
             // Pop rule_length items from stack
             let mut children = Vec::new();
@@ -424,14 +505,67 @@ impl Parser {
             
             children.reverse();
             
+            // Extract field names for this production
+            let mut field_names = vec![None; children.len()];
+            if lang.field_count > 0 && !lang.field_map_slices.is_null() && !lang.field_map_entries.is_null() {
+                // Each production can have a slice in the field map
+                // The slice tells us which children have field names
+                let field_map_slices = std::slice::from_raw_parts(
+                    lang.field_map_slices,
+                    lang.production_id_count as usize * 2
+                );
+                
+                if (rule_id as usize) * 2 + 1 < field_map_slices.len() {
+                    let slice_start = field_map_slices[rule_id as usize * 2] as usize;
+                    let slice_length = field_map_slices[rule_id as usize * 2 + 1] as usize;
+                    
+                    if slice_length > 0 {
+                        let field_map_entries = std::slice::from_raw_parts(
+                            lang.field_map_entries,
+                            (slice_start + slice_length) * 2
+                        );
+                        
+                        // Process each field entry
+                        for i in 0..slice_length {
+                            let entry_offset = (slice_start + i) * 2;
+                            if entry_offset + 1 < field_map_entries.len() {
+                                let entry_low = field_map_entries[entry_offset];
+                                let entry_high = field_map_entries[entry_offset + 1];
+                                
+                                // Unpack the field entry
+                                // Format: field_id (16 bits) | child_index (8 bits) | inherited (8 bits)
+                                let packed_entry = ((entry_high as u32) << 16) | (entry_low as u32);
+                                let field_id = (packed_entry & 0xFFFF) as u16;
+                                let child_index = ((packed_entry >> 16) & 0xFF) as usize;
+                                // let inherited = ((packed_entry >> 24) & 0xFF) as u8;
+                                
+                                if child_index < field_names.len() && field_id < lang.field_count as u16 {
+                                    field_names[child_index] = Some(field_id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Create children with field information
+            let mut children_with_fields = Vec::new();
+            for (i, mut child) in children.into_iter().enumerate() {
+                if let Some(field_id) = field_names[i] {
+                    child.field_id = Some(field_id);
+                }
+                children_with_fields.push(child);
+            }
+            
             // Create new node for reduction
             let new_node = Subtree {
                 symbol: lhs_symbol,
-                children,
+                children: children_with_fields,
                 start_byte,
                 end_byte,
                 start_point,
                 end_point,
+                field_id: None, // Parent nodes don't have field IDs
             };
             
             // Get goto state
@@ -450,9 +584,14 @@ impl Parser {
     }
     
     /// Get goto state
-    fn get_goto(&self, _language: Language, _state: u16, _symbol: u16) -> Option<u16> {
-        // TODO: Implement goto table lookup
-        Some(0)
+    fn get_goto(&self, language: Language, state: u16, symbol: u16) -> Option<u16> {
+        // In Tree-sitter, goto states are encoded as shift actions in the parse table
+        // When we look up an action for a non-terminal symbol, we get a Shift action
+        // that tells us which state to go to
+        match self.get_action(language, state, symbol)? {
+            Action::Shift(goto_state) => Some(goto_state),
+            _ => None,
+        }
     }
     
     /// Error recovery
@@ -462,6 +601,67 @@ impl Parser {
     {
         // TODO: Implement error recovery
         false
+    }
+}
+
+/// Simple lexer interface for external scanners
+struct ExternalLexer<'a> {
+    input: &'a [u8],
+    position: usize,
+    result_symbol: u16,
+}
+
+/// Create a TSLexer interface for the external scanner
+unsafe fn create_ts_lexer(lexer: &mut ExternalLexer) -> TSLexer {
+    extern "C" fn lookahead(lexer_ptr: *mut TSLexer) -> u32 {
+        unsafe {
+            let lexer = &mut *(lexer_ptr as *mut ExternalLexer);
+            if lexer.position < lexer.input.len() {
+                lexer.input[lexer.position] as u32
+            } else {
+                0
+            }
+        }
+    }
+    
+    extern "C" fn advance(lexer_ptr: *mut TSLexer, skip: bool) {
+        unsafe {
+            let lexer = &mut *(lexer_ptr as *mut ExternalLexer);
+            if lexer.position < lexer.input.len() {
+                lexer.position += 1;
+            }
+        }
+    }
+    
+    extern "C" fn mark_end(lexer_ptr: *mut TSLexer) {
+        // For simple implementation, marking end is a no-op
+        // since we track position directly
+    }
+    
+    extern "C" fn get_column(lexer_ptr: *mut TSLexer) -> u32 {
+        // TODO: Implement column tracking
+        0
+    }
+    
+    extern "C" fn is_at_included_range_start(lexer_ptr: *const TSLexer) -> bool {
+        false
+    }
+    
+    extern "C" fn eof(lexer_ptr: *const TSLexer) -> bool {
+        unsafe {
+            let lexer = &*(lexer_ptr as *const ExternalLexer);
+            lexer.position >= lexer.input.len()
+        }
+    }
+    
+    TSLexer {
+        lookahead,
+        advance,
+        mark_end,
+        get_column,
+        is_at_included_range_start,
+        eof,
+        result_symbol: 0,
     }
 }
 
