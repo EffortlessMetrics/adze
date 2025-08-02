@@ -89,7 +89,7 @@ fn create_json_grammar() -> Grammar {
     // Rules: value → number | string | object | array
     let mut rule_id = 15;
     
-    grammar.rules.insert(value_id, Rule {
+    grammar.rules.entry(value_id).or_insert_with(Vec::new).push(Rule {
         lhs: value_id,
         rhs: vec![Symbol::Terminal(number_id)],
         precedence: None,
@@ -98,7 +98,7 @@ fn create_json_grammar() -> Grammar {
         production_id: ProductionId(0),
     });
     
-    grammar.rules.insert(SymbolId(rule_id), Rule {
+    grammar.rules.entry(value_id).or_insert_with(Vec::new).push(Rule {
         lhs: value_id,
         rhs: vec![Symbol::Terminal(string_id)],
         precedence: None,
@@ -108,7 +108,7 @@ fn create_json_grammar() -> Grammar {
     });
     rule_id += 1;
     
-    grammar.rules.insert(SymbolId(rule_id), Rule {
+    grammar.rules.entry(value_id).or_insert_with(Vec::new).push(Rule {
         lhs: value_id,
         rhs: vec![Symbol::NonTerminal(object_id)],
         precedence: None,
@@ -118,7 +118,7 @@ fn create_json_grammar() -> Grammar {
     });
     rule_id += 1;
     
-    grammar.rules.insert(SymbolId(rule_id), Rule {
+    grammar.rules.entry(value_id).or_insert_with(Vec::new).push(Rule {
         lhs: value_id,
         rhs: vec![Symbol::NonTerminal(array_id)],
         precedence: None,
@@ -129,7 +129,7 @@ fn create_json_grammar() -> Grammar {
     rule_id += 1;
     
     // object → { members } | { }
-    grammar.rules.insert(object_id, Rule {
+    grammar.rules.entry(object_id).or_insert_with(Vec::new).push(Rule {
         lhs: object_id,
         rhs: vec![
             Symbol::Terminal(lbrace_id),
@@ -142,7 +142,7 @@ fn create_json_grammar() -> Grammar {
         production_id: ProductionId(4),
     });
     
-    grammar.rules.insert(SymbolId(rule_id), Rule {
+    grammar.rules.entry(value_id).or_insert_with(Vec::new).push(Rule {
         lhs: object_id,
         rhs: vec![
             Symbol::Terminal(lbrace_id),
@@ -169,7 +169,7 @@ fn create_json_grammar() -> Grammar {
         production_id: ProductionId(6),
     });
     
-    grammar.rules.insert(SymbolId(rule_id), Rule {
+    grammar.rules.entry(value_id).or_insert_with(Vec::new).push(Rule {
         lhs: array_id,
         rhs: vec![
             Symbol::Terminal(lbracket_id),

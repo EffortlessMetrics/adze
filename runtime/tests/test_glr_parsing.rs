@@ -5,7 +5,6 @@ use rust_sitter::parser::{Parser, ParseNode};
 use rust_sitter::glr::{GLRStack, GLRParser};
 use rust_sitter_ir::*;
 use rust_sitter_glr_core::*;
-use indexmap::IndexMap;
 
 /// Create the classic ambiguous expression grammar
 /// E -> E + E | E * E | num
@@ -48,10 +47,7 @@ fn create_ambiguous_grammar() -> Grammar {
         production_id: ProductionId(0),
         precedence: None,
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     };
     
     // E -> E + E
@@ -65,10 +61,7 @@ fn create_ambiguous_grammar() -> Grammar {
         production_id: ProductionId(1),
         precedence: None,
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     };
     
     // E -> E * E
@@ -82,10 +75,7 @@ fn create_ambiguous_grammar() -> Grammar {
         production_id: ProductionId(2),
         precedence: None,
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     };
     
     grammar.rules.insert(RuleId(0), rule1);
@@ -318,10 +308,7 @@ fn test_dangling_else_grammar() {
         production_id: ProductionId(0),
         precedence: None,
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     };
     
     let rule2 = Rule {
@@ -337,10 +324,7 @@ fn test_dangling_else_grammar() {
         production_id: ProductionId(1),
         precedence: Some(Precedence::Named("else".to_string())),
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     };
     
     grammar.rules.insert(RuleId(0), rule1);

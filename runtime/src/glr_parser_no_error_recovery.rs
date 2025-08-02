@@ -304,7 +304,14 @@ impl GLRParser {
     fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
         // println!("  Performing reduction of rule {}", rule_id.0);
         // Find the rule in the grammar
-        if let Some(rule) = self.grammar.rules.values().find(|r| r.production_id.0 == rule_id.0) {
+        let mut found_rule = None;
+        for rules in self.grammar.rules.values() {
+            if let Some(rule) = rules.iter().find(|r| r.production_id.0 == rule_id.0) {
+                found_rule = Some(rule);
+                break;
+            }
+        }
+        if let Some(rule) = found_rule {
             let children = stack.pop(rule.rhs.len());
             
             // Create new subtree for the reduction

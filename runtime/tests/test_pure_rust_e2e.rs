@@ -1,5 +1,5 @@
 // End-to-end test for pure-Rust Tree-sitter implementation
-use rust_sitter::pure_parser::{Parser, TSLanguage, TSParseAction, ExternalScanner};
+use rust_sitter::pure_parser::{Parser, TSLanguage, TSParseAction, ExternalScanner, TSLexState};
 use std::ptr;
 
 // Create a complete arithmetic language
@@ -83,10 +83,26 @@ fn create_arithmetic_language() -> &'static TSLanguage {
     
     static SMALL_PARSE_TABLE: [u16; 50] = [0; 50];
     static SMALL_PARSE_TABLE_MAP: [u32; 10] = [0; 10];
-    static LEX_MODES: [u16; 10] = [0; 10];  // Changed from u32 to u16 for TSLexState
+    static LEX_MODES: [TSLexState; 10] = [TSLexState { lex_state: 0, external_lex_state: 0 }; 10];
     static PRODUCTION_ID_MAP: [u16; 10] = [0; 10];
-    static SYMBOL_NAMES: [*const u8; 9] = [std::ptr::null(); 9];
-    static FIELD_NAMES: [*const u8; 1] = [std::ptr::null(); 1];
+    // Create empty byte arrays for symbol and field names
+    static EMPTY_NAME: [u8; 1] = [0];
+    static SYMBOL_NAMES_DATA: [[u8; 1]; 9] = [EMPTY_NAME; 9];
+    static FIELD_NAMES_DATA: [[u8; 1]; 1] = [EMPTY_NAME; 1];
+    
+    // Convert to raw pointers at runtime
+    let symbol_name_ptrs: [*const u8; 9] = [
+        SYMBOL_NAMES_DATA[0].as_ptr(),
+        SYMBOL_NAMES_DATA[1].as_ptr(),
+        SYMBOL_NAMES_DATA[2].as_ptr(),
+        SYMBOL_NAMES_DATA[3].as_ptr(),
+        SYMBOL_NAMES_DATA[4].as_ptr(),
+        SYMBOL_NAMES_DATA[5].as_ptr(),
+        SYMBOL_NAMES_DATA[6].as_ptr(),
+        SYMBOL_NAMES_DATA[7].as_ptr(),
+        SYMBOL_NAMES_DATA[8].as_ptr(),
+    ];
+    let field_name_ptrs: [*const u8; 1] = [FIELD_NAMES_DATA[0].as_ptr()];
     static FIELD_MAP_SLICES: [u16; 10] = [0; 10];
     static FIELD_MAP_ENTRIES: [u16; 10] = [0; 10];
     static SYMBOL_METADATA: [u8; 9] = [0; 9];
@@ -111,8 +127,8 @@ fn create_arithmetic_language() -> &'static TSLanguage {
         small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
         small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
         parse_actions: PARSE_ACTIONS.as_ptr(),
-        symbol_names: SYMBOL_NAMES.as_ptr(),
-        field_names: FIELD_NAMES.as_ptr(),
+        symbol_names: symbol_name_ptrs.as_ptr(),
+        field_names: field_name_ptrs.as_ptr(),
         field_map_slices: FIELD_MAP_SLICES.as_ptr(),
         field_map_entries: FIELD_MAP_ENTRIES.as_ptr(),
         symbol_metadata: SYMBOL_METADATA.as_ptr(),
@@ -139,7 +155,7 @@ fn create_arithmetic_language() -> &'static TSLanguage {
 }
 
 // Simple lexer for arithmetic expressions
-unsafe extern "C" fn arithmetic_lexer(lexer: *mut std::ffi::c_void, _lex_state: u16) -> bool {
+unsafe extern "C" fn arithmetic_lexer(_lexer: *mut std::ffi::c_void, _lex_state: TSLexState) -> bool {
     // In a real implementation, this would interact with the lexer state
     // For now, just return true to indicate success
     true

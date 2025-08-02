@@ -51,12 +51,14 @@ fn test_parse_table_has_conflicts() {
     let first_follow = FirstFollowSets::compute(&grammar);
     
     println!("\n=== Grammar Rules ===");
-    for (id, rule) in &grammar.rules {
-        println!("Rule {}: {:?} -> {:?}", id.0, rule.lhs, rule.rhs);
+    for (symbol_id, rules) in &grammar.rules {
+        for rule in rules {
+            println!("Rule for symbol {}: {:?} -> {:?}", symbol_id.0, rule.lhs, rule.rhs);
+        }
     }
     
     println!("\n=== First/Follow Sets ===\nFirst sets:");
-    for (symbol, set) in &first_follow.first {
+    for (symbol, set) in first_follow.first() {
         if !set.is_empty() {
             println!("  Symbol {}: {:?}", symbol.0, set.iter().map(|s| s.0).collect::<Vec<_>>());
         }

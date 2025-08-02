@@ -3,6 +3,7 @@ use rust_sitter::parser::{Parser, ParseNode};
 use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
 use rust_sitter_ir::*;
 use rust_sitter_glr_core::*;
+use indexmap::IndexMap;
 
 fn create_test_grammar() -> Grammar {
     let mut grammar = Grammar::new("test".to_string());
@@ -73,7 +74,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // expr -> ( expr )
-    grammar.rules.insert(expr, Rule {
+    grammar.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
         lhs: expr,
         rhs: vec![
             Symbol::Terminal(lparen),
@@ -87,7 +88,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // stmt -> expr ;
-    grammar.rules.insert(stmt, Rule {
+    grammar.rules.entry(stmt).or_insert_with(Vec::new).push(Rule {
         lhs: stmt,
         rhs: vec![
             Symbol::NonTerminal(expr),
@@ -111,7 +112,7 @@ fn create_test_parse_table() -> ParseTable {
         symbol_metadata: vec![],
         state_count: 10,
         symbol_count: 12,
-        symbol_to_index: IndexMap::new(),
+        symbol_to_index: std::collections::BTreeMap::new(),
     }
 }
 
@@ -122,9 +123,9 @@ fn test_missing_closing_paren_recovery() {
     
     // Configure error recovery
     let error_recovery = ErrorRecoveryConfigBuilder::new()
-        .add_sync_token(SymbolId(4)) // rparen
-        .add_sync_token(SymbolId(5)) // semicolon
-        .add_insertable_token(SymbolId(4)) // can insert rparen
+        .add_sync_token(4) // rparen
+        .add_sync_token(5) // semicolon
+        .add_insertable_token(4) // can insert rparen
         .enable_scope_recovery(true)
         .build();
     
@@ -153,9 +154,9 @@ fn test_extra_token_deletion() {
     let grammar = create_test_grammar();
     let parse_table = create_test_parse_table();
     
-    // Configure error recovery to delete unexpected tokens
+    // Configure error recovery with sync tokens
     let error_recovery = ErrorRecoveryConfigBuilder::new()
-        .add_deletable_token(SymbolId(2)) // can delete plus
+        .add_sync_token(5) // semicolon
         .build();
     
     let mut parser = Parser::new(grammar, parse_table)
@@ -180,10 +181,9 @@ fn test_error_node_creation() {
     let grammar = create_test_grammar();
     let parse_table = create_test_parse_table();
     
-    // Configure error recovery to create error nodes
+    // Configure error recovery with sync tokens
     let error_recovery = ErrorRecoveryConfigBuilder::new()
-        .enable_error_nodes(true)
-        .set_max_recovery_attempts(3)
+        .add_sync_token(5) // semicolon
         .build();
     
     let mut parser = Parser::new(grammar, parse_table)

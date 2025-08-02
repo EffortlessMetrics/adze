@@ -58,7 +58,7 @@ fn build_ternary_grammar() -> Grammar {
     
     // Rules
     // expr -> identifier
-    grammar.rules.entry(SymbolId(11).or_insert_with(Vec::new).push( Rule {
+    grammar.rules.entry(SymbolId(11)).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(SymbolId(1))],
         precedence: None,
@@ -68,7 +68,7 @@ fn build_ternary_grammar() -> Grammar {
     });
     
     // expr -> expr ? expr : expr
-    grammar.rules.entry(SymbolId(12).or_insert_with(Vec::new).push( Rule {
+    grammar.rules.entry(SymbolId(12)).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -84,7 +84,7 @@ fn build_ternary_grammar() -> Grammar {
     });
     
     // expr -> expr + expr
-    grammar.rules.entry(SymbolId(13).or_insert_with(Vec::new).push( Rule {
+    grammar.rules.entry(SymbolId(13)).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -134,7 +134,7 @@ fn build_reduce_reduce_grammar() -> Grammar {
     
     // Rules with reduce/reduce conflict
     // S -> X c
-    grammar.rules.entry(SymbolId(20).or_insert_with(Vec::new).push( Rule {
+    grammar.rules.entry(SymbolId(20)).or_insert_with(Vec::new).push(Rule {
         lhs: s_id,
         rhs: vec![
             Symbol::NonTerminal(x_id),
@@ -147,7 +147,7 @@ fn build_reduce_reduce_grammar() -> Grammar {
     });
     
     // S -> Y c
-    grammar.rules.entry(SymbolId(21).or_insert_with(Vec::new).push( Rule {
+    grammar.rules.entry(SymbolId(21)).or_insert_with(Vec::new).push(Rule {
         lhs: s_id,
         rhs: vec![
             Symbol::NonTerminal(y_id),
@@ -160,7 +160,7 @@ fn build_reduce_reduce_grammar() -> Grammar {
     });
     
     // X -> a b
-    grammar.rules.entry(SymbolId(22).or_insert_with(Vec::new).push( Rule {
+    grammar.rules.entry(SymbolId(22)).or_insert_with(Vec::new).push(Rule {
         lhs: x_id,
         rhs: vec![
             Symbol::Terminal(SymbolId(1)),
@@ -173,7 +173,7 @@ fn build_reduce_reduce_grammar() -> Grammar {
     });
     
     // Y -> a b (same as X, causing reduce/reduce conflict)
-    grammar.rules.entry(SymbolId(23).or_insert_with(Vec::new).push( Rule {
+    grammar.rules.entry(SymbolId(23)).or_insert_with(Vec::new).push(Rule {
         lhs: y_id,
         rhs: vec![
             Symbol::Terminal(SymbolId(1)),

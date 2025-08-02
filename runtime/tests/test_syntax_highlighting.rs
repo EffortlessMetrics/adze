@@ -2,7 +2,7 @@
 use rust_sitter::query::{Highlighter, Theme};
 use rust_sitter::query::compiler::compile_query;
 use rust_sitter::parser::{Parser, ParseNode};
-use rust_sitter_ir::{Grammar, Token, TokenPattern, SymbolId, Rule, Symbol};
+use rust_sitter_ir::{Grammar, Token, TokenPattern, SymbolId, Rule, Symbol, ProductionId};
 use rust_sitter_glr_core::ParseTable;
 use std::collections::BTreeMap;
 

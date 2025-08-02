@@ -83,7 +83,7 @@ mod json_parser {
         // Rules
         let mut rule_id = 0;
         let mut add_rule = |lhs: SymbolId, rhs: Vec<Symbol>| {
-            grammar.rules.entry(RuleId(rule_id).or_insert_with(Vec::new).push( Rule {
+            grammar.rules.entry(lhs).or_insert_with(Vec::new).push(Rule {
                 lhs,
                 rhs,
                 production_id: ProductionId(rule_id),
@@ -130,7 +130,7 @@ mod json_parser {
         pair_fields.insert(FieldId(0), 0); // key at position 0
         pair_fields.insert(FieldId(1), 2); // value at position 2
         
-        grammar.rules.entry(RuleId(rule_id).or_insert_with(Vec::new).push( Rule {
+        grammar.rules.entry(pair).or_insert_with(Vec::new).push(Rule {
             lhs: pair,
             rhs: vec![
                 Symbol::Terminal(string),

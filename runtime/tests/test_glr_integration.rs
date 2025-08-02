@@ -114,7 +114,7 @@ fn create_expression_grammar() -> Grammar {
     // Define rules with proper precedence
     
     // expression → expression + expression (left associative, precedence 1)
-    grammar.rules.entry(add_rule_id, Rule {
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(plus_id), Symbol::NonTerminal(expr_id)],
         precedence: Some(PrecedenceKind::Static(1)),
@@ -124,7 +124,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → expression - expression (left associative, precedence 1)
-    grammar.rules.entry(sub_rule_id, Rule {
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(minus_id), Symbol::NonTerminal(expr_id)],
         precedence: Some(PrecedenceKind::Static(1)),
@@ -134,7 +134,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → expression * expression (left associative, precedence 2)
-    grammar.rules.entry(mul_rule_id, Rule {
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(times_id), Symbol::NonTerminal(expr_id)],
         precedence: Some(PrecedenceKind::Static(2)),
@@ -144,7 +144,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → expression / expression (left associative, precedence 2)
-    grammar.rules.entry(div_rule_id, Rule {
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(divide_id), Symbol::NonTerminal(expr_id)],
         precedence: Some(PrecedenceKind::Static(2)),
@@ -154,7 +154,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → ( expression )
-    grammar.rules.entry(paren_rule_id, Rule {
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(lparen_id), Symbol::NonTerminal(expr_id), Symbol::Terminal(rparen_id)],
         precedence: None,
@@ -164,7 +164,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → number
-    grammar.rules.entry(number_rule_id, Rule {
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(number_id)],
         precedence: None,
