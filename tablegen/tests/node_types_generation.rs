@@ -119,7 +119,7 @@ fn test_arithmetic_node_types_generation() {
     let literal_nodes: Vec<&str> = nodes
         .iter()
         .filter_map(|n| {
-            if n.get("named")?.as_bool()? == false {
+            if !(n.get("named")?.as_bool()?) {
                 n.get("type")?.as_str()
             } else {
                 None

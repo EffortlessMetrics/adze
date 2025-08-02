@@ -1,11 +1,11 @@
 // Advanced conflict resolution strategies for GLR parsing
 // This module provides additional conflict resolution capabilities beyond the basic resolver
 
-use crate::{Action, ParseTable, RuleId, StateId};
+use crate::{Action, ParseTable};
 use rust_sitter_ir::{
-    Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
+    Associativity, Grammar, PrecedenceKind, SymbolId,
 };
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 /// Statistics about conflict resolution
 #[derive(Debug, Clone, Default)]
@@ -22,6 +22,12 @@ pub struct ConflictStats {
 pub struct ConflictAnalyzer {
     /// Statistics about conflicts found
     stats: ConflictStats,
+}
+
+impl Default for ConflictAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ConflictAnalyzer {
@@ -86,7 +92,7 @@ impl PrecedenceResolver {
         // Extract precedence from precedence declarations
         for prec in &grammar.precedences {
             for &symbol in &prec.symbols {
-                token_precedences.insert(symbol, (prec.level as i16, prec.associativity));
+                token_precedences.insert(symbol, (prec.level, prec.associativity));
             }
         }
 
@@ -156,7 +162,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 1,
-            symbol_to_index: BTreeMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
 
         let mut analyzer = ConflictAnalyzer::new();

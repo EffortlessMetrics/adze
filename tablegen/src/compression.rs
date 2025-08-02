@@ -107,7 +107,7 @@ impl BitPackedActionTable {
 
         // Calculate bits needed
         let total_cells = state_count * symbol_count;
-        let mask_words = (total_cells + 63) / 64;
+        let mask_words = total_cells.div_ceil(64);
 
         let mut error_mask = vec![0u64; mask_words];
         let mut shift_data = Vec::new();

@@ -42,7 +42,7 @@ pub fn generate_lexer(
                 } else {
                     let bytes = lit.as_bytes();
                     let len = bytes.len();
-                    let byte_values = bytes.iter().map(|&b| b).collect::<Vec<_>>();
+                    let byte_values = bytes.iter().copied().collect::<Vec<_>>();
                     token_matches.push(quote! {
                         if position + #len <= input.len() && &input[position..position + #len] == &[#(#byte_values),*] {
                             state.result_symbol = #symbol_index;

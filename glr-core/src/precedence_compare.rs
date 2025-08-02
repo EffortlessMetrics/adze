@@ -32,7 +32,7 @@ impl StaticPrecedenceResolver {
                 token_precedences.insert(
                     symbol_id,
                     PrecedenceInfo {
-                        level: prec_decl.level as i16,
+                        level: prec_decl.level,
                         associativity: prec_decl.associativity,
                         is_fragile: false, // Set based on grammar annotations
                     },

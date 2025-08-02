@@ -42,7 +42,7 @@ impl ExternalScannerGenerator {
         let mut map = vec![0u16; self.external_tokens.len()];
 
         for (token_index, token) in self.external_tokens.iter().enumerate() {
-            map[token_index] = token.symbol_id.0 as u16;
+            map[token_index] = token.symbol_id.0;
         }
 
         map

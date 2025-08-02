@@ -44,12 +44,12 @@ impl FirstFollowSets {
             }
             Symbol::Choice(choices) => choices
                 .iter()
-                .map(|s| Self::get_max_symbol_id(s))
+                .map(Self::get_max_symbol_id)
                 .max()
                 .unwrap_or(0),
             Symbol::Sequence(seq) => seq
                 .iter()
-                .map(|s| Self::get_max_symbol_id(s))
+                .map(Self::get_max_symbol_id)
                 .max()
                 .unwrap_or(0),
             Symbol::Epsilon => 0,
@@ -442,7 +442,7 @@ impl ItemSetCollection {
         grammar: &Grammar,
         first_follow: &FirstFollowSets,
         augmented_start: SymbolId,
-        original_start: SymbolId,
+        _original_start: SymbolId,
     ) -> Self {
         let mut collection = Self {
             sets: Vec::new(),
@@ -858,7 +858,7 @@ impl ConflictResolver {
 
                     actions_by_symbol
                         .entry(item.lookahead)
-                        .or_insert_with(Vec::new)
+                        .or_default()
                         .push(action);
                 } else if let Some(symbol) = item.next_symbol(grammar) {
                     // Shift action
@@ -883,7 +883,7 @@ impl ConflictResolver {
                         let action = Action::Shift(*target_state);
                         actions_by_symbol
                             .entry(symbol_id)
-                            .or_insert_with(Vec::new)
+                            .or_default()
                             .push(action);
                     }
                 }
@@ -1032,6 +1032,7 @@ pub enum GLRError {
 }
 
 /// Check if a symbol can derive the start symbol through unit productions
+#[allow(dead_code)]
 fn can_derive_start(grammar: &Grammar, symbol: SymbolId, start: SymbolId) -> bool {
     if symbol == start {
         return true;
@@ -1064,7 +1065,7 @@ pub fn build_lr1_automaton(
     // Find the original start symbol
     let original_start = grammar
         .start_symbol()
-        .ok_or_else(|| GLRError::GrammarError(GrammarError::UnresolvedSymbol(SymbolId(0))))?;
+        .ok_or(GLRError::GrammarError(GrammarError::UnresolvedSymbol(SymbolId(0))))?;
 
     // Create a new start symbol S' with a high ID that won't conflict
     let augmented_start = SymbolId(65535); // High ID to avoid conflicts
@@ -1222,8 +1223,7 @@ pub fn build_lr1_automaton(
                             // Check if there's a potential shift action for this lookahead
                             let has_shift = item_set.items.iter().any(|other_item| {
                                 !other_item.is_reduce_item(&augmented_grammar)
-                                    && other_item.next_symbol(&augmented_grammar).map_or(
-                                        false,
+                                    && other_item.next_symbol(&augmented_grammar).is_some_and(
                                         |sym| match sym {
                                             Symbol::Terminal(id) => *id == item.lookahead,
                                             _ => false,
@@ -1450,15 +1450,10 @@ pub fn build_lr1_automaton(
         eprintln!("DEBUG: Start symbol is {:?}", start_symbol);
 
         // Find all states and check if they need EOF reduce actions
-        for (state_idx, item_set) in collection.sets.iter().enumerate() {
-            // Check if this state contains only items that have completed a rule
-            // that could be a valid parse ending
-            let mut needs_eof_reduce = false;
-            let mut reduce_rule_id = None;
-
+        for (state_idx, _item_set) in collection.sets.iter().enumerate() {
             // Skip this post-processing - handled by augmentation
-            needs_eof_reduce = false;
-            reduce_rule_id = None;
+            let needs_eof_reduce = false;
+            let reduce_rule_id: Option<RuleId> = None;
 
             // If we found a reduce item that needs EOF action, ensure it's in the action table
             if needs_eof_reduce {
@@ -1553,7 +1548,7 @@ fn add_action_with_conflict(
             // Conflict detected! Track it
             let entry = conflicts_by_state
                 .entry((state_idx, symbol_idx))
-                .or_insert_with(Vec::new);
+                .or_default();
 
             // Add the current action if not already tracked
             if entry.is_empty() {

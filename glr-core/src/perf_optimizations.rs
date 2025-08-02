@@ -20,6 +20,12 @@ pub struct ParseTableCache {
     stats: PerfStats,
 }
 
+impl Default for ParseTableCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ParseTableCache {
     pub fn new() -> Self {
         Self {
@@ -54,6 +60,12 @@ pub struct StackDeduplicator {
     seen_states: HashMap<Vec<StateId>, usize>,
 }
 
+impl Default for StackDeduplicator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StackDeduplicator {
     pub fn new() -> Self {
         Self {
@@ -82,13 +94,19 @@ pub struct StackPool<T> {
     pool: Vec<Vec<T>>,
 }
 
+impl<T> Default for StackPool<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> StackPool<T> {
     pub fn new() -> Self {
         Self { pool: Vec::new() }
     }
 
     pub fn acquire(&mut self) -> Vec<T> {
-        self.pool.pop().unwrap_or_else(Vec::new)
+        self.pool.pop().unwrap_or_default()
     }
 
     pub fn release(&mut self, mut vec: Vec<T>) {

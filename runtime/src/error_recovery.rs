@@ -48,6 +48,8 @@ pub struct ErrorRecoveryConfig {
     pub sync_tokens: HashSet<u16>,
     /// Tokens that can be auto-inserted
     pub insertable_tokens: HashSet<u16>,
+    /// Tokens that can be deleted during error recovery
+    pub deletable_tokens: HashSet<u16>,
     /// Maximum number of consecutive errors before giving up
     pub max_consecutive_errors: usize,
     /// Enable phrase-level recovery
@@ -63,8 +65,8 @@ pub struct ErrorRecoveryConfig {
 impl ErrorRecoveryConfig {
     /// Check if a token can be deleted
     pub fn can_delete_token(&self, token: rust_sitter_ir::SymbolId) -> bool {
-        // For now, allow deleting any token that's not in sync_tokens
-        !self.sync_tokens.contains(&token.0)
+        // Check if token is explicitly marked as deletable, or if it's not a sync token
+        self.deletable_tokens.contains(&token.0) || !self.sync_tokens.contains(&token.0)
     }
 
     /// Check if a token can be replaced
@@ -80,6 +82,7 @@ impl Default for ErrorRecoveryConfig {
             max_panic_skip: 50,
             sync_tokens: HashSet::new(),
             insertable_tokens: HashSet::new(),
+            deletable_tokens: HashSet::new(),
             max_consecutive_errors: 10,
             enable_phrase_recovery: true,
             enable_scope_recovery: true,
@@ -377,6 +380,11 @@ impl ErrorRecoveryConfigBuilder {
         self
     }
 
+    pub fn add_deletable_token(mut self, token: u16) -> Self {
+        self.config.deletable_tokens.insert(token);
+        self
+    }
+
     pub fn add_scope_delimiter(mut self, open: u16, close: u16) -> Self {
         self.config.scope_delimiters.push((open, close));
         self
@@ -398,6 +406,11 @@ impl ErrorRecoveryConfigBuilder {
     }
 
     pub fn max_consecutive_errors(mut self, max: usize) -> Self {
+        self.config.max_consecutive_errors = max;
+        self
+    }
+
+    pub fn set_max_recovery_attempts(mut self, max: usize) -> Self {
         self.config.max_consecutive_errors = max;
         self
     }

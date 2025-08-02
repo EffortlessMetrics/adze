@@ -6,7 +6,6 @@ use crate::compress::CompressedTables;
 use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::Grammar;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 /// Serializable representation of a Language for testing
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -291,7 +290,6 @@ pub fn serialize_compressed_tables(tables: &CompressedTables) -> Result<String, 
 mod tests {
     use super::*;
     use rust_sitter_ir::*;
-    use std::collections::HashMap;
 
     #[test]
     fn test_deterministic_serialization() {
@@ -329,7 +327,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 4,
-            symbol_to_index: BTreeMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
 
         let language = build_serializable_language(&grammar, &parse_table, None);
@@ -356,7 +354,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 1,
-            symbol_to_index: BTreeMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
 
         let language = build_serializable_language(&grammar, &parse_table, None);

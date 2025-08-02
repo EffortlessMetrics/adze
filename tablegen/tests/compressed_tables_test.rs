@@ -57,8 +57,8 @@ fn test_compressed_table_generation() {
     let compressed = compressor.compress(&parse_table).unwrap();
 
     // Verify compression
-    assert!(compressed.action_table.data.len() > 0);
-    assert!(compressed.goto_table.data.len() > 0);
+    assert!(!compressed.action_table.data.is_empty());
+    assert!(!compressed.goto_table.data.is_empty());
 
     // Generate ABI-compatible language
     let mut builder = AbiLanguageBuilder::new(&grammar, &parse_table);

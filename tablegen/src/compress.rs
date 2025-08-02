@@ -126,6 +126,12 @@ pub struct TableCompressor {
     small_table_threshold: usize,
 }
 
+impl Default for TableCompressor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TableCompressor {
     pub fn new() -> Self {
         Self {
@@ -414,7 +420,7 @@ mod tests {
         let compressor = TableCompressor::new();
         let action_table = vec![vec![]; 5]; // 5 empty states
 
-        let symbol_to_index = BTreeMap::new();
+        let symbol_to_index = std::collections::BTreeMap::new();
         let result = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(result.is_ok());
 
@@ -432,7 +438,7 @@ mod tests {
             vec![reduce_action.clone(); 10], // All same reduce action
         ];
 
-        let symbol_to_index = BTreeMap::new();
+        let symbol_to_index = std::collections::BTreeMap::new();
         let result = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(result.is_ok());
 

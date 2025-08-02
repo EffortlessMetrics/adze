@@ -2,7 +2,7 @@
 use quote::quote;
 use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::{ExternalToken, Grammar, SymbolId};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 /// Enhanced external scanner generator that computes state-based validity
 pub struct ExternalScannerGenerator {
@@ -81,7 +81,7 @@ impl ExternalScannerGenerator {
         let mut map = vec![0u16; self.external_tokens.len()];
 
         for (token_index, token) in self.external_tokens.iter().enumerate() {
-            map[token_index] = token.symbol_id.0 as u16;
+            map[token_index] = token.symbol_id.0;
         }
 
         map
@@ -208,7 +208,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 2,
-            symbol_to_index: BTreeMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
 
         // Map external symbols to indices

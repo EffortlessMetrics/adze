@@ -7,7 +7,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 
 /// Builder for generating ABI-compatible language structures
 pub struct AbiLanguageBuilder<'a> {
@@ -514,7 +514,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                                     "DEBUG: State {} setting default_reduce to {:?}",
                                     state_idx, prod_id
                                 );
-                                default_reduce = Some(prod_id.clone());
+                                default_reduce = Some(*prod_id);
                             }
                         }
                         _ => {
@@ -559,7 +559,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                                     break;
                                 }
                             } else {
-                                common_reduce = Some(prod_id.clone());
+                                common_reduce = Some(*prod_id);
                             }
                         }
                         _ => {
@@ -738,7 +738,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             for rule in rules {
                 rules_by_production
                     .entry(rule.production_id.0)
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(rule);
             }
         }
@@ -829,7 +829,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         rules.sort_by_key(|rule| rule.production_id.0);
 
         for rule in rules {
-            let rule_symbol = rule.lhs.0 as u16;
+            let rule_symbol = rule.lhs.0;
             production_map.push(quote! { #rule_symbol });
         }
 
@@ -963,7 +963,6 @@ struct LanguageCounts {
 mod tests {
     use super::*;
     use rust_sitter_ir::*;
-    use std::collections::HashMap;
 
     #[test]
     fn test_deterministic_symbol_ordering() {
@@ -993,7 +992,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 3,
-            symbol_to_index: BTreeMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
 
         let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
