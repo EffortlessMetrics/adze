@@ -1,4 +1,4 @@
-use rust_sitter::glr_lexer::GLRLexer;
+use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
 // Integration test for the full GLR parsing pipeline
@@ -7,7 +7,7 @@ use rust_sitter::subtree::Subtree;
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern,
+    TokenPattern, validation::GLRGrammarValidator,
 };
 
 // Import internal modules for testing
@@ -33,8 +33,8 @@ fn create_parser(grammar: &Grammar) -> GLRParser {
 }
 
 // Helper function to convert subtree::Subtree to glr_query::Subtree
-fn convert_to_query_subtree(subtree: &Arc<Subtree>) -> glr_query::Subtree {
-    glr_query::Subtree {
+fn convert_to_query_subtree(subtree: &Arc<Subtree>) -> rust_sitter::glr_query::Subtree {
+    rust_sitter::glr_query::Subtree {
         symbol: subtree.node.symbol_id,
         children: subtree
             .children
@@ -351,8 +351,7 @@ fn test_glr_with_ambiguous_grammar() {
     grammar.rule_names.insert(e_id, "E".to_string());
 
     // E → E E (ambiguous concatenation)
-    grammar.rules.entry(
-        concat_id,
+    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: e_id,
             rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
@@ -364,8 +363,7 @@ fn test_glr_with_ambiguous_grammar() {
     );
 
     // E → 'a'
-    grammar.rules.entry(
-        terminal_id,
+    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: e_id,
             rhs: vec![Symbol::Terminal(a_id)],
@@ -381,8 +379,10 @@ fn test_glr_with_ambiguous_grammar() {
     let validation_result = validator.validate(&grammar);
 
     println!("Grammar rules:");
-    for (symbol, rule) in &grammar.rules {
-        println!("  {} -> {:?}", symbol.0, rule.rhs);
+    for (symbol, rules) in &grammar.rules {
+        for rule in rules {
+            println!("  {} -> {:?}", symbol.0, rule.rhs);
+        }
     }
 
     println!("Validation warnings: {:?}", validation_result.warnings);

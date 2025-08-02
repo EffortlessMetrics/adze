@@ -59,7 +59,7 @@ fn create_simple_grammar() -> Grammar {
     // Rule 1: expr → number
     grammar
         .rules
-        .entry(SymbolId(20))
+        .entry(expr_id)
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -73,7 +73,7 @@ fn create_simple_grammar() -> Grammar {
     // Rule 2: expr → ( expr )
     grammar
         .rules
-        .entry(SymbolId(21))
+        .entry(expr_id)
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -96,8 +96,10 @@ fn test_paren_debug() {
     let grammar = create_simple_grammar();
 
     println!("Grammar rules:");
-    for (id, rule) in &grammar.rules {
-        println!("  Rule {}: {:?} → {:?}", id.0, rule.lhs, rule.rhs);
+    for (id, rules) in &grammar.rules {
+        for rule in rules {
+            println!("  Rule {}: {:?} → {:?}", id.0, rule.lhs, rule.rhs);
+        }
     }
 
     let first_follow = FirstFollowSets::compute(&grammar);

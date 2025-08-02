@@ -35,8 +35,7 @@ fn create_ambiguous_grammar() -> Grammar {
     grammar.rule_names.insert(e_id, "E".to_string());
 
     // Rule 1: E → a
-    grammar.rules.insert(
-        SymbolId(20),
+    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: e_id,
             rhs: vec![Symbol::Terminal(a_id)],
@@ -48,8 +47,7 @@ fn create_ambiguous_grammar() -> Grammar {
     );
 
     // Rule 2: E → E E (ambiguous concatenation)
-    grammar.rules.insert(
-        SymbolId(21),
+    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: e_id,
             rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
@@ -105,8 +103,7 @@ fn create_arithmetic_grammar() -> Grammar {
 
     // Rules with precedence
     // E → E + E (lower precedence)
-    grammar.rules.insert(
-        SymbolId(20),
+    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: e_id,
             rhs: vec![
@@ -122,8 +119,7 @@ fn create_arithmetic_grammar() -> Grammar {
     );
 
     // E → E * E (higher precedence)
-    grammar.rules.insert(
-        SymbolId(21),
+    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: e_id,
             rhs: vec![
@@ -139,8 +135,7 @@ fn create_arithmetic_grammar() -> Grammar {
     );
 
     // E → number
-    grammar.rules.insert(
-        SymbolId(22),
+    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: e_id,
             rhs: vec![Symbol::Terminal(num_id)],

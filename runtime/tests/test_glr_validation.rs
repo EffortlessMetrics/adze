@@ -333,8 +333,7 @@ fn test_ambiguous_grammar_detection() {
     grammar.rule_names.insert(if_stmt_id, "if_stmt".to_string());
 
     // Also allow: if_stmt → if expr then stmt else stmt (creates ambiguity)
-    let if_stmt_else_id = SymbolId(7);
-    grammar.rules.entry(if_stmt_else_id).or_insert_with(Vec::new).push(
+    grammar.rules.entry(if_stmt_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: if_stmt_id,
             rhs: vec![

@@ -87,8 +87,7 @@ fn create_test_grammar() -> Grammar {
         .insert(number_expr_id, "number_expression".to_string());
 
     // expression → expression + term (add_expression)
-    grammar.rules.entry(
-        add_expr_id,
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: expr_id,
             rhs: vec![
@@ -104,8 +103,7 @@ fn create_test_grammar() -> Grammar {
     );
 
     // expression → term
-    grammar.rules.entry(
-        expr_id,
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: expr_id,
             rhs: vec![Symbol::NonTerminal(term_id)],
@@ -117,8 +115,7 @@ fn create_test_grammar() -> Grammar {
     );
 
     // term → term * factor (mul_expression)
-    grammar.rules.entry(
-        mul_expr_id,
+    grammar.rules.entry(term_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: term_id,
             rhs: vec![
@@ -134,8 +131,7 @@ fn create_test_grammar() -> Grammar {
     );
 
     // term → factor
-    grammar.rules.entry(
-        term_id,
+    grammar.rules.entry(term_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: term_id,
             rhs: vec![Symbol::NonTerminal(factor_id)],
@@ -147,8 +143,7 @@ fn create_test_grammar() -> Grammar {
     );
 
     // factor → ( expression ) (paren_expression)
-    grammar.rules.entry(
-        paren_expr_id,
+    grammar.rules.entry(factor_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: factor_id,
             rhs: vec![
@@ -164,8 +159,7 @@ fn create_test_grammar() -> Grammar {
     );
 
     // factor → number (number_expression)
-    grammar.rules.entry(
-        number_expr_id,
+    grammar.rules.entry(factor_id).or_insert_with(Vec::new).push(
         Rule {
             lhs: factor_id,
             rhs: vec![Symbol::Terminal(number_id)],
