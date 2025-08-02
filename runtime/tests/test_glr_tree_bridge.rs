@@ -302,7 +302,7 @@ fn test_tree_bridge_json_object() {
             assert!(root.child_count() >= 2); // At least { and }
 
             // Use cursor to traverse
-            let mut cursor = root.walk();
+            let cursor = root.walk();
 
             // Check we can access text
             let text = root.utf8_text(tree.text()).unwrap();

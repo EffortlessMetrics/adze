@@ -54,3 +54,7 @@ harness = false
 [[bench]]
 name = "parser_benchmark"
 harness = false
+
+[[bench]]
+name = "glr_parser_bench"
+harness = false

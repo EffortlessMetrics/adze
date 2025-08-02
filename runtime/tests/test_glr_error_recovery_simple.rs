@@ -1,12 +1,11 @@
 // Simple test for GLR error recovery
 
-use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
+use rust_sitter::error_recovery::ErrorRecoveryConfigBuilder;
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use std::sync::Arc;
 
 fn create_simple_grammar() -> Grammar {
     let mut grammar = Grammar::new("simple".to_string());

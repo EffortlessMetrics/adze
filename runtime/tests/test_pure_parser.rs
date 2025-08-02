@@ -130,7 +130,7 @@ fn create_test_language() -> &'static TSLanguage {
 
 #[test]
 fn test_pure_parser_creation() {
-    let mut parser = Parser::new();
+    let parser = Parser::new();
     assert!(parser.language().is_none());
 }
 

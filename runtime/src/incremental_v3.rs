@@ -498,7 +498,7 @@ struct Token {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::*;
+    
 
     #[test]
     fn test_subtree_pool_collection() {

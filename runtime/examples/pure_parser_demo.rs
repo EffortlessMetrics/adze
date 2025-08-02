@@ -23,7 +23,7 @@ fn main() {
     println!("==================================\n");
 
     // Create a parser
-    let mut parser = Parser::new();
+    let parser = Parser::new();
     println!("✓ Created parser");
 
     // In a real scenario, you would load a language from a generated module

@@ -540,7 +540,7 @@ mod tests {
         };
 
         // Create parser
-        let mut parser = Parser::new(grammar, parse_table, "test_python".to_string());
+        let parser = Parser::new(grammar, parse_table, "test_python".to_string());
 
         // Verify external scanner was loaded
         assert!(parser.external_scanner.is_some());

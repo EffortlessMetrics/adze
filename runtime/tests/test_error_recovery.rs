@@ -1,7 +1,6 @@
 // Test error recovery in the parser
-use indexmap::IndexMap;
-use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
-use rust_sitter::parser::{ParseNode, Parser};
+use rust_sitter::error_recovery::ErrorRecoveryConfigBuilder;
+use rust_sitter::parser::Parser;
 use rust_sitter_glr_core::*;
 use rust_sitter_ir::*;
 
