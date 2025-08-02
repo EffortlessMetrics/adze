@@ -570,11 +570,70 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                         // This is a single-leaf variant - use the token directly
                         members.push(inlined_rule);
                     } else {
-                        // This is a complex variant - reference the generated rule
-                        members.push(json!({
+                        // This is a complex variant - check if it has precedence
+                        let prec_attr = v.attrs
+                            .iter()
+                            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec));
+                        let prec_left_attr = v.attrs
+                            .iter()
+                            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_left));
+                        let prec_right_attr = v.attrs
+                            .iter()
+                            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_right));
+                        
+                        let symbol_ref = json!({
                             "type": "SYMBOL",
                             "name": variant_path
-                        }));
+                        });
+                        
+                        // Apply precedence if specified on the variant
+                        let member = if let Some(attr) = prec_attr {
+                            if let Ok(Expr::Lit(expr_lit)) = attr.parse_args_with(Expr::parse) {
+                                if let Lit::Int(i) = &expr_lit.lit {
+                                    json!({
+                                        "type": "PREC",
+                                        "value": i.base10_parse::<i32>().unwrap(),
+                                        "content": symbol_ref
+                                    })
+                                } else {
+                                    symbol_ref
+                                }
+                            } else {
+                                symbol_ref
+                            }
+                        } else if let Some(attr) = prec_left_attr {
+                            if let Ok(Expr::Lit(expr_lit)) = attr.parse_args_with(Expr::parse) {
+                                if let Lit::Int(i) = &expr_lit.lit {
+                                    json!({
+                                        "type": "PREC_LEFT",
+                                        "value": i.base10_parse::<i32>().unwrap(),
+                                        "content": symbol_ref
+                                    })
+                                } else {
+                                    symbol_ref
+                                }
+                            } else {
+                                symbol_ref
+                            }
+                        } else if let Some(attr) = prec_right_attr {
+                            if let Ok(Expr::Lit(expr_lit)) = attr.parse_args_with(Expr::parse) {
+                                if let Lit::Int(i) = &expr_lit.lit {
+                                    json!({
+                                        "type": "PREC_RIGHT",
+                                        "value": i.base10_parse::<i32>().unwrap(),
+                                        "content": symbol_ref
+                                    })
+                                } else {
+                                    symbol_ref
+                                }
+                            } else {
+                                symbol_ref
+                            }
+                        } else {
+                            symbol_ref
+                        };
+                        
+                        members.push(member);
                     }
                 });
 

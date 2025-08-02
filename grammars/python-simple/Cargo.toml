@@ -1,0 +1,10 @@
+[package]
+name = "rust-sitter-python-simple"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rust-sitter = { path = "../../runtime", features = ["pure-rust"] }
+
+[build-dependencies]
+rust-sitter-tool = { path = "../../tool" }

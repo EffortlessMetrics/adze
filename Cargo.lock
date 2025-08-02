@@ -1932,6 +1932,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-sitter-python-simple"
+version = "0.1.0"
+dependencies = [
+ "rust-sitter",
+ "rust-sitter-tool",
+]
+
+[[package]]
 name = "rust-sitter-tablegen"
 version = "0.5.0-beta"
 dependencies = [

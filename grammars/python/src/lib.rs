@@ -233,15 +233,21 @@ pub mod grammar {
 
     #[rust_sitter::language]
     pub enum Expression {
+        #[rust_sitter::prec_left(2)]
         Binary(Box<BinaryExpression>),
+        #[rust_sitter::prec(1)]
         Unary(Box<UnaryExpression>),
+        #[rust_sitter::prec(10)]
         Call(Box<CallExpression>),
+        #[rust_sitter::prec(10)]
         Attribute(Box<AttributeExpression>),
+        #[rust_sitter::prec(10)]
         Subscript(Box<SubscriptExpression>),
         Primary(PrimaryExpression),
     }
 
     #[rust_sitter::language]
+    #[rust_sitter::prec_left(2)]
     pub struct BinaryExpression {
         pub left: Expression,
         pub operator: BinaryOperator,
@@ -337,6 +343,7 @@ pub mod grammar {
     }
 
     #[rust_sitter::language]
+    #[rust_sitter::prec(1)]
     pub struct UnaryExpression {
         pub operator: UnaryOperator,
         pub operand: Expression,
@@ -361,6 +368,7 @@ pub mod grammar {
     }
 
     #[rust_sitter::language]
+    #[rust_sitter::prec(10)]
     pub struct CallExpression {
         pub function: Expression,
         pub arguments: Arguments,
@@ -384,6 +392,7 @@ pub mod grammar {
     }
 
     #[rust_sitter::language]
+    #[rust_sitter::prec(10)]
     pub struct AttributeExpression {
         pub value: Expression,
         #[rust_sitter::leaf(text = ".")]
