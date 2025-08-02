@@ -6,7 +6,7 @@ use crate::subtree::{Subtree, SubtreeNode};
 use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::sync::Arc;
 
 /// A parse stack version (fork) in GLR parsing
@@ -119,39 +119,25 @@ impl GLRParser {
         for (i, stack) in self.stacks.iter().enumerate() {
             println!("    Stack {}: state {}", i, stack.current_state().0);
         }
-        let mut new_stacks = Vec::new();
-        let _stack_merges = HashMap::<(StateId, usize), Vec<usize>>::new();
 
-        // Process each active stack - work with a copy of the current stacks
-        let current_stacks = std::mem::take(&mut self.stacks);
+        // Phase 1: Perform all possible reductions until saturation
+        let mut stacks_to_process = std::mem::take(&mut self.stacks);
         self.pending_stacks.clear();
+        
+        stacks_to_process = self.reduce_until_saturated(stacks_to_process, token);
 
-        for (_stack_idx, stack) in current_stacks.into_iter().enumerate() {
+        // Phase 2: Process shifts and other actions on all post-reduction stacks
+        let mut new_stacks = Vec::new();
+        
+        for stack in stacks_to_process {
             let state = stack.current_state();
-            // println!("  Stack {} in state {}", stack.id, state.0);
-
-            // Look up action in parse table
+            
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                // println!("    Token {} maps to symbol index {}", token.0, symbol_idx);
-                let action = self.table.action_table[state.0 as usize][*symbol_idx].clone();
+                let action = &self.table.action_table[state.0 as usize][*symbol_idx];
                 println!("    State {} token {} -> action: {:?}", state.0, token.0, action);
-
-                // If action is Error, check if we have any reductions available
-                if matches!(action, Action::Error) {
-                    // println!("    No action for token {} in state {}", token.0, state.0);
-                    // Check all possible actions in this state
-                    // println!("    Available actions in state {}:", state.0);
-                    for (_sym_id, sym_idx) in &self.table.symbol_to_index {
-                        let act = &self.table.action_table[state.0 as usize][*sym_idx];
-                        if !matches!(act, Action::Error) {
-                            // println!("      For symbol {} (idx {}): {:?}", sym_id.0, sym_idx, act);
-                        }
-                    }
-                }
-
-                match &action {
+                
+                match action {
                     Action::Shift(new_state) => {
-                        // println!("    Action: Shift to state {}", new_state.0);
                         let mut new_stack = stack.clone();
                         new_stack.push(
                             *new_state,
@@ -166,24 +152,20 @@ impl GLRParser {
                         );
                         new_stacks.push(new_stack);
                     }
-
-                    Action::Reduce(rule_id) => {
-                        // println!("    Action: Reduce rule {}", rule_id.0);
-                        let mut reduced_stack = stack.clone();
-                        self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
-
-                        // After reduction, we need to re-process the current token
-                        // with the new state
-                        let new_state = reduced_stack.current_state();
-                        println!("    After reduction, now in state {}", new_state.0);
-
-                        // Don't process the token yet - just record the reduced stack
-                        // We'll handle all token processing after all reductions are complete
-                        new_stacks.push(reduced_stack);
+                    
+                    Action::Accept => {
+                        // Keep the accepting stack
+                        new_stacks.push(stack);
+                    }
+                    
+                    Action::Reduce(_) => {
+                        // This shouldn't happen after reduce_until_saturated
+                        unreachable!("Found reduce action after saturation");
                     }
 
                     Action::Fork(actions) => {
-                        // Handle GLR fork - create multiple stacks
+                        // Handle GLR fork - only process non-reduction actions here
+                        // Reductions were handled in phase 1
                         println!("    FORK action with {} branches", actions.len());
                         for (i, fork_action) in actions.iter().enumerate() {
                             println!("      Fork branch {}: {:?}", i, fork_action);
@@ -206,50 +188,14 @@ impl GLRParser {
                                     new_stacks.push(forked);
                                 }
 
-                                Action::Reduce(rule_id) => {
-                                    let mut forked = stack.fork(self.next_stack_id);
-                                    self.next_stack_id += 1;
-                                    self.perform_reduction_on_stack(&mut forked, *rule_id);
-                                    // After reduction, we need to reprocess this token with the new state
-                                    let reduced_state = forked.current_state();
-                                    println!("      Fork reduce: After reducing rule {}, now in state {}", rule_id.0, reduced_state.0);
-                                    
-                                    // Check what to do with current token in the new state
-                                    if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                                        let new_action = &self.table.action_table[reduced_state.0 as usize][*symbol_idx];
-                                        println!("      Fork reduce: Action for token {} in state {}: {:?}", token.0, reduced_state.0, new_action);
-                                        match new_action {
-                                            Action::Shift(shift_state) => {
-                                                forked.push(
-                                                    *shift_state,
-                                                    Arc::new(Subtree::new(
-                                                        SubtreeNode {
-                                                            symbol_id: token,
-                                                            is_error: false,
-                                                            byte_range: byte_offset..byte_offset + text.len(),
-                                                        },
-                                                        vec![],
-                                                    )),
-                                                );
-                                            }
-                                            _ => {
-                                                // Will be handled in next iteration
-                                            }
-                                        }
-                                    }
-                                    new_stacks.push(forked);
+                                Action::Reduce(_) => {
+                                    // Reductions should have been handled in phase 1
+                                    // This shouldn't happen if reduce_until_saturated worked correctly
                                 }
 
                                 _ => {}
                             }
                         }
-                    }
-
-                    Action::Accept => {
-                        // println!("    Action: Accept");
-                        // This shouldn't happen anymore since we removed Accept from parse table
-                        // Keep the stack as an accepting stack
-                        new_stacks.push(stack);
                     }
 
                     Action::Error => {
@@ -330,99 +276,93 @@ impl GLRParser {
                 }
             }
         }
-
-        // After processing all stacks, check if any need further reductions
-        // This is necessary for handling cases where multiple reductions are needed
-        // to reach the accept state (e.g., with augmented start rules)
-        let mut processed_states = std::collections::HashSet::new();
-        let mut needs_reprocessing = true;
-        let mut iterations = 0;
         
-        while needs_reprocessing && iterations < 10 {
-            needs_reprocessing = false;
-            iterations += 1;
-
-            let mut additional_stacks = Vec::new();
-            
-            for (i, stack) in new_stacks.iter().enumerate() {
-                let state = stack.current_state();
-                
-                // Skip if we've already processed this state in this iteration
-                if !processed_states.insert((i, state)) {
-                    continue;
-                }
-
-                // Check if this state has any reduce actions for the current token
-                if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                    let action = &self.table.action_table[state.0 as usize][*symbol_idx];
-
-                    match action {
-                        Action::Reduce(rule_id) => {
-                            // Need to perform another reduction
-                            let mut reduced_stack = stack.clone();
-                            let rule_id_val = rule_id.0;
-                            let state_val = state.0;
-                            self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
-                            println!("    Additional reduction by rule {} in state {}", rule_id_val, state_val);
-                            additional_stacks.push(reduced_stack);
-                            needs_reprocessing = true;
-                        }
-                        Action::Accept => {
-                            // This is an accepting state, keep it
-                            println!("    Found accepting state {}", state.0);
-                        }
-                        _ => {}
-                    }
-                }
-            }
-
-            new_stacks.extend(additional_stacks);
-        }
-
-        // Now that all reductions are complete, process the token on each stack
-        let mut final_stacks = Vec::new();
-        for stack in new_stacks {
-            let state = stack.current_state();
-            if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                let action = &self.table.action_table[state.0 as usize][*symbol_idx];
-                println!("    State {} token {} -> action: {:?}", state.0, token.0, action);
-                
-                match action {
-                    Action::Shift(new_state) => {
-                        let mut shifted_stack = stack.clone();
-                        shifted_stack.push(
-                            *new_state,
-                            Arc::new(Subtree::new(
-                                SubtreeNode {
-                                    symbol_id: token,
-                                    is_error: false,
-                                    byte_range: byte_offset..byte_offset + text.len(),
-                                },
-                                vec![],
-                            )),
-                        );
-                        final_stacks.push(shifted_stack);
-                    }
-                    Action::Error => {
-                        // This stack cannot continue with this token
-                        // Don't add it to final_stacks
-                    }
-                    _ => {
-                        // Other actions (Accept, Reduce) shouldn't happen here after all reductions
-                        // but keep the stack anyway
-                        final_stacks.push(stack);
-                    }
-                }
-            }
-        }
-
         // Merge stacks that reach the same state
-        self.merge_stacks(&mut final_stacks);
+        self.merge_stacks(&mut new_stacks);
 
         // Update active stacks
-        // println!("  After processing: {} stacks", new_stacks.len());
-        self.stacks = final_stacks;
+        self.stacks = new_stacks;
         self.pending_stacks = (0..self.stacks.len()).collect();
+    }
+    
+    /// Perform all possible reductions on the given stacks until no more reductions apply
+    fn reduce_until_saturated(&mut self, mut stacks: Vec<ParseStack>, token: SymbolId) -> Vec<ParseStack> {
+        let mut iteration = 0;
+        loop {
+            iteration += 1;
+            if iteration > 20 {
+                panic!("Too many reduction iterations - possible infinite loop");
+            }
+            
+            let mut any_reduction_performed = false;
+            let mut result_stacks = Vec::new();
+            
+            for stack in stacks {
+                let state = stack.current_state();
+                
+                if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
+                    let action = self.table.action_table[state.0 as usize][*symbol_idx].clone();
+                    
+                    match &action {
+                        Action::Reduce(rule_id) => {
+                            any_reduction_performed = true;
+                            let mut reduced_stack = stack.clone();
+                            self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
+                            println!("    Reduction iteration {}: rule {} in state {} -> state {}", 
+                                     iteration, rule_id.0, state.0, reduced_stack.current_state().0);
+                            result_stacks.push(reduced_stack);
+                        }
+                        
+                        Action::Fork(actions) => {
+                            // Check if any fork branch is a reduction
+                            let mut has_reduction = false;
+                            let mut fork_results = Vec::new();
+                            
+                            for fork_action in actions {
+                                match fork_action {
+                                    Action::Reduce(rule_id) => {
+                                        has_reduction = true;
+                                        any_reduction_performed = true;
+                                        let mut forked = stack.fork(self.next_stack_id);
+                                        self.next_stack_id += 1;
+                                        self.perform_reduction_on_stack(&mut forked, *rule_id);
+                                        println!("    Fork reduction iteration {}: rule {} in state {} -> state {}", 
+                                                 iteration, rule_id.0, state.0, forked.current_state().0);
+                                        fork_results.push(forked);
+                                    }
+                                    _ => {
+                                        // Non-reduction fork branches will be handled in phase 2
+                                    }
+                                }
+                            }
+                            
+                            if has_reduction {
+                                result_stacks.extend(fork_results);
+                            } else {
+                                // No reductions in fork, keep original stack
+                                result_stacks.push(stack);
+                            }
+                        }
+                        
+                        _ => {
+                            // No reduction available, keep the stack as-is
+                            result_stacks.push(stack);
+                        }
+                    }
+                } else {
+                    // Token not in symbol table, keep stack
+                    result_stacks.push(stack);
+                }
+            }
+            
+            stacks = result_stacks;
+            
+            if !any_reduction_performed {
+                break;
+            }
+        }
+        
+        stacks
     }
 
     /// Perform a reduction on a specific stack
