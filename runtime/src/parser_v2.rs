@@ -297,7 +297,7 @@ impl ParserV2 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::TokenPattern;
+    use rust_sitter_ir::{TokenPattern, Symbol, ProductionId};
     
     fn create_simple_grammar() -> Grammar {
         // Create a simple arithmetic grammar
@@ -337,8 +337,7 @@ mod tests {
         
         // Add rules
         // E -> E + T (symbol 10)
-        grammar.rules.insert(
-            SymbolId(10),
+        grammar.rules.entry(SymbolId(10)).or_insert_with(Vec::new).push(
             Rule {
                 lhs: SymbolId(10), // E
                 rhs: vec![

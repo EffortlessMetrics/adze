@@ -274,6 +274,7 @@ impl GLRParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_sitter_ir::RuleId;
     
     #[test]
     fn test_glr_fork() {

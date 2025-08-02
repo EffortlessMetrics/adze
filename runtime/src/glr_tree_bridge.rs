@@ -302,6 +302,8 @@ pub fn subtree_to_tree(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::subtree::SubtreeNode;
+    use rust_sitter_ir::SymbolId;
     
     #[test]
     fn test_glr_node_api() {
