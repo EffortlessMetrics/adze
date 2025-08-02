@@ -2,7 +2,7 @@
 // This tests the complete pipeline from grammar to parsing
 
 use rust_sitter::lexer::GrammarLexer;
-use rust_sitter::parser::{ParseNode, Parser};
+use rust_sitter::parser::Parser;
 use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token as IrToken, TokenPattern,
@@ -265,10 +265,10 @@ fn test_lexer() {
 fn test_simple_parse() {
     let grammar = create_arithmetic_grammar();
     let parse_table = create_arithmetic_parse_table();
-    let mut parser = ParserV2::new(grammar, parse_table);
+    let mut parser = Parser::new(grammar, parse_table, "test".to_string());
 
     // Create tokens for "123"
-    let tokens = vec![Token {
+    let tokens = vec![IrToken {
         symbol: SymbolId(1), // number
         text: b"123".to_vec(),
         start: 0,

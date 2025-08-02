@@ -1,13 +1,15 @@
 use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
+use rust_sitter::glr_incremental::{IncrementalGLRParser, Edit};
+use rust_sitter::glr_query::{QueryParser, QueryCursor};
 // Integration test for the full GLR parsing pipeline
 // This test demonstrates parsing a complete grammar from definition to tree output
 
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern, validation::GLRGrammarValidator,
+    TokenPattern, validation::GrammarValidator,
 };
 
 // Import internal modules for testing

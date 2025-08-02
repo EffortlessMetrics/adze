@@ -3,8 +3,9 @@
 
 use rust_sitter::glr::{GLRStack, ParseStack};
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{ParseTable, Action, StateId, RuleId, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{ParseTable, Action, FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::*;
+use indexmap::IndexMap;
 
 /// Create the classic ambiguous expression grammar
 /// E -> E + E | E * E | num
@@ -336,6 +337,7 @@ fn test_precedence_resolution() {
     // mult has higher precedence than plus
     let plus = SymbolId(2);
     let mult = SymbolId(3);
+    let expr = SymbolId(10);
     
     // Set precedence and associativity on the rules
     for rule in grammar.rules.get_mut(&expr).unwrap() {

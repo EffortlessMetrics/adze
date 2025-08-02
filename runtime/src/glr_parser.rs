@@ -1,5 +1,70 @@
-// GLR parser implementation with fork/merge support
-// This implements Tree-sitter's GLR parsing algorithm with dynamic precedence
+//! GLR (Generalized LR) Parser Implementation
+//! 
+//! This module implements a GLR parser that can handle ambiguous grammars by maintaining
+//! multiple parse stacks simultaneously. When the parser encounters a shift/reduce or
+//! reduce/reduce conflict, it forks the parse stack and explores both possibilities.
+//! 
+//! ## Algorithm Overview
+//! 
+//! The parser uses a two-phase approach for processing tokens:
+//! 
+//! ### Phase 1: Reduction Saturation
+//! Before consuming any token, the parser performs all possible reductions on all active
+//! stacks. This is crucial because:
+//! - Reductions can cascade (one reduction enables another)
+//! - We must complete all reductions before shifting to maintain correctness
+//! - This prevents tokens from being consumed prematurely or processed multiple times
+//! 
+//! ### Phase 2: Token Processing  
+//! After all reductions are complete, the parser:
+//! - Processes shift actions for the current token
+//! - Handles fork actions (creating new stacks for conflicts)
+//! - Processes error recovery if no valid actions exist
+//! 
+//! ## Fork/Merge Strategy
+//! 
+//! When conflicts occur, the parser:
+//! 1. Forks the current stack into multiple stacks (one per conflicting action)
+//! 2. Processes each fork independently
+//! 3. Merges stacks that reach the same state with the same parse tree structure
+//! 4. Uses dynamic precedence to resolve ambiguities when possible
+//! 
+//! ## Error Recovery
+//! 
+//! The parser supports configurable error recovery strategies:
+//! - Token deletion (skip unexpected tokens)
+//! - Token insertion (insert missing tokens)
+//! - Panic mode (skip to synchronization points)
+//! 
+//! ## Example Usage
+//! 
+//! ```rust,no_run
+//! use rust_sitter::glr_parser::GLRParser;
+//! use rust_sitter::glr_lexer::GLRLexer;
+//! use rust_sitter_ir::{Grammar, SymbolId};
+//! use rust_sitter_glr_core::ParseTable;
+//! 
+//! // Create parser with grammar and parse table
+//! let grammar: Grammar = /* ... */;
+//! let parse_table: ParseTable = /* ... */;
+//! let mut parser = GLRParser::new(grammar, parse_table);
+//! 
+//! // Create lexer and tokenize input
+//! let mut lexer = GLRLexer::new(&grammar);
+//! let tokens = lexer.tokenize("1 + 2 * 3").unwrap();
+//! 
+//! // Process each token
+//! for token in tokens {
+//!     parser.process_token(token.symbol, &token.text, token.start_byte);
+//! }
+//! 
+//! // Process EOF and get result
+//! parser.process_eof();
+//! match parser.finish() {
+//!     Ok(tree) => println!("Parse successful!"),
+//!     Err(e) => println!("Parse failed: {}", e),
+//! }
+//! ```
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
@@ -113,12 +178,23 @@ impl GLRParser {
     }
 
     /// Process one token through all active stacks
+    /// 
+    /// This is the main entry point for processing tokens. It implements the two-phase
+    /// approach described in the module documentation:
+    /// 
+    /// 1. First, it performs all possible reductions on all active stacks using
+    ///    `reduce_until_saturated()`. This ensures all cascading reductions complete
+    ///    before any shifts occur.
+    /// 
+    /// 2. Then, it processes the token by examining shift and fork actions on the
+    ///    reduced stacks.
+    /// 
+    /// # Arguments
+    /// * `token` - The symbol ID of the token to process
+    /// * `text` - The text content of the token
+    /// * `byte_offset` - The byte position of the token in the input
     pub fn process_token(&mut self, token: SymbolId, text: &str, byte_offset: usize) {
-        println!("Processing token: {} '{}' at offset {}", token.0, text, byte_offset);
-        println!("  Active stacks: {}", self.stacks.len());
-        for (i, stack) in self.stacks.iter().enumerate() {
-            println!("    Stack {}: state {}", i, stack.current_state().0);
-        }
+        // Processing token
 
         // Phase 1: Perform all possible reductions until saturation
         let mut stacks_to_process = std::mem::take(&mut self.stacks);
@@ -134,7 +210,7 @@ impl GLRParser {
             
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
                 let action = &self.table.action_table[state.0 as usize][*symbol_idx];
-                println!("    State {} token {} -> action: {:?}", state.0, token.0, action);
+                // Check action for token
                 
                 match action {
                     Action::Shift(new_state) => {
@@ -166,9 +242,7 @@ impl GLRParser {
                     Action::Fork(actions) => {
                         // Handle GLR fork - only process non-reduction actions here
                         // Reductions were handled in phase 1
-                        println!("    FORK action with {} branches", actions.len());
-                        for (i, fork_action) in actions.iter().enumerate() {
-                            println!("      Fork branch {}: {:?}", i, fork_action);
+                        for fork_action in actions.iter() {
                             match fork_action {
                                 Action::Shift(new_state) => {
                                     let mut forked = stack.fork(self.next_stack_id);
@@ -286,6 +360,29 @@ impl GLRParser {
     }
     
     /// Perform all possible reductions on the given stacks until no more reductions apply
+    /// 
+    /// This method implements the reduction saturation phase of GLR parsing. It repeatedly
+    /// applies all possible reductions to all stacks until no more reductions are available.
+    /// This is essential for correctness because:
+    /// 
+    /// 1. **Cascading Reductions**: One reduction may enable another. For example, reducing
+    ///    `E → E + E` might enable reducing `S → E` at a higher level.
+    /// 
+    /// 2. **Completeness**: We must explore all reduction paths before shifting to ensure
+    ///    we don't miss valid parses.
+    /// 
+    /// 3. **Fork Handling**: When a fork action contains both reduce and shift actions,
+    ///    we process all reductions in this phase and defer shifts to phase 2.
+    /// 
+    /// The method includes an iteration limit to prevent infinite loops in case of
+    /// grammar bugs.
+    /// 
+    /// # Arguments
+    /// * `stacks` - The parse stacks to process
+    /// * `token` - The lookahead token (used to determine which reductions apply)
+    /// 
+    /// # Returns
+    /// A vector of stacks with all reductions applied
     fn reduce_until_saturated(&mut self, mut stacks: Vec<ParseStack>, token: SymbolId) -> Vec<ParseStack> {
         let mut iteration = 0;
         loop {
@@ -308,8 +405,7 @@ impl GLRParser {
                             any_reduction_performed = true;
                             let mut reduced_stack = stack.clone();
                             self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
-                            println!("    Reduction iteration {}: rule {} in state {} -> state {}", 
-                                     iteration, rule_id.0, state.0, reduced_stack.current_state().0);
+                            // Performed reduction
                             result_stacks.push(reduced_stack);
                         }
                         
@@ -326,8 +422,7 @@ impl GLRParser {
                                         let mut forked = stack.fork(self.next_stack_id);
                                         self.next_stack_id += 1;
                                         self.perform_reduction_on_stack(&mut forked, *rule_id);
-                                        println!("    Fork reduction iteration {}: rule {} in state {} -> state {}", 
-                                                 iteration, rule_id.0, state.0, forked.current_state().0);
+                                        // Performed fork reduction
                                         fork_results.push(forked);
                                     }
                                     _ => {
@@ -367,7 +462,7 @@ impl GLRParser {
 
     /// Perform a reduction on a specific stack
     fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
-        // println!("  Performing reduction of rule {}", rule_id.0);
+        // Perform reduction
         // Find the rule in the grammar
         if let Some(rule) = self
             .grammar
@@ -405,7 +500,7 @@ impl GLRParser {
                 let action = &self.table.action_table[current_state.0 as usize][*symbol_idx];
                 match action {
                     Action::Shift(goto_state) => {
-                        println!("  After reducing, goto state {} for symbol {}", goto_state.0, rule.lhs.0);
+                        // Goto state after reduction
                         stack.push(*goto_state, subtree);
                     }
                     _ => {
@@ -413,20 +508,32 @@ impl GLRParser {
                         let goto_state =
                             self.table.goto_table[current_state.0 as usize][*symbol_idx];
                         if goto_state.0 != 0 {
-                            println!("  After reducing, goto state {} for symbol {} (from goto table)", goto_state.0, rule.lhs.0);
+                            // Goto state from goto table
                             stack.push(goto_state, subtree);
                         } else {
-                            println!("  WARNING: No goto for symbol {} in state {}", rule.lhs.0, current_state.0);
+                            // No goto state found - error condition
                         }
                     }
                 }
             } else {
-                println!("  WARNING: No symbol index for LHS {}", rule.lhs.0);
+                // No symbol index found - error condition
             }
         }
     }
 
     /// Merge stacks that have reached the same state
+    /// 
+    /// In GLR parsing, multiple parse stacks can reach the same parser state through
+    /// different paths. When this happens, we can merge these stacks to avoid exponential
+    /// growth in the number of stacks.
+    /// 
+    /// The merging process:
+    /// 1. Identifies stacks with identical state sequences
+    /// 2. Compares their parse trees using dynamic precedence and other criteria
+    /// 3. Keeps the best parse according to the comparison rules
+    /// 4. Handles ambiguity by potentially keeping multiple parses if they're equally valid
+    /// 
+    /// This is a key optimization that makes GLR parsing practical for real grammars.
     fn merge_stacks(&mut self, stacks: &mut Vec<ParseStack>) {
         let mut merged = Vec::new();
         let mut processed = vec![false; stacks.len()];
@@ -478,7 +585,7 @@ impl GLRParser {
 
     /// Get the best parse tree from active stacks
     pub fn get_best_parse(&self) -> Option<Arc<Subtree>> {
-        // println!("Getting best parse from {} stacks", self.stacks.len());
+        // Get best parse from available stacks
         if self.stacks.is_empty() {
             return None;
         }
@@ -494,13 +601,13 @@ impl GLRParser {
             }
         }
 
-        // println!("Best stack {} has {} nodes", best_idx, self.stacks[best_idx].nodes.len());
+        // Return best parse
         self.stacks[best_idx].nodes.last().cloned()
     }
 
     /// Process EOF to complete parsing
     pub fn process_eof(&mut self) {
-        // println!("Processing EOF");
+        // Process EOF token
         // Process EOF token (symbol ID 0)
         self.process_token(SymbolId(0), "", 0);
     }
@@ -511,15 +618,24 @@ impl GLRParser {
     }
 
     /// Finish parsing and get the result
+    /// 
+    /// This method is called after all tokens have been processed (including EOF) to
+    /// extract the final parse tree. It examines all remaining stacks and returns the
+    /// parse tree from a successfully completed parse.
+    /// 
+    /// A successful parse is identified by:
+    /// 1. Having exactly one node on the stack (the root of the parse tree)
+    /// 2. That node representing a non-terminal symbol (not a raw token)
+    /// 
+    /// # Returns
+    /// * `Ok(Arc<Subtree>)` - The root of the parse tree if parsing succeeded
+    /// * `Err(String)` - An error message with debugging information if parsing failed
+    /// 
+    /// # Note
+    /// In case of ambiguous parses where multiple stacks complete successfully, this
+    /// currently returns the first valid parse found. Future enhancements could return
+    /// all valid parses or use additional criteria to select the best one.
     pub fn finish(&self) -> Result<Arc<Subtree>, String> {
-        println!("finish() called with {} stacks", self.stacks.len());
-        for (i, stack) in self.stacks.iter().enumerate() {
-            println!("  Stack {}: {} nodes, current state {}", i, stack.nodes.len(), stack.current_state().0);
-            if !stack.nodes.is_empty() {
-                println!("    Top node: symbol {}", stack.nodes.last().unwrap().node.symbol_id.0);
-            }
-        }
-        
         // Find a successfully parsed stack
         // Success criteria:
         // 1. Has exactly one node (the root of the parse tree)

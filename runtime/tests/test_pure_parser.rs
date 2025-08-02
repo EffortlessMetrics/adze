@@ -10,60 +10,70 @@ fn create_test_language() -> &'static TSLanguage {
             action_type: 0,
             extra: 0,
             child_count: 0,
+            dynamic_precedence: 0,
             symbol: 1,
         }, // Shift digit
         TSParseAction {
             action_type: 0,
             extra: 0,
             child_count: 0,
+            dynamic_precedence: 0,
             symbol: 2,
         }, // Shift plus
         TSParseAction {
             action_type: 0,
             extra: 0,
             child_count: 0,
+            dynamic_precedence: 0,
             symbol: 3,
         }, // Shift multiply
         TSParseAction {
             action_type: 1,
             extra: 0,
             child_count: 1,
+            dynamic_precedence: 0,
             symbol: 4,
         }, // Reduce to number
         TSParseAction {
             action_type: 1,
             extra: 0,
             child_count: 3,
+            dynamic_precedence: 0,
             symbol: 5,
         }, // Reduce to addition
         TSParseAction {
             action_type: 1,
             extra: 0,
             child_count: 3,
+            dynamic_precedence: 0,
             symbol: 6,
         }, // Reduce to multiplication
         TSParseAction {
             action_type: 2,
             extra: 0,
             child_count: 0,
+            dynamic_precedence: 0,
             symbol: 0,
         }, // Accept
         TSParseAction {
             action_type: 3,
             extra: 0,
             child_count: 0,
+            dynamic_precedence: 0,
             symbol: 0,
         }, // Error
         TSParseAction {
             action_type: 0,
             extra: 0,
             child_count: 0,
+            dynamic_precedence: 0,
             symbol: 0,
         }, // Padding
         TSParseAction {
             action_type: 0,
             extra: 0,
             child_count: 0,
+            dynamic_precedence: 0,
             symbol: 0,
         }, // Padding
     ];
@@ -78,18 +88,41 @@ fn create_test_language() -> &'static TSLanguage {
     static LANGUAGE: TSLanguage = TSLanguage {
         version: 15,
         symbol_count: 7,
+        alias_count: 0,
         token_count: 4,
+        external_token_count: 0,
         state_count: 10,
         large_state_count: 5,
         production_id_count: 3,
+        field_count: 0,
+        max_alias_sequence_length: 0,
         production_id_map: PRODUCTION_ID_MAP.as_ptr(),
         parse_table: PARSE_TABLE.as_ptr(),
         small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
         small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
         parse_actions: PARSE_ACTIONS.as_ptr(),
-        lex_modes: LEX_MODES.as_ptr(),
+        symbol_names: ptr::null(),
+        field_names: ptr::null(),
+        field_map_slices: ptr::null(),
+        field_map_entries: ptr::null(),
+        symbol_metadata: ptr::null(),
+        public_symbol_map: ptr::null(),
+        alias_map: ptr::null(),
+        alias_sequences: ptr::null(),
+        lex_modes: LEX_MODES.as_ptr() as *const _,
         lex_fn: None,
-        external_scanner: ExternalScanner { scan: None },
+        keyword_lex_fn: None,
+        keyword_capture_token: 0,
+        external_scanner: ExternalScanner {
+            states: ptr::null(),
+            symbol_map: ptr::null(),
+            create: None,
+            destroy: None,
+            scan: None,
+            serialize: None,
+            deserialize: None,
+        },
+        primary_state_ids: ptr::null(),
     };
 
     &LANGUAGE
@@ -184,18 +217,41 @@ fn test_invalid_language_version() {
     static INVALID_LANGUAGE: TSLanguage = TSLanguage {
         version: 100, // Too high
         symbol_count: 0,
+        alias_count: 0,
         token_count: 0,
+        external_token_count: 0,
         state_count: 0,
         large_state_count: 0,
         production_id_count: 0,
+        field_count: 0,
+        max_alias_sequence_length: 0,
         production_id_map: ptr::null(),
         parse_table: ptr::null(),
         small_parse_table: ptr::null(),
         small_parse_table_map: ptr::null(),
         parse_actions: ptr::null(),
+        symbol_names: ptr::null(),
+        field_names: ptr::null(),
+        field_map_slices: ptr::null(),
+        field_map_entries: ptr::null(),
+        symbol_metadata: ptr::null(),
+        public_symbol_map: ptr::null(),
+        alias_map: ptr::null(),
+        alias_sequences: ptr::null(),
         lex_modes: ptr::null(),
         lex_fn: None,
-        external_scanner: ExternalScanner { scan: None },
+        keyword_lex_fn: None,
+        keyword_capture_token: 0,
+        external_scanner: ExternalScanner {
+            states: ptr::null(),
+            symbol_map: ptr::null(),
+            create: None,
+            destroy: None,
+            scan: None,
+            serialize: None,
+            deserialize: None,
+        },
+        primary_state_ids: ptr::null(),
     };
 
     assert!(parser.set_language(&INVALID_LANGUAGE).is_err());

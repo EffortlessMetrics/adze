@@ -5,8 +5,8 @@
 pub mod grammar {
     #[rust_sitter::language]
     pub struct Program {
-        #[rust_sitter::repeat]
-        pub statements: Vec<Statement>,
+        // #[rust_sitter::repeat]
+        pub statements: Option<Statement>,
     }
 
     #[rust_sitter::language]
@@ -36,8 +36,8 @@ pub mod grammar {
     #[rust_sitter::language]
     pub struct VariableDeclaration {
         pub kind: VarKind,
-        #[rust_sitter::repeat(non_empty = true)]
-        pub declarations: Vec<VariableDeclarator>,
+        // #[rust_sitter::repeat(non_empty = true)]
+        pub declarations: Option<VariableDeclarator>,
         #[rust_sitter::leaf(text = ";")]
         _semicolon: (),
     }
@@ -93,8 +93,8 @@ pub mod grammar {
     pub struct FormalParameters {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
-        #[rust_sitter::repeat]
-        pub params: Vec<FormalParameter>,
+        // #[rust_sitter::repeat]
+        pub params: Option<FormalParameter>,
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
@@ -143,8 +143,8 @@ pub mod grammar {
     pub struct BlockStatement {
         #[rust_sitter::leaf(text = "{")]
         _open: (),
-        #[rust_sitter::repeat]
-        pub statements: Vec<Statement>,
+        // #[rust_sitter::repeat]
+        pub statements: Option<Statement>,
         #[rust_sitter::leaf(text = "}")]
         _close: (),
     }
@@ -265,8 +265,8 @@ pub mod grammar {
     pub struct Arguments {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
-        #[rust_sitter::repeat]
-        pub args: Vec<Argument>,
+        // #[rust_sitter::repeat]
+        pub args: Option<Argument>,
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }

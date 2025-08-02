@@ -6,8 +6,11 @@ pub mod grammar {
     #[rust_sitter::language]
     pub struct SourceFile {
         pub package_clause: PackageClause,
-        #[rust_sitter::repeat]
-        pub declarations: Vec<Declaration>,
+        // Temporarily comment out vec field to avoid EmptyString error
+        // #[rust_sitter::repeat]
+        // pub declarations: Vec<Declaration>,
+        // Use Option for now
+        pub declaration: Option<Declaration>,
     }
 
     #[rust_sitter::language]
@@ -47,8 +50,10 @@ pub mod grammar {
     pub struct Block {
         #[rust_sitter::leaf(text = "{")]
         _open: (),
-        #[rust_sitter::repeat]
-        pub statements: Vec<Statement>,
+        // Temporarily comment out vec field to avoid EmptyString error
+        // #[rust_sitter::repeat]
+        // pub statements: Vec<Statement>,
+        pub statement: Option<Statement>,
         #[rust_sitter::leaf(text = "}")]
         _close: (),
     }
@@ -73,8 +78,10 @@ pub mod grammar {
         pub name: Identifier,
         #[rust_sitter::leaf(text = "(")]
         _lparen: (),
-        #[rust_sitter::repeat]
-        pub args: Vec<Expression>,
+        // Temporarily comment out vec field to avoid EmptyString error
+        // #[rust_sitter::repeat]
+        // pub args: Vec<Expression>,
+        pub arg: Option<Expression>,
         #[rust_sitter::leaf(text = ")")]
         _rparen: (),
     }

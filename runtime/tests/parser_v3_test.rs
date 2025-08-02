@@ -12,6 +12,7 @@ fn create_simple_arithmetic_grammar() -> Grammar {
         precedences: vec![],
         conflicts: vec![],
         externals: vec![],
+        extras: vec![],
         fields: indexmap::IndexMap::new(),
         supertypes: vec![],
         inline_rules: vec![],
@@ -19,6 +20,7 @@ fn create_simple_arithmetic_grammar() -> Grammar {
         production_ids: indexmap::IndexMap::new(),
         rule_names: indexmap::IndexMap::new(),
         max_alias_sequence_length: 0,
+        symbol_registry: None,
     };
 
     // Define symbol IDs
@@ -71,8 +73,8 @@ fn create_simple_arithmetic_grammar() -> Grammar {
         production_id: ProductionId(1),
     };
 
-    grammar.rules.entry(expr_id, rule0);
-    grammar.rules.entry(expr_id, rule1);
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(rule0);
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(rule1);
 
     grammar.production_ids.insert(RuleId(0), ProductionId(0));
     grammar.production_ids.insert(RuleId(1), ProductionId(1));
@@ -135,12 +137,19 @@ fn create_simple_parse_table() -> ParseTable {
     action_table[5][1] = Action::Reduce(RuleId(1)); // number
     action_table[5][2] = Action::Reduce(RuleId(1)); // +
 
+    let mut symbol_to_index = indexmap::IndexMap::new();
+    symbol_to_index.insert(SymbolId(0), 0); // EOF
+    symbol_to_index.insert(SymbolId(1), 1); // number
+    symbol_to_index.insert(SymbolId(2), 2); // +
+    symbol_to_index.insert(SymbolId(3), 3); // expr
+    
     ParseTable {
         action_table,
         goto_table,
         symbol_metadata: vec![],
         state_count: 6,
         symbol_count: 4,
+        symbol_to_index,
     }
 }
 

@@ -96,8 +96,8 @@ fn format_tree_like_tree_sitter(node: &ParsedNode, source: &str, indent: usize) 
         /*if let Some(field_name) = &node.field_name {
             result.push_str(" <");
             result.push_str(field_name);
-            result.push('>');*/
-        }
+            result.push('>');
+        }*/
     }
 
     if node.children.is_empty() && node.end_byte > node.start_byte {
