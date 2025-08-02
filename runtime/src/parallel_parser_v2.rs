@@ -231,7 +231,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 1,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         (grammar, table)
     }

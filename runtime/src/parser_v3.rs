@@ -627,8 +627,8 @@ mod tests {
             production_id: ProductionId(1),
         };
         
-        grammar.rules.insert(expr_id, rule0.clone());
-        grammar.rules.insert(expr_id, rule1.clone());
+        grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(rule0.clone());
+        grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(rule1.clone());
         
         grammar.production_ids.insert(RuleId(0), ProductionId(0));
         grammar.production_ids.insert(RuleId(1), ProductionId(1));

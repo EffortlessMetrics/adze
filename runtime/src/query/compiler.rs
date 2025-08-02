@@ -34,7 +34,7 @@ use crate::query::QueryError;
         });
         
         // Add actual rules
-        grammar.rules.insert(SymbolId(10), Rule {
+        grammar.rules.entry(SymbolId(10)).or_insert_with(Vec::new).push(Rule {
             lhs: SymbolId(10),
             rhs: vec![Symbol::NonTerminal(SymbolId(1))],
             precedence: None,
@@ -43,7 +43,7 @@ use crate::query::QueryError;
             production_id: rust_sitter_ir::ProductionId(0),
         });
         
-        grammar.rules.insert(SymbolId(11), Rule {
+        grammar.rules.entry(SymbolId(11)).or_insert_with(Vec::new).push(Rule {
             lhs: SymbolId(11),
             rhs: vec![Symbol::NonTerminal(SymbolId(10))],
             precedence: None,
@@ -61,8 +61,10 @@ use crate::query::QueryError;
         // Add field names to grammar and statement rule
         use rust_sitter_ir::FieldId;
         grammar.fields.insert(FieldId(1), "value".to_string());
-        if let Some(rule) = grammar.rules.get_mut(&SymbolId(11)) {
-            rule.fields.push((FieldId(1), 0));
+        if let Some(rules) = grammar.rules.get_mut(&SymbolId(11)) {
+            if let Some(rule) = rules.get_mut(0) {
+                rule.fields.push((FieldId(1), 0));
+            }
         }
         
         grammar
