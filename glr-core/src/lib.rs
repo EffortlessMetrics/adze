@@ -1394,18 +1394,41 @@ pub fn build_lr1_automaton(
                     state_idx, symbol_idx, symbol.0, to_state.0
                 );
 
-                // Only add if there's no existing action (to avoid overwriting reduce/accept)
-                if matches!(action_table[state_idx][symbol_idx], Action::Error) {
-                    action_table[state_idx][symbol_idx] = new_action;
-                    eprintln!(
-                        "DEBUG: Successfully added goto entry to action table at [{}, {}]",
-                        state_idx, symbol_idx
-                    );
-                } else {
-                    eprintln!(
-                        "DEBUG: Skipping goto - action already exists at [{}, {}]: {:?}",
-                        state_idx, symbol_idx, action_table[state_idx][symbol_idx]
-                    );
+                // Handle conflicts between existing actions and new goto (shift) action
+                match &action_table[state_idx][symbol_idx] {
+                    Action::Error => {
+                        // No existing action, just add the shift
+                        action_table[state_idx][symbol_idx] = new_action;
+                        eprintln!(
+                            "DEBUG: Successfully added goto entry to action table at [{}, {}]",
+                            state_idx, symbol_idx
+                        );
+                    }
+                    Action::Reduce(rule_id) => {
+                        // Shift/reduce conflict - create a Fork action
+                        eprintln!(
+                            "DEBUG: Shift/reduce conflict at state {} symbol {}: creating Fork action",
+                            state_idx, symbol_idx
+                        );
+                        action_table[state_idx][symbol_idx] = Action::Fork(vec![
+                            new_action,
+                            Action::Reduce(*rule_id),
+                        ]);
+                    }
+                    Action::Fork(existing_actions) => {
+                        // Already a fork, add the new action if not already present
+                        let mut actions = existing_actions.clone();
+                        if !actions.contains(&new_action) {
+                            actions.push(new_action);
+                            action_table[state_idx][symbol_idx] = Action::Fork(actions);
+                        }
+                    }
+                    _ => {
+                        eprintln!(
+                            "DEBUG: Skipping goto - incompatible action already exists at [{}, {}]: {:?}",
+                            state_idx, symbol_idx, action_table[state_idx][symbol_idx]
+                        );
+                    }
                 }
             }
         }

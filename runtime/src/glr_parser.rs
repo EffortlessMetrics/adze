@@ -114,7 +114,11 @@ impl GLRParser {
 
     /// Process one token through all active stacks
     pub fn process_token(&mut self, token: SymbolId, text: &str, byte_offset: usize) {
-        // println!("Processing token: {} '{}' at offset {}", token.0, text, byte_offset);
+        println!("Processing token: {} '{}' at offset {}", token.0, text, byte_offset);
+        println!("  Active stacks: {}", self.stacks.len());
+        for (i, stack) in self.stacks.iter().enumerate() {
+            println!("    Stack {}: state {}", i, stack.current_state().0);
+        }
         let mut new_stacks = Vec::new();
         let _stack_merges = HashMap::<(StateId, usize), Vec<usize>>::new();
 
@@ -130,6 +134,7 @@ impl GLRParser {
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
                 // println!("    Token {} maps to symbol index {}", token.0, symbol_idx);
                 let action = self.table.action_table[state.0 as usize][*symbol_idx].clone();
+                println!("    State {} token {} -> action: {:?}", state.0, token.0, action);
 
                 // If action is Error, check if we have any reductions available
                 if matches!(action, Action::Error) {
@@ -170,13 +175,13 @@ impl GLRParser {
                         // After reduction, we need to re-process the current token
                         // with the new state
                         let new_state = reduced_stack.current_state();
-                        // println!("    After reduction, now in state {}", new_state.0);
+                        println!("    After reduction, now in state {}", new_state.0);
 
                         // Check what action to take with the current token in the new state
                         if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
                             let new_action =
                                 &self.table.action_table[new_state.0 as usize][*symbol_idx];
-                            // println!("    New action for token after reduction: {:?}", new_action);
+                            println!("    New action for token {} after reduction: {:?}", token.0, new_action);
 
                             match new_action {
                                 Action::Shift(shift_state) => {
@@ -205,7 +210,9 @@ impl GLRParser {
 
                     Action::Fork(actions) => {
                         // Handle GLR fork - create multiple stacks
-                        for (_i, fork_action) in actions.iter().enumerate() {
+                        println!("    FORK action with {} branches", actions.len());
+                        for (i, fork_action) in actions.iter().enumerate() {
+                            println!("      Fork branch {}: {:?}", i, fork_action);
                             match fork_action {
                                 Action::Shift(new_state) => {
                                     let mut forked = stack.fork(self.next_stack_id);
@@ -229,8 +236,34 @@ impl GLRParser {
                                     let mut forked = stack.fork(self.next_stack_id);
                                     self.next_stack_id += 1;
                                     self.perform_reduction_on_stack(&mut forked, *rule_id);
+                                    // After reduction, we need to reprocess this token with the new state
+                                    let reduced_state = forked.current_state();
+                                    println!("      Fork reduce: After reducing rule {}, now in state {}", rule_id.0, reduced_state.0);
+                                    
+                                    // Check what to do with current token in the new state
+                                    if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
+                                        let new_action = &self.table.action_table[reduced_state.0 as usize][*symbol_idx];
+                                        println!("      Fork reduce: Action for token {} in state {}: {:?}", token.0, reduced_state.0, new_action);
+                                        match new_action {
+                                            Action::Shift(shift_state) => {
+                                                forked.push(
+                                                    *shift_state,
+                                                    Arc::new(Subtree::new(
+                                                        SubtreeNode {
+                                                            symbol_id: token,
+                                                            is_error: false,
+                                                            byte_range: byte_offset..byte_offset + text.len(),
+                                                        },
+                                                        vec![],
+                                                    )),
+                                                );
+                                            }
+                                            _ => {
+                                                // Will be handled in next iteration
+                                            }
+                                        }
+                                    }
                                     new_stacks.push(forked);
-                                    // Mark for re-processing
                                 }
 
                                 _ => {}
@@ -325,26 +358,46 @@ impl GLRParser {
         }
 
         // After processing all stacks, check if any need further reductions
+        // This is necessary for handling cases where multiple reductions are needed
+        // to reach the accept state (e.g., with augmented start rules)
+        let mut processed_states = std::collections::HashSet::new();
         let mut needs_reprocessing = true;
         let mut iterations = 0;
-        while needs_reprocessing && iterations < 20 {
+        
+        while needs_reprocessing && iterations < 10 {
             needs_reprocessing = false;
             iterations += 1;
 
             let mut additional_stacks = Vec::new();
-            for stack in &new_stacks {
+            
+            for (i, stack) in new_stacks.iter().enumerate() {
                 let state = stack.current_state();
+                
+                // Skip if we've already processed this state in this iteration
+                if !processed_states.insert((i, state)) {
+                    continue;
+                }
 
                 // Check if this state has any reduce actions for the current token
                 if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
                     let action = &self.table.action_table[state.0 as usize][*symbol_idx];
 
-                    if let Action::Reduce(rule_id) = action {
-                        // Need to perform another reduction
-                        let mut reduced_stack = stack.clone();
-                        self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
-                        additional_stacks.push(reduced_stack);
-                        needs_reprocessing = true;
+                    match action {
+                        Action::Reduce(rule_id) => {
+                            // Need to perform another reduction
+                            let mut reduced_stack = stack.clone();
+                            let rule_id_val = rule_id.0;
+                            let state_val = state.0;
+                            self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
+                            println!("    Additional reduction by rule {} in state {}", rule_id_val, state_val);
+                            additional_stacks.push(reduced_stack);
+                            needs_reprocessing = true;
+                        }
+                        Action::Accept => {
+                            // This is an accepting state, keep it
+                            println!("    Found accepting state {}", state.0);
+                        }
+                        _ => {}
                     }
                 }
             }
@@ -395,14 +448,29 @@ impl GLRParser {
 
             let subtree = Arc::new(Subtree::with_dynamic_prec(node, children, dynamic_prec));
 
-            // Look up goto state
+            // Look up goto state from the unified action table
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&rule.lhs) {
-                let goto_state =
-                    self.table.goto_table[stack.current_state().0 as usize][*symbol_idx];
-                // println!("  After reducing, goto state {} for symbol {}", goto_state.0, rule.lhs.0);
-                stack.push(goto_state, subtree);
+                let current_state = stack.current_state();
+                let action = &self.table.action_table[current_state.0 as usize][*symbol_idx];
+                match action {
+                    Action::Shift(goto_state) => {
+                        println!("  After reducing, goto state {} for symbol {}", goto_state.0, rule.lhs.0);
+                        stack.push(*goto_state, subtree);
+                    }
+                    _ => {
+                        // Fall back to goto table if action table doesn't have a shift
+                        let goto_state =
+                            self.table.goto_table[current_state.0 as usize][*symbol_idx];
+                        if goto_state.0 != 0 {
+                            println!("  After reducing, goto state {} for symbol {} (from goto table)", goto_state.0, rule.lhs.0);
+                            stack.push(goto_state, subtree);
+                        } else {
+                            println!("  WARNING: No goto for symbol {} in state {}", rule.lhs.0, current_state.0);
+                        }
+                    }
+                }
             } else {
-                // println!("  WARNING: No symbol index for LHS {}", rule.lhs.0);
+                println!("  WARNING: No symbol index for LHS {}", rule.lhs.0);
             }
         }
     }
@@ -493,6 +561,14 @@ impl GLRParser {
 
     /// Finish parsing and get the result
     pub fn finish(&self) -> Result<Arc<Subtree>, String> {
+        println!("finish() called with {} stacks", self.stacks.len());
+        for (i, stack) in self.stacks.iter().enumerate() {
+            println!("  Stack {}: {} nodes, current state {}", i, stack.nodes.len(), stack.current_state().0);
+            if !stack.nodes.is_empty() {
+                println!("    Top node: symbol {}", stack.nodes.last().unwrap().node.symbol_id.0);
+            }
+        }
+        
         // Find a successfully parsed stack
         // Success criteria:
         // 1. Has exactly one node (the root of the parse tree)
