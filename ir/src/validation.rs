@@ -1,7 +1,7 @@
 // Grammar validation and diagnostics for the pure-Rust Tree-sitter implementation
 // This module provides comprehensive validation and diagnostic capabilities
 
-use crate::{Grammar, Symbol, SymbolId, FieldId};
+use crate::{FieldId, Grammar, Symbol, SymbolId};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 
@@ -9,24 +9,13 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidationError {
     /// Undefined symbol referenced
-    UndefinedSymbol {
-        symbol: SymbolId,
-        location: String,
-    },
+    UndefinedSymbol { symbol: SymbolId, location: String },
     /// Unreachable symbol (not reachable from start)
-    UnreachableSymbol {
-        symbol: SymbolId,
-        name: String,
-    },
+    UnreachableSymbol { symbol: SymbolId, name: String },
     /// Non-productive symbol (can't derive terminal strings)
-    NonProductiveSymbol {
-        symbol: SymbolId,
-        name: String,
-    },
+    NonProductiveSymbol { symbol: SymbolId, name: String },
     /// Cyclic rule without base case
-    CyclicRule {
-        symbols: Vec<SymbolId>,
-    },
+    CyclicRule { symbols: Vec<SymbolId> },
     /// Duplicate rule definition
     DuplicateRule {
         symbol: SymbolId,
@@ -53,44 +42,85 @@ pub enum ValidationError {
         error: String,
     },
     /// External token conflict
-    ExternalTokenConflict {
-        token1: String,
-        token2: String,
-    },
+    ExternalTokenConflict { token1: String, token2: String },
 }
 
 impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ValidationError::UndefinedSymbol { symbol, location } => {
-                write!(f, "Undefined symbol {:?} referenced in {}", symbol, location)
+                write!(
+                    f,
+                    "Undefined symbol {:?} referenced in {}",
+                    symbol, location
+                )
             }
             ValidationError::UnreachableSymbol { symbol, name } => {
-                write!(f, "Symbol '{}' ({:?}) is unreachable from start symbol", name, symbol)
+                write!(
+                    f,
+                    "Symbol '{}' ({:?}) is unreachable from start symbol",
+                    name, symbol
+                )
             }
             ValidationError::NonProductiveSymbol { symbol, name } => {
-                write!(f, "Symbol '{}' ({:?}) cannot derive any terminal strings", name, symbol)
+                write!(
+                    f,
+                    "Symbol '{}' ({:?}) cannot derive any terminal strings",
+                    name, symbol
+                )
             }
             ValidationError::CyclicRule { symbols } => {
                 write!(f, "Cyclic dependency detected: {:?}", symbols)
             }
-            ValidationError::DuplicateRule { symbol, existing_count } => {
-                write!(f, "Symbol {:?} has {} rule definitions (expected 1)", symbol, existing_count)
+            ValidationError::DuplicateRule {
+                symbol,
+                existing_count,
+            } => {
+                write!(
+                    f,
+                    "Symbol {:?} has {} rule definitions (expected 1)",
+                    symbol, existing_count
+                )
             }
-            ValidationError::InvalidField { field_id, rule_symbol } => {
-                write!(f, "Invalid field {:?} in rule for symbol {:?}", field_id, rule_symbol)
+            ValidationError::InvalidField {
+                field_id,
+                rule_symbol,
+            } => {
+                write!(
+                    f,
+                    "Invalid field {:?} in rule for symbol {:?}",
+                    field_id, rule_symbol
+                )
             }
             ValidationError::EmptyGrammar => {
                 write!(f, "Grammar has no rules defined")
             }
             ValidationError::NoExplicitStartRule => {
-                write!(f, "No explicit start rule defined (first rule will be used)")
+                write!(
+                    f,
+                    "No explicit start rule defined (first rule will be used)"
+                )
             }
-            ValidationError::ConflictingPrecedence { symbol, precedences } => {
-                write!(f, "Symbol {:?} has conflicting precedences: {:?}", symbol, precedences)
+            ValidationError::ConflictingPrecedence {
+                symbol,
+                precedences,
+            } => {
+                write!(
+                    f,
+                    "Symbol {:?} has conflicting precedences: {:?}",
+                    symbol, precedences
+                )
             }
-            ValidationError::InvalidRegex { token, pattern, error } => {
-                write!(f, "Invalid regex pattern for token {:?}: '{}' - {}", token, pattern, error)
+            ValidationError::InvalidRegex {
+                token,
+                pattern,
+                error,
+            } => {
+                write!(
+                    f,
+                    "Invalid regex pattern for token {:?}: '{}' - {}",
+                    token, pattern, error
+                )
             }
             ValidationError::ExternalTokenConflict { token1, token2 } => {
                 write!(f, "External tokens '{}' and '{}' conflict", token1, token2)
@@ -109,23 +139,16 @@ pub struct GrammarValidator {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidationWarning {
     /// Unused token
-    UnusedToken {
-        token: SymbolId,
-        name: String,
-    },
+    UnusedToken { token: SymbolId, name: String },
     /// Duplicate token pattern
     DuplicateTokenPattern {
         tokens: Vec<SymbolId>,
         pattern: String,
     },
     /// Ambiguous grammar (may need GLR)
-    AmbiguousGrammar {
-        message: String,
-    },
+    AmbiguousGrammar { message: String },
     /// Missing field names
-    MissingFieldNames {
-        rule_symbol: SymbolId,
-    },
+    MissingFieldNames { rule_symbol: SymbolId },
     /// Inefficient rule structure
     InefficientRule {
         symbol: SymbolId,
@@ -137,10 +160,18 @@ impl fmt::Display for ValidationWarning {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ValidationWarning::UnusedToken { token, name } => {
-                write!(f, "Token '{}' ({:?}) is defined but never used", name, token)
+                write!(
+                    f,
+                    "Token '{}' ({:?}) is defined but never used",
+                    name, token
+                )
             }
             ValidationWarning::DuplicateTokenPattern { tokens, pattern } => {
-                write!(f, "Multiple tokens have the same pattern '{}': {:?}", pattern, tokens)
+                write!(
+                    f,
+                    "Multiple tokens have the same pattern '{}': {:?}",
+                    pattern, tokens
+                )
             }
             ValidationWarning::AmbiguousGrammar { message } => {
                 write!(f, "Grammar ambiguity detected: {}", message)
@@ -149,7 +180,11 @@ impl fmt::Display for ValidationWarning {
                 write!(f, "Rule for symbol {:?} has no field names", rule_symbol)
             }
             ValidationWarning::InefficientRule { symbol, suggestion } => {
-                write!(f, "Inefficient rule for symbol {:?}: {}", symbol, suggestion)
+                write!(
+                    f,
+                    "Inefficient rule for symbol {:?}: {}",
+                    symbol, suggestion
+                )
             }
         }
     }
@@ -182,50 +217,50 @@ impl GrammarValidator {
             warnings: Vec::new(),
         }
     }
-    
+
     /// Validate a grammar and return results
     pub fn validate(&mut self, grammar: &Grammar) -> ValidationResult {
         self.errors.clear();
         self.warnings.clear();
-        
+
         let mut stats = ValidationStats::default();
-        
+
         // Basic checks
         self.check_empty_grammar(grammar);
-        
+
         // Symbol analysis
         let defined_symbols = self.collect_defined_symbols(grammar);
         let used_symbols = self.collect_used_symbols(grammar);
-        
+
         // Check for undefined symbols
         self.check_undefined_symbols(&defined_symbols, &used_symbols, grammar);
-        
+
         // Reachability analysis
         let reachable = self.find_reachable_symbols(grammar);
         self.check_unreachable_symbols(&reachable, &defined_symbols, grammar);
-        
+
         // Productivity analysis
         let productive = self.find_productive_symbols(grammar);
         self.check_non_productive_symbols(&productive, &defined_symbols, grammar);
-        
+
         // Token validation
         self.validate_tokens(grammar);
-        
+
         // Field validation
         self.validate_fields(grammar);
-        
+
         // Precedence validation
         self.validate_precedences(grammar);
-        
+
         // External token validation
         self.validate_external_tokens(grammar);
-        
+
         // Check for cycles
         self.check_cycles(grammar);
-        
+
         // Check for inefficiencies
         self.check_inefficiencies(grammar);
-        
+
         // Gather statistics
         stats.total_symbols = defined_symbols.len();
         stats.total_tokens = grammar.tokens.len();
@@ -233,50 +268,44 @@ impl GrammarValidator {
         stats.reachable_symbols = reachable.len();
         stats.productive_symbols = productive.len();
         stats.external_tokens = grammar.externals.len();
-        
+
         if !grammar.rules.is_empty() {
             let all_rules: Vec<_> = grammar.all_rules().collect();
-            let total_length: usize = all_rules.iter()
-                .map(|r| r.rhs.len())
-                .sum();
-            stats.max_rule_length = all_rules.iter()
-                .map(|r| r.rhs.len())
-                .max()
-                .unwrap_or(0);
+            let total_length: usize = all_rules.iter().map(|r| r.rhs.len()).sum();
+            stats.max_rule_length = all_rules.iter().map(|r| r.rhs.len()).max().unwrap_or(0);
             stats.avg_rule_length = total_length as f64 / all_rules.len() as f64;
         }
-        
+
         ValidationResult {
             errors: self.errors.clone(),
             warnings: self.warnings.clone(),
             stats,
         }
     }
-    
+
     fn check_empty_grammar(&mut self, grammar: &Grammar) {
         if grammar.rules.is_empty() {
             self.errors.push(ValidationError::EmptyGrammar);
         }
     }
-    
-    
+
     fn collect_defined_symbols(&self, grammar: &Grammar) -> HashSet<SymbolId> {
         let mut defined = HashSet::new();
-        
+
         // All tokens are defined
         defined.extend(grammar.tokens.keys());
-        
+
         // All rule LHS are defined
         defined.extend(grammar.rules.keys());
-        
+
         // External tokens are defined
         for external in &grammar.externals {
             defined.insert(external.symbol_id);
         }
-        
+
         defined
     }
-    
+
     /// Helper to collect used symbols from a symbol recursively
     fn collect_used_in_symbol(symbol: &Symbol, used: &mut HashSet<SymbolId>) {
         match symbol {
@@ -305,22 +334,22 @@ impl GrammarValidator {
 
     fn collect_used_symbols(&self, grammar: &Grammar) -> HashSet<SymbolId> {
         let mut used = HashSet::new();
-        
+
         // First rule's LHS is implicitly the start symbol
         if let Some(start_symbol) = grammar.start_symbol() {
             used.insert(start_symbol);
         }
-        
+
         // Symbols in rule RHS are used
         for rule in grammar.all_rules() {
             for symbol in &rule.rhs {
                 Self::collect_used_in_symbol(symbol, &mut used);
             }
         }
-        
+
         used
     }
-    
+
     fn check_undefined_symbols(
         &mut self,
         defined: &HashSet<SymbolId>,
@@ -344,7 +373,7 @@ impl GrammarValidator {
                         }
                     }
                 }
-                
+
                 self.errors.push(ValidationError::UndefinedSymbol {
                     symbol: *symbol,
                     location,
@@ -352,7 +381,7 @@ impl GrammarValidator {
             }
         }
     }
-    
+
     /// Helper to add reachable symbols from a symbol
     fn add_reachable_from_symbol(
         symbol: &Symbol,
@@ -391,13 +420,13 @@ impl GrammarValidator {
     fn find_reachable_symbols(&self, grammar: &Grammar) -> HashSet<SymbolId> {
         let mut reachable = HashSet::new();
         let mut queue = VecDeque::new();
-        
+
         // Start from the first rule (implicit start symbol)
         if let Some(start) = grammar.start_symbol() {
             queue.push_back(start);
             reachable.insert(start);
         }
-        
+
         // BFS to find all reachable symbols
         while let Some(symbol) = queue.pop_front() {
             if let Some(rules) = grammar.rules.get(&symbol) {
@@ -408,10 +437,10 @@ impl GrammarValidator {
                 }
             }
         }
-        
+
         reachable
     }
-    
+
     fn check_unreachable_symbols(
         &mut self,
         reachable: &HashSet<SymbolId>,
@@ -419,7 +448,7 @@ impl GrammarValidator {
         grammar: &Grammar,
     ) {
         let start_symbol = grammar.start_symbol();
-        
+
         for symbol in defined {
             if !reachable.contains(symbol) && Some(*symbol) != start_symbol {
                 let name = self.get_symbol_name(*symbol, grammar);
@@ -430,45 +459,51 @@ impl GrammarValidator {
             }
         }
     }
-    
+
     /// Helper to check if a symbol is productive
     fn is_symbol_productive(symbol: &Symbol, productive: &HashSet<SymbolId>) -> bool {
         match symbol {
             Symbol::Terminal(id) | Symbol::NonTerminal(id) => productive.contains(id),
             Symbol::External(ext_id) => productive.contains(&SymbolId(ext_id.0)),
-            Symbol::Epsilon => true, // Epsilon is always productive
+            Symbol::Epsilon => true,     // Epsilon is always productive
             Symbol::Optional(_) => true, // Optional is always productive (can be empty)
-            Symbol::Repeat(_) => true, // Repeat is always productive (can be empty)
+            Symbol::Repeat(_) => true,   // Repeat is always productive (can be empty)
             Symbol::RepeatOne(inner) => Self::is_symbol_productive(inner, productive),
-            Symbol::Choice(choices) => choices.iter().any(|s| Self::is_symbol_productive(s, productive)),
-            Symbol::Sequence(seq) => seq.iter().all(|s| Self::is_symbol_productive(s, productive)),
+            Symbol::Choice(choices) => choices
+                .iter()
+                .any(|s| Self::is_symbol_productive(s, productive)),
+            Symbol::Sequence(seq) => seq
+                .iter()
+                .all(|s| Self::is_symbol_productive(s, productive)),
         }
     }
-    
+
     fn find_productive_symbols(&self, grammar: &Grammar) -> HashSet<SymbolId> {
         let mut productive = HashSet::new();
         let mut changed = true;
-        
+
         // All tokens are productive
         productive.extend(grammar.tokens.keys());
-        
+
         // External tokens are productive
         for external in &grammar.externals {
             productive.insert(external.symbol_id);
         }
-        
+
         // Fixed-point iteration to find productive non-terminals
         while changed {
             changed = false;
-            
+
             for (symbol, rules) in &grammar.rules {
                 if !productive.contains(symbol) {
                     // Check if any rule for this symbol is productive
                     let any_productive = rules.iter().any(|rule| {
                         // Check if all RHS symbols are productive
-                        rule.rhs.iter().all(|rhs_sym| Self::is_symbol_productive(rhs_sym, &productive))
+                        rule.rhs
+                            .iter()
+                            .all(|rhs_sym| Self::is_symbol_productive(rhs_sym, &productive))
                     });
-                    
+
                     if any_productive {
                         productive.insert(*symbol);
                         changed = true;
@@ -476,10 +511,10 @@ impl GrammarValidator {
                 }
             }
         }
-        
+
         productive
     }
-    
+
     fn check_non_productive_symbols(
         &mut self,
         productive: &HashSet<SymbolId>,
@@ -496,10 +531,10 @@ impl GrammarValidator {
             }
         }
     }
-    
+
     fn validate_tokens(&mut self, grammar: &Grammar) {
         let mut pattern_map: HashMap<String, Vec<SymbolId>> = HashMap::new();
-        
+
         for (symbol, token) in &grammar.tokens {
             // Check regex validity
             if let crate::TokenPattern::Regex(pattern) = &token.pattern {
@@ -513,29 +548,31 @@ impl GrammarValidator {
                     });
                 }
             }
-            
+
             // Check for duplicate patterns
             let pattern_str = match &token.pattern {
                 crate::TokenPattern::String(s) => s.clone(),
                 crate::TokenPattern::Regex(r) => r.clone(),
             };
-            
-            pattern_map.entry(pattern_str.clone())
+
+            pattern_map
+                .entry(pattern_str.clone())
                 .or_default()
                 .push(*symbol);
         }
-        
+
         // Report duplicate patterns
         for (pattern, symbols) in pattern_map {
             if symbols.len() > 1 {
-                self.warnings.push(ValidationWarning::DuplicateTokenPattern {
-                    tokens: symbols,
-                    pattern,
-                });
+                self.warnings
+                    .push(ValidationWarning::DuplicateTokenPattern {
+                        tokens: symbols,
+                        pattern,
+                    });
             }
         }
     }
-    
+
     fn validate_fields(&mut self, grammar: &Grammar) {
         for (symbol, rules) in &grammar.rules {
             for rule in rules {
@@ -548,7 +585,7 @@ impl GrammarValidator {
                         });
                     }
                 }
-                
+
                 // Warn about missing field names
                 if rule.fields.is_empty() && rule.rhs.len() > 1 {
                     self.warnings.push(ValidationWarning::MissingFieldNames {
@@ -558,19 +595,20 @@ impl GrammarValidator {
             }
         }
     }
-    
+
     fn validate_precedences(&mut self, grammar: &Grammar) {
         let mut symbol_precedences: HashMap<SymbolId, Vec<i16>> = HashMap::new();
-        
+
         // Collect precedences from declarations
         for prec in &grammar.precedences {
             for symbol in &prec.symbols {
-                symbol_precedences.entry(*symbol)
+                symbol_precedences
+                    .entry(*symbol)
                     .or_default()
                     .push(prec.level as i16);
             }
         }
-        
+
         // Check for conflicts
         for (symbol, precedences) in symbol_precedences {
             let unique_precs: HashSet<_> = precedences.iter().cloned().collect();
@@ -582,10 +620,10 @@ impl GrammarValidator {
             }
         }
     }
-    
+
     fn validate_external_tokens(&mut self, grammar: &Grammar) {
         let mut names = HashSet::new();
-        
+
         for external in &grammar.externals {
             if !names.insert(&external.name) {
                 self.errors.push(ValidationError::ExternalTokenConflict {
@@ -595,22 +633,16 @@ impl GrammarValidator {
             }
         }
     }
-    
+
     fn check_cycles(&mut self, grammar: &Grammar) {
         // Simple cycle detection using DFS
         let mut visited = HashSet::new();
         let mut rec_stack = HashSet::new();
         let mut path = Vec::new();
-        
+
         for symbol in grammar.rules.keys() {
             if !visited.contains(symbol) {
-                if self.has_cycle(
-                    *symbol,
-                    grammar,
-                    &mut visited,
-                    &mut rec_stack,
-                    &mut path,
-                ) {
+                if self.has_cycle(*symbol, grammar, &mut visited, &mut rec_stack, &mut path) {
                     self.errors.push(ValidationError::CyclicRule {
                         symbols: path.clone(),
                     });
@@ -618,7 +650,7 @@ impl GrammarValidator {
             }
         }
     }
-    
+
     fn has_cycle(
         &self,
         symbol: SymbolId,
@@ -630,29 +662,29 @@ impl GrammarValidator {
         visited.insert(symbol);
         rec_stack.insert(symbol);
         path.push(symbol);
-        
+
         if let Some(rules) = grammar.rules.get(&symbol) {
             for rule in rules {
                 for rhs_symbol in &rule.rhs {
                     if let Symbol::NonTerminal(id) = rhs_symbol {
-                    if !visited.contains(id) {
-                        if self.has_cycle(*id, grammar, visited, rec_stack, path) {
+                        if !visited.contains(id) {
+                            if self.has_cycle(*id, grammar, visited, rec_stack, path) {
+                                return true;
+                            }
+                        } else if rec_stack.contains(id) {
+                            // Found a cycle
                             return true;
                         }
-                    } else if rec_stack.contains(id) {
-                        // Found a cycle
-                        return true;
-                    }
                     }
                 }
             }
         }
-        
+
         path.pop();
         rec_stack.remove(&symbol);
         false
     }
-    
+
     fn check_inefficiencies(&mut self, grammar: &Grammar) {
         for (symbol, rules) in &grammar.rules {
             for rule in rules {
@@ -665,33 +697,36 @@ impl GrammarValidator {
                         });
                     }
                 }
-                
+
                 // Check for very long rules
                 if rule.rhs.len() > 10 {
                     self.warnings.push(ValidationWarning::InefficientRule {
                         symbol: *symbol,
-                        suggestion: format!("Rule has {} symbols, consider breaking it down", rule.rhs.len()),
+                        suggestion: format!(
+                            "Rule has {} symbols, consider breaking it down",
+                            rule.rhs.len()
+                        ),
                     });
                 }
             }
         }
     }
-    
+
     fn get_symbol_name(&self, symbol: SymbolId, grammar: &Grammar) -> String {
         if let Some(token) = grammar.tokens.get(&symbol) {
             return token.name.clone();
         }
-        
+
         if let Some(_rule) = grammar.rules.get(&symbol) {
             return format!("rule_{}", symbol.0);
         }
-        
+
         for external in &grammar.externals {
             if external.symbol_id == symbol {
                 return external.name.clone();
             }
         }
-        
+
         format!("symbol_{}", symbol.0)
     }
 }
@@ -699,23 +734,30 @@ impl GrammarValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Grammar, Rule, Symbol, Token, TokenPattern, ProductionId, SymbolId, Precedence, FieldId};
-    
+    use crate::{
+        FieldId, Grammar, Precedence, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+    };
+
     #[test]
     fn test_empty_grammar_validation() {
         let grammar = Grammar::new("test".to_string());
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
-        
-        assert!(result.errors.iter().any(|e| matches!(e, ValidationError::EmptyGrammar)));
+
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, ValidationError::EmptyGrammar))
+        );
     }
-    
+
     #[test]
     fn test_undefined_symbol() {
         let mut grammar = Grammar::new("test".to_string());
         let expr = SymbolId(1);
         let undefined = SymbolId(99);
-        
+
         grammar.add_rule(Rule {
             lhs: expr,
             rhs: vec![Symbol::NonTerminal(undefined)],
@@ -724,21 +766,21 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         });
-        
+
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
-        
+
         assert!(result.errors.iter().any(|e| {
             matches!(e, ValidationError::UndefinedSymbol { symbol, .. } if *symbol == undefined)
         }));
     }
-    
+
     #[test]
     fn test_non_productive_symbol() {
         let mut grammar = Grammar::new("test".to_string());
         let a = SymbolId(1);
         let b = SymbolId(2);
-        
+
         // A -> B
         grammar.add_rule(Rule {
             lhs: a,
@@ -748,7 +790,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         });
-        
+
         // B -> A (circular, non-productive)
         grammar.add_rule(Rule {
             lhs: b,
@@ -758,28 +800,34 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(1),
         });
-        
+
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
-        
-        assert!(result.errors.iter().any(|e| {
-            matches!(e, ValidationError::NonProductiveSymbol { .. })
-        }));
+
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| { matches!(e, ValidationError::NonProductiveSymbol { .. }) })
+        );
     }
-    
+
     #[test]
     fn test_valid_grammar() {
         let mut grammar = Grammar::new("test".to_string());
         let expr = SymbolId(1);
         let num = SymbolId(2);
-        
+
         // Add token
-        grammar.tokens.insert(num, Token {
-            name: "number".to_string(),
-            pattern: TokenPattern::Regex(r"\d+".to_string()),
-            fragile: false,
-        });
-        
+        grammar.tokens.insert(
+            num,
+            Token {
+                name: "number".to_string(),
+                pattern: TokenPattern::Regex(r"\d+".to_string()),
+                fragile: false,
+            },
+        );
+
         // expr -> num
         grammar.add_rule(Rule {
             lhs: expr,
@@ -789,12 +837,12 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         });
-        
+
         // No explicit start symbol field, first rule is implicit start
-        
+
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
-        
+
         assert!(result.errors.is_empty());
         assert_eq!(result.stats.total_symbols, 2);
         assert_eq!(result.stats.productive_symbols, 2);
@@ -803,23 +851,29 @@ mod tests {
     #[test]
     fn test_duplicate_token_patterns() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add two tokens with the same pattern
-        grammar.tokens.insert(SymbolId(1), Token {
-            name: "plus1".to_string(),
-            pattern: TokenPattern::String("+".to_string()),
-            fragile: false,
-        });
-        
-        grammar.tokens.insert(SymbolId(2), Token {
-            name: "plus2".to_string(),
-            pattern: TokenPattern::String("+".to_string()),
-            fragile: false,
-        });
-        
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "plus1".to_string(),
+                pattern: TokenPattern::String("+".to_string()),
+                fragile: false,
+            },
+        );
+
+        grammar.tokens.insert(
+            SymbolId(2),
+            Token {
+                name: "plus2".to_string(),
+                pattern: TokenPattern::String("+".to_string()),
+                fragile: false,
+            },
+        );
+
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
-        
+
         assert!(result.warnings.iter().any(|w| {
             matches!(w, ValidationWarning::DuplicateTokenPattern { pattern, .. } if pattern == "+")
         }));
@@ -830,13 +884,16 @@ mod tests {
         let mut grammar = Grammar::new("test".to_string());
         let expr = SymbolId(1);
         let num = SymbolId(2);
-        
-        grammar.tokens.insert(num, Token {
-            name: "number".to_string(),
-            pattern: TokenPattern::Regex(r"\d+".to_string()),
-            fragile: false,
-        });
-        
+
+        grammar.tokens.insert(
+            num,
+            Token {
+                name: "number".to_string(),
+                pattern: TokenPattern::Regex(r"\d+".to_string()),
+                fragile: false,
+            },
+        );
+
         // Rule with invalid field index
         grammar.add_rule(Rule {
             lhs: expr,
@@ -846,13 +903,16 @@ mod tests {
             fields: vec![(FieldId(0), 5)], // Index 5 is out of bounds
             production_id: ProductionId(0),
         });
-        
+
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
-        
-        assert!(result.errors.iter().any(|e| {
-            matches!(e, ValidationError::InvalidField { .. })
-        }));
+
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| { matches!(e, ValidationError::InvalidField { .. }) })
+        );
     }
 
     #[test]
@@ -861,7 +921,7 @@ mod tests {
         let a = SymbolId(1);
         let b = SymbolId(2);
         let c = SymbolId(3);
-        
+
         // Create a cycle: A -> B -> C -> A
         grammar.add_rule(Rule {
             lhs: a,
@@ -871,7 +931,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         });
-        
+
         grammar.add_rule(Rule {
             lhs: b,
             rhs: vec![Symbol::NonTerminal(c)],
@@ -880,7 +940,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(1),
         });
-        
+
         grammar.add_rule(Rule {
             lhs: c,
             rhs: vec![Symbol::NonTerminal(a)],
@@ -889,36 +949,39 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(2),
         });
-        
+
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
-        
-        assert!(result.errors.iter().any(|e| {
-            matches!(e, ValidationError::CyclicRule { .. })
-        }));
+
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| { matches!(e, ValidationError::CyclicRule { .. }) })
+        );
     }
 
     #[test]
     fn test_conflicting_precedence() {
         let mut grammar = Grammar::new("test".to_string());
         let plus = SymbolId(1);
-        
+
         // Add conflicting precedence declarations
         grammar.precedences.push(Precedence {
             level: 1,
             associativity: crate::Associativity::Left,
             symbols: vec![plus],
         });
-        
+
         grammar.precedences.push(Precedence {
             level: 2,
             associativity: crate::Associativity::Right,
             symbols: vec![plus],
         });
-        
+
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
-        
+
         assert!(result.errors.iter().any(|e| {
             matches!(e, ValidationError::ConflictingPrecedence { symbol, .. } if *symbol == plus)
         }));

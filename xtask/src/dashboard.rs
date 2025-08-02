@@ -1,9 +1,9 @@
 //! Dashboard generation and management
 
-use anyhow::{Result, Context};
-use std::path::Path;
-use std::fs;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
 
 /// Dashboard data structure
 #[derive(Debug, Serialize, Deserialize)]
@@ -62,13 +62,13 @@ pub struct AdoptionMetrics {
 /// Generate dashboard data from test results
 pub fn generate_dashboard_data(input_dir: &Path, output_file: &Path) -> Result<()> {
     println!("Generating dashboard data...");
-    
+
     // Load corpus test results
     let corpus_results = load_corpus_results(input_dir)?;
-    
+
     // Generate grammar status
     let grammar_status = generate_grammar_status(&corpus_results);
-    
+
     // Create dashboard data
     let data = DashboardData {
         last_updated: chrono::Utc::now().to_rfc3339(),
@@ -97,12 +97,12 @@ pub fn generate_dashboard_data(input_dir: &Path, output_file: &Path) -> Result<(
             active_contributors: 8,
         },
     };
-    
+
     // Write dashboard data
     fs::create_dir_all(output_file.parent().unwrap())?;
     let json = serde_json::to_string_pretty(&data)?;
     fs::write(output_file, json)?;
-    
+
     println!("Dashboard data generated at: {}", output_file.display());
     Ok(())
 }
@@ -110,28 +110,28 @@ pub fn generate_dashboard_data(input_dir: &Path, output_file: &Path) -> Result<(
 /// Load corpus test results
 fn load_corpus_results(input_dir: &Path) -> Result<crate::corpus::CorpusTestResults> {
     let results_file = input_dir.join("corpus_results.json");
-    let json = fs::read_to_string(&results_file)
-        .context("Failed to read corpus results")?;
-    serde_json::from_str(&json)
-        .context("Failed to parse corpus results")
+    let json = fs::read_to_string(&results_file).context("Failed to read corpus results")?;
+    serde_json::from_str(&json).context("Failed to parse corpus results")
 }
 
 /// Generate grammar status from corpus results
-fn generate_grammar_status(corpus_results: &crate::corpus::CorpusTestResults) -> Vec<GrammarStatus> {
+fn generate_grammar_status(
+    corpus_results: &crate::corpus::CorpusTestResults,
+) -> Vec<GrammarStatus> {
     let mut status_list = Vec::new();
-    
+
     for (name, result) in &corpus_results.grammar_results {
         let (parse_support, completion) = match &result.status {
             crate::corpus::TestStatus::Pass => (SupportLevel::Full, 85),
             crate::corpus::TestStatus::Fail(_) => (SupportLevel::Partial, 65),
             crate::corpus::TestStatus::NotImplemented => (SupportLevel::None, 0),
         };
-        
+
         let mut issues = Vec::new();
         if let Some(error) = &result.error_message {
             issues.push(error.clone());
         }
-        
+
         status_list.push(GrammarStatus {
             name: name.clone(),
             parse_support,
@@ -141,7 +141,7 @@ fn generate_grammar_status(corpus_results: &crate::corpus::CorpusTestResults) ->
             issues,
         });
     }
-    
+
     status_list.sort_by_key(|s| s.name.clone());
     status_list
 }
@@ -149,24 +149,24 @@ fn generate_grammar_status(corpus_results: &crate::corpus::CorpusTestResults) ->
 /// Initialize dashboard project
 pub fn init_dashboard(dir: &Path) -> Result<()> {
     println!("Initializing dashboard at: {}", dir.display());
-    
+
     // Create directory structure
     fs::create_dir_all(dir)?;
     fs::create_dir_all(dir.join("src"))?;
     fs::create_dir_all(dir.join("dist"))?;
-    
+
     // Create index.html
     let index_html = include_str!("../../dashboard-template/index.html");
     fs::write(dir.join("index.html"), index_html)?;
-    
+
     // Create CSS
     let style_css = include_str!("../../dashboard-template/style.css");
     fs::write(dir.join("style.css"), style_css)?;
-    
+
     // Create JavaScript
     let dashboard_js = include_str!("../../dashboard-template/dashboard.js");
     fs::write(dir.join("src/dashboard.js"), dashboard_js)?;
-    
+
     // Create package.json
     let package_json = r#"{
   "name": "rust-sitter-dashboard",
@@ -178,7 +178,7 @@ pub fn init_dashboard(dir: &Path) -> Result<()> {
   }
 }"#;
     fs::write(dir.join("package.json"), package_json)?;
-    
+
     // Create README
     let readme = r#"# Rust-Sitter Compatibility Dashboard
 
@@ -207,13 +207,13 @@ cargo xtask dashboard-data
 ```
 "#;
     fs::write(dir.join("README.md"), readme)?;
-    
+
     println!("Dashboard initialized successfully!");
     println!("To view the dashboard:");
     println!("  1. cd {}", dir.display());
     println!("  2. npm run build");
     println!("  3. npm run serve");
     println!("  4. Open http://localhost:8000");
-    
+
     Ok(())
 }

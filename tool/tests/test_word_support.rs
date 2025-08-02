@@ -21,14 +21,14 @@ module.exports = grammar({
   }
 })
 "#;
-    
+
     let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
     match parser.parse() {
         Ok(grammar) => {
             println!("Successfully parsed grammar with word token!");
             println!("Grammar name: {}", grammar.name);
             println!("Word token: {:?}", grammar.word);
-            
+
             // Check that word was extracted correctly
             assert_eq!(grammar.word, Some("identifier".to_string()));
         }

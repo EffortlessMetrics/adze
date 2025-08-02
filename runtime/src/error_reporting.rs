@@ -23,21 +23,21 @@ pub struct ParseError {
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Parse error at {}:{}: ", self.line, self.column)?;
-        
+
         if let Some(ref token) = self.unexpected_token {
             write!(f, "unexpected token '{}'", token)?;
         } else {
             write!(f, "unexpected end of input")?;
         }
-        
+
         if !self.expected.is_empty() {
             write!(f, ", expected one of: {}", self.expected.join(", "))?;
         }
-        
+
         if !self.context.is_empty() {
             write!(f, " ({})", self.context)?;
         }
-        
+
         Ok(())
     }
 }
@@ -63,12 +63,12 @@ impl ErrorReporter {
             token_positions: Vec::new(),
         }
     }
-    
+
     /// Record a token position
     pub fn record_token(&mut self, token: &str, _byte_offset: usize) {
         let start_line = self.current_line;
         let start_col = self.current_column;
-        
+
         // Update position based on token content
         for ch in token.chars() {
             if ch == '\n' {
@@ -78,17 +78,18 @@ impl ErrorReporter {
                 self.current_column += 1;
             }
         }
-        
+
         let end_line = self.current_line;
         let end_col = self.current_column;
-        
-        self.token_positions.push((start_line, start_col, end_line, end_col));
+
+        self.token_positions
+            .push((start_line, start_col, end_line, end_col));
     }
-    
+
     /// Generate error at current position
     pub fn error_at_current(&self, parser: &GLRParser, unexpected: Option<String>) -> ParseError {
         let expected = self.get_expected_tokens(parser);
-        
+
         ParseError {
             line: self.current_line,
             column: self.current_column,
@@ -97,14 +98,14 @@ impl ErrorReporter {
             context: self.get_context(),
         }
     }
-    
+
     /// Get expected tokens from parser state
     fn get_expected_tokens(&self, _parser: &GLRParser) -> Vec<String> {
         // In a real implementation, this would examine the parse table
         // to determine valid tokens at the current state
         vec![] // Placeholder
     }
-    
+
     /// Get context around the error
     fn get_context(&self) -> String {
         // Extract a line or snippet around the error position
@@ -121,30 +122,36 @@ impl ErrorReporter {
 
 /// Extension trait for GLRParser to add error reporting
 pub trait ErrorReportingExt {
-    fn parse_with_errors(&mut self, tokens: Vec<(SymbolId, String)>) -> Result<Subtree, Vec<ParseError>>;
+    fn parse_with_errors(
+        &mut self,
+        tokens: Vec<(SymbolId, String)>,
+    ) -> Result<Subtree, Vec<ParseError>>;
 }
 
 impl ErrorReportingExt for GLRParser {
-    fn parse_with_errors(&mut self, tokens: Vec<(SymbolId, String)>) -> Result<Subtree, Vec<ParseError>> {
+    fn parse_with_errors(
+        &mut self,
+        tokens: Vec<(SymbolId, String)>,
+    ) -> Result<Subtree, Vec<ParseError>> {
         let mut errors = Vec::new();
         let mut reporter = ErrorReporter::new(String::new());
-        
+
         for (symbol_id, token_text) in tokens {
             reporter.record_token(&token_text, 0);
-            
+
             // Try to process the token
             let initial_stack_count = self.stack_count();
             self.process_token(symbol_id, &token_text, 0);
-            
+
             // Check if all stacks died (parse error)
             if self.stack_count() == 0 && initial_stack_count > 0 {
                 errors.push(reporter.error_at_current(self, Some(token_text.clone())));
                 return Err(errors);
             }
         }
-        
+
         self.process_eof();
-        
+
         if let Some(tree) = self.get_best_parse() {
             Ok(Arc::try_unwrap(tree).unwrap_or_else(|arc| (*arc).clone()))
         } else {
@@ -157,7 +164,7 @@ impl ErrorReportingExt for GLRParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_error_display() {
         let error = ParseError {
@@ -167,26 +174,26 @@ mod tests {
             expected: vec!["number".to_string(), "string".to_string()],
             context: "in object member".to_string(),
         };
-        
+
         let display = format!("{}", error);
         assert!(display.contains("3:15"));
         assert!(display.contains("unexpected token 'foo'"));
         assert!(display.contains("expected one of: number, string"));
         assert!(display.contains("(in object member)"));
     }
-    
+
     #[test]
     fn test_error_reporter() {
         let mut reporter = ErrorReporter::new("{\n  \"key\": \n}".to_string());
-        
+
         reporter.record_token("{", 0);
         assert_eq!(reporter.current_line, 1);
         assert_eq!(reporter.current_column, 2);
-        
+
         reporter.record_token("\n", 1);
         assert_eq!(reporter.current_line, 2);
         assert_eq!(reporter.current_column, 1);
-        
+
         reporter.record_token("\"key\"", 4);
         assert_eq!(reporter.current_line, 2);
         assert_eq!(reporter.current_column, 6);

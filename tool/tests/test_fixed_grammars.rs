@@ -55,13 +55,17 @@ module.exports = grammar({
 "#;
 
     let result = parse_grammar_js_v2(grammar);
-    assert!(result.is_ok(), "Failed to parse JSON grammar: {:?}", result.err());
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse JSON grammar: {:?}",
+        result.err()
+    );
+
     let parsed = result.unwrap();
     assert_eq!(parsed.name, "json");
     assert!(parsed.rules.contains_key("document"));
     assert!(parsed.rules.contains_key("_value"));
-    
+
     println!("Successfully parsed simple JSON grammar!");
 }
 
@@ -148,18 +152,22 @@ module.exports = grammar({
 "#;
 
     let result = parse_grammar_js_v2(grammar);
-    assert!(result.is_ok(), "Failed to parse JavaScript grammar: {:?}", result.err());
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse JavaScript grammar: {:?}",
+        result.err()
+    );
+
     let parsed = result.unwrap();
     assert_eq!(parsed.name, "javascript");
     assert_eq!(parsed.word, Some("identifier".to_string()));
     assert!(!parsed.extras.is_empty());
     assert_eq!(parsed.inline.len(), 2);
-    
+
     // Check specific rules
     assert!(parsed.rules.contains_key("program"));
     assert!(parsed.rules.contains_key("expression"));
     assert!(parsed.rules.contains_key("identifier"));
-    
+
     println!("Successfully parsed simple JavaScript grammar!");
 }

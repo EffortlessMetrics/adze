@@ -6,20 +6,23 @@ use std::collections::HashMap;
 pub fn extract_node_types_from_grammar_json(grammar_json: &str) -> Result<Vec<NodeTypeInfo>> {
     let grammar: Value = serde_json::from_str(grammar_json)?;
     let mut node_types = Vec::new();
-    
+
     if let Some(rules) = grammar.get("rules").and_then(|r| r.as_object()) {
         for (rule_name, rule_value) in rules {
             // Skip only the source_file rule
             if rule_name == "source_file" {
                 continue;
             }
-            
+
             // Extract node type info based on rule patterns
             if let Some(rule_type) = rule_value.get("type").and_then(|t| t.as_str()) {
                 match rule_type {
                     "SEQ" | "PREC_LEFT" | "PREC_RIGHT" => {
                         // Only process if this is a main rule (not an internal _0, _1 rule)
-                        if !rule_name.contains("_0") && !rule_name.ends_with("_1") && !rule_name.ends_with("_2") {
+                        if !rule_name.contains("_0")
+                            && !rule_name.ends_with("_1")
+                            && !rule_name.ends_with("_2")
+                        {
                             let fields = extract_fields_from_rule(rule_value);
                             node_types.push(NodeTypeInfo {
                                 name: clean_rule_name(rule_name),
@@ -51,7 +54,7 @@ pub fn extract_node_types_from_grammar_json(grammar_json: &str) -> Result<Vec<No
             }
         }
     }
-    
+
     // Deduplicate literal tokens
     let mut seen = std::collections::HashSet::new();
     node_types.retain(|n| {
@@ -61,7 +64,7 @@ pub fn extract_node_types_from_grammar_json(grammar_json: &str) -> Result<Vec<No
             seen.insert(n.name.clone())
         }
     });
-    
+
     Ok(node_types)
 }
 
@@ -81,15 +84,16 @@ fn clean_rule_name(name: &str) -> String {
 
 fn extract_fields_from_rule(rule: &Value) -> HashMap<String, Vec<String>> {
     let mut fields = HashMap::new();
-    
+
     // Look for SEQ members with FIELD nodes
-    let content = if rule.get("type").and_then(|t| t.as_str()) == Some("PREC_LEFT") 
-        || rule.get("type").and_then(|t| t.as_str()) == Some("PREC_RIGHT") {
+    let content = if rule.get("type").and_then(|t| t.as_str()) == Some("PREC_LEFT")
+        || rule.get("type").and_then(|t| t.as_str()) == Some("PREC_RIGHT")
+    {
         rule.get("content")
     } else {
         Some(rule)
     };
-    
+
     if let Some(seq) = content {
         if let Some(members) = seq.get("members").and_then(|m| m.as_array()) {
             for (idx, member) in members.iter().enumerate() {
@@ -97,17 +101,17 @@ fn extract_fields_from_rule(rule: &Value) -> HashMap<String, Vec<String>> {
                     // Map numeric field names to semantic names
                     let semantic_name = match (idx, field_name) {
                         (0, _) => "left",
-                        (1, _) => "operator", 
+                        (1, _) => "operator",
                         (2, _) => "right",
                         _ => field_name,
                     };
-                    
+
                     fields.insert(semantic_name.to_string(), vec!["expression".to_string()]);
                 }
             }
         }
     }
-    
+
     fields
 }
 

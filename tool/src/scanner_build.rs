@@ -1,9 +1,9 @@
 // Build system integration for external scanners
 // This module provides functionality to discover and compile user-provided scanner implementations
 
-use std::path::{Path, PathBuf};
+use anyhow::{Context, Result, bail};
 use std::fs;
-use anyhow::{Result, Context, bail};
+use std::path::{Path, PathBuf};
 
 /// Scanner source file information
 #[derive(Debug, Clone)]
@@ -54,7 +54,7 @@ impl ScannerBuilder {
             out_dir,
         }
     }
-    
+
     /// Find scanner source file in the source directory
     pub fn find_scanner(&self) -> Result<Option<ScannerSource>> {
         // Look for scanner files in standard locations
@@ -67,7 +67,7 @@ impl ScannerBuilder {
             format!("{}_scanner.cc", self.grammar_name),
             format!("{}_scanner.rs", self.grammar_name),
         ];
-        
+
         for name in &scanner_names {
             let path = self.src_dir.join(name);
             if path.exists() {
@@ -77,7 +77,7 @@ impl ScannerBuilder {
                     Some("rs") => ScannerLanguage::Rust,
                     _ => continue,
                 };
-                
+
                 return Ok(Some(ScannerSource {
                     path,
                     language,
@@ -85,10 +85,10 @@ impl ScannerBuilder {
                 }));
             }
         }
-        
+
         Ok(None)
     }
-    
+
     /// Build the scanner and generate integration code
     pub fn build(&self) -> Result<()> {
         let scanner = match self.find_scanner()? {
@@ -98,9 +98,9 @@ impl ScannerBuilder {
                 return Ok(());
             }
         };
-        
+
         println!("cargo:rerun-if-changed={}", scanner.path.display());
-        
+
         match scanner.language {
             ScannerLanguage::C | ScannerLanguage::Cpp => {
                 self.build_c_scanner(&scanner)?;
@@ -109,39 +109,42 @@ impl ScannerBuilder {
                 self.build_rust_scanner(&scanner)?;
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Build a C/C++ scanner
     fn build_c_scanner(&self, scanner: &ScannerSource) -> Result<()> {
         // Use cc crate to compile the scanner
         let mut build = cc::Build::new();
-        
+
         build
             .file(&scanner.path)
             .include(&self.src_dir)
             .warnings(false);
-        
+
         if scanner.language == ScannerLanguage::Cpp {
             build.cpp(true);
         }
-        
+
         // Set output name based on grammar
         let lib_name = format!("{}_scanner", self.grammar_name);
         build.compile(&lib_name);
-        
+
         // Generate Rust bindings
         self.generate_c_bindings(scanner)?;
-        
+
         Ok(())
     }
-    
+
     /// Generate Rust bindings for C scanner
     fn generate_c_bindings(&self, _scanner: &ScannerSource) -> Result<()> {
-        let bindings_path = self.out_dir.join(format!("{}_scanner_bindings.rs", self.grammar_name));
-        
-        let bindings = format!(r#"
+        let bindings_path = self
+            .out_dir
+            .join(format!("{}_scanner_bindings.rs", self.grammar_name));
+
+        let bindings = format!(
+            r#"
 // Auto-generated bindings for {} scanner
 use rust_sitter::external_scanner_ffi::{{TSExternalScannerData, CreateFn, DestroyFn, ScanFn, SerializeFn, DeserializeFn}};
 
@@ -186,7 +189,7 @@ pub fn register_scanner(external_tokens: Vec<rust_sitter::SymbolId>) {{
         external_tokens,
     );
 }}
-"#, 
+"#,
             self.grammar_name,
             self.grammar_name,
             self.grammar_name,
@@ -200,29 +203,34 @@ pub fn register_scanner(external_tokens: Vec<rust_sitter::SymbolId>) {{
             self.grammar_name,
             self.grammar_name
         );
-        
+
         fs::write(&bindings_path, bindings)
             .with_context(|| format!("Failed to write scanner bindings to {:?}", bindings_path))?;
-        
-        println!("cargo:rustc-env=RUST_SITTER_SCANNER_BINDINGS_{}", 
-                 self.grammar_name.to_uppercase());
-        
+
+        println!(
+            "cargo:rustc-env=RUST_SITTER_SCANNER_BINDINGS_{}",
+            self.grammar_name.to_uppercase()
+        );
+
         Ok(())
     }
-    
+
     /// Build a Rust scanner
     fn build_rust_scanner(&self, scanner: &ScannerSource) -> Result<()> {
         // For Rust scanners, generate code to register them
-        let registration_path = self.out_dir.join(format!("{}_scanner_registration.rs", self.grammar_name));
-        
+        let registration_path = self
+            .out_dir
+            .join(format!("{}_scanner_registration.rs", self.grammar_name));
+
         // Read the scanner file to extract the scanner struct name
         let scanner_content = fs::read_to_string(&scanner.path)
             .with_context(|| format!("Failed to read scanner file {:?}", scanner.path))?;
-        
+
         // Simple heuristic to find the scanner struct name
         let scanner_struct = self.find_scanner_struct(&scanner_content)?;
-        
-        let registration = format!(r#"
+
+        let registration = format!(
+            r#"
 // Auto-generated registration for {} Rust scanner
 use rust_sitter::scanner_registry::ExternalScannerBuilder;
 
@@ -239,13 +247,17 @@ pub fn register_scanner() {{
             self.grammar_name,
             scanner_struct
         );
-        
-        fs::write(&registration_path, registration)
-            .with_context(|| format!("Failed to write scanner registration to {:?}", registration_path))?;
-        
+
+        fs::write(&registration_path, registration).with_context(|| {
+            format!(
+                "Failed to write scanner registration to {:?}",
+                registration_path
+            )
+        })?;
+
         Ok(())
     }
-    
+
     /// Find the scanner struct name in Rust code
     fn find_scanner_struct(&self, content: &str) -> Result<String> {
         // Look for "impl ExternalScanner for StructName"
@@ -257,7 +269,7 @@ pub fn register_scanner() {{
                 }
             }
         }
-        
+
         // Fallback: look for struct definitions with "Scanner" in the name
         for line in content.lines() {
             if line.trim().starts_with("pub struct") && line.contains("Scanner") {
@@ -267,21 +279,19 @@ pub fn register_scanner() {{
                 }
             }
         }
-        
+
         bail!("Could not find scanner struct in {:?}", self.src_dir)
     }
 }
 
 /// Helper function to build scanners in build.rs
 pub fn build_scanner(grammar_name: &str) -> Result<()> {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
-        .context("CARGO_MANIFEST_DIR not set")?;
-    let out_dir = std::env::var("OUT_DIR")
-        .context("OUT_DIR not set")?;
-    
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").context("CARGO_MANIFEST_DIR not set")?;
+    let out_dir = std::env::var("OUT_DIR").context("OUT_DIR not set")?;
+
     let src_dir = Path::new(&manifest_dir).join("src");
     let out_dir = PathBuf::from(out_dir);
-    
+
     let builder = ScannerBuilder::new(grammar_name, src_dir, out_dir);
     builder.build()
 }
@@ -290,26 +300,26 @@ pub fn build_scanner(grammar_name: &str) -> Result<()> {
 mod tests {
     use super::*;
     use tempfile::TempDir;
-    
+
     #[test]
     fn test_find_scanner() {
         let temp_dir = TempDir::new().unwrap();
         let src_dir = temp_dir.path().to_path_buf();
-        
+
         // Create a test scanner file
         fs::write(src_dir.join("scanner.c"), "// test scanner").unwrap();
-        
+
         let builder = ScannerBuilder::new("test", src_dir, PathBuf::new());
         let scanner = builder.find_scanner().unwrap().unwrap();
-        
+
         assert_eq!(scanner.language, ScannerLanguage::C);
         assert_eq!(scanner.grammar_name, "test");
     }
-    
+
     #[test]
     fn test_find_scanner_struct() {
         let builder = ScannerBuilder::new("test", PathBuf::new(), PathBuf::new());
-        
+
         let content = r#"
 pub struct MyScanner {
     state: u32,
@@ -319,7 +329,7 @@ impl ExternalScanner for MyScanner {
     // implementation
 }
 "#;
-        
+
         let struct_name = builder.find_scanner_struct(content).unwrap();
         assert_eq!(struct_name, "MyScanner");
     }

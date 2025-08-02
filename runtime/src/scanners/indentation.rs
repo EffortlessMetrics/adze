@@ -27,7 +27,7 @@ impl ExternalScanner for IndentationScanner {
             pending_dedents: 0,
         }
     }
-    
+
     fn scan(
         &mut self,
         valid_symbols: &[bool],
@@ -42,7 +42,7 @@ impl ExternalScanner for IndentationScanner {
                 length: 0,
             });
         }
-        
+
         // Skip any whitespace that's not at line start
         if !self.at_line_start {
             // Look for newline
@@ -57,12 +57,12 @@ impl ExternalScanner for IndentationScanner {
             }
             return None;
         }
-        
+
         // We're at line start - count indentation
         let mut indent_length = 0;
         let mut column = 0;
         let mut i = position;
-        
+
         while i < input.len() {
             match input[i] {
                 b' ' => {
@@ -101,15 +101,15 @@ impl ExternalScanner for IndentationScanner {
                 }
             }
         }
-        
+
         // Check if we're at EOF after whitespace
         if i >= input.len() {
             return None;
         }
-        
+
         self.at_line_start = false;
         let current_indent = *self.indent_stack.last().unwrap();
-        
+
         if column > current_indent {
             // Indent
             if valid_symbols.get(INDENT) == Some(&true) {
@@ -122,7 +122,7 @@ impl ExternalScanner for IndentationScanner {
         } else if column < current_indent {
             // Dedent - might be multiple levels
             let mut dedent_count = 0;
-            
+
             while let Some(&level) = self.indent_stack.last() {
                 if level <= column {
                     break;
@@ -130,13 +130,13 @@ impl ExternalScanner for IndentationScanner {
                 self.indent_stack.pop();
                 dedent_count += 1;
             }
-            
+
             // Verify we found a matching indent level
             if self.indent_stack.last() != Some(&column) {
                 // Invalid dedent - this would be a parse error
                 return None;
             }
-            
+
             if dedent_count > 0 && valid_symbols.get(DEDENT) == Some(&true) {
                 // Emit first dedent, store rest as pending
                 self.pending_dedents = dedent_count - 1;
@@ -146,7 +146,7 @@ impl ExternalScanner for IndentationScanner {
                 });
             }
         }
-        
+
         // Same indentation level - consume the whitespace
         if indent_length > 0 {
             return Some(ScanResult {
@@ -154,29 +154,29 @@ impl ExternalScanner for IndentationScanner {
                 length: 0, // Don't consume - let parser handle content
             });
         }
-        
+
         None
     }
-    
+
     fn serialize(&self, buffer: &mut Vec<u8>) {
         // Serialize the indent stack
         buffer.extend_from_slice(&(self.indent_stack.len() as u32).to_le_bytes());
         for &level in &self.indent_stack {
             buffer.extend_from_slice(&(level as u32).to_le_bytes());
         }
-        
+
         // Serialize other state
         buffer.push(if self.at_line_start { 1 } else { 0 });
         buffer.extend_from_slice(&(self.pending_dedents as u32).to_le_bytes());
     }
-    
+
     fn deserialize(&mut self, buffer: &[u8]) {
         if buffer.len() < 4 {
             return;
         }
-        
+
         let mut offset = 0;
-        
+
         // Read indent stack length
         let stack_len = u32::from_le_bytes([
             buffer[offset],
@@ -185,7 +185,7 @@ impl ExternalScanner for IndentationScanner {
             buffer[offset + 3],
         ]) as usize;
         offset += 4;
-        
+
         // Read indent stack
         self.indent_stack.clear();
         for _ in 0..stack_len {
@@ -201,13 +201,13 @@ impl ExternalScanner for IndentationScanner {
             self.indent_stack.push(level);
             offset += 4;
         }
-        
+
         // Read other state
         if offset < buffer.len() {
             self.at_line_start = buffer[offset] != 0;
             offset += 1;
         }
-        
+
         if offset + 4 <= buffer.len() {
             self.pending_dedents = u32::from_le_bytes([
                 buffer[offset],
@@ -222,60 +222,66 @@ impl ExternalScanner for IndentationScanner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_basic_indentation() {
         let mut scanner = IndentationScanner::new();
-        
+
         // Test input with indentation
         let input = b"def foo():\n    print('hello')\n    print('world')\n";
         let valid = vec![true, true, true]; // All tokens valid
-        
+
         // First line - no indent
         let result = scanner.scan(&valid, input, 0);
         assert!(result.is_none() || result.unwrap().symbol == SymbolId(NEWLINE as u16));
-        
+
         // After newline, should get indent
         scanner.at_line_start = true;
         let result = scanner.scan(&valid, input, 11); // After "def foo():\n"
-        assert_eq!(result, Some(ScanResult {
-            symbol: SymbolId(INDENT as u16),
-            length: 4,
-        }));
+        assert_eq!(
+            result,
+            Some(ScanResult {
+                symbol: SymbolId(INDENT as u16),
+                length: 4,
+            })
+        );
     }
-    
+
     #[test]
     fn test_dedent() {
         let mut scanner = IndentationScanner::new();
         scanner.indent_stack = vec![0, 4]; // Already indented
         scanner.at_line_start = true;
-        
+
         let input = b"return\n";
         let valid = vec![true, true, true];
-        
+
         // At column 0, should dedent
         let result = scanner.scan(&valid, input, 0);
-        assert_eq!(result, Some(ScanResult {
-            symbol: SymbolId(DEDENT as u16),
-            length: 0,
-        }));
+        assert_eq!(
+            result,
+            Some(ScanResult {
+                symbol: SymbolId(DEDENT as u16),
+                length: 0,
+            })
+        );
     }
-    
+
     #[test]
     fn test_serialization() {
         let mut scanner = IndentationScanner::new();
         scanner.indent_stack = vec![0, 4, 8];
         scanner.at_line_start = false;
         scanner.pending_dedents = 2;
-        
+
         // Serialize
         let mut buffer = Vec::new();
         scanner.serialize(&mut buffer);
-        
+
         // Deserialize into new scanner
         let mut new_scanner = IndentationScanner::new();
         new_scanner.deserialize(&buffer);
-        
+
         assert_eq!(new_scanner.indent_stack, vec![0, 4, 8]);
         assert_eq!(new_scanner.at_line_start, false);
         assert_eq!(new_scanner.pending_dedents, 2);

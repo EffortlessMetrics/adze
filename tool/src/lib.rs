@@ -1,5 +1,5 @@
 use serde_json::Value;
-use syn::{parse_quote, Item};
+use syn::{Item, parse_quote};
 
 mod expansion;
 use expansion::*;
@@ -11,10 +11,12 @@ pub mod visualization;
 pub use visualization::GrammarVisualizer;
 
 pub mod grammar_js;
-pub use grammar_js::{parse_grammar_js, GrammarJsConverter};
+pub use grammar_js::{GrammarJsConverter, parse_grammar_js};
 
 pub mod pure_rust_builder;
-pub use pure_rust_builder::{build_parser, build_parser_for_crate, build_parser_from_grammar_js, BuildOptions, BuildResult};
+pub use pure_rust_builder::{
+    BuildOptions, BuildResult, build_parser, build_parser_for_crate, build_parser_from_grammar_js,
+};
 
 pub mod cli;
 pub mod scanner_build;
@@ -61,7 +63,7 @@ use tree_sitter_generate::generate_parser_for_grammar;
 pub fn build_parsers(root_file: &Path) {
     // Check if we should use the new pure-Rust builder
     if std::env::var("RUST_SITTER_USE_PURE_RUST").is_ok() {
-        use pure_rust_builder::{build_parser_for_crate, BuildOptions};
+        use pure_rust_builder::{BuildOptions, build_parser_for_crate};
         let options = BuildOptions::default();
         match build_parser_for_crate(root_file, options) {
             Ok(results) => {
@@ -176,7 +178,7 @@ pub fn build_parsers(root_file: &Path) {
 mod tests {
     use syn::parse_quote;
 
-    use super::{generate_grammar, GENERATED_SEMANTIC_VERSION};
+    use super::{GENERATED_SEMANTIC_VERSION, generate_grammar};
     use tree_sitter_generate::generate_parser_for_grammar;
 
     #[test]
@@ -549,7 +551,7 @@ mod tests {
     fn test_emit_artifacts_functionality() {
         use std::env;
         use std::path::Path;
-        
+
         // Set up test environment
         let original_target = env::var("TARGET").ok();
         let original_out_dir = env::var("OUT_DIR").ok();
@@ -557,7 +559,7 @@ mod tests {
         let original_opt_level = env::var("OPT_LEVEL").ok();
         let original_host = env::var("HOST").ok();
         let original_profile = env::var("PROFILE").ok();
-        
+
         // Set required environment variables for the current platform
         let target = if cfg!(target_os = "windows") {
             "x86_64-pc-windows-msvc"
@@ -566,7 +568,7 @@ mod tests {
         } else {
             "x86_64-unknown-linux-gnu"
         };
-        
+
         unsafe {
             env::set_var("TARGET", target);
             env::set_var("OPT_LEVEL", "0");
@@ -574,13 +576,13 @@ mod tests {
             env::set_var("PROFILE", "debug");
             env::set_var("RUST_SITTER_EMIT_ARTIFACTS", "true");
         }
-        
+
         let test_dir = "./test_emit_artifacts_output";
         std::fs::create_dir_all(test_dir).unwrap();
         unsafe {
             env::set_var("OUT_DIR", test_dir);
         }
-        
+
         // Create a simple test grammar file
         let test_grammar = r#"
 #[rust_sitter::grammar("test_emit")]
@@ -594,19 +596,19 @@ mod grammar {
     }
 }
 "#;
-        
+
         let grammar_file = "test_emit_grammar.rs";
         std::fs::write(grammar_file, test_grammar).unwrap();
-        
+
         // Test that build_parsers doesn't panic with RUST_SITTER_EMIT_ARTIFACTS=true
         let result = std::panic::catch_unwind(|| {
             super::build_parsers(Path::new(grammar_file));
         });
-        
+
         // Clean up
         let _ = std::fs::remove_file(grammar_file);
         let _ = std::fs::remove_dir_all(test_dir);
-        
+
         // Restore original environment variables
         unsafe {
             match original_target {
@@ -644,8 +646,11 @@ mod grammar {
                 None => env::remove_var("PROFILE"),
             }
         }
-        
+
         // Assert that the function completed successfully
-        assert!(result.is_ok(), "build_parsers should not panic with RUST_SITTER_EMIT_ARTIFACTS=true");
+        assert!(
+            result.is_ok(),
+            "build_parsers should not panic with RUST_SITTER_EMIT_ARTIFACTS=true"
+        );
     }
 }

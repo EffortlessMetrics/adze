@@ -1,5 +1,5 @@
-use rust_sitter_tool::grammar_js::{GrammarJsParserV3, GrammarJsConverter};
-use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
+use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
+use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 use std::fs;
 use tempfile::TempDir;
 
@@ -42,16 +42,18 @@ module.exports = grammar({
             println!("✓ Successfully parsed grammar!");
             println!("  Rules: {:?}", grammar_js.rules.keys().collect::<Vec<_>>());
             println!("  Externals: {} defined", grammar_js.externals.len());
-            
+
             // Try to convert to IR
             let converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
                 Ok(ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
-                    println!("  IR has {} rules, {} tokens, {} externals", 
-                        ir_grammar.rules.len(), 
+                    println!(
+                        "  IR has {} rules, {} tokens, {} externals",
+                        ir_grammar.rules.len(),
                         ir_grammar.tokens.len(),
-                        ir_grammar.externals.len());
+                        ir_grammar.externals.len()
+                    );
                 }
                 Err(e) => {
                     println!("✗ Failed to convert to IR: {:#}", e);
@@ -145,7 +147,7 @@ module.exports = grammar({
         Ok(grammar_js) => {
             println!("✓ Successfully parsed grammar!");
             println!("  Externals: {:?}", grammar_js.externals.len());
-            
+
             // Convert to IR
             let converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
@@ -259,24 +261,24 @@ module.exports = grammar({
             println!("✓ Successfully parsed grammar!");
             println!("  Has {} externals", grammar_js.externals.len());
             println!("  Has {} precedence groups", grammar_js.precedences.len());
-            
+
             // Try to convert
             let converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
                 Ok(ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
-                    
+
                     // Try to build (will likely fail without scanner implementation)
                     let temp_dir = TempDir::new().unwrap();
                     let grammar_path = temp_dir.path().join("grammar.js");
                     fs::write(&grammar_path, grammar_content).unwrap();
-                    
+
                     let options = BuildOptions {
                         out_dir: temp_dir.path().to_str().unwrap().to_string(),
                         emit_artifacts: false,
                         compress_tables: true,
                     };
-                    
+
                     match build_parser_from_grammar_js(&grammar_path, options) {
                         Ok(_) => {
                             println!("✓ Successfully built parser!");

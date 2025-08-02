@@ -74,15 +74,10 @@ pub struct TSExternalScannerData {
     pub symbol_map: *const TSSymbol,
     pub create: Option<unsafe extern "C" fn() -> *mut std::ffi::c_void>,
     pub destroy: Option<unsafe extern "C" fn(*mut std::ffi::c_void)>,
-    pub scan: Option<
-        unsafe extern "C" fn(*mut std::ffi::c_void, *mut TSLexer, *const bool) -> bool,
-    >,
-    pub serialize: Option<
-        unsafe extern "C" fn(*mut std::ffi::c_void, *mut u8) -> u32,
-    >,
-    pub deserialize: Option<
-        unsafe extern "C" fn(*mut std::ffi::c_void, *const u8, u32),
-    >,
+    pub scan:
+        Option<unsafe extern "C" fn(*mut std::ffi::c_void, *mut TSLexer, *const bool) -> bool>,
+    pub serialize: Option<unsafe extern "C" fn(*mut std::ffi::c_void, *mut u8) -> u32>,
+    pub deserialize: Option<unsafe extern "C" fn(*mut std::ffi::c_void, *const u8, u32)>,
 }
 
 #[repr(C)]
@@ -104,28 +99,28 @@ pub type TSStateId = u16;
 pub enum ValidationError {
     /// Language version doesn't match expected ABI
     InvalidVersion { expected: u32, actual: u32 },
-    
+
     /// Symbol count doesn't match tables
     SymbolCountMismatch { language: u32, tables: u32 },
-    
+
     /// State count doesn't match tables
     StateCountMismatch { language: u32, tables: u32 },
-    
+
     /// Null pointer where data was expected
     NullPointer(&'static str),
-    
+
     /// Field names not in lexicographic order
     FieldNamesNotSorted,
-    
+
     /// Invalid symbol metadata
     InvalidSymbolMetadata { symbol: TSSymbol, reason: String },
-    
+
     /// Table dimensions don't match metadata
     TableDimensionMismatch { expected: usize, actual: usize },
-    
+
     /// Production ID out of bounds
     InvalidProductionId { id: u32, max: u32 },
-    
+
     /// Invalid field mapping
     InvalidFieldMapping { field_id: u16, max: u16 },
 }
@@ -135,11 +130,11 @@ impl<'a> LanguageValidator<'a> {
     pub fn new(language: &'a TSLanguage, tables: &'a CompressedParseTable) -> Self {
         Self { language, tables }
     }
-    
+
     /// Performs comprehensive validation of the Language struct
     pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
         let mut errors = Vec::new();
-        
+
         // Check ABI version
         if self.language.version != 15 {
             errors.push(ValidationError::InvalidVersion {
@@ -147,29 +142,29 @@ impl<'a> LanguageValidator<'a> {
                 actual: self.language.version,
             });
         }
-        
+
         // Validate counts match tables
         self.validate_counts(&mut errors);
-        
+
         // Validate pointers are non-null where required
         self.validate_pointers(&mut errors);
-        
+
         // Validate symbol metadata
         self.validate_symbol_metadata(&mut errors);
-        
+
         // Validate field names ordering
         self.validate_field_names(&mut errors);
-        
+
         // Validate table dimensions
         self.validate_table_dimensions(&mut errors);
-        
+
         if errors.is_empty() {
             Ok(())
         } else {
             Err(errors)
         }
     }
-    
+
     fn validate_counts(&self, errors: &mut Vec<ValidationError>) {
         // Check symbol count
         let table_symbol_count = self.tables.symbol_count();
@@ -179,7 +174,7 @@ impl<'a> LanguageValidator<'a> {
                 tables: table_symbol_count as u32,
             });
         }
-        
+
         // Check state count
         let table_state_count = self.tables.state_count();
         if self.language.state_count != table_state_count as u32 {
@@ -189,40 +184,42 @@ impl<'a> LanguageValidator<'a> {
             });
         }
     }
-    
+
     fn validate_pointers(&self, errors: &mut Vec<ValidationError>) {
         // Parse tables must be present
         if self.language.parse_table.is_null() && self.language.small_parse_table.is_null() {
-            errors.push(ValidationError::NullPointer("parse_table or small_parse_table"));
+            errors.push(ValidationError::NullPointer(
+                "parse_table or small_parse_table",
+            ));
         }
-        
+
         // Symbol names must be present
         if self.language.symbol_names.is_null() {
             errors.push(ValidationError::NullPointer("symbol_names"));
         }
-        
+
         // Symbol metadata must be present
         if self.language.symbol_metadata.is_null() {
             errors.push(ValidationError::NullPointer("symbol_metadata"));
         }
-        
+
         // Field names must be present if field_count > 0
         if self.language.field_count > 0 && self.language.field_names.is_null() {
             errors.push(ValidationError::NullPointer("field_names"));
         }
     }
-    
+
     fn validate_symbol_metadata(&self, errors: &mut Vec<ValidationError>) {
         if self.language.symbol_metadata.is_null() {
             return;
         }
-        
+
         unsafe {
             let metadata_slice = std::slice::from_raw_parts(
                 self.language.symbol_metadata,
                 self.language.symbol_count as usize,
             );
-            
+
             // First symbol should always be unnamed and invisible (EOF)
             if metadata_slice[0].visible || metadata_slice[0].named {
                 errors.push(ValidationError::InvalidSymbolMetadata {
@@ -232,23 +229,23 @@ impl<'a> LanguageValidator<'a> {
             }
         }
     }
-    
+
     fn validate_field_names(&self, errors: &mut Vec<ValidationError>) {
         if self.language.field_count == 0 || self.language.field_names.is_null() {
             return;
         }
-        
+
         unsafe {
             let field_names = std::slice::from_raw_parts(
                 self.language.field_names,
                 self.language.field_count as usize + 1, // +1 for empty string at start
             );
-            
+
             // Check lexicographic ordering
             for i in 2..field_names.len() {
                 let prev = std::ffi::CStr::from_ptr(field_names[i - 1]);
                 let curr = std::ffi::CStr::from_ptr(field_names[i]);
-                
+
                 if prev >= curr {
                     errors.push(ValidationError::FieldNamesNotSorted);
                     break;
@@ -256,12 +253,13 @@ impl<'a> LanguageValidator<'a> {
             }
         }
     }
-    
+
     fn validate_table_dimensions(&self, _errors: &mut Vec<ValidationError>) {
         // Validate based on whether we have small or large tables
         if !self.language.small_parse_table.is_null() {
             // Small table validation
-            let _expected_entries = self.language.state_count as usize * self.language.symbol_count as usize;
+            let _expected_entries =
+                self.language.state_count as usize * self.language.symbol_count as usize;
             // Additional validation would require accessing the actual table data
         } else if !self.language.parse_table.is_null() {
             // Large table validation
@@ -316,32 +314,40 @@ pub fn create_test_language() -> TSLanguage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_version_validation() {
         let mut language = create_test_language();
         language.version = 14; // Wrong version
-        
+
         let tables = CompressedParseTable::new_for_testing(10, 20);
         let validator = LanguageValidator::new(&language, &tables);
-        
+
         let result = validator.validate();
         assert!(result.is_err());
-        
+
         let errors = result.unwrap_err();
-        assert!(errors.iter().any(|e| matches!(e, ValidationError::InvalidVersion { .. })));
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ValidationError::InvalidVersion { .. }))
+        );
     }
-    
+
     #[test]
     fn test_null_pointer_validation() {
         let language = create_test_language();
         let tables = CompressedParseTable::new_for_testing(10, 20);
         let validator = LanguageValidator::new(&language, &tables);
-        
+
         let result = validator.validate();
         assert!(result.is_err());
-        
+
         let errors = result.unwrap_err();
-        assert!(errors.iter().any(|e| matches!(e, ValidationError::NullPointer(_))));
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ValidationError::NullPointer(_)))
+        );
     }
 }

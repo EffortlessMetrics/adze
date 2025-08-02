@@ -111,47 +111,56 @@ mod tests {
     #[test]
     fn test_pure_rust_parser() {
         println!("Testing pure-Rust arithmetic parser...");
-        
+
         // Test successful parses
         let result = grammar::parse("42");
         println!("Parse result for '42': {:?}", result);
         assert!(result.is_ok(), "Failed to parse '42': {:?}", result);
         assert_eq!(result.unwrap(), Expression::Number(42));
-        
+
         // Test subtraction expression
         let result = grammar::parse("1 - 2");
         println!("Parse result for '1 - 2': {:?}", result);
         assert!(result.is_ok(), "Failed to parse '1 - 2': {:?}", result);
-        assert_eq!(result.unwrap(), Expression::Sub(
-            Box::new(Expression::Number(1)),
-            (),
-            Box::new(Expression::Number(2))
-        ));
-        
+        assert_eq!(
+            result.unwrap(),
+            Expression::Sub(
+                Box::new(Expression::Number(1)),
+                (),
+                Box::new(Expression::Number(2))
+            )
+        );
+
         // Test multiplication expression
         let result = grammar::parse("3 * 4");
         println!("Parse result for '3 * 4': {:?}", result);
         assert!(result.is_ok(), "Failed to parse '3 * 4': {:?}", result);
-        assert_eq!(result.unwrap(), Expression::Mul(
-            Box::new(Expression::Number(3)),
-            (),
-            Box::new(Expression::Number(4))
-        ));
-        
+        assert_eq!(
+            result.unwrap(),
+            Expression::Mul(
+                Box::new(Expression::Number(3)),
+                (),
+                Box::new(Expression::Number(4))
+            )
+        );
+
         // Test left associativity of subtraction
         let result = grammar::parse("1 - 2 - 3");
         println!("Parse result for '1 - 2 - 3': {:?}", result);
         assert!(result.is_ok(), "Failed to parse '1 - 2 - 3': {:?}", result);
-        assert_eq!(result.unwrap(), Expression::Sub(
-            Box::new(Expression::Sub(
-                Box::new(Expression::Number(1)),
+        assert_eq!(
+            result.unwrap(),
+            Expression::Sub(
+                Box::new(Expression::Sub(
+                    Box::new(Expression::Number(1)),
+                    (),
+                    Box::new(Expression::Number(2))
+                )),
                 (),
-                Box::new(Expression::Number(2))
-            )),
-            (),
-            Box::new(Expression::Number(3))
-        ));
-        
+                Box::new(Expression::Number(3))
+            )
+        );
+
         // Test precedence: multiplication binds tighter than subtraction
         println!("\n=== Testing precedence: '1 - 2 * 3' ===");
         let result = grammar::parse("1 - 2 * 3");
@@ -164,7 +173,7 @@ mod tests {
             }
             Err(e) => println!("Parse error: {:?}", e),
         }
-        
+
         println!("Test completed!");
     }
 }

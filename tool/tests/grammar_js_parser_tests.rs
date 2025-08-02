@@ -1,6 +1,6 @@
 //! Tests for grammar.js parser
 
-use rust_sitter_tool::grammar_js::{parse_grammar_js_v2, Rule};
+use rust_sitter_tool::grammar_js::{Rule, parse_grammar_js_v2};
 
 #[test]
 fn test_javascript_like_grammar() {
@@ -325,11 +325,17 @@ module.exports = grammar({
     "#;
 
     // Debug check
-    eprintln!("Grammar contains $.statement: {}", grammar_js.contains("$.statement"));
-    eprintln!("Grammar contains $.state': {}", grammar_js.contains("$.state'"));
-    
+    eprintln!(
+        "Grammar contains $.statement: {}",
+        grammar_js.contains("$.statement")
+    );
+    eprintln!(
+        "Grammar contains $.state': {}",
+        grammar_js.contains("$.state'")
+    );
+
     let result = parse_grammar_js_v2(grammar_js);
-    
+
     match result {
         Ok(grammar) => {
             assert_eq!(grammar.name, "javascript");
@@ -338,18 +344,18 @@ module.exports = grammar({
             assert_eq!(grammar.inline.len(), 2);
             assert_eq!(grammar.conflicts.len(), 0); // We removed the conflicts that referenced undefined rules
             assert!(!grammar.rules.is_empty());
-            
+
             // Check specific rules
             assert!(grammar.rules.contains_key("program"));
             assert!(grammar.rules.contains_key("expression"));
             assert!(grammar.rules.contains_key("identifier"));
-            
+
             // Check field rules
             if let Some(Rule::Seq { members }) = grammar.rules.get("function_declaration") {
                 let has_field = members.iter().any(|m| matches!(m, Rule::Field { .. }));
                 assert!(has_field, "function_declaration should have field");
             }
-            
+
             println!("Successfully parsed JavaScript-like grammar!");
         }
         Err(e) => {

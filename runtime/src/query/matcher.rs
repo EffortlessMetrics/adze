@@ -41,19 +41,19 @@ impl<'a> QueryMatcher<'a> {
     pub fn new(query: &'a Query) -> Self {
         QueryMatcher { query }
     }
-    
+
     /// Match all patterns in the query against a parse tree
     pub fn matches(&self, root: &ParseNode) -> Vec<QueryMatch> {
         let mut matches = Vec::new();
-        
+
         // Try each pattern
         for (pattern_index, pattern) in self.query.patterns.iter().enumerate() {
             self.match_pattern(pattern_index, pattern, root, &mut matches);
         }
-        
+
         matches
     }
-    
+
     /// Match a single pattern against the tree
     fn match_pattern(
         &self,
@@ -65,7 +65,7 @@ impl<'a> QueryMatcher<'a> {
         // Walk the tree and try to match at each node
         self.match_pattern_at_node(pattern_index, pattern, root, matches);
     }
-    
+
     /// Try to match pattern starting at a specific node
     fn match_pattern_at_node(
         &self,
@@ -79,47 +79,43 @@ impl<'a> QueryMatcher<'a> {
             captures: HashMap::new(),
             success: false,
         };
-        
+
         if self.match_node(&pattern.root, node, &mut state) {
             // Check predicates
             if self.check_predicates(&pattern.predicates, &state.captures) {
                 // Create match
-                let mut captures: Vec<_> = state.captures
+                let mut captures: Vec<_> = state
+                    .captures
                     .into_iter()
                     .map(|(index, node)| QueryCapture { index, node })
                     .collect();
                 captures.sort_by_key(|c| c.index);
-                
+
                 matches.push(QueryMatch {
                     pattern_index,
                     captures,
                 });
             }
         }
-        
+
         // Recursively try to match in children
         for child in &node.children {
             self.match_pattern_at_node(pattern_index, pattern, child, matches);
         }
     }
-    
+
     /// Match a pattern node against a parse node
-    fn match_node(
-        &self,
-        pattern: &PatternNode,
-        node: &ParseNode,
-        state: &mut MatchState,
-    ) -> bool {
+    fn match_node(&self, pattern: &PatternNode, node: &ParseNode, state: &mut MatchState) -> bool {
         // Check symbol match
         if pattern.symbol != node.symbol {
             return false;
         }
-        
+
         // Capture if needed
         if let Some(capture_id) = pattern.capture {
             state.captures.insert(capture_id, node.clone());
         }
-        
+
         // Match children based on quantifier
         match pattern.quantifier {
             Quantifier::One => self.match_children_one(pattern, node, state),
@@ -128,7 +124,7 @@ impl<'a> QueryMatcher<'a> {
             Quantifier::Star => self.match_children_star(pattern, node, state),
         }
     }
-    
+
     /// Match children with One quantifier
     fn match_children_one(
         &self,
@@ -139,9 +135,11 @@ impl<'a> QueryMatcher<'a> {
         // Check field assertions
         for (field_name, field_pattern) in &pattern.fields {
             // Find child with this field name
-            let field_node = node.children.iter()
+            let field_node = node
+                .children
+                .iter()
                 .find(|child| child.field_name.as_ref() == Some(field_name));
-            
+
             if let Some(field_node) = field_node {
                 if !self.match_node(field_pattern, field_node, state) {
                     return false;
@@ -150,15 +148,15 @@ impl<'a> QueryMatcher<'a> {
                 return false; // Required field not found
             }
         }
-        
+
         // If pattern has explicit children, match them
         if !pattern.children.is_empty() {
             return self.match_child_sequence(&pattern.children, &node.children, 0, 0, state);
         }
-        
+
         true
     }
-    
+
     /// Match children with Optional quantifier
     fn match_children_optional(
         &self,
@@ -170,7 +168,7 @@ impl<'a> QueryMatcher<'a> {
         self.match_children_one(pattern, node, state);
         true
     }
-    
+
     /// Match children with Plus quantifier
     fn match_children_plus(
         &self,
@@ -182,11 +180,11 @@ impl<'a> QueryMatcher<'a> {
         if !self.match_children_one(pattern, node, state) {
             return false;
         }
-        
+
         // Try to match more (simplified - in reality would need backtracking)
         true
     }
-    
+
     /// Match children with Star quantifier
     fn match_children_star(
         &self,
@@ -198,7 +196,7 @@ impl<'a> QueryMatcher<'a> {
         self.match_children_plus(pattern, node, state);
         true
     }
-    
+
     /// Match a sequence of child patterns
     fn match_child_sequence(
         &self,
@@ -212,21 +210,22 @@ impl<'a> QueryMatcher<'a> {
         if pattern_idx >= patterns.len() {
             return node_idx >= nodes.len(); // All nodes must be consumed
         }
-        
+
         // Base case: no more nodes but patterns remain
         if node_idx >= nodes.len() {
             // Check if remaining patterns are all optional
             for i in pattern_idx..patterns.len() {
                 if let PatternChild::Node(ref pattern_node) = patterns[i] {
-                    if pattern_node.quantifier != Quantifier::Optional &&
-                       pattern_node.quantifier != Quantifier::Star {
+                    if pattern_node.quantifier != Quantifier::Optional
+                        && pattern_node.quantifier != Quantifier::Star
+                    {
                         return false;
                     }
                 }
             }
             return true;
         }
-        
+
         match &patterns[pattern_idx] {
             PatternChild::Token(_expected_text) => {
                 // Match anonymous token
@@ -247,7 +246,7 @@ impl<'a> QueryMatcher<'a> {
             }
         }
     }
-    
+
     /// Check if predicates are satisfied
     fn check_predicates(
         &self,
@@ -261,21 +260,21 @@ impl<'a> QueryMatcher<'a> {
         }
         true
     }
-    
+
     /// Check a single predicate
-    fn check_predicate(
-        &self,
-        predicate: &Predicate,
-        captures: &HashMap<u32, ParseNode>,
-    ) -> bool {
+    fn check_predicate(&self, predicate: &Predicate, captures: &HashMap<u32, ParseNode>) -> bool {
         match predicate {
-            Predicate::Eq { capture1, capture2, value } => {
+            Predicate::Eq {
+                capture1,
+                capture2,
+                value,
+            } => {
                 if let Some(node1) = captures.get(capture1) {
                     if let Some(capture2) = capture2 {
                         if let Some(node2) = captures.get(capture2) {
                             // Compare node texts (simplified)
-                            return node1.start_byte == node2.start_byte &&
-                                   node1.end_byte == node2.end_byte;
+                            return node1.start_byte == node2.start_byte
+                                && node1.end_byte == node2.end_byte;
                         }
                     } else if let Some(_value) = value {
                         // Compare node text with value
@@ -285,29 +284,32 @@ impl<'a> QueryMatcher<'a> {
                 }
                 false
             }
-            Predicate::NotEq { capture1, capture2, value } => {
-                !self.check_predicate(
-                    &Predicate::Eq {
-                        capture1: *capture1,
-                        capture2: *capture2,
-                        value: value.clone(),
-                    },
-                    captures,
-                )
-            }
-            Predicate::Match { capture: _, regex: _ } => {
+            Predicate::NotEq {
+                capture1,
+                capture2,
+                value,
+            } => !self.check_predicate(
+                &Predicate::Eq {
+                    capture1: *capture1,
+                    capture2: *capture2,
+                    value: value.clone(),
+                },
+                captures,
+            ),
+            Predicate::Match {
+                capture: _,
+                regex: _,
+            } => {
                 // In real implementation, would compile regex and match
                 true
             }
-            Predicate::NotMatch { capture, regex } => {
-                !self.check_predicate(
-                    &Predicate::Match {
-                        capture: *capture,
-                        regex: regex.clone(),
-                    },
-                    captures,
-                )
-            }
+            Predicate::NotMatch { capture, regex } => !self.check_predicate(
+                &Predicate::Match {
+                    capture: *capture,
+                    regex: regex.clone(),
+                },
+                captures,
+            ),
             _ => {
                 // Other predicates not implemented yet
                 true
@@ -339,16 +341,16 @@ impl<'a> QueryMatches<'a> {
 
 impl<'a> Iterator for QueryMatches<'a> {
     type Item = QueryMatch;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;
         }
-        
+
         // Get all matches (simplified - real implementation would be incremental)
         let matches = self.matcher.matches(self.root);
         self.done = true;
-        
+
         matches.into_iter().next()
     }
 }

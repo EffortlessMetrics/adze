@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rust_sitter_common::*;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use syn::{parse::Parse, punctuated::Punctuated, *};
 
 fn gen_field(
@@ -11,7 +11,6 @@ fn gen_field(
     word_rule: &mut Option<String>,
     out: &mut Map<String, Value>,
 ) -> (Value, bool) {
-    
     let leaf_attr = leaf_attrs
         .iter()
         .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
@@ -37,7 +36,6 @@ fn gen_field(
             .find(|param| param.path == "pattern")
             .map(|p| p.expr.clone())
     });
-    
 
     let text_param = leaf_params.as_ref().and_then(|p| {
         p.iter()
@@ -51,16 +49,18 @@ fn gen_field(
 
     let (inner_type_vec, is_vec) = try_extract_inner_type(&leaf_type, "Vec", &skip_over);
     let (inner_type_option, is_option) = try_extract_inner_type(&leaf_type, "Option", &skip_over);
-    
 
     if !is_vec && !is_option {
         if let Some(Expr::Lit(lit)) = pattern_param {
             if let Lit::Str(s) = &lit.lit {
                 // Validate that the pattern is not empty
                 if s.value().is_empty() {
-                    panic!("Empty patterns are not supported. Token '{}' has an empty pattern value.", path);
+                    panic!(
+                        "Empty patterns are not supported. Token '{}' has an empty pattern value.",
+                        path
+                    );
                 }
-                
+
                 out.insert(
                     path.clone(),
                     json!({
@@ -83,7 +83,7 @@ fn gen_field(
             if let Lit::Str(s) = &lit.lit {
                 // Allow empty strings for now - they may be used in some grammars
                 // to avoid the EmptyString error
-                
+
                 out.insert(
                     path.clone(),
                     json!({
@@ -135,7 +135,7 @@ fn gen_field(
             // This is the initial call - we'll generate a _vec_contents rule
             path.clone()
         };
-        
+
         let (field_json, field_optional) = gen_field(
             element_path,
             inner_type_vec,
@@ -273,29 +273,44 @@ fn gen_struct_or_variant(
     out: &mut Map<String, Value>,
     word_rule: &mut Option<String>,
 ) -> Option<Value> {
-    
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
     if let Fields::Unnamed(fields_unnamed) = &fields {
         if fields_unnamed.unnamed.len() == 1 {
             let field = &fields_unnamed.unnamed[0];
-            if let Some(leaf_attrs) = field.attrs.iter().find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf)) {
+            if let Some(leaf_attrs) = field
+                .attrs
+                .iter()
+                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf))
+            {
                 // This is a single-leaf variant - return the token directly
-                let params = leaf_attrs.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated).ok();
+                let params = leaf_attrs
+                    .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+                    .ok();
                 if let Some(params) = params {
-                    if let Some(pattern) = params.iter()
+                    if let Some(pattern) = params
+                        .iter()
                         .find(|param| param.path == "pattern")
-                        .map(|p| p.expr.clone()) {
-                        if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = pattern {
+                        .map(|p| p.expr.clone())
+                    {
+                        if let Expr::Lit(ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = pattern
+                        {
                             // Return a PATTERN rule directly
                             return Some(json!({
                                 "type": "PATTERN",
                                 "value": s.value(),
                             }));
                         }
-                    } else if let Some(text) = params.iter()
+                    } else if let Some(text) = params
+                        .iter()
                         .find(|param| param.path == "text")
-                        .map(|p| p.expr.clone()) {
-                        if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = text {
+                        .map(|p| p.expr.clone())
+                    {
+                        if let Expr::Lit(ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = text
+                        {
                             // Return a STRING rule directly
                             return Some(json!({
                                 "type": "STRING",
@@ -307,7 +322,7 @@ fn gen_struct_or_variant(
             }
         }
     }
-    
+
     fn gen_field_optional(
         path: &str,
         field: &Field,
@@ -356,13 +371,12 @@ fn gen_struct_or_variant(
                 None
             } else {
                 // Check for #[rust_sitter::field("name")] attribute
-                let field_name = field.attrs.iter()
+                let field_name = field
+                    .attrs
+                    .iter()
                     .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::field))
-                    .and_then(|attr| {
-                        attr.parse_args::<syn::LitStr>().ok()
-                            .map(|lit| lit.value())
-                    });
-                
+                    .and_then(|attr| attr.parse_args::<syn::LitStr>().ok().map(|lit| lit.value()));
+
                 let ident_str = field_name.unwrap_or_else(|| {
                     field
                         .ident
@@ -473,7 +487,7 @@ fn gen_struct_or_variant(
     };
 
     out.insert(path, rule);
-    None  // Return None for non-single-leaf variants
+    None // Return None for non-single-leaf variants
 }
 
 pub fn generate_grammar(module: &ItemMod) -> Value {
@@ -527,10 +541,13 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
         .to_string();
 
     // Insert source_file rule that references the root type
-    rules_map.insert("source_file".to_string(), json!({
-        "type": "SYMBOL",
-        "name": root_type.to_string()
-    }));
+    rules_map.insert(
+        "source_file".to_string(),
+        json!({
+            "type": "SYMBOL",
+            "name": root_type.to_string()
+        }),
+    );
 
     // Optionally locate the rule annotated with `#[rust_sitter::word]`.
     let mut word_rule = None;
@@ -538,10 +555,10 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
         let (symbol, attrs) = match c {
             Item::Enum(e) => {
                 let mut members: Vec<Value> = vec![];
-                
+
                 e.variants.iter().for_each(|v| {
                     let variant_path = format!("{}_{}", e.ident, v.ident);
-                    
+
                     // Try to inline single-leaf variants
                     if let Some(inlined_rule) = gen_struct_or_variant(
                         variant_path.clone(),
@@ -573,27 +590,30 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
             Item::Struct(s) => {
                 // Check if this is an external token first
-                let is_external = s.attrs
+                let is_external = s
+                    .attrs
                     .iter()
                     .any(|a| a.path() == &syn::parse_quote!(rust_sitter::external));
-                
+
                 // Check if this is an extra token
-                let is_extra = s.attrs
+                let is_extra = s
+                    .attrs
                     .iter()
                     .any(|a| a.path() == &syn::parse_quote!(rust_sitter::extra));
-                
+
                 // Check if this is the word token
-                let is_word = s.attrs
+                let is_word = s
+                    .attrs
                     .iter()
                     .any(|a| a.path() == &syn::parse_quote!(rust_sitter::word));
-                
+
                 if is_word {
                     if word_rule.is_some() {
                         panic!("Multiple `word` rules specified");
                     }
                     word_rule = Some(s.ident.to_string());
                 }
-                
+
                 // Generate rules for non-external structs AND extra structs (even if they're not referenced)
                 if !is_external || is_extra {
                     let _ = gen_struct_or_variant(
@@ -645,10 +665,10 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
     // Only include externals if there are any
     if !externals_list.is_empty() {
-        grammar.as_object_mut().unwrap().insert(
-            "externals".to_string(),
-            json!(externals_list)
-        );
+        grammar
+            .as_object_mut()
+            .unwrap()
+            .insert("externals".to_string(), json!(externals_list));
     }
 
     grammar

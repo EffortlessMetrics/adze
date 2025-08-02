@@ -57,43 +57,57 @@ impl<'a> NodeTypesGenerator<'a> {
     pub fn generate(&self) -> Result<String, String> {
         let mut node_types = Vec::new();
         let mut symbol_names: HashMap<_, _> = HashMap::new();
-        
-        eprintln!("Debug: NodeTypesGenerator - grammar has {} rules", self.grammar.rules.len());
-        
+
+        eprintln!(
+            "Debug: NodeTypesGenerator - grammar has {} rules",
+            self.grammar.rules.len()
+        );
+
         // First, collect all symbol names
         for (symbol_id, _rule) in &self.grammar.rules {
             if let Some(rule_name) = self.get_rule_name(*symbol_id) {
-                eprintln!("Debug: Adding rule name '{}' for symbol {}", rule_name, symbol_id.0);
+                eprintln!(
+                    "Debug: Adding rule name '{}' for symbol {}",
+                    rule_name, symbol_id.0
+                );
                 symbol_names.insert(*symbol_id, rule_name);
             }
         }
-        
+
         // Add token names
         for (symbol_id, token) in &self.grammar.tokens {
             symbol_names.insert(*symbol_id, token.name.clone());
         }
-        
+
         // Process rules to create node types
         let mut processed = HashSet::new();
-        
-        eprintln!("Debug: Processing {} rules for node types", self.grammar.rules.len());
-        
+
+        eprintln!(
+            "Debug: Processing {} rules for node types",
+            self.grammar.rules.len()
+        );
+
         // Find supertypes (rules that have other rules as alternatives)
-        let _supertypes: HashMap<rust_sitter_ir::SymbolId, Vec<rust_sitter_ir::SymbolId>> = HashMap::new();
-        
+        let _supertypes: HashMap<rust_sitter_ir::SymbolId, Vec<rust_sitter_ir::SymbolId>> =
+            HashMap::new();
+
         // Analyze rule relationships to find choice patterns
         for (symbol_id, rules) in &self.grammar.rules {
             if processed.contains(symbol_id) {
                 continue;
             }
-            
-            eprintln!("Debug: Processing symbol {} with {} rules", symbol_id.0, rules.len());
-            
+
+            eprintln!(
+                "Debug: Processing symbol {} with {} rules",
+                symbol_id.0,
+                rules.len()
+            );
+
             // Get the rule name
             if let Some(name) = self.get_rule_name(*symbol_id) {
                 // Skip internal rules (starting with _)
                 let is_internal = name.starts_with('_');
-                
+
                 // Collect fields from all rules for this symbol
                 let mut fields = HashMap::new();
                 for rule in rules {
@@ -101,38 +115,45 @@ impl<'a> NodeTypesGenerator<'a> {
                         if let Some(field_name) = self.grammar.fields.get(field_id) {
                             if let Some(symbol) = rule.rhs.get(*position) {
                                 let type_ref = self.symbol_to_type_ref(symbol, &symbol_names);
-                                fields.insert(field_name.clone(), FieldInfo {
-                                    multiple: false, // TODO: Detect repetition
-                                    required: true,  // TODO: Detect optionality
-                                    types: vec![type_ref],
-                                });
+                                fields.insert(
+                                    field_name.clone(),
+                                    FieldInfo {
+                                        multiple: false, // TODO: Detect repetition
+                                        required: true,  // TODO: Detect optionality
+                                        types: vec![type_ref],
+                                    },
+                                );
                             }
                         }
                     }
                 }
-                
+
                 // Add the node type if it's not internal
                 if !is_internal {
                     node_types.push(NodeType {
                         type_name: name.clone(),
                         named: true,
-                        fields: if fields.is_empty() { None } else { Some(fields) },
+                        fields: if fields.is_empty() {
+                            None
+                        } else {
+                            Some(fields)
+                        },
                         children: None,
                         subtypes: None,
                     });
                 }
             }
-            
+
             processed.insert(*symbol_id);
         }
-        
+
         // Add tokens as unnamed nodes
         for (_, token) in &self.grammar.tokens {
             let (type_name, named) = match &token.pattern {
                 TokenPattern::String(s) => (s.clone(), false),
                 TokenPattern::Regex(_) => (token.name.clone(), true),
             };
-            
+
             if !named {
                 node_types.push(NodeType {
                     type_name,
@@ -143,31 +164,35 @@ impl<'a> NodeTypesGenerator<'a> {
                 });
             }
         }
-        
+
         // Sort for consistent output
         node_types.sort_by(|a, b| a.type_name.cmp(&b.type_name));
-        
+
         // Serialize to JSON
         serde_json::to_string_pretty(&node_types)
             .map_err(|e| format!("Failed to serialize NODE_TYPES: {}", e))
     }
-    
+
     fn get_rule_name(&self, symbol_id: rust_sitter_ir::SymbolId) -> Option<String> {
         // Check if this is a token first
         if let Some(token) = self.grammar.tokens.get(&symbol_id) {
             return Some(token.name.clone());
         }
-        
+
         // Look up rule name
         if let Some(rule_name) = self.grammar.rule_names.get(&symbol_id) {
             return Some(rule_name.clone());
         }
-        
+
         // Fallback
         Some(format!("rule_{}", symbol_id.0))
     }
-    
-    fn symbol_to_type_ref(&self, symbol: &Symbol, symbol_names: &HashMap<rust_sitter_ir::SymbolId, String>) -> TypeRef {
+
+    fn symbol_to_type_ref(
+        &self,
+        symbol: &Symbol,
+        symbol_names: &HashMap<rust_sitter_ir::SymbolId, String>,
+    ) -> TypeRef {
         match symbol {
             Symbol::Terminal(id) => {
                 if let Some(token) = self.grammar.tokens.get(id) {
@@ -188,18 +213,17 @@ impl<'a> NodeTypesGenerator<'a> {
                     }
                 }
             }
-            Symbol::NonTerminal(id) => {
-                TypeRef {
-                    type_name: symbol_names.get(id).cloned().unwrap_or_else(|| "unknown".to_string()),
-                    named: true,
-                }
-            }
-            Symbol::External(_) => {
-                TypeRef {
-                    type_name: "external".to_string(),
-                    named: true,
-                }
-            }
+            Symbol::NonTerminal(id) => TypeRef {
+                type_name: symbol_names
+                    .get(id)
+                    .cloned()
+                    .unwrap_or_else(|| "unknown".to_string()),
+                named: true,
+            },
+            Symbol::External(_) => TypeRef {
+                type_name: "external".to_string(),
+                named: true,
+            },
             Symbol::Optional(inner) => self.symbol_to_type_ref(inner, symbol_names),
             Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
                 let inner_ref = self.symbol_to_type_ref(inner, symbol_names);
@@ -230,12 +254,10 @@ impl<'a> NodeTypesGenerator<'a> {
                     }
                 }
             }
-            Symbol::Epsilon => {
-                TypeRef {
-                    type_name: "empty".to_string(),
-                    named: false,
-                }
-            }
+            Symbol::Epsilon => TypeRef {
+                type_name: "empty".to_string(),
+                named: false,
+            },
         }
     }
 }
@@ -244,11 +266,11 @@ impl<'a> NodeTypesGenerator<'a> {
 mod tests {
     use super::*;
     use rust_sitter_ir::{ProductionId, Rule, SymbolId, Token};
-    
+
     #[test]
     fn test_simple_node_types() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add a number token
         let number_token = Token {
             name: "number".to_string(),
@@ -257,7 +279,7 @@ mod tests {
         };
         let number_token_id = SymbolId(0);
         grammar.tokens.insert(number_token_id, number_token);
-        
+
         // Add a simple rule
         let rule = Rule {
             lhs: SymbolId(1),
@@ -268,10 +290,10 @@ mod tests {
             production_id: ProductionId(0),
         };
         grammar.add_rule(rule);
-        
+
         let generator = NodeTypesGenerator::new(&grammar);
         let result = generator.generate().unwrap();
-        
+
         let node_types: Vec<NodeType> = serde_json::from_str(&result).unwrap();
         assert!(!node_types.is_empty());
     }

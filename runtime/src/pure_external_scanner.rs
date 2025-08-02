@@ -1,6 +1,6 @@
 // External scanner support for pure-Rust parser
-use std::ffi::c_void;
 use std::collections::HashMap;
+use std::ffi::c_void;
 
 /// External scanner state
 pub const MAX_EXTERNAL_SCANNER_STATE_LENGTH: usize = 32;
@@ -9,12 +9,12 @@ pub const MAX_EXTERNAL_SCANNER_STATE_LENGTH: usize = 32;
 pub trait ExternalScanner: Send + Sync {
     /// Scan for a token
     fn scan(&mut self, lexer: &mut Lexer, valid_symbols: &[bool]) -> bool;
-    
+
     /// Serialize scanner state
     fn serialize(&self, _buffer: &mut [u8]) -> usize {
         0 // Default: no state
     }
-    
+
     /// Deserialize scanner state
     fn deserialize(&mut self, _buffer: &[u8]) {
         // Default: ignore state
@@ -39,23 +39,23 @@ impl<'a> Lexer<'a> {
             result_symbol: 0,
         }
     }
-    
+
     /// Advance the lexer by one character
     pub fn advance(&mut self, skip: bool) -> Option<u8> {
         if self.position < self.input.len() {
             let ch = self.input[self.position];
             self.position += 1;
-            
+
             if !skip {
                 self.token_end = self.position;
             }
-            
+
             Some(ch)
         } else {
             None
         }
     }
-    
+
     /// Skip whitespace
     pub fn skip_whitespace(&mut self) {
         while self.position < self.input.len() {
@@ -68,12 +68,12 @@ impl<'a> Lexer<'a> {
         }
         self.token_end = self.position;
     }
-    
+
     /// Mark the end of a token
     pub fn mark_end(&mut self) {
         self.token_end = self.position;
     }
-    
+
     /// Get the current column
     pub fn get_column(&self) -> usize {
         // Count from last newline
@@ -86,12 +86,12 @@ impl<'a> Lexer<'a> {
         }
         column
     }
-    
+
     /// Check if at end of input
     pub fn eof(&self) -> bool {
         self.position >= self.input.len()
     }
-    
+
     /// Peek at the next character
     pub fn lookahead(&self) -> Option<u8> {
         if self.position < self.input.len() {
@@ -100,12 +100,12 @@ impl<'a> Lexer<'a> {
             None
         }
     }
-    
+
     /// Set the result symbol
     pub fn result(&mut self, symbol: u16) {
         self.result_symbol = symbol;
     }
-    
+
     /// Get the token length
     pub fn token_length(&self) -> usize {
         self.token_end - (self.position - self.token_end)
@@ -124,17 +124,17 @@ impl ExternalScannerRegistry {
             scanners: HashMap::new(),
         }
     }
-    
+
     /// Register an external scanner
     pub fn register(&mut self, name: String, scanner: Box<dyn ExternalScanner>) {
         self.scanners.insert(name, scanner);
     }
-    
+
     /// Get a scanner by name
     pub fn get(&self, name: &str) -> Option<&dyn ExternalScanner> {
         self.scanners.get(name).map(|s| s.as_ref())
     }
-    
+
     /// Get a mutable scanner by name
     pub fn get_mut(&mut self, name: &str) -> Option<&mut (dyn ExternalScanner + 'static)> {
         self.scanners.get_mut(name).map(|s| s.as_mut())
@@ -145,13 +145,13 @@ impl ExternalScannerRegistry {
 pub mod ffi {
     use super::*;
     use std::slice;
-    
+
     /// Create a scanner instance
     pub unsafe extern "C" fn external_scanner_create() -> *mut c_void {
         let registry = Box::new(ExternalScannerRegistry::new());
         Box::into_raw(registry) as *mut c_void
     }
-    
+
     /// Destroy a scanner instance
     pub unsafe extern "C" fn external_scanner_destroy(scanner: *mut c_void) {
         if !scanner.is_null() {
@@ -160,7 +160,7 @@ pub mod ffi {
             }
         }
     }
-    
+
     /// Scan for a token
     pub unsafe extern "C" fn external_scanner_scan(
         scanner: *mut c_void,
@@ -171,18 +171,19 @@ pub mod ffi {
         if scanner.is_null() || lexer.is_null() || valid_symbols.is_null() {
             return false;
         }
-        
+
         let _registry = unsafe { &mut *(scanner as *mut ExternalScannerRegistry) };
-        let _valid_symbols = unsafe { slice::from_raw_parts(valid_symbols, valid_symbol_count as usize) };
-        
+        let _valid_symbols =
+            unsafe { slice::from_raw_parts(valid_symbols, valid_symbol_count as usize) };
+
         // In a real implementation, this would:
         // 1. Cast lexer to the appropriate type
         // 2. Call the appropriate scanner based on valid_symbols
         // 3. Return whether a token was found
-        
+
         false
     }
-    
+
     /// Serialize scanner state
     pub unsafe extern "C" fn external_scanner_serialize(
         scanner: *mut c_void,
@@ -192,14 +193,14 @@ pub mod ffi {
         if scanner.is_null() || buffer.is_null() {
             return 0;
         }
-        
+
         let _registry = unsafe { &*(scanner as *mut ExternalScannerRegistry) };
         let _buffer = unsafe { slice::from_raw_parts_mut(buffer, buffer_size as usize) };
-        
+
         // In a real implementation, serialize the current scanner state
         0
     }
-    
+
     /// Deserialize scanner state
     pub unsafe extern "C" fn external_scanner_deserialize(
         scanner: *mut c_void,
@@ -209,10 +210,10 @@ pub mod ffi {
         if scanner.is_null() || buffer.is_null() {
             return;
         }
-        
+
         let _registry = unsafe { &mut *(scanner as *mut ExternalScannerRegistry) };
         let _buffer = unsafe { slice::from_raw_parts(buffer, length as usize) };
-        
+
         // In a real implementation, deserialize the scanner state
     }
 }
@@ -234,7 +235,7 @@ impl ExternalScanner for StringScanner {
         const STRING_START: usize = 0;
         const STRING_CONTENT: usize = 1;
         const STRING_END: usize = 2;
-        
+
         if valid_symbols.get(STRING_START).copied().unwrap_or(false) {
             // Look for triple quotes
             if lexer.lookahead() == Some(b'"') {
@@ -251,13 +252,13 @@ impl ExternalScanner for StringScanner {
                 }
             }
         }
-        
+
         if valid_symbols.get(STRING_END).copied().unwrap_or(false) {
             if let Some(delim) = &self.delimiter {
                 // Look for matching delimiter
                 let delim_bytes = delim.as_bytes();
                 let mut matched = true;
-                
+
                 for &b in delim_bytes {
                     if lexer.lookahead() != Some(b) {
                         matched = false;
@@ -265,7 +266,7 @@ impl ExternalScanner for StringScanner {
                     }
                     lexer.advance(false);
                 }
-                
+
                 if matched {
                     lexer.mark_end();
                     lexer.result(STRING_END as u16);
@@ -274,7 +275,7 @@ impl ExternalScanner for StringScanner {
                 }
             }
         }
-        
+
         if valid_symbols.get(STRING_CONTENT).copied().unwrap_or(false) {
             if self.delimiter.is_some() {
                 // Consume content until delimiter
@@ -285,17 +286,17 @@ impl ExternalScanner for StringScanner {
                     }
                     lexer.advance(false);
                 }
-                
+
                 if lexer.token_length() > 0 {
                     lexer.result(STRING_CONTENT as u16);
                     return true;
                 }
             }
         }
-        
+
         false
     }
-    
+
     fn serialize(&self, buffer: &mut [u8]) -> usize {
         if let Some(delim) = &self.delimiter {
             let bytes = delim.as_bytes();
@@ -306,7 +307,7 @@ impl ExternalScanner for StringScanner {
             0
         }
     }
-    
+
     fn deserialize(&mut self, buffer: &[u8]) {
         if !buffer.is_empty() {
             self.delimiter = Some(String::from_utf8_lossy(buffer).to_string());
@@ -319,39 +320,39 @@ impl ExternalScanner for StringScanner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_lexer_advance() {
         let input = b"hello world";
         let mut lexer = Lexer::new(input, 0);
-        
+
         assert_eq!(lexer.advance(false), Some(b'h'));
         assert_eq!(lexer.advance(false), Some(b'e'));
         assert_eq!(lexer.position, 2);
         assert_eq!(lexer.token_end, 2);
     }
-    
+
     #[test]
     fn test_lexer_skip() {
         let input = b"  \t\nhello";
         let mut lexer = Lexer::new(input, 0);
-        
+
         lexer.skip_whitespace();
         assert_eq!(lexer.position, 4);
         assert_eq!(lexer.lookahead(), Some(b'h'));
     }
-    
+
     #[test]
     fn test_string_scanner() {
         let mut scanner = StringScanner::new();
         let input = b"\"\"\"hello world\"\"\"";
         let mut lexer = Lexer::new(input, 0);
-        
+
         // Test scanning start
         let valid_symbols = vec![true, false, false]; // STRING_START
         assert!(scanner.scan(&mut lexer, &valid_symbols));
         assert_eq!(lexer.result_symbol, 0);
-        
+
         // Test serialization
         let mut buffer = vec![0u8; 32];
         let len = scanner.serialize(&mut buffer);

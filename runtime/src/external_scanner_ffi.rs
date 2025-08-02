@@ -14,24 +14,14 @@ pub type CreateFn = extern "C" fn() -> *mut c_void;
 pub type DestroyFn = extern "C" fn(payload: *mut c_void);
 
 /// Scan for external tokens
-pub type ScanFn = extern "C" fn(
-    payload: *mut c_void,
-    lexer: *mut TSLexer,
-    valid_symbols: *const bool,
-) -> bool;
+pub type ScanFn =
+    extern "C" fn(payload: *mut c_void, lexer: *mut TSLexer, valid_symbols: *const bool) -> bool;
 
 /// Serialize scanner state
-pub type SerializeFn = extern "C" fn(
-    payload: *mut c_void,
-    buffer: *mut c_char,
-) -> c_uint;
+pub type SerializeFn = extern "C" fn(payload: *mut c_void, buffer: *mut c_char) -> c_uint;
 
 /// Deserialize scanner state
-pub type DeserializeFn = extern "C" fn(
-    payload: *mut c_void,
-    buffer: *const c_char,
-    length: c_uint,
-);
+pub type DeserializeFn = extern "C" fn(payload: *mut c_void, buffer: *const c_char, length: c_uint);
 
 /// Tree-sitter lexer interface (matches C struct)
 #[repr(C)]
@@ -91,11 +81,11 @@ impl CExternalScanner {
     pub unsafe fn new(data: &TSExternalScannerData) -> Option<Self> {
         let create = data.create?;
         let payload = create();
-        
+
         if payload.is_null() {
             return None;
         }
-        
+
         Some(CExternalScanner {
             payload,
             destroy: data.destroy,
@@ -104,7 +94,7 @@ impl CExternalScanner {
             deserialize: data.deserialize,
         })
     }
-    
+
     /// Scan for external tokens
     pub unsafe fn scan(&mut self, lexer: &mut TSLexer, valid_symbols: &[bool]) -> bool {
         if let Some(scan_fn) = self.scan {
@@ -113,16 +103,16 @@ impl CExternalScanner {
             false
         }
     }
-    
+
     /// Serialize scanner state
     pub unsafe fn serialize(&self, buffer: &mut Vec<u8>) -> usize {
         if let Some(serialize_fn) = self.serialize {
             // Tree-sitter uses a fixed buffer size of 1024
             const BUFFER_SIZE: usize = 1024;
             let mut temp_buffer = vec![0u8; BUFFER_SIZE];
-            
+
             let bytes_written = serialize_fn(self.payload, temp_buffer.as_mut_ptr() as *mut c_char);
-            
+
             let bytes_written = bytes_written as usize;
             if bytes_written > 0 && bytes_written <= BUFFER_SIZE {
                 buffer.extend_from_slice(&temp_buffer[..bytes_written]);
@@ -134,7 +124,7 @@ impl CExternalScanner {
             0
         }
     }
-    
+
     /// Deserialize scanner state
     pub unsafe fn deserialize(&mut self, buffer: &[u8]) {
         if let Some(deserialize_fn) = self.deserialize {
@@ -175,7 +165,7 @@ impl<'a> RustLexerAdapter<'a> {
             result_symbol: 0,
         }
     }
-    
+
     /// Create a C-compatible TSLexer
     pub fn as_ts_lexer(&mut self) -> TSLexer {
         TSLexer {
@@ -188,7 +178,7 @@ impl<'a> RustLexerAdapter<'a> {
             result_symbol: self.result_symbol,
         }
     }
-    
+
     /// Get the consumed token length
     pub fn token_length(&self) -> usize {
         self.token_end - self.position
@@ -200,7 +190,7 @@ extern "C" fn rust_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
     unsafe {
         let adapter = lexer as *mut RustLexerAdapter;
         let adapter = &*adapter;
-        
+
         if adapter.position < adapter.input.len() {
             adapter.input[adapter.position] as u32
         } else {
@@ -213,7 +203,7 @@ extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
     unsafe {
         let adapter = lexer as *mut RustLexerAdapter;
         let adapter = &mut *adapter;
-        
+
         if adapter.position < adapter.input.len() {
             adapter.position += 1;
             if adapter.token_end < adapter.position {
@@ -251,24 +241,24 @@ extern "C" fn rust_lexer_eof(lexer: *const TSLexer) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_rust_lexer_adapter() {
         let input = b"hello world";
         let mut adapter = RustLexerAdapter::new(input, 0);
-        
+
         // Test lookahead directly on adapter
         assert_eq!(adapter.position, 0);
         assert_eq!(adapter.input[adapter.position], b'h');
-        
+
         // Test advance
         adapter.position += 1;
         adapter.token_end = adapter.position;
         assert_eq!(adapter.input[adapter.position], b'e');
-        
+
         // Test EOF
         assert!(adapter.position < adapter.input.len());
-        
+
         // The actual FFI interface would need proper pointer handling
         // which is complex to test in a unit test
     }

@@ -1,9 +1,9 @@
 // Code generation for LSP servers
 
-use rust_sitter_ir::Grammar;
 use crate::config::LspConfig;
 use crate::features::LspFeature;
 use anyhow::Result;
+use rust_sitter_ir::Grammar;
 
 pub struct LspCodeGenerator<'a> {
     grammar: &'a Grammar,
@@ -18,8 +18,9 @@ impl<'a> LspCodeGenerator<'a> {
     /// Generate the main server implementation
     pub fn generate_server(&self, features: &[Box<dyn LspFeature>]) -> Result<String> {
         let capabilities = self.generate_capabilities(features);
-        
-        Ok(format!(r#"// Generated LSP server for {}
+
+        Ok(format!(
+            r#"// Generated LSP server for {}
 use tower_lsp::{{jsonrpc::Result, lsp_types::*, Client, LanguageServer, LspService, Server}};
 use tokio::{{sync::Mutex, io::{{AsyncReadExt, AsyncWriteExt}}}};
 use std::sync::Arc;
@@ -129,15 +130,16 @@ impl LanguageServer for {} {{
             "use anyhow::Result;".to_string(),
             "use lsp_types::*;".to_string(),
         ];
-        
+
         let mut handlers = Vec::new();
-        
+
         for feature in features {
             imports.extend(feature.required_imports());
             handlers.push(feature.generate_handler());
         }
-        
-        Ok(format!(r#"// Generated handlers for LSP server
+
+        Ok(format!(
+            r#"// Generated handlers for LSP server
 {}
 
 {}
@@ -149,7 +151,8 @@ impl LanguageServer for {} {{
 
     /// Generate Cargo.toml
     pub fn generate_cargo_toml(&self) -> Result<String> {
-        Ok(format!(r#"[package]
+        Ok(format!(
+            r#"[package]
 name = "{}"
 version = "{}"
 edition = "2021"
@@ -179,7 +182,8 @@ path = "main.rs"
 
     /// Generate main.rs
     pub fn generate_main(&self) -> Result<String> {
-        Ok(format!(r#"// Generated main entry point for LSP server
+        Ok(format!(
+            r#"// Generated main entry point for LSP server
 mod server;
 mod handlers;
 
@@ -211,7 +215,7 @@ async fn main() {{
 
     fn generate_capabilities(&self, features: &[Box<dyn LspFeature>]) -> String {
         let mut capabilities = Vec::new();
-        
+
         // Merge capabilities from all features
         for feature in features {
             let caps = feature.capabilities();
@@ -225,7 +229,7 @@ async fn main() {{
                 }
             }
         }
-        
+
         capabilities.join("\n                ")
     }
 }
@@ -238,17 +242,16 @@ trait CaseConvert {
 impl CaseConvert for String {
     fn to_case(&self, case: convert_case::Case) -> String {
         match case {
-            convert_case::Case::Pascal => {
-                self.split('_')
-                    .map(|s| {
-                        let mut chars = s.chars();
-                        match chars.next() {
-                            None => String::new(),
-                            Some(first) => first.to_uppercase().chain(chars).collect(),
-                        }
-                    })
-                    .collect()
-            }
+            convert_case::Case::Pascal => self
+                .split('_')
+                .map(|s| {
+                    let mut chars = s.chars();
+                    match chars.next() {
+                        None => String::new(),
+                        Some(first) => first.to_uppercase().chain(chars).collect(),
+                    }
+                })
+                .collect(),
         }
     }
 }

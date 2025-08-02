@@ -55,27 +55,27 @@ impl Highlighter {
     /// Create a new highlighter from a query
     pub fn new(query: Query) -> Self {
         let mut highlight_map = HashMap::new();
-        
+
         // Map capture names to highlight names
         // By convention, captures are named after the highlight they produce
         for (name, &index) in &query.capture_names {
             highlight_map.insert(index, name.clone());
         }
-        
+
         Highlighter {
             query,
             highlight_map,
         }
     }
-    
+
     /// Highlight a parse tree
     pub fn highlight(&self, root: &ParseNode) -> Vec<Highlight> {
         let mut highlights = Vec::new();
         let mut cursor = QueryCursor::new();
-        
+
         // Execute query and collect matches
         let matches = cursor.collect_matches(&self.query, root);
-        
+
         // Convert matches to highlights
         for query_match in matches {
             for capture in query_match.captures {
@@ -88,25 +88,25 @@ impl Highlighter {
                 }
             }
         }
-        
+
         // Sort by start position
         highlights.sort_by_key(|h| (h.start_byte, h.end_byte));
-        
+
         // Remove overlapping highlights (keep the more specific one)
         self.remove_overlaps(&mut highlights);
-        
+
         highlights
     }
-    
+
     /// Remove overlapping highlights, keeping the more specific ones
     fn remove_overlaps(&self, highlights: &mut Vec<Highlight>) {
         if highlights.is_empty() {
             return;
         }
-        
+
         let mut result = Vec::new();
         let mut current = highlights[0].clone();
-        
+
         for highlight in highlights.iter().skip(1) {
             if highlight.start_byte >= current.end_byte {
                 // No overlap
@@ -116,7 +116,7 @@ impl Highlighter {
                 // highlight is contained within current
                 // Keep the more specific (smaller) highlight
                 result.push(highlight.clone());
-                
+
                 // Split current if needed
                 if highlight.start_byte > current.start_byte {
                     result.push(Highlight {
@@ -142,11 +142,11 @@ impl Highlighter {
                 current = highlight.clone();
             }
         }
-        
+
         if current.start_byte < current.end_byte {
             result.push(current);
         }
-        
+
         *highlights = result;
     }
 }
@@ -174,7 +174,7 @@ impl Color {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Color { r, g, b }
     }
-    
+
     /// Convert to hex string
     pub fn to_hex(&self) -> String {
         format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
@@ -185,31 +185,49 @@ impl Theme {
     /// Create a default dark theme
     pub fn dark() -> Self {
         let mut colors = HashMap::new();
-        
+
         // Dark theme colors
         colors.insert(capture_names::COMMENT.to_string(), Color::new(106, 153, 85));
         colors.insert(capture_names::STRING.to_string(), Color::new(206, 145, 120));
         colors.insert(capture_names::NUMBER.to_string(), Color::new(181, 206, 168));
-        colors.insert(capture_names::KEYWORD.to_string(), Color::new(197, 134, 192));
-        colors.insert(capture_names::FUNCTION.to_string(), Color::new(220, 220, 170));
-        colors.insert(capture_names::VARIABLE.to_string(), Color::new(156, 220, 254));
-        colors.insert(capture_names::CONSTANT.to_string(), Color::new(79, 193, 255));
+        colors.insert(
+            capture_names::KEYWORD.to_string(),
+            Color::new(197, 134, 192),
+        );
+        colors.insert(
+            capture_names::FUNCTION.to_string(),
+            Color::new(220, 220, 170),
+        );
+        colors.insert(
+            capture_names::VARIABLE.to_string(),
+            Color::new(156, 220, 254),
+        );
+        colors.insert(
+            capture_names::CONSTANT.to_string(),
+            Color::new(79, 193, 255),
+        );
         colors.insert(capture_names::TYPE.to_string(), Color::new(78, 201, 176));
-        colors.insert(capture_names::OPERATOR.to_string(), Color::new(212, 212, 212));
-        colors.insert(capture_names::PUNCTUATION_BRACKET.to_string(), Color::new(212, 212, 212));
+        colors.insert(
+            capture_names::OPERATOR.to_string(),
+            Color::new(212, 212, 212),
+        );
+        colors.insert(
+            capture_names::PUNCTUATION_BRACKET.to_string(),
+            Color::new(212, 212, 212),
+        );
         colors.insert(capture_names::ERROR.to_string(), Color::new(244, 71, 71));
-        
+
         Theme {
             colors,
             default_color: Color::new(212, 212, 212),
             background_color: Color::new(30, 30, 30),
         }
     }
-    
+
     /// Create a default light theme
     pub fn light() -> Self {
         let mut colors = HashMap::new();
-        
+
         // Light theme colors
         colors.insert(capture_names::COMMENT.to_string(), Color::new(0, 128, 0));
         colors.insert(capture_names::STRING.to_string(), Color::new(163, 21, 21));
@@ -217,22 +235,29 @@ impl Theme {
         colors.insert(capture_names::KEYWORD.to_string(), Color::new(0, 0, 255));
         colors.insert(capture_names::FUNCTION.to_string(), Color::new(121, 94, 38));
         colors.insert(capture_names::VARIABLE.to_string(), Color::new(0, 16, 128));
-        colors.insert(capture_names::CONSTANT.to_string(), Color::new(38, 127, 153));
+        colors.insert(
+            capture_names::CONSTANT.to_string(),
+            Color::new(38, 127, 153),
+        );
         colors.insert(capture_names::TYPE.to_string(), Color::new(38, 127, 153));
         colors.insert(capture_names::OPERATOR.to_string(), Color::new(0, 0, 0));
-        colors.insert(capture_names::PUNCTUATION_BRACKET.to_string(), Color::new(0, 0, 0));
+        colors.insert(
+            capture_names::PUNCTUATION_BRACKET.to_string(),
+            Color::new(0, 0, 0),
+        );
         colors.insert(capture_names::ERROR.to_string(), Color::new(255, 0, 0));
-        
+
         Theme {
             colors,
             default_color: Color::new(0, 0, 0),
             background_color: Color::new(255, 255, 255),
         }
     }
-    
+
     /// Get color for a highlight type
     pub fn get_color(&self, highlight: &str) -> Color {
-        self.colors.get(highlight)
+        self.colors
+            .get(highlight)
             .copied()
             .unwrap_or(self.default_color)
     }

@@ -6,13 +6,13 @@ use rust_sitter_ir::{Grammar, TokenPattern};
 pub trait LspFeature: Send + Sync {
     /// Get the name of this feature
     fn name(&self) -> &str;
-    
+
     /// Generate handler code for this feature
     fn generate_handler(&self) -> String;
-    
+
     /// Get required imports for this feature
     fn required_imports(&self) -> Vec<String>;
-    
+
     /// Get capabilities for this feature
     fn capabilities(&self) -> serde_json::Value;
 }
@@ -27,7 +27,7 @@ impl CompletionProvider {
     pub fn new(grammar: &Grammar) -> Self {
         let mut keywords = Vec::new();
         let mut symbols = Vec::new();
-        
+
         // Extract keywords from tokens
         for (_id, token) in &grammar.tokens {
             match &token.pattern {
@@ -39,12 +39,12 @@ impl CompletionProvider {
                 _ => {}
             }
         }
-        
+
         // Extract symbols from rule names
         for (_symbol_id, name) in &grammar.rule_names {
             symbols.push(name.clone());
         }
-        
+
         Self { keywords, symbols }
     }
 }
@@ -53,9 +53,10 @@ impl LspFeature for CompletionProvider {
     fn name(&self) -> &str {
         "completion"
     }
-    
+
     fn generate_handler(&self) -> String {
-        format!(r#"
+        format!(
+            r#"
 pub async fn handle_completion(
     params: lsp_types::CompletionParams,
 ) -> Result<Option<lsp_types::CompletionResponse>> {{
@@ -78,47 +79,53 @@ fn create_symbol_completions() -> Vec<lsp_types::CompletionItem> {{
     ]
 }}"#,
             // Keywords completion items
-            self.keywords.iter()
+            self.keywords
+                .iter()
                 .map(|k| format!(
                     r#"lsp_types::CompletionItem {{
                         label: "{}".to_string(),
                         kind: Some(lsp_types::CompletionItemKind::KEYWORD),
                         ..Default::default()
-                    }}"#, k
+                    }}"#,
+                    k
                 ))
                 .collect::<Vec<_>>()
                 .join(",\n        "),
             // Keyword function
-            self.keywords.iter()
+            self.keywords
+                .iter()
                 .map(|k| format!(
                     r#"lsp_types::CompletionItem {{
                         label: "{}".to_string(),
                         kind: Some(lsp_types::CompletionItemKind::KEYWORD),
                         ..Default::default()
-                    }}"#, k
+                    }}"#,
+                    k
                 ))
                 .collect::<Vec<_>>()
                 .join(",\n        "),
             // Symbol function
-            self.symbols.iter()
+            self.symbols
+                .iter()
                 .map(|s| format!(
                     r#"lsp_types::CompletionItem {{
                         label: "{}".to_string(),
                         kind: Some(lsp_types::CompletionItemKind::CLASS),
                         ..Default::default()
-                    }}"#, s
+                    }}"#,
+                    s
                 ))
                 .collect::<Vec<_>>()
                 .join(",\n        ")
         )
     }
-    
+
     fn required_imports(&self) -> Vec<String> {
         vec![
             "use lsp_types::{CompletionParams, CompletionResponse, CompletionItem, CompletionItemKind};".to_string()
         ]
     }
-    
+
     fn capabilities(&self) -> serde_json::Value {
         serde_json::json!({
             "completionProvider": {
@@ -137,13 +144,13 @@ pub struct HoverProvider {
 impl HoverProvider {
     pub fn new(grammar: &Grammar) -> Self {
         let mut documentation = std::collections::HashMap::new();
-        
+
         // Generate documentation from grammar rules
         for (_symbol_id, rule_name) in &grammar.rule_names {
             let doc = format!("Grammar rule: {}", rule_name);
             documentation.insert(rule_name.clone(), doc);
         }
-        
+
         Self { documentation }
     }
 }
@@ -152,7 +159,7 @@ impl LspFeature for HoverProvider {
     fn name(&self) -> &str {
         "hover"
     }
-    
+
     fn generate_handler(&self) -> String {
         r#"
 pub async fn handle_hover(
@@ -183,15 +190,14 @@ fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {
 fn lookup_documentation(word: &str) -> Option<String> {
     // Implementation would look up documentation
     todo!("Look up documentation for word")
-}"#.to_string()
+}"#
+        .to_string()
     }
-    
+
     fn required_imports(&self) -> Vec<String> {
-        vec![
-            "use lsp_types::{HoverParams, Hover, HoverContents, MarkedString};".to_string()
-        ]
+        vec!["use lsp_types::{HoverParams, Hover, HoverContents, MarkedString};".to_string()]
     }
-    
+
     fn capabilities(&self) -> serde_json::Value {
         serde_json::json!({
             "hoverProvider": true
@@ -216,9 +222,10 @@ impl LspFeature for DiagnosticsProvider {
     fn name(&self) -> &str {
         "diagnostics"
     }
-    
+
     fn generate_handler(&self) -> String {
-        format!(r#"
+        format!(
+            r#"
 pub async fn handle_diagnostics(
     uri: lsp_types::Url,
     text: &str,
@@ -270,15 +277,15 @@ fn offset_to_position(text: &str, offset: usize) -> lsp_types::Position {{
     }}
     
     lsp_types::Position {{ line, character }}
-}}"#, self.grammar_name)
+}}"#,
+            self.grammar_name
+        )
     }
-    
+
     fn required_imports(&self) -> Vec<String> {
-        vec![
-            "use lsp_types::{Diagnostic, DiagnosticSeverity, Range, Position, Url};".to_string()
-        ]
+        vec!["use lsp_types::{Diagnostic, DiagnosticSeverity, Range, Position, Url};".to_string()]
     }
-    
+
     fn capabilities(&self) -> serde_json::Value {
         serde_json::json!({
             "textDocumentSync": {

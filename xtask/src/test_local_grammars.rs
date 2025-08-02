@@ -1,10 +1,10 @@
 use anyhow::Result;
-use rust_sitter_tool::grammar_js::{GrammarJsParserV3, GrammarJsConverter};
+use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
 use std::fs;
 
 pub fn test_local_grammars() -> Result<()> {
     println!("Testing local grammar files...\n");
-    
+
     // Test 1: Simple arithmetic grammar
     let arithmetic_grammar = r#"
 module.exports = grammar({
@@ -27,9 +27,9 @@ module.exports = grammar({
   }
 });
 "#;
-    
+
     test_grammar_string("arithmetic", arithmetic_grammar)?;
-    
+
     // Test 2: C-style grammar with precedence
     let c_style_grammar = r#"
 module.exports = grammar({
@@ -176,9 +176,9 @@ function commaSep(rule) {
   return optional(commaSep1(rule));
 }
 "#;
-    
+
     test_grammar_string("c_style", c_style_grammar)?;
-    
+
     // Test 3: Grammar with externals (should parse but not build)
     let python_style_grammar = r#"
 module.exports = grammar({
@@ -224,23 +224,23 @@ module.exports = grammar({
   }
 });
 "#;
-    
+
     test_grammar_string("python_style", python_style_grammar)?;
-    
+
     println!("\nLocal grammar tests complete!");
     Ok(())
 }
 
 fn test_grammar_string(name: &str, content: &str) -> Result<()> {
     println!("Testing {} grammar...", name);
-    
+
     // Parse
     let mut parser = GrammarJsParserV3::new(content.to_string());
     match parser.parse() {
         Ok(grammar_js) => {
             println!("  ✅ Parsed successfully");
             println!("    Rules: {}", grammar_js.rules.len());
-            
+
             // Check features
             let mut features = vec![];
             if !grammar_js.externals.is_empty() {
@@ -255,14 +255,18 @@ fn test_grammar_string(name: &str, content: &str) -> Result<()> {
             if !features.is_empty() {
                 println!("    Features: {}", features.join(", "));
             }
-            
+
             // Convert to IR
             let converter = GrammarJsConverter::new(grammar_js);
             match converter.convert() {
                 Ok(ir) => {
                     println!("  ✅ Converted to IR");
-                    println!("    IR rules: {}, tokens: {}", ir.rules.len(), ir.tokens.len());
-                    
+                    println!(
+                        "    IR rules: {}, tokens: {}",
+                        ir.rules.len(),
+                        ir.tokens.len()
+                    );
+
                     // For grammars with externals, we expect build to fail
                     if !ir.externals.is_empty() {
                         println!("  ⚠️  Has external scanner - build would fail at runtime");
@@ -277,7 +281,7 @@ fn test_grammar_string(name: &str, content: &str) -> Result<()> {
             println!("  ❌ Parse failed: {}", e);
         }
     }
-    
+
     println!();
     Ok(())
 }

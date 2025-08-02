@@ -1,79 +1,93 @@
 // Simple test for GLR error recovery
 
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
+use rust_sitter::glr_lexer::GLRLexer;
+use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, ProductionId, Token, TokenPattern};
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
 fn create_simple_grammar() -> Grammar {
     let mut grammar = Grammar::new("simple".to_string());
-    
+
     // Tokens
     let num_id = SymbolId(1);
     let plus_id = SymbolId(2);
-    
-    grammar.tokens.insert(num_id, Token {
-        name: "number".to_string(),
-        pattern: TokenPattern::Regex("[0-9]+".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(plus_id, Token {
-        name: "plus".to_string(),
-        pattern: TokenPattern::String("+".to_string()),
-        fragile: false,
-    });
-    
+
+    grammar.tokens.insert(
+        num_id,
+        Token {
+            name: "number".to_string(),
+            pattern: TokenPattern::Regex("[0-9]+".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        plus_id,
+        Token {
+            name: "plus".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        },
+    );
+
     // Non-terminal
     let expr_id = SymbolId(10);
     grammar.rule_names.insert(expr_id, "expression".to_string());
-    
+
     // Rules:
     // expression → expression '+' expression
-    grammar.rules.entry(SymbolId(20)).or_insert_with(Vec::new).push( Rule {
-        lhs: expr_id,
-        rhs: vec![
-            Symbol::NonTerminal(expr_id),
-            Symbol::Terminal(plus_id),
-            Symbol::NonTerminal(expr_id),
-        ],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(0),
-        fields: vec![],
-    });
-    
+    grammar
+        .rules
+        .entry(SymbolId(20))
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: expr_id,
+            rhs: vec![
+                Symbol::NonTerminal(expr_id),
+                Symbol::Terminal(plus_id),
+                Symbol::NonTerminal(expr_id),
+            ],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: vec![],
+        });
+
     // expression → number
-    grammar.rules.entry(SymbolId(21)).or_insert_with(Vec::new).push( Rule {
-        lhs: expr_id,
-        rhs: vec![Symbol::Terminal(num_id)],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(1),
-        fields: vec![],
-    });
-    
+    grammar
+        .rules
+        .entry(SymbolId(21))
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: expr_id,
+            rhs: vec![Symbol::Terminal(num_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(1),
+            fields: vec![],
+        });
+
     grammar
 }
 
 #[test]
 fn test_basic_parsing_without_errors() {
     let grammar = create_simple_grammar();
-    
+
     // Generate parse table
     let first_follow = FirstFollowSets::compute(&grammar);
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
-    
+
     // Create parser without error recovery
     let mut parser = GLRParser::new(table, grammar.clone());
-    
+
     // Tokenize valid input
     let mut lexer = GLRLexer::new(&grammar, "1 + 2".to_string()).unwrap();
     let tokens = lexer.tokenize_all();
-    
+
     // Parse
     parser.reset();
     for token in &tokens {
@@ -81,31 +95,37 @@ fn test_basic_parsing_without_errors() {
     }
     parser.process_eof();
     let result = parser.finish();
-    
+
     assert!(result.is_ok(), "Failed to parse valid input '1 + 2'");
 }
 
 #[test]
 fn test_error_recovery_double_operator() {
     let grammar = create_simple_grammar();
-    
+
     // Generate parse table
     let first_follow = FirstFollowSets::compute(&grammar);
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
-    
+
     // Create parser with error recovery
     let mut parser = GLRParser::new(table, grammar.clone());
     let config = ErrorRecoveryConfigBuilder::new()
         .max_consecutive_errors(10)
         .build();
     parser.enable_error_recovery(config);
-    
+
     // Tokenize input with error (double plus)
     let mut lexer = GLRLexer::new(&grammar, "1 + + 2".to_string()).unwrap();
     let tokens = lexer.tokenize_all();
-    
-    println!("Tokens: {:?}", tokens.iter().map(|t| (t.symbol_id, &t.text)).collect::<Vec<_>>());
-    
+
+    println!(
+        "Tokens: {:?}",
+        tokens
+            .iter()
+            .map(|t| (t.symbol_id, &t.text))
+            .collect::<Vec<_>>()
+    );
+
     // Parse
     parser.reset();
     for token in &tokens {
@@ -113,12 +133,15 @@ fn test_error_recovery_double_operator() {
     }
     parser.process_eof();
     let result = parser.finish();
-    
+
     println!("Parse result: {:?}", result.is_ok());
     assert!(result.is_ok(), "Failed to parse with error recovery");
-    
+
     if let Ok(tree) = result {
-        assert!(has_error_nodes(&tree), "Expected error nodes in recovered parse");
+        assert!(
+            has_error_nodes(&tree),
+            "Expected error nodes in recovered parse"
+        );
     }
 }
 

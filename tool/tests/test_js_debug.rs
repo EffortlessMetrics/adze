@@ -151,10 +151,10 @@ module.exports = grammar({
   }
 });
 "#;
-    
+
     eprintln!("Grammar length: {}", grammar.len());
     eprintln!("Grammar content:\n{}", grammar);
-    
+
     let result = parse_grammar_js_v2(grammar);
     match result {
         Ok(parsed) => {

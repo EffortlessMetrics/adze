@@ -4,14 +4,14 @@
 pub mod ast;
 pub mod compiler;
 pub mod cursor;
+pub mod highlights;
 pub mod matcher;
 pub mod parser;
 pub mod pattern;
-pub mod highlights;
 
 pub use ast::{Query, QueryError};
 pub use compiler::compile_query;
 pub use cursor::QueryCursor;
-pub use matcher::{QueryMatch, QueryCapture, QueryMatches};
+pub use highlights::{Color, Highlight, Highlighter, Theme};
+pub use matcher::{QueryCapture, QueryMatch, QueryMatches};
 pub use pattern::{Pattern, Predicate};
-pub use highlights::{Highlighter, Highlight, Theme, Color};

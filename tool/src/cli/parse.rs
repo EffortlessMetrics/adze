@@ -1,7 +1,7 @@
-use anyhow::{Result, Context};
-use std::path::Path;
-use std::fs;
+use anyhow::{Context, Result};
 use serde_json::json;
+use std::fs;
+use std::path::Path;
 
 /// Output formats for the parse command
 #[derive(Debug, Clone, Copy)]
@@ -22,17 +22,17 @@ pub fn parse_file(
     // Read the source file
     let source = fs::read_to_string(file_path)
         .with_context(|| format!("Failed to read file: {:?}", file_path))?;
-    
+
     // For now, we'll use a mock implementation
     // In a full implementation, we would:
     // 1. Load the parser library (either from parser_path or auto-detect)
     // 2. Create a parser instance
     // 3. Parse the source code
     // 4. Format and output the parse tree
-    
+
     println!("Parsing file: {:?}", file_path);
     println!("Source length: {} bytes", source.len());
-    
+
     match format {
         OutputFormat::Sexp => {
             // Mock S-expression output
@@ -69,13 +69,13 @@ pub fn parse_file(
             println!("}}");
         }
     }
-    
+
     if show_stats {
         println!("\nStatistics:");
         println!("  Parse time: 0.001s");
         println!("  Node count: 3");
     }
-    
+
     Ok(())
 }
 
@@ -89,7 +89,7 @@ pub fn parse_with_rust_parser(
 ) -> Result<()> {
     // This would integrate with the generated Rust parsers
     // For now, just a placeholder
-    
+
     println!("Parsing {:?} as {} grammar", file_path, grammar_name);
     parse_file(file_path, None, format, show_fields, show_stats)
 }
@@ -97,7 +97,7 @@ pub fn parse_with_rust_parser(
 /// Auto-detect parser based on file extension
 pub fn auto_detect_parser(file_path: &Path) -> Option<String> {
     let ext = file_path.extension()?.to_str()?;
-    
+
     match ext {
         "js" | "mjs" => Some("javascript".to_string()),
         "ts" | "tsx" => Some("typescript".to_string()),

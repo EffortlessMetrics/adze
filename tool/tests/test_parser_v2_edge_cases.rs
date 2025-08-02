@@ -15,10 +15,14 @@ module.exports = grammar({
   }
 });
 "#;
-    
+
     let result = parse_grammar_js_v2(grammar);
-    assert!(result.is_ok(), "Failed to parse simple grammar: {:?}", result.err());
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse simple grammar: {:?}",
+        result.err()
+    );
+
     let parsed = result.unwrap();
     assert_eq!(parsed.name, "test");
     assert_eq!(parsed.inline.len(), 2);
@@ -38,9 +42,13 @@ module.exports = grammar({
   }
 });
 "#;
-    
+
     let result = parse_grammar_js_v2(grammar);
-    assert!(result.is_ok(), "Failed to parse grammar with regex: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Failed to parse grammar with regex: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -56,7 +64,11 @@ module.exports = grammar({
   }
 });
 "#;
-    
+
     let result = parse_grammar_js_v2(grammar);
-    assert!(result.is_ok(), "Failed to parse grammar with quotes: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Failed to parse grammar with quotes: {:?}",
+        result.err()
+    );
 }

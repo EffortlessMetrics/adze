@@ -1,5 +1,5 @@
-use rust_sitter_tool::grammar_js::{GrammarJsParserV3, GrammarJsConverter};
-use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
+use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
+use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 use std::fs;
 use tempfile::TempDir;
 
@@ -62,7 +62,7 @@ module.exports = grammar({
     let temp_dir = TempDir::new().unwrap();
     let grammar_path = temp_dir.path().join("grammar.js");
     fs::write(&grammar_path, grammar_content).unwrap();
-    
+
     // Try to parse with v3 parser
     println!("\nTesting arithmetic grammar with precedence...");
     let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
@@ -70,23 +70,25 @@ module.exports = grammar({
         Ok(grammar_js) => {
             println!("✓ Successfully parsed grammar!");
             println!("  Rules: {:?}", grammar_js.rules.keys().collect::<Vec<_>>());
-            
+
             // Try to convert to IR
             let mut converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
                 Ok(ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
-                    println!("  IR has {} rules, {} tokens", 
-                        ir_grammar.rules.len(), 
-                        ir_grammar.tokens.len());
-                    
+                    println!(
+                        "  IR has {} rules, {} tokens",
+                        ir_grammar.rules.len(),
+                        ir_grammar.tokens.len()
+                    );
+
                     // Try to build the parser
                     let options = BuildOptions {
                         out_dir: temp_dir.path().to_str().unwrap().to_string(),
                         emit_artifacts: false,
                         compress_tables: true,
                     };
-                    
+
                     match build_parser_from_grammar_js(&grammar_path, options) {
                         Ok(_) => {
                             println!("✓ Successfully built parser!");
@@ -194,7 +196,7 @@ module.exports = grammar({
     let temp_dir = TempDir::new().unwrap();
     let grammar_path = temp_dir.path().join("grammar.js");
     fs::write(&grammar_path, grammar_content).unwrap();
-    
+
     // Test parsing
     println!("\nTesting C-style precedence grammar...");
     let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
@@ -202,20 +204,20 @@ module.exports = grammar({
         Ok(grammar_js) => {
             println!("✓ Successfully parsed C-style grammar!");
             println!("  Rules: {} total", grammar_js.rules.len());
-            
+
             // Try to convert to IR
             let mut converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
                 Ok(ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
-                    
+
                     // Try to build the parser
                     let options = BuildOptions {
                         out_dir: temp_dir.path().to_str().unwrap().to_string(),
                         emit_artifacts: false,
                         compress_tables: true,
                     };
-                    
+
                     match build_parser_from_grammar_js(&grammar_path, options) {
                         Ok(_) => {
                             println!("✓ Successfully built C-style parser!");

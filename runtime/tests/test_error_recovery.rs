@@ -1,105 +1,133 @@
 // Test error recovery in the parser
-use rust_sitter::parser::{Parser, ParseNode};
-use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
-use rust_sitter_ir::*;
-use rust_sitter_glr_core::*;
 use indexmap::IndexMap;
+use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
+use rust_sitter::parser::{ParseNode, Parser};
+use rust_sitter_glr_core::*;
+use rust_sitter_ir::*;
 
 fn create_test_grammar() -> Grammar {
     let mut grammar = Grammar::new("test".to_string());
-    
+
     // Tokens
     let number = SymbolId(1);
     let plus = SymbolId(2);
     let lparen = SymbolId(3);
     let rparen = SymbolId(4);
     let semicolon = SymbolId(5);
-    
-    grammar.tokens.insert(number, Token {
-        name: "number".to_string(),
-        pattern: TokenPattern::Regex(r"\d+".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(plus, Token {
-        name: "plus".to_string(),
-        pattern: TokenPattern::String("+".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(lparen, Token {
-        name: "lparen".to_string(),
-        pattern: TokenPattern::String("(".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(rparen, Token {
-        name: "rparen".to_string(),
-        pattern: TokenPattern::String(")".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(semicolon, Token {
-        name: "semicolon".to_string(),
-        pattern: TokenPattern::String(";".to_string()),
-        fragile: false,
-    });
-    
+
+    grammar.tokens.insert(
+        number,
+        Token {
+            name: "number".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        plus,
+        Token {
+            name: "plus".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        lparen,
+        Token {
+            name: "lparen".to_string(),
+            pattern: TokenPattern::String("(".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        rparen,
+        Token {
+            name: "rparen".to_string(),
+            pattern: TokenPattern::String(")".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        semicolon,
+        Token {
+            name: "semicolon".to_string(),
+            pattern: TokenPattern::String(";".to_string()),
+            fragile: false,
+        },
+    );
+
     // Rules
     let expr = SymbolId(10);
     let stmt = SymbolId(11);
-    
+
     // expr -> number
-    grammar.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
-        lhs: expr,
-        rhs: vec![Symbol::Terminal(number)],
-        production_id: ProductionId(0),
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-    });
-    
+    grammar
+        .rules
+        .entry(expr)
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: expr,
+            rhs: vec![Symbol::Terminal(number)],
+            production_id: ProductionId(0),
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+        });
+
     // expr -> expr + expr
-    grammar.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
-        lhs: expr,
-        rhs: vec![
-            Symbol::NonTerminal(expr),
-            Symbol::Terminal(plus),
-            Symbol::NonTerminal(expr),
-        ],
-        production_id: ProductionId(1),
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-    });
-    
+    grammar
+        .rules
+        .entry(expr)
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: expr,
+            rhs: vec![
+                Symbol::NonTerminal(expr),
+                Symbol::Terminal(plus),
+                Symbol::NonTerminal(expr),
+            ],
+            production_id: ProductionId(1),
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+        });
+
     // expr -> ( expr )
-    grammar.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
-        lhs: expr,
-        rhs: vec![
-            Symbol::Terminal(lparen),
-            Symbol::NonTerminal(expr),
-            Symbol::Terminal(rparen),
-        ],
-        production_id: ProductionId(2),
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-    });
-    
+    grammar
+        .rules
+        .entry(expr)
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: expr,
+            rhs: vec![
+                Symbol::Terminal(lparen),
+                Symbol::NonTerminal(expr),
+                Symbol::Terminal(rparen),
+            ],
+            production_id: ProductionId(2),
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+        });
+
     // stmt -> expr ;
-    grammar.rules.entry(stmt).or_insert_with(Vec::new).push(Rule {
-        lhs: stmt,
-        rhs: vec![
-            Symbol::NonTerminal(expr),
-            Symbol::Terminal(semicolon),
-        ],
-        production_id: ProductionId(3),
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-    });
-    
+    grammar
+        .rules
+        .entry(stmt)
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: stmt,
+            rhs: vec![Symbol::NonTerminal(expr), Symbol::Terminal(semicolon)],
+            production_id: ProductionId(3),
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+        });
+
     grammar
 }
 
@@ -120,7 +148,7 @@ fn create_test_parse_table() -> ParseTable {
 fn test_missing_closing_paren_recovery() {
     let grammar = create_test_grammar();
     let parse_table = create_test_parse_table();
-    
+
     // Configure error recovery
     let error_recovery = ErrorRecoveryConfigBuilder::new()
         .add_sync_token(4) // rparen
@@ -128,14 +156,13 @@ fn test_missing_closing_paren_recovery() {
         .add_insertable_token(4) // can insert rparen
         .enable_scope_recovery(true)
         .build();
-    
-    let mut parser = Parser::new(grammar, parse_table)
-        .with_error_recovery(error_recovery);
-    
+
+    let mut parser = Parser::new(grammar, parse_table).with_error_recovery(error_recovery);
+
     // Parse input with missing closing paren: "(1 + 2"
     // With error recovery, it should insert the missing rparen
     let input = "(1 + 2";
-    
+
     match parser.parse(input) {
         Ok(tree) => {
             println!("Parsed with recovery: {:?}", tree);
@@ -153,19 +180,18 @@ fn test_missing_closing_paren_recovery() {
 fn test_extra_token_deletion() {
     let grammar = create_test_grammar();
     let parse_table = create_test_parse_table();
-    
+
     // Configure error recovery with sync tokens
     let error_recovery = ErrorRecoveryConfigBuilder::new()
         .add_sync_token(5) // semicolon
         .build();
-    
-    let mut parser = Parser::new(grammar, parse_table)
-        .with_error_recovery(error_recovery);
-    
+
+    let mut parser = Parser::new(grammar, parse_table).with_error_recovery(error_recovery);
+
     // Parse input with extra plus: "1 + + 2"
     // With error recovery, it should delete one plus
     let input = "1 + + 2";
-    
+
     match parser.parse(input) {
         Ok(tree) => {
             println!("Parsed with recovery: {:?}", tree);
@@ -180,18 +206,17 @@ fn test_extra_token_deletion() {
 fn test_error_node_creation() {
     let grammar = create_test_grammar();
     let parse_table = create_test_parse_table();
-    
+
     // Configure error recovery with sync tokens
     let error_recovery = ErrorRecoveryConfigBuilder::new()
         .add_sync_token(5) // semicolon
         .build();
-    
-    let mut parser = Parser::new(grammar, parse_table)
-        .with_error_recovery(error_recovery);
-    
+
+    let mut parser = Parser::new(grammar, parse_table).with_error_recovery(error_recovery);
+
     // Parse input with syntax error
     let input = "1 @ 2"; // @ is not a valid token
-    
+
     match parser.parse(input) {
         Ok(tree) => {
             println!("Parsed with error node: {:?}", tree);

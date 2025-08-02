@@ -19,20 +19,26 @@ impl PythonStringScanner {
 }
 
 impl ExternalScanner for PythonStringScanner {
-    fn scan(&mut self, _lexer: &mut dyn rust_sitter::pure_external_scanner::Lexer, valid_symbols: &[bool]) -> bool {
+    fn scan(
+        &mut self,
+        _lexer: &mut dyn rust_sitter::pure_external_scanner::Lexer,
+        valid_symbols: &[bool],
+    ) -> bool {
         // Check if we should look for string tokens
         const STRING_TOKEN: usize = 0;
         const TRIPLE_STRING_TOKEN: usize = 1;
-        
-        if valid_symbols.len() <= TRIPLE_STRING_TOKEN || (!valid_symbols[STRING_TOKEN] && !valid_symbols[TRIPLE_STRING_TOKEN]) {
+
+        if valid_symbols.len() <= TRIPLE_STRING_TOKEN
+            || (!valid_symbols[STRING_TOKEN] && !valid_symbols[TRIPLE_STRING_TOKEN])
+        {
             return false;
         }
-        
+
         // For demo purposes, we'll just return false
         // In a real implementation, we would use the lexer interface
         false
     }
-    
+
     fn serialize(&self, buffer: &mut [u8]) -> usize {
         if buffer.len() >= 2 {
             buffer[0] = self.quote_count as u8;
@@ -42,7 +48,7 @@ impl ExternalScanner for PythonStringScanner {
             0
         }
     }
-    
+
     fn deserialize(&mut self, buffer: &[u8]) {
         if buffer.len() >= 2 {
             self.quote_count = buffer[0] as usize;
@@ -89,7 +95,7 @@ fn create_string_language() -> &'static TSLanguage {
         external_scanner: None,
         primary_state_ids: &[],
     };
-    
+
     &LANGUAGE
 }
 
@@ -98,12 +104,12 @@ fn main() {
     let mut registry = ExternalScannerRegistry::new();
     let scanner = Arc::new(Box::new(PythonStringScanner::new()) as Box<dyn ExternalScanner>);
     registry.register("python_strings", scanner);
-    
+
     // Create parser with external scanner support
     let mut parser = Parser::new();
     let language = create_string_language();
     parser.set_language(language).unwrap();
-    
+
     // Test parsing various string formats
     let test_cases = vec![
         r#"'hello world'"#,
@@ -113,7 +119,7 @@ fn main() {
         r#"'escaped \' quote'"#,
         r#""string with \n newline""#,
     ];
-    
+
     for test in test_cases {
         println!("Parsing: {}", test);
         let result = parser.parse_string(test);
@@ -122,16 +128,16 @@ fn main() {
             None => println!("  ✗ Parse failed with {} errors", result.errors.len()),
         }
     }
-    
+
     // Demonstrate serialization/deserialization
     let mut scanner = PythonStringScanner::new();
     scanner.quote_count = 3;
     scanner.quote_char = Some('"');
-    
+
     let mut buffer = vec![0u8; 10];
     let len = scanner.serialize(&mut buffer);
     println!("\nSerialized scanner state: {:?}", &buffer[..len]);
-    
+
     let mut restored_scanner = PythonStringScanner::new();
     restored_scanner.deserialize(&buffer);
     println!("Restored quote_count: {}", restored_scanner.quote_count);

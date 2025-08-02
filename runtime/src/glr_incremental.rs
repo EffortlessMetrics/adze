@@ -1,14 +1,14 @@
 // Incremental parsing support for GLR parser
 // This module provides efficient reparsing of edited documents
 
-use crate::subtree::Subtree;
-use crate::glr_parser::GLRParser;
 use crate::glr_lexer::TokenWithPosition;
+use crate::glr_parser::GLRParser;
+use crate::subtree::Subtree;
 use rust_sitter_ir::{Grammar, SymbolId};
-use std::sync::Arc;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 /// Represents a text edit operation
 #[derive(Debug, Clone, PartialEq)]
@@ -93,20 +93,20 @@ impl SubtreePool {
     fn add_subtree_recursive(&mut self, subtree: Arc<Subtree>) {
         // Calculate hash for this subtree
         let hash = self.hash_subtree(&subtree);
-        
+
         // Index by hash
         self.subtrees_by_hash
             .entry(hash)
             .or_insert_with(Vec::new)
             .push(subtree.clone());
-        
+
         // Index by range
         let range = (subtree.node.byte_range.start, subtree.node.byte_range.end);
         self.subtrees_by_range
             .entry(range)
             .or_insert_with(Vec::new)
             .push(subtree.clone());
-        
+
         // Recursively add children
         for child in &subtree.children {
             self.add_subtree_recursive(child.clone());
@@ -119,12 +119,12 @@ impl SubtreePool {
         subtree.node.symbol_id.hash(&mut hasher);
         subtree.node.byte_range.start.hash(&mut hasher);
         subtree.node.byte_range.end.hash(&mut hasher);
-        
+
         // Hash children
         for child in &subtree.children {
             self.hash_subtree(child).hash(&mut hasher);
         }
-        
+
         hasher.finish()
     }
 
@@ -146,20 +146,20 @@ impl SubtreePool {
     /// Mark subtrees affected by an edit as invalid
     pub fn invalidate_edit(&mut self, edit: &Edit) {
         // Remove subtrees that overlap with the edit
-        self.subtrees_by_range.retain(|(start, end), _| {
-            !edit.affects_range(*start, *end)
-        });
-        
+        self.subtrees_by_range
+            .retain(|(start, end), _| !edit.affects_range(*start, *end));
+
         // Adjust positions of subtrees after the edit
         let mut adjusted_subtrees = HashMap::new();
         for ((start, end), subtrees) in self.subtrees_by_range.drain() {
-            if let (Some(new_start), Some(new_end)) = 
-                (edit.apply_to_offset(start), edit.apply_to_offset(end)) {
+            if let (Some(new_start), Some(new_end)) =
+                (edit.apply_to_offset(start), edit.apply_to_offset(end))
+            {
                 adjusted_subtrees.insert((new_start, new_end), subtrees);
             }
         }
         self.subtrees_by_range = adjusted_subtrees;
-        
+
         // Clear hash index (will be rebuilt on next parse)
         self.subtrees_by_hash.clear();
     }
@@ -204,47 +204,50 @@ impl IncrementalGLRParser {
     ) -> Result<Arc<Subtree>, String> {
         // Reset statistics
         self.stats = ReuseStats::default();
-        
+
         // If we have a previous tree, add it to the pool
         if let Some(tree) = previous_tree {
             self.subtree_pool.add_tree(tree);
         }
-        
+
         // Apply edits to invalidate affected subtrees
         for edit in edits {
             self.subtree_pool.invalidate_edit(edit);
         }
-        
+
         // Parse with subtree reuse
         self.parse_with_reuse(tokens)
     }
 
     fn parse_with_reuse(&mut self, tokens: &[TokenWithPosition]) -> Result<Arc<Subtree>, String> {
         let mut token_index = 0;
-        self.stats.total_bytes = tokens.last()
+        self.stats.total_bytes = tokens
+            .last()
             .map(|t| t.byte_offset + t.byte_length)
             .unwrap_or(0);
-        
+
         // Reset parser state
         self.parser.reset();
-        
+
         // Enable subtree reuse now that inject_subtree properly handles reductions
         let enable_reuse = true;
-        
+
         while token_index < tokens.len() {
             let token = &tokens[token_index];
-            
+
             // Check if we can reuse a subtree at this position
             if enable_reuse {
-                if let Some(reusable) = self.try_reuse_subtree(token.byte_offset, &tokens[token_index..]) {
+                if let Some(reusable) =
+                    self.try_reuse_subtree(token.byte_offset, &tokens[token_index..])
+                {
                     // Skip tokens covered by the reused subtree
                     let end_byte = reusable.node.byte_range.end;
                     self.stats.subtrees_reused += 1;
                     self.stats.bytes_reused += end_byte - token.byte_offset;
-                    
+
                     // Inject the reused subtree into the parser
                     self.parser.inject_subtree(reusable);
-                    
+
                     // Skip to the next token after the reused subtree
                     while token_index < tokens.len() && tokens[token_index].byte_offset < end_byte {
                         token_index += 1;
@@ -252,27 +255,32 @@ impl IncrementalGLRParser {
                     continue;
                 }
             }
-            
+
             // Normal parsing for this token
-            self.parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+            self.parser
+                .process_token(token.symbol_id, &token.text, token.byte_offset);
             token_index += 1;
         }
-        
+
         // Process EOF and finalize parsing
         self.parser.process_eof();
         self.parser.finish()
     }
 
-    fn try_reuse_subtree(&self, position: usize, remaining_tokens: &[TokenWithPosition]) -> Option<Arc<Subtree>> {
+    fn try_reuse_subtree(
+        &self,
+        position: usize,
+        remaining_tokens: &[TokenWithPosition],
+    ) -> Option<Arc<Subtree>> {
         // For now, we'll use a simple heuristic: try to reuse subtrees that match
         // the expected symbol at this position
         if remaining_tokens.is_empty() {
             return None;
         }
-        
+
         // Get expected symbols from parser state
         let expected_symbols = self.parser.expected_symbols();
-        
+
         // Try to find a reusable subtree for each expected symbol
         for symbol in expected_symbols {
             if let Some(subtree) = self.subtree_pool.find_reusable(position, symbol) {
@@ -282,7 +290,7 @@ impl IncrementalGLRParser {
                 }
             }
         }
-        
+
         None
     }
 
@@ -290,19 +298,19 @@ impl IncrementalGLRParser {
         // Check if the subtree's text matches the tokens it would cover
         let subtree_end = subtree.node.byte_range.end;
         let mut current_byte = subtree.node.byte_range.start;
-        
+
         for token in tokens {
             if token.byte_offset >= subtree_end {
                 break;
             }
-            
+
             if token.byte_offset != current_byte {
                 return false; // Gap in tokens
             }
-            
+
             current_byte = token.byte_offset + token.byte_length;
         }
-        
+
         current_byte >= subtree_end
     }
 
@@ -324,40 +332,40 @@ mod tests {
     #[test]
     fn test_edit_affects_range() {
         let edit = Edit::new(10, 15, 20);
-        
-        assert!(!edit.affects_range(0, 10));   // Before edit
-        assert!(edit.affects_range(5, 12));    // Overlaps start
-        assert!(edit.affects_range(12, 18));   // Within edit
-        assert!(edit.affects_range(14, 20));   // Overlaps end
-        assert!(!edit.affects_range(15, 25));  // After edit
+
+        assert!(!edit.affects_range(0, 10)); // Before edit
+        assert!(edit.affects_range(5, 12)); // Overlaps start
+        assert!(edit.affects_range(12, 18)); // Within edit
+        assert!(edit.affects_range(14, 20)); // Overlaps end
+        assert!(!edit.affects_range(15, 25)); // After edit
     }
 
     #[test]
     fn test_edit_apply_to_offset() {
         let edit = Edit::new(10, 15, 20); // Insert 5 bytes
-        
-        assert_eq!(edit.apply_to_offset(5), Some(5));    // Before edit
-        assert_eq!(edit.apply_to_offset(12), None);      // Within edit
-        assert_eq!(edit.apply_to_offset(20), Some(25));  // After edit
+
+        assert_eq!(edit.apply_to_offset(5), Some(5)); // Before edit
+        assert_eq!(edit.apply_to_offset(12), None); // Within edit
+        assert_eq!(edit.apply_to_offset(20), Some(25)); // After edit
     }
 
     #[test]
     fn test_subtree_pool_invalidation() {
         let grammar = Arc::new(Grammar::new("test".to_string()));
         let mut pool = SubtreePool::new(grammar);
-        
+
         // Add some dummy entries
         pool.subtrees_by_range.insert((5, 10), vec![]);
         pool.subtrees_by_range.insert((15, 20), vec![]);
         pool.subtrees_by_range.insert((25, 30), vec![]);
-        
+
         // Apply edit that affects middle range
         let edit = Edit::new(12, 18, 22);
         pool.invalidate_edit(&edit);
-        
+
         // Check that unaffected ranges are preserved and adjusted
-        assert!(pool.subtrees_by_range.contains_key(&(5, 10)));    // Unaffected
-        assert!(!pool.subtrees_by_range.contains_key(&(15, 20)));  // Removed
-        assert!(pool.subtrees_by_range.contains_key(&(29, 34)));   // Adjusted
+        assert!(pool.subtrees_by_range.contains_key(&(5, 10))); // Unaffected
+        assert!(!pool.subtrees_by_range.contains_key(&(15, 20))); // Removed
+        assert!(pool.subtrees_by_range.contains_key(&(29, 34))); // Adjusted
     }
 }

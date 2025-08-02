@@ -1,13 +1,15 @@
+use serde_json::Value;
 use std::fs;
 use tempfile::tempdir;
-use serde_json::Value;
 
 #[test]
 fn test_external_attribute() {
     let dir = tempdir().unwrap();
     let grammar_path = dir.path().join("grammar.rs");
-    
-    fs::write(&grammar_path, r#"
+
+    fs::write(
+        &grammar_path,
+        r#"
         #[rust_sitter::grammar("test_external")]
         mod grammar {
             #[rust_sitter::language]
@@ -24,21 +26,24 @@ fn test_external_attribute() {
             #[rust_sitter::external]
             struct DedentToken;
         }
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
 
     // Generate grammar JSON
     let grammars = rust_sitter_tool::generate_grammars(&grammar_path);
     assert!(!grammars.is_empty(), "No grammars generated");
-    
+
     let grammar_json = &grammars[0];
-    
+
     // Check that externals are included
     assert!(grammar_json.get("externals").is_some());
     let externals = grammar_json["externals"].as_array().unwrap();
     assert_eq!(externals.len(), 2);
-    
+
     // Check that external symbols are present
-    let external_names: Vec<String> = externals.iter()
+    let external_names: Vec<String> = externals
+        .iter()
         .map(|e| e["name"].as_str().unwrap().to_string())
         .collect();
     assert!(external_names.contains(&"IndentToken".to_string()));
@@ -49,8 +54,10 @@ fn test_external_attribute() {
 fn test_word_attribute() {
     let dir = tempdir().unwrap();
     let grammar_path = dir.path().join("grammar.rs");
-    
-    fs::write(&grammar_path, r#"
+
+    fs::write(
+        &grammar_path,
+        r#"
         #[rust_sitter::grammar("test_word")]
         mod grammar {
             #[rust_sitter::language]
@@ -68,27 +75,37 @@ fn test_word_attribute() {
                 name: String,
             }
         }
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
 
     // Generate grammar JSON
     let grammars = rust_sitter_tool::generate_grammars(&grammar_path);
     assert!(!grammars.is_empty(), "No grammars generated");
-    
+
     let grammar_json = &grammars[0];
-    
+
     // Check that word is set
-    eprintln!("Grammar JSON: {}", serde_json::to_string_pretty(&grammar_json).unwrap());
-    assert!(grammar_json.get("word").is_some(), "Word field not found in grammar");
+    eprintln!(
+        "Grammar JSON: {}",
+        serde_json::to_string_pretty(&grammar_json).unwrap()
+    );
+    assert!(
+        grammar_json.get("word").is_some(),
+        "Word field not found in grammar"
+    );
     let word = grammar_json["word"].as_str().unwrap();
     assert_eq!(word, "Identifier");
 }
 
-#[test] 
+#[test]
 fn test_combined_attributes() {
     let dir = tempdir().unwrap();
     let grammar_path = dir.path().join("grammar.rs");
-    
-    fs::write(&grammar_path, r#"
+
+    fs::write(
+        &grammar_path,
+        r#"
         #[rust_sitter::grammar("test_combined")]
         mod grammar {
             #[rust_sitter::language]
@@ -123,22 +140,32 @@ fn test_combined_attributes() {
             #[rust_sitter::external]
             struct Comment;
         }
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
 
     // Generate grammar JSON
     let grammars = rust_sitter_tool::generate_grammars(&grammar_path);
     assert!(!grammars.is_empty(), "No grammars generated");
-    
+
     let grammar_json = &grammars[0];
-    
+
     // Check word
     assert_eq!(grammar_json["word"].as_str().unwrap(), "Identifier");
-    
+
     // Check extras
     let extras = grammar_json["extras"].as_array().unwrap();
-    assert!(extras.iter().any(|e| e["name"].as_str() == Some("Whitespace")));
-    
+    assert!(
+        extras
+            .iter()
+            .any(|e| e["name"].as_str() == Some("Whitespace"))
+    );
+
     // Check externals
     let externals = grammar_json["externals"].as_array().unwrap();
-    assert!(externals.iter().any(|e| e["name"].as_str() == Some("Comment")));
+    assert!(
+        externals
+            .iter()
+            .any(|e| e["name"].as_str() == Some("Comment"))
+    );
 }

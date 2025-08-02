@@ -1,8 +1,7 @@
 // Conflict visualization and debugging tools for GLR parsing
 
 use crate::{
-    Conflict, ConflictType, Action, SymbolId, RuleId, StateId,
-    ItemSet, LRItem, ItemSetCollection,
+    Action, Conflict, ConflictType, ItemSet, ItemSetCollection, LRItem, RuleId, StateId, SymbolId,
 };
 use rust_sitter_ir::{Grammar, Symbol};
 use std::fmt::Write;
@@ -22,49 +21,56 @@ impl<'a> ConflictVisualizer<'a> {
             item_sets: None,
         }
     }
-    
+
     /// Add item sets for more detailed visualization
     pub fn with_item_sets(mut self, item_sets: &'a ItemSetCollection) -> Self {
         self.item_sets = Some(item_sets);
         self
     }
-    
+
     /// Generate a report of all conflicts
     pub fn generate_report(&self) -> String {
         let mut report = String::new();
-        
+
         writeln!(&mut report, "=== GLR Conflict Report ===").unwrap();
         writeln!(&mut report, "Total conflicts: {}", self.conflicts.len()).unwrap();
-        
-        let shift_reduce = self.conflicts.iter()
+
+        let shift_reduce = self
+            .conflicts
+            .iter()
             .filter(|c| c.conflict_type == ConflictType::ShiftReduce)
             .count();
-        let reduce_reduce = self.conflicts.iter()
+        let reduce_reduce = self
+            .conflicts
+            .iter()
             .filter(|c| c.conflict_type == ConflictType::ReduceReduce)
             .count();
-        
+
         writeln!(&mut report, "  Shift/Reduce: {}", shift_reduce).unwrap();
         writeln!(&mut report, "  Reduce/Reduce: {}", reduce_reduce).unwrap();
         writeln!(&mut report).unwrap();
-        
+
         for (i, conflict) in self.conflicts.iter().enumerate() {
             writeln!(&mut report, "Conflict #{}", i + 1).unwrap();
             self.format_conflict(&mut report, conflict);
             writeln!(&mut report).unwrap();
         }
-        
+
         report
     }
-    
+
     /// Format a single conflict
     fn format_conflict(&self, output: &mut String, conflict: &Conflict) {
         writeln!(output, "  Type: {:?}", conflict.conflict_type).unwrap();
         writeln!(output, "  State: {}", conflict.state.0).unwrap();
-        writeln!(output, "  Symbol: {} ({})", 
-            conflict.symbol.0, 
+        writeln!(
+            output,
+            "  Symbol: {} ({})",
+            conflict.symbol.0,
             self.symbol_name(conflict.symbol)
-        ).unwrap();
-        
+        )
+        .unwrap();
+
         // Show the conflicting actions
         writeln!(output, "  Actions:").unwrap();
         for action in &conflict.actions {
@@ -73,10 +79,13 @@ impl<'a> ConflictVisualizer<'a> {
                     writeln!(output, "    - Shift to state {}", state.0).unwrap();
                 }
                 Action::Reduce(rule_id) => {
-                    writeln!(output, "    - Reduce by rule {}: {}", 
+                    writeln!(
+                        output,
+                        "    - Reduce by rule {}: {}",
                         rule_id.0,
                         self.format_rule(*rule_id)
-                    ).unwrap();
+                    )
+                    .unwrap();
                 }
                 Action::Fork(actions) => {
                     writeln!(output, "    - Fork into {} actions", actions.len()).unwrap();
@@ -84,7 +93,7 @@ impl<'a> ConflictVisualizer<'a> {
                 _ => {}
             }
         }
-        
+
         // If we have item sets, show the conflicting items
         if let Some(item_sets) = self.item_sets {
             if let Some(item_set) = item_sets.sets.iter().find(|s| s.id == conflict.state) {
@@ -92,25 +101,30 @@ impl<'a> ConflictVisualizer<'a> {
             }
         }
     }
-    
+
     /// Format the conflicting items in a state
-    fn format_conflicting_items(&self, output: &mut String, item_set: &ItemSet, conflict: &Conflict) {
+    fn format_conflicting_items(
+        &self,
+        output: &mut String,
+        item_set: &ItemSet,
+        conflict: &Conflict,
+    ) {
         writeln!(output, "  Items in state:").unwrap();
-        
+
         for item in &item_set.items {
             if self.item_involves_conflict(item, conflict) {
                 writeln!(output, "    {}", self.format_item(item)).unwrap();
             }
         }
     }
-    
+
     /// Check if an item is involved in the conflict
     fn item_involves_conflict(&self, item: &LRItem, conflict: &Conflict) -> bool {
         // Check if this is a reduce item with the conflicting lookahead
         if item.is_reduce_item(self.grammar) && item.lookahead == conflict.symbol {
             return true;
         }
-        
+
         // Check if this item can shift the conflicting symbol
         if let Some(next_symbol) = item.next_symbol(self.grammar) {
             match next_symbol {
@@ -119,23 +133,27 @@ impl<'a> ConflictVisualizer<'a> {
                         return true;
                     }
                 }
-                Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) | 
-                Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                Symbol::Optional(_)
+                | Symbol::Repeat(_)
+                | Symbol::RepeatOne(_)
+                | Symbol::Choice(_)
+                | Symbol::Sequence(_)
+                | Symbol::Epsilon => {
                     // Complex symbols should have been normalized
                     return false;
                 }
             }
         }
-        
+
         false
     }
-    
+
     /// Format an LR item
     fn format_item(&self, item: &LRItem) -> String {
         let rule_str = self.format_rule_with_dot(item.rule_id, item.position);
         format!("[{}, {}]", rule_str, self.symbol_name(item.lookahead))
     }
-    
+
     /// Format a rule with a dot at the given position
     fn format_rule_with_dot(&self, rule_id: RuleId, position: usize) -> String {
         // Find the rule by iterating through all rules
@@ -143,7 +161,7 @@ impl<'a> ConflictVisualizer<'a> {
             for rule in rules {
                 if rule.production_id.0 == rule_id.0 {
                     let mut result = format!("{} ->", self.symbol_name(rule.lhs));
-                    
+
                     for (i, symbol) in rule.rhs.iter().enumerate() {
                         if i == position {
                             result.push_str(" •");
@@ -151,36 +169,34 @@ impl<'a> ConflictVisualizer<'a> {
                         result.push(' ');
                         result.push_str(&self.format_symbol(symbol));
                     }
-                    
+
                     if position >= rule.rhs.len() {
                         result.push_str(" •");
                     }
-                    
+
                     return result;
                 }
             }
         }
-        
+
         format!("Rule {}", rule_id.0)
     }
-    
+
     /// Format a rule
     fn format_rule(&self, rule_id: RuleId) -> String {
         // Find the rule by iterating through all rules
         for rules in self.grammar.rules.values() {
             for rule in rules {
                 if rule.production_id.0 == rule_id.0 {
-                    let rhs: Vec<String> = rule.rhs.iter()
-                        .map(|s| self.format_symbol(s))
-                        .collect();
+                    let rhs: Vec<String> = rule.rhs.iter().map(|s| self.format_symbol(s)).collect();
                     return format!("{} -> {}", self.symbol_name(rule.lhs), rhs.join(" "));
                 }
             }
         }
-        
+
         format!("Rule {}", rule_id.0)
     }
-    
+
     /// Format a symbol
     fn format_symbol(&self, symbol: &Symbol) -> String {
         match symbol {
@@ -201,24 +217,29 @@ impl<'a> ConflictVisualizer<'a> {
             Symbol::Epsilon => "ε".to_string(),
         }
     }
-    
+
     /// Get the name of a symbol
     fn symbol_name(&self, symbol_id: SymbolId) -> String {
         // Check tokens
         if let Some(token) = self.grammar.tokens.get(&symbol_id) {
             return token.name.clone();
         }
-        
+
         // Check if it's a rule
         if self.grammar.rules.contains_key(&symbol_id) {
             return format!("rule_{}", symbol_id.0);
         }
-        
+
         // Check externals
-        if let Some(external) = self.grammar.externals.iter().find(|e| e.symbol_id == symbol_id) {
+        if let Some(external) = self
+            .grammar
+            .externals
+            .iter()
+            .find(|e| e.symbol_id == symbol_id)
+        {
             return external.name.clone();
         }
-        
+
         // Fallback
         format!("symbol_{}", symbol_id.0)
     }
@@ -231,21 +252,27 @@ pub fn generate_dot_graph(
     grammar: &Grammar,
 ) -> String {
     let mut dot = String::new();
-    
+
     writeln!(&mut dot, "digraph parse_automaton {{").unwrap();
     writeln!(&mut dot, "  rankdir=LR;").unwrap();
     writeln!(&mut dot, "  node [shape=box];").unwrap();
-    
+
     // Add states
     for item_set in &item_sets.sets {
         let has_conflict = conflicts.iter().any(|c| c.state == item_set.id);
         let color = if has_conflict { "red" } else { "black" };
-        
-        writeln!(&mut dot, "  state{} [label=\"State {}\\n{} items\", color={}];",
-            item_set.id.0, item_set.id.0, item_set.items.len(), color
-        ).unwrap();
+
+        writeln!(
+            &mut dot,
+            "  state{} [label=\"State {}\\n{} items\", color={}];",
+            item_set.id.0,
+            item_set.id.0,
+            item_set.items.len(),
+            color
+        )
+        .unwrap();
     }
-    
+
     // Add transitions
     for ((from_state, symbol), to_state) in &item_sets.goto_table {
         let symbol_name = if let Some(token) = grammar.tokens.get(symbol) {
@@ -253,14 +280,17 @@ pub fn generate_dot_graph(
         } else {
             "?"
         };
-        
-        writeln!(&mut dot, "  state{} -> state{} [label=\"{}\"];",
+
+        writeln!(
+            &mut dot,
+            "  state{} -> state{} [label=\"{}\"];",
             from_state.0, to_state.0, symbol_name
-        ).unwrap();
+        )
+        .unwrap();
     }
-    
+
     writeln!(&mut dot, "}}").unwrap();
-    
+
     dot
 }
 
@@ -268,25 +298,20 @@ pub fn generate_dot_graph(
 mod tests {
     use super::*;
     // use crate::{ConflictResolver, FirstFollowSets};
-    
+
     #[test]
     fn test_conflict_report_generation() {
         let grammar = Grammar::new("test".to_string());
-        let conflicts = vec![
-            Conflict {
-                state: StateId(5),
-                symbol: SymbolId(10),
-                actions: vec![
-                    Action::Shift(StateId(7)),
-                    Action::Reduce(RuleId(2)),
-                ],
-                conflict_type: ConflictType::ShiftReduce,
-            },
-        ];
-        
+        let conflicts = vec![Conflict {
+            state: StateId(5),
+            symbol: SymbolId(10),
+            actions: vec![Action::Shift(StateId(7)), Action::Reduce(RuleId(2))],
+            conflict_type: ConflictType::ShiftReduce,
+        }];
+
         let visualizer = ConflictVisualizer::new(&grammar, &conflicts);
         let report = visualizer.generate_report();
-        
+
         assert!(report.contains("Total conflicts: 1"));
         assert!(report.contains("Shift/Reduce: 1"));
         assert!(report.contains("State: 5"));

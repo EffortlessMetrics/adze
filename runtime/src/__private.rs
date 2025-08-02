@@ -6,10 +6,10 @@
 
 use crate::Extract;
 
-#[cfg(not(feature = "pure-rust"))]
-use crate::tree_sitter;
 #[cfg(feature = "pure-rust")]
 use crate::pure_parser::ParsedNode;
+#[cfg(not(feature = "pure-rust"))]
+use crate::tree_sitter;
 
 #[cfg(feature = "pure-rust")]
 /// A cursor for navigating parsed nodes in pure-rust mode
@@ -28,7 +28,7 @@ impl<'a> TreeCursor<'a> {
             current_index: 0,
         }
     }
-    
+
     pub fn goto_first_child(&mut self) -> bool {
         if !self.children.is_empty() {
             self.current_index = 0;
@@ -37,7 +37,7 @@ impl<'a> TreeCursor<'a> {
             false
         }
     }
-    
+
     pub fn goto_next_sibling(&mut self) -> bool {
         if self.current_index + 1 < self.children.len() {
             self.current_index += 1;
@@ -46,7 +46,7 @@ impl<'a> TreeCursor<'a> {
             false
         }
     }
-    
+
     pub fn node(&self) -> &'a ParsedNode {
         if self.current_index < self.children.len() {
             &self.children[self.current_index]
@@ -54,7 +54,7 @@ impl<'a> TreeCursor<'a> {
             self.node
         }
     }
-    
+
     #[allow(dead_code)]
     fn field_name(&self) -> Option<&str> {
         // TODO: Implement field names
@@ -145,11 +145,11 @@ pub fn extract_field<LT: Extract<T>, T>(
             // TODO: Field names are not yet supported in pure-rust parser
             // For now, we'll just get the next child
             let out = LT::extract(Some(n), source, *last_idx, closure_ref);
-            
+
             if !cursor.goto_next_sibling() {
                 *cursor_opt = None;
             }
-            
+
             *last_idx = n.end_byte;
             return out;
         }
@@ -195,13 +195,18 @@ pub fn parse<T: Extract<T>>(
         Some(root) => root,
         None => {
             // Convert pure_parser::ParseError to errors::ParseError
-            let errors = parse_result.errors.into_iter().map(|e| {
-                crate::errors::ParseError {
-                    reason: crate::errors::ParseErrorReason::UnexpectedToken(format!("symbol {}", e.found)),
+            let errors = parse_result
+                .errors
+                .into_iter()
+                .map(|e| crate::errors::ParseError {
+                    reason: crate::errors::ParseErrorReason::UnexpectedToken(format!(
+                        "symbol {}",
+                        e.found
+                    )),
                     start: e.position,
                     end: e.position,
-                }
-            }).collect();
+                })
+                .collect();
             return Err(errors);
         }
     };
@@ -221,7 +226,7 @@ pub fn parse<T: Extract<T>>(
             // Extract from root directly
             &root_node
         };
-        
+
         Ok(<T as crate::Extract<_>>::extract(
             Some(extract_node),
             input.as_bytes(),

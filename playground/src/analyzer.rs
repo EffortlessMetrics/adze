@@ -1,8 +1,8 @@
 // Grammar analyzer for the rust-sitter playground
 
-use crate::{AnalysisResult, GrammarStats, Conflict, Ambiguity, Suggestion, SuggestionLevel};
-use rust_sitter_ir::{Grammar, Symbol, SymbolId};
+use crate::{Ambiguity, AnalysisResult, Conflict, GrammarStats, Suggestion, SuggestionLevel};
 use anyhow::Result;
+use rust_sitter_ir::{Grammar, Symbol, SymbolId};
 use std::collections::HashSet;
 
 /// Analyze a grammar and return insights
@@ -11,7 +11,7 @@ pub fn analyze_grammar(grammar: &Grammar) -> Result<AnalysisResult> {
     let conflicts = detect_conflicts(grammar)?;
     let ambiguities = detect_ambiguities(grammar);
     let suggestions = generate_suggestions(grammar, &stats, &conflicts);
-    
+
     Ok(AnalysisResult {
         grammar_stats: stats,
         conflicts,
@@ -28,13 +28,13 @@ fn compute_stats(grammar: &Grammar) -> GrammarStats {
     let mut nullable_rules = 0;
     let mut left_recursive_rules = 0;
     let mut right_recursive_rules = 0;
-    
+
     // Count terminals and non-terminals
     let mut terminals = HashSet::new();
     let mut nonterminals = HashSet::new();
-    
+
     let mut rule_count = 0;
-    
+
     for (symbol_id, rules) in &grammar.rules {
         nonterminals.insert(symbol_id.0.to_string());
         for rule in rules {
@@ -42,42 +42,42 @@ fn compute_stats(grammar: &Grammar) -> GrammarStats {
             total_rule_length += rule_length;
             max_rule_length = max_rule_length.max(rule_length);
             rule_count += 1;
-            
+
             // Check for nullable rules
             if rule.rhs.is_empty() {
                 nullable_rules += 1;
             }
-            
+
             // Check for left recursion
             if let Some(first) = rule.rhs.first() {
                 if is_left_recursive(symbol_id, first) {
                     left_recursive_rules += 1;
                 }
             }
-            
+
             // Check for right recursion
             if let Some(last) = rule.rhs.last() {
                 if is_right_recursive(symbol_id, last) {
                     right_recursive_rules += 1;
                 }
             }
-            
+
             // Collect terminals
             for symbol in &rule.rhs {
                 collect_terminals(symbol, &mut terminals);
             }
         }
     }
-    
+
     terminal_count = terminals.len();
     nonterminal_count = nonterminals.len();
-    
+
     let avg_rule_length = if rule_count == 0 {
         0.0
     } else {
         total_rule_length as f64 / rule_count as f64
     };
-    
+
     GrammarStats {
         rule_count,
         terminal_count,
@@ -113,7 +113,9 @@ fn is_nullable(symbol: &Symbol) -> bool {
 fn is_left_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
     match symbol {
         Symbol::NonTerminal(name) => name == rule_symbol,
-        Symbol::Sequence(seq) => seq.first().map_or(false, |s| is_left_recursive(rule_symbol, s)),
+        Symbol::Sequence(seq) => seq
+            .first()
+            .map_or(false, |s| is_left_recursive(rule_symbol, s)),
         Symbol::Choice(choices) => choices.iter().any(|s| is_left_recursive(rule_symbol, s)),
         Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
             is_left_recursive(rule_symbol, inner)
@@ -125,7 +127,9 @@ fn is_left_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
 fn is_right_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
     match symbol {
         Symbol::NonTerminal(name) => name == rule_symbol,
-        Symbol::Sequence(seq) => seq.last().map_or(false, |s| is_right_recursive(rule_symbol, s)),
+        Symbol::Sequence(seq) => seq
+            .last()
+            .map_or(false, |s| is_right_recursive(rule_symbol, s)),
         Symbol::Choice(choices) => choices.iter().any(|s| is_right_recursive(rule_symbol, s)),
         Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
             is_right_recursive(rule_symbol, inner)
@@ -159,7 +163,7 @@ fn detect_conflicts(grammar: &Grammar) -> Result<Vec<Conflict>> {
 
 fn detect_ambiguities(grammar: &Grammar) -> Vec<Ambiguity> {
     let mut ambiguities = Vec::new();
-    
+
     // Detect common ambiguity patterns
     for (symbol_id, rules) in &grammar.rules {
         // Check for ambiguous operator precedence
@@ -168,7 +172,7 @@ fn detect_ambiguities(grammar: &Grammar) -> Vec<Ambiguity> {
             // In the future, this would analyze rule patterns
         }
     }
-    
+
     ambiguities
 }
 
@@ -193,16 +197,17 @@ fn generate_suggestions(
     conflicts: &Vec<Conflict>,
 ) -> Vec<Suggestion> {
     let mut suggestions = Vec::new();
-    
+
     // Check for high recursion
     if stats.left_recursive_rules > stats.rule_count / 4 {
         suggestions.push(Suggestion {
             level: SuggestionLevel::Warning,
-            message: "High amount of left recursion detected. Consider using iterative rules.".to_string(),
+            message: "High amount of left recursion detected. Consider using iterative rules."
+                .to_string(),
             rule: None,
         });
     }
-    
+
     // Check for missing terminals
     if stats.terminal_count == 0 {
         suggestions.push(Suggestion {
@@ -211,25 +216,29 @@ fn generate_suggestions(
             rule: None,
         });
     }
-    
+
     // Check for conflicts
     if !conflicts.is_empty() {
         suggestions.push(Suggestion {
             level: SuggestionLevel::Warning,
-            message: format!("{} conflicts detected. Consider adding precedence rules.", conflicts.len()),
+            message: format!(
+                "{} conflicts detected. Consider adding precedence rules.",
+                conflicts.len()
+            ),
             rule: None,
         });
     }
-    
+
     // Check for complexity
     if stats.max_rule_length > 10 {
         suggestions.push(Suggestion {
             level: SuggestionLevel::Info,
-            message: "Some rules are very long. Consider breaking them into smaller rules.".to_string(),
+            message: "Some rules are very long. Consider breaking them into smaller rules."
+                .to_string(),
             rule: None,
         });
     }
-    
+
     // Check for potential performance issues
     if stats.rule_count > 1000 {
         suggestions.push(Suggestion {
@@ -238,6 +247,6 @@ fn generate_suggestions(
             rule: None,
         });
     }
-    
+
     suggestions
 }

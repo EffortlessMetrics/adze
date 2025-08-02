@@ -1,10 +1,10 @@
 //! Improved parser for grammar.js files
-//! 
+//!
 //! This module provides a more comprehensive parser for Tree-sitter grammar.js files.
 //! It handles most common grammar patterns and can parse real-world grammars.
 
-use super::{GrammarJs, Rule, ExternalToken};
-use anyhow::{Result, bail, Context, anyhow};
+use super::{ExternalToken, GrammarJs, Rule};
+use anyhow::{Context, Result, anyhow, bail};
 use regex::Regex;
 use std::collections::HashMap;
 
@@ -27,12 +27,12 @@ impl ImprovedGrammarJsParser {
             lines: content.lines().map(|l| l.to_string()).collect(),
         }
     }
-    
+
     fn parse(&self) -> Result<GrammarJs> {
         // First, find the module.exports pattern
         // Handle potential newlines and extra whitespace
         let exports_regex = Regex::new(r"module\.exports\s*=\s*grammar\s*\(\s*")?;
-        
+
         let grammar_content = if let Some(mat) = exports_regex.find(&self.content) {
             // Found the start, now find the matching closing parenthesis
             let start = mat.end();
@@ -41,61 +41,60 @@ impl ImprovedGrammarJsParser {
         } else {
             bail!("Could not find module.exports = grammar(...) pattern")
         };
-        
+
         // Parse the grammar object
         self.parse_grammar_object(&grammar_content)
     }
-    
+
     fn parse_grammar_object(&self, content: &str) -> Result<GrammarJs> {
         let mut grammar = GrammarJs::new("".to_string());
-        
+
         // Extract name
         grammar.name = self.extract_grammar_name(content)?;
-        
+
         // Extract word
         grammar.word = self.extract_word_token(content);
-        
+
         // Extract inline rules
         grammar.inline = self.extract_inline_rules(content);
-        
+
         // Extract conflicts
         grammar.conflicts = self.extract_conflicts(content);
-        
+
         // Extract extras
         grammar.extras = self.extract_extras(content)?;
-        
+
         // Extract externals
         grammar.externals = self.extract_externals(content);
-        
+
         // Extract precedences
         grammar.precedences = self.extract_precedences(content);
-        
+
         // Extract supertypes
         grammar.supertypes = self.extract_supertypes(content);
-        
+
         // Extract rules
         grammar.rules = self.extract_rules(content)?;
-        
+
         Ok(grammar)
     }
-    
+
     fn extract_grammar_name(&self, content: &str) -> Result<String> {
         let name_regex = Regex::new(r#"name:\s*['"]([^'"]+)['"]"#)?;
-        
+
         if let Some(caps) = name_regex.captures(content) {
             Ok(caps[1].to_string())
         } else {
             bail!("Could not find grammar name")
         }
     }
-    
+
     fn extract_word_token(&self, content: &str) -> Option<String> {
         let word_regex = Regex::new(r#"word:\s*\$\s*=>\s*\$\.(\w+)"#).ok()?;
-        
-        word_regex.captures(content)
-            .map(|caps| caps[1].to_string())
+
+        word_regex.captures(content).map(|caps| caps[1].to_string())
     }
-    
+
     fn extract_inline_rules(&self, content: &str) -> Vec<String> {
         // Match inline: $ => [$.rule1, $.rule2, ...]
         if let Ok(inline_regex) = Regex::new(r#"inline:\s*\$\s*=>\s*\[([^\]]+)\]"#) {
@@ -108,10 +107,12 @@ impl ImprovedGrammarJsParser {
             Vec::new()
         }
     }
-    
+
     fn extract_conflicts(&self, content: &str) -> Vec<Vec<String>> {
         // Match conflicts: $ => [[$.rule1, $.rule2], [$.rule3, $.rule4]]
-        if let Ok(conflicts_regex) = Regex::new(r#"conflicts:\s*\$\s*=>\s*\[([^\]]+(?:\][^\]]*\[)*[^\]]*)\]"#) {
+        if let Ok(conflicts_regex) =
+            Regex::new(r#"conflicts:\s*\$\s*=>\s*\[([^\]]+(?:\][^\]]*\[)*[^\]]*)\]"#)
+        {
             if let Some(caps) = conflicts_regex.captures(content) {
                 self.parse_conflicts_array(&caps[1])
             } else {
@@ -121,17 +122,17 @@ impl ImprovedGrammarJsParser {
             Vec::new()
         }
     }
-    
+
     fn extract_extras(&self, content: &str) -> Result<Vec<Rule>> {
         // Find extras: $ => [
         if let Some(extras_start) = content.find("extras:") {
             let after_extras = &content[extras_start + 7..]; // Skip "extras:"
             let trimmed = after_extras.trim_start();
-            
+
             // Skip $ =>
             if let Some(arrow_pos) = trimmed.find("=>") {
                 let after_arrow = trimmed[arrow_pos + 2..].trim_start();
-                
+
                 if after_arrow.starts_with('[') {
                     // Extract the array content by matching brackets
                     let array_content = self.extract_balanced_brackets(&after_arrow[1..])?;
@@ -139,10 +140,10 @@ impl ImprovedGrammarJsParser {
                 }
             }
         }
-        
+
         Ok(vec![])
     }
-    
+
     fn extract_externals(&self, content: &str) -> Vec<ExternalToken> {
         // Match externals: $ => [...]
         if let Ok(externals_regex) = Regex::new(r#"externals:\s*\$\s*=>\s*\[([^\]]+)\]"#) {
@@ -155,10 +156,12 @@ impl ImprovedGrammarJsParser {
             Vec::new()
         }
     }
-    
+
     fn extract_precedences(&self, content: &str) -> Vec<Vec<(String, i32)>> {
         // Match precedences: $ => [[...], [...]]
-        if let Ok(prec_regex) = Regex::new(r#"precedences:\s*\$\s*=>\s*\[([^\]]+(?:\][^\]]*\[)*[^\]]*)\]"#) {
+        if let Ok(prec_regex) =
+            Regex::new(r#"precedences:\s*\$\s*=>\s*\[([^\]]+(?:\][^\]]*\[)*[^\]]*)\]"#)
+        {
             if let Some(caps) = prec_regex.captures(content) {
                 self.parse_precedences_array(&caps[1])
             } else {
@@ -168,7 +171,7 @@ impl ImprovedGrammarJsParser {
             Vec::new()
         }
     }
-    
+
     fn extract_supertypes(&self, content: &str) -> Vec<String> {
         // Match supertypes: $ => [...]
         if let Ok(super_regex) = Regex::new(r#"supertypes:\s*\$\s*=>\s*\[([^\]]+)\]"#) {
@@ -181,47 +184,58 @@ impl ImprovedGrammarJsParser {
             Vec::new()
         }
     }
-    
+
     fn extract_rules(&self, content: &str) -> Result<HashMap<String, Rule>> {
         let mut rules = HashMap::new();
-        
+
         // Find the rules: section
         if let Some(rules_start) = content.find("rules:") {
             let after_rules = &content[rules_start + 6..]; // Skip "rules:"
-            
+
             // Skip whitespace and find the opening brace
             let trimmed = after_rules.trim_start();
             if !trimmed.starts_with('{') {
                 bail!("Expected '{{' after 'rules:'");
             }
-            
+
             // Extract the rules object content by matching braces
             eprintln!("Debug: Attempting to extract balanced braces from rules section");
-            eprintln!("Debug: First 100 chars after opening brace: {:?}", &trimmed[1..].chars().take(100).collect::<String>());
+            eprintln!(
+                "Debug: First 100 chars after opening brace: {:?}",
+                &trimmed[1..].chars().take(100).collect::<String>()
+            );
             let rules_content = self.extract_balanced_braces(&trimmed[1..])?;
-            
-            eprintln!("Debug: Found rules content of length {}", rules_content.len());
-            
+
+            eprintln!(
+                "Debug: Found rules content of length {}",
+                rules_content.len()
+            );
+
             // Parse individual rules from the content by finding rule patterns
             let mut remaining = rules_content.as_str();
             while !remaining.trim().is_empty() {
                 // Skip whitespace
                 remaining = remaining.trim_start();
-                
+
                 // Look for rule name
                 let rule_regex = Regex::new(r#"^(\w+):\s*\$\s*=>\s*"#)?;
                 if let Some(caps) = rule_regex.captures(remaining) {
                     let rule_name = caps[1].to_string();
                     let after_arrow = &remaining[caps[0].len()..];
-                    
+
                     // Extract the rule definition
                     let (rule_def, rest) = self.extract_rule_definition(after_arrow)?;
-                    
-                    eprintln!("Debug: Found rule '{}' with definition length {}", rule_name, rule_def.len());
-                    
-                    let rule = self.parse_rule(&rule_def)
+
+                    eprintln!(
+                        "Debug: Found rule '{}' with definition length {}",
+                        rule_name,
+                        rule_def.len()
+                    );
+
+                    let rule = self
+                        .parse_rule(&rule_def)
                         .with_context(|| format!("Failed to parse rule '{}'", rule_name))?;
-                    
+
                     rules.insert(rule_name, rule);
                     remaining = rest;
                 } else {
@@ -230,13 +244,13 @@ impl ImprovedGrammarJsParser {
                 }
             }
         }
-        
+
         Ok(rules)
     }
-    
+
     fn parse_rule(&self, rule_def: &str) -> Result<Rule> {
         let trimmed = rule_def.trim();
-        
+
         // Check for different rule patterns
         if trimmed.starts_with("seq(") {
             self.parse_seq_rule(trimmed)
@@ -276,13 +290,17 @@ impl ImprovedGrammarJsParser {
             // String literal
             let quote = &trimmed[0..1];
             if let Some(end) = trimmed[1..].find(quote) {
-                Ok(Rule::String { value: trimmed[1..end+1].to_string() })
+                Ok(Rule::String {
+                    value: trimmed[1..end + 1].to_string(),
+                })
             } else {
                 bail!("Unterminated string literal")
             }
         } else if trimmed.starts_with("$.") {
             // Symbol reference
-            Ok(Rule::Symbol { name: trimmed[2..].to_string() })
+            Ok(Rule::Symbol {
+                name: trimmed[2..].to_string(),
+            })
         } else if trimmed.starts_with("commaSep(") {
             // Handle commaSep helper function
             self.parse_comma_sep(trimmed, false)
@@ -302,157 +320,200 @@ impl ImprovedGrammarJsParser {
             // Handle custom helper functions by trying to expand them
             self.parse_custom_helper(trimmed)
         } else {
-            bail!("Unknown rule pattern: {}. Expected one of: seq(), choice(), optional(), repeat(), repeat1(), prec(), prec.left(), prec.right(), prec.dynamic(), field(), alias(), token(), token.immediate(), /regex/, 'string', $.symbol", trimmed)
+            bail!(
+                "Unknown rule pattern: {}. Expected one of: seq(), choice(), optional(), repeat(), repeat1(), prec(), prec.left(), prec.right(), prec.dynamic(), field(), alias(), token(), token.immediate(), /regex/, 'string', $.symbol",
+                trimmed
+            )
         }
     }
-    
+
     fn parse_seq_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "seq")?;
         let members = self.parse_rule_list(&content)?;
         Ok(Rule::Seq { members })
     }
-    
+
     fn parse_choice_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "choice")?;
         let members = self.parse_rule_list(&content)?;
         Ok(Rule::Choice { members })
     }
-    
+
     fn parse_optional_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "optional")?;
         let value = self.parse_rule(content.trim())?;
-        Ok(Rule::Optional { value: Box::new(value) })
+        Ok(Rule::Optional {
+            value: Box::new(value),
+        })
     }
-    
+
     fn parse_repeat_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "repeat")?;
         let content_rule = self.parse_rule(content.trim())?;
-        Ok(Rule::Repeat { content: Box::new(content_rule) })
+        Ok(Rule::Repeat {
+            content: Box::new(content_rule),
+        })
     }
-    
+
     fn parse_repeat1_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "repeat1")?;
         let content_rule = self.parse_rule(content.trim())?;
-        Ok(Rule::Repeat1 { content: Box::new(content_rule) })
+        Ok(Rule::Repeat1 {
+            content: Box::new(content_rule),
+        })
     }
-    
+
     fn parse_prec_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "prec")?;
         let parts: Vec<&str> = content.splitn(2, ',').collect();
-        
+
         if parts.len() != 2 {
             bail!("prec() requires two arguments")
         }
-        
-        let value: i32 = parts[0].trim().parse()
+
+        let value: i32 = parts[0]
+            .trim()
+            .parse()
             .with_context(|| "Failed to parse precedence value")?;
         let content_rule = self.parse_rule(parts[1].trim())?;
-        
-        Ok(Rule::Prec { value, content: Box::new(content_rule) })
+
+        Ok(Rule::Prec {
+            value,
+            content: Box::new(content_rule),
+        })
     }
-    
+
     fn parse_prec_left_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "prec.left")?;
         let parts: Vec<&str> = content.splitn(2, ',').collect();
-        
+
         if parts.len() != 2 {
             bail!("prec.left() requires two arguments")
         }
-        
-        let value: i32 = parts[0].trim().parse()
+
+        let value: i32 = parts[0]
+            .trim()
+            .parse()
             .with_context(|| "Failed to parse precedence value")?;
         let content_rule = self.parse_rule(parts[1].trim())?;
-        
-        Ok(Rule::PrecLeft { value, content: Box::new(content_rule) })
+
+        Ok(Rule::PrecLeft {
+            value,
+            content: Box::new(content_rule),
+        })
     }
-    
+
     fn parse_prec_right_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "prec.right")?;
         let parts: Vec<&str> = content.splitn(2, ',').collect();
-        
+
         if parts.len() != 2 {
             bail!("prec.right() requires two arguments")
         }
-        
-        let value: i32 = parts[0].trim().parse()
+
+        let value: i32 = parts[0]
+            .trim()
+            .parse()
             .with_context(|| "Failed to parse precedence value")?;
         let content_rule = self.parse_rule(parts[1].trim())?;
-        
-        Ok(Rule::PrecRight { value, content: Box::new(content_rule) })
+
+        Ok(Rule::PrecRight {
+            value,
+            content: Box::new(content_rule),
+        })
     }
-    
+
     fn parse_prec_dynamic_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "prec.dynamic")?;
         let parts: Vec<&str> = content.splitn(2, ',').collect();
-        
+
         if parts.len() != 2 {
             bail!("prec.dynamic() requires two arguments")
         }
-        
-        let value: i32 = parts[0].trim().parse()
+
+        let value: i32 = parts[0]
+            .trim()
+            .parse()
             .with_context(|| "Failed to parse precedence value")?;
         let content_rule = self.parse_rule(parts[1].trim())?;
-        
-        Ok(Rule::PrecDynamic { value, content: Box::new(content_rule) })
+
+        Ok(Rule::PrecDynamic {
+            value,
+            content: Box::new(content_rule),
+        })
     }
-    
+
     fn parse_field_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "field")?;
         let parts: Vec<&str> = content.splitn(2, ',').collect();
-        
+
         if parts.len() != 2 {
             bail!("field() requires two arguments")
         }
-        
-        let name = parts[0].trim().trim_matches(|c| c == '\'' || c == '"').to_string();
+
+        let name = parts[0]
+            .trim()
+            .trim_matches(|c| c == '\'' || c == '"')
+            .to_string();
         let content_rule = self.parse_rule(parts[1].trim())?;
-        
-        Ok(Rule::Field { name, content: Box::new(content_rule) })
+
+        Ok(Rule::Field {
+            name,
+            content: Box::new(content_rule),
+        })
     }
-    
+
     fn parse_alias_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "alias")?;
         let parts: Vec<&str> = content.splitn(2, ',').collect();
-        
+
         if parts.len() != 2 {
             bail!("alias() requires two arguments")
         }
-        
+
         let content_rule = self.parse_rule(parts[0].trim())?;
         let alias_str = parts[1].trim();
-        
+
         let (value, named) = if alias_str.starts_with("$.") {
             (alias_str[2..].to_string(), true)
         } else {
             let trimmed = alias_str.trim_matches(|c| c == '\'' || c == '"');
             (trimmed.to_string(), false)
         };
-        
-        Ok(Rule::Alias { content: Box::new(content_rule), value, named })
+
+        Ok(Rule::Alias {
+            content: Box::new(content_rule),
+            value,
+            named,
+        })
     }
-    
+
     fn parse_token_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "token")?;
         let content_rule = self.parse_rule(content.trim())?;
-        Ok(Rule::Token { content: Box::new(content_rule) })
+        Ok(Rule::Token {
+            content: Box::new(content_rule),
+        })
     }
-    
+
     fn parse_immediate_token_rule(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "token.immediate")?;
         let content_rule = self.parse_rule(content.trim())?;
-        Ok(Rule::ImmediateToken { content: Box::new(content_rule) })
+        Ok(Rule::ImmediateToken {
+            content: Box::new(content_rule),
+        })
     }
-    
+
     fn extract_function_args(&self, rule_def: &str, func_name: &str) -> Result<String> {
         let prefix = format!("{}(", func_name);
         if !rule_def.starts_with(&prefix) {
             bail!("Expected {} function", func_name)
         }
-        
+
         // Find matching closing parenthesis
         let mut depth = 0;
         let mut end_pos = None;
-        
+
         for (i, ch) in rule_def.chars().enumerate() {
             match ch {
                 '(' => depth += 1,
@@ -466,28 +527,28 @@ impl ImprovedGrammarJsParser {
                 _ => {}
             }
         }
-        
+
         if let Some(end) = end_pos {
             Ok(rule_def[prefix.len()..end].to_string())
         } else {
             bail!("Unmatched parentheses in {}", func_name)
         }
     }
-    
+
     fn parse_rule_list(&self, content: &str) -> Result<Vec<Rule>> {
         let mut rules = Vec::new();
         let mut current = String::new();
         let mut depth = 0;
         let mut in_string = false;
         let mut escape_next = false;
-        
+
         for ch in content.chars() {
             if escape_next {
                 current.push(ch);
                 escape_next = false;
                 continue;
             }
-            
+
             match ch {
                 '\\' => {
                     current.push(ch);
@@ -520,16 +581,17 @@ impl ImprovedGrammarJsParser {
                 }
             }
         }
-        
+
         if !current.trim().is_empty() {
             rules.push(self.parse_rule(current.trim())?);
         }
-        
+
         Ok(rules)
     }
-    
+
     fn parse_symbol_array(&self, content: &str) -> Vec<String> {
-        content.split(',')
+        content
+            .split(',')
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
             .map(|s| {
@@ -541,7 +603,7 @@ impl ImprovedGrammarJsParser {
             })
             .collect()
     }
-    
+
     fn parse_conflicts_array(&self, content: &str) -> Vec<Vec<String>> {
         // Parse nested arrays like [[$.a, $.b], [$.c, $.d]]
         let mut conflicts = Vec::new();
@@ -549,7 +611,7 @@ impl ImprovedGrammarJsParser {
         let mut current_item = String::new();
         let mut depth = 0;
         let mut in_string = false;
-        
+
         for ch in content.chars() {
             match ch {
                 '[' if !in_string => {
@@ -599,14 +661,14 @@ impl ImprovedGrammarJsParser {
                 }
             }
         }
-        
+
         conflicts
     }
-    
+
     fn parse_rule_array(&self, content: &str) -> Result<Vec<Rule>> {
         self.parse_rule_list(content)
     }
-    
+
     fn parse_externals_array(&self, content: &str) -> Vec<ExternalToken> {
         // Parse externals array like [$.token1, token('_token2')]
         let mut externals = Vec::new();
@@ -614,14 +676,14 @@ impl ImprovedGrammarJsParser {
         let mut depth = 0;
         let mut in_string = false;
         let mut escape_next = false;
-        
+
         for ch in content.chars() {
             if escape_next {
                 current.push(ch);
                 escape_next = false;
                 continue;
             }
-            
+
             match ch {
                 '\\' => {
                     current.push(ch);
@@ -652,20 +714,20 @@ impl ImprovedGrammarJsParser {
                 }
             }
         }
-        
+
         // Don't forget the last item
         let trimmed = current.trim();
         if !trimmed.is_empty() {
             let external = self.parse_external_token(trimmed);
             externals.push(external);
         }
-        
+
         externals
     }
-    
+
     fn parse_external_token(&self, token_str: &str) -> ExternalToken {
         let trimmed = token_str.trim();
-        
+
         if trimmed.starts_with("$.") {
             // Simple symbol reference
             let name = trimmed[2..].to_string();
@@ -696,7 +758,7 @@ impl ImprovedGrammarJsParser {
             }
         }
     }
-    
+
     fn parse_precedences_array(&self, content: &str) -> Vec<Vec<(String, i32)>> {
         // Parse precedences array like [[prec(1, $.rule1), prec(2, $.rule2)], ...]
         let mut precedences = Vec::new();
@@ -705,14 +767,14 @@ impl ImprovedGrammarJsParser {
         let mut depth = 0;
         let mut in_string = false;
         let mut escape_next = false;
-        
+
         for ch in content.chars() {
             if escape_next {
                 current_item.push(ch);
                 escape_next = false;
                 continue;
             }
-            
+
             match ch {
                 '\\' => {
                     current_item.push(ch);
@@ -764,13 +826,13 @@ impl ImprovedGrammarJsParser {
                 }
             }
         }
-        
+
         precedences
     }
-    
+
     fn parse_precedence_item(&self, item: &str) -> Option<(String, i32)> {
         let trimmed = item.trim();
-        
+
         // Handle prec(value, $.rule) pattern
         if trimmed.starts_with("prec(") {
             if let Ok(content) = self.extract_function_args(trimmed, "prec") {
@@ -788,15 +850,15 @@ impl ImprovedGrammarJsParser {
                 }
             }
         }
-        
+
         // Handle simple $.rule pattern (default precedence 0)
         if trimmed.starts_with("$.") {
             return Some((trimmed[2..].to_string(), 0));
         }
-        
+
         None
     }
-    
+
     /// Extract content within balanced braces
     fn extract_balanced_braces(&self, content: &str) -> Result<String> {
         let mut depth = 1;
@@ -807,35 +869,55 @@ impl ImprovedGrammarJsParser {
         let mut in_regex = false;
         let mut escape_next = false;
         let mut brace_positions = vec![];
-        
-        eprintln!("Debug: Starting brace extraction, total chars: {}", chars.len());
+
+        eprintln!(
+            "Debug: Starting brace extraction, total chars: {}",
+            chars.len()
+        );
         let mut debug_counter = 0;
-        
+
         while depth > 0 && end_idx < chars.len() {
             if debug_counter < 5 || (end_idx > 0 && end_idx % 1000 == 0) {
-                eprintln!("Debug: [{}] char='{}' in_string={} in_regex={} escape_next={}", 
-                         end_idx, chars[end_idx], in_string, in_regex, escape_next);
+                eprintln!(
+                    "Debug: [{}] char='{}' in_string={} in_regex={} escape_next={}",
+                    end_idx, chars[end_idx], in_string, in_regex, escape_next
+                );
             }
             debug_counter += 1;
             if escape_next {
                 escape_next = false;
             } else if chars[end_idx] == '\\' {
                 escape_next = true;
-            } else if !in_regex && !in_string && (chars[end_idx] == '\'' || chars[end_idx] == '"' || chars[end_idx] == '`') {
+            } else if !in_regex
+                && !in_string
+                && (chars[end_idx] == '\'' || chars[end_idx] == '"' || chars[end_idx] == '`')
+            {
                 in_string = true;
                 string_char = chars[end_idx];
                 if debug_counter < 20 {
-                    eprintln!("Debug: Entering string with '{}' at position {}", string_char, end_idx);
+                    eprintln!(
+                        "Debug: Entering string with '{}' at position {}",
+                        string_char, end_idx
+                    );
                 }
             } else if in_string && chars[end_idx] == string_char && !escape_next {
                 in_string = false;
                 if debug_counter < 20 {
                     eprintln!("Debug: Exiting string at position {}", end_idx);
                 }
-            } else if !in_string && !in_regex && chars[end_idx] == '/' && end_idx > 0 && 
-                      (end_idx == 0 || chars[end_idx - 1].is_whitespace() || "[,({:;=".contains(chars[end_idx - 1])) {
+            } else if !in_string
+                && !in_regex
+                && chars[end_idx] == '/'
+                && end_idx > 0
+                && (end_idx == 0
+                    || chars[end_idx - 1].is_whitespace()
+                    || "[,({:;=".contains(chars[end_idx - 1]))
+            {
                 // Check if this might be a regex by looking ahead
-                if end_idx + 1 < chars.len() && chars[end_idx + 1] != '/' && chars[end_idx + 1] != '*' {
+                if end_idx + 1 < chars.len()
+                    && chars[end_idx + 1] != '/'
+                    && chars[end_idx + 1] != '*'
+                {
                     in_regex = true;
                 }
             } else if in_regex && chars[end_idx] == '/' && !escape_next {
@@ -861,12 +943,18 @@ impl ImprovedGrammarJsParser {
             }
             end_idx += 1;
         }
-        
+
         if depth == 0 && end_idx > 0 {
-            eprintln!("Debug: Successfully balanced braces at position {}", end_idx - 1);
+            eprintln!(
+                "Debug: Successfully balanced braces at position {}",
+                end_idx - 1
+            );
             Ok(content[..end_idx - 1].to_string())
         } else {
-            eprintln!("Debug: Failed to balance braces. Final depth: {}, position: {}", depth, end_idx);
+            eprintln!(
+                "Debug: Failed to balance braces. Final depth: {}, position: {}",
+                depth, end_idx
+            );
             eprintln!("Debug: Total braces found: {}", brace_positions.len());
             if brace_positions.len() < 50 {
                 for (pos, d, ch) in &brace_positions {
@@ -876,7 +964,7 @@ impl ImprovedGrammarJsParser {
             bail!("Unbalanced braces in content")
         }
     }
-    
+
     /// Extract content within balanced brackets
     fn extract_balanced_brackets(&self, content: &str) -> Result<String> {
         let mut depth = 1;
@@ -885,7 +973,7 @@ impl ImprovedGrammarJsParser {
         let mut in_string = false;
         let mut in_regex = false;
         let mut escape_next = false;
-        
+
         while depth > 0 && end_idx < chars.len() {
             if escape_next {
                 escape_next = false;
@@ -893,8 +981,11 @@ impl ImprovedGrammarJsParser {
                 escape_next = true;
             } else if !in_regex && (chars[end_idx] == '\'' || chars[end_idx] == '"') {
                 in_string = !in_string;
-            } else if !in_string && chars[end_idx] == '/' && end_idx > 0 && 
-                      (chars[end_idx - 1].is_whitespace() || "[,(".contains(chars[end_idx - 1])) {
+            } else if !in_string
+                && chars[end_idx] == '/'
+                && end_idx > 0
+                && (chars[end_idx - 1].is_whitespace() || "[,(".contains(chars[end_idx - 1]))
+            {
                 in_regex = true;
             } else if in_regex && chars[end_idx] == '/' && !escape_next {
                 in_regex = false;
@@ -907,22 +998,22 @@ impl ImprovedGrammarJsParser {
             }
             end_idx += 1;
         }
-        
+
         if depth == 0 && end_idx > 0 {
             Ok(content[..end_idx - 1].to_string())
         } else {
             bail!("Unbalanced brackets in content")
         }
     }
-    
+
     /// Parse commaSep/commaSep1 helper functions
     fn parse_comma_sep(&self, rule_def: &str, require_one: bool) -> Result<Rule> {
         let func_name = if require_one { "commaSep1" } else { "commaSep" };
         let content = self.extract_function_args(rule_def, func_name)?;
-        
+
         // Parse the inner rule
         let inner_rule = self.parse_rule(&content)?;
-        
+
         if require_one {
             // commaSep1(rule) => seq(rule, repeat(seq(',', rule)))
             Ok(Rule::Seq {
@@ -931,25 +1022,32 @@ impl ImprovedGrammarJsParser {
                     Rule::Repeat {
                         content: Box::new(Rule::Seq {
                             members: vec![
-                                Rule::String { value: ",".to_string() },
+                                Rule::String {
+                                    value: ",".to_string(),
+                                },
                                 inner_rule,
-                            ]
-                        })
-                    }
-                ]
+                            ],
+                        }),
+                    },
+                ],
             })
         } else {
             // commaSep(rule) => optional(commaSep1(rule))
             Ok(Rule::Optional {
-                value: Box::new(self.parse_comma_sep(rule_def.replace("commaSep(", "commaSep1(").as_str(), true)?)
+                value: Box::new(
+                    self.parse_comma_sep(
+                        rule_def.replace("commaSep(", "commaSep1(").as_str(),
+                        true,
+                    )?,
+                ),
             })
         }
     }
-    
+
     /// Find the matching closing parenthesis, considering all bracket types
     fn find_matching_paren(&self, content: &str) -> Result<usize> {
         let chars: Vec<char> = content.chars().collect();
-        let mut paren_depth = 1;  // We're looking for the closing ) of grammar(
+        let mut paren_depth = 1; // We're looking for the closing ) of grammar(
         let mut brace_depth = 0;
         let mut bracket_depth = 0;
         let mut i = 0;
@@ -957,21 +1055,23 @@ impl ImprovedGrammarJsParser {
         let mut string_char = ' ';
         let mut escape_next = false;
         let mut in_regex = false;
-        
+
         // Debug check for corruption
         if content.contains("$.state'") {
-            eprintln!("WARNING: Content already contains corrupted string at start of find_matching_paren");
+            eprintln!(
+                "WARNING: Content already contains corrupted string at start of find_matching_paren"
+            );
         }
-        
+
         while i < chars.len() {
             if escape_next {
                 escape_next = false;
                 i += 1;
                 continue;
             }
-            
+
             let ch = chars[i];
-            
+
             if ch == '\\' && (in_string || in_regex) {
                 escape_next = true;
             } else if !in_string && !in_regex && ch == '/' {
@@ -984,9 +1084,29 @@ impl ImprovedGrammarJsParser {
                         j -= 1;
                     }
                     // Regex typically follows these characters
-                    matches!(chars[j], '=' | '(' | '[' | ',' | ':' | ';' | '!' | '&' | '|' | '?' | '+' | '-' | '*' | '/' | '%' | '^' | '~' | '<' | '>')
+                    matches!(
+                        chars[j],
+                        '=' | '('
+                            | '['
+                            | ','
+                            | ':'
+                            | ';'
+                            | '!'
+                            | '&'
+                            | '|'
+                            | '?'
+                            | '+'
+                            | '-'
+                            | '*'
+                            | '/'
+                            | '%'
+                            | '^'
+                            | '~'
+                            | '<'
+                            | '>'
+                    )
                 };
-                
+
                 if is_regex_context && i + 1 < chars.len() && !matches!(chars[i + 1], '/' | '*') {
                     in_regex = true;
                 }
@@ -1012,24 +1132,26 @@ impl ImprovedGrammarJsParser {
                                 // Found the matching closing paren for grammar(
                                 return Ok(i);
                             }
-                        },
+                        }
                         '{' => brace_depth += 1,
                         '}' => brace_depth -= 1,
                         '[' => bracket_depth += 1,
                         ']' => {
                             bracket_depth -= 1;
                             if bracket_depth < 0 {
-                                eprintln!("DEBUG: Bracket depth went negative at pos {}. Current char: '{}', string state: in_string={}, in_regex={}", 
-                                    i, ch, in_string, in_regex);
+                                eprintln!(
+                                    "DEBUG: Bracket depth went negative at pos {}. Current char: '{}', string state: in_string={}, in_regex={}",
+                                    i, ch, in_string, in_regex
+                                );
                             }
-                        },
+                        }
                         _ => {}
                     }
                 }
             }
             i += 1;
         }
-        
+
         // If we get here, we didn't find the closing paren
         // Create a safe context string for error message
         let context_len = 100.min(content.len());
@@ -1037,17 +1159,23 @@ impl ImprovedGrammarJsParser {
         for ch in content.chars().take(context_len) {
             problem_context.push(ch);
         }
-        
-        bail!("No matching closing parenthesis found for grammar(...). Depths: paren={}, brace={}, bracket={}. Stopped at pos {} in: '{}'", 
-              paren_depth, brace_depth, bracket_depth, i, problem_context)
+
+        bail!(
+            "No matching closing parenthesis found for grammar(...). Depths: paren={}, brace={}, bracket={}. Stopped at pos {} in: '{}'",
+            paren_depth,
+            brace_depth,
+            bracket_depth,
+            i,
+            problem_context
+        )
     }
-    
+
     /// Find the end position of a regex pattern, handling escaped slashes
     fn find_regex_end(&self, content: &str) -> Option<usize> {
         let chars: Vec<char> = content.chars().collect();
         let mut i = 1; // Skip the initial /
         let mut escaped = false;
-        
+
         while i < chars.len() {
             if escaped {
                 escaped = false;
@@ -1058,14 +1186,14 @@ impl ImprovedGrammarJsParser {
             }
             i += 1;
         }
-        
+
         None
     }
-    
+
     /// Extract a complete rule definition (handling nested structures)
     fn extract_rule_definition<'a>(&self, content: &'a str) -> Result<(String, &'a str)> {
         let trimmed = content.trim_start();
-        
+
         // Find the end of this rule definition
         // Rules are typically separated by commas at the top level
         let mut depth = 0;
@@ -1073,10 +1201,10 @@ impl ImprovedGrammarJsParser {
         let mut escape_next = false;
         let mut end_idx = 0;
         let chars: Vec<char> = trimmed.chars().collect();
-        
+
         while end_idx < chars.len() {
             let ch = chars[end_idx];
-            
+
             if escape_next {
                 escape_next = false;
             } else if ch == '\\' {
@@ -1089,34 +1217,39 @@ impl ImprovedGrammarJsParser {
                     ')' | '}' | ']' => depth -= 1,
                     ',' if depth == 0 => {
                         // Found the separator
-                        return Ok((trimmed[..end_idx].trim().to_string(), &content[end_idx + 1..]));
+                        return Ok((
+                            trimmed[..end_idx].trim().to_string(),
+                            &content[end_idx + 1..],
+                        ));
                     }
                     _ => {}
                 }
             }
             end_idx += 1;
         }
-        
+
         // No comma found, this is the last rule
         Ok((content.trim().to_string(), ""))
     }
-    
+
     /// Parse sepBy/sepBy1 helper functions
     fn parse_sep_by(&self, rule_def: &str, require_one: bool) -> Result<Rule> {
         let func_name = if require_one { "sepBy1" } else { "sepBy" };
-        
+
         // Extract the function arguments
-        let args_start = rule_def.find('(').ok_or_else(|| anyhow!("Invalid {} function", func_name))?;
+        let args_start = rule_def
+            .find('(')
+            .ok_or_else(|| anyhow!("Invalid {} function", func_name))?;
         let args_end = self.find_matching_paren(&rule_def[args_start + 1..])?;
         let args = &rule_def[args_start + 1..args_start + 1 + args_end];
-        
+
         // Split arguments by comma (at the top level)
         let mut depth = 0;
         let mut in_string = false;
         let mut escape_next = false;
         let mut current_arg = String::new();
         let mut args_vec = Vec::new();
-        
+
         for ch in args.chars() {
             if escape_next {
                 escape_next = false;
@@ -1150,14 +1283,17 @@ impl ImprovedGrammarJsParser {
         if !current_arg.trim().is_empty() {
             args_vec.push(current_arg.trim().to_string());
         }
-        
+
         if args_vec.len() != 2 {
-            bail!("{} requires exactly 2 arguments: sepBy(separator, rule)", func_name);
+            bail!(
+                "{} requires exactly 2 arguments: sepBy(separator, rule)",
+                func_name
+            );
         }
-        
+
         let separator_rule = self.parse_rule(&args_vec[0])?;
         let item_rule = self.parse_rule(&args_vec[1])?;
-        
+
         if require_one {
             // sepBy1(sep, rule) => seq(rule, repeat(seq(sep, rule)))
             Ok(Rule::Seq {
@@ -1165,50 +1301,70 @@ impl ImprovedGrammarJsParser {
                     item_rule.clone(),
                     Rule::Repeat {
                         content: Box::new(Rule::Seq {
-                            members: vec![separator_rule, item_rule]
-                        })
-                    }
-                ]
+                            members: vec![separator_rule, item_rule],
+                        }),
+                    },
+                ],
             })
         } else {
             // sepBy(sep, rule) => optional(sepBy1(sep, rule))
             Ok(Rule::Optional {
-                value: Box::new(self.parse_sep_by(&format!("sepBy1({}, {})", args_vec[0], args_vec[1]), true)?)
+                value: Box::new(
+                    self.parse_sep_by(&format!("sepBy1({}, {})", args_vec[0], args_vec[1]), true)?,
+                ),
             })
         }
     }
-    
+
     /// Check if a string looks like a function call
     fn is_function_call(&self, s: &str) -> bool {
         if let Some(paren_pos) = s.find('(') {
             let func_name = s[..paren_pos].trim();
             // Check if it's a known function
-            !matches!(func_name, 
-                "seq" | "choice" | "optional" | "repeat" | "repeat1" | 
-                "prec" | "prec.left" | "prec.right" | "prec.dynamic" |
-                "field" | "alias" | "token" | "token.immediate" |
-                "commaSep" | "commaSep1" | "sepBy" | "sepBy1" | "blank"
+            !matches!(
+                func_name,
+                "seq"
+                    | "choice"
+                    | "optional"
+                    | "repeat"
+                    | "repeat1"
+                    | "prec"
+                    | "prec.left"
+                    | "prec.right"
+                    | "prec.dynamic"
+                    | "field"
+                    | "alias"
+                    | "token"
+                    | "token.immediate"
+                    | "commaSep"
+                    | "commaSep1"
+                    | "sepBy"
+                    | "sepBy1"
+                    | "blank"
             ) && s.ends_with(')')
         } else {
             false
         }
     }
-    
+
     /// Try to parse a custom helper function
     fn parse_custom_helper(&self, rule_def: &str) -> Result<Rule> {
         // For now, we'll just return an error for unknown functions
         // In the future, this could be extended to handle custom helpers
         let paren_pos = rule_def.find('(').unwrap_or(rule_def.len());
         let func_name = rule_def[..paren_pos].trim();
-        bail!("Unknown helper function: {}. Consider defining it or using standard Tree-sitter functions.", func_name)
+        bail!(
+            "Unknown helper function: {}. Consider defining it or using standard Tree-sitter functions.",
+            func_name
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    #[test] 
+
+    #[test]
     fn test_basic_parsing() {
         let grammar_js = r#"
 module.exports = grammar({
@@ -1220,14 +1376,14 @@ module.exports = grammar({
   }
 });
         "#;
-        
+
         let result = parse_grammar_js_v2(grammar_js);
         assert!(result.is_ok());
         let grammar = result.unwrap();
         assert_eq!(grammar.name, "simple");
         assert_eq!(grammar.rules.len(), 2);
     }
-    
+
     #[test]
     fn test_parse_simple_grammar() {
         let grammar_js = r#"
@@ -1264,7 +1420,7 @@ module.exports = grammar({
   }
 });
         "#;
-        
+
         let grammar = parse_grammar_js_v2(grammar_js).unwrap();
         assert_eq!(grammar.name, "test");
         assert_eq!(grammar.rules.len(), 7);

@@ -1,8 +1,8 @@
 // Comprehensive benchmarks for pure-Rust Tree-sitter implementation
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use rust_sitter::pure_incremental::{Edit, Tree};
 use rust_sitter::pure_parser::{Parser, TSLanguage};
 use rust_sitter::unified_parser::Parser as UnifiedParser;
-use rust_sitter::pure_incremental::{Edit, Tree};
 
 // Create test languages of various complexities
 fn create_simple_language() -> &'static TSLanguage {
@@ -45,10 +45,12 @@ fn generate_arithmetic_expr(depth: usize) -> String {
     if depth == 0 {
         "42".to_string()
     } else {
-        format!("({} + {} * {})", 
+        format!(
+            "({} + {} * {})",
             generate_arithmetic_expr(depth - 1),
             depth,
-            generate_arithmetic_expr(depth - 1))
+            generate_arithmetic_expr(depth - 1)
+        )
     }
 }
 
@@ -58,11 +60,15 @@ fn generate_json(size: usize) -> String {
         if i > 0 {
             result.push(',');
         }
-        result.push_str(&format!(r#""key{}": {}"#, i, if i % 2 == 0 { 
-            format!(r#""value{}""#, i)
-        } else {
-            format!("{}", i)
-        }));
+        result.push_str(&format!(
+            r#""key{}": {}"#,
+            i,
+            if i % 2 == 0 {
+                format!(r#""value{}""#, i)
+            } else {
+                format!("{}", i)
+            }
+        ));
     }
     result.push('}');
     result
@@ -72,24 +78,20 @@ fn generate_json(size: usize) -> String {
 fn bench_basic_parsing(c: &mut Criterion) {
     let mut group = c.benchmark_group("basic_parsing");
     let language = create_simple_language();
-    
+
     for size in [10, 100, 1000, 10000] {
         let source = generate_arithmetic_expr((size as f64).log2() as usize);
-        
-        group.bench_with_input(
-            BenchmarkId::new("parse", size),
-            &source,
-            |b, source| {
-                let mut parser = Parser::new();
-                parser.set_language(language).unwrap();
-                b.iter(|| {
-                    let result = parser.parse_string(black_box(source));
-                    black_box(result);
-                });
-            },
-        );
+
+        group.bench_with_input(BenchmarkId::new("parse", size), &source, |b, source| {
+            let mut parser = Parser::new();
+            parser.set_language(language).unwrap();
+            b.iter(|| {
+                let result = parser.parse_string(black_box(source));
+                black_box(result);
+            });
+        });
     }
-    
+
     group.finish();
 }
 
@@ -97,29 +99,38 @@ fn bench_basic_parsing(c: &mut Criterion) {
 fn bench_incremental_parsing(c: &mut Criterion) {
     let mut group = c.benchmark_group("incremental_parsing");
     let language = create_simple_language();
-    
+
     for size in [100, 1000, 10000] {
         let mut source = generate_json(size);
         let edit_pos = source.len() / 2;
-        
+
         // Parse initial tree
         let mut parser = UnifiedParser::new();
         parser.set_language(language).unwrap();
         let initial_result = parser.parse(&source, None);
-        
+
         if let Some(tree) = initial_result.root {
             // Make a small edit
-            source.replace_range(edit_pos..edit_pos+5, "\"new\"");
-            
+            source.replace_range(edit_pos..edit_pos + 5, "\"new\"");
+
             let edit = Edit {
                 start_byte: edit_pos,
                 old_end_byte: edit_pos + 5,
                 new_end_byte: edit_pos + 5,
-                start_point: rust_sitter::pure_parser::Point { row: 0, column: edit_pos },
-                old_end_point: rust_sitter::pure_parser::Point { row: 0, column: edit_pos + 5 },
-                new_end_point: rust_sitter::pure_parser::Point { row: 0, column: edit_pos + 5 },
+                start_point: rust_sitter::pure_parser::Point {
+                    row: 0,
+                    column: edit_pos,
+                },
+                old_end_point: rust_sitter::pure_parser::Point {
+                    row: 0,
+                    column: edit_pos + 5,
+                },
+                new_end_point: rust_sitter::pure_parser::Point {
+                    row: 0,
+                    column: edit_pos + 5,
+                },
             };
-            
+
             group.bench_with_input(
                 BenchmarkId::new("incremental", size),
                 &(&source, &edit),
@@ -128,7 +139,7 @@ fn bench_incremental_parsing(c: &mut Criterion) {
                         let result = parser.parse_with_edits(
                             black_box(source),
                             Some(Tree::new(tree.clone())),
-                            &[edit.clone()]
+                            &[edit.clone()],
                         );
                         black_box(result);
                     });
@@ -136,76 +147,84 @@ fn bench_incremental_parsing(c: &mut Criterion) {
             );
         }
     }
-    
+
     group.finish();
 }
 
 // Benchmark lexer performance
 fn bench_lexer(c: &mut Criterion) {
     let mut group = c.benchmark_group("lexer");
-    
+
     // Test different token patterns
     let patterns = vec![
-        ("identifiers", "foo bar baz qux quux corge grault garply".repeat(100)),
+        (
+            "identifiers",
+            "foo bar baz qux quux corge grault garply".repeat(100),
+        ),
         ("numbers", "123 456 789 3.14 2.718 1.414".repeat(100)),
-        ("strings", r#""hello" "world" "rust" "sitter" "parser""#.repeat(100)),
-        ("mixed", r#"fn main() { let x = 42; println!("{}", x); }"#.repeat(50)),
+        (
+            "strings",
+            r#""hello" "world" "rust" "sitter" "parser""#.repeat(100),
+        ),
+        (
+            "mixed",
+            r#"fn main() { let x = 42; println!("{}", x); }"#.repeat(50),
+        ),
     ];
-    
+
     for (name, source) in patterns {
-        group.bench_with_input(
-            BenchmarkId::new("tokenize", name),
-            &source,
-            |b, source| {
-                let language = create_simple_language();
-                let mut parser = Parser::new();
-                parser.set_language(language).unwrap();
-                
-                b.iter(|| {
-                    // The lexer runs as part of parsing
-                    let result = parser.parse_string(black_box(source));
-                    black_box(result);
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("tokenize", name), &source, |b, source| {
+            let language = create_simple_language();
+            let mut parser = Parser::new();
+            parser.set_language(language).unwrap();
+
+            b.iter(|| {
+                // The lexer runs as part of parsing
+                let result = parser.parse_string(black_box(source));
+                black_box(result);
+            });
+        });
     }
-    
+
     group.finish();
 }
 
 // Benchmark memory usage patterns
 fn bench_memory_patterns(c: &mut Criterion) {
     let mut group = c.benchmark_group("memory");
-    
+
     // Test parsing with different memory patterns
     let language = create_simple_language();
-    
+
     // Deep nesting (stress tests stack)
     let deep_expr = (0..100).fold("1".to_string(), |acc, _| format!("({} + 1)", acc));
-    
+
     group.bench_function("deep_nesting", |b| {
         let mut parser = Parser::new();
         parser.set_language(language).unwrap();
-        
+
         b.iter(|| {
             let result = parser.parse_string(black_box(&deep_expr));
             black_box(result);
         });
     });
-    
+
     // Wide tree (stress tests heap)
-    let wide_expr = (0..1000).map(|i| i.to_string()).collect::<Vec<_>>().join(" + ");
-    
+    let wide_expr = (0..1000)
+        .map(|i| i.to_string())
+        .collect::<Vec<_>>()
+        .join(" + ");
+
     group.bench_function("wide_tree", |b| {
         let mut parser = Parser::new();
         parser.set_language(language).unwrap();
-        
+
         b.iter(|| {
             let result = parser.parse_string(black_box(&wide_expr));
             black_box(result);
         });
     });
-    
+
     group.finish();
 }
 
@@ -213,18 +232,17 @@ fn bench_memory_patterns(c: &mut Criterion) {
 #[cfg(feature = "parallel")]
 fn bench_parallel_parsing(c: &mut Criterion) {
     use rayon::prelude::*;
-    
+
     let mut group = c.benchmark_group("parallel");
     let language = create_simple_language();
-    
+
     // Generate multiple documents
-    let documents: Vec<String> = (0..100)
-        .map(|i| generate_json(100 + i))
-        .collect();
-    
+    let documents: Vec<String> = (0..100).map(|i| generate_json(100 + i)).collect();
+
     group.bench_function("sequential", |b| {
         b.iter(|| {
-            let results: Vec<_> = documents.iter()
+            let results: Vec<_> = documents
+                .iter()
                 .map(|doc| {
                     let mut parser = Parser::new();
                     parser.set_language(language).unwrap();
@@ -234,10 +252,11 @@ fn bench_parallel_parsing(c: &mut Criterion) {
             black_box(results);
         });
     });
-    
+
     group.bench_function("parallel", |b| {
         b.iter(|| {
-            let results: Vec<_> = documents.par_iter()
+            let results: Vec<_> = documents
+                .par_iter()
                 .map(|doc| {
                     let mut parser = Parser::new();
                     parser.set_language(language).unwrap();
@@ -247,7 +266,7 @@ fn bench_parallel_parsing(c: &mut Criterion) {
             black_box(results);
         });
     });
-    
+
     group.finish();
 }
 
@@ -255,9 +274,9 @@ fn bench_parallel_parsing(c: &mut Criterion) {
 #[cfg(feature = "tree-sitter-standard")]
 fn bench_vs_c_implementation(c: &mut Criterion) {
     use tree_sitter as ts;
-    
+
     let mut group = c.benchmark_group("rust_vs_c");
-    
+
     // Use a real grammar if available
     let source = r#"
         function fibonacci(n) {
@@ -267,31 +286,32 @@ fn bench_vs_c_implementation(c: &mut Criterion) {
         
         const result = fibonacci(10);
         console.log("Result:", result);
-    "#.repeat(10);
-    
+    "#
+    .repeat(10);
+
     // Benchmark Rust implementation
     group.bench_function("rust_impl", |b| {
         let language = create_simple_language();
         let mut parser = Parser::new();
         parser.set_language(language).unwrap();
-        
+
         b.iter(|| {
             let result = parser.parse_string(black_box(&source));
             black_box(result);
         });
     });
-    
+
     // Benchmark C implementation
     group.bench_function("c_impl", |b| {
         let mut parser = ts::Parser::new();
         // Would need to set actual language here
-        
+
         b.iter(|| {
             let tree = parser.parse(black_box(&source), None);
             black_box(tree);
         });
     });
-    
+
     group.finish();
 }
 

@@ -2,10 +2,10 @@ use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
 // Test incremental parsing functionality
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{
-    Grammar, Rule, Symbol, Token, TokenPattern, SymbolId, ProductionId,
-    PrecedenceEntry, PrecedenceKind, Associativity,
+    Associativity, Grammar, PrecedenceEntry, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
+    Token, TokenPattern,
 };
 use std::sync::Arc;
 

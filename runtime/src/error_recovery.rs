@@ -2,10 +2,10 @@
 // This module implements various error recovery techniques to produce useful parse trees
 // even when the input contains syntax errors.
 
-use std::collections::{HashSet, VecDeque};
-use rust_sitter_ir::{Grammar, SymbolId};
 use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::StateId;
+use rust_sitter_ir::{Grammar, SymbolId};
+use std::collections::{HashSet, VecDeque};
 
 /// Error recovery strategies that can be applied during parsing
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,7 +66,7 @@ impl ErrorRecoveryConfig {
         // For now, allow deleting any token that's not in sync_tokens
         !self.sync_tokens.contains(&token.0)
     }
-    
+
     /// Check if a token can be replaced
     pub fn can_replace_token(&self, token: rust_sitter_ir::SymbolId) -> bool {
         // Allow replacing if it's not a sync token
@@ -155,7 +155,7 @@ impl ErrorRecoveryState {
         }
 
         // Try strategies in order of preference
-        
+
         // 1. Token insertion - if the missing token is insertable
         if actual.is_none() || self.can_insert_token(expected) {
             if let Some(_token) = self.find_insertable_token(expected) {
@@ -260,11 +260,14 @@ impl ErrorRecoveryState {
     // Helper methods
 
     fn can_insert_token(&self, expected: &[u16]) -> bool {
-        expected.iter().any(|s| self.config.insertable_tokens.contains(s))
+        expected
+            .iter()
+            .any(|s| self.config.insertable_tokens.contains(s))
     }
 
     fn find_insertable_token(&self, expected: &[u16]) -> Option<u16> {
-        expected.iter()
+        expected
+            .iter()
             .find(|s| self.config.insertable_tokens.contains(s))
             .copied()
     }
@@ -285,9 +288,13 @@ impl ErrorRecoveryState {
         if let Some(token) = actual {
             // Check if it's a closing delimiter without matching open
             self.config.scope_delimiters.iter().any(|(_, close)| {
-                token == *close && !self.scope_stack.iter().any(|open| {
-                    self.config.scope_delimiters.iter().any(|(o, c)| o == open && c == close)
-                })
+                token == *close
+                    && !self.scope_stack.iter().any(|open| {
+                        self.config
+                            .scope_delimiters
+                            .iter()
+                            .any(|(o, c)| o == open && c == close)
+                    })
             })
         } else {
             false
@@ -295,11 +302,16 @@ impl ErrorRecoveryState {
     }
 
     fn is_opening_delimiter(&self, token: u16) -> bool {
-        self.config.scope_delimiters.iter().any(|(open, _)| *open == token)
+        self.config
+            .scope_delimiters
+            .iter()
+            .any(|(open, _)| *open == token)
     }
 
     fn find_matching_open(&self, close_token: u16) -> Option<u16> {
-        self.config.scope_delimiters.iter()
+        self.config
+            .scope_delimiters
+            .iter()
             .find(|(_, close)| *close == close_token)
             .map(|(open, _)| *open)
     }
@@ -328,7 +340,9 @@ impl ErrorRecoveryState {
 
     // Static helper methods for tests
     pub fn is_scope_delimiter(token: u16, delimiters: &[(u16, u16)]) -> bool {
-        delimiters.iter().any(|(open, close)| *open == token || *close == token)
+        delimiters
+            .iter()
+            .any(|(open, close)| *open == token || *close == token)
     }
 
     pub fn is_matching_delimiter(open: u16, close: u16, delimiters: &[(u16, u16)]) -> bool {
@@ -372,17 +386,17 @@ impl ErrorRecoveryConfigBuilder {
         self.config.enable_indentation_recovery = enable;
         self
     }
-    
+
     pub fn enable_scope_recovery(mut self, enable: bool) -> Self {
         self.config.enable_scope_recovery = enable;
         self
     }
-    
+
     pub fn enable_phrase_recovery(mut self, enable: bool) -> Self {
         self.config.enable_phrase_recovery = enable;
         self
     }
-    
+
     pub fn max_consecutive_errors(mut self, max: usize) -> Self {
         self.config.max_consecutive_errors = max;
         self
@@ -425,7 +439,7 @@ mod tests {
             .add_scope_delimiter(4, 5)
             .enable_indentation_recovery(true)
             .build();
-        
+
         assert_eq!(config.max_panic_skip, 100);
         assert!(config.sync_tokens.contains(&1));
         assert!(config.sync_tokens.contains(&2));
@@ -439,13 +453,13 @@ mod tests {
         let mut config = ErrorRecoveryConfig::default();
         config.insertable_tokens.insert(10);
         config.sync_tokens.insert(20);
-        
+
         let mut state = ErrorRecoveryState::new(config);
-        
+
         // Test token insertion strategy
         let strategy = state.determine_recovery_strategy(&[10, 11], None, (0, 0), 0);
         assert_eq!(strategy, RecoveryStrategy::TokenInsertion);
-        
+
         // Test panic mode after too many errors
         state.consecutive_errors = 11;
         let strategy = state.determine_recovery_strategy(&[10, 11], Some(15), (0, 0), 0);
@@ -457,22 +471,22 @@ mod tests {
         let mut config = ErrorRecoveryConfig::default();
         config.scope_delimiters.push((1, 2)); // ( and )
         config.scope_delimiters.push((3, 4)); // { and }
-        
+
         let mut state = ErrorRecoveryState::new(config);
-        
+
         // Push opening delimiters
         state.push_scope(1);
         state.push_scope(3);
         assert_eq!(state.scope_stack, vec![1, 3]);
-        
+
         // Pop matching delimiter
         assert!(state.pop_scope(4));
         assert_eq!(state.scope_stack, vec![1]);
-        
+
         // Try to pop non-matching delimiter
         assert!(!state.pop_scope(4));
         assert_eq!(state.scope_stack, vec![1]);
-        
+
         // Pop correct delimiter
         assert!(state.pop_scope(2));
         assert!(state.scope_stack.is_empty());
@@ -482,16 +496,18 @@ mod tests {
     fn test_error_recording() {
         let config = ErrorRecoveryConfig::default();
         let mut state = ErrorRecoveryState::new(config);
-        
+
         state.record_error(
-            0, 5,
-            (0, 0), (0, 5),
+            0,
+            5,
+            (0, 0),
+            (0, 5),
             vec![1, 2, 3],
             Some(4),
             RecoveryStrategy::TokenDeletion,
             vec![4],
         );
-        
+
         let errors = state.get_error_nodes();
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].start_byte, 0);
@@ -512,18 +528,18 @@ impl ErrorRecoveryState {
         _grammar: &Grammar,
     ) -> Option<RecoveryAction> {
         self.consecutive_errors += 1;
-        
+
         // Check if we've hit the error limit
         if self.consecutive_errors > self.config.max_consecutive_errors {
             return None;
         }
-        
+
         // Record the token in recent history
         self.recent_tokens.push_back(unexpected_token.0);
         if self.recent_tokens.len() > 10 {
             self.recent_tokens.pop_front();
         }
-        
+
         // Find expected tokens in this state
         let mut expected_tokens = Vec::new();
         for (symbol_id, &symbol_idx) in &table.symbol_to_index {
@@ -532,22 +548,23 @@ impl ErrorRecoveryState {
                 expected_tokens.push(*symbol_id);
             }
         }
-        
+
         // Try different recovery strategies
-        
+
         // 1. Token insertion - check if any expected token is insertable
-        if let Some(insertable) = expected_tokens.iter()
+        if let Some(insertable) = expected_tokens
+            .iter()
             .find(|&&token| self.config.insertable_tokens.contains(&token.0))
         {
             self.consecutive_errors = 0; // Reset on successful recovery
             return Some(RecoveryAction::InsertToken(*insertable));
         }
-        
+
         // 2. Token deletion - if this token can be safely deleted
         if self.config.can_delete_token(unexpected_token) {
             return Some(RecoveryAction::DeleteToken);
         }
-        
+
         // 3. Create error node as fallback
         Some(RecoveryAction::CreateErrorNode(vec![unexpected_token]))
     }
@@ -556,14 +573,17 @@ impl ErrorRecoveryState {
 #[cfg(test)]
 mod tests2 {
     use super::*;
-    
+
     #[test]
     fn test_recovery_strategy() {
         // Test enum equality
         assert_eq!(RecoveryStrategy::PanicMode, RecoveryStrategy::PanicMode);
-        assert_ne!(RecoveryStrategy::PanicMode, RecoveryStrategy::TokenInsertion);
+        assert_ne!(
+            RecoveryStrategy::PanicMode,
+            RecoveryStrategy::TokenInsertion
+        );
     }
-    
+
     #[test]
     fn test_recovery_action() {
         let action = RecoveryAction::InsertToken(SymbolId(42));
@@ -571,15 +591,15 @@ mod tests2 {
             RecoveryAction::InsertToken(id) => assert_eq!(id, SymbolId(42)),
             _ => panic!("Expected InsertToken"),
         }
-        
+
         let delete_action = RecoveryAction::DeleteToken;
         assert!(matches!(delete_action, RecoveryAction::DeleteToken));
     }
-    
+
     #[test]
     fn test_error_recovery_config_default() {
         let config = ErrorRecoveryConfig::default();
-        
+
         assert_eq!(config.max_panic_skip, 50);
         assert!(config.sync_tokens.is_empty());
         assert!(config.insertable_tokens.is_empty());
@@ -589,73 +609,73 @@ mod tests2 {
         assert!(config.scope_delimiters.is_empty());
         assert!(!config.enable_indentation_recovery);
     }
-    
+
     #[test]
     fn test_error_recovery_config_can_delete() {
         let mut config = ErrorRecoveryConfig::default();
         config.sync_tokens.insert(10);
         config.sync_tokens.insert(20);
-        
+
         // Can delete non-sync tokens
         assert!(config.can_delete_token(SymbolId(5)));
         assert!(config.can_delete_token(SymbolId(15)));
-        
+
         // Cannot delete sync tokens
         assert!(!config.can_delete_token(SymbolId(10)));
         assert!(!config.can_delete_token(SymbolId(20)));
     }
-    
+
     #[test]
     fn test_error_recovery_config_can_replace() {
         let mut config = ErrorRecoveryConfig::default();
         config.sync_tokens.insert(30);
-        
+
         // Can replace non-sync tokens
         assert!(config.can_replace_token(SymbolId(25)));
-        
+
         // Cannot replace sync tokens
         assert!(!config.can_replace_token(SymbolId(30)));
     }
-    
+
     #[test]
     fn test_error_recovery_state_creation() {
         let config = ErrorRecoveryConfig::default();
         let state = ErrorRecoveryState::new(config.clone());
-        
+
         assert_eq!(state.consecutive_errors, 0);
         assert!(state.scope_stack.is_empty());
         assert!(state.recent_tokens.is_empty());
         assert!(state.error_nodes.is_empty());
     }
-    
+
     #[test]
     fn test_error_recovery_state_increment_errors() {
         let config = ErrorRecoveryConfig::default();
         let mut state = ErrorRecoveryState::new(config);
-        
+
         assert_eq!(state.consecutive_errors, 0);
         state.increment_error_count();
         assert_eq!(state.consecutive_errors, 1);
         state.increment_error_count();
         assert_eq!(state.consecutive_errors, 2);
     }
-    
+
     #[test]
     fn test_error_recovery_state_reset_errors() {
         let config = ErrorRecoveryConfig::default();
         let mut state = ErrorRecoveryState::new(config);
-        
+
         state.consecutive_errors = 5;
         state.reset_error_count();
         assert_eq!(state.consecutive_errors, 0);
     }
-    
+
     #[test]
     fn test_error_recovery_state_should_give_up() {
         let mut config = ErrorRecoveryConfig::default();
         config.max_consecutive_errors = 3;
         let mut state = ErrorRecoveryState::new(config);
-        
+
         assert!(!state.should_give_up());
         state.consecutive_errors = 2;
         assert!(!state.should_give_up());
@@ -664,21 +684,21 @@ mod tests2 {
         state.consecutive_errors = 4;
         assert!(state.should_give_up());
     }
-    
+
     #[test]
     fn test_error_recovery_state_scope_operations() {
         let config = ErrorRecoveryConfig::default();
         let mut state = ErrorRecoveryState::new(config);
-        
+
         // Push scope
         state.push_scope(100);
         assert_eq!(state.scope_stack.len(), 1);
         assert_eq!(state.scope_stack[0], 100);
-        
+
         // Push another
         state.push_scope(200);
         assert_eq!(state.scope_stack.len(), 2);
-        
+
         // Pop scope
         assert_eq!(state.pop_scope_test(), Some(200));
         assert_eq!(state.scope_stack.len(), 1);
@@ -686,28 +706,28 @@ mod tests2 {
         assert_eq!(state.scope_stack.len(), 0);
         assert_eq!(state.pop_scope_test(), None);
     }
-    
+
     #[test]
     fn test_error_recovery_state_update_recent_tokens() {
         let config = ErrorRecoveryConfig::default();
         let mut state = ErrorRecoveryState::new(config);
-        
+
         // Add tokens
         state.update_recent_tokens(SymbolId(1));
         assert_eq!(state.recent_tokens.len(), 1);
-        
+
         // Add more tokens
         for i in 2..15 {
             state.update_recent_tokens(SymbolId(i));
         }
-        
+
         // Should maintain max of 10
         assert_eq!(state.recent_tokens.len(), 10);
         // First token should be removed
         assert_eq!(state.recent_tokens[0], 5);
         assert_eq!(state.recent_tokens[9], 14);
     }
-    
+
     #[test]
     fn test_recovery_heuristics() {
         // Test scope delimiter matching
@@ -715,9 +735,13 @@ mod tests2 {
         assert!(ErrorRecoveryState::is_scope_delimiter(1, &delimiters));
         assert!(ErrorRecoveryState::is_scope_delimiter(3, &delimiters));
         assert!(!ErrorRecoveryState::is_scope_delimiter(7, &delimiters));
-        
+
         assert!(ErrorRecoveryState::is_matching_delimiter(1, 2, &delimiters));
         assert!(ErrorRecoveryState::is_matching_delimiter(5, 6, &delimiters));
-        assert!(!ErrorRecoveryState::is_matching_delimiter(1, 4, &delimiters));
+        assert!(!ErrorRecoveryState::is_matching_delimiter(
+            1,
+            4,
+            &delimiters
+        ));
     }
 }

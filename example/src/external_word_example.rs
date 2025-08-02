@@ -9,7 +9,7 @@ mod grammar {
         If(IfStatement),
         Expression(Expression),
     }
-    
+
     pub struct IfStatement {
         #[rust_sitter::leaf(text = "if")]
         _if: (),
@@ -18,32 +18,29 @@ mod grammar {
         _colon: (),
         body: Vec<Statement>,
     }
-    
+
     pub enum Expression {
         Identifier(Identifier),
-        Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
-            i32
-        ),
+        Number(#[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
     }
-    
+
     // Word token - helps distinguish keywords from identifiers
     #[rust_sitter::word]
     pub struct Identifier {
         #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
         name: String,
     }
-    
+
     // External scanner tokens for indentation-based parsing
     #[rust_sitter::external]
     pub struct Indent;
-    
+
     #[rust_sitter::external]
     pub struct Dedent;
-    
+
     #[rust_sitter::external]
     pub struct Newline;
-    
+
     // Regular extras
     #[rust_sitter::extra]
     pub struct Whitespace {
@@ -59,7 +56,7 @@ mod grammar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_word_token() {
         // This test would work once the full parser is generated

@@ -29,7 +29,7 @@ pub struct TSFieldId(pub u16);
 #[derive(Debug, Clone, Copy)]
 pub struct TSParseAction {
     pub action_type: u8,
-    pub extra: u8,  // Use u8 instead of bool for consistent size
+    pub extra: u8, // Use u8 instead of bool for consistent size
     pub child_count: u8,
     pub dynamic_precedence: i8,
     pub symbol: TSSymbol,
@@ -107,14 +107,14 @@ impl Default for ExternalScanner {
 /// Ensure TSLanguage is FFI-safe and matches expected size
 const _: () = {
     use std::mem;
-    
+
     // These sizes must match tree-sitter's expectations
     assert!(mem::size_of::<TSSymbol>() == 2);
     assert!(mem::size_of::<TSStateId>() == 2);
     assert!(mem::size_of::<TSFieldId>() == 2);
     assert!(mem::size_of::<TSParseAction>() == 6);
     assert!(mem::size_of::<TSLexState>() == 4);
-    
+
     // Language struct must be pointer-sized aligned
     assert!(mem::align_of::<TSLanguage>() == mem::align_of::<*const u8>());
 };
@@ -129,13 +129,29 @@ pub mod symbol_metadata {
 }
 
 /// Create a symbol metadata byte from flags
-pub fn create_symbol_metadata(visible: bool, named: bool, hidden: bool, auxiliary: bool, supertype: bool) -> u8 {
+pub fn create_symbol_metadata(
+    visible: bool,
+    named: bool,
+    hidden: bool,
+    auxiliary: bool,
+    supertype: bool,
+) -> u8 {
     let mut metadata = 0u8;
-    if visible { metadata |= symbol_metadata::VISIBLE; }
-    if named { metadata |= symbol_metadata::NAMED; }
-    if hidden { metadata |= symbol_metadata::HIDDEN; }
-    if auxiliary { metadata |= symbol_metadata::AUXILIARY; }
-    if supertype { metadata |= symbol_metadata::SUPERTYPE; }
+    if visible {
+        metadata |= symbol_metadata::VISIBLE;
+    }
+    if named {
+        metadata |= symbol_metadata::NAMED;
+    }
+    if hidden {
+        metadata |= symbol_metadata::HIDDEN;
+    }
+    if auxiliary {
+        metadata |= symbol_metadata::AUXILIARY;
+    }
+    if supertype {
+        metadata |= symbol_metadata::SUPERTYPE;
+    }
     metadata
 }
 
@@ -158,9 +174,12 @@ mod tests {
     fn test_symbol_metadata() {
         let metadata = create_symbol_metadata(true, true, false, false, false);
         assert_eq!(metadata, symbol_metadata::VISIBLE | symbol_metadata::NAMED);
-        
+
         let metadata = create_symbol_metadata(false, false, true, true, false);
-        assert_eq!(metadata, symbol_metadata::HIDDEN | symbol_metadata::AUXILIARY);
+        assert_eq!(
+            metadata,
+            symbol_metadata::HIDDEN | symbol_metadata::AUXILIARY
+        );
     }
 
     #[test]

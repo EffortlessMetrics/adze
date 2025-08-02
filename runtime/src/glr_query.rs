@@ -132,8 +132,9 @@ impl<'a> QueryParser<'a> {
         self.skip_whitespace();
         while !self.is_at_end() {
             // Parse a pattern
-            let (pattern_node, pattern_predicates) = self.parse_pattern(&mut capture_names, &mut next_capture_id)?;
-            
+            let (pattern_node, pattern_predicates) =
+                self.parse_pattern(&mut capture_names, &mut next_capture_id)?;
+
             let predicate_start = predicates.len();
             for pred in pattern_predicates {
                 predicates.push(pred);
@@ -166,7 +167,7 @@ impl<'a> QueryParser<'a> {
         next_capture_id: &mut u32,
     ) -> Result<(PatternNode, Vec<Predicate>), QueryError> {
         self.skip_whitespace();
-        
+
         if !self.consume_char('(') {
             return Err(QueryError::ExpectedOpenParen(self.position));
         }
@@ -231,7 +232,7 @@ impl<'a> QueryParser<'a> {
             }
 
             let child_node = self.parse_pattern_node(capture_names, next_capture_id)?;
-            
+
             // Parse quantifier
             self.skip_whitespace();
             let quantifier = match self.peek_char() {
@@ -286,7 +287,10 @@ impl<'a> QueryParser<'a> {
     }
 
     /// Parse a predicate
-    fn parse_predicate(&mut self, capture_names: &HashMap<String, u32>) -> Result<Predicate, QueryError> {
+    fn parse_predicate(
+        &mut self,
+        capture_names: &HashMap<String, u32>,
+    ) -> Result<Predicate, QueryError> {
         self.skip_whitespace();
         if !self.consume_char('(') {
             return Err(QueryError::ExpectedOpenParen(self.position));
@@ -308,13 +312,16 @@ impl<'a> QueryParser<'a> {
                 while self.peek_char() == Some('@') {
                     self.advance();
                     let name = self.parse_identifier()?;
-                    let id = capture_names.get(&name)
+                    let id = capture_names
+                        .get(&name)
                         .ok_or(QueryError::UnknownCapture(name))?;
                     captures.push(*id);
                     self.skip_whitespace();
                 }
                 if captures.len() < 2 {
-                    return Err(QueryError::InvalidPredicate("eq? requires at least 2 captures".into()));
+                    return Err(QueryError::InvalidPredicate(
+                        "eq? requires at least 2 captures".into(),
+                    ));
                 }
                 Predicate::Equal(captures)
             }
@@ -323,7 +330,8 @@ impl<'a> QueryParser<'a> {
                     return Err(QueryError::ExpectedAt(self.position));
                 }
                 let capture_name = self.parse_identifier()?;
-                let capture_id = capture_names.get(&capture_name)
+                let capture_id = capture_names
+                    .get(&capture_name)
                     .ok_or(QueryError::UnknownCapture(capture_name))?;
                 self.skip_whitespace();
                 let pattern = self.parse_string()?;
@@ -410,7 +418,7 @@ impl<'a> QueryParser<'a> {
 
     fn parse_identifier(&mut self) -> Result<String, QueryError> {
         let start = self.position;
-        
+
         // First character must be letter or underscore
         match self.peek_char() {
             Some(ch) if ch.is_alphabetic() || ch == '_' => self.advance(),
@@ -472,9 +480,7 @@ pub struct QueryCursor {
 
 impl QueryCursor {
     pub fn new() -> Self {
-        Self {
-            max_depth: None,
-        }
+        Self { max_depth: None }
     }
 
     /// Set maximum depth for pattern matching
@@ -515,7 +521,7 @@ impl<'a> Iterator for QueryMatches<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         while self.pattern_index < self.query.patterns.len() {
             let pattern = &self.query.patterns[self.pattern_index];
-            
+
             // Try to match pattern at current position
             if let Some(result) = self.find_next_match(pattern) {
                 return Some(result);
@@ -567,7 +573,12 @@ impl<'a> QueryMatches<'a> {
         None
     }
 
-    fn match_pattern_node(&mut self, pattern: &PatternNode, node: &'a Subtree, _depth: usize) -> bool {
+    fn match_pattern_node(
+        &mut self,
+        pattern: &PatternNode,
+        node: &'a Subtree,
+        _depth: usize,
+    ) -> bool {
         // Check symbol match
         if let Some(expected_symbol) = pattern.symbol {
             if node.symbol != expected_symbol {
@@ -593,7 +604,11 @@ impl<'a> QueryMatches<'a> {
         true
     }
 
-    fn match_children(&mut self, pattern_children: &[PatternChild], node_children: &'a [Subtree]) -> bool {
+    fn match_children(
+        &mut self,
+        pattern_children: &[PatternChild],
+        node_children: &'a [Subtree],
+    ) -> bool {
         let mut node_index = 0;
 
         for pattern_child in pattern_children {
@@ -602,20 +617,31 @@ impl<'a> QueryMatches<'a> {
                     if node_index >= node_children.len() {
                         return false;
                     }
-                    if !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0) {
+                    if !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
+                    {
                         return false;
                     }
                     node_index += 1;
                 }
                 Quantifier::ZeroOrOne => {
-                    if node_index < node_children.len() &&
-                       self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0) {
+                    if node_index < node_children.len()
+                        && self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        )
+                    {
                         node_index += 1;
                     }
                 }
                 Quantifier::ZeroOrMore => {
-                    while node_index < node_children.len() &&
-                          self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0) {
+                    while node_index < node_children.len()
+                        && self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        )
+                    {
                         node_index += 1;
                     }
                 }
@@ -623,13 +649,19 @@ impl<'a> QueryMatches<'a> {
                     if node_index >= node_children.len() {
                         return false;
                     }
-                    if !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0) {
+                    if !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
+                    {
                         return false;
                     }
                     node_index += 1;
-                    
-                    while node_index < node_children.len() &&
-                          self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0) {
+
+                    while node_index < node_children.len()
+                        && self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        )
+                    {
                         node_index += 1;
                     }
                 }
@@ -657,7 +689,7 @@ impl<'a> QueryMatches<'a> {
                 if capture_ids.len() < 2 {
                     return true;
                 }
-                
+
                 let first_text = self.get_capture_text(capture_ids[0]);
                 for &id in &capture_ids[1..] {
                     if self.get_capture_text(id) != first_text {
@@ -670,7 +702,7 @@ impl<'a> QueryMatches<'a> {
                 if capture_ids.len() < 2 {
                     return true;
                 }
-                
+
                 let first_text = self.get_capture_text(capture_ids[0]);
                 for &id in &capture_ids[1..] {
                     if self.get_capture_text(id) == first_text {
@@ -703,7 +735,8 @@ impl<'a> QueryMatches<'a> {
     }
 
     fn get_capture_text(&self, capture_id: u32) -> String {
-        self.captures.iter()
+        self.captures
+            .iter()
             .find(|c| c.index == capture_id)
             .map(|c| format!("{:?}", c.subtree.symbol)) // Simplified - would need source text
             .unwrap_or_default()
@@ -748,9 +781,13 @@ impl fmt::Display for QueryError {
             QueryError::ExpectedHash(pos) => write!(f, "Expected '#' at position {}", pos),
             QueryError::ExpectedQuestionMark(pos) => write!(f, "Expected '?' at position {}", pos),
             QueryError::ExpectedAt(pos) => write!(f, "Expected '@' at position {}", pos),
-            QueryError::ExpectedIdentifier(pos) => write!(f, "Expected identifier at position {}", pos),
+            QueryError::ExpectedIdentifier(pos) => {
+                write!(f, "Expected identifier at position {}", pos)
+            }
             QueryError::ExpectedString(pos) => write!(f, "Expected string at position {}", pos),
-            QueryError::UnterminatedString(pos) => write!(f, "Unterminated string at position {}", pos),
+            QueryError::UnterminatedString(pos) => {
+                write!(f, "Unterminated string at position {}", pos)
+            }
             QueryError::UnknownNodeType(name) => write!(f, "Unknown node type: {}", name),
             QueryError::UnknownCapture(name) => write!(f, "Unknown capture: @{}", name),
             QueryError::UnknownPredicate(name) => write!(f, "Unknown predicate: #{}?", name),
@@ -768,22 +805,25 @@ mod tests {
     #[test]
     fn test_query_parser_simple() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add some test symbols
         let expr_id = SymbolId(0);
         grammar.rule_names.insert(expr_id, "expression".to_string());
-        
+
         let add_id = SymbolId(1);
-        grammar.tokens.insert(add_id, rust_sitter_ir::Token {
-            name: "plus".to_string(),
-            pattern: rust_sitter_ir::TokenPattern::String("+".to_string()),
-            fragile: false,
-        });
+        grammar.tokens.insert(
+            add_id,
+            rust_sitter_ir::Token {
+                name: "plus".to_string(),
+                pattern: rust_sitter_ir::TokenPattern::String("+".to_string()),
+                fragile: false,
+            },
+        );
 
         // Parse a simple query
         let parser = QueryParser::new(&grammar, "(expression (plus))");
         let query = parser.parse().unwrap();
-        
+
         assert_eq!(query.patterns.len(), 1);
         assert_eq!(query.capture_names.len(), 0);
     }
@@ -791,14 +831,14 @@ mod tests {
     #[test]
     fn test_query_parser_with_captures() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         let expr_id = SymbolId(0);
         grammar.rule_names.insert(expr_id, "expression".to_string());
 
         // Parse query with captures
         let parser = QueryParser::new(&grammar, "(expression) @expr");
         let query = parser.parse().unwrap();
-        
+
         assert_eq!(query.patterns.len(), 1);
         assert_eq!(query.capture_names.len(), 1);
         assert_eq!(query.capture_names.get("expr"), Some(&0));
@@ -807,17 +847,17 @@ mod tests {
     #[test]
     fn test_query_parser_with_quantifiers() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         let list_id = SymbolId(0);
         grammar.rule_names.insert(list_id, "list".to_string());
-        
+
         let item_id = SymbolId(1);
         grammar.rule_names.insert(item_id, "item".to_string());
 
         // Parse query with quantifiers
         let parser = QueryParser::new(&grammar, "(list (item)*)");
         let query = parser.parse().unwrap();
-        
+
         assert_eq!(query.patterns.len(), 1);
         let pattern = &query.patterns[0];
         assert_eq!(pattern.root.children.len(), 1);

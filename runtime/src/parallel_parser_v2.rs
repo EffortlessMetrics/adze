@@ -1,13 +1,13 @@
 // Simplified parallel parser for rust-sitter
 // Uses rayon for data-parallel parsing of large files
 
+use anyhow::Result;
 use rayon::prelude::*;
 use std::sync::Arc;
-use anyhow::Result;
 
-use crate::parser_v3::{Parser, ParseNode};
-use rust_sitter_ir::Grammar;
+use crate::parser_v3::{ParseNode, Parser};
 use rust_sitter_glr_core::ParseTable;
+use rust_sitter_ir::Grammar;
 
 /// Parallel parser configuration
 #[derive(Debug, Clone)]
@@ -23,9 +23,9 @@ pub struct ParallelConfig {
 impl Default for ParallelConfig {
     fn default() -> Self {
         Self {
-            min_file_size: 100_000,  // 100KB
-            chunk_size: 50_000,      // 50KB chunks
-            num_threads: 0,          // Use all available cores
+            min_file_size: 100_000, // 100KB
+            chunk_size: 50_000,     // 50KB chunks
+            num_threads: 0,         // Use all available cores
         }
     }
 }
@@ -66,102 +66,96 @@ impl ParallelParser {
                 .build_global()
                 .ok();
         }
-        
+
         Self {
             grammar: Arc::new(grammar),
             parse_table: Arc::new(parse_table),
             config,
         }
     }
-    
+
     /// Parse input in parallel
     pub fn parse(&self, input: &str) -> Result<ParseNode> {
         // For small files, use single-threaded parser
         if input.len() < self.config.min_file_size {
-            let mut parser = Parser::new(
-                (*self.grammar).clone(),
-                (*self.parse_table).clone(),
-            );
+            let mut parser = Parser::new((*self.grammar).clone(), (*self.parse_table).clone());
             return parser.parse(input);
         }
-        
+
         // Split input into chunks
         let chunks = self.split_into_chunks(input);
-        
+
         // Parse chunks in parallel
         let chunk_results: Vec<ChunkResult> = chunks
             .into_par_iter()
             .map(|chunk| self.parse_chunk(chunk))
             .collect();
-        
+
         // Merge results
         self.merge_chunk_results(chunk_results, input)
     }
-    
+
     /// Split input into chunks for parallel processing
     fn split_into_chunks(&self, input: &str) -> Vec<ParseChunk> {
         let mut chunks = Vec::new();
         let chunk_size = self.config.chunk_size;
-        
+
         let mut start = 0;
         let mut id = 0;
-        
+
         while start < input.len() {
             let mut end = (start + chunk_size).min(input.len());
-            
+
             // Try to find a clean boundary (newline)
             if end < input.len() {
                 let search_start = end.saturating_sub(1000);
                 let search_bytes = input[search_start..end].as_bytes();
-                
+
                 // Look for last newline
                 if let Some(pos) = search_bytes.iter().rposition(|&b| b == b'\n') {
                     end = search_start + pos + 1;
                 }
             }
-            
+
             chunks.push(ParseChunk {
                 id,
                 start,
                 end,
                 content: input[start..end].to_string(),
             });
-            
+
             start = end;
             id += 1;
         }
-        
+
         chunks
     }
-    
+
     /// Parse a single chunk
     fn parse_chunk(&self, chunk: ParseChunk) -> ChunkResult {
         use std::time::Instant;
         let start_time = Instant::now();
-        
+
         // Create parser for this chunk
-        let mut parser = Parser::new(
-            (*self.grammar).clone(),
-            (*self.parse_table).clone(),
-        );
-        
+        let mut parser = Parser::new((*self.grammar).clone(), (*self.parse_table).clone());
+
         // Try to parse the chunk
         let tree = parser.parse(&chunk.content).ok();
-        
+
         let parse_time_ms = start_time.elapsed().as_secs_f64() * 1000.0;
-        
+
         ChunkResult {
             chunk_id: chunk.id,
             tree,
             parse_time_ms,
         }
     }
-    
+
     /// Merge chunk results into final tree
     fn merge_chunk_results(&self, mut results: Vec<ChunkResult>, input: &str) -> Result<ParseNode> {
         // Sort by chunk ID to maintain order
         results.sort_by_key(|r| r.chunk_id);
-        
+
         // For now, just return the first successful parse
         // In a real implementation, we would merge the trees
         for result in results {
@@ -169,12 +163,9 @@ impl ParallelParser {
                 return Ok(tree);
             }
         }
-        
+
         // If no chunks parsed successfully, parse the whole input
-        let mut parser = Parser::new(
-            (*self.grammar).clone(),
-            (*self.parse_table).clone(),
-        );
+        let mut parser = Parser::new((*self.grammar).clone(), (*self.parse_table).clone());
         parser.parse(input)
     }
 }
@@ -192,28 +183,25 @@ impl ParallelParser {
     /// Parse with statistics collection
     pub fn parse_with_stats(&self, input: &str) -> Result<(ParseNode, ParallelStats)> {
         use std::time::Instant;
-        
+
         // Measure single-threaded baseline
         let baseline_start = Instant::now();
-        let mut baseline_parser = Parser::new(
-            (*self.grammar).clone(),
-            (*self.parse_table).clone(),
-        );
+        let mut baseline_parser = Parser::new((*self.grammar).clone(), (*self.parse_table).clone());
         let _ = baseline_parser.parse(input);
         let baseline_time = baseline_start.elapsed().as_secs_f64() * 1000.0;
-        
+
         // Measure parallel parsing
         let parallel_start = Instant::now();
         let tree = self.parse(input)?;
         let parallel_time = parallel_start.elapsed().as_secs_f64() * 1000.0;
-        
+
         let stats = ParallelStats {
             total_chunks: (input.len() + self.config.chunk_size - 1) / self.config.chunk_size,
             successful_chunks: 1, // Simplified
             total_parse_time_ms: parallel_time,
             speedup: baseline_time / parallel_time,
         };
-        
+
         Ok((tree, stats))
     }
 }
@@ -221,7 +209,7 @@ impl ParallelParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     fn create_test_grammar() -> (Grammar, ParseTable) {
         // Simple test grammar
         let grammar = Grammar::new("test".to_string());
@@ -235,7 +223,7 @@ mod tests {
         };
         (grammar, table)
     }
-    
+
     #[test]
     fn test_chunk_splitting() {
         let (grammar, table) = create_test_grammar();
@@ -245,17 +233,17 @@ mod tests {
             ..Default::default()
         };
         let parser = ParallelParser::new(grammar, table, config);
-        
+
         let input = "line1\nline2\nline3\nline4\nline5\n";
         let chunks = parser.split_into_chunks(input);
-        
+
         assert!(chunks.len() >= 2);
         for chunk in &chunks {
             assert!(chunk.end > chunk.start);
             assert_eq!(&input[chunk.start..chunk.end], &chunk.content);
         }
     }
-    
+
     #[test]
     fn test_small_file_handling() {
         let (grammar, table) = create_test_grammar();
@@ -264,7 +252,7 @@ mod tests {
             ..Default::default()
         };
         let parser = ParallelParser::new(grammar, table, config);
-        
+
         let input = "small input";
         // Should use single-threaded parser for small inputs
         let _ = parser.parse(input);
@@ -276,7 +264,7 @@ mod tests {
 pub mod bench {
     use super::*;
     use std::time::Instant;
-    
+
     pub struct ParallelBenchmark {
         pub file_size: usize,
         pub single_thread_ms: f64,
@@ -284,7 +272,7 @@ pub mod bench {
         pub speedup: f64,
         pub num_chunks: usize,
     }
-    
+
     pub fn benchmark_parallel_parsing(
         grammar: Grammar,
         table: ParseTable,
@@ -295,15 +283,15 @@ pub mod bench {
         let mut parser = Parser::new(grammar.clone(), table.clone());
         let _ = parser.parse(input);
         let single_thread_ms = start.elapsed().as_secs_f64() * 1000.0;
-        
+
         // Parallel parsing
         let config = ParallelConfig::default();
         let parallel_parser = ParallelParser::new(grammar, table, config.clone());
-        
+
         let start = Instant::now();
         let _ = parallel_parser.parse(input);
         let parallel_ms = start.elapsed().as_secs_f64() * 1000.0;
-        
+
         ParallelBenchmark {
             file_size: input.len(),
             single_thread_ms,

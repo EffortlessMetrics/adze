@@ -1,6 +1,6 @@
 use rust_sitter_tool::grammar_js::parse_grammar_js_v2;
 
-#[test] 
+#[test]
 fn test_inline_array_parsing() {
     let grammar = r#"
 module.exports = grammar({
@@ -19,9 +19,15 @@ module.exports = grammar({
 "#;
 
     // First, let's see if the grammar content is correct
-    assert!(grammar.contains("$.statement"), "Grammar should contain $.statement");
-    assert!(!grammar.contains("$.state'"), "Grammar should NOT contain $.state'");
-    
+    assert!(
+        grammar.contains("$.statement"),
+        "Grammar should contain $.statement"
+    );
+    assert!(
+        !grammar.contains("$.state'"),
+        "Grammar should NOT contain $.state'"
+    );
+
     let result = parse_grammar_js_v2(grammar);
     match result {
         Ok(parsed) => {
@@ -44,17 +50,20 @@ fn test_string_content_preservation() {
         ("$.expr_stmt", "expr_stmt"),
         ("$.test_123", "test_123"),
     ];
-    
+
     for (input, expected) in test_cases {
-        let grammar = format!(r#"
+        let grammar = format!(
+            r#"
 module.exports = grammar({{
   name: 'test',
   rules: {{
     rule: $ => {}
   }}
 }});
-"#, input);
-        
+"#,
+            input
+        );
+
         let result = parse_grammar_js_v2(&grammar);
         match result {
             Ok(parsed) => {

@@ -5,15 +5,15 @@ use codemap_diagnostic::{ColorConfig, Diagnostic, Emitter, Level, SpanLabel, Spa
 use rust_sitter::errors::{ParseError, ParseErrorReason};
 
 mod arithmetic;
+mod external_word_example;
 mod optionals;
 mod repetitions;
 mod words;
-mod external_word_example;
 // mod json;
 // mod c_like;
 mod performance_test;
-mod test_whitespace;
 mod test_precedence;
+mod test_whitespace;
 // mod field_test;
 mod ambiguous;
 
@@ -70,7 +70,7 @@ fn main() {
     // Run whitespace tests first
     test_whitespace::test_whitespace_parsing();
     println!("\n---\n");
-    
+
     // Run precedence tests
     test_precedence::test_precedence();
     println!("\n---\n");

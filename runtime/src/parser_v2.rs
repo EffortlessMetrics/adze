@@ -51,7 +51,7 @@ impl ParseNode {
             text: Some(text),
         }
     }
-    
+
     /// Create a non-terminal node
     pub fn non_terminal(
         symbol: SymbolId,
@@ -69,23 +69,22 @@ impl ParseNode {
             text: None,
         }
     }
-    
+
     /// Get the symbol name if available
     pub fn symbol_name<'a>(&self, grammar: &'a Grammar) -> Option<&'a str> {
         // Try tokens first
         if let Some(token) = grammar.tokens.get(&self.symbol) {
             return Some(&token.name);
         }
-        
+
         // Then try rules
         if let Some(rules) = grammar.rules.get(&self.symbol) {
             // Use the first rule's lhs symbol name if available
             if let Some(rule) = rules.first() {
-                return grammar.tokens.get(&rule.lhs)
-                    .map(|t| t.name.as_str());
+                return grammar.tokens.get(&rule.lhs).map(|t| t.name.as_str());
             }
         }
-        
+
         None
     }
 }
@@ -125,7 +124,7 @@ impl ParserV2 {
                 rule_map.insert(rule_id, rule.clone());
             }
         }
-        
+
         Self {
             grammar,
             parse_table,
@@ -135,14 +134,14 @@ impl ParserV2 {
             position: 0,
         }
     }
-    
+
     /// Parse input tokens
     pub fn parse(&mut self, tokens: Vec<Token>) -> Result<ParseNode, ParseError> {
         self.state_stack.clear();
         self.state_stack.push(StateId(0));
         self.node_stack.clear();
         self.position = 0;
-        
+
         // Add EOF token at the end
         let mut tokens = tokens;
         let last_pos = tokens.last().map(|t| t.end).unwrap_or(0);
@@ -152,16 +151,15 @@ impl ParserV2 {
             start: last_pos,
             end: last_pos,
         });
-        
+
         let mut token_index = 0;
-        
+
         loop {
-            let current_state = *self.state_stack.last()
-                .ok_or(ParseError::InvalidState)?;
-            
+            let current_state = *self.state_stack.last().ok_or(ParseError::InvalidState)?;
+
             let token = &tokens[token_index];
             let action = self.get_action(current_state, token.symbol)?;
-            
+
             match action {
                 Action::Shift(next_state) => {
                     // Create terminal node and push
@@ -175,19 +173,18 @@ impl ParserV2 {
                     self.state_stack.push(next_state);
                     token_index += 1;
                 }
-                
+
                 Action::Reduce(rule_id) => {
                     // Perform reduction
                     self.reduce(rule_id)?;
                     // Don't advance token - we'll check the same token again
                 }
-                
+
                 Action::Accept => {
                     // Success! Return the root node
-                    return self.node_stack.pop()
-                        .ok_or(ParseError::InvalidState);
+                    return self.node_stack.pop().ok_or(ParseError::InvalidState);
                 }
-                
+
                 Action::Error => {
                     return Err(ParseError::UnexpectedToken {
                         expected: self.get_expected_symbols(current_state),
@@ -195,7 +192,7 @@ impl ParserV2 {
                         position: token.start,
                     });
                 }
-                
+
                 Action::Fork(_) => {
                     // TODO: Implement GLR fork handling
                     return Err(ParseError::InvalidState);
@@ -203,85 +200,80 @@ impl ParserV2 {
             }
         }
     }
-    
+
     /// Perform a reduction
     fn reduce(&mut self, rule_id: RuleId) -> Result<(), ParseError> {
-        let rule = self.rule_map.get(&rule_id)
+        let rule = self
+            .rule_map
+            .get(&rule_id)
             .ok_or(ParseError::InvalidRule(rule_id))?;
-        
+
         // Pop nodes for each symbol in the rule's RHS
         let rhs_len = rule.rhs.len();
         let mut children = Vec::with_capacity(rhs_len);
-        
+
         // Pop in reverse order to maintain correct child order
         for _ in 0..rhs_len {
-            children.push(self.node_stack.pop()
-                .ok_or(ParseError::InvalidState)?);
+            children.push(self.node_stack.pop().ok_or(ParseError::InvalidState)?);
         }
         children.reverse();
-        
+
         // Pop corresponding states
         for _ in 0..rhs_len {
             self.state_stack.pop();
         }
-        
+
         // Get the goto state for the LHS symbol
-        let current_state = *self.state_stack.last()
-            .ok_or(ParseError::InvalidState)?;
+        let current_state = *self.state_stack.last().ok_or(ParseError::InvalidState)?;
         let goto_state = self.get_goto(current_state, rule.lhs)?;
-        
+
         // Create non-terminal node
-        let start_byte = children.first()
+        let start_byte = children
+            .first()
             .map(|n| n.start_byte)
             .unwrap_or(self.position);
-        let end_byte = children.last()
-            .map(|n| n.end_byte)
-            .unwrap_or(self.position);
-        
-        let node = ParseNode::non_terminal(
-            rule.lhs,
-            rule_id,
-            children,
-            start_byte,
-            end_byte,
-        );
-        
+        let end_byte = children.last().map(|n| n.end_byte).unwrap_or(self.position);
+
+        let node = ParseNode::non_terminal(rule.lhs, rule_id, children, start_byte, end_byte);
+
         // Push new node and state
         self.node_stack.push(node);
         self.state_stack.push(goto_state);
-        
+
         Ok(())
     }
-    
+
     /// Get action for state and symbol
     fn get_action(&self, state: StateId, symbol: SymbolId) -> Result<Action, ParseError> {
         let state_idx = state.0 as usize;
         let symbol_idx = symbol.0 as usize;
-        
-        self.parse_table.action_table
+
+        self.parse_table
+            .action_table
             .get(state_idx)
             .and_then(|row| row.get(symbol_idx))
             .cloned()
             .ok_or(ParseError::InvalidState)
     }
-    
+
     /// Get goto state
     fn get_goto(&self, state: StateId, symbol: SymbolId) -> Result<StateId, ParseError> {
         let state_idx = state.0 as usize;
         let symbol_idx = symbol.0 as usize;
-        
-        self.parse_table.goto_table
+
+        self.parse_table
+            .goto_table
             .get(state_idx)
             .and_then(|row| row.get(symbol_idx))
             .copied()
             .ok_or(ParseError::InvalidState)
     }
-    
+
     /// Get expected symbols for error reporting
     fn get_expected_symbols(&self, state: StateId) -> Vec<SymbolId> {
         let state_idx = state.0 as usize;
         let mut expected = Vec::new();
-        
+
         if let Some(row) = self.parse_table.action_table.get(state_idx) {
             for (symbol_idx, action) in row.iter().enumerate() {
                 if !matches!(action, Action::Error) {
@@ -289,7 +281,7 @@ impl ParserV2 {
                 }
             }
         }
-        
+
         expected
     }
 }
@@ -297,16 +289,16 @@ impl ParserV2 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::{TokenPattern, Symbol, ProductionId};
-    
+    use rust_sitter_ir::{ProductionId, Symbol, TokenPattern};
+
     fn create_simple_grammar() -> Grammar {
         // Create a simple arithmetic grammar
         // E -> E + T | T
-        // T -> T * F | F  
+        // T -> T * F | F
         // F -> ( E ) | num
-        
+
         let mut grammar = Grammar::new("arithmetic".to_string());
-        
+
         // Add tokens
         grammar.tokens.insert(
             SymbolId(1),
@@ -316,7 +308,7 @@ mod tests {
                 fragile: false,
             },
         );
-        
+
         grammar.tokens.insert(
             SymbolId(2),
             rust_sitter_ir::Token {
@@ -325,7 +317,7 @@ mod tests {
                 fragile: false,
             },
         );
-        
+
         grammar.tokens.insert(
             SymbolId(3),
             rust_sitter_ir::Token {
@@ -334,56 +326,48 @@ mod tests {
                 fragile: false,
             },
         );
-        
+
         // Add rules
         // E -> E + T (symbol 10)
-        grammar.rules.entry(SymbolId(10)).or_insert_with(Vec::new).push(
-            Rule {
+        grammar
+            .rules
+            .entry(SymbolId(10))
+            .or_insert_with(Vec::new)
+            .push(Rule {
                 lhs: SymbolId(10), // E
                 rhs: vec![
                     Symbol::NonTerminal(SymbolId(10)), // E
-                    Symbol::Terminal(SymbolId(2)),      // +
+                    Symbol::Terminal(SymbolId(2)),     // +
                     Symbol::NonTerminal(SymbolId(11)), // T
                 ],
                 precedence: None,
                 associativity: None,
                 production_id: ProductionId(0),
                 fields: Default::default(),
-            },
-        );
-        
+            });
+
         grammar
     }
-    
+
     #[test]
     fn test_parse_node_creation() {
-        let terminal = ParseNode::terminal(
-            SymbolId(1),
-            b"123".to_vec(),
-            0,
-            3,
-        );
-        
+        let terminal = ParseNode::terminal(SymbolId(1), b"123".to_vec(), 0, 3);
+
         assert_eq!(terminal.symbol, SymbolId(1));
         assert_eq!(terminal.text, Some(b"123".to_vec()));
         assert!(terminal.children.is_empty());
         assert!(terminal.rule_id.is_none());
     }
-    
+
     #[test]
     fn test_non_terminal_node() {
         let child1 = ParseNode::terminal(SymbolId(1), b"1".to_vec(), 0, 1);
         let child2 = ParseNode::terminal(SymbolId(2), b"+".to_vec(), 1, 2);
         let child3 = ParseNode::terminal(SymbolId(1), b"2".to_vec(), 2, 3);
-        
-        let non_terminal = ParseNode::non_terminal(
-            SymbolId(10),
-            RuleId(10),
-            vec![child1, child2, child3],
-            0,
-            3,
-        );
-        
+
+        let non_terminal =
+            ParseNode::non_terminal(SymbolId(10), RuleId(10), vec![child1, child2, child3], 0, 3);
+
         assert_eq!(non_terminal.symbol, SymbolId(10));
         assert_eq!(non_terminal.rule_id, Some(RuleId(10)));
         assert_eq!(non_terminal.children.len(), 3);

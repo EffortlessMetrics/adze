@@ -1,7 +1,7 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
-use tempfile::TempDir;
 use std::fs;
+use tempfile::TempDir;
 
 #[test]
 fn test_cli_help() {
@@ -16,7 +16,7 @@ fn test_cli_help() {
 fn test_init_command() {
     let temp_dir = TempDir::new().unwrap();
     let mut cmd = Command::cargo_bin("rust-sitter").unwrap();
-    
+
     cmd.arg("init")
         .arg("test-grammar")
         .arg("--output")
@@ -24,7 +24,7 @@ fn test_init_command() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Creating new grammar project"));
-    
+
     // Check that files were created
     assert!(temp_dir.path().join("test-grammar").exists());
     assert!(temp_dir.path().join("test-grammar/Cargo.toml").exists());
@@ -35,7 +35,7 @@ fn test_init_command() {
 fn test_check_command() {
     let temp_dir = TempDir::new().unwrap();
     let grammar_file = temp_dir.path().join("test.rs");
-    
+
     // Write a valid grammar
     let grammar = r#"
         #[rust_sitter::grammar("test")]
@@ -47,9 +47,9 @@ fn test_check_command() {
             }
         }
     "#;
-    
+
     fs::write(&grammar_file, grammar).unwrap();
-    
+
     let mut cmd = Command::cargo_bin("rust-sitter").unwrap();
     cmd.arg("check")
         .arg(&grammar_file)
@@ -62,7 +62,7 @@ fn test_check_command() {
 fn test_stats_command() {
     let temp_dir = TempDir::new().unwrap();
     let grammar_file = temp_dir.path().join("test.rs");
-    
+
     let grammar = r#"
         #[rust_sitter::grammar("test")]
         mod grammar {
@@ -81,9 +81,9 @@ fn test_stats_command() {
             }
         }
     "#;
-    
+
     fs::write(&grammar_file, grammar).unwrap();
-    
+
     let mut cmd = Command::cargo_bin("rust-sitter").unwrap();
     cmd.arg("stats")
         .arg(&grammar_file)
@@ -98,7 +98,7 @@ fn test_stats_command() {
 fn test_doc_command() {
     let temp_dir = TempDir::new().unwrap();
     let grammar_file = temp_dir.path().join("test.rs");
-    
+
     let grammar = r#"
         #[rust_sitter::grammar("test")]
         mod grammar {
@@ -112,9 +112,9 @@ fn test_doc_command() {
             }
         }
     "#;
-    
+
     fs::write(&grammar_file, grammar).unwrap();
-    
+
     let mut cmd = Command::cargo_bin("rust-sitter").unwrap();
     cmd.arg("doc")
         .arg(&grammar_file)

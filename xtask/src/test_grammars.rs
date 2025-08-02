@@ -60,7 +60,6 @@ pub fn get_test_grammars() -> Vec<GrammarTest> {
             blocking_features: vec![],
             notes: Some("Simple grammar, should work".to_string()),
         },
-        
         // Grammars that likely work with precedence support
         GrammarTest {
             name: "c".to_string(),
@@ -83,7 +82,6 @@ pub fn get_test_grammars() -> Vec<GrammarTest> {
             blocking_features: vec!["precedence".to_string()],
             notes: Some("Uses precedence".to_string()),
         },
-        
         // Grammars with partial support
         GrammarTest {
             name: "javascript".to_string(),
@@ -99,7 +97,6 @@ pub fn get_test_grammars() -> Vec<GrammarTest> {
             blocking_features: vec!["external_scanner".to_string(), "extends_js".to_string()],
             notes: Some("Extends JavaScript grammar".to_string()),
         },
-        
         // Blocked grammars
         GrammarTest {
             name: "python".to_string(),
@@ -136,7 +133,6 @@ pub fn get_test_grammars() -> Vec<GrammarTest> {
             blocking_features: vec!["external_scanner".to_string()],
             notes: Some("Complex external scanner".to_string()),
         },
-        
         // Additional popular grammars
         GrammarTest {
             name: "html".to_string(),
@@ -199,19 +195,25 @@ pub fn get_test_grammars() -> Vec<GrammarTest> {
 
 pub fn download_grammar(test: &GrammarTest, target_dir: &Path) -> Result<PathBuf> {
     let grammar_dir = target_dir.join(&test.name);
-    
+
     if grammar_dir.exists() {
         println!("  Grammar already downloaded at {:?}", grammar_dir);
         return Ok(grammar_dir);
     }
-    
+
     println!("  Downloading {} from {}", test.name, test.repo_url);
-    
+
     let output = Command::new("git")
-        .args(&["clone", "--depth", "1", &test.repo_url, grammar_dir.to_str().unwrap()])
+        .args(&[
+            "clone",
+            "--depth",
+            "1",
+            &test.repo_url,
+            grammar_dir.to_str().unwrap(),
+        ])
         .output()
         .context("Failed to run git clone")?;
-    
+
     if !output.status.success() {
         anyhow::bail!(
             "Failed to clone {}: {}",
@@ -219,14 +221,16 @@ pub fn download_grammar(test: &GrammarTest, target_dir: &Path) -> Result<PathBuf
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    
+
     Ok(grammar_dir)
 }
 
 pub fn test_grammar(test: &GrammarTest, grammar_dir: &Path) -> Result<TestResult> {
-    use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
-    use rust_sitter_tool::grammar_js::{parse_grammar_js_v2, GrammarJsParserV3, GrammarJsConverter};
-    
+    use rust_sitter_tool::grammar_js::{
+        GrammarJsConverter, GrammarJsParserV3, parse_grammar_js_v2,
+    };
+    use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+
     let mut result = TestResult {
         grammar: test.name.clone(),
         status: test.expected_status,
@@ -236,25 +240,25 @@ pub fn test_grammar(test: &GrammarTest, grammar_dir: &Path) -> Result<TestResult
         error_message: None,
         features_used: vec![],
     };
-    
+
     // Find grammar.js file
     let grammar_js_path = grammar_dir.join("grammar.js");
     if !grammar_js_path.exists() {
         result.error_message = Some("grammar.js not found".to_string());
         return Ok(result);
     }
-    
-    let grammar_content = fs::read_to_string(&grammar_js_path)
-        .context("Failed to read grammar.js")?;
-    
+
+    let grammar_content =
+        fs::read_to_string(&grammar_js_path).context("Failed to read grammar.js")?;
+
     // Try parsing with v3 parser
     println!("  Parsing grammar.js...");
     let mut parser = GrammarJsParserV3::new(grammar_content.clone());
-    
+
     let grammar_js = match parser.parse() {
         Ok(g) => {
             result.parse_success = true;
-            
+
             // Check features used
             if !g.externals.is_empty() {
                 result.features_used.push("externals".to_string());
@@ -271,7 +275,7 @@ pub fn test_grammar(test: &GrammarTest, grammar_dir: &Path) -> Result<TestResult
             if g.word.is_some() {
                 result.features_used.push("word".to_string());
             }
-            
+
             g
         }
         Err(e) => {
@@ -289,22 +293,26 @@ pub fn test_grammar(test: &GrammarTest, grammar_dir: &Path) -> Result<TestResult
             }
         }
     };
-    
+
     // Try converting to IR
     println!("  Converting to IR...");
     let converter = GrammarJsConverter::new(grammar_js);
     match converter.convert() {
         Ok(ir) => {
             result.convert_success = true;
-            println!("    {} rules, {} tokens, {} externals",
-                ir.rules.len(), ir.tokens.len(), ir.externals.len());
+            println!(
+                "    {} rules, {} tokens, {} externals",
+                ir.rules.len(),
+                ir.tokens.len(),
+                ir.externals.len()
+            );
         }
         Err(e) => {
             result.error_message = Some(format!("Convert error: {}", e));
             return Ok(result);
         }
     }
-    
+
     // Try building
     println!("  Building parser...");
     let temp_dir = tempfile::tempdir()?;
@@ -313,7 +321,7 @@ pub fn test_grammar(test: &GrammarTest, grammar_dir: &Path) -> Result<TestResult
         emit_artifacts: false,
         compress_tables: true,
     };
-    
+
     match build_parser_from_grammar_js(&grammar_js_path, options) {
         Ok(_) => {
             result.build_success = true;
@@ -321,7 +329,7 @@ pub fn test_grammar(test: &GrammarTest, grammar_dir: &Path) -> Result<TestResult
         }
         Err(e) => {
             result.error_message = Some(format!("Build error: {}", e));
-            
+
             // Determine actual status based on error
             let error_str = e.to_string();
             if error_str.contains("external scanner") {
@@ -331,80 +339,95 @@ pub fn test_grammar(test: &GrammarTest, grammar_dir: &Path) -> Result<TestResult
             }
         }
     }
-    
+
     Ok(result)
 }
 
 pub fn run_corpus_tests() -> Result<()> {
     let corpus_dir = PathBuf::from("corpus");
     fs::create_dir_all(&corpus_dir)?;
-    
+
     let grammars = get_test_grammars();
     let mut results = vec![];
-    
+
     println!("Testing {} grammars...\n", grammars.len());
-    
+
     for test in &grammars {
         println!("{} Testing {}...", test.expected_status.emoji(), test.name);
-        
+
         match download_grammar(test, &corpus_dir) {
-            Ok(grammar_dir) => {
-                match test_grammar(test, &grammar_dir) {
-                    Ok(result) => {
-                        println!("  Result: {} (expected: {})",
-                            result.status.emoji(),
-                            test.expected_status.emoji());
-                        if let Some(err) = &result.error_message {
-                            println!("  Error: {}", err);
-                        }
-                        if !result.features_used.is_empty() {
-                            println!("  Features: {:?}", result.features_used);
-                        }
-                        results.push(result);
+            Ok(grammar_dir) => match test_grammar(test, &grammar_dir) {
+                Ok(result) => {
+                    println!(
+                        "  Result: {} (expected: {})",
+                        result.status.emoji(),
+                        test.expected_status.emoji()
+                    );
+                    if let Some(err) = &result.error_message {
+                        println!("  Error: {}", err);
                     }
-                    Err(e) => {
-                        println!("  Test error: {}", e);
+                    if !result.features_used.is_empty() {
+                        println!("  Features: {:?}", result.features_used);
                     }
+                    results.push(result);
                 }
-            }
+                Err(e) => {
+                    println!("  Test error: {}", e);
+                }
+            },
             Err(e) => {
                 println!("  Download error: {}", e);
             }
         }
         println!();
     }
-    
+
     // Generate report
     generate_report(&results)?;
-    
+
     Ok(())
 }
 
 fn generate_report(results: &[TestResult]) -> Result<()> {
     let report_path = PathBuf::from("GRAMMAR_TEST_RESULTS.md");
-    
+
     let mut report = String::new();
     report.push_str("# Grammar Test Results\n\n");
-    report.push_str(&format!("Generated: {}\n\n", chrono::Local::now().format("%Y-%m-%d %H:%M:%S")));
-    
+    report.push_str(&format!(
+        "Generated: {}\n\n",
+        chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
+    ));
+
     // Summary
-    let working = results.iter().filter(|r| r.status == TestStatus::Working).count();
-    let likely = results.iter().filter(|r| r.status == TestStatus::LikelyWorking).count();
-    let partial = results.iter().filter(|r| r.status == TestStatus::Partial).count();
-    let blocked = results.iter().filter(|r| r.status == TestStatus::Blocked).count();
-    
+    let working = results
+        .iter()
+        .filter(|r| r.status == TestStatus::Working)
+        .count();
+    let likely = results
+        .iter()
+        .filter(|r| r.status == TestStatus::LikelyWorking)
+        .count();
+    let partial = results
+        .iter()
+        .filter(|r| r.status == TestStatus::Partial)
+        .count();
+    let blocked = results
+        .iter()
+        .filter(|r| r.status == TestStatus::Blocked)
+        .count();
+
     report.push_str("## Summary\n\n");
     report.push_str(&format!("- ✅ Working: {}\n", working));
     report.push_str(&format!("- 🟡 Likely Working: {}\n", likely));
     report.push_str(&format!("- 🟠 Partial: {}\n", partial));
     report.push_str(&format!("- ❌ Blocked: {}\n", blocked));
     report.push_str(&format!("- **Total**: {}\n\n", results.len()));
-    
+
     // Detailed results
     report.push_str("## Detailed Results\n\n");
     report.push_str("| Grammar | Status | Parse | Convert | Build | Features | Error |\n");
     report.push_str("|---------|--------|-------|---------|-------|----------|-------|\n");
-    
+
     for result in results {
         report.push_str(&format!(
             "| {} | {} | {} | {} | {} | {} | {} |\n",
@@ -417,9 +440,9 @@ fn generate_report(results: &[TestResult]) -> Result<()> {
             result.error_message.as_deref().unwrap_or("-")
         ));
     }
-    
+
     fs::write(report_path, report)?;
     println!("\n📊 Report saved to GRAMMAR_TEST_RESULTS.md");
-    
+
     Ok(())
 }

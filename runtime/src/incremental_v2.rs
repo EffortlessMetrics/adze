@@ -1,9 +1,9 @@
 // Enhanced incremental parsing with subtree reuse
 // This module provides efficient reparsing by reusing unchanged subtrees
 
-use crate::parser_v2::{ParseNode, Token, ParseError};
-use rust_sitter_glr_core::{ParseTable, Action};
-use rust_sitter_ir::{Grammar, SymbolId, RuleId, StateId};
+use crate::parser_v2::{ParseError, ParseNode, Token};
+use rust_sitter_glr_core::{Action, ParseTable};
+use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::HashMap;
 use std::ops::Range;
 
@@ -82,12 +82,8 @@ impl SubtreePool {
         } else {
             // Internal node
             for child in &node.children {
-                let (new_byte, new_token) = self.collect_subtrees(
-                    child,
-                    tokens,
-                    byte_offset,
-                    token_offset,
-                );
+                let (new_byte, new_token) =
+                    self.collect_subtrees(child, tokens, byte_offset, token_offset);
                 byte_offset = new_byte;
                 token_offset = new_token;
             }
@@ -128,7 +124,9 @@ impl SubtreePool {
 
     /// Get a reusable node by byte range
     pub fn get_by_range(&self, range: &Range<usize>) -> Option<&ReusableNode> {
-        self.by_range.get(range).and_then(|&idx| self.nodes.get(idx))
+        self.by_range
+            .get(range)
+            .and_then(|&idx| self.nodes.get(idx))
     }
 }
 
@@ -164,12 +162,7 @@ impl IncrementalParserV2 {
         let reusable = self.subtree_pool.find_reusable(edits);
 
         // Parse with subtree reuse
-        let mut parser = IncrementalParserState::new(
-            &self.grammar,
-            &self.table,
-            tokens,
-            reusable,
-        );
+        let mut parser = IncrementalParserState::new(&self.grammar, &self.table, tokens, reusable);
 
         parser.parse()
     }
@@ -285,7 +278,7 @@ impl<'a> IncrementalParserState<'a> {
         while let Some(&(start_pos, node)) = self.reuse_queue.first() {
             if start_pos == self.position {
                 self.reuse_queue.remove(0);
-                
+
                 // Verify the subtree is still valid in current context
                 if self.can_reuse_subtree(node) {
                     return Some(node);
@@ -310,7 +303,7 @@ impl<'a> IncrementalParserState<'a> {
         // Verify token match
         let current_tokens = &self.tokens[self.position..end_pos];
         let expected_len = node.token_range.end - node.token_range.start;
-        
+
         current_tokens.len() == expected_len
     }
 
@@ -321,7 +314,7 @@ impl<'a> IncrementalParserState<'a> {
 
         // Push the reused subtree onto the stack
         let (state, _) = self.stack.last().unwrap();
-        
+
         // Get next state after shifting this symbol
         if let Some(gotos) = self.table.goto_table.get(state.0 as usize) {
             if let Some(&goto_state) = gotos.get(reusable.node.symbol.0 as usize) {
@@ -332,7 +325,10 @@ impl<'a> IncrementalParserState<'a> {
 
     fn reduce(&mut self, rule_id: RuleId) -> Result<(), ParseError> {
         // Find the rule
-        let rule = self.grammar.rules.values()
+        let rule = self
+            .grammar
+            .rules
+            .values()
             .flat_map(|rules| rules.iter())
             .find(|r| r.production_id.0 == rule_id.0)
             .ok_or(ParseError::UnexpectedToken {
@@ -359,12 +355,8 @@ impl<'a> IncrementalParserState<'a> {
         children.reverse();
 
         // Create new node
-        let start_byte = children.first()
-            .map(|n| n.start_byte)
-            .unwrap_or(0);
-        let end_byte = children.last()
-            .map(|n| n.end_byte)
-            .unwrap_or(0);
+        let start_byte = children.first().map(|n| n.start_byte).unwrap_or(0);
+        let end_byte = children.last().map(|n| n.end_byte).unwrap_or(0);
 
         let node = ParseNode {
             symbol: rule.lhs,

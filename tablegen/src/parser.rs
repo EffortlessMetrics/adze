@@ -27,7 +27,10 @@ impl Parser {
     pub fn new(language: &'static TSLanguage) -> Self {
         Self {
             language,
-            stack: vec![ParseState { state: 0, lookahead: 0 }],
+            stack: vec![ParseState {
+                state: 0,
+                lookahead: 0,
+            }],
             nodes: Vec::new(),
         }
     }
@@ -36,14 +39,14 @@ impl Parser {
     pub fn parse(&mut self, input: &str) -> Result<ParseNode, String> {
         let tokens = self.tokenize(input)?;
         let mut position = 0;
-        
+
         while position < tokens.len() {
             let token = tokens[position];
             let current_state = self.stack.last().unwrap().state;
-            
+
             // Look up action in compressed table
             let action = self.get_action(current_state, token.symbol)?;
-            
+
             match action {
                 ParseAction::Shift(state) => {
                     self.stack.push(ParseState {
@@ -72,42 +75,42 @@ impl Parser {
                 }
             }
         }
-        
+
         Err("Unexpected end of input".to_string())
     }
-    
+
     fn get_action(&self, state: u16, symbol: u16) -> Result<ParseAction, String> {
         // Access compressed parse table
         let parse_table = unsafe {
             std::slice::from_raw_parts(
                 self.language.parse_table,
-                self.language.state_count as usize * 2
+                self.language.state_count as usize * 2,
             )
         };
-        
+
         // Decode compressed action
         let table_offset = (state as usize) * 2;
         if table_offset + 1 >= parse_table.len() {
             return Err("State out of bounds".to_string());
         }
-        
+
         let entry_count = parse_table[table_offset];
         let data_offset = parse_table[table_offset + 1] as usize;
-        
+
         // Search for symbol in action entries
         for i in 0..entry_count {
             let entry_offset = data_offset + (i as usize) * 2;
             if entry_offset + 1 >= parse_table.len() {
                 continue;
             }
-            
+
             let entry_symbol = parse_table[entry_offset];
             if entry_symbol == symbol {
                 let action_data = parse_table[entry_offset + 1];
                 return Ok(self.decode_action(action_data));
             }
         }
-        
+
         // Check default action
         if entry_count > 0 {
             let default_offset = data_offset + (entry_count as usize - 1) * 2 + 1;
@@ -116,10 +119,10 @@ impl Parser {
                 return Ok(self.decode_action(default_action));
             }
         }
-        
+
         Ok(ParseAction::Error)
     }
-    
+
     fn decode_action(&self, encoded: u16) -> ParseAction {
         match encoded {
             0xFFFF => ParseAction::Accept,
@@ -131,29 +134,29 @@ impl Parser {
             state => ParseAction::Shift(state),
         }
     }
-    
+
     fn perform_reduction(&mut self, rule_id: u16) -> Result<(), String> {
         // Get rule info from grammar
         let production_id_map = unsafe {
             std::slice::from_raw_parts(
                 self.language.production_id_map,
-                self.language.production_id_count as usize
+                self.language.production_id_count as usize,
             )
         };
-        
+
         if rule_id as usize >= production_id_map.len() {
             return Err("Invalid rule ID".to_string());
         }
-        
+
         // For now, simplified reduction - real implementation needs rule lengths
         // This would come from the grammar IR
         let rule_length = 2; // Placeholder
-        
+
         // Pop rule_length items from stack
         for _ in 0..rule_length {
             self.stack.pop();
         }
-        
+
         // Create new node for the reduction
         let mut children = Vec::new();
         for _ in 0..rule_length {
@@ -162,61 +165,61 @@ impl Parser {
             }
         }
         children.reverse();
-        
+
         let start_byte = children.first().map(|n| n.start_byte).unwrap_or(0);
         let end_byte = children.last().map(|n| n.end_byte).unwrap_or(0);
-        
+
         // Get LHS symbol for the rule (would come from grammar)
         let lhs_symbol = rule_id + self.language.token_count as u16; // Simplified
-        
+
         self.nodes.push(ParseNode {
             symbol: lhs_symbol,
             children,
             start_byte,
             end_byte,
         });
-        
+
         // Get goto state
         let current_state = self.stack.last().unwrap().state;
         let goto_state = self.get_goto(current_state, lhs_symbol)?;
-        
+
         self.stack.push(ParseState {
             state: goto_state,
             lookahead: lhs_symbol,
         });
-        
+
         Ok(())
     }
-    
+
     fn get_goto(&self, state: u16, _symbol: u16) -> Result<u16, String> {
         // Access small parse table for gotos
         let small_parse_table_map = unsafe {
             std::slice::from_raw_parts(
                 self.language.small_parse_table_map,
-                self.language.state_count as usize * 4
+                self.language.state_count as usize * 4,
             )
         };
-        
+
         // Simplified goto lookup - real implementation would decode the compressed goto table
         let map_offset = (state as usize) * 4;
         if map_offset + 3 >= small_parse_table_map.len() {
             return Ok(0); // Default to state 0
         }
-        
+
         // This is a simplified version - actual implementation needs proper goto decoding
         Ok(state + 1)
     }
-    
+
     fn tokenize(&self, input: &str) -> Result<Vec<Token>, String> {
         // Simplified tokenizer - real implementation would use tree-sitter lexer
         let mut tokens = Vec::new();
         let _position = 0;
-        
+
         for (i, ch) in input.chars().enumerate() {
             if ch.is_whitespace() {
                 continue;
             }
-            
+
             // Map characters to token IDs (simplified)
             let symbol = match ch {
                 '(' => 1,
@@ -228,21 +231,21 @@ impl Parser {
                 _ if ch.is_ascii_digit() => 7,
                 _ => return Err(format!("Unknown character: {}", ch)),
             };
-            
+
             tokens.push(Token {
                 symbol,
                 start: i,
                 end: i + 1,
             });
         }
-        
+
         // Add EOF token
         tokens.push(Token {
             symbol: 0,
             start: input.len(),
             end: input.len(),
         });
-        
+
         Ok(tokens)
     }
 }
@@ -265,7 +268,7 @@ enum ParseAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_decode_action() {
         // Create a dummy language for testing
@@ -300,22 +303,25 @@ mod tests {
             external_scanner: ExternalScanner::default(),
             primary_state_ids: std::ptr::null(),
         };
-        
+
         // For testing, we'll use unsafe to extend the lifetime
         let parser = unsafe {
             let lang_ptr = &lang as *const TSLanguage;
             Parser::new(&*lang_ptr)
         };
-        
+
         // Test shift action
         assert!(matches!(parser.decode_action(42), ParseAction::Shift(42)));
-        
+
         // Test reduce action
-        assert!(matches!(parser.decode_action(0x8002), ParseAction::Reduce(1)));
-        
+        assert!(matches!(
+            parser.decode_action(0x8002),
+            ParseAction::Reduce(1)
+        ));
+
         // Test accept
         assert!(matches!(parser.decode_action(0xFFFF), ParseAction::Accept));
-        
+
         // Test error
         assert!(matches!(parser.decode_action(0xFFFE), ParseAction::Error));
     }

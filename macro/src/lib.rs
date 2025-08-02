@@ -1,5 +1,5 @@
 use quote::ToTokens;
-use syn::{parse_macro_input, ItemMod};
+use syn::{ItemMod, parse_macro_input};
 
 mod errors;
 mod expansion;
@@ -263,7 +263,7 @@ mod tests {
     use std::process::Command;
 
     use quote::ToTokens;
-    use syn::{parse_quote, Result};
+    use syn::{Result, parse_quote};
     use tempfile::tempdir;
 
     use super::expand_grammar;

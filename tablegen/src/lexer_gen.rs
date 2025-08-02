@@ -1,25 +1,28 @@
 // Lexer generation for pure-Rust parser
 use proc_macro2::TokenStream;
 use quote::quote;
-use rust_sitter_ir::{Grammar, TokenPattern, SymbolId};
+use rust_sitter_ir::{Grammar, SymbolId, TokenPattern};
 use std::collections::BTreeMap;
 
 /// Generate a simple lexer function for the grammar
-pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &BTreeMap<SymbolId, usize>) -> TokenStream {
+pub fn generate_lexer(
+    grammar: &Grammar,
+    symbol_to_index: &BTreeMap<SymbolId, usize>,
+) -> TokenStream {
     // Collect all tokens and their patterns
     let mut token_matches = Vec::new();
-    
+
     // The lexer needs to return symbol indices that match the parse table.
     // We use the symbol_to_index mapping from the parse table to ensure consistency.
-    
+
     // Sort tokens by their parse table index for deterministic ordering
-    let mut tokens: Vec<_> = grammar.tokens.iter()
-        .filter_map(|(id, token)| {
-            symbol_to_index.get(id).map(|&idx| (idx, id, token))
-        })
+    let mut tokens: Vec<_> = grammar
+        .tokens
+        .iter()
+        .filter_map(|(id, token)| symbol_to_index.get(id).map(|&idx| (idx, id, token)))
         .collect();
     tokens.sort_by_key(|(idx, _, _)| *idx);
-    
+
     // Generate token matches for each token
     for (idx, _token_id, token) in &tokens {
         // Use the parse table index, not the token ID
@@ -81,7 +84,7 @@ pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &BTreeMap<SymbolId, us
             }
         }
     }
-    
+
     quote! {
         unsafe extern "C" fn lexer_fn(state_ptr: *mut ::std::ffi::c_void, _lex_mode: TSLexState) -> bool {
             // SAFETY: state_ptr is guaranteed to be a valid pointer to LexerState by the Tree-sitter runtime
@@ -89,17 +92,17 @@ pub fn generate_lexer(grammar: &Grammar, symbol_to_index: &BTreeMap<SymbolId, us
             // SAFETY: input pointer and length are provided by Tree-sitter runtime and guaranteed to be valid
             let input = unsafe { std::slice::from_raw_parts(state.input, state.input_len) };
             let position = state.position;
-            
+
             if position >= input.len() {
                 return false;
             }
-            
+
             #(#token_matches)*
-            
+
             // No match found
             false
         }
-        
+
         #[repr(C)]
         struct LexerState {
             input: *const u8,

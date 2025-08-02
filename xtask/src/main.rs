@@ -2,10 +2,10 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use xshell::Shell;
 
-mod golden;
-mod grammar_json;
 mod corpus;
 mod dashboard;
+mod golden;
+mod grammar_json;
 mod test_grammars;
 mod test_local_grammars;
 
@@ -116,13 +116,13 @@ impl Grammar {
     fn name(&self) -> &'static str {
         match self {
             Grammar::Arithmetic => "arithmetic",
-            Grammar::Javascript => "javascript", 
+            Grammar::Javascript => "javascript",
             Grammar::Rust => "rust",
             Grammar::Python => "python",
             Grammar::C => "c",
         }
     }
-    
+
     fn repo_url(&self) -> Option<&'static str> {
         match self {
             Grammar::Arithmetic => None, // Local example
@@ -137,7 +137,7 @@ impl Grammar {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let sh = Shell::new()?;
-    
+
     match cli.command {
         Commands::GenerateGolden { grammar, force } => {
             golden::generate_golden(&sh, grammar, force)?;
@@ -157,7 +157,10 @@ fn main() -> Result<()> {
         Commands::TestCorpus { corpus, output } => {
             let runner = corpus::CorpusRunner::new(corpus.into(), output.into());
             let results = runner.run_all()?;
-            println!("\nCorpus test complete: {:.1}% pass rate", results.pass_rate);
+            println!(
+                "\nCorpus test complete: {:.1}% pass rate",
+                results.pass_rate
+            );
         }
         Commands::TestGrammar { grammar, corpus } => {
             let runner = corpus::CorpusRunner::new(corpus.into(), "./target/corpus-results".into());
@@ -165,7 +168,10 @@ fn main() -> Result<()> {
             println!("Grammar {} status: {:?}", grammar, result.status);
         }
         Commands::DashboardData { input, output } => {
-            dashboard::generate_dashboard_data(std::path::Path::new(&input), std::path::Path::new(&output))?;
+            dashboard::generate_dashboard_data(
+                std::path::Path::new(&input),
+                std::path::Path::new(&output),
+            )?;
         }
         Commands::InitDashboard { dir } => {
             dashboard::init_dashboard(std::path::Path::new(&dir))?;
@@ -177,6 +183,6 @@ fn main() -> Result<()> {
             test_local_grammars::test_local_grammars()?;
         }
     }
-    
+
     Ok(())
 }

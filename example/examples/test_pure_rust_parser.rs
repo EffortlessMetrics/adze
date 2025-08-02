@@ -2,24 +2,26 @@
 #[cfg(feature = "pure-rust")]
 fn main() {
     println!("Testing pure-Rust arithmetic parser...");
-    
+
     // Get the language function from generated code
     let language_fn = unsafe { tree_sitter_arithmetic };
     let language = unsafe { &*language_fn() };
-    
-    println!("Language: symbol_count={}, state_count={}", 
-        language.symbol_count, language.state_count);
-    
+
+    println!(
+        "Language: symbol_count={}, state_count={}",
+        language.symbol_count, language.state_count
+    );
+
     // Test parsing "42"
     let input = "42";
     println!("\nParsing: '{}'", input);
-    
+
     // Create parser
     let mut parser = rust_sitter::pure_parser::Parser::new();
     parser.set_language(language);
-    
+
     let result = parser.parse_string(input);
-    
+
     if let Some(root) = result.root {
         println!("Success! Parsed tree with root: {:?}", root);
     } else if !result.errors.is_empty() {
@@ -39,4 +41,7 @@ fn main() {
 
 // Include generated parser
 #[cfg(feature = "pure-rust")]
-include!(concat!(env!("OUT_DIR"), "/grammar_arithmetic/parser_arithmetic.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/grammar_arithmetic/parser_arithmetic.rs"
+));

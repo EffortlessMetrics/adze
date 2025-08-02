@@ -4,30 +4,25 @@ use rust_sitter_tool::grammar_js::GrammarJsParserV3;
 fn test_parse_precedence_rules() {
     // Test parsing various precedence patterns
     let test_cases = vec![
-        (
-            "prec(1, $.expression)",
-            "Prec with simple symbol"
-        ),
+        ("prec(1, $.expression)", "Prec with simple symbol"),
         (
             "prec.left(2, seq($.expr, '+', $.expr))",
-            "Left associative with sequence"
+            "Left associative with sequence",
         ),
         (
             "prec.right(3, seq($.expr, '=', $.expr))",
-            "Right associative assignment"
+            "Right associative assignment",
         ),
-        (
-            "prec.dynamic(1, $.member_expression)",
-            "Dynamic precedence"
-        ),
+        ("prec.dynamic(1, $.member_expression)", "Dynamic precedence"),
     ];
-    
+
     for (input, description) in test_cases {
         println!("\nTesting: {}", description);
         println!("Input: {}", input);
-        
+
         // Create a minimal grammar to test parsing
-        let grammar_content = format!(r#"
+        let grammar_content = format!(
+            r#"
 module.exports = grammar({{
   name: 'test',
   
@@ -35,8 +30,10 @@ module.exports = grammar({{
     test_rule: $ => {}
   }}
 }})
-"#, input);
-        
+"#,
+            input
+        );
+
         let mut parser = GrammarJsParserV3::new(grammar_content);
         match parser.parse() {
             Ok(grammar) => {
@@ -92,14 +89,14 @@ module.exports = grammar({
   }
 })
 "#;
-    
+
     let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
     match parser.parse() {
         Ok(grammar) => {
             println!("Successfully parsed JavaScript-like binary expressions!");
             println!("Grammar name: {}", grammar.name);
             println!("Number of rules: {}", grammar.rules.len());
-            
+
             // Check that we have the expected rules
             assert!(grammar.rules.contains_key("expression"));
             assert!(grammar.rules.contains_key("binary_expression"));

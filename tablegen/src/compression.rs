@@ -27,7 +27,7 @@ pub fn compress_action_table(table: &[Vec<Action>]) -> CompressedActionTable {
     let mut row_map = HashMap::new();
     let mut unique_rows = Vec::new();
     let mut state_to_row = Vec::new();
-    
+
     for row in table {
         let row_index = if let Some(&idx) = row_map.get(row) {
             idx
@@ -39,7 +39,7 @@ pub fn compress_action_table(table: &[Vec<Action>]) -> CompressedActionTable {
         };
         state_to_row.push(row_index);
     }
-    
+
     CompressedActionTable {
         row_map,
         unique_rows,
@@ -62,7 +62,7 @@ pub fn compress_goto_table(table: &[Vec<Option<StateId>>]) -> CompressedGotoTabl
     let mut entries = HashMap::new();
     let state_count = table.len();
     let symbol_count = if state_count > 0 { table[0].len() } else { 0 };
-    
+
     for (state_idx, row) in table.iter().enumerate() {
         for (symbol_idx, &goto) in row.iter().enumerate() {
             if let Some(target) = goto {
@@ -70,7 +70,7 @@ pub fn compress_goto_table(table: &[Vec<Option<StateId>>]) -> CompressedGotoTabl
             }
         }
     }
-    
+
     CompressedGotoTable {
         entries,
         state_count,
@@ -94,7 +94,7 @@ pub struct BitPackedActionTable {
     shift_data: Vec<u32>,  // State IDs for shift actions
     reduce_data: Vec<u32>, // Rule IDs for reduce actions
     fork_data: HashMap<(usize, usize), Vec<Action>>, // Full data for fork actions
-    
+
     #[allow(dead_code)]
     state_count: usize,
     symbol_count: usize,
@@ -104,20 +104,20 @@ impl BitPackedActionTable {
     pub fn from_table(table: &[Vec<Action>]) -> Self {
         let state_count = table.len();
         let symbol_count = if state_count > 0 { table[0].len() } else { 0 };
-        
+
         // Calculate bits needed
         let total_cells = state_count * symbol_count;
         let mask_words = (total_cells + 63) / 64;
-        
+
         let mut error_mask = vec![0u64; mask_words];
         let mut shift_data = Vec::new();
         let mut reduce_data = Vec::new();
         let mut fork_data = HashMap::new();
-        
+
         for (state_idx, row) in table.iter().enumerate() {
             for (symbol_idx, action) in row.iter().enumerate() {
                 let cell_idx = state_idx * symbol_count + symbol_idx;
-                
+
                 match action {
                     Action::Error => {
                         // Set bit in error mask
@@ -141,7 +141,7 @@ impl BitPackedActionTable {
                 }
             }
         }
-        
+
         BitPackedActionTable {
             error_mask,
             shift_data,
@@ -151,22 +151,22 @@ impl BitPackedActionTable {
             symbol_count,
         }
     }
-    
+
     pub fn decompress(&self, state: usize, symbol: usize) -> Action {
         let cell_idx = state * self.symbol_count + symbol;
         let word_idx = cell_idx / 64;
         let bit_idx = cell_idx % 64;
-        
+
         // Check error mask first
         if (self.error_mask[word_idx] >> bit_idx) & 1 == 1 {
             return Action::Error;
         }
-        
+
         // Check for fork action
         if let Some(actions) = self.fork_data.get(&(state, symbol)) {
             return Action::Fork(actions.clone());
         }
-        
+
         // Count non-error actions before this cell to find data index
         let mut data_idx = 0;
         for i in 0..cell_idx {
@@ -181,7 +181,7 @@ impl BitPackedActionTable {
                 }
             }
         }
-        
+
         // Determine if this is shift or reduce based on position
         // This is a simplified heuristic - real implementation would need more metadata
         if data_idx < self.shift_data.len() {
@@ -205,7 +205,7 @@ impl BitPackedActionTable {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_row_deduplication() {
         // Create a table with duplicate rows
@@ -214,20 +214,29 @@ mod tests {
             vec![Action::Error, Action::Shift(StateId(1))], // Duplicate
             vec![Action::Reduce(rust_sitter_ir::RuleId(0)), Action::Error],
         ];
-        
+
         let compressed = compress_action_table(&table);
-        
+
         // Should have only 2 unique rows
         assert_eq!(compressed.unique_rows.len(), 2);
-        
+
         // Verify decompression
         assert_eq!(decompress_action(&compressed, 0, 0), Action::Error);
-        assert_eq!(decompress_action(&compressed, 0, 1), Action::Shift(StateId(1)));
+        assert_eq!(
+            decompress_action(&compressed, 0, 1),
+            Action::Shift(StateId(1))
+        );
         assert_eq!(decompress_action(&compressed, 1, 0), Action::Error);
-        assert_eq!(decompress_action(&compressed, 1, 1), Action::Shift(StateId(1)));
-        assert_eq!(decompress_action(&compressed, 2, 0), Action::Reduce(rust_sitter_ir::RuleId(0)));
+        assert_eq!(
+            decompress_action(&compressed, 1, 1),
+            Action::Shift(StateId(1))
+        );
+        assert_eq!(
+            decompress_action(&compressed, 2, 0),
+            Action::Reduce(rust_sitter_ir::RuleId(0))
+        );
     }
-    
+
     #[test]
     fn test_sparse_goto_compression() {
         // Create a sparse goto table
@@ -236,12 +245,12 @@ mod tests {
             vec![Some(StateId(2)), None, None],
             vec![None, None, Some(StateId(3))],
         ];
-        
+
         let compressed = compress_goto_table(&table);
-        
+
         // Should have only 3 entries
         assert_eq!(compressed.entries.len(), 3);
-        
+
         // Verify decompression
         assert_eq!(decompress_goto(&compressed, 0, 0), None);
         assert_eq!(decompress_goto(&compressed, 0, 1), Some(StateId(1)));

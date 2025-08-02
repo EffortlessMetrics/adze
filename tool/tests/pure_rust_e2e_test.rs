@@ -1,6 +1,6 @@
 // End-to-end test for pure-Rust parser generation
 
-use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
+use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 use std::fs;
 use tempfile::TempDir;
 
@@ -51,30 +51,30 @@ module.exports = grammar({
   }
 });
     "#;
-    
+
     let temp_dir = TempDir::new().unwrap();
     let grammar_path = temp_dir.path().join("grammar.js");
     fs::write(&grammar_path, grammar_js).unwrap();
-    
+
     let options = BuildOptions {
         out_dir: temp_dir.path().to_string_lossy().to_string(),
         emit_artifacts: true,
         compress_tables: true,
     };
-    
+
     let result = build_parser_from_grammar_js(&grammar_path, options).unwrap();
-    
+
     // Verify result
     assert_eq!(result.grammar_name, "json");
-    
+
     // Check generated code
     assert!(result.parser_code.contains("tree_sitter_json"));
     assert!(result.parser_code.contains("TSLanguage"));
-    
+
     // Check NODE_TYPES
     let node_types: serde_json::Value = serde_json::from_str(&result.node_types_json).unwrap();
     assert!(node_types.is_array());
-    
+
     // Verify parser file was created
     let parser_file = std::path::Path::new(&result.parser_path);
     assert!(parser_file.exists());
@@ -132,32 +132,32 @@ module.exports = grammar({
   }
 });
     "#;
-    
+
     let temp_dir = TempDir::new().unwrap();
     let grammar_path = temp_dir.path().join("grammar.js");
     fs::write(&grammar_path, grammar_js).unwrap();
-    
+
     let options = BuildOptions {
         out_dir: temp_dir.path().to_string_lossy().to_string(),
         emit_artifacts: true,
         compress_tables: true,
     };
-    
+
     let result = build_parser_from_grammar_js(&grammar_path, options).unwrap();
-    
+
     // Verify result
     assert_eq!(result.grammar_name, "calc");
-    
+
     // Check that precedence is handled
     assert!(result.parser_code.contains("TSLanguage"));
-    
+
     // Verify artifacts were emitted
     let grammar_dir = temp_dir.path().join("grammar_calc");
     assert!(grammar_dir.exists());
-    
+
     let ir_file = grammar_dir.join("grammar.ir.json");
     assert!(ir_file.exists());
-    
+
     let node_types_file = grammar_dir.join("NODE_TYPES.json");
     assert!(node_types_file.exists());
 }
@@ -189,33 +189,43 @@ module.exports = grammar({
   }
 });
     "#;
-    
+
     let temp_dir = TempDir::new().unwrap();
     let grammar_path = temp_dir.path().join("grammar.js");
     fs::write(&grammar_path, grammar_js).unwrap();
-    
+
     // Build with compression
     let compressed_options = BuildOptions {
-        out_dir: temp_dir.path().join("compressed").to_string_lossy().to_string(),
+        out_dir: temp_dir
+            .path()
+            .join("compressed")
+            .to_string_lossy()
+            .to_string(),
         emit_artifacts: false,
         compress_tables: true,
     };
-    
-    let compressed_result = build_parser_from_grammar_js(&grammar_path, compressed_options).unwrap();
-    
+
+    let compressed_result =
+        build_parser_from_grammar_js(&grammar_path, compressed_options).unwrap();
+
     // Build without compression
     let uncompressed_options = BuildOptions {
-        out_dir: temp_dir.path().join("uncompressed").to_string_lossy().to_string(),
+        out_dir: temp_dir
+            .path()
+            .join("uncompressed")
+            .to_string_lossy()
+            .to_string(),
         emit_artifacts: false,
         compress_tables: false,
     };
-    
-    let uncompressed_result = build_parser_from_grammar_js(&grammar_path, uncompressed_options).unwrap();
-    
+
+    let uncompressed_result =
+        build_parser_from_grammar_js(&grammar_path, uncompressed_options).unwrap();
+
     // Both should produce valid parsers
     assert!(compressed_result.parser_code.contains("TSLanguage"));
     assert!(uncompressed_result.parser_code.contains("TSLanguage"));
-    
+
     // Compressed version should have PARSE_TABLE
     assert!(compressed_result.parser_code.contains("PARSE_TABLE"));
 }

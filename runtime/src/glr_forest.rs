@@ -2,10 +2,10 @@
 // This module implements a Shared Packed Parse Forest (SPPF) for efficient
 // representation of ambiguous parse trees.
 
-use rust_sitter_ir::{RuleId, SymbolId};
-use std::rc::Rc;
-use std::collections::HashMap;
 use crate::parser_v4::ParseNode;
+use rust_sitter_ir::{RuleId, SymbolId};
+use std::collections::HashMap;
+use std::rc::Rc;
 
 /// A node in the parse forest that can represent multiple parse trees
 #[derive(Debug, Clone)]
@@ -52,7 +52,7 @@ pub struct GSSNode {
 #[derive(Debug, Clone)]
 pub struct GSSLink {
     /// Parent GSS node
-    pub parent: usize,  // Index into GSS node pool
+    pub parent: usize, // Index into GSS node pool
     /// Parse tree node created by this link
     pub tree_node: Rc<ForestNode>,
 }
@@ -77,7 +77,7 @@ impl GLRParserState {
             next_gss_id: 0,
             forest_cache: HashMap::new(),
         };
-        
+
         // Create initial GSS node for state 0
         let initial_node = GSSNode {
             state: 0,
@@ -87,10 +87,10 @@ impl GLRParserState {
         state.gss_nodes.push(initial_node);
         state.active_heads.push(0);
         state.next_gss_id = 1;
-        
+
         state
     }
-    
+
     /// Fork the parser state for handling ambiguity
     pub fn fork(&mut self, _gss_node_idx: usize, new_state: usize) -> usize {
         // Check if a node with this state already exists at this position
@@ -100,7 +100,7 @@ impl GLRParserState {
                 return head;
             }
         }
-        
+
         // Create new GSS node
         let new_node = GSSNode {
             state: new_state,
@@ -108,14 +108,14 @@ impl GLRParserState {
             id: self.next_gss_id,
         };
         self.next_gss_id += 1;
-        
+
         let new_idx = self.gss_nodes.len();
         self.gss_nodes.push(new_node);
         self.active_heads.push(new_idx);
-        
+
         new_idx
     }
-    
+
     /// Create or retrieve a cached forest node
     pub fn get_or_create_forest_node(
         &mut self,
@@ -125,16 +125,16 @@ impl GLRParserState {
         create_fn: impl FnOnce() -> ForestNode,
     ) -> Rc<ForestNode> {
         let key = (symbol, start, end);
-        
+
         if let Some(node) = self.forest_cache.get(&key) {
             return node.clone();
         }
-        
+
         let node = Rc::new(create_fn());
         self.forest_cache.insert(key, node.clone());
         node
     }
-    
+
     /// Merge parse trees when multiple derivations lead to the same state
     pub fn merge_trees(
         &mut self,
@@ -144,7 +144,7 @@ impl GLRParserState {
         new_alternative: PackedNode,
     ) -> Rc<ForestNode> {
         let key = (symbol, start, end);
-        
+
         if let Some(existing) = self.forest_cache.get(&key) {
             // Cannot mutate through Rc, need to create new node with merged alternatives
             if let ForestNode::NonTerminal { alternatives, .. } = existing.as_ref() {
@@ -178,23 +178,30 @@ impl GLRParserState {
 /// Convert a forest node to a single parse tree (picking first alternative)
 pub fn forest_to_parse_tree(forest: &ForestNode) -> ParseNode {
     match forest {
-        ForestNode::Terminal { symbol, start, end, .. } => {
-            ParseNode {
-                symbol: *symbol,
-                start_byte: *start,
-                end_byte: *end,
-                children: Vec::new(),
-                field_name: None,
-            }
-        }
-        ForestNode::NonTerminal { symbol, start, end, alternatives } => {
+        ForestNode::Terminal {
+            symbol, start, end, ..
+        } => ParseNode {
+            symbol: *symbol,
+            start_byte: *start,
+            end_byte: *end,
+            children: Vec::new(),
+            field_name: None,
+        },
+        ForestNode::NonTerminal {
+            symbol,
+            start,
+            end,
+            alternatives,
+        } => {
             // For now, just pick the first alternative
             // TODO: Provide API to explore all alternatives
             let first_alt = &alternatives[0];
-            let children = first_alt.children.iter()
+            let children = first_alt
+                .children
+                .iter()
                 .map(|child| forest_to_parse_tree(child))
                 .collect();
-                
+
             ParseNode {
                 symbol: *symbol,
                 start_byte: *start,

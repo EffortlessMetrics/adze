@@ -8,20 +8,22 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod advanced_conflict;
-pub mod version_info;
-pub mod precedence_compare;
 pub mod conflict_visualizer;
-pub mod symbol_comparison;
 pub mod perf_optimizations;
+pub mod precedence_compare;
+pub mod symbol_comparison;
+pub mod version_info;
 
-pub use advanced_conflict::{ConflictAnalyzer, PrecedenceResolver, ConflictStats, PrecedenceDecision};
-pub use version_info::{VersionInfo, CompareResult, compare_versions};
-pub use precedence_compare::{
-    StaticPrecedenceResolver, PrecedenceInfo, PrecedenceComparison, compare_precedences
+pub use advanced_conflict::{
+    ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
 };
 pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
+pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
+pub use precedence_compare::{
+    PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
+};
 pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
-pub use perf_optimizations::{ParseTableCache, StackDeduplicator, StackPool, PerfStats};
+pub use version_info::{CompareResult, VersionInfo, compare_versions};
 
 /// FIRST/FOLLOW sets computation for GLR parsing
 #[derive(Debug, Clone)]
@@ -40,12 +42,16 @@ impl FirstFollowSets {
             Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
                 Self::get_max_symbol_id(inner)
             }
-            Symbol::Choice(choices) => {
-                choices.iter().map(|s| Self::get_max_symbol_id(s)).max().unwrap_or(0)
-            }
-            Symbol::Sequence(seq) => {
-                seq.iter().map(|s| Self::get_max_symbol_id(s)).max().unwrap_or(0)
-            }
+            Symbol::Choice(choices) => choices
+                .iter()
+                .map(|s| Self::get_max_symbol_id(s))
+                .max()
+                .unwrap_or(0),
+            Symbol::Sequence(seq) => seq
+                .iter()
+                .map(|s| Self::get_max_symbol_id(s))
+                .max()
+                .unwrap_or(0),
             Symbol::Epsilon => 0,
         }
     }
@@ -54,8 +60,13 @@ impl FirstFollowSets {
         // Find the maximum symbol ID to determine the size needed
         let max_rule_id = grammar.rules.keys().map(|id| id.0).max().unwrap_or(0);
         let max_token_id = grammar.tokens.keys().map(|id| id.0).max().unwrap_or(0);
-        let max_external_id = grammar.externals.iter().map(|e| e.symbol_id.0).max().unwrap_or(0);
-        
+        let max_external_id = grammar
+            .externals
+            .iter()
+            .map(|e| e.symbol_id.0)
+            .max()
+            .unwrap_or(0);
+
         // Also check max symbol ID in all rule RHS
         let mut max_rhs_id = 0u16;
         for rules in grammar.rules.values() {
@@ -65,9 +76,13 @@ impl FirstFollowSets {
                 }
             }
         }
-        
-        let symbol_count = (max_rule_id.max(max_token_id).max(max_external_id).max(max_rhs_id) + 1) as usize;
-        
+
+        let symbol_count = (max_rule_id
+            .max(max_token_id)
+            .max(max_external_id)
+            .max(max_rhs_id)
+            + 1) as usize;
+
         let mut first = IndexMap::new();
         let mut follow = IndexMap::new();
         let mut nullable = FixedBitSet::with_capacity(symbol_count);
@@ -82,11 +97,11 @@ impl FirstFollowSets {
         let mut changed = true;
         while changed {
             changed = false;
-            
+
             for rule in grammar.all_rules() {
                 let lhs = rule.lhs;
                 let mut rule_nullable = true;
-                
+
                 for symbol in &rule.rhs {
                     match symbol {
                         Symbol::Terminal(id) => {
@@ -109,7 +124,7 @@ impl FirstFollowSets {
                                     }
                                 }
                             }
-                            
+
                             if !nullable.contains(id.0 as usize) {
                                 rule_nullable = false;
                                 break;
@@ -119,14 +134,19 @@ impl FirstFollowSets {
                             // Epsilon doesn't contribute to FIRST set
                             // but keeps rule nullable
                         }
-                        Symbol::Optional(_) | Symbol::Repeat(_) | 
-                        Symbol::RepeatOne(_) | Symbol::Choice(_) | Symbol::Sequence(_) => {
+                        Symbol::Optional(_)
+                        | Symbol::Repeat(_)
+                        | Symbol::RepeatOne(_)
+                        | Symbol::Choice(_)
+                        | Symbol::Sequence(_) => {
                             // These should be normalized before FIRST/FOLLOW computation
-                            panic!("Complex symbols should be normalized before FIRST/FOLLOW computation");
+                            panic!(
+                                "Complex symbols should be normalized before FIRST/FOLLOW computation"
+                            );
                         }
                     }
                 }
-                
+
                 if rule_nullable && !nullable.contains(lhs.0 as usize) {
                     nullable.insert(lhs.0 as usize);
                     changed = true;
@@ -138,16 +158,15 @@ impl FirstFollowSets {
         changed = true;
         while changed {
             changed = false;
-            
+
             for rule in grammar.all_rules() {
                 for (i, symbol) in rule.rhs.iter().enumerate() {
                     if let Symbol::NonTerminal(id) | Symbol::External(id) = symbol {
                         // Add FIRST of remaining symbols to FOLLOW of current symbol
                         let remaining = &rule.rhs[i + 1..];
-                        let first_of_remaining = Self::first_of_sequence_static(
-                            remaining, &first, &nullable
-                        );
-                        
+                        let first_of_remaining =
+                            Self::first_of_sequence_static(remaining, &first, &nullable);
+
                         if let Some(follow_set) = follow.get_mut(id) {
                             let old_len = follow_set.count_ones(..);
                             follow_set.union_with(&first_of_remaining);
@@ -155,7 +174,7 @@ impl FirstFollowSets {
                                 changed = true;
                             }
                         }
-                        
+
                         // If remaining symbols are nullable, add FOLLOW of LHS
                         if Self::sequence_is_nullable(remaining, &nullable) {
                             if let Some(lhs_follow) = follow.get(&rule.lhs).cloned() {
@@ -192,7 +211,7 @@ impl FirstFollowSets {
         nullable: &FixedBitSet,
     ) -> FixedBitSet {
         let mut result = FixedBitSet::with_capacity(nullable.len());
-        
+
         for symbol in symbols {
             match symbol {
                 Symbol::Terminal(id) => {
@@ -206,30 +225,34 @@ impl FirstFollowSets {
                     if let Some(symbol_first) = first.get(id) {
                         result.union_with(symbol_first);
                     }
-                    
+
                     if !nullable.contains(id.0 as usize) {
                         break;
                     }
                 }
-                Symbol::Optional(_) | Symbol::Repeat(_) | 
-                Symbol::RepeatOne(_) | Symbol::Choice(_) | Symbol::Sequence(_) => {
+                Symbol::Optional(_)
+                | Symbol::Repeat(_)
+                | Symbol::RepeatOne(_)
+                | Symbol::Choice(_)
+                | Symbol::Sequence(_) => {
                     panic!("Complex symbols should be normalized before FIRST/FOLLOW computation");
                 }
             }
         }
-        
+
         result
     }
 
     fn sequence_is_nullable(symbols: &[Symbol], nullable: &FixedBitSet) -> bool {
         symbols.iter().all(|symbol| match symbol {
             Symbol::Terminal(_) => false,
-            Symbol::NonTerminal(id) | Symbol::External(id) => {
-                nullable.contains(id.0 as usize)
-            }
+            Symbol::NonTerminal(id) | Symbol::External(id) => nullable.contains(id.0 as usize),
             Symbol::Epsilon => true,
-            Symbol::Optional(_) | Symbol::Repeat(_) | 
-            Symbol::RepeatOne(_) | Symbol::Choice(_) | Symbol::Sequence(_) => {
+            Symbol::Optional(_)
+            | Symbol::Repeat(_)
+            | Symbol::RepeatOne(_)
+            | Symbol::Choice(_)
+            | Symbol::Sequence(_) => {
                 panic!("Complex symbols should be normalized before FIRST/FOLLOW computation");
             }
         })
@@ -270,7 +293,10 @@ impl LRItem {
 
     /// Check if this item is at the end of the rule (reduce item)
     pub fn is_reduce_item(&self, grammar: &Grammar) -> bool {
-        if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == self.rule_id.0) {
+        if let Some(rule) = grammar
+            .all_rules()
+            .find(|r| r.production_id.0 == self.rule_id.0)
+        {
             self.position >= rule.rhs.len()
         } else {
             false
@@ -279,7 +305,10 @@ impl LRItem {
 
     /// Get the symbol after the dot (next symbol to parse)
     pub fn next_symbol<'a>(&self, grammar: &'a Grammar) -> Option<&'a Symbol> {
-        if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == self.rule_id.0) {
+        if let Some(rule) = grammar
+            .all_rules()
+            .find(|r| r.production_id.0 == self.rule_id.0)
+        {
             rule.rhs.get(self.position)
         } else {
             None
@@ -309,15 +338,18 @@ impl ItemSet {
     /// Compute closure of this item set
     pub fn closure(&mut self, grammar: &Grammar, first_follow: &FirstFollowSets) {
         let initial_size = self.items.len();
-        eprintln!("Debug: Computing closure for item set with {} initial items", initial_size);
-        
+        eprintln!(
+            "Debug: Computing closure for item set with {} initial items",
+            initial_size
+        );
+
         let mut added = true;
         let mut iteration = 0;
         while added {
             added = false;
             iteration += 1;
             let current_items: Vec<_> = self.items.iter().cloned().collect();
-            
+
             for item in current_items {
                 if let Some(Symbol::NonTerminal(symbol_id)) = item.next_symbol(grammar) {
                     // Find all rules with this symbol as LHS
@@ -326,14 +358,16 @@ impl ItemSet {
                             // Compute FIRST of β α where β is the rest of the current rule
                             // and α is the lookahead
                             let mut beta = Vec::new();
-                            if let Some(current_rule) = grammar.all_rules()
-                                .find(|r| r.production_id.0 == item.rule_id.0) {
+                            if let Some(current_rule) = grammar
+                                .all_rules()
+                                .find(|r| r.production_id.0 == item.rule_id.0)
+                            {
                                 beta.extend_from_slice(&current_rule.rhs[item.position + 1..]);
                             }
                             beta.push(Symbol::Terminal(item.lookahead));
-                            
+
                             let first_beta_alpha = first_follow.first_of_sequence(&beta);
-                            
+
                             // Add new items for each symbol in FIRST(β α)
                             for lookahead_idx in first_beta_alpha.ones() {
                                 let new_item = LRItem::new(
@@ -341,7 +375,7 @@ impl ItemSet {
                                     0,
                                     SymbolId(lookahead_idx as u16),
                                 );
-                                
+
                                 if !self.items.contains(&new_item) {
                                     self.items.insert(new_item);
                                     added = true;
@@ -352,27 +386,35 @@ impl ItemSet {
                 }
             }
         }
-        
-        eprintln!("Debug: Closure complete after {} iterations. Final size: {} items", iteration, self.items.len());
+
+        eprintln!(
+            "Debug: Closure complete after {} iterations. Final size: {} items",
+            iteration,
+            self.items.len()
+        );
     }
 
     /// Compute GOTO for a given symbol
-    pub fn goto(&self, symbol: &Symbol, grammar: &Grammar, _first_follow: &FirstFollowSets) -> ItemSet {
+    pub fn goto(
+        &self,
+        symbol: &Symbol,
+        grammar: &Grammar,
+        _first_follow: &FirstFollowSets,
+    ) -> ItemSet {
         let mut new_set = ItemSet::new(StateId(0)); // ID will be assigned later
-        
+
         // Add all items where the dot can advance over the given symbol
         for item in &self.items {
             if let Some(next_sym) = item.next_symbol(grammar) {
                 if std::mem::discriminant(next_sym) == std::mem::discriminant(symbol) {
                     match (next_sym, symbol) {
-                        (Symbol::Terminal(a), Symbol::Terminal(b)) |
-                        (Symbol::NonTerminal(a), Symbol::NonTerminal(b)) |
-                        (Symbol::External(a), Symbol::External(b)) if a == b => {
-                            let new_item = LRItem::new(
-                                item.rule_id,
-                                item.position + 1,
-                                item.lookahead,
-                            );
+                        (Symbol::Terminal(a), Symbol::Terminal(b))
+                        | (Symbol::NonTerminal(a), Symbol::NonTerminal(b))
+                        | (Symbol::External(a), Symbol::External(b))
+                            if a == b =>
+                        {
+                            let new_item =
+                                LRItem::new(item.rule_id, item.position + 1, item.lookahead);
                             new_set.add_item(new_item);
                         }
                         _ => {}
@@ -380,7 +422,7 @@ impl ItemSet {
                 }
             }
         }
-        
+
         // Compute closure of the new set
         new_set.closure(grammar, _first_follow);
         new_set
@@ -397,7 +439,7 @@ pub struct ItemSetCollection {
 impl ItemSetCollection {
     /// Build canonical collection of LR(1) item sets for augmented grammar
     pub fn build_canonical_collection_augmented(
-        grammar: &Grammar, 
+        grammar: &Grammar,
         first_follow: &FirstFollowSets,
         augmented_start: SymbolId,
         original_start: SymbolId,
@@ -409,10 +451,13 @@ impl ItemSetCollection {
 
         // Create initial state with the augmented start rule S' -> S $
         let mut initial_set = ItemSet::new(StateId(0));
-        
+
         // Find the augmented start rule
         if let Some(augmented_rules) = grammar.get_rules_for_symbol(augmented_start) {
-            eprintln!("Debug: Found {} augmented start rules", augmented_rules.len());
+            eprintln!(
+                "Debug: Found {} augmented start rules",
+                augmented_rules.len()
+            );
             for rule in augmented_rules {
                 // Add S' -> • S with lookahead $ (EOF)
                 let start_item = LRItem::new(
@@ -421,19 +466,27 @@ impl ItemSetCollection {
                     SymbolId(0), // EOF symbol
                 );
                 initial_set.add_item(start_item);
-                eprintln!("Debug: Added augmented start item: rule_id={}, position=0, lookahead=0", rule.production_id.0);
+                eprintln!(
+                    "Debug: Added augmented start item: rule_id={}, position=0, lookahead=0",
+                    rule.production_id.0
+                );
             }
         }
-        
+
         // Compute closure
         initial_set.closure(grammar, first_follow);
-        
-        eprintln!("Debug: Initial set after closure has {} items", initial_set.items.len());
+
+        eprintln!(
+            "Debug: Initial set after closure has {} items",
+            initial_set.items.len()
+        );
         for item in &initial_set.items {
-            eprintln!("Debug:   Item: rule_id={}, position={}, lookahead={}", 
-                item.rule_id.0, item.position, item.lookahead.0);
+            eprintln!(
+                "Debug:   Item: rule_id={}, position={}, lookahead={}",
+                item.rule_id.0, item.position, item.lookahead.0
+            );
         }
-        
+
         collection.sets.push(initial_set);
         let mut state_counter = 1;
 
@@ -441,11 +494,14 @@ impl ItemSetCollection {
         let mut i = 0;
         while i < collection.sets.len() {
             let current_set = collection.sets[i].clone();
-            
+
             // Debug: Print all items in this state
             eprintln!("\n=== State {} ===", i);
             for item in &current_set.items {
-                if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
+                if let Some(rule) = grammar
+                    .all_rules()
+                    .find(|r| r.production_id.0 == item.rule_id.0)
+                {
                     let mut rhs_str = String::new();
                     for (idx, sym) in rule.rhs.iter().enumerate() {
                         if idx == item.position {
@@ -456,11 +512,13 @@ impl ItemSetCollection {
                     if item.position == rule.rhs.len() {
                         rhs_str.push_str(" • ");
                     }
-                    eprintln!("  [{}] {:?} -> {} , lookahead={}", 
-                        item.rule_id.0, rule.lhs, rhs_str, item.lookahead.0);
+                    eprintln!(
+                        "  [{}] {:?} -> {} , lookahead={}",
+                        item.rule_id.0, rule.lhs, rhs_str, item.lookahead.0
+                    );
                 }
             }
-            
+
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
             for item in &current_set.items {
@@ -468,19 +526,21 @@ impl ItemSetCollection {
                     symbols.insert(symbol.clone());
                 }
             }
-            
+
             eprintln!("  Shiftable symbols: {} total", symbols.len());
-            
+
             // Compute GOTO for each symbol
             for symbol in symbols {
                 let goto_set = current_set.goto(&symbol, grammar, first_follow);
-                
+
                 if !goto_set.items.is_empty() {
                     // Check if this set already exists
-                    let existing_state = collection.sets.iter()
+                    let existing_state = collection
+                        .sets
+                        .iter()
                         .find(|set| set.items == goto_set.items)
                         .map(|set| set.id);
-                    
+
                     let target_state = if let Some(existing_id) = existing_state {
                         existing_id
                     } else {
@@ -492,26 +552,37 @@ impl ItemSetCollection {
                         state_counter += 1;
                         new_id
                     };
-                    
+
                     // Add to GOTO table
                     let symbol_id = match symbol {
                         Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
-                        Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
-                        Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
-                            panic!("Complex symbols should be normalized before LR item generation");
+                        Symbol::Optional(_)
+                        | Symbol::Repeat(_)
+                        | Symbol::RepeatOne(_)
+                        | Symbol::Choice(_)
+                        | Symbol::Sequence(_)
+                        | Symbol::Epsilon => {
+                            panic!(
+                                "Complex symbols should be normalized before LR item generation"
+                            );
                         }
                     };
-                    collection.goto_table.insert((current_set.id, symbol_id), target_state);
-                    eprintln!("DEBUG: Added goto({}, {}) = {}", current_set.id.0, symbol_id.0, target_state.0);
+                    collection
+                        .goto_table
+                        .insert((current_set.id, symbol_id), target_state);
+                    eprintln!(
+                        "DEBUG: Added goto({}, {}) = {}",
+                        current_set.id.0, symbol_id.0, target_state.0
+                    );
                 }
             }
-            
+
             i += 1;
         }
 
         collection
     }
-    
+
     /// Build canonical collection of LR(1) item sets
     pub fn build_canonical_collection(grammar: &Grammar, first_follow: &FirstFollowSets) -> Self {
         let mut collection = Self {
@@ -521,36 +592,47 @@ impl ItemSetCollection {
 
         // Create initial state with augmented start rule
         let mut initial_set = ItemSet::new(StateId(0));
-        
+
         // Find the start symbol (LHS of the first rule in grammar)
         if let Some(start_symbol) = grammar.start_symbol() {
             eprintln!("Debug: Start symbol is {:?}", start_symbol);
-            eprintln!("Debug: Start symbol name: {:?}", grammar.rule_names.get(&start_symbol));
-            
+            eprintln!(
+                "Debug: Start symbol name: {:?}",
+                grammar.rule_names.get(&start_symbol)
+            );
+
             // Add items for ALL rules with the start symbol as LHS
             if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
                 eprintln!("Debug: Found {} rules for start symbol", start_rules.len());
                 for (idx, rule) in start_rules.iter().enumerate() {
-                    eprintln!("Debug: Start rule {}: {:?} -> {:?} (production_id={})", idx, rule.lhs, rule.rhs, rule.production_id.0);
+                    eprintln!(
+                        "Debug: Start rule {}: {:?} -> {:?} (production_id={})",
+                        idx, rule.lhs, rule.rhs, rule.production_id.0
+                    );
                     let start_item = LRItem::new(
                         RuleId(rule.production_id.0),
                         0,
                         SymbolId(0), // EOF symbol
                     );
                     initial_set.add_item(start_item);
-                    eprintln!("Debug: Added item: rule_id={}, position=0, lookahead=0", rule.production_id.0);
+                    eprintln!(
+                        "Debug: Added item: rule_id={}, position=0, lookahead=0",
+                        rule.production_id.0
+                    );
                 }
             } else {
                 eprintln!("Debug: No rules found for start symbol!");
             }
-            
+
             // Compute closure
             initial_set.closure(grammar, first_follow);
         }
-        
+
         // Only add initial set if it has items
         if initial_set.items.is_empty() {
-            eprintln!("Debug: Initial set is empty after closure! This will result in parse table with only 1 state.");
+            eprintln!(
+                "Debug: Initial set is empty after closure! This will result in parse table with only 1 state."
+            );
             eprintln!("Debug: Grammar rules summary:");
             for (sym_id, rules) in &grammar.rules {
                 eprintln!("  Symbol {:?}: {} rules", sym_id, rules.len());
@@ -558,11 +640,13 @@ impl ItemSetCollection {
         } else {
             eprintln!("Debug: Initial set has {} items", initial_set.items.len());
             for item in &initial_set.items {
-                eprintln!("Debug:   Item: rule_id={}, position={}, lookahead={}", 
-                    item.rule_id.0, item.position, item.lookahead.0);
+                eprintln!(
+                    "Debug:   Item: rule_id={}, position={}, lookahead={}",
+                    item.rule_id.0, item.position, item.lookahead.0
+                );
             }
         }
-        
+
         collection.sets.push(initial_set);
         let mut state_counter = 1;
 
@@ -570,11 +654,14 @@ impl ItemSetCollection {
         let mut i = 0;
         while i < collection.sets.len() {
             let current_set = collection.sets[i].clone();
-            
+
             // Debug: Print all items in this state
             eprintln!("\n=== State {} ===", i);
             for item in &current_set.items {
-                if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
+                if let Some(rule) = grammar
+                    .all_rules()
+                    .find(|r| r.production_id.0 == item.rule_id.0)
+                {
                     let mut rhs_str = String::new();
                     for (idx, sym) in rule.rhs.iter().enumerate() {
                         if idx == item.position {
@@ -585,11 +672,13 @@ impl ItemSetCollection {
                     if item.position == rule.rhs.len() {
                         rhs_str.push_str(" • ");
                     }
-                    eprintln!("  [{}] {:?} -> {} , lookahead={}", 
-                        item.rule_id.0, rule.lhs, rhs_str, item.lookahead.0);
+                    eprintln!(
+                        "  [{}] {:?} -> {} , lookahead={}",
+                        item.rule_id.0, rule.lhs, rhs_str, item.lookahead.0
+                    );
                 }
             }
-            
+
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
             for item in &current_set.items {
@@ -597,18 +686,22 @@ impl ItemSetCollection {
                     symbols.insert(symbol.clone());
                 }
             }
-            
+
             eprintln!("  Shiftable symbols: {} total", symbols.len());
             if i == 0 {
                 eprintln!("Debug: State 0 items:");
                 for item in &current_set.items {
                     if let Some(symbol) = item.next_symbol(grammar) {
                         let symbol_id = match &symbol {
-                            Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
+                            Symbol::Terminal(id)
+                            | Symbol::NonTerminal(id)
+                            | Symbol::External(id) => id,
                             _ => panic!("Complex symbol"),
                         };
-                        eprintln!("  Item rule_id={}, position={}, next_symbol={:?} (id={})", 
-                            item.rule_id.0, item.position, symbol, symbol_id.0);
+                        eprintln!(
+                            "  Item rule_id={}, position={}, next_symbol={:?} (id={})",
+                            item.rule_id.0, item.position, symbol, symbol_id.0
+                        );
                     }
                 }
                 eprintln!("Debug: State 0 will create goto entries for:");
@@ -620,17 +713,19 @@ impl ItemSetCollection {
                     eprintln!("  Symbol {:?} (id={})", symbol, symbol_id.0);
                 }
             }
-            
+
             // Compute GOTO for each symbol
             for symbol in symbols {
                 let goto_set = current_set.goto(&symbol, grammar, first_follow);
-                
+
                 if !goto_set.items.is_empty() {
                     // Check if this set already exists
-                    let existing_state = collection.sets.iter()
+                    let existing_state = collection
+                        .sets
+                        .iter()
                         .find(|set| set.items == goto_set.items)
                         .map(|set| set.id);
-                    
+
                     let target_state = if let Some(existing_id) = existing_state {
                         existing_id
                     } else {
@@ -642,20 +737,31 @@ impl ItemSetCollection {
                         state_counter += 1;
                         new_id
                     };
-                    
+
                     // Add to GOTO table
                     let symbol_id = match symbol {
                         Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
-                        Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
-                        Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
-                            panic!("Complex symbols should be normalized before LR item generation");
+                        Symbol::Optional(_)
+                        | Symbol::Repeat(_)
+                        | Symbol::RepeatOne(_)
+                        | Symbol::Choice(_)
+                        | Symbol::Sequence(_)
+                        | Symbol::Epsilon => {
+                            panic!(
+                                "Complex symbols should be normalized before LR item generation"
+                            );
                         }
                     };
-                    collection.goto_table.insert((current_set.id, symbol_id), target_state);
-                    eprintln!("DEBUG: Added goto({}, {}) = {}", current_set.id.0, symbol_id.0, target_state.0);
+                    collection
+                        .goto_table
+                        .insert((current_set.id, symbol_id), target_state);
+                    eprintln!(
+                        "DEBUG: Added goto({}, {}) = {}",
+                        current_set.id.0, symbol_id.0, target_state.0
+                    );
                 }
             }
-            
+
             i += 1;
         }
 
@@ -721,34 +827,35 @@ impl ConflictResolver {
         _first_follow: &FirstFollowSets,
     ) -> Self {
         let mut conflicts = Vec::new();
-        
+
         for item_set in &item_sets.sets {
             let mut actions_by_symbol: IndexMap<SymbolId, Vec<Action>> = IndexMap::new();
-            
+
             // Collect all possible actions for each symbol in this state
             for item in &item_set.items {
                 if item.is_reduce_item(grammar) {
                     // Check if this is a reduction to the start symbol with EOF lookahead
                     let mut is_accept = false;
-                    
+
                     // Find the rule that corresponds to this rule ID
                     if let Some(start_symbol) = grammar.start_symbol() {
                         // Look through all rules to find the one with this rule ID
                         for rule in grammar.all_rules() {
                             if rule.production_id.0 == item.rule_id.0 {
                                 // Check if this rule reduces to the start symbol and we have EOF lookahead
-                                is_accept = rule.lhs == start_symbol && item.lookahead == SymbolId(0);
+                                is_accept =
+                                    rule.lhs == start_symbol && item.lookahead == SymbolId(0);
                                 break;
                             }
                         }
                     }
-                    
+
                     let action = if is_accept {
                         Action::Accept
                     } else {
                         Action::Reduce(item.rule_id)
                     };
-                    
+
                     actions_by_symbol
                         .entry(item.lookahead)
                         .or_insert_with(Vec::new)
@@ -756,14 +863,23 @@ impl ConflictResolver {
                 } else if let Some(symbol) = item.next_symbol(grammar) {
                     // Shift action
                     let symbol_id = match symbol {
-                        Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => *id,
-                        Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
-                        Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
-                            panic!("Complex symbols should be normalized before LR item generation");
+                        Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
+                            *id
+                        }
+                        Symbol::Optional(_)
+                        | Symbol::Repeat(_)
+                        | Symbol::RepeatOne(_)
+                        | Symbol::Choice(_)
+                        | Symbol::Sequence(_)
+                        | Symbol::Epsilon => {
+                            panic!(
+                                "Complex symbols should be normalized before LR item generation"
+                            );
                         }
                     };
-                    
-                    if let Some(target_state) = item_sets.goto_table.get(&(item_set.id, symbol_id)) {
+
+                    if let Some(target_state) = item_sets.goto_table.get(&(item_set.id, symbol_id))
+                    {
                         let action = Action::Shift(*target_state);
                         actions_by_symbol
                             .entry(symbol_id)
@@ -772,17 +888,18 @@ impl ConflictResolver {
                     }
                 }
             }
-            
+
             // Check for conflicts
             for (symbol_id, actions) in actions_by_symbol {
                 if actions.len() > 1 {
-                    let conflict_type = if actions.iter().any(|a| matches!(a, Action::Shift(_))) &&
-                                         actions.iter().any(|a| matches!(a, Action::Reduce(_))) {
+                    let conflict_type = if actions.iter().any(|a| matches!(a, Action::Shift(_)))
+                        && actions.iter().any(|a| matches!(a, Action::Reduce(_)))
+                    {
                         ConflictType::ShiftReduce
                     } else {
                         ConflictType::ReduceReduce
                     };
-                    
+
                     conflicts.push(Conflict {
                         state: item_set.id,
                         symbol: symbol_id,
@@ -792,7 +909,7 @@ impl ConflictResolver {
                 }
             }
         }
-        
+
         Self { conflicts }
     }
 
@@ -810,7 +927,7 @@ impl ConflictResolver {
     fn resolve_single_conflict(&self, conflict: &mut Conflict, grammar: &Grammar) {
         // Implement Tree-sitter's exact precedence and associativity resolution
         // This is where we port the C logic for conflict resolution
-        
+
         match conflict.conflict_type {
             ConflictType::ShiftReduce => {
                 // Apply precedence rules between shift and reduce
@@ -828,10 +945,10 @@ impl ConflictResolver {
     fn resolve_shift_reduce_conflict(&self, conflict: &mut Conflict, grammar: &Grammar) {
         // Use Tree-sitter's exact precedence comparison logic
         let precedence_resolver = StaticPrecedenceResolver::from_grammar(grammar);
-        
+
         let mut shift_action = None;
         let mut reduce_action = None;
-        
+
         // Find shift and reduce actions
         for action in &conflict.actions {
             match action {
@@ -840,19 +957,19 @@ impl ConflictResolver {
                 _ => {}
             }
         }
-        
+
         match (shift_action, reduce_action) {
             (Some(shift), Some(reduce)) => {
                 // Get precedence info for shift token
                 let shift_prec = precedence_resolver.token_precedence(conflict.symbol);
-                
+
                 // Get precedence info for reduce rule
                 let reduce_prec = if let Action::Reduce(rule_id) = &reduce {
                     precedence_resolver.rule_precedence(*rule_id)
                 } else {
                     None
                 };
-                
+
                 // Compare precedences
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
@@ -882,10 +999,10 @@ impl ConflictResolver {
     fn resolve_reduce_reduce_conflict(&self, conflict: &mut Conflict, _grammar: &Grammar) {
         // Choose the rule that appears first in the grammar
         // This is Tree-sitter's default behavior for reduce/reduce conflicts
-        
+
         let mut best_action = None;
         let mut best_rule_id = u16::MAX;
-        
+
         for action in &conflict.actions {
             if let Action::Reduce(rule_id) = action {
                 if rule_id.0 < best_rule_id {
@@ -894,7 +1011,7 @@ impl ConflictResolver {
                 }
             }
         }
-        
+
         if let Some(action) = best_action {
             conflict.actions = vec![action];
         }
@@ -906,10 +1023,10 @@ impl ConflictResolver {
 pub enum GLRError {
     #[error("Grammar error: {0}")]
     GrammarError(#[from] GrammarError),
-    
+
     #[error("Conflict resolution failed: {0}")]
     ConflictResolution(String),
-    
+
     #[error("State machine generation failed: {0}")]
     StateMachine(String),
 }
@@ -919,7 +1036,7 @@ fn can_derive_start(grammar: &Grammar, symbol: SymbolId, start: SymbolId) -> boo
     if symbol == start {
         return true;
     }
-    
+
     // Check if there's a rule symbol -> start
     if let Some(rules) = grammar.get_rules_for_symbol(symbol) {
         for rule in rules {
@@ -932,22 +1049,26 @@ fn can_derive_start(grammar: &Grammar, symbol: SymbolId, start: SymbolId) -> boo
             }
         }
     }
-    
+
     false
 }
 
 /// Build LR(1) automaton (parse table) from grammar
-pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) -> Result<ParseTable, GLRError> {
+pub fn build_lr1_automaton(
+    grammar: &Grammar,
+    first_follow: &FirstFollowSets,
+) -> Result<ParseTable, GLRError> {
     // Create augmented grammar with S' -> S $ rule
     let mut augmented_grammar = grammar.clone();
-    
+
     // Find the original start symbol
-    let original_start = grammar.start_symbol()
+    let original_start = grammar
+        .start_symbol()
         .ok_or_else(|| GLRError::GrammarError(GrammarError::UnresolvedSymbol(SymbolId(0))))?;
-    
+
     // Create a new start symbol S' with a high ID that won't conflict
     let augmented_start = SymbolId(65535); // High ID to avoid conflicts
-    
+
     // Add S' -> S rule (we'll handle $ implicitly in the LR construction)
     let augmented_rule = Rule {
         lhs: augmented_start,
@@ -957,38 +1078,50 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         fields: vec![],
         production_id: ProductionId(65535), // High ID to avoid conflicts
     };
-    augmented_grammar.rules.insert(augmented_start, vec![augmented_rule]);
-    augmented_grammar.rule_names.insert(augmented_start, "$start".to_string());
-    
-    eprintln!("DEBUG: Added augmented start rule: {} -> {}", augmented_start.0, original_start.0);
-    
+    augmented_grammar
+        .rules
+        .insert(augmented_start, vec![augmented_rule]);
+    augmented_grammar
+        .rule_names
+        .insert(augmented_start, "$start".to_string());
+
+    eprintln!(
+        "DEBUG: Added augmented start rule: {} -> {}",
+        augmented_start.0, original_start.0
+    );
+
     // Build canonical collection of LR(1) item sets with augmented grammar
-    let collection = ItemSetCollection::build_canonical_collection_augmented(&augmented_grammar, first_follow, augmented_start, original_start);
-    
+    let collection = ItemSetCollection::build_canonical_collection_augmented(
+        &augmented_grammar,
+        first_follow,
+        augmented_start,
+        original_start,
+    );
+
     // Create mapping from symbol IDs to table indices
     let mut symbol_to_index = BTreeMap::new();
     let mut max_symbol_id = 0u16;
-    
+
     // IMPORTANT: EOF symbol (ID 0) must always have index 0 in Tree-sitter
     symbol_to_index.insert(SymbolId(0), 0);
-    
+
     // Collect and sort symbols with proper ordering:
     // 1. Tokens first (terminals)
     // 2. Then non-terminals
     // 3. Then externals
     // Within each category, sort by symbol ID for determinism
-    
+
     let mut token_symbols = Vec::new();
     let mut non_terminal_symbols = Vec::new();
     let mut external_symbols = Vec::new();
-    
+
     // Collect token IDs
     for &symbol_id in grammar.tokens.keys() {
         token_symbols.push(symbol_id);
         max_symbol_id = max_symbol_id.max(symbol_id.0);
     }
     token_symbols.sort_by_key(|s| s.0);
-    
+
     // Collect non-terminal symbols (LHS of rules)
     let mut non_terminals_set = BTreeSet::new();
     for rule in grammar.all_rules() {
@@ -1002,61 +1135,66 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
         }
     }
     non_terminal_symbols.sort_by_key(|s| s.0);
-    
+
     // Collect external IDs
     for external in &grammar.externals {
         external_symbols.push(external.symbol_id);
         max_symbol_id = max_symbol_id.max(external.symbol_id.0);
     }
     external_symbols.sort_by_key(|s| s.0);
-    
+
     // Now assign indices: tokens first, then non-terminals, then externals
     for symbol_id in token_symbols {
         if !symbol_to_index.contains_key(&symbol_id) {
             symbol_to_index.insert(symbol_id, symbol_to_index.len());
         }
     }
-    
+
     for symbol_id in non_terminal_symbols {
         if !symbol_to_index.contains_key(&symbol_id) {
             symbol_to_index.insert(symbol_id, symbol_to_index.len());
         }
     }
-    
+
     for symbol_id in external_symbols {
         if !symbol_to_index.contains_key(&symbol_id) {
             symbol_to_index.insert(symbol_id, symbol_to_index.len());
         }
     }
-    
+
     // Calculate the final symbol count after adding all symbols including EOF
     let indexed_symbol_count = symbol_to_index.len();
-    
-    
+
     // Create parse table with proper dimensions
     let state_count = collection.sets.len();
     let symbol_count = indexed_symbol_count; // Keep for compatibility
-    
+
     let mut action_table = vec![vec![Action::Error; indexed_symbol_count]; state_count];
     let mut goto_table = vec![vec![StateId(0); indexed_symbol_count]; state_count];
-    
+
     // Track conflicts as we build the table
     let mut conflicts_by_state: BTreeMap<(usize, usize), Vec<Action>> = BTreeMap::new();
-    
+
     // Debug: Print goto table entries
-    eprintln!("DEBUG: Collection goto table has {} entries", collection.goto_table.len());
+    eprintln!(
+        "DEBUG: Collection goto table has {} entries",
+        collection.goto_table.len()
+    );
     for ((from_state, symbol), to_state) in &collection.goto_table {
         eprintln!("  goto({}, {}) = {}", from_state.0, symbol.0, to_state.0);
     }
-    
+
     // Fill action table
     for item_set in &collection.sets {
         let state_idx = item_set.id.0 as usize;
-        
+
         for item in &item_set.items {
             if item.is_reduce_item(&augmented_grammar) {
                 // Check if this is a reduce by the augmented start rule
-                if let Some(rule) = augmented_grammar.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
+                if let Some(rule) = augmented_grammar
+                    .all_rules()
+                    .find(|r| r.production_id.0 == item.rule_id.0)
+                {
                     if rule.lhs == augmented_start && item.lookahead == SymbolId(0) {
                         // This is S' -> S • with lookahead $, add accept action
                         if let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0)) {
@@ -1066,36 +1204,41 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
                                 &mut conflicts_by_state,
                                 state_idx,
                                 eof_idx,
-                                Action::Accept
+                                Action::Accept,
                             );
                         }
                     } else {
                         // Regular reduce action - but check precedence first
                         if let Some(&lookahead_idx) = symbol_to_index.get(&item.lookahead) {
                             let new_action = Action::Reduce(item.rule_id);
-                            
+
                             // Check if we should add this reduce based on precedence
-                            let precedence_resolver = StaticPrecedenceResolver::from_grammar(&augmented_grammar);
+                            let precedence_resolver =
+                                StaticPrecedenceResolver::from_grammar(&augmented_grammar);
                             let reduce_prec = precedence_resolver.rule_precedence(item.rule_id);
-                            let lookahead_prec = precedence_resolver.token_precedence(item.lookahead);
-                            
+                            let lookahead_prec =
+                                precedence_resolver.token_precedence(item.lookahead);
+
                             // Check if there's a potential shift action for this lookahead
                             let has_shift = item_set.items.iter().any(|other_item| {
-                                !other_item.is_reduce_item(&augmented_grammar) &&
-                                other_item.next_symbol(&augmented_grammar).map_or(false, |sym| {
-                                    match sym {
-                                        Symbol::Terminal(id) => *id == item.lookahead,
-                                        _ => false,
-                                    }
-                                })
+                                !other_item.is_reduce_item(&augmented_grammar)
+                                    && other_item.next_symbol(&augmented_grammar).map_or(
+                                        false,
+                                        |sym| match sym {
+                                            Symbol::Terminal(id) => *id == item.lookahead,
+                                            _ => false,
+                                        },
+                                    )
                             });
-                            
+
                             // If there's a shift action and precedence favors shift, don't add reduce
                             if has_shift && lookahead_prec.is_some() && reduce_prec.is_some() {
                                 match compare_precedences(lookahead_prec, reduce_prec) {
                                     PrecedenceComparison::PreferShift => {
-                                        eprintln!("DEBUG: State {} - Skipping reduce action for lookahead {} due to precedence", 
-                                            state_idx, item.lookahead.0);
+                                        eprintln!(
+                                            "DEBUG: State {} - Skipping reduce action for lookahead {} due to precedence",
+                                            state_idx, item.lookahead.0
+                                        );
                                         continue;
                                     }
                                     _ => {
@@ -1103,64 +1246,75 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
                                     }
                                 }
                             }
-                            
+
                             add_action_with_conflict(
                                 &mut action_table,
                                 &mut conflicts_by_state,
                                 state_idx,
                                 lookahead_idx,
-                                new_action
+                                new_action,
                             );
-                            
+
                             // Debug: Log reduce actions being added
-                            eprintln!("DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}", 
-                                state_idx, lookahead_idx, item.lookahead.0, item.rule_id.0);
+                            eprintln!(
+                                "DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}",
+                                state_idx, lookahead_idx, item.lookahead.0, item.rule_id.0
+                            );
                         }
                     }
                 }
             } else if let Some(next_symbol) = item.next_symbol(&augmented_grammar) {
                 let symbol_id = match &next_symbol {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
-                    Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::RepeatOne(_) |
-                    Symbol::Choice(_) | Symbol::Sequence(_) | Symbol::Epsilon => {
+                    Symbol::Optional(_)
+                    | Symbol::Repeat(_)
+                    | Symbol::RepeatOne(_)
+                    | Symbol::Choice(_)
+                    | Symbol::Sequence(_)
+                    | Symbol::Epsilon => {
                         panic!("Complex symbols should be normalized before conflict analysis");
                     }
                 };
-                
+
                 if let Some(&symbol_idx) = symbol_to_index.get(symbol_id) {
                     // Check if we have a goto entry for this symbol
-                    if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id)) {
+                    if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id))
+                    {
                         // For terminals, add shift action
                         // For non-terminals, also add shift action (for goto after reduction)
                         // In a unified table approach, both shifts and gotos are represented as shifts
-                        eprintln!("DEBUG: Adding action for state {} symbol {} (id={}) -> goto state {}", 
-                            state_idx, symbol_idx, symbol_id.0, goto_state.0);
+                        eprintln!(
+                            "DEBUG: Adding action for state {} symbol {} (id={}) -> goto state {}",
+                            state_idx, symbol_idx, symbol_id.0, goto_state.0
+                        );
                         let new_action = Action::Shift(goto_state);
                         add_action_with_conflict(
                             &mut action_table,
                             &mut conflicts_by_state,
                             state_idx,
                             symbol_idx,
-                            new_action
+                            new_action,
                         );
                     } else {
-                        eprintln!("DEBUG: No goto entry found for state {} symbol {} (id={})", 
-                            state_idx, symbol_idx, symbol_id.0);
+                        eprintln!(
+                            "DEBUG: No goto entry found for state {} symbol {} (id={})",
+                            state_idx, symbol_idx, symbol_id.0
+                        );
                     }
                 }
             }
         }
     }
-    
+
     // Resolve conflicts using precedence before converting to Fork actions
     let precedence_resolver = StaticPrecedenceResolver::from_grammar(grammar);
-    
+
     for ((state_idx, symbol_idx), actions) in conflicts_by_state {
         if actions.len() > 1 {
             // Try to resolve shift/reduce conflicts using precedence
             let mut shift_action = None;
             let mut reduce_actions = Vec::new();
-            
+
             for action in &actions {
                 match action {
                     Action::Shift(_) => shift_action = Some(action.clone()),
@@ -1168,52 +1322,65 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
                     _ => {}
                 }
             }
-            
+
             // Handle shift/reduce conflicts with precedence
             if let (Some(shift), Some(reduce)) = (shift_action.as_ref(), reduce_actions.first()) {
                 // Get the symbol that triggers the shift
-                let symbol_id = symbol_to_index.iter()
+                let symbol_id = symbol_to_index
+                    .iter()
                     .find(|&(_, &idx)| idx == symbol_idx)
                     .map(|(sym, _)| *sym)
                     .unwrap_or(SymbolId(0));
-                
+
                 let shift_prec = precedence_resolver.token_precedence(symbol_id);
-                
+
                 let reduce_prec = if let Action::Reduce(rule_id) = reduce {
                     precedence_resolver.rule_precedence(*rule_id)
                 } else {
                     None
                 };
-                
+
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
-                        eprintln!("DEBUG: Precedence resolution at state {} symbol {}: prefer shift", state_idx, symbol_idx);
+                        eprintln!(
+                            "DEBUG: Precedence resolution at state {} symbol {}: prefer shift",
+                            state_idx, symbol_idx
+                        );
                         action_table[state_idx][symbol_idx] = shift.clone();
                         continue;
                     }
                     PrecedenceComparison::PreferReduce => {
-                        eprintln!("DEBUG: Precedence resolution at state {} symbol {}: prefer reduce", state_idx, symbol_idx);
+                        eprintln!(
+                            "DEBUG: Precedence resolution at state {} symbol {}: prefer reduce",
+                            state_idx, symbol_idx
+                        );
                         action_table[state_idx][symbol_idx] = reduce.clone();
                         continue;
                     }
                     PrecedenceComparison::Error => {
-                        eprintln!("DEBUG: Precedence resolution at state {} symbol {}: non-associative error", state_idx, symbol_idx);
+                        eprintln!(
+                            "DEBUG: Precedence resolution at state {} symbol {}: non-associative error",
+                            state_idx, symbol_idx
+                        );
                         // Keep as Fork for error reporting
                     }
                     PrecedenceComparison::None => {
-                        eprintln!("DEBUG: No precedence info for conflict at state {} symbol {}", state_idx, symbol_idx);
+                        eprintln!(
+                            "DEBUG: No precedence info for conflict at state {} symbol {}",
+                            state_idx, symbol_idx
+                        );
                         // No precedence info, use GLR
                     }
                 }
             }
-            
+
             // If not resolved, convert to Fork action
             action_table[state_idx][symbol_idx] = Action::Fork(actions);
         } else if let Some(action) = actions.into_iter().next() {
             action_table[state_idx][symbol_idx] = action;
         }
     }
-    
+
     // Add all goto entries from collection's goto_table to the action table
     // This ensures that goto entries are available even if no items have the symbol as next_symbol
     for ((from_state, symbol), to_state) in &collection.goto_table {
@@ -1222,21 +1389,28 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             if state_idx < action_table.len() && symbol_idx < action_table[state_idx].len() {
                 // Add as a shift action in the unified table
                 let new_action = Action::Shift(*to_state);
-                eprintln!("DEBUG: Adding goto as shift: state {} symbol {} (id={}) -> state {}", 
-                    state_idx, symbol_idx, symbol.0, to_state.0);
-                    
+                eprintln!(
+                    "DEBUG: Adding goto as shift: state {} symbol {} (id={}) -> state {}",
+                    state_idx, symbol_idx, symbol.0, to_state.0
+                );
+
                 // Only add if there's no existing action (to avoid overwriting reduce/accept)
                 if matches!(action_table[state_idx][symbol_idx], Action::Error) {
                     action_table[state_idx][symbol_idx] = new_action;
-                    eprintln!("DEBUG: Successfully added goto entry to action table at [{}, {}]", state_idx, symbol_idx);
+                    eprintln!(
+                        "DEBUG: Successfully added goto entry to action table at [{}, {}]",
+                        state_idx, symbol_idx
+                    );
                 } else {
-                    eprintln!("DEBUG: Skipping goto - action already exists at [{}, {}]: {:?}", 
-                        state_idx, symbol_idx, action_table[state_idx][symbol_idx]);
+                    eprintln!(
+                        "DEBUG: Skipping goto - action already exists at [{}, {}]: {:?}",
+                        state_idx, symbol_idx, action_table[state_idx][symbol_idx]
+                    );
                 }
             }
         }
     }
-    
+
     // Fill goto table from collection's goto_table (kept for compatibility)
     for ((from_state, symbol), to_state) in &collection.goto_table {
         let from_idx = from_state.0 as usize;
@@ -1244,25 +1418,25 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             goto_table[from_idx][symbol_idx] = *to_state;
         }
     }
-    
+
     // Post-process is no longer needed with proper augmentation
     // The accept action is added when we see S' -> S • with EOF lookahead
-    
+
     // But we still need to handle the original grammar's symbol mapping
     if let Some(start_symbol) = grammar.start_symbol() {
         eprintln!("DEBUG: Start symbol is {:?}", start_symbol);
-        
+
         // Find all states and check if they need EOF reduce actions
         for (state_idx, item_set) in collection.sets.iter().enumerate() {
             // Check if this state contains only items that have completed a rule
             // that could be a valid parse ending
             let mut needs_eof_reduce = false;
             let mut reduce_rule_id = None;
-            
+
             // Skip this post-processing - handled by augmentation
             needs_eof_reduce = false;
             reduce_rule_id = None;
-            
+
             // If we found a reduce item that needs EOF action, ensure it's in the action table
             if needs_eof_reduce {
                 if let Some(rule_id) = reduce_rule_id {
@@ -1277,11 +1451,10 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             }
         }
     }
-    
-    
+
     // Build symbol metadata
     let mut symbol_metadata = Vec::new();
-    
+
     // Add terminal symbols
     for (_, token) in &grammar.tokens {
         symbol_metadata.push(SymbolMetadata {
@@ -1291,7 +1464,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             supertype: false,
         });
     }
-    
+
     // Add non-terminal symbols
     for symbol_id in grammar.rules.keys() {
         let is_supertype = grammar.supertypes.contains(symbol_id);
@@ -1302,7 +1475,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             supertype: is_supertype,
         });
     }
-    
+
     // Add external symbols
     for external in &grammar.externals {
         symbol_metadata.push(SymbolMetadata {
@@ -1312,7 +1485,7 @@ pub fn build_lr1_automaton(grammar: &Grammar, first_follow: &FirstFollowSets) ->
             supertype: false,
         });
     }
-    
+
     Ok(ParseTable {
         action_table,
         goto_table,
@@ -1333,13 +1506,21 @@ fn add_action_with_conflict(
 ) {
     // Bounds check
     if state_idx >= action_table.len() || symbol_idx >= action_table[0].len() {
-        panic!("Index out of bounds in add_action_with_conflict: state_idx={}, symbol_idx={}, table_size={}x{}", 
-               state_idx, symbol_idx, action_table.len(), 
-               if action_table.is_empty() { 0 } else { action_table[0].len() });
+        panic!(
+            "Index out of bounds in add_action_with_conflict: state_idx={}, symbol_idx={}, table_size={}x{}",
+            state_idx,
+            symbol_idx,
+            action_table.len(),
+            if action_table.is_empty() {
+                0
+            } else {
+                action_table[0].len()
+            }
+        );
     }
-    
+
     let current_action = &action_table[state_idx][symbol_idx];
-    
+
     match current_action {
         Action::Error => {
             // No conflict, just set the action
@@ -1347,8 +1528,10 @@ fn add_action_with_conflict(
         }
         _ => {
             // Conflict detected! Track it
-            let entry = conflicts_by_state.entry((state_idx, symbol_idx)).or_insert_with(Vec::new);
-            
+            let entry = conflicts_by_state
+                .entry((state_idx, symbol_idx))
+                .or_insert_with(Vec::new);
+
             // Add the current action if not already tracked
             if entry.is_empty() {
                 if let Action::Fork(actions) = current_action {
@@ -1357,7 +1540,7 @@ fn add_action_with_conflict(
                     entry.push(current_action.clone());
                 }
             }
-            
+
             // Add the new action if not duplicate
             if !entry.iter().any(|a| action_eq(a, &new_action)) {
                 entry.push(new_action);
@@ -1397,10 +1580,10 @@ mod tests {
         let item1 = LRItem::new(RuleId(1), 2, SymbolId(3));
         let item2 = LRItem::new(RuleId(1), 2, SymbolId(3));
         let item3 = LRItem::new(RuleId(1), 3, SymbolId(3));
-        
+
         assert_eq!(item1, item2);
         assert_ne!(item1, item3);
-        
+
         // Test hashing
         let mut set = std::collections::BTreeSet::new();
         set.insert(item1.clone());
@@ -1414,7 +1597,7 @@ mod tests {
         let mut item_set = ItemSet::new(StateId(0));
         let item = LRItem::new(RuleId(1), 0, SymbolId(0));
         item_set.add_item(item.clone());
-        
+
         assert_eq!(item_set.id, StateId(0));
         assert!(item_set.items.contains(&item));
         assert_eq!(item_set.items.len(), 1);
@@ -1424,10 +1607,10 @@ mod tests {
     fn test_item_set_duplicate_items() {
         let mut item_set = ItemSet::new(StateId(0));
         let item = LRItem::new(RuleId(1), 0, SymbolId(0));
-        
+
         item_set.add_item(item.clone());
         item_set.add_item(item.clone()); // Add same item again
-        
+
         // Should only contain one item (no duplicates)
         assert_eq!(item_set.items.len(), 1);
     }
@@ -1436,7 +1619,7 @@ mod tests {
     fn test_first_follow_empty_grammar() {
         let grammar = Grammar::new("test".to_string());
         let first_follow = FirstFollowSets::compute(&grammar);
-        
+
         assert!(first_follow.first.is_empty());
         assert!(first_follow.follow.is_empty());
     }
@@ -1444,18 +1627,22 @@ mod tests {
     #[test]
     fn test_first_follow_simple_grammar() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add a simple rule: S -> a
         let rule = Rule {
-            lhs: SymbolId(0), // S
+            lhs: SymbolId(0),                         // S
             rhs: vec![Symbol::Terminal(SymbolId(1))], // a
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.entry(SymbolId(0)).or_insert_with(Vec::new).push(rule);
-        
+        grammar
+            .rules
+            .entry(SymbolId(0))
+            .or_insert_with(Vec::new)
+            .push(rule);
+
         // Add the terminal token
         let token = Token {
             name: "a".to_string(),
@@ -1463,15 +1650,15 @@ mod tests {
             fragile: false,
         };
         grammar.tokens.insert(SymbolId(1), token);
-        
+
         let first_follow = FirstFollowSets::compute(&grammar);
-        
+
         // FIRST(S) should contain 'a'
         assert!(first_follow.first.contains_key(&SymbolId(0)));
         if let Some(first_s) = first_follow.first(SymbolId(0)) {
             assert!(first_s.contains(1)); // Terminal 'a' has id 1
         }
-        
+
         // S should not be nullable
         assert!(!first_follow.is_nullable(SymbolId(0)));
     }
@@ -1479,20 +1666,24 @@ mod tests {
     #[test]
     fn test_first_follow_nullable_rule() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add a rule: S -> ε (empty rule)
         let rule = Rule {
             lhs: SymbolId(0), // S
-            rhs: vec![], // empty
+            rhs: vec![],      // empty
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.entry(SymbolId(0)).or_insert_with(Vec::new).push(rule);
-        
+        grammar
+            .rules
+            .entry(SymbolId(0))
+            .or_insert_with(Vec::new)
+            .push(rule);
+
         let first_follow = FirstFollowSets::compute(&grammar);
-        
+
         // S should be nullable
         assert!(first_follow.is_nullable(SymbolId(0)));
     }
@@ -1500,7 +1691,7 @@ mod tests {
     #[test]
     fn test_first_of_sequence() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add tokens
         let token_a = Token {
             name: "a".to_string(),
@@ -1508,20 +1699,20 @@ mod tests {
             fragile: false,
         };
         grammar.tokens.insert(SymbolId(1), token_a);
-        
+
         let token_b = Token {
             name: "b".to_string(),
             pattern: TokenPattern::String("b".to_string()),
             fragile: false,
         };
         grammar.tokens.insert(SymbolId(2), token_b);
-        
+
         let first_follow = FirstFollowSets::compute(&grammar);
-        
+
         // Test FIRST of sequence [a, b]
         let sequence = vec![Symbol::Terminal(SymbolId(1)), Symbol::Terminal(SymbolId(2))];
         let first_seq = first_follow.first_of_sequence(&sequence);
-        
+
         // Should contain only 'a' (first terminal)
         assert!(first_seq.contains(1));
         assert!(!first_seq.contains(2));
@@ -1534,33 +1725,33 @@ mod tests {
         let accept = Action::Accept;
         let error = Action::Error;
         let fork = Action::Fork(vec![shift.clone(), reduce.clone()]);
-        
+
         match shift {
-            Action::Shift(StateId(1)) => {},
+            Action::Shift(StateId(1)) => {}
             _ => panic!("Expected shift action"),
         }
-        
+
         match reduce {
-            Action::Reduce(RuleId(2)) => {},
+            Action::Reduce(RuleId(2)) => {}
             _ => panic!("Expected reduce action"),
         }
-        
+
         match accept {
-            Action::Accept => {},
+            Action::Accept => {}
             _ => panic!("Expected accept action"),
         }
-        
+
         match error {
-            Action::Error => {},
+            Action::Error => {}
             _ => panic!("Expected error action"),
         }
-        
+
         match fork {
             Action::Fork(actions) => {
                 assert_eq!(actions.len(), 2);
                 assert_eq!(actions[0], shift);
                 assert_eq!(actions[1], reduce);
-            },
+            }
             _ => panic!("Expected fork action"),
         }
     }
@@ -1570,13 +1761,13 @@ mod tests {
         let shift1 = Action::Shift(StateId(1));
         let shift2 = Action::Shift(StateId(1));
         let shift3 = Action::Shift(StateId(2));
-        
+
         assert_eq!(shift1, shift2);
         assert_ne!(shift1, shift3);
-        
+
         let reduce1 = Action::Reduce(RuleId(1));
         let reduce2 = Action::Reduce(RuleId(1));
-        
+
         assert_eq!(reduce1, reduce2);
         assert_ne!(shift1, reduce1);
     }
@@ -1589,7 +1780,7 @@ mod tests {
             named: true,
             supertype: false,
         };
-        
+
         assert_eq!(metadata.name, "expression");
         assert!(metadata.visible);
         assert!(metadata.named);
@@ -1600,7 +1791,7 @@ mod tests {
     fn test_conflict_types() {
         let shift_reduce = ConflictType::ShiftReduce;
         let reduce_reduce = ConflictType::ReduceReduce;
-        
+
         assert_eq!(shift_reduce, ConflictType::ShiftReduce);
         assert_eq!(reduce_reduce, ConflictType::ReduceReduce);
         assert_ne!(shift_reduce, reduce_reduce);
@@ -1614,7 +1805,7 @@ mod tests {
             actions: vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(2))],
             conflict_type: ConflictType::ShiftReduce,
         };
-        
+
         assert_eq!(conflict.state, StateId(5));
         assert_eq!(conflict.symbol, SymbolId(10));
         assert_eq!(conflict.actions.len(), 2);
@@ -1623,10 +1814,8 @@ mod tests {
 
     #[test]
     fn test_conflict_resolver_creation() {
-        let resolver = ConflictResolver {
-            conflicts: vec![],
-        };
-        
+        let resolver = ConflictResolver { conflicts: vec![] };
+
         assert!(resolver.conflicts.is_empty());
     }
 
@@ -1640,7 +1829,7 @@ mod tests {
             symbol_count: 5,
             symbol_to_index: BTreeMap::new(),
         };
-        
+
         assert_eq!(parse_table.state_count, 3);
         assert_eq!(parse_table.symbol_count, 5);
         assert_eq!(parse_table.action_table.len(), 3);
@@ -1652,7 +1841,7 @@ mod tests {
     #[test]
     fn test_lr_item_reduce_check() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add a rule: S -> a b
         let rule = Rule {
             lhs: SymbolId(0),
@@ -1662,16 +1851,20 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.entry(SymbolId(0)).or_insert_with(Vec::new).push(rule);
-        
+        grammar
+            .rules
+            .entry(SymbolId(0))
+            .or_insert_with(Vec::new)
+            .push(rule);
+
         // Item at position 0: S -> • a b
         let item1 = LRItem::new(RuleId(0), 0, SymbolId(0));
         assert!(!item1.is_reduce_item(&grammar));
-        
+
         // Item at position 1: S -> a • b
         let item2 = LRItem::new(RuleId(0), 1, SymbolId(0));
         assert!(!item2.is_reduce_item(&grammar));
-        
+
         // Item at position 2: S -> a b •
         let item3 = LRItem::new(RuleId(0), 2, SymbolId(0));
         assert!(item3.is_reduce_item(&grammar));
@@ -1680,7 +1873,7 @@ mod tests {
     #[test]
     fn test_lr_item_next_symbol() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add a rule: S -> a b
         let rule = Rule {
             lhs: SymbolId(0),
@@ -1690,30 +1883,34 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar.rules.entry(SymbolId(0)).or_insert_with(Vec::new).push(rule);
-        
+        grammar
+            .rules
+            .entry(SymbolId(0))
+            .or_insert_with(Vec::new)
+            .push(rule);
+
         // Item at position 0: S -> • a b
         let item1 = LRItem::new(RuleId(0), 0, SymbolId(0));
         if let Some(symbol) = item1.next_symbol(&grammar) {
             match symbol {
-                Symbol::Terminal(SymbolId(1)) => {},
+                Symbol::Terminal(SymbolId(1)) => {}
                 _ => panic!("Expected terminal symbol with id 1"),
             }
         } else {
             panic!("Expected next symbol");
         }
-        
+
         // Item at position 1: S -> a • b
         let item2 = LRItem::new(RuleId(0), 1, SymbolId(0));
         if let Some(symbol) = item2.next_symbol(&grammar) {
             match symbol {
-                Symbol::Terminal(SymbolId(2)) => {},
+                Symbol::Terminal(SymbolId(2)) => {}
                 _ => panic!("Expected terminal symbol with id 2"),
             }
         } else {
             panic!("Expected next symbol");
         }
-        
+
         // Item at position 2: S -> a b •
         let item3 = LRItem::new(RuleId(0), 2, SymbolId(0));
         assert!(item3.next_symbol(&grammar).is_none());
@@ -1725,7 +1922,7 @@ mod tests {
             sets: vec![],
             goto_table: IndexMap::new(),
         };
-        
+
         assert!(collection.sets.is_empty());
         assert!(collection.goto_table.is_empty());
     }
@@ -1735,17 +1932,17 @@ mod tests {
         let grammar_error = GLRError::GrammarError(GrammarError::InvalidFieldOrdering);
         let conflict_error = GLRError::ConflictResolution("Test conflict".to_string());
         let state_error = GLRError::StateMachine("Test state machine error".to_string());
-        
+
         match grammar_error {
-            GLRError::GrammarError(_) => {},
+            GLRError::GrammarError(_) => {}
             _ => panic!("Expected grammar error"),
         }
-        
+
         match conflict_error {
             GLRError::ConflictResolution(msg) => assert_eq!(msg, "Test conflict"),
             _ => panic!("Expected conflict resolution error"),
         }
-        
+
         match state_error {
             GLRError::StateMachine(msg) => assert_eq!(msg, "Test state machine error"),
             _ => panic!("Expected state machine error"),
@@ -1756,16 +1953,16 @@ mod tests {
     fn test_item_set_equality() {
         let mut set1 = ItemSet::new(StateId(0));
         let mut set2 = ItemSet::new(StateId(1));
-        
+
         let item1 = LRItem::new(RuleId(1), 0, SymbolId(0));
         let item2 = LRItem::new(RuleId(2), 1, SymbolId(1));
-        
+
         set1.add_item(item1.clone());
         set1.add_item(item2.clone());
-        
+
         set2.add_item(item1);
         set2.add_item(item2);
-        
+
         // Sets should be equal based on items, not ID
         assert_eq!(set1.items, set2.items);
         assert_ne!(set1.id, set2.id);

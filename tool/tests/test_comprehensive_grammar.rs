@@ -1,4 +1,4 @@
-use rust_sitter_tool::grammar_js::{GrammarJsParserV3, GrammarJsConverter};
+use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
 use std::fs;
 use tempfile::TempDir;
 
@@ -108,9 +108,9 @@ module.exports = grammar({
   }
 })
 "#;
-    
+
     println!("Testing comprehensive grammar with all implemented features...\n");
-    
+
     // Parse the grammar
     let mut parser = GrammarJsParserV3::new(grammar_content.to_string());
     match parser.parse() {
@@ -120,7 +120,7 @@ module.exports = grammar({
             println!("  Word token: {:?}", grammar.word);
             println!("  Number of rules: {}", grammar.rules.len());
             println!("  Extras: {} items", grammar.extras.len());
-            
+
             // Try to convert to IR
             let converter = GrammarJsConverter::new(grammar);
             match converter.convert() {
@@ -128,15 +128,21 @@ module.exports = grammar({
                     println!("\n✓ Successfully converted to IR!");
                     println!("  IR rules: {}", ir_grammar.rules.len());
                     println!("  Tokens: {}", ir_grammar.tokens.len());
-                    
+
                     // Count rules with precedence
-                    let prec_count = ir_grammar.rules.values()
+                    let prec_count = ir_grammar
+                        .rules
+                        .values()
+                        .flat_map(|rules| rules.iter())
                         .filter(|r| r.precedence.is_some())
                         .count();
                     println!("  Rules with precedence: {}", prec_count);
-                    
+
                     // Count rules with associativity
-                    let assoc_count = ir_grammar.rules.values()
+                    let assoc_count = ir_grammar
+                        .rules
+                        .values()
+                        .flat_map(|rules| rules.iter())
                         .filter(|r| r.associativity.is_some())
                         .count();
                     println!("  Rules with associativity: {}", assoc_count);
@@ -156,7 +162,7 @@ module.exports = grammar({
 fn test_end_to_end_grammar_compilation() {
     // Test that we can go from grammar.js to a working parser
     let temp_dir = TempDir::new().unwrap();
-    
+
     // Create a simple expression grammar
     let grammar_content = r#"
 module.exports = grammar({
@@ -179,30 +185,30 @@ module.exports = grammar({
   }
 })
 "#;
-    
+
     let grammar_path = temp_dir.path().join("grammar.js");
     fs::write(&grammar_path, grammar_content).unwrap();
-    
+
     println!("\nTesting end-to-end compilation of calculator grammar...");
-    
+
     // Try to build using pure rust
     unsafe {
         std::env::set_var("CARGO_FEATURE_PURE_RUST", "1");
     }
-    
-    use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
-    
+
+    use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+
     let options = BuildOptions {
         out_dir: temp_dir.path().to_str().unwrap().to_string(),
         emit_artifacts: true,
         compress_tables: true,
     };
-    
+
     match build_parser_from_grammar_js(&grammar_path, options) {
         Ok(result) => {
             println!("✓ Successfully built parser!");
             println!("  Grammar name: {}", result.grammar_name);
-            
+
             // Check if NODE_TYPES.json was generated
             let node_types_path = temp_dir.path().join("NODE_TYPES.json");
             if node_types_path.exists() {
@@ -217,7 +223,7 @@ module.exports = grammar({
         }
         Err(e) => {
             println!("✗ Failed to build parser: {}", e);
-            
+
             // Check what stage failed
             let error_msg = format!("{:?}", e);
             if error_msg.contains("GLR") || error_msg.contains("automaton") {

@@ -9,20 +9,20 @@ pub mod grammar {
         #[rust_sitter::repeat]
         pub declarations: Vec<Declaration>,
     }
-    
+
     #[rust_sitter::language]
     pub struct PackageClause {
         #[rust_sitter::leaf(text = "package")]
         _package: (),
         pub name: Identifier,
     }
-    
+
     #[rust_sitter::language]
     pub enum Declaration {
         Function(FunctionDeclaration),
         Variable(VarDeclaration),
     }
-    
+
     #[rust_sitter::language]
     pub struct FunctionDeclaration {
         #[rust_sitter::leaf(text = "func")]
@@ -34,7 +34,7 @@ pub mod grammar {
         _rparen: (),
         pub body: Block,
     }
-    
+
     #[rust_sitter::language]
     pub struct VarDeclaration {
         #[rust_sitter::leaf(text = "var")]
@@ -42,7 +42,7 @@ pub mod grammar {
         pub name: Identifier,
         pub type_name: Identifier,
     }
-    
+
     #[rust_sitter::language]
     pub struct Block {
         #[rust_sitter::leaf(text = "{")]
@@ -52,14 +52,14 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "}")]
         _close: (),
     }
-    
+
     #[rust_sitter::language]
     pub enum Statement {
         Assignment(AssignmentStatement),
         Call(CallStatement),
         Return(ReturnStatement),
     }
-    
+
     #[rust_sitter::language]
     pub struct AssignmentStatement {
         pub name: Identifier,
@@ -67,7 +67,7 @@ pub mod grammar {
         _eq: (),
         pub value: Expression,
     }
-    
+
     #[rust_sitter::language]
     pub struct CallStatement {
         pub name: Identifier,
@@ -78,38 +78,38 @@ pub mod grammar {
         #[rust_sitter::leaf(text = ")")]
         _rparen: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct ReturnStatement {
         #[rust_sitter::leaf(text = "return")]
         _return: (),
         pub value: Expression,
     }
-    
+
     #[rust_sitter::language]
     pub enum Expression {
         Identifier(Identifier),
         Literal(Literal),
     }
-    
+
     #[rust_sitter::language]
     pub enum Literal {
         String(StringLiteral),
         Number(NumberLiteral),
     }
-    
+
     #[rust_sitter::language]
     pub struct StringLiteral {
         #[rust_sitter::leaf(pattern = r#""[^"]*""#)]
         pub value: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct NumberLiteral {
         #[rust_sitter::leaf(pattern = r"\d+")]
         pub value: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct Identifier {
         #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]

@@ -1,6 +1,8 @@
-use rust_sitter_common::{FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type};
-use syn::{parse_quote, Expr, Type};
+use rust_sitter_common::{
+    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
+};
 use std::collections::HashSet;
+use syn::{Expr, Type, parse_quote};
 
 #[test]
 fn test_name_value_expr_parsing() {
@@ -104,15 +106,24 @@ fn test_wrap_leaf_type() {
     // Test wrapping simple type
     let ty: Type = parse_quote!(String);
     let wrapped = wrap_leaf_type(&ty, &skip_over);
-    assert_eq!(quote::quote!(#wrapped).to_string(), "rust_sitter :: WithLeaf < String >");
+    assert_eq!(
+        quote::quote!(#wrapped).to_string(),
+        "rust_sitter :: WithLeaf < String >"
+    );
 
     // Test wrapping with skip_over types preserved
     let ty: Type = parse_quote!(Vec<String>);
     let wrapped = wrap_leaf_type(&ty, &skip_over);
-    assert_eq!(quote::quote!(#wrapped).to_string(), "Vec < rust_sitter :: WithLeaf < String > >");
+    assert_eq!(
+        quote::quote!(#wrapped).to_string(),
+        "Vec < rust_sitter :: WithLeaf < String > >"
+    );
 
     // Test wrapping nested skip_over types
     let ty: Type = parse_quote!(Option<Vec<i32>>);
     let wrapped = wrap_leaf_type(&ty, &skip_over);
-    assert_eq!(quote::quote!(#wrapped).to_string(), "Option < Vec < rust_sitter :: WithLeaf < i32 > > >");
+    assert_eq!(
+        quote::quote!(#wrapped).to_string(),
+        "Option < Vec < rust_sitter :: WithLeaf < i32 > > >"
+    );
 }

@@ -1,18 +1,18 @@
 // LSP (Language Server Protocol) generator for rust-sitter
 // Automatically generates language servers from rust-sitter grammars
 
-use std::path::{Path, PathBuf};
-use std::fs;
 use anyhow::Result;
 use rust_sitter_ir::Grammar;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 pub mod codegen;
-pub mod features;
 pub mod config;
+pub mod features;
 
-pub use config::LspConfig;
 use codegen::LspCodeGenerator;
-use features::{LspFeature, CompletionProvider, HoverProvider, DiagnosticsProvider};
+pub use config::LspConfig;
+use features::{CompletionProvider, DiagnosticsProvider, HoverProvider, LspFeature};
 
 /// Main LSP generator for rust-sitter grammars
 pub struct LspGenerator {
@@ -39,27 +39,28 @@ impl LspGenerator {
 
     /// Enable completion support
     pub fn with_completion(mut self) -> Self {
-        self.features.push(Box::new(CompletionProvider::new(&self.grammar)));
+        self.features
+            .push(Box::new(CompletionProvider::new(&self.grammar)));
         self
     }
 
     /// Enable hover support  
     pub fn with_hover(mut self) -> Self {
-        self.features.push(Box::new(HoverProvider::new(&self.grammar)));
+        self.features
+            .push(Box::new(HoverProvider::new(&self.grammar)));
         self
     }
 
     /// Enable diagnostics support
     pub fn with_diagnostics(mut self) -> Self {
-        self.features.push(Box::new(DiagnosticsProvider::new(&self.grammar)));
+        self.features
+            .push(Box::new(DiagnosticsProvider::new(&self.grammar)));
         self
     }
 
     /// Enable all features
     pub fn with_all_features(self) -> Self {
-        self.with_completion()
-            .with_hover()
-            .with_diagnostics()
+        self.with_completion().with_hover().with_diagnostics()
     }
 
     /// Generate the LSP server code
@@ -69,7 +70,7 @@ impl LspGenerator {
 
         // Generate main server code
         let generator = LspCodeGenerator::new(&self.grammar, &self.config);
-        
+
         // Generate server.rs
         let server_code = generator.generate_server(&self.features)?;
         fs::write(output_dir.join("server.rs"), server_code)?;
@@ -192,7 +193,7 @@ mod tests {
     fn test_lsp_generator_creation() {
         let grammar = Grammar::default();
         let generator = LspGenerator::new(grammar);
-        
+
         assert!(generator.features.is_empty());
         assert_eq!(generator.config.name, "rust-sitter-lsp");
     }
@@ -205,7 +206,7 @@ mod tests {
             version: "0.2.0".to_string(),
             ..Default::default()
         };
-        
+
         let generator = LspGenerator::new(grammar).with_config(config);
         assert_eq!(generator.config.name, "test-lsp");
         assert_eq!(generator.config.version, "0.2.0");
@@ -214,7 +215,7 @@ mod tests {
     #[test]
     fn test_lsp_builder_default_values() {
         let builder = LspBuilder::new("test");
-        
+
         assert_eq!(builder.name, "test");
         assert_eq!(builder.version, "0.1.0");
         assert!(builder.grammar_path.as_os_str().is_empty());
@@ -246,7 +247,7 @@ mod tests {
             .with_completion()
             .with_hover()
             .with_diagnostics();
-        
+
         assert_eq!(generator.features.len(), 3);
     }
 
@@ -254,7 +255,7 @@ mod tests {
     fn test_lsp_generator_with_all_features() {
         let grammar = Grammar::default();
         let generator = LspGenerator::new(grammar).with_all_features();
-        
+
         // with_all_features should add completion, hover, and diagnostics
         assert_eq!(generator.features.len(), 3);
     }
@@ -263,13 +264,13 @@ mod tests {
     fn test_lsp_builder_feature_recognition() {
         let features = vec!["completion", "hover", "diagnostics", "all", "unknown"];
         let builder = LspBuilder::new("test");
-        
+
         // Test that all feature strings are accepted
         let mut b = builder;
         for feature in features {
             b = b.feature(feature);
         }
-        
+
         assert_eq!(b.features.len(), 5);
         assert!(b.features.contains(&"completion".to_string()));
         assert!(b.features.contains(&"hover".to_string()));

@@ -14,52 +14,58 @@ pub struct LanguageBuilder {
 impl LanguageBuilder {
     /// Create a new generator
     pub fn new(grammar: Grammar, parse_table: ParseTable) -> Self {
-        Self { grammar, parse_table }
+        Self {
+            grammar,
+            parse_table,
+        }
     }
-    
+
     /// Generate a static Language struct with full validation
     pub fn generate_language(&self) -> Result<TSLanguage, String> {
         // Create compressed tables
         let compressed = CompressedParseTable::from_parse_table(&self.parse_table);
-        
+
         // Build the Language struct
         let language = self.build_language_struct(&compressed)?;
-        
+
         // Note: Validation would be done separately by the caller
         // to avoid lifetime issues
-        
+
         Ok(language)
     }
-    
+
     /// Build the Language struct with all required fields
-    fn build_language_struct(&self, compressed: &CompressedParseTable) -> Result<TSLanguage, String> {
+    fn build_language_struct(
+        &self,
+        compressed: &CompressedParseTable,
+    ) -> Result<TSLanguage, String> {
         // Count various elements
         let symbol_count = self.parse_table.symbol_count as u32;
         let state_count = self.parse_table.state_count as u32;
         let token_count = self.grammar.tokens.len() as u32;
         let external_token_count = self.grammar.externals.len() as u32;
         let field_count = self.grammar.fields.len() as u32;
-        
+
         // TODO: Calculate these properly
         let alias_count = 0;
         let large_state_count = 0;
         let production_id_count = self.grammar.alias_sequences.len() as u32;
         let max_alias_sequence_length = 0;
-        
+
         // Build symbol names array
         let symbol_names = self.build_symbol_names();
-        
-        // Build field names array  
+
+        // Build field names array
         let field_names = self.build_field_names();
-        
+
         // Build symbol metadata
         let symbol_metadata = self.build_symbol_metadata();
-        
+
         // Build minimal parse tables for validation
         // For now, create dummy tables - in real implementation these would be
         // generated from the compressed parse table data
         let small_parse_table = self.build_small_parse_table(compressed);
-        
+
         Ok(TSLanguage {
             version: 15,
             symbol_count,
@@ -103,93 +109,84 @@ impl LanguageBuilder {
             primary_state_ids: std::ptr::null(),
         })
     }
-    
+
     fn build_symbol_names(&self) -> Vec<*const i8> {
         let mut names = Vec::new();
-        
+
         // Add terminal symbols
         for (_, token) in &self.grammar.tokens {
             let name = std::ffi::CString::new(token.name.clone()).unwrap();
             names.push(Box::leak(Box::new(name)).as_ptr());
         }
-        
+
         // Add non-terminal symbols
         for (symbol_id, _) in &self.grammar.rules {
             let name = std::ffi::CString::new(format!("rule_{}", symbol_id.0)).unwrap();
             names.push(Box::leak(Box::new(name)).as_ptr());
         }
-        
+
         // Add external symbols
         for external in &self.grammar.externals {
             let name = std::ffi::CString::new(external.name.clone()).unwrap();
             names.push(Box::leak(Box::new(name)).as_ptr());
         }
-        
+
         names
     }
-    
+
     fn build_field_names(&self) -> Vec<*const i8> {
         let mut names = Vec::new();
-        
+
         // First entry is always empty string
         let empty = std::ffi::CString::new("").unwrap();
         names.push(Box::leak(Box::new(empty)).as_ptr());
-        
+
         // Add field names in lexicographic order
         for (_, field_name) in &self.grammar.fields {
             let name = std::ffi::CString::new(field_name.clone()).unwrap();
             names.push(Box::leak(Box::new(name)).as_ptr());
         }
-        
+
         names
     }
-    
+
     fn build_symbol_metadata(&self) -> Vec<crate::validation::TSSymbolMetadata> {
         let mut metadata = Vec::new();
-        
+
         // First symbol is always EOF (invisible, unnamed)
         metadata.push(crate::validation::TSSymbolMetadata {
             visible: false,
             named: false,
         });
-        
+
         // Add metadata for terminals
         for (_, token) in &self.grammar.tokens {
             let visible = !token.name.starts_with('_');
             let named = matches!(&token.pattern, rust_sitter_ir::TokenPattern::Regex(_)) && visible;
-            
-            metadata.push(crate::validation::TSSymbolMetadata {
-                visible,
-                named,
-            });
+
+            metadata.push(crate::validation::TSSymbolMetadata { visible, named });
         }
-        
+
         // Add metadata for non-terminals
         for (symbol_id, _) in &self.grammar.rules {
             let rule_name = format!("rule_{}", symbol_id.0);
             let visible = !rule_name.starts_with('_');
             let named = visible;
-            
-            metadata.push(crate::validation::TSSymbolMetadata {
-                visible,
-                named,
-            });
+
+            metadata.push(crate::validation::TSSymbolMetadata { visible, named });
         }
-        
+
         // Add metadata for externals
         for external in &self.grammar.externals {
             let visible = !external.name.starts_with('_');
             let named = visible;
-            
-            metadata.push(crate::validation::TSSymbolMetadata {
-                visible,
-                named,
-            });
+
+            metadata.push(crate::validation::TSSymbolMetadata { visible, named });
         }
-        
+
         metadata
     }
-    
+
     /// Build a minimal small parse table for testing
     fn build_small_parse_table(&self, _compressed: &CompressedParseTable) -> Vec<u16> {
         // Create a minimal parse table with the right dimensions
@@ -197,7 +194,7 @@ impl LanguageBuilder {
         let table_size = self.parse_table.state_count * self.parse_table.symbol_count;
         vec![0xFFFE; table_size] // Fill with error actions for now
     }
-    
+
     /// Generate Rust code for the Language
     pub fn generate_language_code(&self) -> TokenStream {
         quote! {
@@ -212,20 +209,23 @@ impl LanguageBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::*;
     use rust_sitter_glr_core::Action;
-    
+    use rust_sitter_ir::*;
+
     fn create_test_grammar() -> Grammar {
         let mut grammar = Grammar::default();
         grammar.name = "test".to_string();
-        
+
         // Add a simple token
-        grammar.tokens.insert(SymbolId(1), Token {
-            name: "number".to_string(),
-            pattern: TokenPattern::Regex(r"\d+".to_string()),
-            fragile: false,
-        });
-        
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "number".to_string(),
+                pattern: TokenPattern::Regex(r"\d+".to_string()),
+                fragile: false,
+            },
+        );
+
         // Add a simple rule
         grammar.add_rule(Rule {
             lhs: SymbolId(0),
@@ -235,13 +235,13 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         });
-        
+
         // Add field names
         grammar.fields.insert(FieldId(0), "value".to_string());
-        
+
         grammar
     }
-    
+
     fn create_test_parse_table() -> ParseTable {
         let mut table = ParseTable {
             action_table: vec![],
@@ -253,59 +253,61 @@ mod tests {
         };
         table.symbol_count = 2;
         table.state_count = 3;
-        
+
         // Add some basic actions
         // Since we don't have an actions field, just initialize the action table with proper size
         table.action_table = vec![vec![Action::Error; table.symbol_count]; table.state_count];
-        
+
         table
     }
-    
+
     #[test]
     fn test_language_builder_creation() {
         let grammar = create_test_grammar();
         let parse_table = create_test_parse_table();
         let builder = LanguageBuilder::new(grammar, parse_table);
-        
+
         // Just verify it can be created
         assert!(builder.grammar.name == "test");
     }
-    
+
     #[test]
     fn test_generate_language() {
         let grammar = create_test_grammar();
         let parse_table = create_test_parse_table();
         let builder = LanguageBuilder::new(grammar, parse_table);
-        
+
         let result = builder.generate_language();
         assert!(result.is_ok());
-        
+
         let language = result.unwrap();
         assert_eq!(language.version, 15);
         assert_eq!(language.symbol_count, 2);
         assert_eq!(language.state_count, 3);
     }
-    
+
     #[test]
     fn test_build_symbol_names() {
         let grammar = create_test_grammar();
         let parse_table = create_test_parse_table();
         let builder = LanguageBuilder::new(grammar, parse_table);
-        
+
         let names = builder.build_symbol_names();
         assert!(names.len() > 0);
         // Should have at least the token name
-        assert!(names.iter().any(|&name| unsafe { 
-            std::ffi::CStr::from_ptr(name).to_str().unwrap() == "number" 
-        }));
+        assert!(
+            names.iter().any(|&name| unsafe {
+                std::ffi::CStr::from_ptr(name).to_str().unwrap() == "number"
+            })
+        );
     }
-    
+
     #[test]
     fn test_build_field_names() {
         let grammar = create_test_grammar();
         let parse_table = create_test_parse_table();
         let builder = LanguageBuilder::new(grammar, parse_table);
-        
+
         let names = builder.build_field_names();
         assert_eq!(names.len(), 1);
         assert_eq!(
@@ -313,66 +315,66 @@ mod tests {
             "value"
         );
     }
-    
+
     #[test]
     fn test_build_symbol_metadata() {
         let grammar = create_test_grammar();
         let parse_table = create_test_parse_table();
         let builder = LanguageBuilder::new(grammar, parse_table);
-        
+
         let metadata = builder.build_symbol_metadata();
         assert!(metadata.len() > 0);
     }
-    
+
     #[test]
     fn test_language_generator_code() {
         let grammar = create_test_grammar();
         let parse_table = create_test_parse_table();
         let builder = LanguageBuilder::new(grammar, parse_table);
-        
+
         let code = builder.generate_language_code();
         let code_str = code.to_string();
-        
+
         // Check for key elements
         assert!(code_str.contains("language"));
         assert!(code_str.contains("TSLanguage"));
     }
-    
+
     #[test]
     fn test_language_with_externals() {
         let mut grammar = create_test_grammar();
-        
+
         // Add external token
         grammar.externals.push(ExternalToken {
             name: "comment".to_string(),
             symbol_id: SymbolId(100),
         });
-        
+
         let parse_table = create_test_parse_table();
         let builder = LanguageBuilder::new(grammar, parse_table);
-        
+
         let result = builder.generate_language();
         assert!(result.is_ok());
-        
+
         let language = result.unwrap();
         assert_eq!(language.external_token_count, 1);
     }
-    
+
     #[test]
     fn test_language_with_multiple_fields() {
         let mut grammar = create_test_grammar();
-        
+
         // Add more fields
         grammar.fields.insert(FieldId(1), "left".to_string());
         grammar.fields.insert(FieldId(2), "operator".to_string());
         grammar.fields.insert(FieldId(3), "right".to_string());
-        
+
         let parse_table = create_test_parse_table();
         let builder = LanguageBuilder::new(grammar, parse_table);
-        
+
         let result = builder.generate_language();
         assert!(result.is_ok());
-        
+
         let language = result.unwrap();
         assert_eq!(language.field_count, 4);
     }

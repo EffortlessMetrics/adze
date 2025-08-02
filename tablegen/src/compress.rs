@@ -1,7 +1,7 @@
-use rust_sitter_glr_core::{ParseTable, Action};
-use rust_sitter_ir::{SymbolId, StateId};
-use std::collections::{HashMap, BTreeMap};
 use crate::TableGenError;
+use rust_sitter_glr_core::{Action, ParseTable};
+use rust_sitter_ir::{StateId, SymbolId};
+use std::collections::{BTreeMap, HashMap};
 
 /// Compressed parse table representation
 pub struct CompressedParseTable {
@@ -17,17 +17,17 @@ impl CompressedParseTable {
             state_count,
         }
     }
-    
+
     /// Get the symbol count
     pub fn symbol_count(&self) -> usize {
         self.symbol_count
     }
-    
+
     /// Get the state count
     pub fn state_count(&self) -> usize {
         self.state_count
     }
-    
+
     /// Create from a parse table
     pub fn from_parse_table(parse_table: &ParseTable) -> Self {
         Self {
@@ -132,23 +132,25 @@ impl TableCompressor {
             small_table_threshold: 32768, // Tree-sitter's threshold
         }
     }
-    
+
     /// Encode an action for small tables
     pub fn encode_action_small(&self, action: &Action) -> Result<u16, TableGenError> {
         match action {
             Action::Shift(state) => {
                 if state.0 >= 0x8000 {
-                    return Err(TableGenError::CompressionError(
-                        format!("Shift state {} too large for small table encoding", state.0)
-                    ));
+                    return Err(TableGenError::CompressionError(format!(
+                        "Shift state {} too large for small table encoding",
+                        state.0
+                    )));
                 }
                 Ok(state.0)
             }
             Action::Reduce(rule) => {
                 if rule.0 >= 0x4000 {
-                    return Err(TableGenError::CompressionError(
-                        format!("Reduce rule {} too large for small table encoding", rule.0)
-                    ));
+                    return Err(TableGenError::CompressionError(format!(
+                        "Reduce rule {} too large for small table encoding",
+                        rule.0
+                    )));
                 }
                 // Reduce actions are encoded with high bit set
                 // bit 15: 1 (indicates reduce)
@@ -165,62 +167,79 @@ impl TableCompressor {
             }
         }
     }
-    
+
     /// Compress parse tables using Tree-sitter's exact algorithms
     pub fn compress(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
         // Determine if we should use small table optimization
         let use_small_table = parse_table.state_count < self.small_table_threshold;
-        
+
         if use_small_table {
             self.compress_small_table(parse_table)
         } else {
             self.compress_large_table(parse_table)
         }
     }
-    
+
     /// Compress using Tree-sitter's "small table" optimization
-    fn compress_small_table(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
-        let compressed_action_table = self.compress_action_table_small(&parse_table.action_table, &parse_table.symbol_to_index)?;
+    fn compress_small_table(
+        &self,
+        parse_table: &ParseTable,
+    ) -> Result<CompressedTables, TableGenError> {
+        let compressed_action_table = self
+            .compress_action_table_small(&parse_table.action_table, &parse_table.symbol_to_index)?;
         let compressed_goto_table = self.compress_goto_table_small(&parse_table.goto_table)?;
-        
+
         Ok(CompressedTables {
             action_table: compressed_action_table,
             goto_table: compressed_goto_table,
             small_table_threshold: self.small_table_threshold,
         })
     }
-    
+
     /// Compress using large table optimization
-    fn compress_large_table(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
+    fn compress_large_table(
+        &self,
+        parse_table: &ParseTable,
+    ) -> Result<CompressedTables, TableGenError> {
         // For now, use the same as small table
         self.compress_small_table(parse_table)
     }
-    
+
     /// Compress action table using Tree-sitter's small table format
-    pub fn compress_action_table_small(&self, action_table: &[Vec<Action>], symbol_to_index: &BTreeMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
+    pub fn compress_action_table_small(
+        &self,
+        action_table: &[Vec<Action>],
+        symbol_to_index: &BTreeMap<SymbolId, usize>,
+    ) -> Result<CompressedActionTable, TableGenError> {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
         let mut default_actions = Vec::new();
-        
+
         // Create inverse mapping from index to symbol ID
         let mut index_to_symbol = HashMap::new();
         for (&symbol_id, &index) in symbol_to_index {
             index_to_symbol.insert(index, symbol_id);
         }
-        
-        eprintln!("DEBUG compress: symbol_to_index has {} entries", symbol_to_index.len());
+
+        eprintln!(
+            "DEBUG compress: symbol_to_index has {} entries",
+            symbol_to_index.len()
+        );
         eprintln!("DEBUG compress: index_to_symbol mapping:");
         for i in 0..action_table.first().map(|a| a.len()).unwrap_or(0) {
-            eprintln!("  Index {} -> Symbol {}", i, 
-                index_to_symbol.get(&i).map(|id| id.0).unwrap_or(i as u16));
+            eprintln!(
+                "  Index {} -> Symbol {}",
+                i,
+                index_to_symbol.get(&i).map(|id| id.0).unwrap_or(i as u16)
+            );
         }
-        
+
         for (state_idx, actions) in action_table.iter().enumerate() {
             // Find the most common action
             let mut action_counts: HashMap<&Action, usize> = HashMap::new();
             let mut has_shift = false;
             let mut has_accept = false;
-            
+
             for action in actions {
                 *action_counts.entry(action).or_insert(0) += 1;
                 match action {
@@ -229,68 +248,75 @@ impl TableCompressor {
                     _ => {}
                 }
             }
-            
+
             let most_common = action_counts
                 .iter()
                 .max_by_key(|(_, count)| *count)
                 .map(|(action, _)| (*action).clone())
                 .unwrap_or(Action::Error);
-            
+
             let default_action = match &most_common {
                 Action::Reduce(_) if !has_shift && !has_accept => most_common,
                 Action::Error => Action::Error,
                 _ => Action::Error,
             };
-            
+
             default_actions.push(default_action.clone());
             row_offsets.push(entries.len() as u16);
-            
+
             if state_idx == 0 {
                 eprintln!("DEBUG compress: State 0 actions:");
                 eprintln!("  Default action: {:?}", default_action);
             }
-            
+
             for (index, action) in actions.iter().enumerate() {
                 if action == &default_action {
                     continue;
                 }
-                
+
                 // Get the actual symbol ID from the index
-                let symbol_id = index_to_symbol.get(&index)
+                let symbol_id = index_to_symbol
+                    .get(&index)
                     .map(|id| id.0)
                     .unwrap_or(index as u16);
-                
+
                 if state_idx == 0 {
-                    eprintln!("  Index {} (symbol {}) -> action {:?}", index, symbol_id, action);
+                    eprintln!(
+                        "  Index {} (symbol {}) -> action {:?}",
+                        index, symbol_id, action
+                    );
                 }
-                
+
                 entries.push(CompressedActionEntry {
                     symbol: symbol_id,
                     action: action.clone(),
                 });
             }
         }
-        
+
         row_offsets.push(entries.len() as u16);
-        
+
         Ok(CompressedActionTable {
             data: entries,
             row_offsets,
             default_actions,
         })
     }
-    
+
     /// Compress goto table  
-    pub fn compress_goto_table_small(&self, goto_table: &[Vec<StateId>]) -> Result<CompressedGotoTable, TableGenError> {
+    pub fn compress_goto_table_small(
+        &self,
+        goto_table: &[Vec<StateId>],
+    ) -> Result<CompressedGotoTable, TableGenError> {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
-        
+
         for row in goto_table {
             row_offsets.push(entries.len() as u16);
-            
+
             let mut last_state = None;
             let mut run_length = 0;
-            
+
             for &state_id in row {
                 if last_state == Some(state_id.0) {
                     run_length += 1;
@@ -313,7 +339,7 @@ impl TableCompressor {
                     run_length = 1;
                 }
             }
-            
+
             if run_length > 0 {
                 if run_length > 2 {
                     entries.push(CompressedGotoEntry::RunLength {
@@ -327,9 +353,9 @@ impl TableCompressor {
                 }
             }
         }
-        
+
         row_offsets.push(entries.len() as u16);
-        
+
         Ok(CompressedGotoTable {
             data: entries,
             row_offsets,
@@ -342,14 +368,14 @@ mod tests {
     use super::*;
     use rust_sitter_glr_core::Action;
     use rust_sitter_ir::{RuleId, StateId};
-    
+
     #[test]
     fn test_compressed_parse_table_creation() {
         let table = CompressedParseTable::new_for_testing(10, 20);
         assert_eq!(table.symbol_count(), 10);
         assert_eq!(table.state_count(), 20);
     }
-    
+
     #[test]
     fn test_compressed_parse_table_from_parse_table() {
         let parse_table = ParseTable {
@@ -360,44 +386,44 @@ mod tests {
             state_count: 10,
             symbol_to_index: Default::default(),
         };
-        
+
         let compressed = CompressedParseTable::from_parse_table(&parse_table);
         assert_eq!(compressed.symbol_count(), 5);
         assert_eq!(compressed.state_count(), 10);
     }
-    
+
     #[test]
     fn test_compressed_action_entry() {
         let entry = CompressedActionEntry::new(42, Action::Shift(StateId(5)));
         assert_eq!(entry.symbol, 42);
         match entry.action {
-            Action::Shift(StateId(5)) => {},
+            Action::Shift(StateId(5)) => {}
             _ => panic!("Expected shift action"),
         }
     }
-    
+
     #[test]
     fn test_table_compressor_creation() {
         let compressor = TableCompressor::new();
         // Just verify it can be created
         assert!(compressor.small_table_threshold > 0);
     }
-    
+
     #[test]
     fn test_compress_empty_action_table() {
         let compressor = TableCompressor::new();
         let action_table = vec![vec![]; 5]; // 5 empty states
-        
+
         let symbol_to_index = BTreeMap::new();
         let result = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(result.is_ok());
-        
+
         let compressed = result.unwrap();
         assert_eq!(compressed.row_offsets.len(), 6); // n_states + 1
         assert_eq!(compressed.default_actions.len(), 5);
         assert!(compressed.data.is_empty());
     }
-    
+
     #[test]
     fn test_compress_action_table_with_default_reduce() {
         let compressor = TableCompressor::new();
@@ -405,36 +431,41 @@ mod tests {
         let action_table = vec![
             vec![reduce_action.clone(); 10], // All same reduce action
         ];
-        
+
         let symbol_to_index = BTreeMap::new();
         let result = compressor.compress_action_table_small(&action_table, &symbol_to_index);
         assert!(result.is_ok());
-        
+
         let compressed = result.unwrap();
         assert_eq!(compressed.default_actions[0], reduce_action);
         assert!(compressed.data.is_empty()); // All actions are default
     }
-    
+
     #[test]
     fn test_compress_goto_table_with_runs() {
         let compressor = TableCompressor::new();
-        let goto_table = vec![
-            vec![StateId(1), StateId(1), StateId(1), StateId(2), StateId(2)],
-        ];
-        
+        let goto_table = vec![vec![
+            StateId(1),
+            StateId(1),
+            StateId(1),
+            StateId(2),
+            StateId(2),
+        ]];
+
         let result = compressor.compress_goto_table_small(&goto_table);
         assert!(result.is_ok());
-        
+
         let compressed = result.unwrap();
         assert!(!compressed.data.is_empty());
-        
+
         // Should have a run length entry for the three 1s
-        let has_run_length = compressed.data.iter().any(|entry| {
-            matches!(entry, CompressedGotoEntry::RunLength { state: 1, count: 3 })
-        });
+        let has_run_length = compressed
+            .data
+            .iter()
+            .any(|entry| matches!(entry, CompressedGotoEntry::RunLength { state: 1, count: 3 }));
         assert!(has_run_length);
     }
-    
+
     #[test]
     fn test_compressed_tables_validation() {
         let tables = CompressedTables {
@@ -449,7 +480,7 @@ mod tests {
             },
             small_table_threshold: 32768,
         };
-        
+
         let parse_table = ParseTable {
             action_table: vec![],
             goto_table: vec![],
@@ -462,4 +493,3 @@ mod tests {
         assert!(result.is_ok());
     }
 }
-

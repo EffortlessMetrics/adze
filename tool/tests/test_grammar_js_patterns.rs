@@ -3,7 +3,7 @@ use std::process::Command;
 use tempfile::TempDir;
 
 /// Test that we can identify different grammar.js patterns
-#[test] 
+#[test]
 fn test_grammar_js_patterns() {
     // Test pattern 1: module.exports = grammar(...)
     let pattern1 = r#"
@@ -14,7 +14,7 @@ module.exports = grammar({
     }
 });
 "#;
-    
+
     // Test pattern 2: export default grammar(...)
     let pattern2 = r#"
 export default grammar({
@@ -24,7 +24,7 @@ export default grammar({
     }
 });
 "#;
-    
+
     // Test pattern 3: const grammar = require(...)
     let pattern3 = r#"
 const {grammar} = require('tree-sitter-grammar');
@@ -36,21 +36,21 @@ module.exports = grammar({
     }
 });
 "#;
-    
+
     use rust_sitter_tool::grammar_js::parse_grammar_js_v2;
-    
+
     println!("Testing pattern 1 (module.exports)...");
     match parse_grammar_js_v2(pattern1) {
         Ok(g) => println!("  Success: parsed grammar '{}'", g.name),
         Err(e) => println!("  Failed: {}", e),
     }
-    
+
     println!("\nTesting pattern 2 (export default)...");
     match parse_grammar_js_v2(pattern2) {
         Ok(g) => println!("  Success: parsed grammar '{}'", g.name),
         Err(e) => println!("  Failed: {}", e),
     }
-    
+
     println!("\nTesting pattern 3 (with require)...");
     match parse_grammar_js_v2(pattern3) {
         Ok(g) => println!("  Success: parsed grammar '{}'", g.name),
@@ -62,39 +62,54 @@ module.exports = grammar({
 #[test]
 fn test_real_grammar_patterns() {
     let grammars = vec![
-        ("JSON", "https://raw.githubusercontent.com/tree-sitter/tree-sitter-json/master/grammar.js"),
-        ("JavaScript", "https://raw.githubusercontent.com/tree-sitter/tree-sitter-javascript/master/grammar.js"),
-        ("Python", "https://raw.githubusercontent.com/tree-sitter/tree-sitter-python/master/grammar.js"),
+        (
+            "JSON",
+            "https://raw.githubusercontent.com/tree-sitter/tree-sitter-json/master/grammar.js",
+        ),
+        (
+            "JavaScript",
+            "https://raw.githubusercontent.com/tree-sitter/tree-sitter-javascript/master/grammar.js",
+        ),
+        (
+            "Python",
+            "https://raw.githubusercontent.com/tree-sitter/tree-sitter-python/master/grammar.js",
+        ),
     ];
-    
+
     let temp_dir = TempDir::new().unwrap();
-    
+
     for (name, url) in grammars {
         println!("\nExamining {} grammar...", name);
-        let path = temp_dir.path().join(format!("{}.grammar.js", name.to_lowercase()));
-        
+        let path = temp_dir
+            .path()
+            .join(format!("{}.grammar.js", name.to_lowercase()));
+
         let output = Command::new("curl")
             .args(&["-s", "-o", path.to_str().unwrap(), url])
             .output()
             .expect("Failed to run curl");
-            
+
         if !output.status.success() {
-            println!("  Failed to download: {}", String::from_utf8_lossy(&output.stderr));
+            println!(
+                "  Failed to download: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             continue;
         }
-        
+
         if let Ok(content) = fs::read_to_string(&path) {
             println!("  File size: {} bytes", content.len());
-            
+
             // Check for common patterns
             if content.contains("module.exports") {
                 println!("  Uses: module.exports pattern");
                 let idx = content.find("module.exports").unwrap();
                 let snippet = &content[idx..idx.min(content.len()).min(idx + 100)];
                 println!("  Snippet: {}", snippet.replace('\n', " "));
-                
+
                 // Check if it matches the expected pattern
-                let exports_regex = regex::Regex::new(r"module\.exports\s*=\s*grammar\s*\(([\s\S]*)\)").unwrap();
+                let exports_regex =
+                    regex::Regex::new(r"module\.exports\s*=\s*grammar\s*\(([\s\S]*)\)").unwrap();
                 if exports_regex.is_match(&content) {
                     println!("  Regex match: YES");
                 } else {
@@ -105,7 +120,10 @@ fn test_real_grammar_patterns() {
             } else {
                 println!("  Uses: unknown pattern");
                 // Show first 200 chars
-                println!("  First 200 chars: {}", &content[..200.min(content.len())].replace('\n', " "));
+                println!(
+                    "  First 200 chars: {}",
+                    &content[..200.min(content.len())].replace('\n', " ")
+                );
             }
         }
     }

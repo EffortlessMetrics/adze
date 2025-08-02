@@ -133,14 +133,14 @@ pub fn wrap_leaf_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use syn::parse_quote;
     use std::collections::HashSet;
+    use syn::parse_quote;
 
     #[test]
     fn test_parse_name_value_expr() {
         let input: NameValueExpr = parse_quote!(key = "value");
         assert_eq!(input.path.to_string(), "key");
-        
+
         let input: NameValueExpr = parse_quote!(precedence = 5);
         assert_eq!(input.path.to_string(), "precedence");
     }
@@ -150,7 +150,7 @@ mod tests {
         let input: FieldThenParams = parse_quote!(Type);
         assert!(input.comma.is_none());
         assert!(input.params.is_empty());
-        
+
         let input: FieldThenParams = parse_quote!(Type, name = "test", value = 42);
         assert!(input.comma.is_some());
         assert_eq!(input.params.len(), 2);
@@ -161,19 +161,19 @@ mod tests {
     #[test]
     fn test_try_extract_inner_type() {
         let skip_over: HashSet<&str> = HashSet::from(["Box", "Arc"]);
-        
+
         // Test extracting from Vec
         let ty: Type = parse_quote!(Vec<String>);
         let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_over);
         assert!(extracted);
         assert_eq!(quote::quote!(#inner).to_string(), "String");
-        
+
         // Test not extracting when type doesn't match
         let ty: Type = parse_quote!(Option<String>);
         let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_over);
         assert!(!extracted);
         assert_eq!(quote::quote!(#inner).to_string(), "Option < String >");
-        
+
         // Test skipping over Box
         let ty: Type = parse_quote!(Box<Vec<String>>);
         let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_over);
@@ -184,17 +184,17 @@ mod tests {
     #[test]
     fn test_filter_inner_type() {
         let skip_over: HashSet<&str> = HashSet::from(["Box", "Arc"]);
-        
+
         // Test filtering Box
         let ty: Type = parse_quote!(Box<String>);
         let filtered = filter_inner_type(&ty, &skip_over);
         assert_eq!(quote::quote!(#filtered).to_string(), "String");
-        
+
         // Test filtering nested
         let ty: Type = parse_quote!(Box<Arc<String>>);
         let filtered = filter_inner_type(&ty, &skip_over);
         assert_eq!(quote::quote!(#filtered).to_string(), "String");
-        
+
         // Test no filtering needed
         let ty: Type = parse_quote!(String);
         let filtered = filter_inner_type(&ty, &skip_over);
@@ -204,20 +204,29 @@ mod tests {
     #[test]
     fn test_wrap_leaf_type() {
         let skip_over: HashSet<&str> = HashSet::from(["Vec", "Option"]);
-        
+
         // Test wrapping simple type
         let ty: Type = parse_quote!(String);
         let wrapped = wrap_leaf_type(&ty, &skip_over);
-        assert_eq!(quote::quote!(#wrapped).to_string(), "rust_sitter :: WithLeaf < String >");
-        
+        assert_eq!(
+            quote::quote!(#wrapped).to_string(),
+            "rust_sitter :: WithLeaf < String >"
+        );
+
         // Test skipping over Vec
         let ty: Type = parse_quote!(Vec<String>);
         let wrapped = wrap_leaf_type(&ty, &skip_over);
-        assert_eq!(quote::quote!(#wrapped).to_string(), "Vec < rust_sitter :: WithLeaf < String > >");
-        
+        assert_eq!(
+            quote::quote!(#wrapped).to_string(),
+            "Vec < rust_sitter :: WithLeaf < String > >"
+        );
+
         // Test nested skipping
         let ty: Type = parse_quote!(Option<Vec<String>>);
         let wrapped = wrap_leaf_type(&ty, &skip_over);
-        assert_eq!(quote::quote!(#wrapped).to_string(), "Option < Vec < rust_sitter :: WithLeaf < String > > >");
+        assert_eq!(
+            quote::quote!(#wrapped).to_string(),
+            "Option < Vec < rust_sitter :: WithLeaf < String > > >"
+        );
     }
 }

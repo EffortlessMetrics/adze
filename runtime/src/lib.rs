@@ -1,39 +1,39 @@
 pub mod __private;
 pub mod external_scanner;
 pub mod external_scanner_ffi;
-pub mod scanner_registry;
-pub mod scanners;
 pub mod incremental;
 pub mod incremental_v2;
 pub mod incremental_v3;
 pub mod lexer;
+pub mod scanner_registry;
+pub mod scanners;
 // Use parser_v3 as the main parser implementation
 pub mod parser {
     pub use super::parser_v3::*;
 }
+pub mod error_recovery;
+pub mod error_reporting;
+pub mod glr;
+pub mod glr_forest;
+pub mod glr_incremental;
+pub mod glr_lexer;
+pub mod glr_parser;
+pub mod glr_query;
+pub mod glr_tree_bridge;
+pub mod glr_validation;
+pub mod optimizations;
 mod parser_v2;
 mod parser_v3;
 pub mod parser_v4;
-pub mod glr;
-pub mod glr_parser;
-pub mod glr_forest;
-pub mod error_recovery;
-pub mod visitor;
+pub mod pure_external_scanner;
+pub mod pure_incremental;
+pub mod pure_parser;
 pub mod query;
-pub mod subtree;
-pub mod error_reporting;
-pub mod glr_lexer;
-pub mod glr_tree_bridge;
-pub mod glr_incremental;
-pub mod glr_validation;
-pub mod glr_query;
 #[cfg(feature = "serialization")]
 pub mod serialization;
-pub mod pure_parser;
-pub mod pure_incremental;
-pub mod pure_external_scanner;
+pub mod subtree;
 pub mod unified_parser;
-pub mod optimizations;
+pub mod visitor;
 pub mod simd_lexer {
     pub use super::simd_lexer_v2::*;
 }
@@ -59,11 +59,11 @@ pub use tree_sitter_runtime_c2rust as tree_sitter;
 #[cfg(feature = "pure-rust")]
 pub mod tree_sitter {
     // Re-export pure-Rust types with Tree-sitter compatible names
-    pub use crate::pure_parser::{Parser, TSLanguage as Language};
-    pub use crate::pure_parser::{ParsedNode as Node, ParseResult};
-    pub use crate::pure_incremental::{Tree, Edit};
+    pub use crate::pure_incremental::{Edit, Tree};
     pub use crate::pure_parser::Point;
-    
+    pub use crate::pure_parser::{ParseResult, ParsedNode as Node};
+    pub use crate::pure_parser::{Parser, TSLanguage as Language};
+
     // Re-export constants
     pub const LANGUAGE_VERSION: u32 = 14;
     pub const MIN_COMPATIBLE_LANGUAGE_VERSION: u32 = 13;
@@ -80,7 +80,7 @@ pub trait Extract<Output> {
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
     ) -> Output;
-    
+
     #[cfg(feature = "pure-rust")]
     fn extract(
         node: Option<&crate::pure_parser::ParsedNode>,
@@ -108,7 +108,7 @@ impl<L> Extract<L> for WithLeaf<L> {
             .map(|s| leaf_fn.unwrap()(s))
             .unwrap()
     }
-    
+
     #[cfg(feature = "pure-rust")]
     fn extract(
         node: Option<&crate::pure_parser::ParsedNode>,
@@ -128,7 +128,7 @@ impl<L> Extract<L> for WithLeaf<L> {
 
 impl Extract<()> for () {
     type LeafFn = ();
-    
+
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
         _node: Option<tree_sitter::Node>,
@@ -137,7 +137,7 @@ impl Extract<()> for () {
         _leaf_fn: Option<&Self::LeafFn>,
     ) {
     }
-    
+
     #[cfg(feature = "pure-rust")]
     fn extract(
         _node: Option<&crate::pure_parser::ParsedNode>,
@@ -150,7 +150,7 @@ impl Extract<()> for () {
 
 impl<T: Extract<U>, U> Extract<Option<U>> for Option<T> {
     type LeafFn = T::LeafFn;
-    
+
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
@@ -160,7 +160,7 @@ impl<T: Extract<U>, U> Extract<Option<U>> for Option<T> {
     ) -> Option<U> {
         node.map(|n| T::extract(Some(n), source, last_idx, leaf_fn))
     }
-    
+
     #[cfg(feature = "pure-rust")]
     fn extract(
         node: Option<&crate::pure_parser::ParsedNode>,
@@ -174,7 +174,7 @@ impl<T: Extract<U>, U> Extract<Option<U>> for Option<T> {
 
 impl<T: Extract<U>, U> Extract<Box<U>> for Box<T> {
     type LeafFn = T::LeafFn;
-    
+
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
@@ -184,7 +184,7 @@ impl<T: Extract<U>, U> Extract<Box<U>> for Box<T> {
     ) -> Box<U> {
         Box::new(T::extract(node, source, last_idx, leaf_fn))
     }
-    
+
     #[cfg(feature = "pure-rust")]
     fn extract(
         node: Option<&crate::pure_parser::ParsedNode>,
@@ -198,7 +198,7 @@ impl<T: Extract<U>, U> Extract<Box<U>> for Box<T> {
 
 impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
     type LeafFn = T::LeafFn;
-    
+
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
@@ -228,7 +228,7 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
         })
         .unwrap_or_default()
     }
-    
+
     #[cfg(feature = "pure-rust")]
     fn extract(
         node: Option<&crate::pure_parser::ParsedNode>,
@@ -270,7 +270,7 @@ impl<T> Deref for Spanned<T> {
 
 impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
     type LeafFn = T::LeafFn;
-    
+
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
@@ -285,7 +285,7 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
                 .unwrap_or((last_idx, last_idx)),
         }
     }
-    
+
     #[cfg(feature = "pure-rust")]
     fn extract(
         node: Option<&crate::pure_parser::ParsedNode>,
@@ -304,7 +304,7 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
 
 impl Extract<String> for String {
     type LeafFn = ();
-    
+
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
@@ -316,7 +316,7 @@ impl Extract<String> for String {
             .unwrap_or_default()
             .to_string()
     }
-    
+
     #[cfg(feature = "pure-rust")]
     fn extract(
         node: Option<&crate::pure_parser::ParsedNode>,
@@ -340,7 +340,6 @@ pub mod errors {
 
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
     use tree_sitter_runtime_c2rust as tree_sitter;
-    
 
     #[derive(Debug)]
     /// An explanation for an error that occurred during parsing.
@@ -413,7 +412,7 @@ pub mod errors {
                 .for_each(|c| collect_parsing_errors(&c, source, errors));
         }
     }
-    
+
     /// Given the root node of a Tree Sitter parsing result, accumulates all
     /// errors that were emitted.
     #[cfg(feature = "pure-rust")]
@@ -424,8 +423,10 @@ pub mod errors {
     ) {
         // TODO: Implement error collection for pure-rust parser
         // For now, just check if this is an error node
-        if false { // TODO: Check if error node
-            let contents = std::str::from_utf8(&source[node.start_byte..node.end_byte]).unwrap_or("");
+        if false {
+            // TODO: Check if error node
+            let contents =
+                std::str::from_utf8(&source[node.start_byte..node.end_byte]).unwrap_or("");
             if !contents.is_empty() {
                 errors.push(ParseError {
                     reason: ParseErrorReason::UnexpectedToken(contents.to_string()),
@@ -434,7 +435,7 @@ pub mod errors {
                 })
             }
         }
-        
+
         // Recursively check children
         for child in &node.children {
             collect_parsing_errors(child, source, errors);

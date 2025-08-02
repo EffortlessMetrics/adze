@@ -9,11 +9,11 @@ pub mod optimizer;
 pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
 
 pub mod validation;
-pub use validation::{GrammarValidator, ValidationError, ValidationWarning, ValidationResult};
+pub use validation::{GrammarValidator, ValidationError, ValidationResult, ValidationWarning};
 
 pub mod debug_macros;
 pub mod symbol_registry;
-pub use symbol_registry::{SymbolRegistry, SymbolInfo};
+pub use symbol_registry::{SymbolInfo, SymbolRegistry};
 
 /// Core grammar representation supporting all Tree-sitter features including GLR
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -38,19 +38,22 @@ pub struct Grammar {
 impl Grammar {
     /// Add a rule to the grammar
     pub fn add_rule(&mut self, rule: Rule) {
-        self.rules.entry(rule.lhs).or_insert_with(Vec::new).push(rule);
+        self.rules
+            .entry(rule.lhs)
+            .or_insert_with(Vec::new)
+            .push(rule);
     }
-    
+
     /// Get all rules for a given LHS symbol
     pub fn get_rules_for_symbol(&self, symbol: SymbolId) -> Option<&Vec<Rule>> {
         self.rules.get(&symbol)
     }
-    
+
     /// Iterate over all rules in the grammar
     pub fn all_rules(&self) -> impl Iterator<Item = &Rule> {
         self.rules.values().flat_map(|rules| rules.iter())
     }
-    
+
     /// Get the start symbol (LHS of the first rule)
     pub fn start_symbol(&self) -> Option<SymbolId> {
         // For Tree-sitter compatibility, look for "source_file" symbol
@@ -60,11 +63,11 @@ impl Grammar {
                 return Some(source_file_id);
             }
         }
-        
+
         // In rust-sitter, source_file is often just a reference to the actual language type
         // So let's look for the language type that's marked with #[rust_sitter::language]
         // This is typically the first non-terminal that has rules
-        
+
         // Try common patterns first
         for name in &["Expression", "Statement", "Program", "Module"] {
             if let Some(symbol_id) = self.find_symbol_by_name(name) {
@@ -73,7 +76,7 @@ impl Grammar {
                 }
             }
         }
-        
+
         // Otherwise, use the first symbol that has rules and isn't a leaf/token
         for (symbol_id, rules) in &self.rules {
             // Skip symbols that look like internal/generated names
@@ -83,11 +86,11 @@ impl Grammar {
                 }
             }
         }
-        
+
         // Final fallback: just use the first symbol with rules
         self.rules.keys().next().copied()
     }
-    
+
     /// Find a symbol by its name in rule_names
     pub fn find_symbol_by_name(&self, name: &str) -> Option<SymbolId> {
         for (symbol_id, symbol_name) in &self.rule_names {
@@ -97,7 +100,7 @@ impl Grammar {
         }
         None
     }
-    
+
     /// Build or get the symbol registry
     pub fn get_or_build_registry(&mut self) -> &SymbolRegistry {
         if self.symbol_registry.is_none() {
@@ -105,42 +108,48 @@ impl Grammar {
         }
         self.symbol_registry.as_ref().unwrap()
     }
-    
+
     /// Check for empty string terminals (separate from main validate)
     pub fn check_empty_terminals(&self) -> Result<(), Vec<String>> {
         let mut errors = Vec::new();
-        
+
         // Check for empty string terminals
         for (id, token) in &self.tokens {
             match &token.pattern {
                 TokenPattern::String(s) if s.is_empty() => {
-                    errors.push(format!("Token '{}' (id={}) has empty string pattern", token.name, id.0));
+                    errors.push(format!(
+                        "Token '{}' (id={}) has empty string pattern",
+                        token.name, id.0
+                    ));
                 }
                 TokenPattern::Regex(r) if r.is_empty() => {
-                    errors.push(format!("Token '{}' (id={}) has empty regex pattern", token.name, id.0));
+                    errors.push(format!(
+                        "Token '{}' (id={}) has empty regex pattern",
+                        token.name, id.0
+                    ));
                 }
                 _ => {}
             }
         }
-        
+
         if errors.is_empty() {
             Ok(())
         } else {
             Err(errors)
         }
     }
-    
+
     /// Build a new symbol registry from the grammar
     pub fn build_registry(&self) -> SymbolRegistry {
         let mut registry = SymbolRegistry::new();
-        
+
         // Sort tokens deterministically: underscore-prefixed last
         let mut token_entries: Vec<_> = self.tokens.iter().collect();
         token_entries.sort_by_key(|(_id, token)| {
             let name = &token.name;
             (name.starts_with('_'), name.clone())
         });
-        
+
         // Register all tokens
         for (symbol_id, token) in token_entries {
             let metadata = SymbolMetadata {
@@ -151,11 +160,11 @@ impl Grammar {
             };
             registry.register(&token.name, metadata);
         }
-        
+
         // Sort non-terminals deterministically
         let mut rule_entries: Vec<_> = self.rule_names.iter().collect();
         rule_entries.sort_by_key(|(_, name)| (*name).clone());
-        
+
         // Register all non-terminals
         for (symbol_id, name) in rule_entries {
             if !self.tokens.contains_key(symbol_id) {
@@ -168,7 +177,7 @@ impl Grammar {
                 registry.register(name, metadata);
             }
         }
-        
+
         // Register externals
         for external in &self.externals {
             let metadata = SymbolMetadata {
@@ -179,7 +188,7 @@ impl Grammar {
             };
             registry.register(&external.name, metadata);
         }
-        
+
         registry
     }
 }
@@ -418,28 +427,30 @@ impl Grammar {
         // Optimize precedence declarations
         // This will be implemented based on Tree-sitter's optimization strategies
     }
-    
+
     /// Normalize complex symbols by creating auxiliary rules
     /// This expands Optional, Repeat, Choice, etc. into standard rules
     pub fn normalize(&mut self) -> Vec<Rule> {
         let mut new_rules = Vec::new();
         let mut aux_counter = 0;
-        
+
         // Process each existing rule
-        let rules_to_process: Vec<(SymbolId, Rule)> = self.rules.iter()
+        let rules_to_process: Vec<(SymbolId, Rule)> = self
+            .rules
+            .iter()
             .flat_map(|(lhs, rules)| rules.iter().map(|r| (*lhs, r.clone())))
             .collect();
-            
+
         for (_lhs, mut rule) in rules_to_process {
             let mut new_rhs = Vec::new();
-            
+
             for symbol in rule.rhs {
                 match symbol {
                     Symbol::Optional(inner) => {
                         // Create aux rule: aux -> inner | ε
                         let aux_id = SymbolId(9000 + aux_counter);
                         aux_counter += 1;
-                        
+
                         // aux -> inner
                         new_rules.push(Rule {
                             lhs: aux_id,
@@ -449,7 +460,7 @@ impl Grammar {
                             fields: vec![],
                             production_id: ProductionId(0),
                         });
-                        
+
                         // aux -> ε
                         new_rules.push(Rule {
                             lhs: aux_id,
@@ -459,14 +470,14 @@ impl Grammar {
                             fields: vec![],
                             production_id: ProductionId(0),
                         });
-                        
+
                         new_rhs.push(Symbol::NonTerminal(aux_id));
                     }
                     Symbol::Repeat(inner) => {
                         // Create aux rule: aux -> aux inner | ε
                         let aux_id = SymbolId(9000 + aux_counter);
                         aux_counter += 1;
-                        
+
                         // aux -> aux inner
                         new_rules.push(Rule {
                             lhs: aux_id,
@@ -476,7 +487,7 @@ impl Grammar {
                             fields: vec![],
                             production_id: ProductionId(0),
                         });
-                        
+
                         // aux -> ε
                         new_rules.push(Rule {
                             lhs: aux_id,
@@ -486,14 +497,14 @@ impl Grammar {
                             fields: vec![],
                             production_id: ProductionId(0),
                         });
-                        
+
                         new_rhs.push(Symbol::NonTerminal(aux_id));
                     }
                     Symbol::RepeatOne(inner) => {
                         // Create aux rule: aux -> aux inner | inner
                         let aux_id = SymbolId(9000 + aux_counter);
                         aux_counter += 1;
-                        
+
                         // aux -> aux inner
                         new_rules.push(Rule {
                             lhs: aux_id,
@@ -503,7 +514,7 @@ impl Grammar {
                             fields: vec![],
                             production_id: ProductionId(0),
                         });
-                        
+
                         // aux -> inner
                         new_rules.push(Rule {
                             lhs: aux_id,
@@ -513,14 +524,14 @@ impl Grammar {
                             fields: vec![],
                             production_id: ProductionId(0),
                         });
-                        
+
                         new_rhs.push(Symbol::NonTerminal(aux_id));
                     }
                     Symbol::Choice(choices) => {
                         // Create aux rules: aux -> choice1 | choice2 | ...
                         let aux_id = SymbolId(9000 + aux_counter);
                         aux_counter += 1;
-                        
+
                         for choice in choices {
                             new_rules.push(Rule {
                                 lhs: aux_id,
@@ -531,7 +542,7 @@ impl Grammar {
                                 production_id: ProductionId(0),
                             });
                         }
-                        
+
                         new_rhs.push(Symbol::NonTerminal(aux_id));
                     }
                     Symbol::Sequence(seq) => {
@@ -541,16 +552,16 @@ impl Grammar {
                     other => new_rhs.push(other),
                 }
             }
-            
+
             rule.rhs = new_rhs;
             new_rules.push(rule);
         }
-        
+
         // Add new rules to the grammar
         for rule in &new_rules {
             self.add_rule(rule.clone());
         }
-        
+
         new_rules
     }
 }
@@ -560,19 +571,19 @@ impl Grammar {
 pub enum GrammarError {
     #[error("Failed to parse grammar: {0}")]
     ParseError(#[from] serde_json::Error),
-    
+
     #[error("Invalid field ordering - fields must be in lexicographic order")]
     InvalidFieldOrdering,
-    
+
     #[error("Unresolved symbol reference: {0}")]
     UnresolvedSymbol(SymbolId),
-    
+
     #[error("Unresolved external symbol reference: {0}")]
     UnresolvedExternalSymbol(SymbolId),
-    
+
     #[error("Conflict in grammar: {0}")]
     ConflictError(String),
-    
+
     #[error("Invalid precedence declaration: {0}")]
     InvalidPrecedence(String),
 }
@@ -601,19 +612,19 @@ mod tests {
     #[test]
     fn test_field_ordering_validation() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add fields in non-lexicographic order
         grammar.fields.insert(FieldId(1), "zebra".to_string());
         grammar.fields.insert(FieldId(0), "alpha".to_string());
-        
+
         // Validation should fail
         assert!(grammar.validate().is_err());
-        
+
         // Fix the ordering
         grammar.fields.clear();
         grammar.fields.insert(FieldId(0), "alpha".to_string());
         grammar.fields.insert(FieldId(1), "zebra".to_string());
-        
+
         // Validation should now pass
         assert!(grammar.validate().is_ok());
     }
@@ -622,16 +633,16 @@ mod tests {
     fn test_symbol_id_display() {
         let symbol_id = SymbolId(42);
         assert_eq!(format!("{}", symbol_id), "Symbol(42)");
-        
+
         let rule_id = RuleId(10);
         assert_eq!(format!("{}", rule_id), "Rule(10)");
-        
+
         let state_id = StateId(5);
         assert_eq!(format!("{}", state_id), "State(5)");
-        
+
         let field_id = FieldId(3);
         assert_eq!(format!("{}", field_id), "Field(3)");
-        
+
         let production_id = ProductionId(7);
         assert_eq!(format!("{}", production_id), "Production(7)");
     }
@@ -640,12 +651,12 @@ mod tests {
     fn test_precedence_kinds() {
         let static_prec = PrecedenceKind::Static(5);
         let dynamic_prec = PrecedenceKind::Dynamic(10);
-        
+
         match static_prec {
             PrecedenceKind::Static(level) => assert_eq!(level, 5),
             _ => panic!("Expected static precedence"),
         }
-        
+
         match dynamic_prec {
             PrecedenceKind::Dynamic(level) => assert_eq!(level, 10),
             _ => panic!("Expected dynamic precedence"),
@@ -657,26 +668,26 @@ mod tests {
         let terminal = Symbol::Terminal(SymbolId(1));
         let non_terminal = Symbol::NonTerminal(SymbolId(2));
         let external = Symbol::External(SymbolId(3));
-        
+
         match terminal {
-            Symbol::Terminal(SymbolId(1)) => {},
+            Symbol::Terminal(SymbolId(1)) => {}
             _ => panic!("Expected terminal symbol"),
         }
-        
+
         match non_terminal {
-            Symbol::NonTerminal(SymbolId(2)) => {},
+            Symbol::NonTerminal(SymbolId(2)) => {}
             _ => panic!("Expected non-terminal symbol"),
         }
-        
+
         match external {
-            Symbol::External(SymbolId(3)) => {},
+            Symbol::External(SymbolId(3)) => {}
             _ => panic!("Expected external symbol"),
         }
-        
+
         // Test equality and hashing
         assert_eq!(terminal, Symbol::Terminal(SymbolId(1)));
         assert_ne!(terminal, non_terminal);
-        
+
         let mut set = std::collections::HashSet::new();
         set.insert(terminal.clone());
         assert!(set.contains(&terminal));
@@ -687,12 +698,12 @@ mod tests {
     fn test_token_patterns() {
         let string_pattern = TokenPattern::String("hello".to_string());
         let regex_pattern = TokenPattern::Regex(r"\d+".to_string());
-        
+
         match string_pattern {
             TokenPattern::String(s) => assert_eq!(s, "hello"),
             _ => panic!("Expected string pattern"),
         }
-        
+
         match regex_pattern {
             TokenPattern::Regex(r) => assert_eq!(r, r"\d+"),
             _ => panic!("Expected regex pattern"),
@@ -704,11 +715,11 @@ mod tests {
         let left = Associativity::Left;
         let right = Associativity::Right;
         let none = Associativity::None;
-        
+
         assert_eq!(left, Associativity::Left);
         assert_eq!(right, Associativity::Right);
         assert_eq!(none, Associativity::None);
-        
+
         assert_ne!(left, right);
         assert_ne!(left, none);
         assert_ne!(right, none);
@@ -719,19 +730,19 @@ mod tests {
         let precedence_resolution = ConflictResolution::Precedence(PrecedenceKind::Static(5));
         let associativity_resolution = ConflictResolution::Associativity(Associativity::Left);
         let glr_resolution = ConflictResolution::GLR;
-        
+
         match precedence_resolution {
-            ConflictResolution::Precedence(PrecedenceKind::Static(5)) => {},
+            ConflictResolution::Precedence(PrecedenceKind::Static(5)) => {}
             _ => panic!("Expected precedence resolution"),
         }
-        
+
         match associativity_resolution {
-            ConflictResolution::Associativity(Associativity::Left) => {},
+            ConflictResolution::Associativity(Associativity::Left) => {}
             _ => panic!("Expected associativity resolution"),
         }
-        
+
         match glr_resolution {
-            ConflictResolution::GLR => {},
+            ConflictResolution::GLR => {}
             _ => panic!("Expected GLR resolution"),
         }
     }
@@ -739,10 +750,10 @@ mod tests {
     #[test]
     fn test_grammar_with_rules_and_tokens() {
         let mut grammar = Grammar::new("test_grammar".to_string());
-        
+
         // Add a rule: S -> NUMBER
         let rule = Rule {
-            lhs: SymbolId(0), // S
+            lhs: SymbolId(0),                         // S
             rhs: vec![Symbol::Terminal(SymbolId(1))], // NUMBER
             precedence: Some(PrecedenceKind::Static(1)),
             associativity: Some(Associativity::Left),
@@ -750,7 +761,7 @@ mod tests {
             production_id: ProductionId(0),
         };
         grammar.add_rule(rule);
-        
+
         // Add a token
         let token = Token {
             name: "NUMBER".to_string(),
@@ -758,17 +769,17 @@ mod tests {
             fragile: false,
         };
         grammar.tokens.insert(SymbolId(1), token);
-        
+
         // Add fields in correct order
         grammar.fields.insert(FieldId(0), "left".to_string());
         grammar.fields.insert(FieldId(1), "right".to_string());
-        
+
         // Validation should pass
         match grammar.validate() {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => panic!("Grammar validation failed: {:?}", e),
         }
-        
+
         assert_eq!(grammar.rules.len(), 1);
         assert_eq!(grammar.tokens.len(), 1);
         assert_eq!(grammar.fields.len(), 2);
@@ -777,7 +788,7 @@ mod tests {
     #[test]
     fn test_grammar_validation_unresolved_symbol() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add a rule that references a non-existent symbol
         let rule = Rule {
             lhs: SymbolId(0),
@@ -788,12 +799,12 @@ mod tests {
             production_id: ProductionId(0),
         };
         grammar.add_rule(rule);
-        
+
         // Validation should fail
         assert!(grammar.validate().is_err());
-        
+
         match grammar.validate() {
-            Err(GrammarError::UnresolvedSymbol(SymbolId(999))) => {},
+            Err(GrammarError::UnresolvedSymbol(SymbolId(999))) => {}
             _ => panic!("Expected unresolved symbol error"),
         }
     }
@@ -801,7 +812,7 @@ mod tests {
     #[test]
     fn test_grammar_validation_unresolved_external() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add a rule that references a non-existent external symbol
         let rule = Rule {
             lhs: SymbolId(0),
@@ -812,12 +823,12 @@ mod tests {
             production_id: ProductionId(0),
         };
         grammar.add_rule(rule);
-        
+
         // Validation should fail
         assert!(grammar.validate().is_err());
-        
+
         match grammar.validate() {
-            Err(GrammarError::UnresolvedExternalSymbol(SymbolId(999))) => {},
+            Err(GrammarError::UnresolvedExternalSymbol(SymbolId(999))) => {}
             _ => panic!("Expected unresolved external symbol error"),
         }
     }
@@ -827,7 +838,7 @@ mod tests {
         let alias_seq = AliasSequence {
             aliases: vec![Some("alias1".to_string()), None, Some("alias2".to_string())],
         };
-        
+
         assert_eq!(alias_seq.aliases.len(), 3);
         assert_eq!(alias_seq.aliases[0], Some("alias1".to_string()));
         assert_eq!(alias_seq.aliases[1], None);
@@ -840,7 +851,7 @@ mod tests {
             name: "HERE_STRING".to_string(),
             symbol_id: SymbolId(42),
         };
-        
+
         assert_eq!(external_token.name, "HERE_STRING");
         assert_eq!(external_token.symbol_id, SymbolId(42));
     }
@@ -852,7 +863,7 @@ mod tests {
             associativity: Associativity::Right,
             symbols: vec![SymbolId(1), SymbolId(2), SymbolId(3)],
         };
-        
+
         assert_eq!(precedence.level, 10);
         assert_eq!(precedence.associativity, Associativity::Right);
         assert_eq!(precedence.symbols.len(), 3);
@@ -865,13 +876,13 @@ mod tests {
             symbols: vec![SymbolId(1), SymbolId(2)],
             resolution: ConflictResolution::GLR,
         };
-        
+
         assert_eq!(conflict.symbols.len(), 2);
         assert!(conflict.symbols.contains(&SymbolId(1)));
         assert!(conflict.symbols.contains(&SymbolId(2)));
-        
+
         match conflict.resolution {
-            ConflictResolution::GLR => {},
+            ConflictResolution::GLR => {}
             _ => panic!("Expected GLR resolution"),
         }
     }

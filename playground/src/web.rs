@@ -39,7 +39,7 @@ struct QueryParams {
 pub fn launch_server(session: PlaygroundSession, port: u16) -> Result<()> {
     tokio::runtime::Runtime::new()?.block_on(async {
         let shared_session = Arc::new(Mutex::new(session));
-        
+
         let app = Router::new()
             .route("/", get(index_handler))
             .route("/api/parse", post(parse_handler))
@@ -55,13 +55,13 @@ pub fn launch_server(session: PlaygroundSession, port: u16) -> Result<()> {
 
         let addr = format!("0.0.0.0:{}", port).parse().unwrap();
         println!("🚀 Playground server running at http://localhost:{}", port);
-        
+
         axum::Server::bind(&addr)
             .serve(app.into_make_service())
             .await
             .unwrap();
     });
-    
+
     Ok(())
 }
 
@@ -74,7 +74,7 @@ async fn parse_handler(
     Json(req): Json<ParseRequest>,
 ) -> Response {
     let session = session.lock().await;
-    
+
     match session.parse(&req.input) {
         Ok(mut result) => {
             if req.visualize.unwrap_or(false) {
@@ -98,7 +98,7 @@ async fn test_handler(
     Json(req): Json<TestRequest>,
 ) -> impl IntoResponse {
     let mut session = session.lock().await;
-    
+
     session.add_test_case(crate::TestCase {
         name: req.name,
         input: req.input,
@@ -106,23 +106,19 @@ async fn test_handler(
         should_pass: true,
         tags: req.tags,
     });
-    
+
     Json(serde_json::json!({ "success": true }))
 }
 
-async fn tests_handler(
-    State(session): State<SharedSession>,
-) -> impl IntoResponse {
+async fn tests_handler(State(session): State<SharedSession>) -> impl IntoResponse {
     let session = session.lock().await;
     let results = session.run_tests();
     Json(results)
 }
 
-async fn analyze_handler(
-    State(session): State<SharedSession>,
-) -> Response {
+async fn analyze_handler(State(session): State<SharedSession>) -> Response {
     let mut session = session.lock().await;
-    
+
     match session.analyze_grammar() {
         Ok(analysis) => Json(serde_json::to_value(analysis).unwrap()).into_response(),
         Err(e) => {
@@ -139,27 +135,29 @@ async fn export_handler(
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     let session = session.lock().await;
-    
+
     match session.export() {
         Ok(data) => {
             if params.format.as_deref() == Some("download") {
-                ([("Content-Disposition", "attachment; filename=\"playground-session.json\"")], data).into_response()
+                (
+                    [(
+                        "Content-Disposition",
+                        "attachment; filename=\"playground-session.json\"",
+                    )],
+                    data,
+                )
+                    .into_response()
             } else {
                 data.into_response()
             }
         }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
-        }
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
-async fn import_handler(
-    State(session): State<SharedSession>,
-    body: String,
-) -> Response {
+async fn import_handler(State(session): State<SharedSession>, body: String) -> Response {
     let mut session = session.lock().await;
-    
+
     match session.import(&body) {
         Ok(_) => Json(serde_json::json!({ "success": true })).into_response(),
         Err(e) => {

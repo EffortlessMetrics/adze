@@ -3,11 +3,11 @@
 
 use crate::abi::*;
 use crate::compress::CompressedTables;
-use rust_sitter_ir::{Grammar, TokenPattern, Symbol, SymbolId, Rule};
-use rust_sitter_glr_core::{ParseTable, Action};
-use std::collections::{HashSet, BTreeMap};
 use proc_macro2::TokenStream;
 use quote::quote;
+use rust_sitter_glr_core::{Action, ParseTable};
+use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern};
+use std::collections::{BTreeMap, HashSet};
 
 /// Builder for generating ABI-compatible language structures
 pub struct AbiLanguageBuilder<'a> {
@@ -24,17 +24,17 @@ impl<'a> AbiLanguageBuilder<'a> {
             compressed_tables: None,
         }
     }
-    
+
     pub fn with_compressed_tables(mut self, tables: &'a CompressedTables) -> Self {
         self.compressed_tables = Some(tables);
         self
     }
-    
+
     /// Generate the complete language module
     pub fn generate(&self) -> TokenStream {
         let language_name = &self.grammar.name;
         let language_fn_ident = quote::format_ident!("tree_sitter_{}", language_name);
-        
+
         // Generate all static data with deterministic ordering
         let (symbol_names, symbol_name_ptrs) = self.generate_symbol_names();
         let (field_names, field_name_ptrs) = self.generate_field_names();
@@ -46,7 +46,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let public_symbol_map = self.generate_public_symbol_map();
         let primary_state_ids = self.generate_primary_state_ids();
         let production_id_map = self.generate_production_id_map();
-        
+
         // Count elements
         let counts = self.calculate_counts();
         let symbol_count = counts.symbol_count;
@@ -58,7 +58,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let production_id_count = counts.production_id_count;
         let field_count = counts.field_count;
         let max_alias_sequence_length = counts.max_alias_sequence_length;
-        
+
         // Generate field names array
         let field_names_array = if field_count == 0 {
             quote! {
@@ -72,61 +72,62 @@ impl<'a> AbiLanguageBuilder<'a> {
                 ];
             }
         };
-        
+
         // Generate lexer function with symbol mapping
-        let lexer_code = crate::lexer_gen::generate_lexer(self.grammar, &self.parse_table.symbol_to_index);
-        
+        let lexer_code =
+            crate::lexer_gen::generate_lexer(self.grammar, &self.parse_table.symbol_to_index);
+
         quote! {
             use ::rust_sitter::pure_parser::*;
-            
+
             // Lexer implementation
             #lexer_code
-            
+
             // Symbol names (null-terminated strings)
             #(#symbol_names)*
-            
+
             // Symbol name pointers array
             const SYMBOL_NAME_PTRS_LEN: usize = #symbol_count as usize;
             static SYMBOL_NAME_PTRS: [SyncPtr; SYMBOL_NAME_PTRS_LEN] = [
                 #(#symbol_name_ptrs),*
             ];
-            
+
             // Field names (null-terminated strings)
             #(#field_names)*
-            
+
             // Field name pointers array - handle empty case specially
             #field_names_array
-            
+
             // Symbol metadata (visibility, named, etc.)
             static SYMBOL_METADATA: &[u8] = &[#(#symbol_metadata),*];
-            
+
             // Parse table (compressed)
             static PARSE_TABLE: &[u16] = &[#(#parse_table_data),*];
-            
+
             // Small parse table map
             static SMALL_PARSE_TABLE_MAP: &[u32] = &[#(#small_parse_table_map),*];
-            
+
             // Parse actions
             static PARSE_ACTIONS: &[TSParseAction] = &[#(#parse_actions),*];
-            
+
             // Lex modes
             static LEX_MODES: &[TSLexState] = &[#(#lex_modes),*];
-            
+
             // Field map slices
             static FIELD_MAP_SLICES: &[u16] = &[#(#field_map_slices),*];
-            
+
             // Field map entries
             static FIELD_MAP_ENTRIES: &[u16] = &[#(#field_map_entries),*];
-            
+
             // Public symbol map
             static PUBLIC_SYMBOL_MAP: &[u16] = &[#(#public_symbol_map),*];
-            
+
             // Primary state IDs
             static PRIMARY_STATE_IDS: &[u16] = &[#(#primary_state_ids),*];
-            
+
             // Production ID map (maps production IDs to rule IDs)
             static PRODUCTION_ID_MAP: &[u16] = &[#(#production_id_map),*];
-            
+
             // The language structure
             pub static LANGUAGE: TSLanguage = TSLanguage {
                 version: TREE_SITTER_LANGUAGE_VERSION,
@@ -156,7 +157,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 lex_fn: Some(lexer_fn),
                 keyword_lex_fn: None,
                 keyword_capture_token: 0,
-                external_scanner: ExternalScanner { 
+                external_scanner: ExternalScanner {
                     states: std::ptr::null(),
                     symbol_map: std::ptr::null(),
                     create: None,
@@ -167,7 +168,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 },
                 primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
             };
-            
+
             /// Get the Tree-sitter Language for this grammar
             #[unsafe(no_mangle)]
             pub extern "C" fn #language_fn_ident() -> *const TSLanguage {
@@ -175,12 +176,12 @@ impl<'a> AbiLanguageBuilder<'a> {
             }
         }
     }
-    
+
     /// Generate symbol names with deterministic ordering
     fn generate_symbol_names(&self) -> (Vec<TokenStream>, Vec<TokenStream>) {
         let mut names = Vec::new();
         let mut name_idents = Vec::new();
-        
+
         // Use the parse table's symbol ordering
         // Create reverse mapping from index to symbol ID
         let mut index_to_symbol: Vec<Option<SymbolId>> = vec![None; self.parse_table.symbol_count];
@@ -189,11 +190,11 @@ impl<'a> AbiLanguageBuilder<'a> {
                 index_to_symbol[index] = Some(*symbol_id);
             }
         }
-        
+
         // Generate names in parse table order
         for (idx, symbol_id_opt) in index_to_symbol.iter().enumerate() {
             let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
-            
+
             let name_str = if let Some(symbol_id) = symbol_id_opt {
                 if symbol_id.0 == 0 {
                     // EOF symbol
@@ -212,30 +213,33 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // Should not happen
                 format!("unknown_{}", idx)
             };
-            
+
             let name_bytes = format!("{}\0", name_str).into_bytes();
             names.push(quote! {
                 static #ident: &[u8] = &[#(#name_bytes),*];
             });
             name_idents.push(ident);
         }
-        
-        let ptrs = name_idents.iter().map(|ident| {
-            quote! { SyncPtr::new(#ident.as_ptr()) }
-        }).collect();
-        
+
+        let ptrs = name_idents
+            .iter()
+            .map(|ident| {
+                quote! { SyncPtr::new(#ident.as_ptr()) }
+            })
+            .collect();
+
         (names, ptrs)
     }
-    
+
     /// Generate field names with lexicographic ordering
     fn generate_field_names(&self) -> (Vec<TokenStream>, Vec<TokenStream>) {
         let mut names = Vec::new();
         let mut name_idents = Vec::new();
-        
+
         // Fields must be in lexicographic order
         let mut fields: Vec<_> = self.grammar.fields.iter().collect();
         fields.sort_by_key(|(_, name)| name.as_str());
-        
+
         for (i, (_id, name)) in fields.iter().enumerate() {
             let ident = quote::format_ident!("FIELD_NAME_{}", i);
             let name_bytes = format!("{}\0", name).into_bytes();
@@ -244,39 +248,50 @@ impl<'a> AbiLanguageBuilder<'a> {
             });
             name_idents.push(ident);
         }
-        
-        let ptrs = name_idents.iter().map(|ident| {
-            quote! { SyncPtr::new(#ident.as_ptr()) }
-        }).collect();
-        
+
+        let ptrs = name_idents
+            .iter()
+            .map(|ident| {
+                quote! { SyncPtr::new(#ident.as_ptr()) }
+            })
+            .collect();
+
         (names, ptrs)
     }
-    
+
     /// Generate symbol metadata
     fn generate_symbol_metadata(&self) -> Vec<TokenStream> {
         let mut metadata = Vec::new();
-        
+
         eprintln!("\nDEBUG generate_symbol_metadata: Starting metadata generation");
         eprintln!("  grammar.extras = {:?}", self.grammar.extras);
-        
+
         // Debug: Check all tokens in the grammar
         eprintln!("  All tokens in grammar:");
         for (id, token) in &self.grammar.tokens {
-            eprintln!("    Token {:?}: name='{}', pattern={:?}", id, token.name, token.pattern);
+            eprintln!(
+                "    Token {:?}: name='{}', pattern={:?}",
+                id, token.name, token.pattern
+            );
         }
-        
+
         // First, find all terminal tokens that should be marked as extras
         let extra_tokens = self.find_extra_tokens();
         eprintln!("  extra_tokens found = {:?}", extra_tokens);
-        
+
         // Debug: Print which symbol corresponds to whitespace
         eprintln!("  Looking for whitespace token (should be symbol 4):");
         for (id, token) in &self.grammar.tokens {
-            if token.name.contains("whitespace") || token.pattern == TokenPattern::Regex(r"\s".to_string()) {
-                eprintln!("    Found whitespace-like token: {:?} -> {}", id, token.name);
+            if token.name.contains("whitespace")
+                || token.pattern == TokenPattern::Regex(r"\s".to_string())
+            {
+                eprintln!(
+                    "    Found whitespace-like token: {:?} -> {}",
+                    id, token.name
+                );
             }
         }
-        
+
         // Generate metadata in parse table order using symbol_to_index mapping
         let mut index_to_symbol: Vec<Option<SymbolId>> = vec![None; self.parse_table.symbol_count];
         for (symbol_id, &index) in &self.parse_table.symbol_to_index {
@@ -284,9 +299,12 @@ impl<'a> AbiLanguageBuilder<'a> {
                 index_to_symbol[index] = Some(*symbol_id);
             }
         }
-        
+
         eprintln!("  Generating metadata in parse table order:");
-        eprintln!("  symbol_to_index mapping: {:?}", self.parse_table.symbol_to_index);
+        eprintln!(
+            "  symbol_to_index mapping: {:?}",
+            self.parse_table.symbol_to_index
+        );
         for (idx, symbol_id_opt) in index_to_symbol.iter().enumerate() {
             if let Some(symbol_id) = symbol_id_opt {
                 if symbol_id.0 == 0 {
@@ -299,49 +317,73 @@ impl<'a> AbiLanguageBuilder<'a> {
                     let visible = !token.name.starts_with('_');
                     let named = visible && matches!(&token.pattern, TokenPattern::Regex(_));
                     let _original_hidden = extra_tokens.contains(symbol_id);
-                    
+
                     // Special handling for whitespace tokens
                     // If this is a whitespace token (by pattern), it should be hidden
-                    let is_whitespace_token = matches!(&token.pattern, TokenPattern::Regex(p) if p == r"\s") ||
-                                            token.name.to_lowercase().contains("whitespace");
-                    
+                    let is_whitespace_token = matches!(&token.pattern, TokenPattern::Regex(p) if p == r"\s")
+                        || token.name.to_lowercase().contains("whitespace");
+
                     if is_whitespace_token {
-                        eprintln!("    WHITESPACE TOKEN FOUND: {} (id={:?})", token.name, symbol_id);
+                        eprintln!(
+                            "    WHITESPACE TOKEN FOUND: {} (id={:?})",
+                            token.name, symbol_id
+                        );
                         eprintln!("      Pattern: {:?}", token.pattern);
-                        eprintln!("      Was in extra_tokens: {}", extra_tokens.contains(symbol_id));
+                        eprintln!(
+                            "      Was in extra_tokens: {}",
+                            extra_tokens.contains(symbol_id)
+                        );
                     }
-                    
+
                     // Force whitespace tokens to be hidden
                     let hidden = extra_tokens.contains(symbol_id) || is_whitespace_token;
-                    
+
                     let meta_byte = create_symbol_metadata(visible, named, hidden, false, false);
-                    eprintln!("    Index {}: Token {} (id={:?}): visible={}, named={}, hidden={}, metadata={:#x}", 
-                             idx, token.name, symbol_id, visible, named, hidden, meta_byte);
+                    eprintln!(
+                        "    Index {}: Token {} (id={:?}): visible={}, named={}, hidden={}, metadata={:#x}",
+                        idx, token.name, symbol_id, visible, named, hidden, meta_byte
+                    );
                     metadata.push(quote! { #meta_byte });
                 } else if self.grammar.rules.contains_key(symbol_id) {
                     // Non-terminal
-                    let name = self.grammar.rule_names.get(symbol_id)
+                    let name = self
+                        .grammar
+                        .rule_names
+                        .get(symbol_id)
                         .cloned()
                         .unwrap_or_else(|| format!("rule_{}", symbol_id.0));
                     let visible = !name.starts_with('_');
                     let named = visible;
                     let hidden = false; // Non-terminals are never hidden
                     let supertype = self.grammar.supertypes.contains(symbol_id);
-                    let meta_byte = create_symbol_metadata(visible, named, hidden, false, supertype);
-                    eprintln!("    Index {}: Non-terminal {} (id={:?}): visible={}, named={}, supertype={}, metadata={:#x}", 
-                             idx, name, symbol_id, visible, named, supertype, meta_byte);
+                    let meta_byte =
+                        create_symbol_metadata(visible, named, hidden, false, supertype);
+                    eprintln!(
+                        "    Index {}: Non-terminal {} (id={:?}): visible={}, named={}, supertype={}, metadata={:#x}",
+                        idx, name, symbol_id, visible, named, supertype, meta_byte
+                    );
                     metadata.push(quote! { #meta_byte });
-                } else if let Some(external) = self.grammar.externals.iter().find(|e| e.symbol_id == *symbol_id) {
+                } else if let Some(external) = self
+                    .grammar
+                    .externals
+                    .iter()
+                    .find(|e| e.symbol_id == *symbol_id)
+                {
                     // External token
                     let visible = !external.name.starts_with('_');
                     let named = visible;
                     let meta_byte = create_symbol_metadata(visible, named, false, false, false);
-                    eprintln!("    Index {}: External {} (id={:?}): visible={}, named={}, metadata={:#x}", 
-                             idx, external.name, symbol_id, visible, named, meta_byte);
+                    eprintln!(
+                        "    Index {}: External {} (id={:?}): visible={}, named={}, metadata={:#x}",
+                        idx, external.name, symbol_id, visible, named, meta_byte
+                    );
                     metadata.push(quote! { #meta_byte });
                 } else {
                     // Unknown symbol - shouldn't happen
-                    eprintln!("    Index {}: WARNING: Unknown symbol id={:?}", idx, symbol_id);
+                    eprintln!(
+                        "    Index {}: WARNING: Unknown symbol id={:?}",
+                        idx, symbol_id
+                    );
                     metadata.push(quote! { 0u8 });
                 }
             } else {
@@ -350,17 +392,17 @@ impl<'a> AbiLanguageBuilder<'a> {
                 metadata.push(quote! { 0u8 });
             }
         }
-        
+
         metadata
     }
-    
+
     /// Generate compressed parse tables
     fn generate_parse_tables(&self) -> (Vec<TokenStream>, Vec<TokenStream>) {
         if let Some(compressed) = self.compressed_tables {
             // Generate compressed table data
             let mut table_data = Vec::new();
             let mut map_data = Vec::new();
-            
+
             // Encode action table
             for entry in &compressed.action_table.data {
                 let symbol = entry.symbol;
@@ -369,7 +411,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                     table_data.push(quote! { #encoded });
                 }
             }
-            
+
             // Add row offsets to map
             // Note: row_offsets are in terms of entries, but the parse table
             // uses u16 indices, so we need to multiply by 2
@@ -377,7 +419,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 let u16_offset = offset * 2;
                 map_data.push(quote! { #u16_offset as u32 });
             }
-            
+
             (table_data, map_data)
         } else {
             // Fallback: generate compressed table format without proper compression
@@ -385,40 +427,58 @@ impl<'a> AbiLanguageBuilder<'a> {
             let mut table_data = Vec::new();
             let mut map_data = Vec::new();
             let mut current_offset = 0u32;
-            
+
             for state_idx in 0..self.parse_table.state_count {
                 // Record the starting offset for this state
-                eprintln!("DEBUG: State {} starts at offset {} (u16 index)", state_idx, current_offset);
+                eprintln!(
+                    "DEBUG: State {} starts at offset {} (u16 index)",
+                    state_idx, current_offset
+                );
                 map_data.push(quote! { #current_offset });
-                
+
                 eprintln!("DEBUG: Processing state {}", state_idx);
-                
+
                 // Check if this state has a default reduce action
                 // (all non-error actions are the same reduce action)
                 let mut default_reduce = None;
                 let mut has_non_reduce = false;
                 let mut non_error_actions = Vec::new();
-                
-                eprintln!("DEBUG: State {} iterating through {} symbols", state_idx, self.parse_table.symbol_count);
+
+                eprintln!(
+                    "DEBUG: State {} iterating through {} symbols",
+                    state_idx, self.parse_table.symbol_count
+                );
                 for symbol_idx in 0..self.parse_table.symbol_count {
                     // Check if this symbol is a terminal or non-terminal
                     // For terminals, use action_table; for non-terminals, use goto_table
-                    let is_terminal = symbol_idx < self.parse_table.action_table.get(state_idx).map_or(0, |row| row.len());
-                    
+                    let is_terminal = symbol_idx
+                        < self
+                            .parse_table
+                            .action_table
+                            .get(state_idx)
+                            .map_or(0, |row| row.len());
+
                     // Create owned action to avoid borrowing issues
                     let action_owned = if is_terminal {
                         // Terminal symbol - use action table
-                        if state_idx < self.parse_table.action_table.len() 
-                            && symbol_idx < self.parse_table.action_table[state_idx].len() {
+                        if state_idx < self.parse_table.action_table.len()
+                            && symbol_idx < self.parse_table.action_table[state_idx].len()
+                        {
                             self.parse_table.action_table[state_idx][symbol_idx].clone()
                         } else {
                             Action::Error
                         }
                     } else {
                         // Non-terminal symbol - use goto table
-                        let goto_idx = symbol_idx - self.parse_table.action_table.get(state_idx).map_or(0, |row| row.len());
-                        if state_idx < self.parse_table.goto_table.len() 
-                            && goto_idx < self.parse_table.goto_table[state_idx].len() {
+                        let goto_idx = symbol_idx
+                            - self
+                                .parse_table
+                                .action_table
+                                .get(state_idx)
+                                .map_or(0, |row| row.len());
+                        if state_idx < self.parse_table.goto_table.len()
+                            && goto_idx < self.parse_table.goto_table[state_idx].len()
+                        {
                             let goto_state = self.parse_table.goto_table[state_idx][goto_idx];
                             if goto_state.0 > 0 {
                                 // Convert goto to a shift action for Tree-sitter compatibility
@@ -431,8 +491,11 @@ impl<'a> AbiLanguageBuilder<'a> {
                         }
                     };
                     let action = &action_owned;
-                    eprintln!("DEBUG: State {} symbol_idx={} is_terminal={} action={:?}", state_idx, symbol_idx, is_terminal, action);
-                    
+                    eprintln!(
+                        "DEBUG: State {} symbol_idx={} is_terminal={} action={:?}",
+                        state_idx, symbol_idx, is_terminal, action
+                    );
+
                     match action {
                         Action::Error => continue,
                         Action::Reduce(prod_id) => {
@@ -440,27 +503,39 @@ impl<'a> AbiLanguageBuilder<'a> {
                             if let Some(default_prod) = &default_reduce {
                                 if default_prod != prod_id {
                                     // Different reduce actions, no default
-                                    eprintln!("DEBUG: State {} has different reduce actions: {:?} vs {:?}", state_idx, default_prod, prod_id);
+                                    eprintln!(
+                                        "DEBUG: State {} has different reduce actions: {:?} vs {:?}",
+                                        state_idx, default_prod, prod_id
+                                    );
                                     has_non_reduce = true;
                                 }
                             } else {
-                                eprintln!("DEBUG: State {} setting default_reduce to {:?}", state_idx, prod_id);
+                                eprintln!(
+                                    "DEBUG: State {} setting default_reduce to {:?}",
+                                    state_idx, prod_id
+                                );
                                 default_reduce = Some(prod_id.clone());
                             }
                         }
                         _ => {
                             // Shift, Accept, or Fork - no default reduce
-                            eprintln!("DEBUG: State {} has non-reduce action: {:?}", state_idx, action);
+                            eprintln!(
+                                "DEBUG: State {} has non-reduce action: {:?}",
+                                state_idx, action
+                            );
                             has_non_reduce = true;
                             non_error_actions.push((symbol_idx, action_owned.clone()));
                         }
                     }
                 }
-                
+
                 // If all actions are the same reduce, emit a default reduce entry
                 if let Some(prod_id) = default_reduce {
                     if !has_non_reduce && !non_error_actions.is_empty() {
-                        eprintln!("DEBUG: State {} has default reduce to production {}", state_idx, prod_id.0);
+                        eprintln!(
+                            "DEBUG: State {} has default reduce to production {}",
+                            state_idx, prod_id.0
+                        );
                         // Emit default reduce entry with high bit set in symbol
                         // The symbol field contains the production ID with high bit set
                         let symbol_with_high_bit = 0x8000u16 | prod_id.0;
@@ -470,7 +545,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                         continue; // Skip to next state
                     }
                 }
-                
+
                 // Check if all non-error actions are the same reduce
                 // This is a more comprehensive check for default reduce
                 let mut all_same_reduce = true;
@@ -493,11 +568,14 @@ impl<'a> AbiLanguageBuilder<'a> {
                         }
                     }
                 }
-                
+
                 // If all non-error actions are the same reduce, emit a default reduce
                 if all_same_reduce {
                     if let Some(prod_id) = common_reduce {
-                        eprintln!("DEBUG: State {} has default reduce to production {} (fallback check)", state_idx, prod_id.0);
+                        eprintln!(
+                            "DEBUG: State {} has default reduce to production {} (fallback check)",
+                            state_idx, prod_id.0
+                        );
                         // Emit default reduce entry with high bit set in symbol
                         let symbol_with_high_bit = 0x8000u16 | prod_id.0;
                         table_data.push(quote! { #symbol_with_high_bit });
@@ -505,19 +583,29 @@ impl<'a> AbiLanguageBuilder<'a> {
                         current_offset += 2;
                     }
                 } else {
-                    eprintln!("DEBUG: State {} NOT using default reduce, all_same_reduce={}", state_idx, all_same_reduce);
+                    eprintln!(
+                        "DEBUG: State {} NOT using default reduce, all_same_reduce={}",
+                        state_idx, all_same_reduce
+                    );
                     // Add entries for this state (only non-error actions)
-                    eprintln!("DEBUG: State {} has {} non-error actions", state_idx, non_error_actions.len());
-                    
+                    eprintln!(
+                        "DEBUG: State {} has {} non-error actions",
+                        state_idx,
+                        non_error_actions.len()
+                    );
+
                     // The LR construction in glr-core now handles EOF reduce actions properly
-                    
+
                     for (symbol_idx, action) in non_error_actions {
                         // The parse table already uses indices, not symbol IDs
                         let symbol_index = symbol_idx as u16;
                         table_data.push(quote! { #symbol_index });
-                        
+
                         if let Ok(encoded) = self.encode_action(&action) {
-                            eprintln!("DEBUG: State {} entry: symbol={}, action={:?}, encoded={}", state_idx, symbol_index, action, encoded);
+                            eprintln!(
+                                "DEBUG: State {} entry: symbol={}, action={:?}, encoded={}",
+                                state_idx, symbol_index, action, encoded
+                            );
                             table_data.push(quote! { #encoded });
                         } else {
                             table_data.push(quote! { 0u16 });
@@ -525,17 +613,20 @@ impl<'a> AbiLanguageBuilder<'a> {
                         current_offset += 2;
                     }
                 }
-                eprintln!("DEBUG: State {} ends at offset {}", state_idx, current_offset);
+                eprintln!(
+                    "DEBUG: State {} ends at offset {}",
+                    state_idx, current_offset
+                );
             }
-            
+
             // Add final offset for end of table
             eprintln!("DEBUG: Final offset: {}", current_offset);
             map_data.push(quote! { #current_offset });
-            
+
             (table_data, map_data)
         }
     }
-    
+
     /// Encode an action as u16
     fn encode_action(&self, action: &Action) -> Result<u16, String> {
         match action {
@@ -544,62 +635,67 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // Tree-sitter uses 1-based production IDs in the parse table
                 // So we need to add 1 to the rule ID
                 Ok(0x8000 | (rule.0 + 1))
-            },
-            Action::Accept => Ok(0x7FFF),  // Use 0x7FFF for accept to match parser
-            Action::Error => Ok(0),         // Use 0 for error to match parser expectation
+            }
+            Action::Accept => Ok(0x7FFF), // Use 0x7FFF for accept to match parser
+            Action::Error => Ok(0),       // Use 0 for error to match parser expectation
             Action::Fork(actions) => {
                 // For Fork actions, we need to choose one action from the fork
                 // For now, let's prefer reduce actions over shift actions
                 // This is a simplified conflict resolution strategy
-                
+
                 // First, try to find a reduce action
                 for action in actions {
                     if let Action::Reduce(_) = action {
                         return self.encode_action(action);
                     }
                 }
-                
+
                 // If no reduce action, take the first non-error action
                 for action in actions {
                     if !matches!(action, Action::Error) {
                         return self.encode_action(action);
                     }
                 }
-                
+
                 // If all actions are errors (shouldn't happen), return error
                 Ok(0)
             }
         }
     }
-    
+
     /// Generate parse actions
     fn generate_parse_actions(&self) -> Vec<TokenStream> {
         // Generate production information for reduce actions
         // The array must be indexed by production ID, not sequential
-        
+
         // First, find the maximum production ID to size the array
-        let max_production_id = self.grammar.all_rules()
+        let max_production_id = self
+            .grammar
+            .all_rules()
             .map(|rule| rule.production_id.0)
             .max()
             .unwrap_or(0);
-        
+
         // Create array with dummy entries
-        let mut actions = vec![quote! {
-            TSParseAction {
-                action_type: 0,
-                extra: 0,
-                child_count: 0,
-                dynamic_precedence: 0,
-                symbol: 0,
-            }
-        }; (max_production_id + 1) as usize];
-        
+        let mut actions = vec![
+            quote! {
+                TSParseAction {
+                    action_type: 0,
+                    extra: 0,
+                    child_count: 0,
+                    dynamic_precedence: 0,
+                    symbol: 0,
+                }
+            };
+            (max_production_id + 1) as usize
+        ];
+
         // Fill in the actual productions at their correct indices
         for rule in self.grammar.all_rules() {
             let index = rule.production_id.0 as usize;
             let child_count = rule.rhs.len() as u8;
             let symbol = rule.lhs.0;
-            
+
             actions[index] = quote! {
                 TSParseAction {
                     action_type: 1, // Reduce
@@ -610,14 +706,14 @@ impl<'a> AbiLanguageBuilder<'a> {
                 }
             };
         }
-        
+
         actions
     }
-    
+
     /// Generate lex modes
     fn generate_lex_modes(&self) -> Vec<TokenStream> {
         let mut modes = Vec::new();
-        
+
         for i in 0..self.parse_table.state_count {
             modes.push(quote! {
                 TSLexState {
@@ -626,34 +722,36 @@ impl<'a> AbiLanguageBuilder<'a> {
                 }
             });
         }
-        
+
         modes
     }
-    
+
     /// Generate field maps
     fn generate_field_maps(&self) -> (Vec<TokenStream>, Vec<TokenStream>) {
         let mut field_map_slices = Vec::new();
         let mut field_map_entries = Vec::new();
-        
+
         // Group rules by production ID
-        let mut rules_by_production: std::collections::BTreeMap<u16, Vec<&Rule>> = std::collections::BTreeMap::new();
+        let mut rules_by_production: std::collections::BTreeMap<u16, Vec<&Rule>> =
+            std::collections::BTreeMap::new();
         for (_, rules) in &self.grammar.rules {
             for rule in rules {
-                rules_by_production.entry(rule.production_id.0)
+                rules_by_production
+                    .entry(rule.production_id.0)
                     .or_insert_with(Vec::new)
                     .push(rule);
             }
         }
-        
+
         // Build field map entries for each production
         for (production_id, rules) in rules_by_production {
             if production_id == 0 {
                 continue; // Skip production ID 0
             }
-            
+
             let start_index = field_map_entries.len() as u16;
             let mut entry_count = 0u16;
-            
+
             // Process each rule with this production ID
             for rule in rules {
                 // Add entries for each field in this rule
@@ -661,15 +759,17 @@ impl<'a> AbiLanguageBuilder<'a> {
                     let field_id_val = field_id.0;
                     let child_index = *position as u8;
                     let inherited = 0u8; // false - TODO: implement inheritance detection
-                    
+
                     // Pack TSFieldMapEntry: field_id (16 bits) | child_index (8 bits) | inherited (8 bits)
-                    let packed_entry = (field_id_val as u32) | ((child_index as u32) << 16) | ((inherited as u32) << 24);
+                    let packed_entry = (field_id_val as u32)
+                        | ((child_index as u32) << 16)
+                        | ((inherited as u32) << 24);
                     field_map_entries.push(quote! { #packed_entry as u16 });
                     field_map_entries.push(quote! { (#packed_entry >> 16) as u16 });
                     entry_count += 1;
                 }
             }
-            
+
             // Add slice for this production ID if it has fields
             if entry_count > 0 {
                 // Ensure we have slices for all production IDs up to this one
@@ -677,13 +777,13 @@ impl<'a> AbiLanguageBuilder<'a> {
                     field_map_slices.push(quote! { 0u16 }); // start
                     field_map_slices.push(quote! { 0u16 }); // length
                 }
-                
+
                 // Add this production's slice
                 field_map_slices.push(quote! { #start_index });
                 field_map_slices.push(quote! { #entry_count });
             }
         }
-        
+
         // If no field maps were generated, provide minimal data
         if field_map_slices.is_empty() {
             field_map_slices.push(quote! { 0u16 });
@@ -691,44 +791,51 @@ impl<'a> AbiLanguageBuilder<'a> {
         if field_map_entries.is_empty() {
             field_map_entries.push(quote! { 0u16 });
         }
-        
+
         (field_map_slices, field_map_entries)
     }
-    
+
     /// Generate public symbol map
     fn generate_public_symbol_map(&self) -> Vec<TokenStream> {
         let symbol_count = self.calculate_symbol_count();
-        (0..symbol_count).map(|i| {
-            quote! { #i as u16 }
-        }).collect()
+        (0..symbol_count)
+            .map(|i| {
+                quote! { #i as u16 }
+            })
+            .collect()
     }
-    
+
     /// Generate primary state IDs
     fn generate_primary_state_ids(&self) -> Vec<TokenStream> {
-        (0..self.parse_table.state_count).map(|i| {
-            quote! { #i as u16 }
-        }).collect()
+        (0..self.parse_table.state_count)
+            .map(|i| {
+                quote! { #i as u16 }
+            })
+            .collect()
     }
-    
+
     /// Generate production ID map
     fn generate_production_id_map(&self) -> Vec<TokenStream> {
         // Map production IDs to rule symbols
         let mut production_map = Vec::new();
-        
+
         // Sort rules by production ID for deterministic output
-        let mut rules: Vec<_> = self.grammar.rules.iter()
+        let mut rules: Vec<_> = self
+            .grammar
+            .rules
+            .iter()
             .flat_map(|(_, rules)| rules.iter())
             .collect();
         rules.sort_by_key(|rule| rule.production_id.0);
-        
+
         for rule in rules {
             let rule_symbol = rule.lhs.0 as u16;
             production_map.push(quote! { #rule_symbol });
         }
-        
+
         production_map
     }
-    
+
     /// Calculate counts for the language structure
     fn calculate_counts(&self) -> LanguageCounts {
         LanguageCounts {
@@ -743,25 +850,30 @@ impl<'a> AbiLanguageBuilder<'a> {
             max_alias_sequence_length: 0,
         }
     }
-    
+
     fn calculate_symbol_count(&self) -> usize {
         // Use the parse table's symbol count which is the correct count after processing
         self.parse_table.symbol_count
     }
-    
+
     fn calculate_production_count(&self) -> usize {
-        self.grammar.rules.values()
+        self.grammar
+            .rules
+            .values()
             .flat_map(|rules| rules.iter())
             .count()
     }
-    
+
     /// Find all terminal tokens that should be marked as extras
     fn find_extra_tokens(&self) -> HashSet<SymbolId> {
         let mut extra_tokens = HashSet::new();
         let mut visited = HashSet::new();
-        
-        eprintln!("DEBUG find_extra_tokens: grammar.extras = {:?}", self.grammar.extras);
-        
+
+        eprintln!(
+            "DEBUG find_extra_tokens: grammar.extras = {:?}",
+            self.grammar.extras
+        );
+
         // Check if any extras directly refer to tokens
         for &extra_symbol in &self.grammar.extras {
             if self.grammar.tokens.contains_key(&extra_symbol) {
@@ -769,39 +881,43 @@ impl<'a> AbiLanguageBuilder<'a> {
                 extra_tokens.insert(extra_symbol);
             }
         }
-        
+
         // For each extra symbol, find all terminal tokens it can produce (recursively)
         for &extra_symbol in &self.grammar.extras {
             eprintln!("  Processing extra symbol: {:?}", extra_symbol);
             self.find_terminals_recursive(extra_symbol, &mut extra_tokens, &mut visited);
         }
-        
+
         eprintln!("DEBUG find_extra_tokens: result = {:?}", extra_tokens);
         extra_tokens
     }
-    
+
     /// Recursively find all terminal tokens reachable from a symbol
     fn find_terminals_recursive(
         &self,
         symbol: SymbolId,
         terminals: &mut HashSet<SymbolId>,
-        visited: &mut HashSet<SymbolId>
+        visited: &mut HashSet<SymbolId>,
     ) {
         // Avoid infinite recursion
         if !visited.insert(symbol) {
             return;
         }
-        
+
         // If it's a terminal token, add it
         if self.grammar.tokens.contains_key(&symbol) {
             eprintln!("    Found terminal: {:?}", symbol);
             terminals.insert(symbol);
             return;
         }
-        
+
         // If it's a non-terminal, explore all its rules
         if let Some(rules) = self.grammar.rules.get(&symbol) {
-            eprintln!("    Exploring non-terminal {:?} with {} rules", symbol, rules.len());
+            eprintln!(
+                "    Exploring non-terminal {:?} with {} rules",
+                symbol,
+                rules.len()
+            );
             for rule in rules {
                 eprintln!("      Rule: {:?} -> {:?}", rule.lhs, rule.rhs);
                 for sym in &rule.rhs {
@@ -814,9 +930,13 @@ impl<'a> AbiLanguageBuilder<'a> {
                             eprintln!("        Recursing into non-terminal: {:?}", nt_id);
                             self.find_terminals_recursive(*nt_id, terminals, visited);
                         }
-                        Symbol::External(_) | Symbol::Optional(_) | Symbol::Repeat(_) | 
-                        Symbol::RepeatOne(_) | Symbol::Choice(_) | Symbol::Sequence(_) |
-                        Symbol::Epsilon => {
+                        Symbol::External(_)
+                        | Symbol::Optional(_)
+                        | Symbol::Repeat(_)
+                        | Symbol::RepeatOne(_)
+                        | Symbol::Choice(_)
+                        | Symbol::Sequence(_)
+                        | Symbol::Epsilon => {
                             // These symbol types are not expected in the IR at this stage
                             eprintln!("        WARNING: Unexpected symbol type in rule: {:?}", sym);
                         }
@@ -844,23 +964,29 @@ mod tests {
     use super::*;
     use rust_sitter_ir::*;
     use std::collections::HashMap;
-    
+
     #[test]
     fn test_deterministic_symbol_ordering() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add tokens in non-sorted order
-        grammar.tokens.insert(SymbolId(5), Token {
-            name: "token5".to_string(),
-            pattern: TokenPattern::String("5".to_string()),
-            fragile: false,
-        });
-        grammar.tokens.insert(SymbolId(1), Token {
-            name: "token1".to_string(),
-            pattern: TokenPattern::String("1".to_string()),
-            fragile: false,
-        });
-        
+        grammar.tokens.insert(
+            SymbolId(5),
+            Token {
+                name: "token5".to_string(),
+                pattern: TokenPattern::String("5".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "token1".to_string(),
+                pattern: TokenPattern::String("1".to_string()),
+                fragile: false,
+            },
+        );
+
         let parse_table = ParseTable {
             action_table: vec![],
             goto_table: vec![],
@@ -869,13 +995,13 @@ mod tests {
             symbol_count: 3,
             symbol_to_index: BTreeMap::new(),
         };
-        
+
         let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
         let (names, _) = builder.generate_symbol_names();
-        
+
         // Should have EOF + 2 tokens
         assert_eq!(names.len(), 3);
-        
+
         // Check that tokens are sorted by ID
         let code = quote! { #(#names)* }.to_string();
         assert!(code.contains("token1"));

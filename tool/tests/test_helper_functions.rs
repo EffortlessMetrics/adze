@@ -1,4 +1,4 @@
-use rust_sitter_tool::grammar_js::{GrammarJsParserV3, GrammarJsConverter};
+use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
 
 #[test]
 fn test_comma_sep_helper() {
@@ -20,11 +20,11 @@ module.exports = grammar({
     println!("Testing commaSep helper function...");
     let mut parser = GrammarJsParserV3::new(grammar.to_string());
     let grammar_js = parser.parse().expect("Failed to parse grammar");
-    
+
     // Convert to IR
     let mut converter = GrammarJsConverter::new(grammar_js);
     let ir_grammar = converter.convert().expect("Failed to convert to IR");
-    
+
     // Check that the list rule was properly expanded
     println!("IR Grammar rules: {:?}", ir_grammar.rules.len());
     assert!(ir_grammar.rules.len() > 0);
@@ -50,11 +50,11 @@ module.exports = grammar({
     println!("Testing commaSep1 helper function...");
     let mut parser = GrammarJsParserV3::new(grammar.to_string());
     let grammar_js = parser.parse().expect("Failed to parse grammar");
-    
+
     // Convert to IR
     let mut converter = GrammarJsConverter::new(grammar_js);
     let ir_grammar = converter.convert().expect("Failed to convert to IR");
-    
+
     println!("Rules converted: {:?}", ir_grammar.rules.len());
     assert!(ir_grammar.rules.len() > 0);
 }
@@ -82,17 +82,20 @@ module.exports = grammar({
     println!("Testing parens helper function...");
     let mut parser = GrammarJsParserV3::new(grammar.to_string());
     let grammar_js = parser.parse().expect("Failed to parse grammar");
-    
+
     // Check the parsed structure
     if let Some(expr_rule) = grammar_js.rules.get("expression") {
         println!("Expression rule: {:?}", expr_rule);
     }
-    
+
     // Convert to IR
     let mut converter = GrammarJsConverter::new(grammar_js);
     let ir_grammar = converter.convert().expect("Failed to convert to IR");
-    
-    println!("Grammar converted successfully with {} rules", ir_grammar.rules.len());
+
+    println!(
+        "Grammar converted successfully with {} rules",
+        ir_grammar.rules.len()
+    );
     assert!(ir_grammar.rules.len() >= 2);
 }
 
@@ -118,11 +121,11 @@ module.exports = grammar({
     println!("Testing multiple helper functions...");
     let mut parser = GrammarJsParserV3::new(grammar.to_string());
     let grammar_js = parser.parse().expect("Failed to parse grammar");
-    
+
     // Convert to IR
     let mut converter = GrammarJsConverter::new(grammar_js);
     let ir_grammar = converter.convert().expect("Failed to convert to IR");
-    
+
     println!("Grammar converted with {} rules", ir_grammar.rules.len());
     assert!(ir_grammar.rules.len() >= 2);
 }

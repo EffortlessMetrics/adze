@@ -78,15 +78,9 @@ pub enum Predicate {
         value: Option<String>,
     },
     /// #match? predicate
-    Match {
-        capture: u32,
-        regex: String,
-    },
+    Match { capture: u32, regex: String },
     /// #not-match? predicate
-    NotMatch {
-        capture: u32,
-        regex: String,
-    },
+    NotMatch { capture: u32, regex: String },
     /// #set! directive
     Set {
         property: String,
@@ -106,10 +100,7 @@ pub enum Predicate {
         value: Option<String>,
     },
     /// #any-of? predicate
-    AnyOf {
-        capture: u32,
-        values: Vec<String>,
-    },
+    AnyOf { capture: u32, values: Vec<String> },
     /// Custom predicates
     Custom {
         name: String,
@@ -146,22 +137,22 @@ pub struct PropertyPredicate {
 pub enum QueryError {
     #[error("Syntax error at position {position}: {message}")]
     SyntaxError { position: usize, message: String },
-    
+
     #[error("Undefined node type: {0}")]
     UndefinedNodeType(String),
-    
+
     #[error("Invalid field name: {0}")]
     InvalidField(String),
-    
+
     #[error("Invalid capture name: {0}")]
     InvalidCapture(String),
-    
+
     #[error("Invalid predicate: {0}")]
     InvalidPredicate(String),
-    
+
     #[error("Regex error: {0}")]
     RegexError(String),
-    
+
     #[error("Capture index out of bounds: {0}")]
     CaptureIndexOutOfBounds(u32),
 }
@@ -177,24 +168,24 @@ impl Query {
             property_predicates: Vec::new(),
         }
     }
-    
+
     /// Get the index for a capture name
     pub fn capture_index(&self, name: &str) -> Option<u32> {
         self.capture_names.get(name).copied()
     }
-    
+
     /// Get all capture names
     pub fn capture_names(&self) -> Vec<&str> {
         let mut names: Vec<_> = self.capture_names.iter().collect();
         names.sort_by_key(|&(_, &index)| index);
         names.into_iter().map(|(name, _)| name.as_str()).collect()
     }
-    
+
     /// Get the number of captures
     pub fn capture_count(&self) -> u32 {
         self.capture_names.len() as u32
     }
-    
+
     /// Get the number of patterns
     pub fn pattern_count(&self) -> usize {
         self.patterns.len()
@@ -213,24 +204,24 @@ impl PatternNode {
             quantifier: Quantifier::One,
         }
     }
-    
+
     /// Set the capture for this node
     pub fn with_capture(mut self, capture: u32) -> Self {
         self.capture = Some(capture);
         self
     }
-    
+
     /// Set the quantifier
     pub fn with_quantifier(mut self, quantifier: Quantifier) -> Self {
         self.quantifier = quantifier;
         self
     }
-    
+
     /// Add a child pattern
     pub fn add_child(&mut self, child: PatternChild) {
         self.children.push(child);
     }
-    
+
     /// Add a field assertion
     pub fn add_field(&mut self, field_name: String, node: PatternNode) {
         self.fields.insert(field_name, node);

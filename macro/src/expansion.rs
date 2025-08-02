@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::errors::IteratorExt as _;
 use proc_macro2::Span;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use rust_sitter_common::*;
 use syn::{parse::Parse, punctuated::Punctuated, *};
 
@@ -77,7 +77,10 @@ fn gen_struct_or_variant(
         if unnamed_fields.unnamed.len() == 1 {
             let field = &unnamed_fields.unnamed[0];
             // Check if this field has a leaf attribute
-            let is_leaf = field.attrs.iter().any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
+            let is_leaf = field
+                .attrs
+                .iter()
+                .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
             if is_leaf {
                 // For leaf variants, extract directly from the node without navigating to children
                 let leaf_type = &field.ty;
@@ -85,18 +88,18 @@ fn gen_struct_or_variant(
                     .attrs
                     .iter()
                     .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
-                
+
                 let leaf_params = leaf_attr.and_then(|a| {
                     a.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
                         .ok()
                 });
-                
+
                 let transform_param = leaf_params.as_ref().and_then(|p| {
                     p.iter()
                         .find(|param| param.path == "transform")
                         .map(|p| p.expr.clone())
                 });
-                
+
                 let (leaf_type, closure_expr): (Type, Expr) = match transform_param {
                     Some(closure) => {
                         let mut non_leaf = HashSet::new();
@@ -109,11 +112,11 @@ fn gen_struct_or_variant(
                     }
                     None => (leaf_type.clone(), syn::parse_quote!(None)),
                 };
-                
+
                 let construct_name = quote! {
                     #containing_type::#variant_name
                 };
-                
+
                 return Ok(syn::parse_quote!({
                     let value = <#leaf_type as ::rust_sitter::Extract<_>>::extract(Some(node), source, 0, #closure_expr);
                     #construct_name(value)
@@ -121,7 +124,7 @@ fn gen_struct_or_variant(
             }
         }
     }
-    
+
     let children_parsed = if fields == Fields::Unit {
         let expr = {
             let dummy_field = Field {
@@ -284,7 +287,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             e.ident.clone(),
                             v.attrs.clone(),
                         )?;
-                        
+
                         // Generate detection logic based on variant structure
                         let detection_expr = match &v.fields {
                             Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
@@ -313,7 +316,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                         // Check the middle child (operator) to determine variant
                                         let middle_child = &node.children[1];
                                         let middle_kind = middle_child.kind();
-                                        
+
                                         if middle_kind == "-" && stringify!(#variant_ident).contains("Sub") {
                                             return #extract_expr;
                                         } else if middle_kind == "*" && stringify!(#variant_ident).contains("Mul") {
@@ -332,7 +335,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 }
                             }
                         };
-                        
+
                         Ok(detection_expr)
                     }).collect::<Result<Vec<_>>>()?;
 
@@ -353,7 +356,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             e.ident.clone(),
                             v.attrs.clone(),
                         )?;
-                        
+
                         // Generate detection logic based on variant structure
                         let detection_expr = match &v.fields {
                             Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
@@ -373,7 +376,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                         cursor.goto_first_child();
                                         cursor.goto_next_sibling();
                                         let middle_kind = cursor.node().kind();
-                                        
+
                                         if middle_kind == "-" && stringify!(#variant_ident).contains("Sub") {
                                             return #extract_expr;
                                         } else if middle_kind == "*" && stringify!(#variant_ident).contains("Mul") {
@@ -393,7 +396,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 }
                             }
                         };
-                        
+
                         Ok(detection_expr)
                     }).collect::<Result<Vec<_>>>()?;
 
@@ -406,20 +409,20 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             #[cfg(not(feature = "pure-rust"))]
                             fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
-                                
+
                                 // Tree-sitter wraps enum variants in a parent node
                                 // If this is a wrapper node with a single child, extract from the child
                                 if node.child_count() == 1 {
                                     let child = node.child(0).unwrap();
                                     let child_as_node = child;
-                                    
+
                                     // Check the child node structure to determine variant
                                     #(#variant_detection_logic_std)*
                                 }
-                                
+
                                 panic!("Could not determine enum variant from tree structure")
                             }
-                            
+
                             #[allow(non_snake_case)]
                             #[cfg(feature = "pure-rust")]
                             fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
@@ -428,12 +431,12 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 // If this is a wrapper node with a single child, extract from the child
                                 if node.children.len() == 1 {
                                     let child_node = &node.children[0];
-                                    
+
                                     // Apply variant detection logic to the child node
                                     let node = child_node;
                                     #(#variant_detection_logic)*
                                 }
-                                
+
                                 panic!("Could not determine enum variant from tree structure: node symbol={}, child_count={}", node.symbol, node.children.len())
                             }
                         }
@@ -466,7 +469,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 let node = node.unwrap();
                                 #extract_expr
                             }
-                            
+
                             #[allow(non_snake_case)]
                             #[cfg(feature = "pure-rust")]
                             fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
@@ -500,7 +503,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
             unsafe { #tree_sitter_ident() }
         }
     });
-    
+
     // For pure-rust backend
     #[cfg(feature = "pure-rust")]
     {
@@ -508,7 +511,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         transformed.push(syn::parse_quote! {
             include!(concat!(env!("OUT_DIR"), "/grammar_", #grammar_name, "/parser_", #grammar_name, ".rs"));
         });
-        
+
         transformed.push(syn::parse_quote! {
             pub fn language() -> &'static ::rust_sitter::pure_parser::TSLanguage {
                 unsafe { &LANGUAGE }

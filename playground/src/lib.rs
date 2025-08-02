@@ -1,16 +1,16 @@
 // Interactive grammar playground for rust-sitter
 // Provides web-based and CLI interfaces for testing grammars
 
-use std::collections::HashMap;
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
-use rust_sitter_ir::Grammar;
 use rust_sitter_glr_core::ParseTable;
+use rust_sitter_ir::Grammar;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-pub mod web;
+pub mod analyzer;
 pub mod cli;
 pub mod visualizer;
-pub mod analyzer;
+pub mod web;
 
 /// Playground session for interactive grammar testing
 #[derive(Debug, Clone)]
@@ -131,10 +131,10 @@ impl PlaygroundSession {
     /// Parse input text
     pub fn parse(&self, input: &str) -> Result<ParseResult> {
         let start_time = std::time::Instant::now();
-        
+
         // Placeholder for actual parsing
         let parse_time = start_time.elapsed();
-        
+
         Ok(ParseResult {
             success: true,
             tree: Some(format!("(program {})", input)),
@@ -155,7 +155,8 @@ impl PlaygroundSession {
 
     /// Run all test cases
     pub fn run_tests(&self) -> Vec<(TestCase, ParseResult)> {
-        self.test_cases.iter()
+        self.test_cases
+            .iter()
             .map(|test| {
                 let result = self.parse(&test.input).unwrap_or_else(|e| ParseResult {
                     success: false,
@@ -182,12 +183,12 @@ impl PlaygroundSession {
     /// Analyze the grammar
     pub fn analyze_grammar(&mut self) -> Result<&AnalysisResult> {
         let cache_key = format!("{:?}", self.grammar);
-        
+
         if !self.analysis_cache.contains_key(&cache_key) {
             let analysis = analyzer::analyze_grammar(&self.grammar)?;
             self.analysis_cache.insert(cache_key.clone(), analysis);
         }
-        
+
         Ok(self.analysis_cache.get(&cache_key).unwrap())
     }
 
@@ -203,7 +204,7 @@ impl PlaygroundSession {
             test_cases: self.test_cases.clone(),
             analysis: self.analysis_cache.values().cloned().collect(),
         };
-        
+
         Ok(serde_json::to_string_pretty(&data)?)
     }
 
@@ -302,7 +303,11 @@ impl PlaygroundBuilder {
                 PlaygroundFeature::TestRunner => {
                     let results = session.run_tests();
                     for (test, result) in results {
-                        println!("{}: {}", test.name, if result.success { "PASS" } else { "FAIL" });
+                        println!(
+                            "{}: {}",
+                            test.name,
+                            if result.success { "PASS" } else { "FAIL" }
+                        );
                     }
                 }
             }
@@ -330,7 +335,7 @@ mod tests {
     fn test_playground_session() {
         let grammar = Grammar::default();
         let mut session = PlaygroundSession::new(grammar);
-        
+
         session.add_test_case(TestCase {
             name: "simple".to_string(),
             input: "1 + 2".to_string(),
@@ -338,7 +343,7 @@ mod tests {
             should_pass: true,
             tags: vec!["arithmetic".to_string()],
         });
-        
+
         let results = session.run_tests();
         assert_eq!(results.len(), 1);
     }
@@ -352,7 +357,7 @@ mod tests {
             should_pass: true,
             tags: vec!["statement".to_string(), "variable".to_string()],
         };
-        
+
         assert_eq!(test_case.name, "test-case");
         assert_eq!(test_case.input, "let x = 42");
         assert!(test_case.should_pass);
@@ -373,7 +378,7 @@ mod tests {
             },
             visualization: None,
         };
-        
+
         assert!(result.success);
         assert_eq!(result.tree, Some("(program)".to_string()));
         assert!(result.errors.is_empty());
@@ -399,7 +404,7 @@ mod tests {
             },
             visualization: None,
         };
-        
+
         assert!(!result.success);
         assert!(result.tree.is_none());
         assert_eq!(result.errors.len(), 1);
@@ -410,7 +415,7 @@ mod tests {
     fn test_playground_session_multiple_tests() {
         let grammar = Grammar::default();
         let mut session = PlaygroundSession::new(grammar);
-        
+
         // Add multiple test cases
         session.add_test_case(TestCase {
             name: "test1".to_string(),
@@ -419,7 +424,7 @@ mod tests {
             should_pass: true,
             tags: vec![],
         });
-        
+
         session.add_test_case(TestCase {
             name: "test2".to_string(),
             input: "invalid syntax".to_string(),
@@ -427,7 +432,7 @@ mod tests {
             should_pass: false,
             tags: vec![],
         });
-        
+
         session.add_test_case(TestCase {
             name: "test3".to_string(),
             input: "x = y".to_string(),
@@ -435,7 +440,7 @@ mod tests {
             should_pass: true,
             tags: vec!["assignment".to_string()],
         });
-        
+
         let results = session.run_tests();
         assert_eq!(results.len(), 3);
     }
@@ -448,7 +453,7 @@ mod tests {
             .output("output/dir")
             .feature(PlaygroundFeature::CliInterface)
             .feature(PlaygroundFeature::Analysis);
-        
+
         assert_eq!(builder.grammar_path, Some("path/to/grammar.rs".to_string()));
         assert_eq!(builder.test_file, Some("path/to/tests.yaml".to_string()));
         assert_eq!(builder.output_dir, Some("output/dir".to_string()));
@@ -464,9 +469,9 @@ mod tests {
             PlaygroundFeature::Analysis,
             PlaygroundFeature::TestRunner,
         ];
-        
+
         assert_eq!(features.len(), 5);
-        
+
         // Test feature matching
         match features[0] {
             PlaygroundFeature::WebInterface(port) => assert_eq!(port, 8080),
@@ -481,7 +486,7 @@ mod tests {
             parsing_ms: 1.5,
             total_ms: 2.0,
         };
-        
+
         assert_eq!(timing.lexing_ms, 0.5);
         assert_eq!(timing.parsing_ms, 1.5);
         assert_eq!(timing.total_ms, 2.0);
@@ -496,7 +501,7 @@ mod tests {
             offset: 42,
             length: 3,
         };
-        
+
         assert_eq!(error.message, "Syntax error");
         assert_eq!(error.line, 5);
         assert_eq!(error.column, 10);
@@ -521,7 +526,7 @@ mod tests {
             ambiguities: vec![],
             suggestions: vec![],
         };
-        
+
         assert_eq!(result.grammar_stats.rule_count, 20);
         assert_eq!(result.grammar_stats.terminal_count, 15);
         assert_eq!(result.grammar_stats.nonterminal_count, 10);
@@ -533,7 +538,7 @@ mod tests {
     fn test_playground_session_initialization() {
         let grammar = Grammar::default();
         let session = PlaygroundSession::new(grammar.clone());
-        
+
         // Verify initial state
         let results = session.run_tests();
         assert!(results.is_empty());
@@ -542,7 +547,7 @@ mod tests {
     #[test]
     fn test_playground_builder_default() {
         let builder = PlaygroundBuilder::new();
-        
+
         assert!(builder.grammar_path.is_none());
         assert!(builder.test_file.is_none());
         assert!(builder.output_dir.is_none());
@@ -558,7 +563,7 @@ mod tests {
             should_pass: false,
             tags: vec![],
         };
-        
+
         assert!(test_case.tags.is_empty());
         assert!(!test_case.should_pass);
         assert!(test_case.input.is_empty());
@@ -599,7 +604,7 @@ mod tests {
             },
             visualization: None,
         };
-        
+
         assert!(!result.success);
         assert_eq!(result.errors.len(), 3);
         assert_eq!(result.timing.total_ms, 0.1);
@@ -618,7 +623,7 @@ mod tests {
             },
             visualization: Some("<svg>...</svg>".to_string()),
         };
-        
+
         assert!(result.success);
         assert!(result.visualization.is_some());
         assert_eq!(result.visualization.unwrap(), "<svg>...</svg>");

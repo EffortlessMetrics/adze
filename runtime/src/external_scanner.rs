@@ -39,15 +39,13 @@ impl ExternalScannerState {
 /// Trait for implementing external scanners
 pub trait ExternalScanner: Send + Sync {
     /// Create a new instance
-    fn new() -> Self where Self: Sized;
+    fn new() -> Self
+    where
+        Self: Sized;
 
     /// Scan for external tokens
-    fn scan(
-        &mut self,
-        valid_symbols: &[bool],
-        input: &[u8],
-        position: usize,
-    ) -> Option<ScanResult>;
+    fn scan(&mut self, valid_symbols: &[bool], input: &[u8], position: usize)
+    -> Option<ScanResult>;
 
     /// Serialize scanner state
     fn serialize(&self, buffer: &mut Vec<u8>);
@@ -76,7 +74,7 @@ impl ExternalScannerRuntime {
             state: ExternalScannerState::new(),
         }
     }
-    
+
     /// Get the external tokens
     pub fn get_external_tokens(&self) -> &[SymbolId] {
         &self.external_tokens
@@ -91,7 +89,8 @@ impl ExternalScannerRuntime {
         position: usize,
     ) -> Option<(SymbolId, usize)> {
         // Build valid symbols array
-        let valid_symbols: Vec<bool> = self.external_tokens
+        let valid_symbols: Vec<bool> = self
+            .external_tokens
             .iter()
             .map(|token| valid_external_tokens.contains(token))
             .collect();
@@ -289,8 +288,9 @@ impl ExternalScanner for CommentScanner {
                 let mut i = position;
 
                 while i + 1 < input.len() {
-                    if (input[i] == b'/' && input[i + 1] == b'*') ||
-                       (input[i] == b'*' && input[i + 1] == b'/') {
+                    if (input[i] == b'/' && input[i + 1] == b'*')
+                        || (input[i] == b'*' && input[i + 1] == b'/')
+                    {
                         break;
                     }
                     i += 1;
@@ -315,12 +315,7 @@ impl ExternalScanner for CommentScanner {
 
     fn deserialize(&mut self, buffer: &[u8]) {
         if buffer.len() >= 4 {
-            self.depth = u32::from_le_bytes([
-                buffer[0],
-                buffer[1],
-                buffer[2],
-                buffer[3],
-            ]);
+            self.depth = u32::from_le_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]);
         }
     }
 }
@@ -338,24 +333,33 @@ mod tests {
         let valid = vec![true, true, true]; // All tokens valid
 
         let result = scanner.scan(&valid, input, 0);
-        assert_eq!(result, Some(ScanResult {
-            symbol: SymbolId(0), // STRING_START
-            length: 1,
-        }));
+        assert_eq!(
+            result,
+            Some(ScanResult {
+                symbol: SymbolId(0), // STRING_START
+                length: 1,
+            })
+        );
 
         // Test string content
         let result = scanner.scan(&valid, input, 1);
-        assert_eq!(result, Some(ScanResult {
-            symbol: SymbolId(1), // STRING_CONTENT
-            length: 11, // "hello world"
-        }));
+        assert_eq!(
+            result,
+            Some(ScanResult {
+                symbol: SymbolId(1), // STRING_CONTENT
+                length: 11,          // "hello world"
+            })
+        );
 
         // Test string end
         let result = scanner.scan(&valid, input, 12);
-        assert_eq!(result, Some(ScanResult {
-            symbol: SymbolId(2), // STRING_END
-            length: 1,
-        }));
+        assert_eq!(
+            result,
+            Some(ScanResult {
+                symbol: SymbolId(2), // STRING_END
+                length: 1,
+            })
+        );
     }
 
     #[test]
@@ -368,10 +372,13 @@ mod tests {
         let valid = vec![false, true, false];
 
         let result = scanner.scan(&valid, input, 0);
-        assert_eq!(result, Some(ScanResult {
-            symbol: SymbolId(1), // STRING_CONTENT
-            length: 12, // includes escape sequence
-        }));
+        assert_eq!(
+            result,
+            Some(ScanResult {
+                symbol: SymbolId(1), // STRING_CONTENT
+                length: 12,          // includes escape sequence
+            })
+        );
     }
 
     #[test]
@@ -383,18 +390,24 @@ mod tests {
         let valid = vec![true, true, true];
 
         let result = scanner.scan(&valid, input, 0);
-        assert_eq!(result, Some(ScanResult {
-            symbol: SymbolId(0), // COMMENT_START
-            length: 2,
-        }));
+        assert_eq!(
+            result,
+            Some(ScanResult {
+                symbol: SymbolId(0), // COMMENT_START
+                length: 2,
+            })
+        );
         assert_eq!(scanner.depth, 1);
 
         // Test nested comment
         let result = scanner.scan(&valid, input, 9);
-        assert_eq!(result, Some(ScanResult {
-            symbol: SymbolId(1), // COMMENT_CONTENT
-            length: 2,
-        }));
+        assert_eq!(
+            result,
+            Some(ScanResult {
+                symbol: SymbolId(1), // COMMENT_CONTENT
+                length: 2,
+            })
+        );
         assert_eq!(scanner.depth, 2);
     }
 

@@ -2,14 +2,16 @@
 // This tests the complete pipeline from grammar to parsing
 
 use rust_sitter::lexer::GrammarLexer;
-use rust_sitter::parser::{Parser, ParseNode};
+use rust_sitter::parser::{ParseNode, Parser};
 use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token as IrToken, TokenPattern};
+use rust_sitter_ir::{
+    Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token as IrToken, TokenPattern,
+};
 
 /// Create a simple arithmetic grammar for testing
 fn create_arithmetic_grammar() -> Grammar {
     let mut grammar = Grammar::new("arithmetic".to_string());
-    
+
     // Tokens
     // 0 = EOF (implicit)
     // 1 = number
@@ -19,54 +21,75 @@ fn create_arithmetic_grammar() -> Grammar {
     // 5 = (
     // 6 = )
     // 7 = whitespace (skip)
-    
-    grammar.tokens.insert(SymbolId(1), IrToken {
-        name: "number".to_string(),
-        fragile: false,
-        pattern: TokenPattern::Regex(r"\d+".to_string()),
-    });
-    
-    grammar.tokens.insert(SymbolId(2), IrToken {
-        name: "plus".to_string(),
-        fragile: false,
-        pattern: TokenPattern::String("+".to_string()),
-    });
-    
-    grammar.tokens.insert(SymbolId(3), IrToken {
-        name: "minus".to_string(),
-        fragile: false,
-        pattern: TokenPattern::String("-".to_string()),
-    });
-    
-    grammar.tokens.insert(SymbolId(4), IrToken {
-        name: "star".to_string(),
-        fragile: false,
-        pattern: TokenPattern::String("*".to_string()),
-    });
-    
-    grammar.tokens.insert(SymbolId(5), IrToken {
-        name: "lparen".to_string(),
-        fragile: false,
-        pattern: TokenPattern::String("(".to_string()),
-    });
-    
-    grammar.tokens.insert(SymbolId(6), IrToken {
-        name: "rparen".to_string(),
-        fragile: false,
-        pattern: TokenPattern::String(")".to_string()),
-    });
-    
-    grammar.tokens.insert(SymbolId(7), IrToken {
-        name: "whitespace".to_string(),
-        fragile: false,
-        pattern: TokenPattern::Regex(r"\s+".to_string()),
-    });
-    
+
+    grammar.tokens.insert(
+        SymbolId(1),
+        IrToken {
+            name: "number".to_string(),
+            fragile: false,
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+        },
+    );
+
+    grammar.tokens.insert(
+        SymbolId(2),
+        IrToken {
+            name: "plus".to_string(),
+            fragile: false,
+            pattern: TokenPattern::String("+".to_string()),
+        },
+    );
+
+    grammar.tokens.insert(
+        SymbolId(3),
+        IrToken {
+            name: "minus".to_string(),
+            fragile: false,
+            pattern: TokenPattern::String("-".to_string()),
+        },
+    );
+
+    grammar.tokens.insert(
+        SymbolId(4),
+        IrToken {
+            name: "star".to_string(),
+            fragile: false,
+            pattern: TokenPattern::String("*".to_string()),
+        },
+    );
+
+    grammar.tokens.insert(
+        SymbolId(5),
+        IrToken {
+            name: "lparen".to_string(),
+            fragile: false,
+            pattern: TokenPattern::String("(".to_string()),
+        },
+    );
+
+    grammar.tokens.insert(
+        SymbolId(6),
+        IrToken {
+            name: "rparen".to_string(),
+            fragile: false,
+            pattern: TokenPattern::String(")".to_string()),
+        },
+    );
+
+    grammar.tokens.insert(
+        SymbolId(7),
+        IrToken {
+            name: "whitespace".to_string(),
+            fragile: false,
+            pattern: TokenPattern::Regex(r"\s+".to_string()),
+        },
+    );
+
     // Non-terminals
     // 10 = expression
     // 11 = term
     // 12 = factor
-    
+
     // Rules:
     // expression -> expression + term (rule 100)
     // expression -> expression - term (rule 101)
@@ -75,47 +98,63 @@ fn create_arithmetic_grammar() -> Grammar {
     // term -> factor (rule 111)
     // factor -> ( expression ) (rule 120)
     // factor -> number (rule 121)
-    
-    grammar.rules.entry(SymbolId(100)).or_insert_with(Vec::new).push( Rule {
-        lhs: SymbolId(10), // expression
-        rhs: vec![
-            Symbol::NonTerminal(SymbolId(10)), // expression
-            Symbol::Terminal(SymbolId(2)),      // +
-            Symbol::NonTerminal(SymbolId(11)), // term
-        ],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(0),
-        fields: Default::default(),
-    });
-    
-    grammar.rules.entry(SymbolId(102)).or_insert_with(Vec::new).push( Rule {
-        lhs: SymbolId(10), // expression
-        rhs: vec![Symbol::NonTerminal(SymbolId(11))], // term
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(0),
-        fields: Default::default(),
-    });
-    
-    grammar.rules.entry(SymbolId(111)).or_insert_with(Vec::new).push( Rule {
-        lhs: SymbolId(11), // term
-        rhs: vec![Symbol::NonTerminal(SymbolId(12))], // factor
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(0),
-        fields: Default::default(),
-    });
-    
-    grammar.rules.entry(SymbolId(121)).or_insert_with(Vec::new).push( Rule {
-        lhs: SymbolId(12), // factor
-        rhs: vec![Symbol::Terminal(SymbolId(1))], // number
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(0),
-        fields: Default::default(),
-    });
-    
+
+    grammar
+        .rules
+        .entry(SymbolId(100))
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: SymbolId(10), // expression
+            rhs: vec![
+                Symbol::NonTerminal(SymbolId(10)), // expression
+                Symbol::Terminal(SymbolId(2)),     // +
+                Symbol::NonTerminal(SymbolId(11)), // term
+            ],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: Default::default(),
+        });
+
+    grammar
+        .rules
+        .entry(SymbolId(102))
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: SymbolId(10),                            // expression
+            rhs: vec![Symbol::NonTerminal(SymbolId(11))], // term
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: Default::default(),
+        });
+
+    grammar
+        .rules
+        .entry(SymbolId(111))
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: SymbolId(11),                            // term
+            rhs: vec![Symbol::NonTerminal(SymbolId(12))], // factor
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: Default::default(),
+        });
+
+    grammar
+        .rules
+        .entry(SymbolId(121))
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: SymbolId(12),                        // factor
+            rhs: vec![Symbol::Terminal(SymbolId(1))], // number
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: Default::default(),
+        });
+
     grammar
 }
 
@@ -130,12 +169,12 @@ fn create_arithmetic_parse_table() -> ParseTable {
         symbol_metadata: vec![],
         symbol_to_index: std::collections::BTreeMap::new(),
     };
-    
+
     // State 0: Initial state
     // Can shift number or (
     table.action_table[0][1] = Action::Shift(StateId(1)); // number
     table.action_table[0][5] = Action::Shift(StateId(2)); // (
-    
+
     // State 1: After number
     // Reduce to factor
     table.action_table[1][0] = Action::Reduce(RuleId(121)); // EOF
@@ -143,32 +182,32 @@ fn create_arithmetic_parse_table() -> ParseTable {
     table.action_table[1][3] = Action::Reduce(RuleId(121)); // -
     table.action_table[1][4] = Action::Reduce(RuleId(121)); // *
     table.action_table[1][6] = Action::Reduce(RuleId(121)); // )
-    
+
     // State 3: After factor
     // Reduce to term
     table.action_table[3][0] = Action::Reduce(RuleId(111)); // EOF
     table.action_table[3][2] = Action::Reduce(RuleId(111)); // +
     table.action_table[3][3] = Action::Reduce(RuleId(111)); // -
-    table.action_table[3][4] = Action::Shift(StateId(4));   // * (shift for term * factor)
+    table.action_table[3][4] = Action::Shift(StateId(4)); // * (shift for term * factor)
     table.action_table[3][6] = Action::Reduce(RuleId(111)); // )
-    
+
     // State 5: After term
     // Reduce to expression
     table.action_table[5][0] = Action::Reduce(RuleId(102)); // EOF
-    table.action_table[5][2] = Action::Shift(StateId(6));   // + (shift for expr + term)
-    table.action_table[5][3] = Action::Shift(StateId(7));   // - (shift for expr - term)
+    table.action_table[5][2] = Action::Shift(StateId(6)); // + (shift for expr + term)
+    table.action_table[5][3] = Action::Shift(StateId(7)); // - (shift for expr - term)
     table.action_table[5][6] = Action::Reduce(RuleId(102)); // )
-    
+
     // State 8: After expression (goal state)
     table.action_table[8][0] = Action::Accept; // EOF - accept!
     table.action_table[8][2] = Action::Shift(StateId(6)); // +
     table.action_table[8][3] = Action::Shift(StateId(7)); // -
-    
+
     // Goto table
-    table.goto_table[0][10] = StateId(8);  // expression
-    table.goto_table[0][11] = StateId(5);  // term
-    table.goto_table[0][12] = StateId(3);  // factor
-    
+    table.goto_table[0][10] = StateId(8); // expression
+    table.goto_table[0][11] = StateId(5); // term
+    table.goto_table[0][12] = StateId(3); // factor
+
     // Add symbol metadata
     for i in 0..13 {
         table.symbol_metadata.push(SymbolMetadata {
@@ -178,7 +217,7 @@ fn create_arithmetic_parse_table() -> ParseTable {
             supertype: false,
         });
     }
-    
+
     table
 }
 
@@ -186,22 +225,25 @@ fn create_arithmetic_parse_table() -> ParseTable {
 #[test]
 fn test_lexer() {
     let grammar = create_arithmetic_grammar();
-    
+
     // Create lexer from grammar tokens
-    let token_patterns: Vec<_> = grammar.tokens.iter()
+    let token_patterns: Vec<_> = grammar
+        .tokens
+        .iter()
         .map(|(symbol_id, token)| (*symbol_id, token.pattern.clone(), 0))
         .collect();
-    
+
     let mut lexer = GrammarLexer::new(&token_patterns);
     lexer.set_skip_symbols(vec![SymbolId(7)]); // Skip whitespace
-    
+
     let input = b"123 + 456";
     let mut tokens = Vec::new();
     let mut pos = 0;
-    
+
     while pos < input.len() {
         if let Some(token) = lexer.next_token(input, pos) {
-            if token.symbol != SymbolId(0) { // Not EOF
+            if token.symbol != SymbolId(0) {
+                // Not EOF
                 tokens.push(token.clone());
             }
             pos = token.end;
@@ -209,7 +251,7 @@ fn test_lexer() {
             break;
         }
     }
-    
+
     assert_eq!(tokens.len(), 3);
     assert_eq!(tokens[0].symbol, SymbolId(1)); // number
     assert_eq!(tokens[0].text, b"123");
@@ -224,19 +266,17 @@ fn test_simple_parse() {
     let grammar = create_arithmetic_grammar();
     let parse_table = create_arithmetic_parse_table();
     let mut parser = ParserV2::new(grammar, parse_table);
-    
+
     // Create tokens for "123"
-    let tokens = vec![
-        Token {
-            symbol: SymbolId(1), // number
-            text: b"123".to_vec(),
-            start: 0,
-            end: 3,
-        },
-    ];
-    
+    let tokens = vec![Token {
+        symbol: SymbolId(1), // number
+        text: b"123".to_vec(),
+        start: 0,
+        end: 3,
+    }];
+
     let result = parser.parse(tokens);
-    
+
     // For now this will fail because our parse table is incomplete
     // but it demonstrates the structure
     match result {
@@ -257,15 +297,15 @@ fn test_parse_node_structure() {
     let num1 = ParseNode::terminal(SymbolId(1), b"123".to_vec(), 0, 3);
     let plus = ParseNode::terminal(SymbolId(2), b"+".to_vec(), 4, 5);
     let num2 = ParseNode::terminal(SymbolId(1), b"456".to_vec(), 6, 9);
-    
+
     let expr = ParseNode::non_terminal(
         SymbolId(10), // expression
-        RuleId(100),   // expression -> expression + term
+        RuleId(100),  // expression -> expression + term
         vec![num1, plus, num2],
         0,
         9,
     );
-    
+
     assert_eq!(expr.symbol, SymbolId(10));
     assert_eq!(expr.children.len(), 3);
     assert_eq!(expr.start_byte, 0);
@@ -276,19 +316,21 @@ fn test_parse_node_structure() {
 #[test]
 fn test_lexer_error_recovery() {
     use rust_sitter::lexer::ErrorRecoveringLexer;
-    
+
     let grammar = create_arithmetic_grammar();
-    let token_patterns: Vec<_> = grammar.tokens.iter()
+    let token_patterns: Vec<_> = grammar
+        .tokens
+        .iter()
         .map(|(symbol_id, token)| (*symbol_id, token.pattern.clone(), 0))
         .collect();
-    
+
     let base_lexer = GrammarLexer::new(&token_patterns);
     let mut lexer = ErrorRecoveringLexer::new(base_lexer, SymbolId(999)); // Error symbol
-    
+
     let input = b"123 @ 456"; // @ is not a valid token
     let mut tokens = Vec::new();
     let mut pos = 0;
-    
+
     while pos < input.len() {
         if let Some(token) = lexer.next_token(input, pos) {
             tokens.push(token.clone());
@@ -300,9 +342,17 @@ fn test_lexer_error_recovery() {
             break;
         }
     }
-    
+
     // Should have: number, space, error(@), space, number
     assert!(tokens.iter().any(|t| t.symbol == SymbolId(999))); // Has error token
-    assert!(tokens.iter().any(|t| t.symbol == SymbolId(1) && t.text == b"123"));
-    assert!(tokens.iter().any(|t| t.symbol == SymbolId(1) && t.text == b"456"));
+    assert!(
+        tokens
+            .iter()
+            .any(|t| t.symbol == SymbolId(1) && t.text == b"123")
+    );
+    assert!(
+        tokens
+            .iter()
+            .any(|t| t.symbol == SymbolId(1) && t.text == b"456")
+    );
 }

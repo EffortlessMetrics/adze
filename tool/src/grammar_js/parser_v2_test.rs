@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::super::parser_v2::parse_grammar_js_v2;
-    
+
     #[test]
     fn test_basic_grammar() {
         let grammar_js = r#"
@@ -31,10 +31,10 @@ module.exports = grammar({
   }
 });
         "#;
-        
+
         let result = parse_grammar_js_v2(grammar_js);
         assert!(result.is_ok());
-        
+
         let grammar = result.unwrap();
         assert_eq!(grammar.name, "test");
         assert_eq!(grammar.rules.len(), 5);

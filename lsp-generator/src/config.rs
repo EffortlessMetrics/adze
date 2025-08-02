@@ -1,24 +1,24 @@
 // Configuration for LSP generation
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LspConfig {
     /// Name of the language server
     pub name: String,
-    
+
     /// Version of the language server
     pub version: String,
-    
+
     /// Language ID (e.g., "rust", "javascript")
     pub language_id: String,
-    
+
     /// File extensions (e.g., [".rs", ".rust"])
     pub file_extensions: Vec<String>,
-    
+
     /// Server capabilities configuration
     pub capabilities: ServerCapabilities,
-    
+
     /// Logging configuration
     pub logging: LoggingConfig,
 }
@@ -40,22 +40,22 @@ impl Default for LspConfig {
 pub struct ServerCapabilities {
     /// Enable incremental sync
     pub incremental_sync: bool,
-    
+
     /// Enable semantic tokens
     pub semantic_tokens: bool,
-    
+
     /// Enable code actions
     pub code_actions: bool,
-    
+
     /// Enable formatting
     pub formatting: bool,
-    
+
     /// Enable goto definition
     pub goto_definition: bool,
-    
+
     /// Enable find references
     pub find_references: bool,
-    
+
     /// Enable rename
     pub rename: bool,
 }
@@ -78,10 +78,10 @@ impl Default for ServerCapabilities {
 pub struct LoggingConfig {
     /// Log level (error, warn, info, debug, trace)
     pub level: String,
-    
+
     /// Log to file
     pub file: Option<String>,
-    
+
     /// Log to stderr
     pub stderr: bool,
 }
@@ -103,7 +103,7 @@ mod tests {
     #[test]
     fn test_lsp_config_default() {
         let config = LspConfig::default();
-        
+
         assert_eq!(config.name, "rust-sitter-lsp");
         assert_eq!(config.version, "0.1.0");
         assert_eq!(config.language_id, "unknown");
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn test_server_capabilities_default() {
         let capabilities = ServerCapabilities::default();
-        
+
         assert!(capabilities.incremental_sync);
         assert!(!capabilities.semantic_tokens);
         assert!(!capabilities.code_actions);
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn test_logging_config_default() {
         let logging = LoggingConfig::default();
-        
+
         assert_eq!(logging.level, "info");
         assert!(logging.file.is_none());
         assert!(logging.stderr);
@@ -142,12 +142,12 @@ mod tests {
             capabilities: ServerCapabilities::default(),
             logging: LoggingConfig::default(),
         };
-        
+
         // Test serialization
         let json = serde_json::to_string(&config).unwrap();
         assert!(json.contains("\"name\":\"my-lsp\""));
         assert!(json.contains("\"language_id\":\"mylang\""));
-        
+
         // Test deserialization
         let deserialized: LspConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.name, config.name);
@@ -165,7 +165,7 @@ mod tests {
             find_references: true,
             rename: true,
         };
-        
+
         assert!(!capabilities.incremental_sync);
         assert!(capabilities.semantic_tokens);
         assert!(capabilities.code_actions);
@@ -182,7 +182,7 @@ mod tests {
             file: Some("/var/log/lsp.log".to_string()),
             stderr: false,
         };
-        
+
         assert_eq!(logging.level, "debug");
         assert_eq!(logging.file, Some("/var/log/lsp.log".to_string()));
         assert!(!logging.stderr);

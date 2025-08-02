@@ -1,9 +1,9 @@
 // Grammar optimization passes for the pure-Rust Tree-sitter implementation
 // This module implements various optimizations to improve parser performance
 
-use crate::{Grammar, Rule, Symbol, SymbolId, ProductionId, TokenPattern};
 #[cfg(test)]
 use crate::Token;
+use crate::{Grammar, ProductionId, Rule, Symbol, SymbolId, TokenPattern};
 use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
 
@@ -38,8 +38,10 @@ impl GrammarOptimizer {
             if let Some(sf_id) = grammar.find_symbol_by_name("source_file") {
                 let has_rules = grammar.rules.contains_key(&sf_id);
                 let rule_count = grammar.rules.get(&sf_id).map(|r| r.len()).unwrap_or(0);
-                eprintln!("Debug after {}: source_file is SymbolId({}), has_rules={}, rule_count={}", 
-                    phase, sf_id.0, has_rules, rule_count);
+                eprintln!(
+                    "Debug after {}: source_file is SymbolId({}), has_rules={}, rule_count={}",
+                    phase, sf_id.0, has_rules, rule_count
+                );
             } else {
                 eprintln!("Debug after {}: source_file not found!", phase);
             }
@@ -52,16 +54,16 @@ impl GrammarOptimizer {
         // Phase 2: Optimizations
         stats.removed_unused_symbols = self.remove_unused_symbols(grammar);
         check_source_file(grammar, "remove_unused_symbols");
-        
+
         stats.inlined_rules = self.inline_simple_rules(grammar);
         check_source_file(grammar, "inline_simple_rules");
-        
+
         stats.merged_tokens = self.merge_equivalent_tokens(grammar);
         check_source_file(grammar, "merge_equivalent_tokens");
-        
+
         stats.optimized_left_recursion = self.optimize_left_recursion(grammar);
         check_source_file(grammar, "optimize_left_recursion");
-        
+
         stats.eliminated_unit_rules = self.eliminate_unit_rules(grammar);
         check_source_file(grammar, "eliminate_unit_rules");
 
@@ -101,12 +103,12 @@ impl GrammarOptimizer {
         if let Some(start_symbol) = grammar.start_symbol() {
             self.used_symbols.insert(start_symbol);
         }
-        
+
         // Always mark source_file as used if it exists (Tree-sitter compatibility)
         if let Some(source_file_id) = grammar.find_symbol_by_name("source_file") {
             self.source_file_id = Some(source_file_id);
             self.used_symbols.insert(source_file_id);
-            
+
             // Also mark symbols referenced by source_file
             if let Some(rules) = grammar.rules.get(&source_file_id) {
                 for rule in rules {
@@ -126,7 +128,7 @@ impl GrammarOptimizer {
                 }
             }
         }
-        
+
         // Also mark all rule LHS as used (they define the symbols)
         for symbol_id in grammar.rules.keys() {
             self.used_symbols.insert(*symbol_id);
@@ -137,41 +139,44 @@ impl GrammarOptimizer {
             for rule in rules {
                 // Mark symbols used in productions
                 for symbol in &rule.rhs {
-                match symbol {
-                    Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
-                        self.used_symbols.insert(*id);
-                    }
-                    Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
-                        self.mark_used_in_symbol(inner);
-                    }
-                    Symbol::Choice(choices) => {
-                        for s in choices {
-                            self.mark_used_in_symbol(s);
+                    match symbol {
+                        Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
+                            self.used_symbols.insert(*id);
                         }
-                    }
-                    Symbol::Sequence(seq) => {
-                        for s in seq {
-                            self.mark_used_in_symbol(s);
+                        Symbol::Optional(inner)
+                        | Symbol::Repeat(inner)
+                        | Symbol::RepeatOne(inner) => {
+                            self.mark_used_in_symbol(inner);
                         }
+                        Symbol::Choice(choices) => {
+                            for s in choices {
+                                self.mark_used_in_symbol(s);
+                            }
+                        }
+                        Symbol::Sequence(seq) => {
+                            for s in seq {
+                                self.mark_used_in_symbol(s);
+                            }
+                        }
+                        Symbol::Epsilon => {}
                     }
-                    Symbol::Epsilon => {}
                 }
-            }
 
-            // Check if rule is inlinable (simple, non-recursive)
-            // Never inline source_file as it's the start symbol
-            if rule.rhs.len() == 1 
-                && !self.is_recursive_rule(rule, grammar)
-                && Some(rule.lhs) != self.source_file_id {
-                self.inlinable_rules.insert(rule.lhs);
-            } else if Some(rule.lhs) == self.source_file_id && rule.rhs.len() == 1 {
-                // source_file is not inlinable
-            }
+                // Check if rule is inlinable (simple, non-recursive)
+                // Never inline source_file as it's the start symbol
+                if rule.rhs.len() == 1
+                    && !self.is_recursive_rule(rule, grammar)
+                    && Some(rule.lhs) != self.source_file_id
+                {
+                    self.inlinable_rules.insert(rule.lhs);
+                } else if Some(rule.lhs) == self.source_file_id && rule.rhs.len() == 1 {
+                    // source_file is not inlinable
+                }
 
-            // Check for left recursion
-            if self.is_left_recursive(rule) {
-                self.left_recursive_rules.insert(rule.lhs);
-            }
+                // Check for left recursion
+                if self.is_left_recursive(rule) {
+                    self.left_recursive_rules.insert(rule.lhs);
+                }
             }
         }
 
@@ -183,7 +188,8 @@ impl GrammarOptimizer {
         let mut removed = 0;
 
         // Remove unused rules
-        let unused_rules: Vec<_> = grammar.rules
+        let unused_rules: Vec<_> = grammar
+            .rules
             .iter()
             .filter(|(id, _)| !self.used_symbols.contains(id))
             .map(|(id, _)| *id)
@@ -195,7 +201,8 @@ impl GrammarOptimizer {
         }
 
         // Remove unused tokens
-        let unused_tokens: Vec<_> = grammar.tokens
+        let unused_tokens: Vec<_> = grammar
+            .tokens
             .iter()
             .filter(|(id, _)| !self.used_symbols.contains(id))
             .map(|(id, _)| *id)
@@ -212,7 +219,7 @@ impl GrammarOptimizer {
     /// Inline simple rules that just reference another symbol
     fn inline_simple_rules(&mut self, grammar: &mut Grammar) -> usize {
         // Process inlinable rules
-        
+
         let mut inlined = 0;
         let mut replacements = HashMap::new();
 
@@ -317,7 +324,7 @@ impl GrammarOptimizer {
                 if !recursive_rules.is_empty() && !base_rules.is_empty() {
                     // Create new symbol for the recursive part
                     let new_symbol = self.create_new_symbol(grammar);
-                    
+
                     // Transform the rules
                     self.transform_left_recursion(
                         grammar,
@@ -326,7 +333,7 @@ impl GrammarOptimizer {
                         recursive_rules,
                         base_rules,
                     );
-                    
+
                     optimized += 1;
                 }
             }
@@ -359,10 +366,15 @@ impl GrammarOptimizer {
                 if let Some(target_rules) = grammar.get_rules_for_symbol(*target) {
                     for target_rule in target_rules {
                         // Skip if this would create a terminal production for the start symbol
-                        if Some(unit_rule.lhs) == start_symbol && target_rule.rhs.iter().any(|s| matches!(s, Symbol::Terminal(_))) {
+                        if Some(unit_rule.lhs) == start_symbol
+                            && target_rule
+                                .rhs
+                                .iter()
+                                .any(|s| matches!(s, Symbol::Terminal(_)))
+                        {
                             continue;
                         }
-                        
+
                         // Create new rule A -> γ
                         let new_rule = Rule {
                             lhs: unit_rule.lhs,
@@ -422,7 +434,7 @@ impl GrammarOptimizer {
                 Symbol::NonTerminal(id) if *id == target => return true,
                 Symbol::NonTerminal(id) if !visited.contains(id) => {
                     visited.insert(*id);
-                    
+
                     // Check all rules for this non-terminal
                     if let Some(rules) = grammar.get_rules_for_symbol(*id) {
                         for rule in rules {
@@ -469,7 +481,9 @@ impl GrammarOptimizer {
 
     /// Create a new unique symbol ID
     fn create_new_symbol(&self, grammar: &Grammar) -> SymbolId {
-        let max_id = grammar.rules.keys()
+        let max_id = grammar
+            .rules
+            .keys()
             .chain(grammar.tokens.keys())
             .map(|id| id.0)
             .max()
@@ -480,7 +494,9 @@ impl GrammarOptimizer {
 
     /// Create a new unique production ID
     fn create_new_production_id(&self, grammar: &Grammar) -> ProductionId {
-        let max_id = grammar.rules.values()
+        let max_id = grammar
+            .rules
+            .values()
             .flat_map(|rules| rules.iter())
             .map(|r| r.production_id.0)
             .max()
@@ -573,7 +589,7 @@ impl GrammarOptimizer {
             Symbol::Epsilon => {}
         }
     }
-    
+
     fn renumber_symbol(&self, symbol: &mut Symbol, old_to_new: &HashMap<SymbolId, SymbolId>) {
         match symbol {
             Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
@@ -604,30 +620,36 @@ impl GrammarOptimizer {
         let mut next_id = 1u16; // 0 is reserved for EOF
 
         // Renumber symbols to be contiguous while preserving parse table ordering
-        
+
         // Collect all symbols
         let mut token_symbols: HashSet<SymbolId> = HashSet::new();
         let mut non_terminal_symbols: HashSet<SymbolId> = HashSet::new();
         let mut external_symbols: HashSet<SymbolId> = HashSet::new();
-        
+
         // Categorize symbols
         token_symbols.extend(grammar.tokens.keys().copied());
-        
+
         // Add all symbols from rules
         for (symbol_id, _) in &grammar.rules {
             if !token_symbols.contains(symbol_id) {
                 non_terminal_symbols.insert(*symbol_id);
             }
         }
-        
+
         // Add all symbols referenced in rule RHS
         for rules in grammar.rules.values() {
             for rule in rules {
                 for symbol in &rule.rhs {
                     match symbol {
-                        Symbol::Terminal(id) => { token_symbols.insert(*id); }
-                        Symbol::NonTerminal(id) => { non_terminal_symbols.insert(*id); }
-                        Symbol::External(id) => { external_symbols.insert(*id); }
+                        Symbol::Terminal(id) => {
+                            token_symbols.insert(*id);
+                        }
+                        Symbol::NonTerminal(id) => {
+                            non_terminal_symbols.insert(*id);
+                        }
+                        Symbol::External(id) => {
+                            external_symbols.insert(*id);
+                        }
                         _ => {
                             let mut ids = HashSet::new();
                             self.collect_symbol_ids(symbol, &mut ids);
@@ -646,42 +668,48 @@ impl GrammarOptimizer {
                 }
             }
         }
-        
+
         // Add external symbols
         for external in &grammar.externals {
             external_symbols.insert(external.symbol_id);
         }
-        
+
         // Sort each category for deterministic ordering by symbol name
         let mut token_vec: Vec<_> = token_symbols.into_iter().collect();
         let mut non_terminal_vec: Vec<_> = non_terminal_symbols.into_iter().collect();
         let mut external_vec: Vec<_> = external_symbols.into_iter().collect();
-        
+
         // Sort by symbol name for deterministic ordering
         token_vec.sort_by_key(|id| {
-            grammar.tokens.get(id)
+            grammar
+                .tokens
+                .get(id)
                 .map(|t| t.name.clone())
                 .unwrap_or_else(|| format!("_token_{}", id.0))
         });
         non_terminal_vec.sort_by_key(|id| {
             // Try to find the symbol name from rule_names
-            grammar.rule_names.get(id)
+            grammar
+                .rule_names
+                .get(id)
                 .cloned()
                 .unwrap_or_else(|| format!("_nt_{}", id.0))
         });
         external_vec.sort_by_key(|id| {
-            grammar.externals.iter()
+            grammar
+                .externals
+                .iter()
                 .find(|e| e.symbol_id == *id)
                 .map(|e| e.name.clone())
                 .unwrap_or_else(|| format!("_ext_{}", id.0))
         });
-        
+
         // Assign new IDs preserving parse table ordering: tokens first, then non-terminals, then externals
         eprintln!("DEBUG renumber_symbols: Assigning new IDs");
         eprintln!("  Tokens: {:?}", token_vec);
         eprintln!("  Non-terminals: {:?}", non_terminal_vec);
         eprintln!("  Externals: {:?}", external_vec);
-        
+
         for old_id in token_vec {
             if !old_to_new.contains_key(&old_id) {
                 old_to_new.insert(old_id, SymbolId(next_id));
@@ -689,7 +717,7 @@ impl GrammarOptimizer {
                 next_id += 1;
             }
         }
-        
+
         for old_id in non_terminal_vec {
             if !old_to_new.contains_key(&old_id) {
                 old_to_new.insert(old_id, SymbolId(next_id));
@@ -697,7 +725,7 @@ impl GrammarOptimizer {
                 next_id += 1;
             }
         }
-        
+
         for old_id in external_vec {
             if !old_to_new.contains_key(&old_id) {
                 old_to_new.insert(old_id, SymbolId(next_id));
@@ -705,7 +733,7 @@ impl GrammarOptimizer {
                 next_id += 1;
             }
         }
-        
+
         // Apply renumbering mappings
 
         // Update tokens
@@ -720,10 +748,10 @@ impl GrammarOptimizer {
         // Update rules
         let mut new_rules = IndexMap::new();
         // Process rules
-        
+
         for (old_id, mut rules) in grammar.rules.drain(..) {
             // Process rules for this symbol
-            
+
             // Update each rule in the vector
             for rule in &mut rules {
                 // Update LHS
@@ -736,7 +764,7 @@ impl GrammarOptimizer {
                     self.renumber_symbol(symbol, &old_to_new);
                 }
             }
-            
+
             // Insert with possibly updated key
             let new_key = if let Some(&new_id) = old_to_new.get(&old_id) {
                 // Renumber symbol
@@ -747,7 +775,7 @@ impl GrammarOptimizer {
             };
             new_rules.insert(new_key, rules);
         }
-        
+
         // Update grammar rules
         grammar.rules = new_rules;
 
@@ -769,12 +797,14 @@ impl GrammarOptimizer {
         grammar.rule_names = new_rule_names;
 
         // Update other references
-        grammar.supertypes = grammar.supertypes
+        grammar.supertypes = grammar
+            .supertypes
             .iter()
             .filter_map(|id| old_to_new.get(id).copied())
             .collect();
 
-        grammar.inline_rules = grammar.inline_rules
+        grammar.inline_rules = grammar
+            .inline_rules
             .iter()
             .filter_map(|id| old_to_new.get(id).copied())
             .collect();
@@ -785,17 +815,22 @@ impl GrammarOptimizer {
                 external.symbol_id = new_id;
             }
         }
-        
+
         // Update extras
         eprintln!("DEBUG renumber_symbols: Updating extras");
         eprintln!("  Old extras: {:?}", grammar.extras);
-        grammar.extras = grammar.extras.iter()
+        grammar.extras = grammar
+            .extras
+            .iter()
             .filter_map(|&old_id| {
                 if let Some(&new_id) = old_to_new.get(&old_id) {
                     eprintln!("  Extra {:?} -> {:?}", old_id, new_id);
                     Some(new_id)
                 } else {
-                    eprintln!("  WARNING: Extra {:?} not found in renumbering map!", old_id);
+                    eprintln!(
+                        "  WARNING: Extra {:?} not found in renumbering map!",
+                        old_id
+                    );
                     None
                 }
             })
@@ -835,30 +870,39 @@ impl OptimizationStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{PrecedenceKind, Associativity};
+    use crate::{Associativity, PrecedenceKind};
 
     fn create_test_grammar() -> Grammar {
         let mut grammar = Grammar::new("test".to_string());
 
         // Add some tokens
-        grammar.tokens.insert(SymbolId(1), Token {
-            name: "plus".to_string(),
-            pattern: TokenPattern::String("+".to_string()),
-            fragile: false,
-        });
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "plus".to_string(),
+                pattern: TokenPattern::String("+".to_string()),
+                fragile: false,
+            },
+        );
 
-        grammar.tokens.insert(SymbolId(2), Token {
-            name: "number".to_string(),
-            pattern: TokenPattern::Regex(r"\d+".to_string()),
-            fragile: false,
-        });
+        grammar.tokens.insert(
+            SymbolId(2),
+            Token {
+                name: "number".to_string(),
+                pattern: TokenPattern::Regex(r"\d+".to_string()),
+                fragile: false,
+            },
+        );
 
         // Add an unused token
-        grammar.tokens.insert(SymbolId(99), Token {
-            name: "unused".to_string(),
-            pattern: TokenPattern::String("unused".to_string()),
-            fragile: false,
-        });
+        grammar.tokens.insert(
+            SymbolId(99),
+            Token {
+                name: "unused".to_string(),
+                pattern: TokenPattern::String("unused".to_string()),
+                fragile: false,
+            },
+        );
 
         // Add rules
         let expr = SymbolId(3);
@@ -905,17 +949,29 @@ mod tests {
     fn test_remove_unused_symbols() {
         let mut grammar = create_test_grammar();
         let mut optimizer = GrammarOptimizer::new();
-        
+
         optimizer.analyze_grammar(&grammar);
-        
+
         println!("Used symbols: {:?}", optimizer.used_symbols);
-        println!("Tokens before: {:?}", grammar.tokens.keys().collect::<Vec<_>>());
-        println!("Rules: {:?}", grammar.all_rules().map(|r| (r.lhs, &r.rhs)).collect::<Vec<_>>());
-        
+        println!(
+            "Tokens before: {:?}",
+            grammar.tokens.keys().collect::<Vec<_>>()
+        );
+        println!(
+            "Rules: {:?}",
+            grammar
+                .all_rules()
+                .map(|r| (r.lhs, &r.rhs))
+                .collect::<Vec<_>>()
+        );
+
         let removed = optimizer.remove_unused_symbols(&mut grammar);
-        
+
         println!("Removed: {}", removed);
-        println!("Tokens after: {:?}", grammar.tokens.keys().collect::<Vec<_>>());
+        println!(
+            "Tokens after: {:?}",
+            grammar.tokens.keys().collect::<Vec<_>>()
+        );
 
         // We expect to remove: SymbolId(99) token, and the rule key symbols 5 and 6
         assert!(removed >= 1); // At least the unused token should be removed
@@ -926,7 +982,7 @@ mod tests {
     fn test_eliminate_unit_rules() {
         let mut grammar = create_test_grammar();
         let mut optimizer = GrammarOptimizer::new();
-        
+
         optimizer.analyze_grammar(&grammar);
         let eliminated = optimizer.eliminate_unit_rules(&mut grammar);
 
@@ -937,9 +993,9 @@ mod tests {
     fn test_optimization_stats() {
         let mut grammar = create_test_grammar();
         let mut optimizer = GrammarOptimizer::new();
-        
+
         let stats = optimizer.optimize(&mut grammar);
-        
+
         assert!(stats.total() > 0);
         println!("Optimization stats: {:?}", stats);
     }
@@ -948,9 +1004,9 @@ mod tests {
     fn test_left_recursion_detection() {
         let grammar = create_test_grammar();
         let mut optimizer = GrammarOptimizer::new();
-        
+
         optimizer.analyze_grammar(&grammar);
-        
+
         // The expr rule should be detected as left-recursive
         let expr = SymbolId(3);
         assert!(optimizer.left_recursive_rules.contains(&expr));
@@ -959,18 +1015,21 @@ mod tests {
     #[test]
     fn test_inline_single_use_rules() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Create a rule that's only used once
         let single_use = SymbolId(10);
         let main = SymbolId(11);
         let terminal = SymbolId(12);
-        
-        grammar.tokens.insert(terminal, Token {
-            name: "a".to_string(),
-            pattern: TokenPattern::String("a".to_string()),
-            fragile: false,
-        });
-        
+
+        grammar.tokens.insert(
+            terminal,
+            Token {
+                name: "a".to_string(),
+                pattern: TokenPattern::String("a".to_string()),
+                fragile: false,
+            },
+        );
+
         // main -> single_use
         grammar.add_rule(Rule {
             lhs: main,
@@ -980,7 +1039,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         });
-        
+
         // single_use -> a
         grammar.add_rule(Rule {
             lhs: single_use,
@@ -990,14 +1049,14 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(1),
         });
-        
+
         let mut optimizer = GrammarOptimizer::new();
         optimizer.analyze_grammar(&grammar);
-        
+
         // The inline_simple_rules function eliminates unit rules, not general inlining
         // So we test that at least something was optimized
         let stats = optimizer.optimize(&mut grammar);
-        
+
         // Either unit rules were eliminated or symbols were removed
         assert!(stats.total() > 0);
     }

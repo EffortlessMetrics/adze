@@ -1,6 +1,6 @@
 // Example demonstrating incremental parsing with the pure-Rust parser
+use rust_sitter::pure_incremental::{Edit, Point, Tree};
 use rust_sitter::pure_parser::{Parser, TSLanguage, TSParseAction};
-use rust_sitter::pure_incremental::{Tree, Edit, Point};
 
 // Create a simple arithmetic language for demonstration
 fn create_demo_language() -> &'static TSLanguage {
@@ -14,18 +14,18 @@ fn create_demo_language() -> &'static TSLanguage {
     const EXPR: u16 = 6;
     const SUM: u16 = 7;
     const PRODUCT: u16 = 8;
-    
+
     // Parse table (simplified)
     static PARSE_TABLE: &[u16] = &[
         // State 0: initial state
-        0, 0, 0, 0, 0, 0,  // default action
-        1, 0, 0, 0, 0, 0,  // NUMBER -> shift to state 1
-        // ... more states
+        0, 0, 0, 0, 0, 0, // default action
+        1, 0, 0, 0, 0, 0, // NUMBER -> shift to state 1
+           // ... more states
     ];
-    
+
     // Small parse table
     static SMALL_PARSE_TABLE: &[u16] = &[0; 6];
-    
+
     // Language definition
     static LANGUAGE: TSLanguage = TSLanguage {
         version: 14,
@@ -57,34 +57,36 @@ fn create_demo_language() -> &'static TSLanguage {
         external_scanner: std::ptr::null(),
         primary_state_ids: std::ptr::null(),
     };
-    
+
     &LANGUAGE
 }
 
 fn main() {
     println!("=== Pure-Rust Incremental Parsing Demo ===\n");
-    
+
     // Create parser and set language
     let mut parser = Parser::new();
     let language = create_demo_language();
-    parser.set_language(language).expect("Failed to set language");
-    
+    parser
+        .set_language(language)
+        .expect("Failed to set language");
+
     // Initial parse
     let source1 = "1 + 2 + 3";
     println!("Initial source: {}", source1);
     let result1 = parser.parse_string(source1);
-    
+
     if let Some(root) = &result1.root {
         println!("Parsed successfully!");
         println!("Root node: {:?}", root);
-        
+
         // Create a tree for incremental parsing
         let tree1 = Tree::new(root.clone(), language, source1.as_bytes());
-        
+
         // Edit the source: change "2" to "42"
         let source2 = "1 + 42 + 3";
         println!("\nEdited source: {}", source2);
-        
+
         // Create edit
         let edit = Edit {
             start_byte: 4,
@@ -94,23 +96,23 @@ fn main() {
             old_end_point: Point { row: 0, column: 5 },
             new_end_point: Point { row: 0, column: 6 },
         };
-        
+
         // Apply edit to tree
         let mut tree2 = tree1.clone();
         tree2.edit(&edit);
-        
+
         // Parse incrementally
         println!("Parsing incrementally...");
         let result2 = parser.parse_string_with_tree(source2, Some(&tree2));
-        
+
         if let Some(root2) = &result2.root {
             println!("Incremental parse successful!");
             println!("New root node: {:?}", root2);
-            
+
             // Demonstrate another edit: insert " * 4" at the end
             let source3 = "1 + 42 + 3 * 4";
             println!("\nFinal source: {}", source3);
-            
+
             let tree2_final = Tree::new(root2.clone(), language, source2.as_bytes());
             let edit2 = Edit {
                 start_byte: 10,
@@ -120,18 +122,18 @@ fn main() {
                 old_end_point: Point { row: 0, column: 10 },
                 new_end_point: Point { row: 0, column: 14 },
             };
-            
+
             let mut tree3 = tree2_final.clone();
             tree3.edit(&edit2);
-            
+
             let result3 = parser.parse_string_with_tree(source3, Some(&tree3));
-            
+
             if let Some(root3) = &result3.root {
                 println!("Final incremental parse successful!");
                 println!("Final root node: {:?}", root3);
             }
         }
     }
-    
+
     println!("\n=== Demo Complete ===");
 }

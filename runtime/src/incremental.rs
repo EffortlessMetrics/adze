@@ -23,7 +23,7 @@ impl Edit {
             new_text,
         }
     }
-    
+
     /// Create an edit with text
     pub fn with_text(old_range: Range<usize>, new_text: String) -> Self {
         Edit {
@@ -77,7 +77,7 @@ impl IncrementalTree {
     fn collect_ranges(&mut self, node: &ParseNode, mut offset: usize) -> usize {
         let node_id = self.node_ranges.len();
         let start = offset;
-        
+
         if node.children.is_empty() {
             // Leaf node - use token length
             let len = node.symbol.0 as usize; // Simplified - would need actual token length
@@ -97,7 +97,7 @@ impl IncrementalTree {
     pub fn apply_edit(&mut self, edit: &Edit) -> Vec<usize> {
         // Find all nodes that intersect with the edit range
         let mut affected = Vec::new();
-        
+
         for (node_id, range) in &self.node_ranges {
             if range.end > edit.old_range.start && range.start < edit.old_range.end {
                 affected.push(*node_id);
@@ -152,7 +152,8 @@ impl IncrementalParser {
         } else {
             // No old tree - parse from scratch
             let root = self.parser.parse(tokens.to_vec())?;
-            let text = tokens.iter()
+            let text = tokens
+                .iter()
                 .map(|t| t.text.clone())
                 .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
                 .collect::<String>();
@@ -169,13 +170,14 @@ impl IncrementalParser {
     ) -> Result<IncrementalTree, crate::parser_v2::ParseError> {
         // For now, implement a simple strategy:
         // If edits are small and localized, try to reuse unaffected subtrees
-        
-        let total_edit_size: usize = edits.iter()
+
+        let total_edit_size: usize = edits
+            .iter()
             .map(|e| e.old_range.len() + e.new_length())
             .sum();
-        
+
         let text_size = old_tree.text.len();
-        
+
         // If edits affect less than 10% of the text, try incremental parsing
         if total_edit_size < text_size / 10 {
             // TODO: Implement actual subtree reuse logic
@@ -184,7 +186,8 @@ impl IncrementalParser {
 
         // Full reparse
         let root = self.parser.parse(tokens.to_vec())?;
-        let text = tokens.iter()
+        let text = tokens
+            .iter()
             .map(|t| t.text.clone())
             .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
             .collect::<String>();
@@ -227,11 +230,11 @@ mod tests {
         };
 
         let mut tree = IncrementalTree::new(root, "hello world".to_string());
-        
+
         // Replace "hello" with "hi"
         let edit = Edit::new(0, 5, "hi".to_string());
         let affected = tree.apply_edit(&edit);
-        
+
         assert_eq!(tree.text, "hi world");
         assert!(!affected.is_empty());
     }
@@ -288,11 +291,11 @@ mod tests {
         };
 
         let mut tree = IncrementalTree::new(root, "abcdefghijkl".to_string());
-        
+
         // Edit in the middle
         let edit = Edit::new(4, 8, "XY".to_string());
         let affected = tree.apply_edit(&edit);
-        
+
         // Should affect middle nodes
         assert!(affected.len() > 0);
     }

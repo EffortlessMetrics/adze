@@ -23,7 +23,7 @@ pub fn compare_versions_with_symbols(
 ) -> CompareResult {
     // First, use the standard version comparison
     let version_result = crate::compare_versions(left_version, right_version);
-    
+
     // If versions are tied, use symbol comparison
     match version_result {
         CompareResult::Tie => compare_symbols(left_symbol, right_symbol),
@@ -34,7 +34,7 @@ pub fn compare_versions_with_symbols(
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_symbol_comparison() {
         // Lower symbol ID wins
@@ -42,33 +42,33 @@ mod tests {
             compare_symbols(SymbolId(10), SymbolId(20)),
             CompareResult::TakeLeft
         );
-        
+
         assert_eq!(
             compare_symbols(SymbolId(30), SymbolId(15)),
             CompareResult::TakeRight
         );
-        
+
         assert_eq!(
             compare_symbols(SymbolId(42), SymbolId(42)),
             CompareResult::Tie
         );
     }
-    
+
     #[test]
     fn test_full_comparison_with_symbols() {
         let v1 = crate::VersionInfo::new();
         let v2 = crate::VersionInfo::new();
-        
+
         // When versions are equal, symbols are the tie-breaker
         assert_eq!(
             compare_versions_with_symbols(&v1, &v2, SymbolId(1), SymbolId(2)),
             CompareResult::TakeLeft
         );
-        
+
         // When versions differ, symbols are ignored
         let mut v3 = crate::VersionInfo::new();
         v3.add_dynamic_prec(5);
-        
+
         assert_eq!(
             compare_versions_with_symbols(&v3, &v1, SymbolId(100), SymbolId(1)),
             CompareResult::TakeLeft // v3 wins due to higher dynamic precedence

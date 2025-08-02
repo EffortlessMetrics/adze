@@ -19,40 +19,32 @@ impl QueryCursor {
             match_root: false,
         }
     }
-    
+
     /// Set the byte range for matching
     pub fn set_byte_range(&mut self, range: Range<usize>) {
         self.byte_range = Some(range);
     }
-    
+
     /// Clear the byte range restriction
     pub fn clear_byte_range(&mut self) {
         self.byte_range = None;
     }
-    
+
     /// Set whether to match only at the root
     pub fn set_match_root(&mut self, match_root: bool) {
         self.match_root = match_root;
     }
-    
+
     /// Execute a query and return all matches
-    pub fn matches<'a>(
-        &'a mut self,
-        query: &'a Query,
-        root: &'a ParseNode,
-    ) -> QueryMatches<'a> {
+    pub fn matches<'a>(&'a mut self, query: &'a Query, root: &'a ParseNode) -> QueryMatches<'a> {
         QueryMatches::new(query, root)
     }
-    
+
     /// Execute a query and collect all matches into a vector
-    pub fn collect_matches(
-        &mut self,
-        query: &Query,
-        root: &ParseNode,
-    ) -> Vec<QueryMatch> {
+    pub fn collect_matches(&mut self, query: &Query, root: &ParseNode) -> Vec<QueryMatch> {
         self.matches(query, root).collect()
     }
-    
+
     /// Check if a node is within the configured byte range
     #[allow(dead_code)]
     fn is_in_range(&self, node: &ParseNode) -> bool {

@@ -1,16 +1,18 @@
 // Integration test for Python-like grammar with indentation scanner
 
+use rust_sitter::parser_v4::Parser;
 use rust_sitter::scanner_registry::ExternalScannerBuilder;
 use rust_sitter::scanners::IndentationScanner;
-use rust_sitter_ir::{Grammar, ExternalToken, SymbolId, Rule, Symbol, Token, TokenPattern, ProductionId};
-use rust_sitter_glr_core::{ParseTable, Action};
-use rust_sitter::parser_v4::Parser;
+use rust_sitter_glr_core::{Action, ParseTable};
+use rust_sitter_ir::{
+    ExternalToken, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+};
 use std::collections::BTreeMap;
 
 /// Create a simple Python-like grammar with indentation
 fn create_python_grammar() -> Grammar {
     let mut grammar = Grammar::new("python_test".to_string());
-    
+
     // Define symbol IDs
     let def_keyword = SymbolId(1);
     let identifier = SymbolId(2);
@@ -22,94 +24,116 @@ fn create_python_grammar() -> Grammar {
     let function_def = SymbolId(201);
     let block = SymbolId(202);
     let program = SymbolId(203);
-    
+
     // Add tokens
-    grammar.tokens.insert(def_keyword, Token {
-        name: "def".to_string(),
-        pattern: TokenPattern::String("def".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(identifier, Token {
-        name: "identifier".to_string(),
-        pattern: TokenPattern::Regex(r"[a-zA-Z_][a-zA-Z0-9_]*".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(colon, Token {
-        name: "colon".to_string(),
-        pattern: TokenPattern::String(":".to_string()),
-        fragile: false,
-    });
-    
+    grammar.tokens.insert(
+        def_keyword,
+        Token {
+            name: "def".to_string(),
+            pattern: TokenPattern::String("def".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        identifier,
+        Token {
+            name: "identifier".to_string(),
+            pattern: TokenPattern::Regex(r"[a-zA-Z_][a-zA-Z0-9_]*".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        colon,
+        Token {
+            name: "colon".to_string(),
+            pattern: TokenPattern::String(":".to_string()),
+            fragile: false,
+        },
+    );
+
     // Add external tokens
     grammar.externals.push(ExternalToken {
         name: "newline".to_string(),
         symbol_id: newline,
     });
-    
+
     grammar.externals.push(ExternalToken {
         name: "indent".to_string(),
         symbol_id: indent,
     });
-    
+
     grammar.externals.push(ExternalToken {
         name: "dedent".to_string(),
         symbol_id: dedent,
     });
-    
+
     // Add rules
     // program -> statement*
-    grammar.rules.entry(program).or_insert_with(Vec::new).push(Rule {
-        lhs: program,
-        rhs: vec![],  // Simplified - would normally have repetition
-        fields: vec![],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(0),
-    });
-    
+    grammar
+        .rules
+        .entry(program)
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: program,
+            rhs: vec![], // Simplified - would normally have repetition
+            fields: vec![],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+        });
+
     // function_def -> 'def' identifier '(' ')' ':' newline indent block dedent
-    grammar.rules.entry(function_def).or_insert_with(Vec::new).push(Rule {
-        lhs: function_def,
-        rhs: vec![
-            Symbol::Terminal(def_keyword),
-            Symbol::Terminal(identifier),
-            Symbol::Terminal(colon),
-            Symbol::External(newline),
-            Symbol::External(indent),
-            Symbol::NonTerminal(block),
-            Symbol::External(dedent),
-        ],
-        fields: vec![],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(1),
-    });
-    
+    grammar
+        .rules
+        .entry(function_def)
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: function_def,
+            rhs: vec![
+                Symbol::Terminal(def_keyword),
+                Symbol::Terminal(identifier),
+                Symbol::Terminal(colon),
+                Symbol::External(newline),
+                Symbol::External(indent),
+                Symbol::NonTerminal(block),
+                Symbol::External(dedent),
+            ],
+            fields: vec![],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(1),
+        });
+
     // block -> statement+
-    grammar.rules.entry(block).or_insert_with(Vec::new).push(Rule {
-        lhs: block,
-        rhs: vec![Symbol::NonTerminal(statement)],
-        fields: vec![],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(2),
-    });
-    
+    grammar
+        .rules
+        .entry(block)
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: block,
+            rhs: vec![Symbol::NonTerminal(statement)],
+            fields: vec![],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(2),
+        });
+
     // statement -> identifier newline
-    grammar.rules.entry(statement).or_insert_with(Vec::new).push(Rule {
-        lhs: statement,
-        rhs: vec![
-            Symbol::Terminal(identifier),
-            Symbol::External(newline),
-        ],
-        fields: vec![],
-        precedence: None,
-        associativity: None,
-        production_id: ProductionId(3),
-    });
-    
+    grammar
+        .rules
+        .entry(statement)
+        .or_insert_with(Vec::new)
+        .push(Rule {
+            lhs: statement,
+            rhs: vec![Symbol::Terminal(identifier), Symbol::External(newline)],
+            fields: vec![],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(3),
+        });
+
     grammar
 }
 
@@ -129,27 +153,26 @@ fn create_parse_table() -> ParseTable {
 #[test]
 fn test_python_indentation_scanner() {
     // Register the indentation scanner
-    ExternalScannerBuilder::new("python_test")
-        .register_rust::<IndentationScanner>();
-    
+    ExternalScannerBuilder::new("python_test").register_rust::<IndentationScanner>();
+
     // Create grammar and parse table
     let grammar = create_python_grammar();
     let parse_table = create_parse_table();
-    
+
     // Create parser
     let mut parser = Parser::new(grammar, parse_table, "python_test".to_string());
-    
+
     // Test input with indentation
     let input = r#"def hello():
     print("Hello")
     print("World")
 "#;
-    
+
     // The parser should be created with external scanner support
     // In a full implementation, we would test the actual parsing
     // For now, we just verify the parser was created successfully
     // and has an external scanner registered
-    
+
     // This test primarily verifies that:
     // 1. External scanner registration works
     // 2. Parser can be created with external scanner support
@@ -159,26 +182,26 @@ fn test_python_indentation_scanner() {
 #[test]
 fn test_scanner_state_serialization() {
     use rust_sitter::external_scanner::ExternalScanner;
-    
+
     let mut scanner = IndentationScanner::new();
-    
+
     // Simulate some scanning to build up state
     let input = b"    hello\n        world\n";
     let valid_symbols = vec![true, true, true]; // newline, indent, dedent all valid
-    
+
     // Scan first line (4 spaces)
     let result = scanner.scan(&valid_symbols, input, 0);
     assert!(result.is_some());
-    
+
     // Serialize state
     let mut buffer = Vec::new();
     scanner.serialize(&mut buffer);
     assert!(!buffer.is_empty());
-    
+
     // Create new scanner and deserialize
     let mut new_scanner = IndentationScanner::new();
     new_scanner.deserialize(&buffer);
-    
+
     // Verify state was restored correctly
     // The scanner should remember the indentation level
 }
@@ -186,17 +209,17 @@ fn test_scanner_state_serialization() {
 #[test]
 fn test_multiple_dedents() {
     use rust_sitter::external_scanner::ExternalScanner;
-    
+
     let mut scanner = IndentationScanner::new();
-    
+
     // Set up nested indentation
     let input = b"def foo():\n    if True:\n        pass\n";
     let valid_symbols = vec![true, true, true];
-    
+
     // Scan "def foo():\n" - should get newline
     let result = scanner.scan(&valid_symbols, input, 10); // After "def foo():"
     assert_eq!(result.unwrap().symbol, SymbolId(0)); // NEWLINE
-    
+
     // Scan "    if True:\n" - should get indent
     let result = scanner.scan(&valid_symbols, input, 11); // At start of "    if True:"
     assert_eq!(result.unwrap().symbol, SymbolId(1)); // INDENT
@@ -205,15 +228,14 @@ fn test_multiple_dedents() {
 #[test]
 fn test_scanner_registry_retrieval() {
     use rust_sitter::scanner_registry::get_global_registry;
-    
+
     // Register scanner
-    ExternalScannerBuilder::new("test_lang")
-        .register_rust::<IndentationScanner>();
-    
+    ExternalScannerBuilder::new("test_lang").register_rust::<IndentationScanner>();
+
     // Retrieve from registry
     let registry = get_global_registry();
     let registry = registry.lock().unwrap();
-    
+
     // Verify scanner is registered
     let scanner = registry.create_scanner("test_lang");
     assert!(scanner.is_some());
