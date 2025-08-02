@@ -329,7 +329,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 // Fallback to original behavior for other patterns
                                 let variant_path = format!("{}_{}", e.ident, v.ident);
                                 quote! {
-                                    if child_as_node.kind() == #variant_path {
+                                    if child_node.kind() == #variant_path {
                                         return #extract_expr;
                                     }
                                 }
@@ -362,7 +362,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                                 // Single field variant like Number(i32)
                                 quote! {
-                                    if child_as_node.child_count() == 1 {
+                                    if child_node.child_count() == 1 {
                                         return #extract_expr;
                                     }
                                 }
@@ -370,9 +370,9 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             Fields::Unnamed(fields) if fields.unnamed.len() == 3 => {
                                 // Three field variant like Sub(Expr, (), Expr) or Mul(Expr, (), Expr)
                                 quote! {
-                                    if child_as_node.child_count() == 3 {
+                                    if child_node.child_count() == 3 {
                                         // Check the middle child (operator) to determine variant
-                                        let mut cursor = child_as_node.walk();
+                                        let mut cursor = child_node.walk();
                                         cursor.goto_first_child();
                                         cursor.goto_next_sibling();
                                         let middle_kind = cursor.node().kind();
@@ -390,7 +390,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 // Fallback to original behavior for other patterns
                                 let variant_path = format!("{}_{}", e.ident, v.ident);
                                 quote! {
-                                    if child_as_node.kind() == #variant_path {
+                                    if child_node.kind() == #variant_path {
                                         return #extract_expr;
                                     }
                                 }
@@ -414,7 +414,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 // If this is a wrapper node with a single child, extract from the child
                                 if node.child_count() == 1 {
                                     let child = node.child(0).unwrap();
-                                    let child_as_node = child;
+                                    let child_node = child;
 
                                     // Check the child node structure to determine variant
                                     #(#variant_detection_logic_std)*

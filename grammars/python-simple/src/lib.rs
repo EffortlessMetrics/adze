@@ -5,11 +5,7 @@
 pub mod grammar {
     #[rust_sitter::language]
     pub struct Module {
-        #[rust_sitter::leaf(pattern = r"\s*")]
-        _ws: (),
         pub expression: Expression,
-        #[rust_sitter::leaf(pattern = r"\s*")]
-        _ws2: (),
     }
 
     #[rust_sitter::language]
@@ -83,35 +79,26 @@ pub mod grammar {
     }
 
     #[rust_sitter::language]
-    pub enum Arguments {
-        Empty {
-            #[rust_sitter::leaf(text = "(")]
-            _open: (),
-            #[rust_sitter::leaf(pattern = r"\s*")]
-                        _ws: (),
-            #[rust_sitter::leaf(text = ")")]
-            _close: (),
-        },
-        NonEmpty {
-            #[rust_sitter::leaf(text = "(")]
-            _open: (),
-            #[rust_sitter::leaf(pattern = r"\s*")]
-                        _ws1: (),
-            #[rust_sitter::repeat(non_empty = true)]
-            #[rust_sitter::delimited(
-                Comma {
-                    #[rust_sitter::leaf(text = ",")]
-                    _comma: (),
-                    #[rust_sitter::leaf(pattern = r"\s*")]
-                                        _ws: (),
-                }
-            )]
-            args: Vec<Expression>,
-            #[rust_sitter::leaf(pattern = r"\s*")]
-                        _ws2: (),
-            #[rust_sitter::leaf(text = ")")]
-            _close: (),
-        }
+    pub struct Arguments {
+        #[rust_sitter::leaf(text = "(")]
+        _open: (),
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        _ws1: (),
+        // Allow empty argument lists by making Vec optional
+        #[rust_sitter::repeat]
+        #[rust_sitter::delimited(
+            Comma {
+                #[rust_sitter::leaf(text = ",")]
+                _comma: (),
+                #[rust_sitter::leaf(pattern = r"\s*")]
+                _ws: (),
+            }
+        )]
+        pub args: Vec<Expression>,
+        #[rust_sitter::leaf(pattern = r"\s*")]
+        _ws2: (),
+        #[rust_sitter::leaf(text = ")")]
+        _close: (),
     }
     
     #[rust_sitter::language]
@@ -264,32 +251,48 @@ pub mod grammar {
         ),
     }
 
-    #[rust_sitter::extra]
-    struct ExtraWhitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
-        _whitespace: (),
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::grammar::*;
+    use crate::grammar;
 
+    #[test]
+    fn test_basic_parsing() {
+        // Test number first since it's simpler
+        let result = grammar::parse("42");
+        if let Err(e) = result {
+            panic!("Failed to parse '42': {:?}", e);
+        }
+        
+        // Test simple identifier
+        let result = grammar::parse("a");
+        if let Err(e) = result {
+            panic!("Failed to parse 'a': {:?}", e);
+        }
+        
+        // Test simple unary
+        let result = grammar::parse("-42");
+        if let Err(e) = result {
+            panic!("Failed to parse '-42': {:?}", e);
+        }
+    }
+    
     #[test]
     fn test_precedence() {
         // Test that -a.b is parsed as -(a.b), not (-a).b
         let input = "-a.b";
         let result = grammar::parse(input);
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "Failed to parse '-a.b'");
         
         // Test that a + b(c) is parsed as a + (b(c)), not (a + b)(c)
         let input2 = "a + b(c)";
         let result2 = grammar::parse(input2);
-        assert!(result2.is_ok());
+        assert!(result2.is_ok(), "Failed to parse 'a + b(c)'");
         
         // Test operator precedence: a + b * c should be a + (b * c)
         let input3 = "a + b * c";
         let result3 = grammar::parse(input3);
-        assert!(result3.is_ok());
+        assert!(result3.is_ok(), "Failed to parse 'a + b * c'");
     }
 }
