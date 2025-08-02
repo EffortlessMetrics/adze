@@ -177,34 +177,8 @@ impl GLRParser {
                         let new_state = reduced_stack.current_state();
                         println!("    After reduction, now in state {}", new_state.0);
 
-                        // Check what action to take with the current token in the new state
-                        if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                            let new_action =
-                                &self.table.action_table[new_state.0 as usize][*symbol_idx];
-                            println!("    New action for token {} after reduction: {:?}", token.0, new_action);
-
-                            match new_action {
-                                Action::Shift(shift_state) => {
-                                    // println!("    Shifting to state {} after reduction", shift_state.0);
-                                    reduced_stack.push(
-                                        *shift_state,
-                                        Arc::new(Subtree::new(
-                                            SubtreeNode {
-                                                symbol_id: token,
-                                                is_error: false,
-                                                byte_range: byte_offset..byte_offset + text.len(),
-                                            },
-                                            vec![],
-                                        )),
-                                    );
-                                }
-                                _ => {
-                                    // If it's another reduce or error, just add the stack for further processing
-                                    // println!("    Action after reduction is {:?}, will process later", new_action);
-                                }
-                            }
-                        }
-
+                        // Don't process the token yet - just record the reduced stack
+                        // We'll handle all token processing after all reductions are complete
                         new_stacks.push(reduced_stack);
                     }
 
@@ -405,12 +379,49 @@ impl GLRParser {
             new_stacks.extend(additional_stacks);
         }
 
+        // Now that all reductions are complete, process the token on each stack
+        let mut final_stacks = Vec::new();
+        for stack in new_stacks {
+            let state = stack.current_state();
+            if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
+                let action = &self.table.action_table[state.0 as usize][*symbol_idx];
+                println!("    State {} token {} -> action: {:?}", state.0, token.0, action);
+                
+                match action {
+                    Action::Shift(new_state) => {
+                        let mut shifted_stack = stack.clone();
+                        shifted_stack.push(
+                            *new_state,
+                            Arc::new(Subtree::new(
+                                SubtreeNode {
+                                    symbol_id: token,
+                                    is_error: false,
+                                    byte_range: byte_offset..byte_offset + text.len(),
+                                },
+                                vec![],
+                            )),
+                        );
+                        final_stacks.push(shifted_stack);
+                    }
+                    Action::Error => {
+                        // This stack cannot continue with this token
+                        // Don't add it to final_stacks
+                    }
+                    _ => {
+                        // Other actions (Accept, Reduce) shouldn't happen here after all reductions
+                        // but keep the stack anyway
+                        final_stacks.push(stack);
+                    }
+                }
+            }
+        }
+
         // Merge stacks that reach the same state
-        self.merge_stacks(&mut new_stacks);
+        self.merge_stacks(&mut final_stacks);
 
         // Update active stacks
         // println!("  After processing: {} stacks", new_stacks.len());
-        self.stacks = new_stacks;
+        self.stacks = final_stacks;
         self.pending_stacks = (0..self.stacks.len()).collect();
     }
 
