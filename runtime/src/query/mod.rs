@@ -10,6 +10,7 @@ pub mod pattern;
 pub mod highlights;
 
 pub use ast::{Query, QueryError};
+pub use compiler::compile_query;
 pub use cursor::QueryCursor;
 pub use matcher::{QueryMatch, QueryCapture, QueryMatches};
 pub use pattern::{Pattern, Predicate};

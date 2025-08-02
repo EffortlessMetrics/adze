@@ -56,7 +56,7 @@ fn test_arithmetic_with_lexer() {
     
     // Add rules with precedence
     // expr → expr + term (left associative)
-    grammar.rules.insert(expr_id, Rule {
+    grammar.rules.entry(expr_id, Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -70,7 +70,7 @@ fn test_arithmetic_with_lexer() {
     });
     
     // expr → term
-    grammar.rules.insert(SymbolId(9), Rule {
+    grammar.rules.entry(SymbolId(9)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(term_id)],
         precedence: None,
@@ -80,7 +80,7 @@ fn test_arithmetic_with_lexer() {
     });
     
     // term → term * factor (left associative, higher precedence)
-    grammar.rules.insert(term_id, Rule {
+    grammar.rules.entry(term_id, Rule {
         lhs: term_id,
         rhs: vec![
             Symbol::NonTerminal(term_id),
@@ -94,7 +94,7 @@ fn test_arithmetic_with_lexer() {
     });
     
     // term → factor
-    grammar.rules.insert(SymbolId(10), Rule {
+    grammar.rules.entry(SymbolId(10)).or_insert_with(Vec::new).push( Rule {
         lhs: term_id,
         rhs: vec![Symbol::NonTerminal(factor_id)],
         precedence: None,
@@ -104,7 +104,7 @@ fn test_arithmetic_with_lexer() {
     });
     
     // factor → number
-    grammar.rules.insert(factor_id, Rule {
+    grammar.rules.entry(factor_id, Rule {
         lhs: factor_id,
         rhs: vec![Symbol::Terminal(number_id)],
         precedence: None,
@@ -114,7 +114,7 @@ fn test_arithmetic_with_lexer() {
     });
     
     // factor → ( expr )
-    grammar.rules.insert(SymbolId(11), Rule {
+    grammar.rules.entry(SymbolId(11)).or_insert_with(Vec::new).push( Rule {
         lhs: factor_id,
         rhs: vec![
             Symbol::Terminal(lparen_id),
@@ -190,7 +190,7 @@ fn test_json_with_lexer() {
     });
     
     // Rules: value → number | object
-    grammar.rules.insert(value_id, Rule {
+    grammar.rules.entry(value_id, Rule {
         lhs: value_id,
         rhs: vec![Symbol::Terminal(number_id)],
         precedence: None,
@@ -199,7 +199,7 @@ fn test_json_with_lexer() {
         production_id: ProductionId(0),
     });
     
-    grammar.rules.insert(SymbolId(6), Rule {
+    grammar.rules.entry(SymbolId(6)).or_insert_with(Vec::new).push( Rule {
         lhs: value_id,
         rhs: vec![Symbol::NonTerminal(object_id)],
         precedence: None,
@@ -209,7 +209,7 @@ fn test_json_with_lexer() {
     });
     
     // object → { }
-    grammar.rules.insert(object_id, Rule {
+    grammar.rules.entry(object_id, Rule {
         lhs: object_id,
         rhs: vec![
             Symbol::Terminal(lbrace_id),

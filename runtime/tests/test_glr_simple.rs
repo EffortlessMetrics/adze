@@ -5,17 +5,9 @@ use rust_sitter_ir::{Grammar, Rule, Symbol, Token, TokenPattern, SymbolId, Produ
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use std::sync::Arc;
 
-// Import internal modules for testing
-#[path = "../src/subtree.rs"]
-mod subtree;
-#[path = "../src/glr_lexer.rs"]
-mod glr_lexer;
-#[path = "../src/glr_parser.rs"]
-mod glr_parser;
-
-use glr_lexer::GLRLexer;
-use glr_parser::GLRParser;
-use subtree::Subtree;
+use rust_sitter::glr_lexer::GLRLexer;
+use rust_sitter::glr_parser::GLRParser;
+use rust_sitter::subtree::Subtree;
 
 /// Create a simple number grammar for testing
 fn create_number_grammar() -> Grammar {

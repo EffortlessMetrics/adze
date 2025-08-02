@@ -33,7 +33,7 @@ fn create_simple_grammar() -> Grammar {
     
     // Rules:
     // expression → expression '+' expression
-    grammar.rules.insert(SymbolId(20), Rule {
+    grammar.rules.entry(SymbolId(20)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -47,7 +47,7 @@ fn create_simple_grammar() -> Grammar {
     });
     
     // expression → number
-    grammar.rules.insert(SymbolId(21), Rule {
+    grammar.rules.entry(SymbolId(21)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(num_id)],
         precedence: None,

@@ -1,5 +1,5 @@
 // Test error recovery in the parser
-use rust_sitter::parser_v3::{Parser, ParseNode};
+use rust_sitter::parser::{Parser, ParseNode};
 use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
 use rust_sitter_ir::*;
 use rust_sitter_glr_core::*;

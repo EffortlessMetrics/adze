@@ -63,7 +63,7 @@ fn build_arithmetic_grammar() -> Grammar {
     
     // Rules
     // expr -> number
-    grammar.rules.insert(expr_id, Rule {
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(SymbolId(1))],
         precedence: None,
@@ -73,7 +73,7 @@ fn build_arithmetic_grammar() -> Grammar {
     });
     
     // expr -> expr + expr
-    grammar.rules.insert(SymbolId(11), Rule {
+    grammar.rules.entry(SymbolId(11)).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -87,7 +87,7 @@ fn build_arithmetic_grammar() -> Grammar {
     });
     
     // expr -> expr - expr
-    grammar.rules.insert(SymbolId(12), Rule {
+    grammar.rules.entry(SymbolId(12)).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -101,7 +101,7 @@ fn build_arithmetic_grammar() -> Grammar {
     });
     
     // expr -> expr * expr
-    grammar.rules.insert(SymbolId(13), Rule {
+    grammar.rules.entry(SymbolId(13)).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -115,7 +115,7 @@ fn build_arithmetic_grammar() -> Grammar {
     });
     
     // expr -> expr / expr
-    grammar.rules.insert(SymbolId(14), Rule {
+    grammar.rules.entry(SymbolId(14)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -171,7 +171,7 @@ fn build_dangling_else_grammar() -> Grammar {
     
     // Rules
     // stmt -> if expr then stmt
-    grammar.rules.insert(SymbolId(11), Rule {
+    grammar.rules.entry(SymbolId(11)).or_insert_with(Vec::new).push( Rule {
         lhs: stmt_id,
         rhs: vec![
             Symbol::Terminal(SymbolId(1)), // if
@@ -186,7 +186,7 @@ fn build_dangling_else_grammar() -> Grammar {
     });
     
     // stmt -> if expr then stmt else stmt
-    grammar.rules.insert(SymbolId(12), Rule {
+    grammar.rules.entry(SymbolId(12)).or_insert_with(Vec::new).push( Rule {
         lhs: stmt_id,
         rhs: vec![
             Symbol::Terminal(SymbolId(1)), // if
@@ -203,7 +203,7 @@ fn build_dangling_else_grammar() -> Grammar {
     });
     
     // stmt -> simple_stmt
-    grammar.rules.insert(SymbolId(13), Rule {
+    grammar.rules.entry(SymbolId(13)).or_insert_with(Vec::new).push( Rule {
         lhs: stmt_id,
         rhs: vec![Symbol::Terminal(SymbolId(5))], // s
         precedence: None,
@@ -237,7 +237,7 @@ fn build_dynamic_precedence_grammar() -> Grammar {
     
     // Rules with different dynamic precedences
     // S -> a (dynamic precedence 1)
-    grammar.rules.insert(SymbolId(11), Rule {
+    grammar.rules.entry(SymbolId(11)).or_insert_with(Vec::new).push( Rule {
         lhs: s_id,
         rhs: vec![Symbol::Terminal(SymbolId(1))],
         precedence: Some(PrecedenceKind::Dynamic(1)),
@@ -247,7 +247,7 @@ fn build_dynamic_precedence_grammar() -> Grammar {
     });
     
     // S -> b (dynamic precedence 2)
-    grammar.rules.insert(SymbolId(12), Rule {
+    grammar.rules.entry(SymbolId(12)).or_insert_with(Vec::new).push( Rule {
         lhs: s_id,
         rhs: vec![Symbol::Terminal(SymbolId(2))],
         precedence: Some(PrecedenceKind::Dynamic(2)),

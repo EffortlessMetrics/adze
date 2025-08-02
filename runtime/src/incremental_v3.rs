@@ -536,7 +536,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let mut parser = IncrementalParser::new(grammar, parse_table);

@@ -60,7 +60,7 @@ fn build_arithmetic_grammar() -> Grammar {
     
     // Rules
     // expr -> number
-    grammar.rules.insert(expr_id, Rule {
+    grammar.rules.entry(expr_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(SymbolId(1))],
         precedence: None,
@@ -70,7 +70,7 @@ fn build_arithmetic_grammar() -> Grammar {
     });
     
     // expr -> expr + expr
-    grammar.rules.insert(SymbolId(11), Rule {
+    grammar.rules.entry(SymbolId(11)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -84,7 +84,7 @@ fn build_arithmetic_grammar() -> Grammar {
     });
     
     // expr -> expr - expr
-    grammar.rules.insert(SymbolId(12), Rule {
+    grammar.rules.entry(SymbolId(12)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -98,7 +98,7 @@ fn build_arithmetic_grammar() -> Grammar {
     });
     
     // expr -> expr * expr
-    grammar.rules.insert(SymbolId(13), Rule {
+    grammar.rules.entry(SymbolId(13)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -112,7 +112,7 @@ fn build_arithmetic_grammar() -> Grammar {
     });
     
     // expr -> expr / expr
-    grammar.rules.insert(SymbolId(14), Rule {
+    grammar.rules.entry(SymbolId(14)).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),

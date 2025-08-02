@@ -574,6 +574,7 @@ mod tests {
             precedences: vec![],
             conflicts: vec![],
             externals: vec![],
+            extras: vec![],
             fields: indexmap::IndexMap::new(),
             supertypes: vec![],
             inline_rules: vec![],
@@ -581,6 +582,7 @@ mod tests {
             production_ids: indexmap::IndexMap::new(),
             rule_names: indexmap::IndexMap::new(),
             max_alias_sequence_length: 0,
+            symbol_registry: None,
         };
         
         // Add tokens
@@ -647,7 +649,7 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 0,
             symbol_count: 0,
-            symbol_to_index: std::collections::HashMap::new(),
+            symbol_to_index: std::collections::BTreeMap::new(),
         };
         
         let _parser = Parser::new(grammar, parse_table);

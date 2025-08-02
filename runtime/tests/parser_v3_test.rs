@@ -1,6 +1,6 @@
 //! Tests for the improved parser implementation
 
-use rust_sitter::parser_v3::Parser;
+use rust_sitter::parser::Parser;
 use rust_sitter_glr_core::{ParseTable, Action};
 use rust_sitter_ir::*;
 
@@ -65,8 +65,8 @@ fn create_simple_arithmetic_grammar() -> Grammar {
         production_id: ProductionId(1),
     };
     
-    grammar.rules.insert(expr_id, rule0);
-    grammar.rules.insert(expr_id, rule1);
+    grammar.rules.entry(expr_id, rule0);
+    grammar.rules.entry(expr_id, rule1);
     
     grammar.production_ids.insert(RuleId(0), ProductionId(0));
     grammar.production_ids.insert(RuleId(1), ProductionId(1));

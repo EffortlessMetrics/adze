@@ -64,7 +64,7 @@ fn create_test_grammar() -> Grammar {
     grammar.rule_names.insert(number_expr_id, "number_expression".to_string());
     
     // expression → expression + term (add_expression)
-    grammar.rules.insert(add_expr_id, Rule {
+    grammar.rules.entry(add_expr_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(plus_id), Symbol::NonTerminal(term_id)],
         precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
@@ -74,7 +74,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // expression → term
-    grammar.rules.insert(expr_id, Rule {
+    grammar.rules.entry(expr_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(term_id)],
         precedence: None,
@@ -84,7 +84,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // term → term * factor (mul_expression)
-    grammar.rules.insert(mul_expr_id, Rule {
+    grammar.rules.entry(mul_expr_id, Rule {
         lhs: term_id,
         rhs: vec![Symbol::NonTerminal(term_id), Symbol::Terminal(times_id), Symbol::NonTerminal(factor_id)],
         precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)),
@@ -94,7 +94,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // term → factor
-    grammar.rules.insert(term_id, Rule {
+    grammar.rules.entry(term_id, Rule {
         lhs: term_id,
         rhs: vec![Symbol::NonTerminal(factor_id)],
         precedence: None,
@@ -104,7 +104,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // factor → ( expression ) (paren_expression)
-    grammar.rules.insert(paren_expr_id, Rule {
+    grammar.rules.entry(paren_expr_id, Rule {
         lhs: factor_id,
         rhs: vec![Symbol::Terminal(lparen_id), Symbol::NonTerminal(expr_id), Symbol::Terminal(rparen_id)],
         precedence: None,
@@ -114,7 +114,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // factor → number (number_expression)
-    grammar.rules.insert(number_expr_id, Rule {
+    grammar.rules.entry(number_expr_id, Rule {
         lhs: factor_id,
         rhs: vec![Symbol::Terminal(number_id)],
         precedence: None,

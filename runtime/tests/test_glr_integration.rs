@@ -1,3 +1,6 @@
+use rust_sitter::glr_lexer::GLRLexer;
+use rust_sitter::glr_parser::GLRParser;
+use rust_sitter::subtree::Subtree;
 // Integration test for the full GLR parsing pipeline
 // This test demonstrates parsing a complete grammar from definition to tree output
 
@@ -5,27 +8,6 @@ use rust_sitter_ir::{Grammar, Rule, Symbol, Token, TokenPattern, SymbolId, Produ
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 
 // Import internal modules for testing
-#[path = "../src/subtree.rs"]
-mod subtree;
-#[path = "../src/glr_lexer.rs"]
-mod glr_lexer;
-#[path = "../src/glr_parser.rs"]
-mod glr_parser;
-#[path = "../src/glr_tree_bridge.rs"]
-mod glr_tree_bridge;
-#[path = "../src/glr_incremental.rs"]
-mod glr_incremental;
-#[path = "../src/glr_validation.rs"]
-mod glr_validation;
-#[path = "../src/glr_query.rs"]
-mod glr_query;
-
-use glr_lexer::{GLRLexer, TokenWithPosition};
-use glr_parser::GLRParser;
-use glr_incremental::{IncrementalGLRParser, Edit};
-use glr_validation::GLRGrammarValidator;
-use glr_query::{QueryParser, QueryCursor};
-use subtree::Subtree;
 use std::sync::Arc;
 
 // Helper function to parse tokens with GLRParser
@@ -132,7 +114,7 @@ fn create_expression_grammar() -> Grammar {
     // Define rules with proper precedence
     
     // expression → expression + expression (left associative, precedence 1)
-    grammar.rules.insert(add_rule_id, Rule {
+    grammar.rules.entry(add_rule_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(plus_id), Symbol::NonTerminal(expr_id)],
         precedence: Some(PrecedenceKind::Static(1)),
@@ -142,7 +124,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → expression - expression (left associative, precedence 1)
-    grammar.rules.insert(sub_rule_id, Rule {
+    grammar.rules.entry(sub_rule_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(minus_id), Symbol::NonTerminal(expr_id)],
         precedence: Some(PrecedenceKind::Static(1)),
@@ -152,7 +134,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → expression * expression (left associative, precedence 2)
-    grammar.rules.insert(mul_rule_id, Rule {
+    grammar.rules.entry(mul_rule_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(times_id), Symbol::NonTerminal(expr_id)],
         precedence: Some(PrecedenceKind::Static(2)),
@@ -162,7 +144,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → expression / expression (left associative, precedence 2)
-    grammar.rules.insert(div_rule_id, Rule {
+    grammar.rules.entry(div_rule_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(divide_id), Symbol::NonTerminal(expr_id)],
         precedence: Some(PrecedenceKind::Static(2)),
@@ -172,7 +154,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → ( expression )
-    grammar.rules.insert(paren_rule_id, Rule {
+    grammar.rules.entry(paren_rule_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(lparen_id), Symbol::NonTerminal(expr_id), Symbol::Terminal(rparen_id)],
         precedence: None,
@@ -182,7 +164,7 @@ fn create_expression_grammar() -> Grammar {
     });
     
     // expression → number
-    grammar.rules.insert(number_rule_id, Rule {
+    grammar.rules.entry(number_rule_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(number_id)],
         precedence: None,
@@ -284,7 +266,7 @@ fn test_glr_with_ambiguous_grammar() {
     grammar.rule_names.insert(e_id, "E".to_string());
     
     // E → E E (ambiguous concatenation)
-    grammar.rules.insert(concat_id, Rule {
+    grammar.rules.entry(concat_id, Rule {
         lhs: e_id,
         rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
         precedence: None,
@@ -294,7 +276,7 @@ fn test_glr_with_ambiguous_grammar() {
     });
     
     // E → 'a'
-    grammar.rules.insert(terminal_id, Rule {
+    grammar.rules.entry(terminal_id, Rule {
         lhs: e_id,
         rhs: vec![Symbol::Terminal(a_id)],
         precedence: None,

@@ -76,7 +76,7 @@ fn create_arithmetic_grammar() -> Grammar {
     // factor -> ( expression ) (rule 120)
     // factor -> number (rule 121)
     
-    grammar.rules.insert(SymbolId(100), Rule {
+    grammar.rules.entry(SymbolId(100)).or_insert_with(Vec::new).push( Rule {
         lhs: SymbolId(10), // expression
         rhs: vec![
             Symbol::NonTerminal(SymbolId(10)), // expression
@@ -89,7 +89,7 @@ fn create_arithmetic_grammar() -> Grammar {
         fields: Default::default(),
     });
     
-    grammar.rules.insert(SymbolId(102), Rule {
+    grammar.rules.entry(SymbolId(102)).or_insert_with(Vec::new).push( Rule {
         lhs: SymbolId(10), // expression
         rhs: vec![Symbol::NonTerminal(SymbolId(11))], // term
         precedence: None,
@@ -98,7 +98,7 @@ fn create_arithmetic_grammar() -> Grammar {
         fields: Default::default(),
     });
     
-    grammar.rules.insert(SymbolId(111), Rule {
+    grammar.rules.entry(SymbolId(111)).or_insert_with(Vec::new).push( Rule {
         lhs: SymbolId(11), // term
         rhs: vec![Symbol::NonTerminal(SymbolId(12))], // factor
         precedence: None,
@@ -107,7 +107,7 @@ fn create_arithmetic_grammar() -> Grammar {
         fields: Default::default(),
     });
     
-    grammar.rules.insert(SymbolId(121), Rule {
+    grammar.rules.entry(SymbolId(121)).or_insert_with(Vec::new).push( Rule {
         lhs: SymbolId(12), // factor
         rhs: vec![Symbol::Terminal(SymbolId(1))], // number
         precedence: None,

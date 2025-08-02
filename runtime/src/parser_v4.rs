@@ -497,7 +497,14 @@ mod tests {
         });
         
         // Create a dummy parse table
-        let parse_table = ParseTable::new();
+        let parse_table = ParseTable {
+            action_table: vec![],
+            goto_table: vec![],
+            symbol_metadata: vec![],
+            state_count: 0,
+            symbol_count: 0,
+            symbol_to_index: std::collections::BTreeMap::new(),
+        };
         
         // Create parser
         let mut parser = Parser::new(grammar, parse_table, "test_python".to_string());

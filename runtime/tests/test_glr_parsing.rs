@@ -1,7 +1,7 @@
 // Comprehensive tests for GLR (Generalized LR) parsing
 // These tests verify fork/merge handling for ambiguous grammars
 
-use rust_sitter::parser_v3::{Parser, ParseNode};
+use rust_sitter::parser::{Parser, ParseNode};
 use rust_sitter::glr::{GLRStack, GLRParser};
 use rust_sitter_ir::*;
 use rust_sitter_glr_core::*;

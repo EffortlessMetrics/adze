@@ -2,10 +2,10 @@
 
 use rust_sitter::scanner_registry::ExternalScannerBuilder;
 use rust_sitter::scanners::IndentationScanner;
-use rust_sitter_ir::{Grammar, ExternalToken, SymbolId, Rule, Symbol, Token, TokenPattern};
+use rust_sitter_ir::{Grammar, ExternalToken, SymbolId, Rule, Symbol, Token, TokenPattern, ProductionId};
 use rust_sitter_glr_core::{ParseTable, Action};
 use rust_sitter::parser_v4::Parser;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Create a simple Python-like grammar with indentation
 fn create_python_grammar() -> Grammar {
@@ -27,19 +27,19 @@ fn create_python_grammar() -> Grammar {
     grammar.tokens.insert(def_keyword, Token {
         name: "def".to_string(),
         pattern: TokenPattern::String("def".to_string()),
-        precedence: 0,
+        fragile: false,
     });
     
     grammar.tokens.insert(identifier, Token {
         name: "identifier".to_string(),
         pattern: TokenPattern::Regex(r"[a-zA-Z_][a-zA-Z0-9_]*".to_string()),
-        precedence: 0,
+        fragile: false,
     });
     
     grammar.tokens.insert(colon, Token {
         name: "colon".to_string(),
         pattern: TokenPattern::String(":".to_string()),
-        precedence: 0,
+        fragile: false,
     });
     
     // Add external tokens
@@ -60,17 +60,17 @@ fn create_python_grammar() -> Grammar {
     
     // Add rules
     // program -> statement*
-    grammar.rules.insert(program, Rule {
-        name: "program".to_string(),
+    grammar.rules.entry(program).or_insert_with(Vec::new).push(Rule {
         lhs: program,
         rhs: vec![],  // Simplified - would normally have repetition
-        fields: HashMap::new(),
-        id: rust_sitter_ir::RuleId(0),
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
     });
     
     // function_def -> 'def' identifier '(' ')' ':' newline indent block dedent
-    grammar.rules.insert(function_def, Rule {
-        name: "function_def".to_string(),
+    grammar.rules.entry(function_def).or_insert_with(Vec::new).push(Rule {
         lhs: function_def,
         rhs: vec![
             Symbol::Terminal(def_keyword),
@@ -81,29 +81,33 @@ fn create_python_grammar() -> Grammar {
             Symbol::NonTerminal(block),
             Symbol::External(dedent),
         ],
-        fields: HashMap::new(),
-        id: rust_sitter_ir::RuleId(1),
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(1),
     });
     
     // block -> statement+
-    grammar.rules.insert(block, Rule {
-        name: "block".to_string(),
+    grammar.rules.entry(block).or_insert_with(Vec::new).push(Rule {
         lhs: block,
         rhs: vec![Symbol::NonTerminal(statement)],
-        fields: HashMap::new(),
-        id: rust_sitter_ir::RuleId(2),
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(2),
     });
     
     // statement -> identifier newline
-    grammar.rules.insert(statement, Rule {
-        name: "statement".to_string(),
+    grammar.rules.entry(statement).or_insert_with(Vec::new).push(Rule {
         lhs: statement,
         rhs: vec![
             Symbol::Terminal(identifier),
             Symbol::External(newline),
         ],
-        fields: HashMap::new(),
-        id: rust_sitter_ir::RuleId(3),
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(3),
     });
     
     grammar
@@ -118,7 +122,7 @@ fn create_parse_table() -> ParseTable {
         symbol_metadata: vec![],
         state_count: 10,
         symbol_count: 10,
-        symbol_to_index: HashMap::new(),
+        symbol_to_index: BTreeMap::new(),
     }
 }
 

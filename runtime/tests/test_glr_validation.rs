@@ -57,7 +57,7 @@ fn test_comprehensive_validation() {
     let expr_id = SymbolId(10);
     grammar.rule_names.insert(expr_id, "expr".to_string());
     
-    grammar.rules.insert(expr_id, Rule {
+    grammar.rules.entry(expr_id, Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -108,7 +108,7 @@ fn test_undefined_symbol_with_typo() {
     let expr_id = SymbolId(10);
     let identifer_typo_id = SymbolId(99);
     
-    grammar.rules.insert(expr_id, Rule {
+    grammar.rules.entry(expr_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(identifer_typo_id)], // typo
         precedence: None,
@@ -145,7 +145,7 @@ fn test_non_productive_cycle_detection() {
     let b_id = SymbolId(2);
     let c_id = SymbolId(3);
     
-    grammar.rules.insert(a_id, Rule {
+    grammar.rules.entry(a_id, Rule {
         lhs: a_id,
         rhs: vec![Symbol::NonTerminal(b_id)],
         precedence: None,
@@ -155,7 +155,7 @@ fn test_non_productive_cycle_detection() {
     });
     grammar.rule_names.insert(a_id, "A".to_string());
     
-    grammar.rules.insert(b_id, Rule {
+    grammar.rules.entry(b_id, Rule {
         lhs: b_id,
         rhs: vec![Symbol::NonTerminal(c_id)],
         precedence: None,
@@ -165,7 +165,7 @@ fn test_non_productive_cycle_detection() {
     });
     grammar.rule_names.insert(b_id, "B".to_string());
     
-    grammar.rules.insert(c_id, Rule {
+    grammar.rules.entry(c_id, Rule {
         lhs: c_id,
         rhs: vec![Symbol::NonTerminal(a_id)],
         precedence: None,
@@ -236,7 +236,7 @@ fn test_ambiguous_grammar_detection() {
     
     // Rules that create ambiguity
     // stmt → if_stmt
-    grammar.rules.insert(stmt_id, Rule {
+    grammar.rules.entry(stmt_id, Rule {
         lhs: stmt_id,
         rhs: vec![Symbol::NonTerminal(if_stmt_id)],
         precedence: None,
@@ -247,7 +247,7 @@ fn test_ambiguous_grammar_detection() {
     grammar.rule_names.insert(stmt_id, "stmt".to_string());
     
     // if_stmt → if expr then stmt
-    grammar.rules.insert(if_stmt_id, Rule {
+    grammar.rules.entry(if_stmt_id, Rule {
         lhs: if_stmt_id,
         rhs: vec![
             Symbol::Terminal(if_id),
@@ -264,7 +264,7 @@ fn test_ambiguous_grammar_detection() {
     
     // Also allow: if_stmt → if expr then stmt else stmt (creates ambiguity)
     let if_stmt_else_id = SymbolId(7);
-    grammar.rules.insert(if_stmt_else_id, Rule {
+    grammar.rules.entry(if_stmt_else_id, Rule {
         lhs: if_stmt_id,
         rhs: vec![
             Symbol::Terminal(if_id),
@@ -334,7 +334,7 @@ fn test_token_validation() {
     
     // Add a rule to make grammar non-empty
     let expr_id = SymbolId(10);
-    grammar.rules.insert(expr_id, Rule {
+    grammar.rules.entry(expr_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(word1_id)],
         precedence: None,
@@ -365,7 +365,7 @@ fn test_helpful_error_formatting() {
     let expr_id = SymbolId(1);
     let undefined_id = SymbolId(99);
     
-    grammar.rules.insert(expr_id, Rule {
+    grammar.rules.entry(expr_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(undefined_id)],
         precedence: None,
@@ -419,7 +419,7 @@ fn test_unreachable_symbol_warning() {
     
     // Create a rule that only uses one token
     let expr_id = SymbolId(10);
-    grammar.rules.insert(expr_id, Rule {
+    grammar.rules.entry(expr_id, Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(used_token)],
         precedence: None,
@@ -431,7 +431,7 @@ fn test_unreachable_symbol_warning() {
     
     // Create an unreachable rule
     let unreachable_rule = SymbolId(11);
-    grammar.rules.insert(unreachable_rule, Rule {
+    grammar.rules.entry(unreachable_rule, Rule {
         lhs: unreachable_rule,
         rhs: vec![Symbol::Terminal(unused_token)],
         precedence: None,

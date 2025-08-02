@@ -46,7 +46,7 @@ fn create_simple_grammar() -> Grammar {
     
     // Rules
     // Rule 1: expr → number
-    grammar.rules.insert(SymbolId(20), Rule {
+    grammar.rules.entry(SymbolId(20)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(num_id)],
         precedence: None,
@@ -56,7 +56,7 @@ fn create_simple_grammar() -> Grammar {
     });
     
     // Rule 2: expr → ( expr )
-    grammar.rules.insert(SymbolId(21), Rule {
+    grammar.rules.entry(SymbolId(21)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(lparen_id), Symbol::NonTerminal(expr_id), Symbol::Terminal(rparen_id)],
         precedence: None,

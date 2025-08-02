@@ -35,7 +35,7 @@ fn create_epsilon_grammar() -> Grammar {
     
     // Rules:
     // S → Optional a Optional b
-    grammar.rules.insert(SymbolId(20), Rule {
+    grammar.rules.entry(SymbolId(20)).or_insert_with(Vec::new).push(Rule {
         lhs: s_id,
         rhs: vec![
             Symbol::NonTerminal(opt_id),
@@ -50,7 +50,7 @@ fn create_epsilon_grammar() -> Grammar {
     });
     
     // Optional → 'a'
-    grammar.rules.insert(SymbolId(21), Rule {
+    grammar.rules.entry(SymbolId(21)).or_insert_with(Vec::new).push( Rule {
         lhs: opt_id,
         rhs: vec![Symbol::Terminal(a_id)],
         precedence: None,
@@ -60,7 +60,7 @@ fn create_epsilon_grammar() -> Grammar {
     });
     
     // Optional → ε (empty)
-    grammar.rules.insert(SymbolId(22), Rule {
+    grammar.rules.entry(SymbolId(22)).or_insert_with(Vec::new).push( Rule {
         lhs: opt_id,
         rhs: vec![], // Empty production
         precedence: None,
@@ -136,7 +136,7 @@ fn test_multiple_epsilon_paths() {
     grammar.rule_names.insert(b_id, "B".to_string());
     
     // S → A B
-    grammar.rules.insert(SymbolId(20), Rule {
+    grammar.rules.entry(SymbolId(20)).or_insert_with(Vec::new).push( Rule {
         lhs: s_id,
         rhs: vec![Symbol::NonTerminal(a_id), Symbol::NonTerminal(b_id)],
         precedence: None,
@@ -146,7 +146,7 @@ fn test_multiple_epsilon_paths() {
     });
     
     // A → x
-    grammar.rules.insert(SymbolId(21), Rule {
+    grammar.rules.entry(SymbolId(21)).or_insert_with(Vec::new).push( Rule {
         lhs: a_id,
         rhs: vec![Symbol::Terminal(x_id)],
         precedence: None,
@@ -156,7 +156,7 @@ fn test_multiple_epsilon_paths() {
     });
     
     // A → ε
-    grammar.rules.insert(SymbolId(22), Rule {
+    grammar.rules.entry(SymbolId(22)).or_insert_with(Vec::new).push( Rule {
         lhs: a_id,
         rhs: vec![],
         precedence: None,
@@ -166,7 +166,7 @@ fn test_multiple_epsilon_paths() {
     });
     
     // B → x
-    grammar.rules.insert(SymbolId(23), Rule {
+    grammar.rules.entry(SymbolId(23)).or_insert_with(Vec::new).push( Rule {
         lhs: b_id,
         rhs: vec![Symbol::Terminal(x_id)],
         precedence: None,
@@ -176,7 +176,7 @@ fn test_multiple_epsilon_paths() {
     });
     
     // B → ε
-    grammar.rules.insert(SymbolId(24), Rule {
+    grammar.rules.entry(SymbolId(24)).or_insert_with(Vec::new).push( Rule {
         lhs: b_id,
         rhs: vec![],
         precedence: None,
@@ -213,7 +213,7 @@ fn test_epsilon_with_recursion() {
     grammar.rule_names.insert(list_id, "List".to_string());
     
     // List → List a
-    grammar.rules.insert(SymbolId(20), Rule {
+    grammar.rules.entry(SymbolId(20)).or_insert_with(Vec::new).push( Rule {
         lhs: list_id,
         rhs: vec![Symbol::NonTerminal(list_id), Symbol::Terminal(a_id)],
         precedence: None,
@@ -223,7 +223,7 @@ fn test_epsilon_with_recursion() {
     });
     
     // List → ε
-    grammar.rules.insert(SymbolId(21), Rule {
+    grammar.rules.entry(SymbolId(21)).or_insert_with(Vec::new).push( Rule {
         lhs: list_id,
         rhs: vec![],
         precedence: None,

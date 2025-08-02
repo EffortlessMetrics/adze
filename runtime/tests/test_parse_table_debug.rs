@@ -26,7 +26,7 @@ fn create_ambiguous_grammar() -> Grammar {
         production_id: ProductionId(0),
         fields: vec![],
     };
-    grammar.rules.insert(SymbolId(20), rule1);
+    grammar.rules.entry(SymbolId(20)).or_insert_with(Vec::new).push(rule1);
     
     // Rule 2: E → E E
     let rule2 = Rule {
@@ -37,7 +37,7 @@ fn create_ambiguous_grammar() -> Grammar {
         production_id: ProductionId(1),
         fields: vec![],
     };
-    grammar.rules.insert(SymbolId(21), rule2);
+    grammar.rules.entry(SymbolId(21)).or_insert_with(Vec::new).push(rule2);
     
     println!("\n=== Checking Grammar ===\nRules count: {}\nTokens count: {}\nRule names count: {}", 
         grammar.rules.len(), grammar.tokens.len(), grammar.rule_names.len());

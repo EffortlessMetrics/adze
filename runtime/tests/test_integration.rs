@@ -1,7 +1,7 @@
 // Integration tests for the complete rust-sitter parsing pipeline
 // These tests verify that all components work together correctly
 
-use rust_sitter::parser_v3::{Parser, ParseNode};
+use rust_sitter::parser::{Parser, ParseNode};
 use rust_sitter::incremental_v3::{IncrementalParser, Edit, Position};
 use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
 use rust_sitter::query::{compile_query, QueryCursor};
@@ -86,16 +86,13 @@ fn create_python_like_grammar() -> Grammar {
     
     // Rules
     // program -> function*
-    grammar.rules.insert(RuleId(0), Rule {
+    grammar.rules.entry(program).or_insert_with(Vec::new).push(Rule {
         lhs: program,
         rhs: vec![Symbol::NonTerminal(function)],
         production_id: ProductionId(0),
         precedence: None,
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     });
     
     // function -> def identifier : newline indent block dedent
@@ -103,7 +100,10 @@ fn create_python_like_grammar() -> Grammar {
     function_fields.insert(FieldId(0), 1); // name field at position 1
     function_fields.insert(FieldId(1), 5); // body field at position 5
     
-    grammar.rules.insert(RuleId(1), Rule {
+    // Convert IndexMap to Vec for fields
+    let function_fields_vec = vec![(FieldId(0), 1), (FieldId(1), 5)];
+    
+    grammar.rules.entry(function).or_insert_with(Vec::new).push(Rule {
         lhs: function,
         rhs: vec![
             Symbol::Terminal(def_keyword),
@@ -117,10 +117,7 @@ fn create_python_like_grammar() -> Grammar {
         production_id: ProductionId(1),
         precedence: None,
         associativity: None,
-        fields: function_fields,
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: function_fields_vec,
     });
     
     // Add field names

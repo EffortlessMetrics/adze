@@ -58,7 +58,7 @@ fn create_test_grammar() -> Grammar {
     
     // Rules:
     // statement → expression ';'
-    grammar.rules.insert(SymbolId(20), Rule {
+    grammar.rules.entry(SymbolId(20).or_insert_with(Vec::new).push( Rule {
         lhs: stmt_id,
         rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(semicolon_id)],
         precedence: None,
@@ -68,7 +68,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // expression → expression '+' expression
-    grammar.rules.insert(SymbolId(21), Rule {
+    grammar.rules.entry(SymbolId(21).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::NonTerminal(expr_id),
@@ -82,7 +82,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // expression → '(' expression ')'
-    grammar.rules.insert(SymbolId(22), Rule {
+    grammar.rules.entry(SymbolId(22).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![
             Symbol::Terminal(lparen_id),
@@ -96,7 +96,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // expression → number
-    grammar.rules.insert(SymbolId(23), Rule {
+    grammar.rules.entry(SymbolId(23).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(num_id)],
         precedence: None,

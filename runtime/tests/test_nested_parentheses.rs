@@ -1,19 +1,12 @@
+use rust_sitter::glr_lexer::GLRLexer;
+use rust_sitter::glr_parser::GLRParser;
+use rust_sitter::subtree::Subtree;
 // Test for nested parentheses issue in GLR parser
 
 use rust_sitter_ir::{Grammar, Rule, Symbol, Token, TokenPattern, SymbolId, ProductionId, PrecedenceKind, Associativity};
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 
 // Import internal modules for testing
-#[path = "../src/subtree.rs"]
-mod subtree;
-#[path = "../src/glr_lexer.rs"]
-mod glr_lexer;
-#[path = "../src/glr_parser.rs"]
-mod glr_parser;
-
-use glr_lexer::{GLRLexer, TokenWithPosition};
-use glr_parser::GLRParser;
-use subtree::Subtree;
 use std::sync::Arc;
 
 /// Create a simple expression grammar for testing
