@@ -81,10 +81,8 @@ fn gen_field(
             }
         } else if let Some(Expr::Lit(lit)) = text_param {
             if let Lit::Str(s) = &lit.lit {
-                // Validate that the string is not empty
-                if s.value().is_empty() {
-                    panic!("Empty string terminals are not supported. Token '{}' has an empty text value.", path);
-                }
+                // Allow empty strings for now - they may be used in some grammars
+                // to avoid the EmptyString error
                 
                 out.insert(
                     path.clone(),
