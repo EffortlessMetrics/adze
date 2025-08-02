@@ -451,6 +451,10 @@ Rust Sitter has been validated with 150+ production grammars:
 - **Config**: Dockerfile, Makefile, CMake, Nix
 - **And 100+ more...**
 
+### ⚠️ Known Limitations
+
+**Empty Production Rules**: Tree-sitter does not support grammar rules that can match zero tokens. This means structs with only `Vec<T>` fields need special handling. See [Empty Production Rules Guide](./docs/empty-production-rules.md) for solutions and patterns.
+
 ### 🚀 Getting Started
 
 ```bash

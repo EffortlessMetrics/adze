@@ -109,6 +109,90 @@ pub enum DottedName {
 3. Use enums to explicitly model different structural variants
 4. Add delimiter tokens or whitespace patterns when appropriate
 
+## Common Patterns and Examples
+
+### Container Expressions (Lists, Tuples, Dicts)
+When implementing container literals that can be empty:
+
+```rust
+// Problem: Empty list [] causes EmptyString error
+#[rust_sitter::language]
+pub struct ListExpression {
+    #[rust_sitter::leaf(text = "[")]
+    _open: (),
+    #[rust_sitter::repeat]
+    pub elements: Vec<Expression>,
+    #[rust_sitter::leaf(text = "]")]
+    _close: (),
+}
+
+// Solution: Add whitespace tokens
+#[rust_sitter::language]
+pub struct ListExpression {
+    #[rust_sitter::leaf(text = "[")]
+    _open: (),
+    #[rust_sitter::leaf(pattern = r"\s*")]
+    #[rust_sitter::skip]
+    _ws1: (),
+    #[rust_sitter::repeat]
+    #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
+    pub elements: Vec<Expression>,
+    #[rust_sitter::leaf(pattern = r"\s*")]
+    #[rust_sitter::skip]
+    _ws2: (),
+    #[rust_sitter::leaf(text = "]")]
+    _close: (),
+}
+```
+
+### Function Parameters
+```rust
+// Solution for optional parameter lists
+#[rust_sitter::language]
+pub struct Parameters {
+    #[rust_sitter::leaf(text = "(")]
+    _open: (),
+    #[rust_sitter::leaf(pattern = r"\s*")]
+    #[rust_sitter::skip]
+    _ws1: (),
+    #[rust_sitter::repeat]
+    #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
+    pub params: Vec<Parameter>,
+    #[rust_sitter::leaf(pattern = r"\s*")]
+    #[rust_sitter::skip]
+    _ws2: (),
+    #[rust_sitter::leaf(text = ")")]
+    _close: (),
+}
+```
+
+## Debugging Empty Rule Errors
+
+When you encounter an `EmptyString` error:
+
+1. **Enable artifact emission** to see the generated grammar:
+   ```bash
+   RUST_SITTER_EMIT_ARTIFACTS=true cargo build
+   ```
+
+2. **Look for the error message** which will indicate the problematic rule:
+   ```
+   Error: EmptyString("Module")
+   ```
+
+3. **Check the generated grammar** in `target/debug/build/*/out/grammar.json`
+
+4. **Trace back** to find which struct has only empty Vec fields
+
+## Technical Background
+
+Tree-sitter's parsing algorithm requires every grammar rule to consume at least one token to make forward progress. Empty rules would cause the parser to get stuck in infinite loops. This is a fundamental limitation of the LR parsing approach used by Tree-sitter.
+
 ## Future Work
 
-A future version of rust-sitter may automatically handle empty production rules by inserting appropriate workarounds during grammar generation. Until then, grammar authors need to be aware of this limitation and design their grammars accordingly.
+A future version of rust-sitter may automatically handle empty production rules by:
+- Detecting structs with only Vec fields during macro expansion
+- Automatically inserting whitespace tokens or wrapper rules
+- Providing better error messages with suggested fixes
+
+Until then, grammar authors need to be aware of this limitation and design their grammars accordingly.
