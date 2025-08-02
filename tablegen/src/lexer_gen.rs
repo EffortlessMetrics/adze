@@ -66,7 +66,7 @@ pub fn generate_lexer(
                             return true;
                         }
                     });
-                } else if pattern == r"\s" || pattern == r"\s+" {
+                } else if pattern == r"\s" || pattern == r"\s+" || pattern == r"\s*" {
                     // Whitespace is typically an extra token
                     token_matches.push(quote! {
                         if input[position].is_ascii_whitespace() {
@@ -77,6 +77,58 @@ pub fn generate_lexer(
                             state.result_symbol = #symbol_index;
                             state.result_length = len;
                             return true;
+                        }
+                    });
+                } else if pattern == r"\d+(\.\d+)?" {
+                    // Number with optional decimal
+                    token_matches.push(quote! {
+                        if input[position].is_ascii_digit() {
+                            let mut len = 1;
+                            // Match initial digits
+                            while position + len < input.len() && input[position + len].is_ascii_digit() {
+                                len += 1;
+                            }
+                            // Check for optional decimal part
+                            if position + len + 1 < input.len() && input[position + len] == b'.' && input[position + len + 1].is_ascii_digit() {
+                                len += 2; // Skip '.' and first decimal digit
+                                while position + len < input.len() && input[position + len].is_ascii_digit() {
+                                    len += 1;
+                                }
+                            }
+                            state.result_symbol = #symbol_index;
+                            state.result_length = len;
+                            return true;
+                        }
+                    });
+                } else if pattern == r"[a-zA-Z_][a-zA-Z0-9_]*" {
+                    // Identifier pattern
+                    token_matches.push(quote! {
+                        if input[position].is_ascii_alphabetic() || input[position] == b'_' {
+                            let mut len = 1;
+                            while position + len < input.len() && 
+                                  (input[position + len].is_ascii_alphanumeric() || input[position + len] == b'_') {
+                                len += 1;
+                            }
+                            state.result_symbol = #symbol_index;
+                            state.result_length = len;
+                            return true;
+                        }
+                    });
+                } else if pattern == r#""[^"]*"|'[^']*'"# {
+                    // String literal pattern (double or single quotes)
+                    token_matches.push(quote! {
+                        if input[position] == b'"' || input[position] == b'\'' {
+                            let quote_char = input[position];
+                            let mut len = 1;
+                            while position + len < input.len() && input[position + len] != quote_char {
+                                len += 1;
+                            }
+                            if position + len < input.len() && input[position + len] == quote_char {
+                                len += 1; // Include closing quote
+                                state.result_symbol = #symbol_index;
+                                state.result_length = len;
+                                return true;
+                            }
                         }
                     });
                 }
