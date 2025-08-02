@@ -4,9 +4,10 @@
 use crate::subtree::{Subtree, SubtreeNode};
 // use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use rust_sitter_glr_core::{
-    Action, ParseTable, StateId, SymbolId, RuleId,
+    Action, ParseTable,
     VersionInfo, CompareResult, compare_versions,
 };
+use rust_sitter_ir::{StateId, SymbolId, RuleId};
 use rust_sitter_ir::Grammar;
 use std::collections::{VecDeque, HashMap};
 use std::sync::Arc;

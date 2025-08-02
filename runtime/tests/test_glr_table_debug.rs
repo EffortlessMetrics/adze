@@ -60,7 +60,7 @@ fn build_arithmetic_grammar() -> Grammar {
     
     // Rules
     // expr -> number
-    grammar.rules.entry(expr_id, Rule {
+    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(SymbolId(1))],
         precedence: None,

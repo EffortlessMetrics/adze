@@ -3,7 +3,6 @@ use rust_sitter::parser::{Parser, ParseNode};
 use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
 use rust_sitter_ir::*;
 use rust_sitter_glr_core::*;
-use indexmap::IndexMap;
 
 fn create_test_grammar() -> Grammar {
     let mut grammar = Grammar::new("test".to_string());
@@ -50,20 +49,17 @@ fn create_test_grammar() -> Grammar {
     let stmt = SymbolId(11);
     
     // expr -> number
-    grammar.rules.insert(expr, Rule {
+    grammar.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
         lhs: expr,
         rhs: vec![Symbol::Terminal(number)],
         production_id: ProductionId(0),
         precedence: None,
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     });
     
     // expr -> expr + expr
-    grammar.rules.insert(expr, Rule {
+    grammar.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
         lhs: expr,
         rhs: vec![
             Symbol::NonTerminal(expr),
@@ -73,10 +69,7 @@ fn create_test_grammar() -> Grammar {
         production_id: ProductionId(1),
         precedence: None,
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     });
     
     // expr -> ( expr )
@@ -90,10 +83,7 @@ fn create_test_grammar() -> Grammar {
         production_id: ProductionId(2),
         precedence: None,
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     });
     
     // stmt -> expr ;
@@ -106,10 +96,7 @@ fn create_test_grammar() -> Grammar {
         production_id: ProductionId(3),
         precedence: None,
         associativity: None,
-        fields: IndexMap::new(),
-        inline: false,
-        fragile: false,
-        visible: true,
+        fields: vec![],
     });
     
     grammar

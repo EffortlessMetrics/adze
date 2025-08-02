@@ -96,7 +96,7 @@ fn create_test_grammar() -> Grammar {
     });
     
     // expression → number
-    grammar.rules.entry(SymbolId(23).or_insert_with(Vec::new).push( Rule {
+    grammar.rules.entry(SymbolId(23)).or_insert_with(Vec::new).push( Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(num_id)],
         precedence: None,

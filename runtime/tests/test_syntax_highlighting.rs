@@ -91,16 +91,16 @@ fn create_simple_grammar() -> Grammar {
     grammar.rule_names.insert(expression, "expression".to_string());
     
     // Add rules
-    grammar.rules.insert(program, Rule {
+    grammar.rules.entry(program).or_insert_with(Vec::new).push(Rule {
         lhs: program,
         rhs: vec![Symbol::NonTerminal(statement)],
         fields: vec![],
         precedence: None,
         associativity: None,
-        production_id: None,
+        production_id: ProductionId(0),
     });
     
-    grammar.rules.insert(if_statement, Rule {
+    grammar.rules.entry(if_statement).or_insert_with(Vec::new).push(Rule {
         lhs: if_statement,
         rhs: vec![
             Symbol::Terminal(keyword_if),
@@ -112,7 +112,7 @@ fn create_simple_grammar() -> Grammar {
         fields: vec![],
         precedence: None,
         associativity: None,
-        production_id: None,
+        production_id: ProductionId(1),
     });
     
     grammar

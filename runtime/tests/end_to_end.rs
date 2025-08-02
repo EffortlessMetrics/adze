@@ -2,7 +2,7 @@
 // This tests the complete pipeline from grammar to parsing
 
 use rust_sitter::lexer::GrammarLexer;
-use rust_sitter::parser_v2::{ParserV2, Token, ParseNode};
+use rust_sitter::parser::{Parser, ParseNode};
 use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token as IrToken, TokenPattern};
 
@@ -128,6 +128,7 @@ fn create_arithmetic_parse_table() -> ParseTable {
         action_table: vec![vec![Action::Error; 13]; 10],
         goto_table: vec![vec![StateId(0); 13]; 10],
         symbol_metadata: vec![],
+        symbol_to_index: std::collections::BTreeMap::new(),
     };
     
     // State 0: Initial state

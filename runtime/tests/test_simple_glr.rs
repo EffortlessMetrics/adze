@@ -22,7 +22,7 @@ fn test_minimal_grammar() {
     
     // Single rule: S -> a
     let s_id = SymbolId(10);
-    grammar.rules.insert(s_id, Rule {
+    grammar.rules.entry(s_id).or_insert_with(Vec::new).push(Rule {
         lhs: s_id,
         rhs: vec![Symbol::Terminal(SymbolId(0))],
         precedence: None,
