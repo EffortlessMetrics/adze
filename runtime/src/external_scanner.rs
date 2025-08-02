@@ -76,6 +76,11 @@ impl ExternalScannerRuntime {
             state: ExternalScannerState::new(),
         }
     }
+    
+    /// Get the external tokens
+    pub fn get_external_tokens(&self) -> &[SymbolId] {
+        &self.external_tokens
+    }
 
     /// Execute external scanner
     pub fn scan<S: ExternalScanner>(

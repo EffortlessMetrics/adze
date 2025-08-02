@@ -167,21 +167,21 @@ impl Parser {
     
     /// Try to scan for external tokens
     fn try_external_scanner(&mut self, current_state: StateId) -> Result<Option<LexerToken>> {
-        // Check if we have external scanner
-        let (scanner, runtime) = match (&mut self.external_scanner, &mut self.external_runtime) {
-            (Some(s), Some(r)) => (s, r),
-            _ => return Ok(None),
-        };
-        
-        // Compute valid external tokens for this state
+        // Compute valid external tokens for this state first (before mutable borrow)
         let valid_externals = self.compute_valid_externals(current_state)?;
         
         if valid_externals.is_empty() {
             return Ok(None);
         }
         
+        // Check if we have external scanner
+        let (scanner, runtime) = match (&mut self.external_scanner, &mut self.external_runtime) {
+            (Some(s), Some(r)) => (s, r),
+            _ => return Ok(None),
+        };
+        
         // Convert valid externals to bool array
-        let valid_symbols: Vec<bool> = runtime.external_tokens
+        let valid_symbols: Vec<bool> = runtime.get_external_tokens()
             .iter()
             .map(|token| valid_externals.contains(token))
             .collect();
@@ -219,10 +219,14 @@ impl Parser {
         let state_idx = state.0 as usize;
         if state_idx < self.parse_table.action_table.len() {
             let state_actions = &self.parse_table.action_table[state_idx];
-            for (symbol_id, _) in &state_actions.actions {
-                // Check if this is an external symbol by comparing with grammar externals
-                if self.grammar.externals.iter().any(|ext| ext.symbol_id == *symbol_id) {
-                    valid_externals.insert(*symbol_id);
+            // Check each action in the state
+            for (idx, _action) in state_actions.iter().enumerate() {
+                if let Some(&symbol_id) = self.parse_table.symbol_to_index.iter()
+                    .find_map(|(sym, &i)| if i == idx { Some(sym) } else { None }) {
+                    // Check if this is an external symbol by comparing with grammar externals
+                    if self.grammar.externals.iter().any(|ext| ext.symbol_id == symbol_id) {
+                        valid_externals.insert(symbol_id);
+                    }
                 }
             }
         }
@@ -230,134 +234,9 @@ impl Parser {
         Ok(valid_externals)
     }
     
-    /// Handle a shift action
-    fn handle_shift(&mut self, next_state: StateId, token: LexerToken) -> Result<()> {
-        // Push token as a leaf node
-        self.node_stack.push(ParseNode {
-            symbol: token.symbol,
-            children: vec![],
-            start_byte: token.start,
-            end_byte: token.end,
-            field_name: None,
-        });
-        
-        // Push new state
-        self.state_stack.push(ParserState {
-            state: next_state,
-            symbol: Some(token.symbol),
-            position: token.end,
-        });
-        
-        // Advance position
-        self.position = token.end;
-        
-        Ok(())
-    }
     
-    /// Handle a reduce action
-    fn handle_reduce(&mut self, rule_id: RuleId) -> Result<()> {
-        // Find the rule in the grammar and extract needed data
-        let (rule_lhs, rule_rhs_len, rule_fields) = {
-            let rule = self.find_rule_by_id(rule_id)?;
-            (rule.lhs, rule.rhs.len(), rule.fields.clone())
-        };
-        
-        // Pop states and nodes for the rule length
-        let mut children = Vec::with_capacity(rule_rhs_len);
-        
-        // Collect children in reverse order (they're on stack in reverse)
-        for _ in 0..rule_rhs_len {
-            self.state_stack.pop()
-                .ok_or_else(|| anyhow::anyhow!(ParseError::InvalidState("State stack underflow".to_string())))?;
-            
-            let child = self.node_stack.pop()
-                .ok_or_else(|| anyhow::anyhow!(ParseError::InvalidState("Node stack underflow".to_string())))?;
-            
-            children.push(child);
-        }
-        
-        // Children were collected in reverse order
-        children.reverse();
-        
-        // Apply field names if any
-        for (field_id, position) in rule_fields {
-            if position < children.len() {
-                if let Some(field_name) = self.grammar.fields.get(&field_id) {
-                    children[position].field_name = Some(field_name.clone());
-                }
-            }
-        }
-        
-        // Get position info from children
-        let start_byte = children.first().map(|n| n.start_byte).unwrap_or(self.position);
-        let end_byte = children.last().map(|n| n.end_byte).unwrap_or(self.position);
-        
-        // Create new node for the reduction
-        let new_node = ParseNode {
-            symbol: rule_lhs,
-            children,
-            start_byte,
-            end_byte,
-            field_name: None,
-        };
-        
-        self.node_stack.push(new_node);
-        
-        // Get goto state
-        let goto_state = self.get_goto_state()?;
-        self.state_stack.push(ParserState {
-            state: goto_state,
-            symbol: Some(rule_lhs),
-            position: end_byte,
-        });
-        
-        Ok(())
-    }
     
-    /// Get the goto state after a reduction
-    fn get_goto_state(&self) -> Result<StateId> {
-        let current_state = self.state_stack.last()
-            .ok_or_else(|| anyhow::anyhow!("State stack is empty"))?
-            .state;
-        
-        let reduced_symbol = self.node_stack.last()
-            .ok_or_else(|| anyhow::anyhow!("Node stack is empty"))?
-            .symbol;
-        
-        // Look up goto action
-        let state_idx = current_state.0 as usize;
-        if state_idx < self.parse_table.action_table.len() {
-            let state_actions = &self.parse_table.action_table[state_idx];
-            if let Some(action) = state_actions.actions.get(&reduced_symbol) {
-                if let Action::Shift(goto_state) = action {
-                    return Ok(*goto_state);
-                }
-            }
-        }
-        
-        bail!("No goto action for symbol {:?} in state {:?}", reduced_symbol, current_state)
-    }
     
-    /// Handle any action (used for fork resolution)
-    fn handle_action(&mut self, action: Action, token: LexerToken) -> Result<ParseNode> {
-        match action {
-            Action::Shift(next_state) => {
-                self.handle_shift(next_state, token)?;
-                let input_str = String::from_utf8_lossy(&self.input).into_owned();
-                self.parse(&input_str)
-            }
-            Action::Reduce(rule_id) => {
-                self.handle_reduce(rule_id)?;
-                let input_str = String::from_utf8_lossy(&self.input).into_owned();
-                self.parse(&input_str)
-            }
-            Action::Accept => {
-                self.node_stack.pop()
-                    .ok_or_else(|| anyhow::anyhow!("No parse tree on accept"))
-            }
-            _ => bail!("Cannot handle action: {:?}", action),
-        }
-    }
     
     /// Get action from parse table
     fn get_action(&self, state: StateId, symbol: SymbolId) -> Result<Action> {
@@ -377,20 +256,29 @@ impl Parser {
     /// Get expected symbols for error reporting
     fn get_expected_symbols(&self, state: StateId) -> Vec<SymbolId> {
         let state_idx = state.0 as usize;
+        let mut expected = Vec::new();
+        
         if state_idx < self.parse_table.action_table.len() {
             let state_actions = &self.parse_table.action_table[state_idx];
-            state_actions.actions.keys()
-                .filter(|&&sym| {
-                    // Include only terminals and external tokens
-                    // Check if it's a token or external
-                    self.grammar.tokens.contains_key(&sym) || 
-                    self.grammar.externals.iter().any(|ext| ext.symbol_id == sym)
-                })
-                .cloned()
-                .collect()
-        } else {
-            vec![]
+            
+            // Iterate through all symbols to find ones with non-error actions
+            for (&symbol_id, &idx) in &self.parse_table.symbol_to_index {
+                if idx < state_actions.len() {
+                    match &state_actions[idx] {
+                        Action::Error => continue,
+                        _ => {
+                            // Include only terminals and external tokens
+                            if self.grammar.tokens.contains_key(&symbol_id) || 
+                               self.grammar.externals.iter().any(|ext| ext.symbol_id == symbol_id) {
+                                expected.push(symbol_id);
+                            }
+                        }
+                    }
+                }
+            }
         }
+        
+        expected
     }
     
     /// Find a rule by its ID
@@ -454,12 +342,15 @@ impl Parser {
     
     /// Handle reduce in GLR mode
     fn handle_glr_reduce(&mut self, gss_idx: usize, rule_id: RuleId) -> Result<Vec<usize>> {
-        let rule = self.find_rule_by_id(rule_id)?;
-        let rule_len = rule.rhs.len();
+        // Clone the rule data we need to avoid borrow checker issues
+        let (rule_lhs, rule_len) = {
+            let rule = self.find_rule_by_id(rule_id)?;
+            (rule.lhs, rule.rhs.len())
+        };
         let mut new_heads = Vec::new();
         
         // Perform reduction starting from this GSS node
-        self.perform_glr_reduce(gss_idx, rule, rule_id, rule_len, Vec::new(), &mut new_heads)?;
+        self.perform_glr_reduce(gss_idx, rule_lhs, rule_id, rule_len, Vec::new(), &mut new_heads)?;
         
         Ok(new_heads)
     }
@@ -468,7 +359,7 @@ impl Parser {
     fn perform_glr_reduce(
         &mut self,
         current_gss: usize,
-        rule: &Rule,
+        rule_lhs: SymbolId,
         rule_id: RuleId,
         remaining: usize,
         mut children: Vec<Rc<ForestNode>>,
@@ -502,7 +393,7 @@ impl Parser {
             };
             
             let forest_node = self.glr_state.merge_trees(
-                rule.lhs,
+                rule_lhs,
                 start,
                 end,
                 packed_node,
@@ -510,7 +401,7 @@ impl Parser {
             
             // Get goto state
             let current_state = self.glr_state.gss_nodes[current_gss].state;
-            let goto_state = self.get_goto_for_state(current_state, rule.lhs)?;
+            let goto_state = self.get_goto_for_state(current_state, rule_lhs)?;
             
             // Create or reuse GSS node for goto state
             let new_gss = self.glr_state.fork(current_gss, goto_state);
@@ -528,7 +419,7 @@ impl Parser {
                 new_children.push(link.tree_node.clone());
                 self.perform_glr_reduce(
                     link.parent,
-                    rule,
+                    rule_lhs,
                     rule_id,
                     remaining - 1,
                     new_children,
@@ -542,11 +433,13 @@ impl Parser {
     
     /// Get goto state for a given state and symbol
     fn get_goto_for_state(&self, state: usize, symbol: SymbolId) -> Result<usize> {
-        if state < self.parse_table.action_table.len() {
-            let state_actions = &self.parse_table.action_table[state];
-            if let Some(action) = state_actions.actions.get(&symbol) {
-                if let Action::Shift(goto_state) = action {
-                    return Ok(goto_state.0 as usize);
+        if state < self.parse_table.goto_table.len() {
+            if let Some(&symbol_idx) = self.parse_table.symbol_to_index.get(&symbol) {
+                if symbol_idx < self.parse_table.goto_table[state].len() {
+                    let goto_state = self.parse_table.goto_table[state][symbol_idx];
+                    if goto_state != StateId(0) { // 0 typically means no transition
+                        return Ok(goto_state.0 as usize);
+                    }
                 }
             }
         }

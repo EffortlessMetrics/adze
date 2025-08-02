@@ -8,48 +8,58 @@
 use rust_sitter::*;
 
 #[rust_sitter::grammar("ambiguous")]
-pub struct AmbiguousGrammar;
-
-#[rust_sitter::language]
-impl AmbiguousGrammar {
-    pub fn parse_statement(&self, input: &str) -> Statement {
-        self.parse(input)
+pub mod grammar {
+    #[rust_sitter::language]
+    pub enum Statement {
+        If(IfStatement),
+        Expression(Expression),
     }
-}
 
-pub enum Statement {
-    If(IfStatement),
-    Expression(Expression),
-}
+    pub struct IfStatement {
+        #[rust_sitter::leaf(text = "if")]
+        _if: (),
+        condition: Expression,
+        #[rust_sitter::leaf(text = "then")]
+        _then: (),
+        then_branch: Box<Statement>,
+        else_branch: Option<ElseBranch>,
+    }
 
-pub struct IfStatement {
-    pub condition: Expression,
-    pub then_branch: Box<Statement>,
-    pub else_branch: Option<Box<Statement>>,
-}
+    pub struct ElseBranch {
+        #[rust_sitter::leaf(text = "else")]
+        _else: (),
+        statement: Box<Statement>,
+    }
 
-#[rust_sitter::leaf(pattern = r"[a-z]+")]
-pub struct Identifier(String);
+    pub struct Expression {
+        id: Identifier,
+    }
 
-pub struct Expression {
-    pub id: Identifier,
+    pub struct Identifier {
+        #[rust_sitter::leaf(pattern = r"[a-z]+")]
+        name: String,
+    }
+
+    #[rust_sitter::extra]
+    struct Whitespace {
+        #[rust_sitter::leaf(pattern = r"\s")]
+        _whitespace: (),
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::grammar;
 
     #[test]
     fn test_dangling_else_ambiguity() {
-        let grammar = AmbiguousGrammar;
-        
         // This should produce an ambiguous parse
         let input = "if a then if b then c else d";
         
         // In a GLR parser, this would produce multiple parse trees
         // For now, we just ensure it can parse without panicking
         let result = std::panic::catch_unwind(|| {
-            grammar.parse_statement(input)
+            grammar::parse(input)
         });
         
         // The parse might fail or succeed depending on how ambiguity is handled
@@ -59,13 +69,11 @@ mod tests {
     
     #[test]
     fn test_simple_if() {
-        let grammar = AmbiguousGrammar;
-        let _stmt = grammar.parse_statement("if x then y");
+        let _stmt = grammar::parse("if x then y");
     }
     
     #[test]
     fn test_nested_if_without_else() {
-        let grammar = AmbiguousGrammar;
-        let _stmt = grammar.parse_statement("if a then if b then c");
+        let _stmt = grammar::parse("if a then if b then c");
     }
 }

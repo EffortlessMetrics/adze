@@ -11,6 +11,7 @@ fn gen_field(
     word_rule: &mut Option<String>,
     out: &mut Map<String, Value>,
 ) -> (Value, bool) {
+    
     let leaf_attr = leaf_attrs
         .iter()
         .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
@@ -36,6 +37,7 @@ fn gen_field(
             .find(|param| param.path == "pattern")
             .map(|p| p.expr.clone())
     });
+    
 
     let text_param = leaf_params.as_ref().and_then(|p| {
         p.iter()
@@ -49,6 +51,7 @@ fn gen_field(
 
     let (inner_type_vec, is_vec) = try_extract_inner_type(&leaf_type, "Vec", &skip_over);
     let (inner_type_option, is_option) = try_extract_inner_type(&leaf_type, "Option", &skip_over);
+    
 
     if !is_vec && !is_option {
         if let Some(Expr::Lit(lit)) = pattern_param {
@@ -126,10 +129,19 @@ fn gen_field(
             )
         }
     } else if is_vec {
+        // Check if we need to pass the inner element type name
+        let element_path = if path.ends_with("_vec_contents") {
+            // This is a recursive call - use the path as-is
+            path.clone()
+        } else {
+            // This is the initial call - we'll generate a _vec_contents rule
+            path.clone()
+        };
+        
         let (field_json, field_optional) = gen_field(
-            path.clone(),
+            element_path,
             inner_type_vec,
-            leaf_attr.iter().cloned().cloned().collect(),
+            leaf_attrs.clone(),
             word_rule,
             out,
         );
@@ -226,7 +238,7 @@ fn gen_field(
             })
         } else {
             json!({
-                "type": "REPEAT1",
+                "type": if repeat_non_empty { "REPEAT1" } else { "REPEAT" },
                 "content": field_rule
             })
         };
@@ -234,12 +246,14 @@ fn gen_field(
         let contents_ident = format!("{path}_vec_contents");
         out.insert(contents_ident.clone(), vec_contents);
 
+        // For Vec fields, we don't make them optional at the field level
+        // The REPEAT/REPEAT1 handles whether the vec can be empty
         (
             json!({
                 "type": "SYMBOL",
                 "name": contents_ident,
             }),
-            !repeat_non_empty,
+            false,
         )
     } else {
         // is_option
@@ -261,7 +275,6 @@ fn gen_struct_or_variant(
     out: &mut Map<String, Value>,
     word_rule: &mut Option<String>,
 ) -> Option<Value> {
-    eprintln!("DEBUG gen_struct_or_variant: path={}, fields={:?}", path, fields);
     
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
     if let Fields::Unnamed(fields_unnamed) = &fields {
@@ -402,10 +415,21 @@ fn gen_struct_or_variant(
             };
             gen_field_optional(&path, &dummy_field, word_rule, out, "unit".to_owned())
         }
-        _ => json!({
-            "type": "SEQ",
-            "members": children
-        }),
+        _ => {
+            // If all children are optional, we need at least one to be present
+            // to avoid the EmptyString error
+            if children.is_empty() {
+                panic!("Struct {} has no non-skipped fields", path);
+            } else if children.len() == 1 {
+                // Single field - use it directly
+                children.into_iter().next().unwrap()
+            } else {
+                json!({
+                    "type": "SEQ",
+                    "members": children
+                })
+            }
+        }
     };
 
     let rule = if let Some(Expr::Lit(lit)) = prec_param {
@@ -593,7 +617,6 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
             .iter()
             .any(|a| a.path() == &syn::parse_quote!(rust_sitter::extra))
         {
-            eprintln!("DEBUG expansion: Found rust_sitter::extra on symbol '{}'", symbol);
             // For extras, we want to reference the generated rule directly
             // The Whitespace struct generates a rule like "Whitespace" which contains the pattern
             extras_list.push(json!({
@@ -615,8 +638,6 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
     // source_file rule already inserted above - don't overwrite it!
 
-    eprintln!("DEBUG expansion: extras_list = {:?}", extras_list);
-    eprintln!("DEBUG expansion: rules_map keys = {:?}", rules_map.keys().collect::<Vec<_>>());
     let mut grammar = json!({
         "name": grammar_name,
         "word": word_rule,
