@@ -327,7 +327,7 @@ impl Parser {
         loop {
             iteration_count += 1;
             if iteration_count > 10000 {
-                eprintln!("WARNING: Parser exceeded 10000 iterations, likely infinite loop");
+                //eprintln!("WARNING: Parser exceeded 10000 iterations, likely infinite loop");
                 errors.push(ParseError {
                     position,
                     point,
@@ -377,10 +377,10 @@ impl Parser {
 
             // Handle extra tokens (like whitespace)
             if token.is_extra {
-                eprintln!(
-                    "DEBUG: Skipping extra token symbol={} at position={}",
-                    token.symbol, position
-                );
+                //eprintln!(
+                    //"DEBUG: Skipping extra token symbol={} at position={}",
+                    //token.symbol, position
+                //);
                 // Create extra node and attach it to the previous node on stack
                 let end_point = advance_point(point, &source[position..position + token.length]);
                 let _extra_subtree = Subtree {
@@ -417,19 +417,19 @@ impl Parser {
                 } else {
                     "EOF".to_string()
                 };
-                eprintln!(
-                    "DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}",
-                    position, current_state, token.symbol, action, byte_repr
-                );
-                eprintln!(
-                    "DEBUG: Stack size: {}, token.length={}",
-                    self.stack.len(),
-                    token.length
-                );
+                //eprintln!(
+                    //"DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}",
+                    //position, current_state, token.symbol, action, byte_repr
+                //);
+                //eprintln!(
+                //    "DEBUG: Stack size: {}, token.length={}",
+                //    self.stack.len(),
+                //    token.length
+                //);
             }
             match action {
                 Action::Shift(next_state) => {
-                    eprintln!("DEBUG: Shifting to state {}", next_state);
+                    //eprintln!("DEBUG: Shifting to state {}", next_state);
                     // Create leaf node
                     let end_point =
                         advance_point(point, &source[position..position + token.length]);
@@ -458,10 +458,10 @@ impl Parser {
                     point = advance_point(point, &source[position - token.length..position]);
 
                     if position < 10 {
-                        eprintln!(
-                            "DEBUG: Advanced position to {} (after {} bytes), continuing to next token",
-                            position, token.length
-                        );
+                        //eprintln!(
+                        //    "DEBUG: Advanced position to {} (after {} bytes), continuing to next token",
+                        //    position, token.length
+                        //);
                     }
                     // Don't break here! We need to continue the loop
                     // break;
@@ -493,7 +493,7 @@ impl Parser {
                                     if subtree.symbol == 8 && token.symbol == 0 {
                                         // EOF
                                         // Parse successful!
-                                        eprintln!("DEBUG: Parse accepted! Root symbol found.");
+                                        //eprintln!("DEBUG: Parse accepted! Root symbol found.");
                                         return ParseResult {
                                             root: Some(subtree_to_node(
                                                 subtree.clone(),
@@ -512,7 +512,7 @@ impl Parser {
                 }
 
                 Action::Accept => {
-                    eprintln!("DEBUG: Got ACCEPT action!");
+                    //eprintln!("DEBUG: Got ACCEPT action!");
                     // Parse successful
                     if let Some(entry) = self.stack.pop() {
                         if let Some(subtree) = entry.subtree {
@@ -609,10 +609,10 @@ impl Parser {
                 if lex_fn(lex_state_ptr, lex_mode) {
                     let symbol = lex_state.result_symbol;
                     let is_extra = self.is_extra_symbol(language, symbol);
-                    eprintln!(
-                        "DEBUG lex_token: lexer returned symbol={}, is_extra={}",
-                        symbol, is_extra
-                    );
+                    //eprintln!(
+                    //    "DEBUG lex_token: lexer returned symbol={}, is_extra={}",
+                    //    symbol, is_extra
+                    //);
                     return Token {
                         symbol,
                         length: lex_state.result_length,
@@ -654,26 +654,26 @@ impl Parser {
             if symbol < language.symbol_count as u16 {
                 let metadata_ptr = language.symbol_metadata;
                 if metadata_ptr.is_null() {
-                    eprintln!("ERROR: metadata_ptr is NULL!");
+                    //eprintln!("ERROR: metadata_ptr is NULL!");
                     return false;
                 }
 
                 // Debug: print first few metadata bytes
                 if symbol == 3 || symbol == 4 {
-                    eprintln!("DEBUG metadata array dump for symbol {}:", symbol);
+                    //eprintln!("DEBUG metadata array dump for symbol {}:", symbol);
                     for i in 0..std::cmp::min(9, language.symbol_count) {
                         let byte = *metadata_ptr.add(i as usize);
-                        eprintln!("  metadata[{}] = {:#x}", i, byte);
+                        //eprintln!("  metadata[{}] = {:#x}", i, byte);
                     }
                 }
 
                 let metadata = *metadata_ptr.add(symbol as usize);
                 // Check if HIDDEN flag is set (0x04)
                 let is_hidden = (metadata & 0x04) != 0;
-                eprintln!(
-                    "DEBUG is_extra_symbol: symbol={}, metadata_ptr={:p}, offset={}, metadata={:#x}, is_hidden={}",
-                    symbol, metadata_ptr, symbol as usize, metadata, is_hidden
-                );
+                //eprintln!(
+                    //"DEBUG is_extra_symbol: symbol={}, metadata_ptr={:p}, offset={}, metadata={:#x}, is_hidden={}",
+                    //symbol, metadata_ptr, symbol as usize, metadata, is_hidden
+                //);
                 is_hidden
             } else {
                 false
@@ -707,10 +707,10 @@ impl Parser {
 
             let byte_count = next_offset - state_offset;
             let entries_count = byte_count / 2; // Each entry is 2 bytes (symbol + action)
-            eprintln!(
-                "DEBUG get_action: state={}, symbol={}, state_offset={}, next_offset={}, entries_count={}",
-                state, symbol, state_offset, next_offset, entries_count
-            );
+            //eprintln!(
+            //    "DEBUG get_action: state={}, symbol={}, state_offset={}, next_offset={}, entries_count={}",
+            //    state, symbol, state_offset, next_offset, entries_count
+            //);
 
             // The parse table stores entries as pairs: (symbol, action)
             // state_offset and next_offset are indices into the parse_table array
@@ -718,16 +718,16 @@ impl Parser {
             let end_offset = next_offset as usize;
 
             // Debug: print all entries for this state
-            eprintln!("DEBUG get_action: All entries for state {}:", state);
+            //eprintln!("DEBUG get_action: All entries for state {}:", state);
             let mut debug_offset = state_offset as usize;
             let mut entry_num = 0;
             while debug_offset + 1 < end_offset {
                 let debug_symbol = *language.parse_table.add(debug_offset) as u16;
                 let debug_action = *language.parse_table.add(debug_offset + 1) as u16;
-                eprintln!(
-                    "  Entry {}: offset={}, symbol={:#x}, action={:#x}",
-                    entry_num, debug_offset, debug_symbol, debug_action
-                );
+                //eprintln!(
+                    //"  Entry {}: offset={}, symbol={:#x}, action={:#x}",
+                    //entry_num, debug_offset, debug_symbol, debug_action
+                //);
                 debug_offset += 2;
                 entry_num += 1;
             }
@@ -737,10 +737,10 @@ impl Parser {
                 let action_value = *language.parse_table.add(offset + 1) as u16;
 
                 // Debug output to understand why lookups fail
-                eprintln!(
-                    "DEBUG get_action: state={}, looking for symbol={}, found entry_symbol={:#x}, action_value={:#x}",
-                    state, symbol, entry_symbol, action_value
-                );
+                //eprintln!(
+                //    "DEBUG get_action: state={}, looking for symbol={}, found entry_symbol={:#x}, action_value={:#x}",
+                //    state, symbol, entry_symbol, action_value
+                //);
 
                 // Check if this is a default reduce entry
                 // In Tree-sitter's format, reduce entries have the high bit set in the symbol field
@@ -748,24 +748,24 @@ impl Parser {
                     // This is a default reduce action that applies to all lookahead symbols
                     if action_value != 0 {
                         let action = self.decode_action(language, action_value as usize);
-                        eprintln!(
-                            "DEBUG get_action: DEFAULT REDUCE! Returning action: {:?}",
-                            action
-                        );
+                        //eprintln!(
+                            //"DEBUG get_action: DEFAULT REDUCE! Returning action: {:?}",
+                            //action
+                        //);
                         return action;
                     } else {
                         // The actual reduce production ID is encoded in the symbol field
                         let production_id = entry_symbol & 0x7FFF;
-                        eprintln!(
-                            "DEBUG get_action: DEFAULT REDUCE! Returning Reduce({})",
-                            production_id
-                        );
+                        //eprintln!(
+                        //    "DEBUG get_action: DEFAULT REDUCE! Returning Reduce({})",
+                        //    production_id
+                        //);
                         return Action::Reduce(production_id);
                     }
                 } else if entry_symbol == symbol {
                     if action_value != 0 {
                         let action = self.decode_action(language, action_value as usize);
-                        eprintln!("DEBUG get_action: MATCH! Returning action: {:?}", action);
+                        //eprintln!("DEBUG get_action: MATCH! Returning action: {:?}", action);
                         return action;
                     }
                     break;
@@ -803,21 +803,21 @@ impl Parser {
     /// Perform a reduction
     fn reduce(&mut self, language: &TSLanguage, production_id: u16, _source: &[u8]) -> bool {
         if production_id < 10 {
-            eprintln!(
-                "DEBUG reduce: Reducing with production_id={} (from parse table)",
-                production_id
-            );
-            eprintln!(
-                "DEBUG reduce: Stack before reduction has {} entries",
-                self.stack.len()
-            );
+            //eprintln!(
+            //    "DEBUG reduce: Reducing with production_id={} (from parse table)",
+            //    production_id
+            //);
+            //eprintln!(
+            //    "DEBUG reduce: Stack before reduction has {} entries",
+            //    self.stack.len()
+            //);
             for (i, entry) in self.stack.iter().enumerate() {
-                eprintln!(
-                    "  Stack[{}]: state={}, has_subtree={}",
-                    i,
-                    entry.state,
-                    entry.subtree.is_some()
-                );
+                //eprintln!(
+                //    "  Stack[{}]: state={}, has_subtree={}",
+                //    i,
+                //    entry.state,
+                //    entry.subtree.is_some()
+                //);
             }
         }
 
@@ -825,7 +825,7 @@ impl Parser {
             // Tree-sitter uses 1-based production IDs in the parse table
             // We need to subtract 1 and then use production_id_map
             if production_id == 0 {
-                eprintln!("DEBUG reduce: Invalid production_id=0 (production IDs are 1-based)");
+                //eprintln!("DEBUG reduce: Invalid production_id=0 (production IDs are 1-based)");
                 return false;
             }
             
@@ -835,17 +835,17 @@ impl Parser {
             let production_index = if zero_based_id < language.production_id_count as u16 {
                 *language.production_id_map.add(zero_based_id as usize)
             } else {
-                eprintln!("DEBUG reduce: Invalid production_id {} (zero_based={}, >= {})", 
-                         production_id, zero_based_id, language.production_id_count);
+                //eprintln!("DEBUG reduce: Invalid production_id {} (zero_based={}, >= {})", 
+                //         production_id, zero_based_id, language.production_id_count);
                 return false;
             };
 
             // Look up the parse action for this production
             if production_index >= language.production_id_count as u16 {
-                eprintln!(
-                    "DEBUG reduce: Invalid production_index {} (>= {})",
-                    production_index, language.production_id_count
-                );
+                //eprintln!(
+                //    "DEBUG reduce: Invalid production_index {} (>= {})",
+                //    production_index, language.production_id_count
+                //);
                 return false;
             }
 
@@ -853,18 +853,18 @@ impl Parser {
             let child_count = action.child_count as usize;
             let symbol = action.symbol;
 
-            eprintln!(
-                "DEBUG reduce: Production {} reduces to symbol {} with {} children",
-                production_id, symbol, child_count
-            );
+            //eprintln!(
+                //"DEBUG reduce: Production {} reduces to symbol {} with {} children",
+                //production_id, symbol, child_count
+            //);
 
             // If child_count is 3 but we only have 2 items on stack, something is wrong
             if child_count > self.stack.len() {
-                eprintln!(
-                    "DEBUG reduce: ERROR! Need {} children but stack only has {} items",
-                    child_count,
-                    self.stack.len()
-                );
+                //eprintln!(
+                //    "DEBUG reduce: ERROR! Need {} children but stack only has {} items",
+                //    child_count,
+                //    self.stack.len()
+                //);
                 return false;
             }
 
@@ -937,10 +937,10 @@ impl Parser {
             // In Tree-sitter, the start symbol is typically called "source_file" or similar
             // We need to determine this dynamically from the language structure
 
-            eprintln!(
-                "DEBUG reduce: After reduction, stack size would be: {}",
-                self.stack.len()
-            );
+            //eprintln!(
+            //    "DEBUG reduce: After reduction, stack size would be: {}",
+            //    self.stack.len()
+            //);
 
             // Get the goto state for the reduced symbol
             let prev_state = if let Some(entry) = self.stack.last() {
@@ -949,10 +949,10 @@ impl Parser {
                 0
             };
 
-            eprintln!(
-                "DEBUG reduce: Looking up goto for symbol {} from state {}",
-                symbol, prev_state
-            );
+            //eprintln!(
+                //"DEBUG reduce: Looking up goto for symbol {} from state {}",
+                //symbol, prev_state
+            //);
 
             // Check if this is an accept condition
             // In Tree-sitter, when we reduce to the root symbol (typically source_file, which seems to be symbol 8)
@@ -961,10 +961,10 @@ impl Parser {
             let is_initial_state = prev_state == 0;
 
             if is_root_symbol && is_initial_state {
-                eprintln!(
-                    "DEBUG reduce: Accept condition met - reduced to root symbol {} in state 0",
-                    symbol
-                );
+                //eprintln!(
+                    //"DEBUG reduce: Accept condition met - reduced to root symbol {} in state 0",
+                    //symbol
+                //);
                 // This is a successful parse!
                 // Push the final node onto the stack
                 self.stack.push(StackEntry {
@@ -978,14 +978,14 @@ impl Parser {
             // Look up goto state using the parse table
             let goto_action = self.get_action(language, prev_state, symbol);
 
-            eprintln!("DEBUG reduce: Goto action: {:?}", goto_action);
+            //eprintln!("DEBUG reduce: Goto action: {:?}", goto_action);
 
             match goto_action {
                 Action::Shift(next_state) => {
-                    eprintln!(
-                        "DEBUG reduce: Pushing reduced node with state {}",
-                        next_state
-                    );
+                    //eprintln!(
+                        //"DEBUG reduce: Pushing reduced node with state {}",
+                        //next_state
+                    //);
                     // Push the reduced node with the goto state
                     self.stack.push(StackEntry {
                         state: next_state,
@@ -995,7 +995,7 @@ impl Parser {
                     true
                 }
                 _ => {
-                    eprintln!("DEBUG reduce: No valid goto found - error!");
+                    //eprintln!("DEBUG reduce: No valid goto found - error!");
                     // If no valid goto found, this is an error
                     false
                 }
@@ -1096,12 +1096,12 @@ fn advance_point(mut point: Point, text: &[u8]) -> Point {
 
 /// Convert internal subtree to public node
 fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> ParsedNode {
-    eprintln!(
-        "DEBUG subtree_to_node: Converting subtree with symbol {}, children: {}, extra: {}",
-        subtree.symbol,
-        subtree.children.len(),
-        subtree.is_extra
-    );
+    //eprintln!(
+    //    "DEBUG subtree_to_node: Converting subtree with symbol {}, children: {}, extra: {}",
+    //    subtree.symbol,
+    //    subtree.children.len(),
+    //    subtree.is_extra
+    //);
 
     // Determine if the node is named based on symbol metadata
     let is_named = if let Some(lang_ptr) = language {
@@ -1120,7 +1120,7 @@ fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> Par
         true // Default to named if no language info
     };
 
-    eprintln!("  Symbol {} is_named: {}", subtree.symbol, is_named);
+    //eprintln!("  Symbol {} is_named: {}", subtree.symbol, is_named);
 
     ParsedNode {
         symbol: subtree.symbol,

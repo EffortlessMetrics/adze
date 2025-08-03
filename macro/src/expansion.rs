@@ -280,7 +280,6 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                     // For Tree-sitter compatibility, we need to detect enum variants by their structure
                     // rather than by node kind, since all variants have the same kind
                     let variant_detection_logic = e.variants.iter().map(|v| {
-                        let variant_ident = &v.ident;
                         let extract_expr = gen_struct_or_variant(
                             v.fields.clone(),
                             Some(v.ident.clone()),
@@ -288,51 +287,14 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             v.attrs.clone(),
                         )?;
 
-                        // Generate detection logic based on variant structure
-                        let detection_expr = match &v.fields {
-                            Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
-                                // Single field variant like Number(i32)
-                                // Check if this is the Number variant specifically
-                                if v.ident == "Number" {
-                                    quote! {
-                                        if node.child_count() == 0 {
-                                            return #extract_expr;
-                                        }
-                                    }
-                                } else {
-                                    // For other single-field variants, use different heuristics
-                                    quote! {
-                                        if node.child_count() == 1 {
-                                            return #extract_expr;
-                                        }
-                                    }
-                                }
-                            }
-                            Fields::Unnamed(fields) if fields.unnamed.len() == 3 => {
-                                // Three field variant like Sub(Expr, (), Expr) or Mul(Expr, (), Expr)
-                                // Check the middle child to distinguish
-                                quote! {
-                                    if node.child_count() == 3 {
-                                        // Check the middle child (operator) to determine variant
-                                        let middle_child = &node.children[1];
-                                        let middle_kind = middle_child.kind();
-
-                                        if middle_kind == "-" && stringify!(#variant_ident).contains("Sub") {
-                                            return #extract_expr;
-                                        } else if middle_kind == "*" && stringify!(#variant_ident).contains("Mul") {
-                                            return #extract_expr;
-                                        }
-                                    }
-                                }
-                            }
-                            _ => {
-                                // Fallback to original behavior for other patterns
-                                let variant_path = format!("{}_{}", e.ident, v.ident);
-                                quote! {
-                                    if child_node.kind() == #variant_path {
-                                        return #extract_expr;
-                                    }
-                                }
+                        // Generate detection logic using symbol names
+                        let enum_name = e.ident.to_string();
+                        let variant_name = v.ident.to_string();
+                        let expected_symbol = format!("{}_{}", enum_name, variant_name);
+                        
+                        let detection_expr = quote! {
+                            if node.kind() == #expected_symbol {
+                                return #extract_expr;
                             }
                         };
 
@@ -349,7 +311,6 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                     // Generate separate detection logic for standard and pure-rust modes
                     let variant_detection_logic_std = e.variants.iter().map(|v| {
-                        let variant_ident = &v.ident;
                         let extract_expr = gen_struct_or_variant(
                             v.fields.clone(),
                             Some(v.ident.clone()),
@@ -357,43 +318,14 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             v.attrs.clone(),
                         )?;
 
-                        // Generate detection logic based on variant structure
-                        let detection_expr = match &v.fields {
-                            Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
-                                // Single field variant like Number(i32)
-                                quote! {
-                                    if child_node.child_count() == 1 {
-                                        return #extract_expr;
-                                    }
-                                }
-                            }
-                            Fields::Unnamed(fields) if fields.unnamed.len() == 3 => {
-                                // Three field variant like Sub(Expr, (), Expr) or Mul(Expr, (), Expr)
-                                quote! {
-                                    if child_node.child_count() == 3 {
-                                        // Check the middle child (operator) to determine variant
-                                        let mut cursor = child_node.walk();
-                                        cursor.goto_first_child();
-                                        cursor.goto_next_sibling();
-                                        let middle_kind = cursor.node().kind();
-
-                                        if middle_kind == "-" && stringify!(#variant_ident).contains("Sub") {
-                                            return #extract_expr;
-                                        } else if middle_kind == "*" && stringify!(#variant_ident).contains("Mul") {
-                                            eprintln!("DEBUG: Matched Mul variant, calling extract_expr");
-                                            return #extract_expr;
-                                        }
-                                    }
-                                }
-                            }
-                            _ => {
-                                // Fallback to original behavior for other patterns
-                                let variant_path = format!("{}_{}", e.ident, v.ident);
-                                quote! {
-                                    if child_node.kind() == #variant_path {
-                                        return #extract_expr;
-                                    }
-                                }
+                        // Generate detection logic using symbol names
+                        let enum_name = e.ident.to_string();
+                        let variant_name = v.ident.to_string();
+                        let expected_symbol = format!("{}_{}", enum_name, variant_name);
+                        
+                        let detection_expr = quote! {
+                            if child_node.kind() == #expected_symbol {
+                                return #extract_expr;
                             }
                         };
 
@@ -427,6 +359,10 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             #[cfg(feature = "pure-rust")]
                             fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
+                                
+                                // Check if this node directly matches one of our variants
+                                #(#variant_detection_logic)*
+                                
                                 // Tree-sitter wraps enum variants in a parent node
                                 // If this is a wrapper node with a single child, extract from the child
                                 if node.children.len() == 1 {
@@ -437,7 +373,8 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                     #(#variant_detection_logic)*
                                 }
 
-                                panic!("Could not determine enum variant from tree structure: node symbol={}, child_count={}", node.symbol, node.children.len())
+                                panic!("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}", 
+                                    node.kind(), node.symbol, node.children.len())
                             }
                         }
                     };

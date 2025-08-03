@@ -8,11 +8,12 @@ use rust_sitter_ir::{
     PrecedenceKind, ProductionId, Rule, RuleId, Symbol, SymbolId, Token, TokenPattern,
 };
 use std::collections::HashMap;
+use indexmap::IndexMap as OrderedMap;
 
 /// Converts a Grammar.js structure to Rust-sitter IR
 pub struct GrammarJsConverter {
     grammar_js: GrammarJs,
-    symbol_names: HashMap<String, SymbolId>,
+    symbol_names: OrderedMap<String, SymbolId>,
     pattern_symbols: HashMap<SymbolId, SymbolId>, // Maps pattern rule symbols to their token IDs
     next_symbol_id: usize,
     next_production_id: usize,
@@ -24,7 +25,7 @@ impl GrammarJsConverter {
     pub fn new(grammar_js: GrammarJs) -> Self {
         Self {
             grammar_js,
-            symbol_names: HashMap::new(),
+            symbol_names: OrderedMap::new(),
             pattern_symbols: HashMap::new(),
             next_symbol_id: 1,  // Start at 1 to reserve SymbolId(0) for EOF
             next_production_id: 0,

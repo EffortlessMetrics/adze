@@ -1,32 +1,40 @@
-// Simplified Python grammar demonstrating conflict resolution
-// This version focuses on expressions and avoids block/indentation complexity
-
+// Simplified Python grammar for testing pure-rust implementation
 #[rust_sitter::grammar("python_simple")]
 pub mod grammar {
     #[rust_sitter::language]
     pub struct Module {
+        #[rust_sitter::repeat(non_empty = false)]
+        pub body: Vec<Statement>,
+    }
+
+    #[rust_sitter::language]
+    pub enum Statement {
+        Expression(ExpressionStatement),
+        Assignment(AssignmentStatement),
+    }
+
+    #[rust_sitter::language]
+    pub struct ExpressionStatement {
         pub expression: Expression,
     }
 
     #[rust_sitter::language]
+    pub struct AssignmentStatement {
+        pub target: Identifier,
+        #[rust_sitter::leaf(text = "=")]
+        _equals: (),
+        pub value: Expression,
+    }
+
+    #[rust_sitter::language]
+    #[rust_sitter::prec(1)]
     pub enum Expression {
-        // Literals and identifiers (highest precedence)
+        #[rust_sitter::prec(3)]
         Primary(PrimaryExpression),
-        
-        // Postfix operations (high precedence)
-        #[rust_sitter::prec(10)]
-        Call(Box<CallExpression>),
-        #[rust_sitter::prec(10)]
-        Attribute(Box<AttributeExpression>),
-        #[rust_sitter::prec(10)]
-        Subscript(Box<SubscriptExpression>),
-        
-        // Unary operations (medium precedence)
-        #[rust_sitter::prec(8)]
-        Unary(Box<UnaryExpression>),
-        
-        // Binary operations (lower precedence, with internal precedence levels)
-        Binary(Box<BinaryExpression>),
+        #[rust_sitter::prec_left(1)]
+        Add(Box<Expression>, #[rust_sitter::leaf(text = "+")] (), Box<Expression>),
+        #[rust_sitter::prec_left(2)]
+        Multiply(Box<Expression>, #[rust_sitter::leaf(text = "*")] (), Box<Expression>),
     }
 
     #[rust_sitter::language]
@@ -34,340 +42,180 @@ pub mod grammar {
         Number(NumberLiteral),
         String(StringLiteral),
         Identifier(Identifier),
-        Parenthesized(Box<ParenthesizedExpression>),
     }
 
     #[rust_sitter::language]
     pub struct NumberLiteral {
-        #[rust_sitter::leaf(pattern = r"\d+(\.\d+)?", transform = |s| {
-            eprintln!("DEBUG NumberLiteral transform: input = {:?}", s);
-            s.parse::<f64>().unwrap()
-        })]
-        pub value: f64,
+        #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
+        pub value: i32,
     }
 
     #[rust_sitter::language]
     pub struct StringLiteral {
-        #[rust_sitter::leaf(pattern = r#""[^"]*"|'[^']*'"#, transform = |s| {
-            eprintln!("DEBUG StringLiteral transform: input = {:?}, len = {}", s, s.len());
-            if s.len() >= 2 {
-                s[1..s.len()-1].to_string()
-            } else {
-                eprintln!("WARNING: StringLiteral got string shorter than 2 chars: {:?}", s);
-                s.to_string()
-            }
-        })]
+        #[rust_sitter::leaf(pattern = r#""[^"]*"|'[^']*'"#)]
         pub value: String,
     }
 
     #[rust_sitter::language]
     pub struct Identifier {
-        #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*", transform = |s| {
-            eprintln!("DEBUG Identifier transform: input = {:?}", s);
-            s.to_string()
-        })]
+        #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
         pub name: String,
     }
 
-
-    #[rust_sitter::language]
-    pub struct ParenthesizedExpression {
-        #[rust_sitter::leaf(text = "(")]
-        _open: (),
-        pub expression: Expression,
-        #[rust_sitter::leaf(text = ")")]
-        _close: (),
+    #[rust_sitter::extra]
+    struct Whitespace {
+        #[rust_sitter::leaf(pattern = r"\s")]
+        _whitespace: (),
     }
-
-    #[rust_sitter::language]
-    #[rust_sitter::prec(10)]
-    pub struct CallExpression {
-        pub function: Expression,
-        pub arguments: Arguments,
-    }
-
-    #[rust_sitter::language]
-    pub struct Arguments {
-        #[rust_sitter::leaf(text = "(")]
-        _open: (),
-        // Allow empty argument lists by using Option<Vec>
-        #[rust_sitter::optional]
-        pub args: Option<ArgumentList>,
-        #[rust_sitter::leaf(text = ")")]
-        _close: (),
-    }
-    
-    #[rust_sitter::language]
-    pub struct ArgumentList {
-        #[rust_sitter::repeat(non_empty = true)]
-        #[rust_sitter::delimited(
-            Comma {
-                #[rust_sitter::leaf(text = ",")]
-                _comma: (),
-            }
-        )]
-        pub args: Vec<Expression>,
-    }
-    
-    #[rust_sitter::language]
-    pub struct Comma {
-        #[rust_sitter::leaf(text = ",")]
-        _comma: (),
-    }
-
-    #[rust_sitter::language]
-    #[rust_sitter::prec(10)]
-    pub struct AttributeExpression {
-        pub object: Expression,
-        #[rust_sitter::leaf(text = ".")]
-        _dot: (),
-        pub attribute: Identifier,
-    }
-
-    #[rust_sitter::language]
-    pub struct SubscriptExpression {
-        pub object: Expression,
-        #[rust_sitter::leaf(text = "[")]
-        _open: (),
-        pub index: Expression,
-        #[rust_sitter::leaf(text = "]")]
-        _close: (),
-    }
-
-    #[rust_sitter::language]
-    #[rust_sitter::prec(8)]
-    pub struct UnaryExpression {
-        pub operator: UnaryOperator,
-        pub operand: Expression,
-    }
-
-    #[rust_sitter::language]
-    pub enum UnaryOperator {
-        Not(#[rust_sitter::leaf(text = "not")] ()),
-        Minus(#[rust_sitter::leaf(text = "-")] ()),
-        Plus(#[rust_sitter::leaf(text = "+")] ()),
-    }
-
-    #[rust_sitter::language]
-    pub enum BinaryExpression {
-        // Arithmetic (higher precedence)
-        #[rust_sitter::prec_left(6)]
-        Power(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "**")]
-            (),
-            Box<Expression>,
-        ),
-        #[rust_sitter::prec_left(5)]
-        Multiply(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "*")]
-            (),
-            Box<Expression>,
-        ),
-        #[rust_sitter::prec_left(5)]
-        Divide(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "/")]
-            (),
-            Box<Expression>,
-        ),
-        #[rust_sitter::prec_left(4)]
-        Add(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "+")]
-            (),
-            Box<Expression>,
-        ),
-        #[rust_sitter::prec_left(4)]
-        Subtract(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "-")]
-            (),
-            Box<Expression>,
-        ),
-        
-        // Comparison (lower precedence)
-        #[rust_sitter::prec_left(3)]
-        Equal(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "==")]
-            (),
-            Box<Expression>,
-        ),
-        
-        // Logical (lowest precedence)
-        #[rust_sitter::prec_left(2)]
-        And(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "and")]
-            (),
-            Box<Expression>,
-        ),
-        #[rust_sitter::prec_left(1)]
-        Or(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "or")]
-            (),
-            Box<Expression>,
-        ),
-    }
-
 }
+
+pub use grammar::*;
+
+#[cfg(test)]
+mod debug_test;
 
 #[cfg(test)]
 mod tests {
-    use crate::grammar;
+    use super::*;
 
     #[test]
-    fn test_basic_parsing() {
-        // Test number first since it's simpler
-        eprintln!("\n=== Testing '42' ===");
-        let result = grammar::parse("42");
-        match result {
-            Ok(module) => {
-                eprintln!("Successfully parsed '42' into module");
-                // Try to access the expression to trigger extraction
-                match &module.expression {
-                    grammar::Expression::Primary(primary) => {
-                        eprintln!("Expression is Primary");
-                        match primary {
-                            grammar::PrimaryExpression::Number(num) => {
-                                eprintln!("Primary is Number with value: {}", num.value);
-                            }
-                            grammar::PrimaryExpression::String(s) => {
-                                eprintln!("Primary is String with value: {}", s.value);
-                            }
-                            grammar::PrimaryExpression::Identifier(id) => {
-                                eprintln!("Primary is Identifier with name: {}", id.name);
-                            }
-                            grammar::PrimaryExpression::Parenthesized(_) => {
-                                eprintln!("Primary is Parenthesized");
-                            }
-                        }
-                    }
-                    _ => eprintln!("Expression is not Primary"),
+    fn test_primary_expression() {
+        use rust_sitter::Extract;
+        
+        // First, let's debug what symbols are available
+        eprintln!("\n=== Available symbols in language ===");
+        let lang = language();
+        unsafe {
+            let symbol_count = lang.symbol_count;
+            eprintln!("Total symbols: {}", symbol_count);
+            
+            // Print first 50 symbol names
+            let symbol_names = std::slice::from_raw_parts(lang.symbol_names, symbol_count.min(50) as usize);
+            for (i, &name_ptr) in symbol_names.iter().enumerate() {
+                if !name_ptr.is_null() {
+                    let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
+                    let name = c_str.to_string_lossy();
+                    eprintln!("  Symbol {}: '{}'", i, name);
                 }
             }
-            Err(e) => panic!("Failed to parse '42': {:?}", e),
         }
         
-        // Test simple identifier
-        eprintln!("\n=== Testing 'a' ===");
-        let result = grammar::parse("a");
-        match result {
-            Ok(module) => {
-                eprintln!("Successfully parsed 'a' into module");
-                // Try to access the expression to trigger extraction
-                match &module.expression {
-                    grammar::Expression::Primary(primary) => {
-                        eprintln!("Expression is Primary");
+        // Test parsing "42" as a PrimaryExpression
+        let input = "42";
+        let result = parse(input);
+        assert!(result.is_ok(), "Failed to parse '42'");
+        
+        let module = result.unwrap();
+        
+        // The module should contain a single expression statement
+        assert_eq!(module.body.len(), 1, "Expected 1 statement in module body");
+        
+        match &module.body[0] {
+            Statement::Expression(expr_stmt) => {
+                // The expression should be a primary expression
+                match &expr_stmt.expression {
+                    Expression::Primary(primary) => {
+                        // The primary expression should be a Number variant
+                        eprintln!("DEBUG: Successfully extracted primary expression");
                         match primary {
-                            grammar::PrimaryExpression::Number(num) => {
-                                eprintln!("Primary is Number with value: {}", num.value);
-                            }
-                            grammar::PrimaryExpression::String(s) => {
-                                eprintln!("Primary is String with value: {}", s.value);
-                            }
-                            grammar::PrimaryExpression::Identifier(id) => {
-                                eprintln!("Primary is Identifier with name: {}", id.name);
-                            }
-                            grammar::PrimaryExpression::Parenthesized(_) => {
-                                eprintln!("Primary is Parenthesized");
+                            PrimaryExpression::Number(num) => {
+                                eprintln!("DEBUG: Found Number variant with value: {}", num.value);
+                                assert_eq!(num.value, 42, "Expected number value to be 42");
+                            },
+                            PrimaryExpression::String(s) => {
+                                panic!("Expected Number variant but got String: {:?}", s.value);
+                            },
+                            PrimaryExpression::Identifier(id) => {
+                                panic!("Expected Number variant but got Identifier: {}", id.name);
                             }
                         }
-                    }
-                    _ => eprintln!("Expression is not Primary"),
+                    },
+                    _ => panic!("Expected Primary expression but got something else"),
                 }
-            }
-            Err(e) => panic!("Failed to parse 'a': {:?}", e),
-        }
-        
-        // Test simple unary
-        let result = grammar::parse("-42");
-        if let Err(e) = result {
-            panic!("Failed to parse '-42': {:?}", e);
+            },
+            _ => panic!("Expected Expression statement but got something else"),
         }
     }
-    
-    #[test]
-    fn test_precedence() {
-        // Test that -a.b is parsed as -(a.b), not (-a).b
-        let input = "-a.b";
-        let result = grammar::parse(input);
-        assert!(result.is_ok(), "Failed to parse '-a.b'");
-        
-        // Test that a + b(c) is parsed as a + (b(c)), not (a + b)(c)
-        let input2 = "a + b(c)";
-        let result2 = grammar::parse(input2);
-        assert!(result2.is_ok(), "Failed to parse 'a + b(c)'");
-        
-        // Test empty function call
-        let input3 = "func()";
-        let result3 = grammar::parse(input3);
-        assert!(result3.is_ok(), "Failed to parse 'func()'");
-        
-        // Test operator precedence: a + b * c should be a + (b * c)
-        let input3 = "a + b * c";
-        let result3 = grammar::parse(input3);
-        assert!(result3.is_ok(), "Failed to parse 'a + b * c'");
-    }
-}
 
-// Temporary test to prove the symbol ID mapping fix would work
-#[test]
-#[cfg(feature = "pure-rust")]
-fn test_symbol_id_mapping() {
-    use rust_sitter::pure_parser::{Parser, parse_tree};
-    
-    // Parse "42" and check the parse tree directly
-    eprintln!("\n=== Testing symbol ID mapping for '42' ===");
-    let input = "42";
-    let language = grammar::language();
-    
-    match parse_tree(input.as_bytes(), language) {
-        Ok(tree) => {
-            eprintln!("Successfully parsed '42'");
-            eprintln!("Root symbol: {}", tree.root.symbol);
-            
-            // Navigate to the actual number node
-            if let Some(expr) = tree.root.children.get(0) {
-                eprintln!("Expression symbol: {}", expr.symbol);
-                if let Some(primary) = expr.children.get(0) {
-                    eprintln!("Primary symbol: {}", primary.symbol);
-                    
-                    // The primary expression should have symbol ID that corresponds to NumberLiteral
-                    // Based on debug output, we expect symbol 17 for NumberLiteral
-                    assert_eq!(primary.symbol, 17, "Expected symbol 17 (NumberLiteral) but got {}", primary.symbol);
-                    eprintln!("✓ Correct symbol ID for NumberLiteral");
+    #[test]
+    fn test_extract_string() {
+        use rust_sitter::Extract;
+        
+        // Test parsing "hello" as a string literal
+        let input = r#""hello""#;
+        let result = parse(input);
+        assert!(result.is_ok(), "Failed to parse string");
+        
+        let module = result.unwrap();
+        assert_eq!(module.body.len(), 1, "Expected 1 statement in module body");
+        
+        match &module.body[0] {
+            Statement::Expression(expr_stmt) => {
+                match &expr_stmt.expression {
+                    Expression::Primary(primary) => {
+                        match primary {
+                            PrimaryExpression::String(s) => {
+                                assert_eq!(s.value, "\"hello\"", "Expected string value to be \"hello\"");
+                            },
+                            _ => panic!("Expected String variant"),
+                        }
+                    },
+                    _ => panic!("Expected Primary expression"),
                 }
-            }
+            },
+            _ => panic!("Expected Expression statement"),
         }
-        Err(e) => panic!("Failed to parse '42': {:?}", e),
     }
-    
-    // Parse "a" and check the parse tree
-    eprintln!("\n=== Testing symbol ID mapping for 'a' ===");
-    let input = "a";
-    
-    match parse_tree(input.as_bytes(), language) {
-        Ok(tree) => {
-            eprintln!("Successfully parsed 'a'");
-            eprintln!("Root symbol: {}", tree.root.symbol);
-            
-            // Navigate to the actual identifier node
-            if let Some(expr) = tree.root.children.get(0) {
-                eprintln!("Expression symbol: {}", expr.symbol);
-                if let Some(primary) = expr.children.get(0) {
-                    eprintln!("Primary symbol: {}", primary.symbol);
-                    
-                    // The primary expression should have symbol ID that corresponds to Identifier
-                    // Based on debug output, we expect symbol 5 for Identifier
-                    assert_eq!(primary.symbol, 5, "Expected symbol 5 (Identifier) but got {}", primary.symbol);
-                    eprintln!("✓ Correct symbol ID for Identifier");
+
+    #[test]
+    fn test_extract_identifier() {
+        use rust_sitter::Extract;
+        
+        // Test parsing "x" as an identifier
+        let input = "x";
+        let result = parse(input);
+        assert!(result.is_ok(), "Failed to parse identifier");
+        
+        let module = result.unwrap();
+        assert_eq!(module.body.len(), 1, "Expected 1 statement in module body");
+        
+        match &module.body[0] {
+            Statement::Expression(expr_stmt) => {
+                match &expr_stmt.expression {
+                    Expression::Primary(primary) => {
+                        match primary {
+                            PrimaryExpression::Identifier(id) => {
+                                assert_eq!(id.name, "x", "Expected identifier name to be 'x'");
+                            },
+                            _ => panic!("Expected Identifier variant"),
+                        }
+                    },
+                    _ => panic!("Expected Primary expression"),
                 }
-            }
+            },
+            _ => panic!("Expected Expression statement"),
         }
-        Err(e) => panic!("Failed to parse 'a': {:?}", e),
+    }
+
+    #[test]
+    fn test_simple_addition() {
+        let input = "1 + 2";
+        let result = parse(input);
+        assert!(result.is_ok(), "Failed to parse simple addition");
+    }
+
+    #[test]
+    fn test_operator_precedence() {
+        let input = "1 + 2 * 3";
+        let result = parse(input);
+        assert!(result.is_ok(), "Failed to parse expression with precedence");
+        // Should parse as 1 + (2 * 3), not (1 + 2) * 3
+    }
+
+    #[test]
+    fn test_assignment() {
+        let input = "x = 42";
+        let result = parse(input);
+        assert!(result.is_ok(), "Failed to parse assignment");
     }
 }
