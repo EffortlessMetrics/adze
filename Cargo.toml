@@ -19,4 +19,5 @@ members = [
   "playground",
   "cli",
   "benchmarks",
+  "test-mini",
 ]

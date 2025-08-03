@@ -1,0 +1,14 @@
+[package]
+name = "test-mini"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["pure-rust"]
+pure-rust = ["rust-sitter/pure-rust"]
+
+[dependencies]
+rust-sitter = { path = "../runtime", default-features = false }
+
+[build-dependencies]
+rust-sitter-tool = { path = "../tool" }
