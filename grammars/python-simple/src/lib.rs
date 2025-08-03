@@ -39,19 +39,33 @@ pub mod grammar {
 
     #[rust_sitter::language]
     pub struct NumberLiteral {
-        #[rust_sitter::leaf(pattern = r"\d+(\.\d+)?", transform = |s| s.parse::<f64>().unwrap())]
+        #[rust_sitter::leaf(pattern = r"\d+(\.\d+)?", transform = |s| {
+            eprintln!("DEBUG NumberLiteral transform: input = {:?}", s);
+            s.parse::<f64>().unwrap()
+        })]
         pub value: f64,
     }
 
     #[rust_sitter::language]
     pub struct StringLiteral {
-        #[rust_sitter::leaf(pattern = r#""[^"]*"|'[^']*'"#, transform = |s| s[1..s.len()-1].to_string())]
+        #[rust_sitter::leaf(pattern = r#""[^"]*"|'[^']*'"#, transform = |s| {
+            eprintln!("DEBUG StringLiteral transform: input = {:?}, len = {}", s, s.len());
+            if s.len() >= 2 {
+                s[1..s.len()-1].to_string()
+            } else {
+                eprintln!("WARNING: StringLiteral got string shorter than 2 chars: {:?}", s);
+                s.to_string()
+            }
+        })]
         pub value: String,
     }
 
     #[rust_sitter::language]
     pub struct Identifier {
-        #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
+        #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*", transform = |s| {
+            eprintln!("DEBUG Identifier transform: input = {:?}", s);
+            s.to_string()
+        })]
         pub name: String,
     }
 
@@ -208,15 +222,65 @@ mod tests {
     #[test]
     fn test_basic_parsing() {
         // Test number first since it's simpler
+        eprintln!("\n=== Testing '42' ===");
         let result = grammar::parse("42");
-        if let Err(e) = result {
-            panic!("Failed to parse '42': {:?}", e);
+        match result {
+            Ok(module) => {
+                eprintln!("Successfully parsed '42' into module");
+                // Try to access the expression to trigger extraction
+                match &module.expression {
+                    grammar::Expression::Primary(primary) => {
+                        eprintln!("Expression is Primary");
+                        match primary {
+                            grammar::PrimaryExpression::Number(num) => {
+                                eprintln!("Primary is Number with value: {}", num.value);
+                            }
+                            grammar::PrimaryExpression::String(s) => {
+                                eprintln!("Primary is String with value: {}", s.value);
+                            }
+                            grammar::PrimaryExpression::Identifier(id) => {
+                                eprintln!("Primary is Identifier with name: {}", id.name);
+                            }
+                            grammar::PrimaryExpression::Parenthesized(_) => {
+                                eprintln!("Primary is Parenthesized");
+                            }
+                        }
+                    }
+                    _ => eprintln!("Expression is not Primary"),
+                }
+            }
+            Err(e) => panic!("Failed to parse '42': {:?}", e),
         }
         
         // Test simple identifier
+        eprintln!("\n=== Testing 'a' ===");
         let result = grammar::parse("a");
-        if let Err(e) = result {
-            panic!("Failed to parse 'a': {:?}", e);
+        match result {
+            Ok(module) => {
+                eprintln!("Successfully parsed 'a' into module");
+                // Try to access the expression to trigger extraction
+                match &module.expression {
+                    grammar::Expression::Primary(primary) => {
+                        eprintln!("Expression is Primary");
+                        match primary {
+                            grammar::PrimaryExpression::Number(num) => {
+                                eprintln!("Primary is Number with value: {}", num.value);
+                            }
+                            grammar::PrimaryExpression::String(s) => {
+                                eprintln!("Primary is String with value: {}", s.value);
+                            }
+                            grammar::PrimaryExpression::Identifier(id) => {
+                                eprintln!("Primary is Identifier with name: {}", id.name);
+                            }
+                            grammar::PrimaryExpression::Parenthesized(_) => {
+                                eprintln!("Primary is Parenthesized");
+                            }
+                        }
+                    }
+                    _ => eprintln!("Expression is not Primary"),
+                }
+            }
+            Err(e) => panic!("Failed to parse 'a': {:?}", e),
         }
         
         // Test simple unary
