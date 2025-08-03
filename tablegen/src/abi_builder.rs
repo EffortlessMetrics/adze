@@ -46,6 +46,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let public_symbol_map = self.generate_public_symbol_map();
         let primary_state_ids = self.generate_primary_state_ids();
         let production_id_map = self.generate_production_id_map();
+        let variant_symbol_map = self.generate_variant_symbol_map();
 
         // Count elements
         let counts = self.calculate_counts();
@@ -127,6 +128,9 @@ impl<'a> AbiLanguageBuilder<'a> {
 
             // Production ID map (maps production IDs to rule IDs)
             static PRODUCTION_ID_MAP: &[u16] = &[#(#production_id_map),*];
+
+            // Variant symbol map (for Extract trait to use)
+            #variant_symbol_map
 
             // The language structure
             pub static LANGUAGE: TSLanguage = TSLanguage {
@@ -848,6 +852,58 @@ impl<'a> AbiLanguageBuilder<'a> {
                 quote! { #i as u16 }
             })
             .collect()
+    }
+
+    /// Generate variant to symbol ID mapping for Extract trait
+    fn generate_variant_symbol_map(&self) -> TokenStream {
+        // For now, just generate the complete symbol-to-index mapping
+        // that the macro can use to fix enum variant extraction
+        let mut symbol_entries = Vec::new();
+        
+        // Sort symbols by their index to ensure deterministic output
+        let mut index_to_symbol: Vec<(usize, SymbolId)> = Vec::new();
+        for (symbol_id, &index) in &self.parse_table.symbol_to_index {
+            index_to_symbol.push((index, *symbol_id));
+        }
+        index_to_symbol.sort_by_key(|(idx, _)| *idx);
+        
+        // Generate entries for the mapping
+        for (index, symbol_id) in index_to_symbol {
+            let symbol_id_val = symbol_id.0 as u32;
+            let index_val = index as u16;
+            
+            // Also include the symbol name for debugging
+            let symbol_name = if symbol_id.0 == 0 {
+                "EOF".to_string()
+            } else if let Some(token) = self.grammar.tokens.get(&symbol_id) {
+                token.name.clone()
+            } else if let Some(rule_name) = self.grammar.rule_names.get(&symbol_id) {
+                rule_name.clone()
+            } else {
+                format!("symbol_{}", symbol_id.0)
+            };
+            
+            symbol_entries.push(quote! {
+                // #symbol_name
+                (#symbol_id_val, #index_val)
+            });
+        }
+        
+        quote! {
+            // Complete symbol ID to parse table index mapping
+            // This is used by the Extract trait to correctly identify symbols
+            pub const SYMBOL_ID_TO_INDEX: &[(u32, u16)] = &[
+                #(#symbol_entries),*
+            ];
+            
+            // Helper function to get symbol index from symbol ID
+            #[allow(dead_code)]
+            pub fn get_symbol_index(symbol_id: u32) -> Option<u16> {
+                SYMBOL_ID_TO_INDEX.iter()
+                    .find(|(id, _)| *id == symbol_id)
+                    .map(|(_, index)| *index)
+            }
+        }
     }
 
     /// Generate production ID map

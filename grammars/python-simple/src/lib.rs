@@ -313,3 +313,61 @@ mod tests {
         assert!(result3.is_ok(), "Failed to parse 'a + b * c'");
     }
 }
+
+// Temporary test to prove the symbol ID mapping fix would work
+#[test]
+#[cfg(feature = "pure-rust")]
+fn test_symbol_id_mapping() {
+    use rust_sitter::pure_parser::{Parser, parse_tree};
+    
+    // Parse "42" and check the parse tree directly
+    eprintln!("\n=== Testing symbol ID mapping for '42' ===");
+    let input = "42";
+    let language = grammar::language();
+    
+    match parse_tree(input.as_bytes(), language) {
+        Ok(tree) => {
+            eprintln!("Successfully parsed '42'");
+            eprintln!("Root symbol: {}", tree.root.symbol);
+            
+            // Navigate to the actual number node
+            if let Some(expr) = tree.root.children.get(0) {
+                eprintln!("Expression symbol: {}", expr.symbol);
+                if let Some(primary) = expr.children.get(0) {
+                    eprintln!("Primary symbol: {}", primary.symbol);
+                    
+                    // The primary expression should have symbol ID that corresponds to NumberLiteral
+                    // Based on debug output, we expect symbol 17 for NumberLiteral
+                    assert_eq!(primary.symbol, 17, "Expected symbol 17 (NumberLiteral) but got {}", primary.symbol);
+                    eprintln!("✓ Correct symbol ID for NumberLiteral");
+                }
+            }
+        }
+        Err(e) => panic!("Failed to parse '42': {:?}", e),
+    }
+    
+    // Parse "a" and check the parse tree
+    eprintln!("\n=== Testing symbol ID mapping for 'a' ===");
+    let input = "a";
+    
+    match parse_tree(input.as_bytes(), language) {
+        Ok(tree) => {
+            eprintln!("Successfully parsed 'a'");
+            eprintln!("Root symbol: {}", tree.root.symbol);
+            
+            // Navigate to the actual identifier node
+            if let Some(expr) = tree.root.children.get(0) {
+                eprintln!("Expression symbol: {}", expr.symbol);
+                if let Some(primary) = expr.children.get(0) {
+                    eprintln!("Primary symbol: {}", primary.symbol);
+                    
+                    // The primary expression should have symbol ID that corresponds to Identifier
+                    // Based on debug output, we expect symbol 5 for Identifier
+                    assert_eq!(primary.symbol, 5, "Expected symbol 5 (Identifier) but got {}", primary.symbol);
+                    eprintln!("✓ Correct symbol ID for Identifier");
+                }
+            }
+        }
+        Err(e) => panic!("Failed to parse 'a': {:?}", e),
+    }
+}
