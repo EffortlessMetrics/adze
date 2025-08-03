@@ -4,7 +4,7 @@
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 use anyhow::{Context, Result};
 use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, optimize_grammar};
+use rust_sitter_ir::Grammar;
 use rust_sitter_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
 use serde_json::Value;
 use std::fs;
@@ -63,7 +63,7 @@ pub fn build_parser_from_grammar_js(
 
     // Convert to IR
     let converter = GrammarJsConverter::new(grammar_js);
-    let mut grammar = converter
+    let grammar = converter
         .convert()
         .context("Failed to convert grammar.js to IR")?;
 
@@ -122,7 +122,7 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
         .context("Failed to convert JSON to GrammarJs")?;
 
     let converter = GrammarJsConverter::new(grammar_js);
-    let mut grammar = converter
+    let grammar = converter
         .convert()
         .context("Failed to convert grammar JSON to IR")?;
 

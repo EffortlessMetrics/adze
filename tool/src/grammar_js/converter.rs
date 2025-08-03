@@ -26,7 +26,7 @@ impl GrammarJsConverter {
             grammar_js,
             symbol_names: HashMap::new(),
             pattern_symbols: HashMap::new(),
-            next_symbol_id: 0,
+            next_symbol_id: 1,  // Start at 1 to reserve SymbolId(0) for EOF
             next_production_id: 0,
             next_field_id: 0,
             fields: IndexMap::new(),

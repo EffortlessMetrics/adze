@@ -852,10 +852,11 @@ impl<'a> AbiLanguageBuilder<'a> {
 
     /// Generate production ID map
     fn generate_production_id_map(&self) -> Vec<TokenStream> {
-        // Map production IDs to rule symbols
+        // Tree-sitter uses 1-based production IDs in the parse table
+        // This map converts from 1-based IDs to 0-based indices into PARSE_ACTIONS
         let mut production_map = Vec::new();
 
-        // Sort rules by production ID for deterministic output
+        // Get all rules sorted by production ID
         let mut rules: Vec<_> = self
             .grammar
             .rules
@@ -864,9 +865,21 @@ impl<'a> AbiLanguageBuilder<'a> {
             .collect();
         rules.sort_by_key(|rule| rule.production_id.0);
 
-        for rule in rules {
-            let rule_symbol = rule.lhs.0;
-            production_map.push(quote! { #rule_symbol });
+        // Create a mapping from production_id to index
+        let mut id_to_index = std::collections::HashMap::new();
+        for (index, rule) in rules.iter().enumerate() {
+            id_to_index.insert(rule.production_id.0, index);
+        }
+
+        // The production_id_map maps from 1-based parse table IDs to 0-based production indices
+        // Since we have N productions (0..N-1), the parse table will use IDs 1..N
+        let num_productions = rules.len();
+        
+        // Build the map: production_id_map[parse_table_id - 1] = production_index
+        // For each production index 0..N-1, the parse table uses ID index+1
+        for i in 0..num_productions {
+            let index_u16 = i as u16;
+            production_map.push(quote! { #index_u16 });
         }
 
         production_map
