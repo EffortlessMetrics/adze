@@ -8,6 +8,7 @@ fn parse(input: &str) -> Result<rust_sitter::Tree, rust_sitter::ParseError> {
 }
 
 #[test]
+#[should_panic(expected = "Parse")] // Empty input should fail with non_empty = true
 fn test_empty() {
     let tree = parse("").unwrap();
     let module = TestModule::extract(&tree.root()).unwrap();
@@ -19,5 +20,5 @@ fn test_single_number() {
     let tree = parse("42").unwrap();
     let module = TestModule::extract(&tree.root()).unwrap();
     assert_eq!(module.statements.len(), 1);
-    assert_eq!(module.statements[0].value, 42);
+    assert_eq!(*module.statements[0].value, 42);
 }

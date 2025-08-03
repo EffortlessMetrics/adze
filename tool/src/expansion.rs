@@ -235,25 +235,40 @@ fn gen_field(
                 ]
             })
         } else {
+            // Always use REPEAT1 for the rule definition to avoid empty string issues
+            // The empty case is handled by wrapping the reference in CHOICE
             json!({
-                "type": if repeat_non_empty { "REPEAT1" } else { "REPEAT" },
+                "type": "REPEAT1",
                 "content": field_rule
             })
         };
 
-        // Always create the wrapper rule to avoid issues with Tree-sitter
-        let contents_ident = format!("{path}_vec_contents");
-        out.insert(contents_ident.clone(), vec_contents);
-        
-        // REPEAT already handles empty sequences, so we don't mark it as optional
-        // even when non_empty = false
-        (
-            json!({
-                "type": "SYMBOL",
-                "name": contents_ident,
-            }),
-            false  // Never make Vec fields optional - REPEAT handles empty case
-        )
+        if repeat_non_empty {
+            // Non-empty vectors: create a named rule and reference it
+            let contents_ident = format!("{path}_vec_contents");
+            out.insert(contents_ident.clone(), vec_contents);
+            
+            (
+                json!({
+                    "type": "SYMBOL",
+                    "name": contents_ident,
+                }),
+                false
+            )
+        } else {
+            // Empty vectors: inline the CHOICE to avoid creating a potentially empty named rule
+            // This prevents Tree-sitter's EmptyString error
+            (
+                json!({
+                    "type": "CHOICE",
+                    "members": [
+                        {"type": "BLANK"},
+                        vec_contents  // Inline the REPEAT1 directly
+                    ]
+                }),
+                false  // Already wrapped in CHOICE, don't make it optional again
+            )
+        }
     } else {
         // is_option
         let (field_json, field_optional) =
@@ -445,6 +460,26 @@ fn gen_struct_or_variant(
         }
     };
 
+    // Check if this rule could be empty (single optional field)
+    let potentially_empty = match &base_rule {
+        Value::Object(obj) => {
+            obj.get("type").and_then(|t| t.as_str()) == Some("FIELD") &&
+            obj.get("content").and_then(|c| c.as_object()).map(|c| {
+                c.get("type").and_then(|t| t.as_str()) == Some("CHOICE") &&
+                c.get("members").and_then(|m| m.as_array()).map(|m| {
+                    m.iter().any(|member| {
+                        member.as_object().and_then(|o| o.get("type")).and_then(|t| t.as_str()) == Some("BLANK")
+                    })
+                }).unwrap_or(false)
+            }).unwrap_or(false)
+        },
+        _ => false
+    };
+    
+    if potentially_empty {
+        eprintln!("Warning: Rule '{}' can match empty input. Tree-sitter requires all named rules to match at least one character. Consider adding at least one required field or using 'non_empty = true' for Vec fields.", path);
+    }
+    
     let rule = if let Some(Expr::Lit(lit)) = prec_param {
         if prec_left_attr.is_some() || prec_right_attr.is_some() {
             panic!("only one of prec, prec_left, and prec_right can be specified");
