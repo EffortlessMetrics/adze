@@ -1,13 +1,9 @@
 #[rust_sitter::grammar("mini")]
 pub mod grammar {
     #[rust_sitter::language]
-    pub struct S {
-        pub e: E,
-    }
-    
-    #[rust_sitter::language]
-    pub enum E {
-        Num(#[rust_sitter::leaf(pattern = r"\d+")] String),
+    pub struct Program {
+        #[rust_sitter::leaf(pattern = r"\d+", text = true)]
+        pub number: String,
     }
 }
 

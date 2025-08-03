@@ -729,6 +729,9 @@ impl<'a> AbiLanguageBuilder<'a> {
         ];
 
         // Fill in the actual productions at their correct indices
+        eprintln!("DEBUG: Building PARSE_ACTIONS for {} productions", self.grammar.all_rules().count());
+        eprintln!("DEBUG: symbol_to_index mapping: {:?}", self.parse_table.symbol_to_index);
+        
         for rule in self.grammar.all_rules() {
             let index = rule.production_id.0 as usize;
             let child_count = rule.rhs.len() as u8;
@@ -741,6 +744,9 @@ impl<'a> AbiLanguageBuilder<'a> {
                              symbol_id.0, rule.production_id.0);
                     symbol_id.0 as usize // Fallback to symbol ID
                 }) as u16;
+            
+            eprintln!("DEBUG: Production {} (symbol_id={}) -> parse_table index={}", 
+                     rule.production_id.0, symbol_id.0, symbol);
 
             actions[index] = quote! {
                 TSParseAction {

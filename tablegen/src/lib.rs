@@ -1200,4 +1200,115 @@ mod tests {
         // Should generate small table format
         assert!(code_str.contains("SMALL_PARSE_TABLE") || code_str.contains("ACTION_TABLE"));
     }
+
+    #[test]
+    fn arithmetic_has_many_states() {
+        // This test helps prevent regressions in FIRST/FOLLOW/closure computation
+        // that could collapse the automaton
+        
+        // Create a simple arithmetic grammar
+        let mut grammar = Grammar::new("arithmetic".to_string());
+        
+        // Add tokens
+        let number_token = Token {
+            name: "number".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        };
+        let plus_token = Token {
+            name: "plus".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        };
+        let times_token = Token {
+            name: "times".to_string(),
+            pattern: TokenPattern::String("*".to_string()),
+            fragile: false,
+        };
+        
+        grammar.tokens.insert(SymbolId(3), number_token);
+        grammar.tokens.insert(SymbolId(4), plus_token);
+        grammar.tokens.insert(SymbolId(5), times_token);
+        
+        // Add non-terminals
+        grammar.rule_names.insert(SymbolId(0), "source_file".to_string());
+        grammar.rule_names.insert(SymbolId(1), "expression".to_string());
+        grammar.rule_names.insert(SymbolId(2), "term".to_string());
+        
+        // Add rules
+        // source_file -> expression
+        grammar.add_rule(Rule {
+            lhs: SymbolId(0),
+            rhs: vec![Symbol::NonTerminal(SymbolId(1))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        
+        // expression -> expression + term
+        grammar.add_rule(Rule {
+            lhs: SymbolId(1),
+            rhs: vec![
+                Symbol::NonTerminal(SymbolId(1)),
+                Symbol::Terminal(SymbolId(4)),
+                Symbol::NonTerminal(SymbolId(2)),
+            ],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        });
+        
+        // expression -> term
+        grammar.add_rule(Rule {
+            lhs: SymbolId(1),
+            rhs: vec![Symbol::NonTerminal(SymbolId(2))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(2),
+        });
+        
+        // term -> term * number
+        grammar.add_rule(Rule {
+            lhs: SymbolId(2),
+            rhs: vec![
+                Symbol::NonTerminal(SymbolId(2)),
+                Symbol::Terminal(SymbolId(5)),
+                Symbol::Terminal(SymbolId(3)),
+            ],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(3),
+        });
+        
+        // term -> number
+        grammar.add_rule(Rule {
+            lhs: SymbolId(2),
+            rhs: vec![Symbol::Terminal(SymbolId(3))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(4),
+        });
+        
+        // Build LR(1) automaton
+        let first_follow = FirstFollowSets::compute(&grammar);
+        let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
+        
+        // The arithmetic grammar should have at least 10 states
+        assert!(
+            parse_table.state_count > 10,
+            "automaton collapsed ({} states), expected > 10", 
+            parse_table.state_count
+        );
+        
+        // State 0 should have valid actions (not all Error)
+        assert!(
+            parse_table.action_table[0].iter().any(|a| !matches!(a, Action::Error)),
+            "state-0 has no valid actions"
+        );
+    }
 }

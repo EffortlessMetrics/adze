@@ -18,6 +18,7 @@ build_parsers = [
     "dep:tree-sitter-generate",
     "dep:cc",
 ]
+no_opt = []   # compile without the optimizer for debugging
 
 [dependencies]
 syn = { version = "2", features = ["full", "extra-traits"] }
