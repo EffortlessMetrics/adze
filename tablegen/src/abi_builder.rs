@@ -466,6 +466,10 @@ impl<'a> AbiLanguageBuilder<'a> {
                     
                     let symbol_id = symbol_id.unwrap();
                     
+                    // Debug: Print symbol mapping
+                    eprintln!("DEBUG: State {} checking symbol_idx={} -> symbol_id={}", 
+                             state_idx, symbol_idx, symbol_id.0);
+                    
                     // Check if this symbol is a terminal or non-terminal
                     // Terminals include tokens and externals
                     let is_terminal = self.grammar.tokens.contains_key(&symbol_id) ||
@@ -504,6 +508,8 @@ impl<'a> AbiLanguageBuilder<'a> {
                             && goto_idx < self.parse_table.goto_table[state_idx].len()
                         {
                             let goto_state = self.parse_table.goto_table[state_idx][goto_idx];
+                            eprintln!("DEBUG: Non-terminal {} (symbol_idx={}) -> goto_table[{}][{}] = state {}", 
+                                     symbol_id.0, symbol_idx, state_idx, goto_idx, goto_state.0);
                             if goto_state.0 > 0 {
                                 // Convert goto to a shift action for Tree-sitter compatibility
                                 Action::Shift(goto_state)
@@ -511,6 +517,11 @@ impl<'a> AbiLanguageBuilder<'a> {
                                 Action::Error
                             }
                         } else {
+                            eprintln!("DEBUG: Non-terminal {} (symbol_idx={}) -> goto_table bounds check failed: state_idx={}, goto_idx={}, goto_table.len={}, goto_table[{}].len={}", 
+                                     symbol_id.0, symbol_idx, state_idx, goto_idx, 
+                                     self.parse_table.goto_table.len(),
+                                     state_idx,
+                                     if state_idx < self.parse_table.goto_table.len() { self.parse_table.goto_table[state_idx].len() } else { 0 });
                             Action::Error
                         }
                     };
@@ -721,7 +732,15 @@ impl<'a> AbiLanguageBuilder<'a> {
         for rule in self.grammar.all_rules() {
             let index = rule.production_id.0 as usize;
             let child_count = rule.rhs.len() as u8;
-            let symbol = rule.lhs.0;
+            // Convert symbol ID to symbol index for the parse table
+            let symbol_id = rule.lhs;
+            let symbol = self.parse_table.symbol_to_index.get(&symbol_id)
+                .copied()
+                .unwrap_or_else(|| {
+                    eprintln!("WARNING: No symbol index found for symbol ID {} in production {}", 
+                             symbol_id.0, rule.production_id.0);
+                    symbol_id.0 as usize // Fallback to symbol ID
+                }) as u16;
 
             actions[index] = quote! {
                 TSParseAction {
