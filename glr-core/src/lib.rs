@@ -1398,53 +1398,61 @@ pub fn build_lr1_automaton(
         }
     }
 
-    // Add all goto entries from collection's goto_table to the action table
-    // This ensures that goto entries are available even if no items have the symbol as next_symbol
+    // Add goto entries from collection's goto_table to the action table
+    // IMPORTANT: Only add entries for TERMINALS to the action table
+    // Non-terminals should only be in the goto table
     for ((from_state, symbol), to_state) in &collection.goto_table {
-        if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
-            let state_idx = from_state.0 as usize;
-            if state_idx < action_table.len() && symbol_idx < action_table[state_idx].len() {
-                // Add as a shift action in the unified table
-                let new_action = Action::Shift(*to_state);
-                eprintln!(
-                    "DEBUG: Adding goto as shift: state {} symbol {} (id={}) -> state {}",
-                    state_idx, symbol_idx, symbol.0, to_state.0
-                );
+        // Check if this symbol is a terminal (token or external)
+        let is_terminal = grammar.tokens.contains_key(symbol) || 
+                         grammar.externals.iter().any(|e| e.symbol_id == *symbol) ||
+                         symbol.0 == 0; // EOF is also a terminal
+        
+        if is_terminal {
+            if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
+                let state_idx = from_state.0 as usize;
+                if state_idx < action_table.len() && symbol_idx < action_table[state_idx].len() {
+                    // Add as a shift action in the unified table
+                    let new_action = Action::Shift(*to_state);
+                    eprintln!(
+                        "DEBUG: Adding terminal goto as shift: state {} symbol {} (id={}) -> state {}",
+                        state_idx, symbol_idx, symbol.0, to_state.0
+                    );
 
-                // Handle conflicts between existing actions and new goto (shift) action
-                match &action_table[state_idx][symbol_idx] {
-                    Action::Error => {
-                        // No existing action, just add the shift
-                        action_table[state_idx][symbol_idx] = new_action;
-                        eprintln!(
-                            "DEBUG: Successfully added goto entry to action table at [{}, {}]",
-                            state_idx, symbol_idx
-                        );
-                    }
-                    Action::Reduce(rule_id) => {
-                        // Shift/reduce conflict - create a Fork action
-                        eprintln!(
-                            "DEBUG: Shift/reduce conflict at state {} symbol {}: creating Fork action",
-                            state_idx, symbol_idx
-                        );
-                        action_table[state_idx][symbol_idx] = Action::Fork(vec![
-                            new_action,
-                            Action::Reduce(*rule_id),
-                        ]);
-                    }
-                    Action::Fork(existing_actions) => {
-                        // Already a fork, add the new action if not already present
-                        let mut actions = existing_actions.clone();
-                        if !actions.contains(&new_action) {
-                            actions.push(new_action);
-                            action_table[state_idx][symbol_idx] = Action::Fork(actions);
+                    // Handle conflicts between existing actions and new goto (shift) action
+                    match &action_table[state_idx][symbol_idx] {
+                        Action::Error => {
+                            // No existing action, just add the shift
+                            action_table[state_idx][symbol_idx] = new_action;
+                            eprintln!(
+                                "DEBUG: Successfully added goto entry to action table at [{}, {}]",
+                                state_idx, symbol_idx
+                            );
                         }
-                    }
-                    _ => {
-                        eprintln!(
-                            "DEBUG: Skipping goto - incompatible action already exists at [{}, {}]: {:?}",
-                            state_idx, symbol_idx, action_table[state_idx][symbol_idx]
-                        );
+                        Action::Reduce(rule_id) => {
+                            // Shift/reduce conflict - create a Fork action
+                            eprintln!(
+                                "DEBUG: Shift/reduce conflict at state {} symbol {}: creating Fork action",
+                                state_idx, symbol_idx
+                            );
+                            action_table[state_idx][symbol_idx] = Action::Fork(vec![
+                                new_action,
+                                Action::Reduce(*rule_id),
+                            ]);
+                        }
+                        Action::Fork(existing_actions) => {
+                            // Already a fork, add the new action if not already present
+                            let mut actions = existing_actions.clone();
+                            if !actions.contains(&new_action) {
+                                actions.push(new_action);
+                                action_table[state_idx][symbol_idx] = Action::Fork(actions);
+                            }
+                        }
+                        _ => {
+                            eprintln!(
+                                "DEBUG: Skipping goto - incompatible action already exists at [{}, {}]: {:?}",
+                                state_idx, symbol_idx, action_table[state_idx][symbol_idx]
+                            );
+                        }
                     }
                 }
             }

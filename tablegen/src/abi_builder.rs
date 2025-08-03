@@ -449,14 +449,24 @@ impl<'a> AbiLanguageBuilder<'a> {
                     state_idx, self.parse_table.symbol_count
                 );
                 for symbol_idx in 0..self.parse_table.symbol_count {
+                    // Get the symbol ID for this index
+                    let symbol_id = self.parse_table.symbol_to_index
+                        .iter()
+                        .find(|&(_, &idx)| idx == symbol_idx)
+                        .map(|(id, _)| *id);
+                    
+                    if symbol_id.is_none() {
+                        eprintln!("DEBUG: No symbol ID found for index {}", symbol_idx);
+                        continue;
+                    }
+                    
+                    let symbol_id = symbol_id.unwrap();
+                    
                     // Check if this symbol is a terminal or non-terminal
-                    // For terminals, use action_table; for non-terminals, use goto_table
-                    let is_terminal = symbol_idx
-                        < self
-                            .parse_table
-                            .action_table
-                            .get(state_idx)
-                            .map_or(0, |row| row.len());
+                    // Terminals include tokens and externals
+                    let is_terminal = self.grammar.tokens.contains_key(&symbol_id) ||
+                                     self.grammar.externals.iter().any(|e| e.symbol_id == symbol_id) ||
+                                     symbol_id.0 == 0; // EOF is also a terminal
 
                     // Create owned action to avoid borrowing issues
                     let action_owned = if is_terminal {
@@ -470,12 +480,22 @@ impl<'a> AbiLanguageBuilder<'a> {
                         }
                     } else {
                         // Non-terminal symbol - use goto table
-                        let goto_idx = symbol_idx
-                            - self
-                                .parse_table
-                                .action_table
-                                .get(state_idx)
-                                .map_or(0, |row| row.len());
+                        // Find the goto table index for this non-terminal
+                        let mut goto_idx = 0;
+                        for i in 0..symbol_idx {
+                            let sid = self.parse_table.symbol_to_index
+                                .iter()
+                                .find(|&(_, &idx)| idx == i)
+                                .map(|(id, _)| *id);
+                            if let Some(sid) = sid {
+                                if !self.grammar.tokens.contains_key(&sid) &&
+                                   !self.grammar.externals.iter().any(|e| e.symbol_id == sid) &&
+                                   sid.0 != 0 {
+                                    goto_idx += 1;
+                                }
+                            }
+                        }
+                        
                         if state_idx < self.parse_table.goto_table.len()
                             && goto_idx < self.parse_table.goto_table[state_idx].len()
                         {
