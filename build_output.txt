@@ -1,98 +1,74 @@
-warning: unused imports: `RuleId` and `StateId`
- --> glr-core/src/advanced_conflict.rs:4:33
-  |
-4 | use crate::{ParseTable, Action, StateId, RuleId};
-  |                                 ^^^^^^^  ^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: unused imports: `Precedence`, `ProductionId`, `Rule`, and `Symbol`
- --> glr-core/src/advanced_conflict.rs:5:72
-  |
-5 | use rust_sitter_ir::{Grammar, SymbolId, Associativity, PrecedenceKind, Precedence, Rule, Symbol, ProductionId};
-  |                                                                        ^^^^^^^^^^  ^^^^  ^^^^^^  ^^^^^^^^^^^^
-
-warning: unused import: `BTreeMap`
- --> glr-core/src/advanced_conflict.rs:6:33
-  |
-6 | use std::collections::{HashMap, BTreeMap};
-  |                                 ^^^^^^^^
-
-warning: unused import: `StateId`
- --> glr-core/src/conflict_visualizer.rs:4:55
-  |
-4 |     Conflict, ConflictType, Action, SymbolId, RuleId, StateId,
-  |                                                       ^^^^^^^
-
-warning: unused variable: `original_start`
-   --> glr-core/src/lib.rs:403:9
+warning: unused variable: `symbol_name`
+   --> tablegen/src/abi_builder.rs:876:17
     |
-403 |         original_start: SymbolId,
-    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original_start`
+876 |             let symbol_name = if symbol_id.0 == 0 {
+    |                 ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_symbol_name`
     |
     = note: `#[warn(unused_variables)]` on by default
 
-warning: unused variable: `item_set`
-    --> glr-core/src/lib.rs:1256:25
-     |
-1256 |         for (state_idx, item_set) in collection.sets.iter().enumerate() {
-     |                         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_item_set`
-
-warning: value assigned to `needs_eof_reduce` is never read
-    --> glr-core/src/lib.rs:1259:21
-     |
-1259 |             let mut needs_eof_reduce = false;
-     |                     ^^^^^^^^^^^^^^^^
-     |
-     = help: maybe it is overwritten before being read?
-     = note: `#[warn(unused_assignments)]` on by default
-
-warning: value assigned to `reduce_rule_id` is never read
-    --> glr-core/src/lib.rs:1260:21
-     |
-1260 |             let mut reduce_rule_id = None;
-     |                     ^^^^^^^^^^^^^^
-     |
-     = help: maybe it is overwritten before being read?
-
-warning: function `can_derive_start` is never used
-   --> glr-core/src/lib.rs:918:4
+warning: `rust-sitter-tablegen` (lib) generated 1 warning
+warning: unused variable: `byte_repr`
+   --> runtime/src/pure_parser.rs:412:21
     |
-918 | fn can_derive_start(grammar: &Grammar, symbol: SymbolId, start: SymbolId) -> bool {
-    |    ^^^^^^^^^^^^^^^^
+412 |                 let byte_repr = if position < source.len() {
+    |                     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_byte_repr`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `byte`
+   --> runtime/src/pure_parser.rs:665:29
+    |
+665 |                         let byte = *metadata_ptr.add(i as usize);
+    |                             ^^^^ help: if this is intentional, prefix it with an underscore: `_byte`
+
+warning: unused variable: `entries_count`
+   --> runtime/src/pure_parser.rs:709:17
+    |
+709 |             let entries_count = byte_count / 2; // Each entry is 2 bytes (symbol + action)
+    |                 ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_entries_count`
+
+warning: variable `entry_num` is assigned to, but never used
+   --> runtime/src/pure_parser.rs:723:21
+    |
+723 |             let mut entry_num = 0;
+    |                     ^^^^^^^^^
+    |
+    = note: consider using `_entry_num` instead
+
+warning: unused variable: `debug_symbol`
+   --> runtime/src/pure_parser.rs:725:21
+    |
+725 |                 let debug_symbol = *language.parse_table.add(debug_offset) as u16;
+    |                     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_debug_symbol`
+
+warning: unused variable: `debug_action`
+   --> runtime/src/pure_parser.rs:726:21
+    |
+726 |                 let debug_action = *language.parse_table.add(debug_offset + 1) as u16;
+    |                     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_debug_action`
+
+warning: unused variable: `i`
+   --> runtime/src/pure_parser.rs:814:18
+    |
+814 |             for (i, entry) in self.stack.iter().enumerate() {
+    |                  ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+warning: unused variable: `entry`
+   --> runtime/src/pure_parser.rs:814:21
+    |
+814 |             for (i, entry) in self.stack.iter().enumerate() {
+    |                     ^^^^^ help: if this is intentional, prefix it with an underscore: `_entry`
+
+warning: method `handle_fork` is never used
+   --> runtime/src/parser_v2.rs:458:8
+    |
+144 | impl ParserV2 {
+    | ------------- method in this implementation
+...
+458 |     fn handle_fork(&mut self, _actions: Vec<Action>, _token: &Token) -> Result<ParseNode, ParseError> {
+    |        ^^^^^^^^^^^
     |
     = note: `#[warn(dead_code)]` on by default
-
-warning: `rust-sitter-glr-core` (lib) generated 9 warnings (run `cargo fix --lib -p rust-sitter-glr-core` to apply 4 suggestions)
-warning: unused import: `BTreeMap`
- --> tablegen/src/abi_builder.rs:8:33
-  |
-8 | use std::collections::{HashSet, BTreeMap};
-  |                                 ^^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: unused import: `BTreeMap`
- --> tablegen/src/external_scanner_v2.rs:4:42
-  |
-4 | use std::collections::{HashMap, HashSet, BTreeMap};
-  |                                          ^^^^^^^^
-
-warning: unused import: `std::collections::BTreeMap`
- --> tablegen/src/serializer.rs:9:5
-  |
-9 | use std::collections::BTreeMap;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: `rust-sitter-glr-core` (lib) generated 9 warnings (9 duplicates)
-warning: `rust-sitter-tablegen` (lib) generated 3 warnings (run `cargo fix --lib -p rust-sitter-tablegen` to apply 3 suggestions)
-warning: unused variable: `extra_subtree`
-   --> runtime/src/pure_parser.rs:370:21
-    |
-370 |                 let extra_subtree = Subtree {
-    |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extra_subtree`
-    |
-    = note: `#[warn(unused_variables)]` on by default
 
 warning: field `language` is never read
   --> runtime/src/parser_v4.rs:34:5
@@ -102,32 +78,31 @@ warning: field `language` is never read
 ...
 34 |     language: String,
    |     ^^^^^^^^
-   |
-   = note: `#[warn(dead_code)]` on by default
 
 warning: method `get_expected_symbols` is never used
-   --> runtime/src/parser_v4.rs:257:8
+   --> runtime/src/parser_v4.rs:269:8
     |
 37  | impl Parser {
     | ----------- method in this implementation
 ...
-257 |     fn get_expected_symbols(&self, state: StateId) -> Vec<SymbolId> {
+269 |     fn get_expected_symbols(&self, state: StateId) -> Vec<SymbolId> {
     |        ^^^^^^^^^^^^^^^^^^^^
 
 warning: methods `get_production_id` and `get_goto_state` are never used
-   --> runtime/src/pure_parser.rs:896:8
-    |
-209 | impl Parser {
-    | ----------- methods in this implementation
+    --> runtime/src/pure_parser.rs:1007:8
+     |
+208  | impl Parser {
+     | ----------- methods in this implementation
 ...
-896 |     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
-    |        ^^^^^^^^^^^^^^^^^
+1007 |     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
+     |        ^^^^^^^^^^^^^^^^^
 ...
-907 |     fn get_goto_state(&self, _language: &TSLanguage, _state: TSStateId, _symbol: TSSymbol) -> TSStateId {
-    |        ^^^^^^^^^^^^^^
+1018 |     fn get_goto_state(
+     |        ^^^^^^^^^^^^^^
 
-warning: `rust-sitter-tablegen` (lib) generated 3 warnings (3 duplicates)
-warning: `rust-sitter` (lib) generated 4 warnings
+warning: `rust-sitter-tablegen` (lib) generated 1 warning (1 duplicate)
+warning: `rust-sitter` (lib) generated 12 warnings
+   Compiling rust-sitter-tool v0.5.0-beta (/home/steven/code/rust-sitter/tool)
 warning: function `parse_with_rust_parser` is never used
   --> tool/src/cli/parse.rs:83:8
    |
@@ -143,475 +118,28 @@ warning: function `auto_detect_parser` is never used
    |        ^^^^^^^^^^^^^^^^^^
 
 warning: function `generate_corpus` is never used
-   --> tool/src/cli/test.rs:172:8
+   --> tool/src/cli/test.rs:179:8
     |
-172 | pub fn generate_corpus(
+179 | pub fn generate_corpus(examples_dir: &Path, output_dir: &Path, language: &str) -> Result<()> {
     |        ^^^^^^^^^^^^^^^
 
 warning: `rust-sitter-tool` (lib) generated 3 warnings
-   Compiling rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)
-error: failed to run custom build command for `rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)`
+   Compiling rust-sitter-python-simple v0.1.0 (/home/steven/code/rust-sitter/grammars/python-simple)
+error: failed to run custom build command for `rust-sitter-python-simple v0.1.0 (/home/steven/code/rust-sitter/grammars/python-simple)`
 
 Caused by:
-  process didn't exit successfully: `/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-4de1693fbdb4f8c6/build-script-build` (exit status: 101)
-  --- stdout
-  cargo:rerun-if-changed=src
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  OPT_LEVEL = Some(0)
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CC_x86_64-unknown-linux-gnu
-  CC_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CC_x86_64_unknown_linux_gnu
-  CC_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  RUSTC_WRAPPER = None
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  DEBUG = Some(true)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  CARGO_ENCODED_RUSTFLAGS = Some()
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=AR_x86_64-unknown-linux-gnu
-  AR_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=AR_x86_64_unknown_linux_gnu
-  AR_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_AR
-  HOST_AR = None
-  cargo:rerun-if-env-changed=AR
-  AR = None
-  cargo:rerun-if-env-changed=ARFLAGS_x86_64-unknown-linux-gnu
-  ARFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=ARFLAGS_x86_64_unknown_linux_gnu
-  ARFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_ARFLAGS
-  HOST_ARFLAGS = None
-  cargo:rerun-if-env-changed=ARFLAGS
-  ARFLAGS = None
-  cargo:rustc-link-lib=static=arithmetic
-  cargo:rustc-link-search=native=/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  OPT_LEVEL = Some(0)
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CC_x86_64-unknown-linux-gnu
-  CC_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CC_x86_64_unknown_linux_gnu
-  CC_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  RUSTC_WRAPPER = None
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  DEBUG = Some(true)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  CARGO_ENCODED_RUSTFLAGS = Some()
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=AR_x86_64-unknown-linux-gnu
-  AR_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=AR_x86_64_unknown_linux_gnu
-  AR_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_AR
-  HOST_AR = None
-  cargo:rerun-if-env-changed=AR
-  AR = None
-  cargo:rerun-if-env-changed=ARFLAGS_x86_64-unknown-linux-gnu
-  ARFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=ARFLAGS_x86_64_unknown_linux_gnu
-  ARFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_ARFLAGS
-  HOST_ARFLAGS = None
-  cargo:rerun-if-env-changed=ARFLAGS
-  ARFLAGS = None
-  cargo:rustc-link-lib=static=optionals
-  cargo:rustc-link-search=native=/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  OPT_LEVEL = Some(0)
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CC_x86_64-unknown-linux-gnu
-  CC_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CC_x86_64_unknown_linux_gnu
-  CC_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  RUSTC_WRAPPER = None
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  DEBUG = Some(true)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  CARGO_ENCODED_RUSTFLAGS = Some()
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  OUT_DIR = Some(/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out)
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  TARGET = Some(x86_64-unknown-linux-gnu)
-  CARGO_CFG_TARGET_FEATURE = Some(fxsr,sse,sse2)
-  HOST = Some(x86_64-unknown-linux-gnu)
-  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
-  CFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
-  CFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=AR_x86_64-unknown-linux-gnu
-  AR_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=AR_x86_64_unknown_linux_gnu
-  AR_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_AR
-  HOST_AR = None
-  cargo:rerun-if-env-changed=AR
-  AR = None
-  cargo:rerun-if-env-changed=ARFLAGS_x86_64-unknown-linux-gnu
-  ARFLAGS_x86_64-unknown-linux-gnu = None
-  cargo:rerun-if-env-changed=ARFLAGS_x86_64_unknown_linux_gnu
-  ARFLAGS_x86_64_unknown_linux_gnu = None
-  cargo:rerun-if-env-changed=HOST_ARFLAGS
-  HOST_ARFLAGS = None
-  cargo:rerun-if-env-changed=ARFLAGS
-  ARFLAGS = None
-  cargo:rustc-link-lib=static=repetitions
-  cargo:rustc-link-search=native=/home/steven/code/rust-sitter/target/debug/build/rust-sitter-example-c8100a91968d9ade/out
-
+  process didn't exit successfully: `/home/steven/code/rust-sitter/target/debug/build/rust-sitter-python-simple-891595f750b5a7ef/build-script-build` (exit status: 101)
   --- stderr
-  DEBUG gen_struct_or_variant: path=Expression_Number, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(3567..3578) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(3580..3584) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(3585..3592) }, Punct { char: '=', spacing: Alone, span: bytes(3593..3594) }, Literal { lit: r"\d+", span: bytes(3595..3601) }, Punct { char: ',', spacing: Alone, span: bytes(3601..3602) }, Ident { sym: transform, span: bytes(3603..3612) }, Punct { char: '=', spacing: Alone, span: bytes(3613..3614) }, Punct { char: '|', spacing: Alone, span: bytes(3615..3616) }, Ident { sym: v, span: bytes(3616..3617) }, Punct { char: '|', spacing: Alone, span: bytes(3617..3618) }, Ident { sym: v, span: bytes(3619..3620) }, Punct { char: '.', spacing: Alone, span: bytes(3620..3621) }, Ident { sym: parse, span: bytes(3621..3626) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(3626..3628) }, Punct { char: '.', spacing: Alone, span: bytes(3628..3629) }, Ident { sym: unwrap, span: bytes(3629..3635) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(3635..3637) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(3640..3643) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=Expression_Sub, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Box, span: bytes(3708..3711) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(3712..3722) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(3739..3750) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(3752..3756) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(3757..3761) }, Punct { char: '=', spacing: Alone, span: bytes(3762..3763) }, Literal { lit: "-", span: bytes(3764..3767) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Box, span: bytes(3786..3789) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(3790..3800) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Expression_Mul, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Box, span: bytes(3876..3879) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(3880..3890) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(3907..3918) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(3920..3924) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(3925..3929) }, Punct { char: '=', spacing: Alone, span: bytes(3930..3931) }, Literal { lit: "*", span: bytes(3932..3935) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Box, span: bytes(3954..3957) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(3958..3968) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(4049..4060) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(4062..4066) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(4067..4074) }, Punct { char: '=', spacing: Alone, span: bytes(4075..4076) }, Literal { lit: r"\s", span: bytes(4077..4082) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(4093..4104) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "Expression_Sub_Expression_Sub_1", "Expression_Sub", "Expression_Mul_Expression_Mul_1", "Expression_Mul", "Expression", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=Language, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(9112..9123) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(9125..9129) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(9130..9137) }, Punct { char: '=', spacing: Alone, span: bytes(9138..9139) }, Literal { lit: r"\d+", span: bytes(9140..9146) }, Punct { char: ',', spacing: Alone, span: bytes(9146..9147) }, Ident { sym: transform, span: bytes(9148..9157) }, Punct { char: '=', spacing: Alone, span: bytes(9158..9159) }, Punct { char: '|', spacing: Alone, span: bytes(9160..9161) }, Ident { sym: v, span: bytes(9161..9162) }, Punct { char: '|', spacing: Alone, span: bytes(9162..9163) }, Ident { sym: v, span: bytes(9164..9165) }, Punct { char: '.', spacing: Alone, span: bytes(9165..9166) }, Ident { sym: parse, span: bytes(9166..9171) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(9171..9173) }, Punct { char: '.', spacing: Alone, span: bytes(9173..9174) }, Ident { sym: unwrap, span: bytes(9174..9180) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(9180..9182) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: v, span: bytes(9193..9194) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(9196..9202) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(9203..9206) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(9219..9230) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(9232..9236) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(9237..9241) }, Punct { char: '=', spacing: Alone, span: bytes(9242..9243) }, Literal { lit: "_", span: bytes(9244..9247) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _s, span: bytes(9258..9260) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: t, span: bytes(9274..9275) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(9277..9284) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(9285..9291) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Number, span: bytes(9292..9298) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(9312..9323) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(9325..9329) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(9330..9334) }, Punct { char: '=', spacing: Alone, span: bytes(9335..9336) }, Literal { lit: ".", span: bytes(9337..9340) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _d, span: bytes(9351..9353) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(9355..9361) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Tuple { paren_token: Paren, elems: [] })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Number, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(9429..9440) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(9442..9446) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(9447..9454) }, Punct { char: '=', spacing: Alone, span: bytes(9455..9456) }, Literal { lit: r"\d+", span: bytes(9457..9463) }, Punct { char: ',', spacing: Alone, span: bytes(9463..9464) }, Ident { sym: transform, span: bytes(9465..9474) }, Punct { char: '=', spacing: Alone, span: bytes(9475..9476) }, Punct { char: '|', spacing: Alone, span: bytes(9477..9478) }, Ident { sym: v, span: bytes(9478..9479) }, Punct { char: '|', spacing: Alone, span: bytes(9479..9480) }, Ident { sym: v, span: bytes(9481..9482) }, Punct { char: '.', spacing: Alone, span: bytes(9482..9483) }, Ident { sym: parse, span: bytes(9483..9488) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(9488..9490) }, Punct { char: '.', spacing: Alone, span: bytes(9490..9491) }, Ident { sym: unwrap, span: bytes(9491..9497) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(9497..9499) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: v, span: bytes(9510..9511) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(9513..9516) }, arguments: PathArguments::None }] } } }, Comma] }
-  DEBUG expansion: extras_list = []
-  DEBUG expansion: rules_map keys = ["source_file", "Language_v", "Language__s", "Language__d", "Language", "Number_v", "Number"]
-  DEBUG gen_struct_or_variant: path=NumberList, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(10312..10323) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: repeat, span: bytes(10325..10331) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: non_empty, span: bytes(10332..10341) }, Punct { char: '=', spacing: Alone, span: bytes(10342..10343) }, Ident { sym: true, span: bytes(10344..10348) }] } }, Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(10361..10372) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: delimited, span: bytes(10374..10383) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Punct { char: '#', spacing: Alone, span: bytes(10397..10398) }, Group { delimiter: Bracket, stream: TokenStream [Ident { sym: rust_sitter, span: bytes(10399..10410) }, Punct { char: ':', spacing: Joint, span: bytes(10410..10411) }, Punct { char: ':', spacing: Alone, span: bytes(10411..10412) }, Ident { sym: leaf, span: bytes(10412..10416) }, Group { delimiter: Parenthesis, stream: TokenStream [Ident { sym: text, span: bytes(10417..10421) }, Punct { char: '=', spacing: Alone, span: bytes(10422..10423) }, Literal { lit: ",", span: bytes(10424..10427) }], span: bytes(10416..10428) }], span: bytes(10398..10429) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(10442..10444) }] } }, Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(10466..10477) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(10479..10483) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(10484..10491) }, Punct { char: '=', spacing: Alone, span: bytes(10492..10493) }, Literal { lit: r"\d+", span: bytes(10494..10500) }, Punct { char: ',', spacing: Alone, span: bytes(10500..10501) }, Ident { sym: transform, span: bytes(10502..10511) }, Punct { char: '=', spacing: Alone, span: bytes(10512..10513) }, Punct { char: '|', spacing: Alone, span: bytes(10514..10515) }, Ident { sym: v, span: bytes(10515..10516) }, Punct { char: '|', spacing: Alone, span: bytes(10516..10517) }, Ident { sym: v, span: bytes(10518..10519) }, Punct { char: '.', spacing: Alone, span: bytes(10519..10520) }, Ident { sym: parse, span: bytes(10520..10525) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(10525..10527) }, Punct { char: '.', spacing: Alone, span: bytes(10527..10528) }, Ident { sym: unwrap, span: bytes(10528..10534) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(10534..10536) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: numbers, span: bytes(10547..10554) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(10556..10563) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Vec, span: bytes(10564..10567) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(10568..10575) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(10576..10579) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG: Generating field for Vec contents:
-    path: NumberList_numbers
-    inner_type_vec: "Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(10568..10575) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(10576..10579) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } }"
-    leaf_attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(10466..10477) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(10479..10483) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(10484..10491) }, Punct { char: '=', spacing: Alone, span: bytes(10492..10493) }, Literal { lit: r"\d+", span: bytes(10494..10500) }, Punct { char: ',', spacing: Alone, span: bytes(10500..10501) }, Ident { sym: transform, span: bytes(10502..10511) }, Punct { char: '=', spacing: Alone, span: bytes(10512..10513) }, Punct { char: '|', spacing: Alone, span: bytes(10514..10515) }, Ident { sym: v, span: bytes(10515..10516) }, Punct { char: '|', spacing: Alone, span: bytes(10516..10517) }, Ident { sym: v, span: bytes(10518..10519) }, Punct { char: '.', spacing: Alone, span: bytes(10519..10520) }, Ident { sym: parse, span: bytes(10520..10525) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(10525..10527) }, Punct { char: '.', spacing: Alone, span: bytes(10527..10528) }, Ident { sym: unwrap, span: bytes(10528..10534) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(10534..10536) }] } }]
-    Generated field_json: Object {"type": String("SYMBOL"), "name": String("NumberList_numbers")}
-    field_optional: false
-  DEBUG: Inserting vec_contents rule:
-    key: NumberList_numbers_vec_contents
-    value: {
-    "type": "SEQ",
-    "members": [
-      {
-        "type": "FIELD",
-        "name": "NumberList_numbers_vec_element",
-        "content": {
-          "type": "SYMBOL",
-          "name": "NumberList_numbers"
-        }
-      },
-      {
-        "type": "REPEAT",
-        "content": {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "NumberList_numbers_vec_delimiter"
-            },
-            {
-              "type": "FIELD",
-              "name": "NumberList_numbers_vec_element",
-              "content": {
-                "type": "SYMBOL",
-                "name": "NumberList_numbers"
-              }
-            }
-          ]
-        }
-      }
-    ]
-  }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(10651..10662) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(10664..10668) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(10669..10676) }, Punct { char: '=', spacing: Alone, span: bytes(10677..10678) }, Literal { lit: r"\s", span: bytes(10679..10684) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(10695..10706) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "NumberList_numbers", "NumberList_numbers_vec_delimiter", "NumberList_numbers_vec_contents", "NumberList", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=NumberList, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(10936..10947) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(10949..10953) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(10954..10961) }, Punct { char: '=', spacing: Alone, span: bytes(10962..10963) }, Literal { lit: r"\d+", span: bytes(10964..10970) }, Punct { char: ',', spacing: Alone, span: bytes(10970..10971) }, Ident { sym: transform, span: bytes(10972..10981) }, Punct { char: '=', spacing: Alone, span: bytes(10982..10983) }, Punct { char: '|', spacing: Alone, span: bytes(10984..10985) }, Ident { sym: v, span: bytes(10985..10986) }, Punct { char: '|', spacing: Alone, span: bytes(10986..10987) }, Ident { sym: v, span: bytes(10988..10989) }, Punct { char: '.', spacing: Alone, span: bytes(10989..10990) }, Ident { sym: parse, span: bytes(10990..10995) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(10995..10997) }, Punct { char: '.', spacing: Alone, span: bytes(10997..10998) }, Ident { sym: unwrap, span: bytes(10998..11004) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(11004..11006) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: numbers, span: bytes(11017..11024) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(11026..11033) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Vec, span: bytes(11034..11037) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(11038..11045) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(11046..11049) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG: Generating field for Vec contents:
-    path: NumberList_numbers
-    inner_type_vec: "Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(11038..11045) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(11046..11049) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } }"
-    leaf_attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(10936..10947) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(10949..10953) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(10954..10961) }, Punct { char: '=', spacing: Alone, span: bytes(10962..10963) }, Literal { lit: r"\d+", span: bytes(10964..10970) }, Punct { char: ',', spacing: Alone, span: bytes(10970..10971) }, Ident { sym: transform, span: bytes(10972..10981) }, Punct { char: '=', spacing: Alone, span: bytes(10982..10983) }, Punct { char: '|', spacing: Alone, span: bytes(10984..10985) }, Ident { sym: v, span: bytes(10985..10986) }, Punct { char: '|', spacing: Alone, span: bytes(10986..10987) }, Ident { sym: v, span: bytes(10988..10989) }, Punct { char: '.', spacing: Alone, span: bytes(10989..10990) }, Ident { sym: parse, span: bytes(10990..10995) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(10995..10997) }, Punct { char: '.', spacing: Alone, span: bytes(10997..10998) }, Ident { sym: unwrap, span: bytes(10998..11004) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(11004..11006) }] } }]
-    Generated field_json: Object {"type": String("SYMBOL"), "name": String("NumberList_numbers")}
-    field_optional: false
-  DEBUG: Inserting vec_contents rule:
-    key: NumberList_numbers_vec_contents
-    value: {
-    "type": "REPEAT",
-    "content": {
-      "type": "FIELD",
-      "name": "NumberList_numbers_vec_element",
-      "content": {
+  DEBUG: Generated grammar JSON:
+  {
+    "name": "python_simple",
+    "word": null,
+    "rules": {
+      "source_file": {
         "type": "SYMBOL",
-        "name": "NumberList_numbers"
-      }
-    }
-  }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(11121..11132) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(11134..11138) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(11139..11146) }, Punct { char: '=', spacing: Alone, span: bytes(11147..11148) }, Literal { lit: r"\s", span: bytes(11149..11154) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(11165..11176) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "NumberList_numbers", "NumberList_numbers_vec_contents", "NumberList", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=NumberList, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(11406..11417) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: delimited, span: bytes(11419..11428) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Punct { char: '#', spacing: Alone, span: bytes(11442..11443) }, Group { delimiter: Bracket, stream: TokenStream [Ident { sym: rust_sitter, span: bytes(11444..11455) }, Punct { char: ':', spacing: Joint, span: bytes(11455..11456) }, Punct { char: ':', spacing: Alone, span: bytes(11456..11457) }, Ident { sym: leaf, span: bytes(11457..11461) }, Group { delimiter: Parenthesis, stream: TokenStream [Ident { sym: text, span: bytes(11462..11466) }, Punct { char: '=', spacing: Alone, span: bytes(11467..11468) }, Literal { lit: ",", span: bytes(11469..11472) }], span: bytes(11461..11473) }], span: bytes(11443..11474) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(11487..11489) }] } }, Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(11511..11522) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(11524..11528) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(11529..11536) }, Punct { char: '=', spacing: Alone, span: bytes(11537..11538) }, Literal { lit: r"\d+", span: bytes(11539..11545) }, Punct { char: ',', spacing: Alone, span: bytes(11545..11546) }, Ident { sym: transform, span: bytes(11547..11556) }, Punct { char: '=', spacing: Alone, span: bytes(11557..11558) }, Punct { char: '|', spacing: Alone, span: bytes(11559..11560) }, Ident { sym: v, span: bytes(11560..11561) }, Punct { char: '|', spacing: Alone, span: bytes(11561..11562) }, Ident { sym: v, span: bytes(11563..11564) }, Punct { char: '.', spacing: Alone, span: bytes(11564..11565) }, Ident { sym: parse, span: bytes(11565..11570) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(11570..11572) }, Punct { char: '.', spacing: Alone, span: bytes(11572..11573) }, Ident { sym: unwrap, span: bytes(11573..11579) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(11579..11581) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: numbers, span: bytes(11592..11599) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(11601..11608) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Vec, span: bytes(11609..11612) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(11613..11620) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(11621..11627) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(11628..11631) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(11647..11658) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: skip, span: bytes(11660..11664) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Literal { lit: 123, span: bytes(11665..11668) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: metadata, span: bytes(11679..11687) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: u32, span: bytes(11689..11692) }, arguments: PathArguments::None }] } } }, Comma] }
-  DEBUG: Generating field for Vec contents:
-    path: NumberList_numbers
-    inner_type_vec: "Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(11613..11620) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(11621..11627) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(11628..11631) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } }"
-    leaf_attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(11511..11522) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(11524..11528) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(11529..11536) }, Punct { char: '=', spacing: Alone, span: bytes(11537..11538) }, Literal { lit: r"\d+", span: bytes(11539..11545) }, Punct { char: ',', spacing: Alone, span: bytes(11545..11546) }, Ident { sym: transform, span: bytes(11547..11556) }, Punct { char: '=', spacing: Alone, span: bytes(11557..11558) }, Punct { char: '|', spacing: Alone, span: bytes(11559..11560) }, Ident { sym: v, span: bytes(11560..11561) }, Punct { char: '|', spacing: Alone, span: bytes(11561..11562) }, Ident { sym: v, span: bytes(11563..11564) }, Punct { char: '.', spacing: Alone, span: bytes(11564..11565) }, Ident { sym: parse, span: bytes(11565..11570) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(11570..11572) }, Punct { char: '.', spacing: Alone, span: bytes(11572..11573) }, Ident { sym: unwrap, span: bytes(11573..11579) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(11579..11581) }] } }]
-    Generated field_json: Object {"type": String("SYMBOL"), "name": String("NumberList_numbers")}
-    field_optional: true
-  DEBUG: Inserting vec_contents rule:
-    key: NumberList_numbers_vec_contents
-    value: {
-    "type": "SEQ",
-    "members": [
-      {
+        "name": "Module"
+      },
+      "Module": {
         "type": "CHOICE",
         "members": [
           {
@@ -619,96 +147,108 @@ Caused by:
           },
           {
             "type": "FIELD",
-            "name": "NumberList_numbers_vec_element",
+            "name": "body",
             "content": {
-              "type": "SYMBOL",
-              "name": "NumberList_numbers"
+              "type": "REPEAT",
+              "content": {
+                "type": "FIELD",
+                "name": "Module_body_vec_element",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "Statement"
+                }
+              }
             }
           }
         ]
       },
-      {
-        "type": "REPEAT1",
+      "Statement_Expression": {
+        "type": "FIELD",
+        "name": "Statement_Expression_0",
         "content": {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "NumberList_numbers_vec_delimiter"
-            },
-            {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "BLANK"
-                },
-                {
-                  "type": "FIELD",
-                  "name": "NumberList_numbers_vec_element",
-                  "content": {
-                    "type": "SYMBOL",
-                    "name": "NumberList_numbers"
-                  }
-                }
-              ]
-            }
-          ]
+          "type": "SYMBOL",
+          "name": "ExpressionStatement"
         }
-      }
-    ]
-  }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(11761..11772) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(11774..11778) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(11779..11786) }, Punct { char: '=', spacing: Alone, span: bytes(11787..11788) }, Literal { lit: r"\s", span: bytes(11789..11794) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(11805..11816) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "NumberList_numbers", "NumberList_numbers_vec_delimiter", "NumberList_numbers_vec_contents", "NumberList", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=Words, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(12846..12857) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(12859..12863) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(12864..12868) }, Punct { char: '=', spacing: Alone, span: bytes(12869..12870) }, Literal { lit: r"if", span: bytes(12871..12876) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _keyword, span: bytes(12887..12895) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(12911..12922) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: word, span: bytes(12924..12928) }, arguments: PathArguments::None }] } }, Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(12940..12951) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(12953..12957) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(12958..12965) }, Punct { char: '=', spacing: Alone, span: bytes(12966..12967) }, Literal { lit: r"[a-z_]+", span: bytes(12968..12978) }, Punct { char: ',', spacing: Alone, span: bytes(12978..12979) }, Ident { sym: transform, span: bytes(12980..12989) }, Punct { char: '=', spacing: Alone, span: bytes(12990..12991) }, Punct { char: '|', spacing: Alone, span: bytes(12992..12993) }, Ident { sym: v, span: bytes(12993..12994) }, Punct { char: '|', spacing: Alone, span: bytes(12994..12995) }, Ident { sym: v, span: bytes(12996..12997) }, Punct { char: '.', spacing: Alone, span: bytes(12997..12998) }, Ident { sym: to_string, span: bytes(12998..13007) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(13007..13009) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _word, span: bytes(13020..13025) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: String, span: bytes(13027..13033) }, arguments: PathArguments::None }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(13102..13113) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(13115..13119) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(13120..13127) }, Punct { char: '=', spacing: Alone, span: bytes(13128..13129) }, Literal { lit: r"\s", span: bytes(13130..13135) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(13146..13157) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "Words__keyword", "Words__word", "Words", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=Statement_If, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: IfStatement, span: bytes(13735..13746) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=Statement_Expression, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(13768..13778) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=IfStatement, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(13831..13842) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(13844..13848) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(13849..13853) }, Punct { char: '=', spacing: Alone, span: bytes(13854..13855) }, Literal { lit: "if", span: bytes(13856..13860) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _if, span: bytes(13871..13874) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: condition, span: bytes(13888..13897) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(13899..13909) }, arguments: PathArguments::None }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(13921..13932) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(13934..13938) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(13939..13943) }, Punct { char: '=', spacing: Alone, span: bytes(13944..13945) }, Literal { lit: ":", span: bytes(13946..13949) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _colon, span: bytes(13960..13966) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: body, span: bytes(13980..13984) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Vec, span: bytes(13986..13989) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Statement, span: bytes(13990..13999) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG: Generating field for Vec contents:
-    path: IfStatement_body
-    inner_type_vec: "Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Statement, span: bytes(13990..13999) }, arguments: PathArguments::None }] } }"
-    leaf_attrs: []
-    Generated field_json: Object {"type": String("SYMBOL"), "name": String("Statement")}
-    field_optional: false
-  DEBUG: Inserting vec_contents rule:
-    key: IfStatement_body_vec_contents
-    value: {
-    "type": "REPEAT",
-    "content": {
-      "type": "FIELD",
-      "name": "IfStatement_body_vec_element",
-      "content": {
-        "type": "SYMBOL",
-        "name": "Statement"
-      }
-    }
-  }
-  DEBUG gen_struct_or_variant: path=Expression_Identifier, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Identifier, span: bytes(14058..14068) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=Expression_Number, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(14101..14112) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(14114..14118) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(14119..14126) }, Punct { char: '=', spacing: Alone, span: bytes(14127..14128) }, Literal { lit: r"\d+", span: bytes(14129..14135) }, Punct { char: ',', spacing: Alone, span: bytes(14135..14136) }, Ident { sym: transform, span: bytes(14137..14146) }, Punct { char: '=', spacing: Alone, span: bytes(14147..14148) }, Punct { char: '|', spacing: Alone, span: bytes(14149..14150) }, Ident { sym: v, span: bytes(14150..14151) }, Punct { char: '|', spacing: Alone, span: bytes(14151..14152) }, Ident { sym: v, span: bytes(14153..14154) }, Punct { char: '.', spacing: Alone, span: bytes(14154..14155) }, Ident { sym: parse, span: bytes(14155..14160) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(14160..14162) }, Punct { char: '.', spacing: Alone, span: bytes(14162..14163) }, Ident { sym: unwrap, span: bytes(14163..14169) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(14169..14171) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(14186..14189) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=Identifier, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(14339..14350) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(14352..14356) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(14357..14364) }, Punct { char: '=', spacing: Alone, span: bytes(14365..14366) }, Literal { lit: r"[a-zA-Z_]\w*", span: bytes(14367..14382) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: name, span: bytes(14393..14397) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: String, span: bytes(14399..14405) }, arguments: PathArguments::None }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(14737..14748) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(14750..14754) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(14755..14762) }, Punct { char: '=', spacing: Alone, span: bytes(14763..14764) }, Literal { lit: r"[ \t]+", span: bytes(14765..14774) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _ws, span: bytes(14785..14788) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "Statement_If", "Statement_Expression", "Statement", "IfStatement__if", "IfStatement__colon", "IfStatement_body_vec_contents", "IfStatement", "Expression_Identifier", "Expression", "Identifier_name", "Identifier", "Whitespace__ws", "Whitespace"]
-  DEBUG: Arithmetic grammar JSON:
-  {
-    "name": "arithmetic",
-    "word": null,
-    "rules": {
-      "source_file": {
-        "type": "SYMBOL",
-        "name": "Expression"
       },
-      "Expression_Sub_Expression_Sub_1": {
+      "Statement_Assignment": {
+        "type": "FIELD",
+        "name": "Statement_Assignment_0",
+        "content": {
+          "type": "SYMBOL",
+          "name": "AssignmentStatement"
+        }
+      },
+      "Statement": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "Statement_Expression"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "Statement_Assignment"
+          }
+        ]
+      },
+      "ExpressionStatement": {
+        "type": "FIELD",
+        "name": "expression",
+        "content": {
+          "type": "SYMBOL",
+          "name": "Expression"
+        }
+      },
+      "AssignmentStatement__equals": {
         "type": "STRING",
-        "value": "-"
+        "value": "="
       },
-      "Expression_Sub": {
+      "AssignmentStatement": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "target",
+            "content": {
+              "type": "SYMBOL",
+              "name": "Identifier"
+            }
+          },
+          {
+            "type": "FIELD",
+            "name": "_equals",
+            "content": {
+              "type": "SYMBOL",
+              "name": "AssignmentStatement__equals"
+            }
+          },
+          {
+            "type": "FIELD",
+            "name": "value",
+            "content": {
+              "type": "SYMBOL",
+              "name": "Expression"
+            }
+          }
+        ]
+      },
+      "Expression_Primary": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "FIELD",
+          "name": "Expression_Primary_0",
+          "content": {
+            "type": "SYMBOL",
+            "name": "PrimaryExpression"
+          }
+        }
+      },
+      "Expression_Add_Expression_Add_1": {
+        "type": "STRING",
+        "value": "+"
+      },
+      "Expression_Add": {
         "type": "PREC_LEFT",
         "value": 1,
         "content": {
@@ -716,7 +256,7 @@ Caused by:
           "members": [
             {
               "type": "FIELD",
-              "name": "Expression_Sub_0",
+              "name": "Expression_Add_0",
               "content": {
                 "type": "SYMBOL",
                 "name": "Expression"
@@ -724,15 +264,15 @@ Caused by:
             },
             {
               "type": "FIELD",
-              "name": "Expression_Sub_1",
+              "name": "Expression_Add_1",
               "content": {
                 "type": "SYMBOL",
-                "name": "Expression_Sub_Expression_Sub_1"
+                "name": "Expression_Add_Expression_Add_1"
               }
             },
             {
               "type": "FIELD",
-              "name": "Expression_Sub_2",
+              "name": "Expression_Add_2",
               "content": {
                 "type": "SYMBOL",
                 "name": "Expression"
@@ -741,11 +281,11 @@ Caused by:
           ]
         }
       },
-      "Expression_Mul_Expression_Mul_1": {
+      "Expression_Multiply_Expression_Multiply_1": {
         "type": "STRING",
         "value": "*"
       },
-      "Expression_Mul": {
+      "Expression_Multiply": {
         "type": "PREC_LEFT",
         "value": 2,
         "content": {
@@ -753,7 +293,7 @@ Caused by:
           "members": [
             {
               "type": "FIELD",
-              "name": "Expression_Mul_0",
+              "name": "Expression_Multiply_0",
               "content": {
                 "type": "SYMBOL",
                 "name": "Expression"
@@ -761,15 +301,15 @@ Caused by:
             },
             {
               "type": "FIELD",
-              "name": "Expression_Mul_1",
+              "name": "Expression_Multiply_1",
               "content": {
                 "type": "SYMBOL",
-                "name": "Expression_Mul_Expression_Mul_1"
+                "name": "Expression_Multiply_Expression_Multiply_1"
               }
             },
             {
               "type": "FIELD",
-              "name": "Expression_Mul_2",
+              "name": "Expression_Multiply_2",
               "content": {
                 "type": "SYMBOL",
                 "name": "Expression"
@@ -782,35 +322,119 @@ Caused by:
         "type": "CHOICE",
         "members": [
           {
-            "type": "PATTERN",
-            "value": "\\d+"
+            "type": "PREC",
+            "value": 3,
+            "content": {
+              "type": "SYMBOL",
+              "name": "Expression_Primary"
+            }
           },
           {
-            "type": "SYMBOL",
-            "name": "Expression_Sub"
+            "type": "PREC_LEFT",
+            "value": 1,
+            "content": {
+              "type": "SYMBOL",
+              "name": "Expression_Add"
+            }
           },
           {
-            "type": "SYMBOL",
-            "name": "Expression_Mul"
+            "type": "PREC_LEFT",
+            "value": 2,
+            "content": {
+              "type": "SYMBOL",
+              "name": "Expression_Multiply"
+            }
           }
         ]
+      },
+      "PrimaryExpression_Number": {
+        "type": "FIELD",
+        "name": "PrimaryExpression_Number_0",
+        "content": {
+          "type": "SYMBOL",
+          "name": "NumberLiteral"
+        }
+      },
+      "PrimaryExpression_String": {
+        "type": "FIELD",
+        "name": "PrimaryExpression_String_0",
+        "content": {
+          "type": "SYMBOL",
+          "name": "StringLiteral"
+        }
+      },
+      "PrimaryExpression_Identifier": {
+        "type": "FIELD",
+        "name": "PrimaryExpression_Identifier_0",
+        "content": {
+          "type": "SYMBOL",
+          "name": "Identifier"
+        }
+      },
+      "PrimaryExpression": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "PrimaryExpression_Number"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "PrimaryExpression_String"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "PrimaryExpression_Identifier"
+          }
+        ]
+      },
+      "NumberLiteral_value": {
+        "type": "PATTERN",
+        "value": "\\d+"
+      },
+      "NumberLiteral": {
+        "type": "FIELD",
+        "name": "value",
+        "content": {
+          "type": "SYMBOL",
+          "name": "NumberLiteral_value"
+        }
+      },
+      "StringLiteral_value": {
+        "type": "PATTERN",
+        "value": "\"[^\"]*\"|'[^']*'"
+      },
+      "StringLiteral": {
+        "type": "FIELD",
+        "name": "value",
+        "content": {
+          "type": "SYMBOL",
+          "name": "StringLiteral_value"
+        }
+      },
+      "Identifier_name": {
+        "type": "PATTERN",
+        "value": "[a-zA-Z_][a-zA-Z0-9_]*"
+      },
+      "Identifier": {
+        "type": "FIELD",
+        "name": "name",
+        "content": {
+          "type": "SYMBOL",
+          "name": "Identifier_name"
+        }
       },
       "Whitespace__whitespace": {
         "type": "PATTERN",
         "value": "\\s"
       },
       "Whitespace": {
-        "type": "SEQ",
-        "members": [
-          {
-            "type": "FIELD",
-            "name": "_whitespace",
-            "content": {
-              "type": "SYMBOL",
-              "name": "Whitespace__whitespace"
-            }
-          }
-        ]
+        "type": "FIELD",
+        "name": "_whitespace",
+        "content": {
+          "type": "SYMBOL",
+          "name": "Whitespace__whitespace"
+        }
       }
     },
     "extras": [
@@ -820,523 +444,7 @@ Caused by:
       }
     ]
   }
-  Debug: Collecting symbol 'Expression_Sub' as SymbolId(0)
-  Debug: Collecting symbol 'Whitespace__whitespace' as SymbolId(1)
-  Debug: Collecting symbol 'Whitespace' as SymbolId(2)
-  Debug: Collecting symbol 'Expression' as SymbolId(3)
-  Debug: Collecting symbol 'Expression_Mul' as SymbolId(4)
-  Debug: Collecting symbol 'source_file' as SymbolId(5)
-  Debug: FOUND source_file! Adding to symbol_names and rule_names as SymbolId(5)
-  Debug: Collecting symbol 'Expression_Sub_Expression_Sub_1' as SymbolId(6)
-  Debug: Collecting symbol 'Expression_Mul_Expression_Mul_1' as SymbolId(7)
-  Debug: Converting 8 grammar.js rules
-  Debug: Converting rule 'Expression_Sub' (symbol 0)
-  Debug: Rule body type: Discriminant(13)
-  Debug: rule_to_symbol for Symbol 'Expression'
-  Debug:   Found symbol ID 3
-  Debug:   Symbol 3 is not a pattern, returning NonTerminal
-  Debug: rule_to_symbol for Symbol 'Expression_Sub_Expression_Sub_1'
-  Debug:   Found symbol ID 6
-  Debug:   Symbol 6 is not a pattern, returning NonTerminal
-  Debug: rule_to_symbol for Symbol 'Expression'
-  Debug:   Found symbol ID 3
-  Debug:   Symbol 3 is not a pattern, returning NonTerminal
-  Debug: Adding rule for SymbolId(0) -> [NonTerminal(SymbolId(3)), NonTerminal(SymbolId(6)), NonTerminal(SymbolId(3))]
-  Debug: Converting rule 'Whitespace__whitespace' (symbol 1)
-  Debug: Rule body type: Discriminant(1)
-  Debug: Adding rule for SymbolId(1) -> [Terminal(SymbolId(11))]
-  Debug: Converting rule 'Whitespace' (symbol 2)
-  Debug: Rule body type: Discriminant(4)
-  Debug: rule_to_symbol for Symbol 'Whitespace__whitespace'
-  Debug:   Found symbol ID 1
-  Debug:   Symbol 1 is a pattern, returning Terminal(11)
-  Debug: Adding rule for SymbolId(2) -> [Terminal(SymbolId(11))]
-  Debug: Converting rule 'Expression' (symbol 3)
-  Debug: Rule body type: Discriminant(5)
-  Debug: Converting CHOICE for 3 with 3 members
-  Debug: Converting choice member 0 for 3
-  Debug: Adding rule 3 -> Terminal(SymbolId(12))
-  Debug: Adding rule for SymbolId(3) -> [Terminal(SymbolId(12))]
-  Debug: Converting choice member 1 for 3
-  Debug: rule_to_symbol for Symbol 'Expression_Sub'
-  Debug:   Found symbol ID 0
-  Debug:   Symbol 0 is not a pattern, returning NonTerminal
-  Debug: Adding rule 3 -> NonTerminal(SymbolId(0))
-  Debug: Adding rule for SymbolId(3) -> [NonTerminal(SymbolId(0))]
-  Debug: Converting choice member 2 for 3
-  Debug: rule_to_symbol for Symbol 'Expression_Mul'
-  Debug:   Found symbol ID 4
-  Debug:   Symbol 4 is not a pattern, returning NonTerminal
-  Debug: Adding rule 3 -> NonTerminal(SymbolId(4))
-  Debug: Adding rule for SymbolId(3) -> [NonTerminal(SymbolId(4))]
-  Debug: Converting rule 'Expression_Mul' (symbol 4)
-  Debug: Rule body type: Discriminant(13)
-  Debug: rule_to_symbol for Symbol 'Expression'
-  Debug:   Found symbol ID 3
-  Debug:   Symbol 3 is not a pattern, returning NonTerminal
-  Debug: rule_to_symbol for Symbol 'Expression_Mul_Expression_Mul_1'
-  Debug:   Found symbol ID 7
-  Debug:   Symbol 7 is not a pattern, returning NonTerminal
-  Debug: rule_to_symbol for Symbol 'Expression'
-  Debug:   Found symbol ID 3
-  Debug:   Symbol 3 is not a pattern, returning NonTerminal
-  Debug: Adding rule for SymbolId(4) -> [NonTerminal(SymbolId(3)), NonTerminal(SymbolId(7)), NonTerminal(SymbolId(3))]
-  Debug: Converting rule 'source_file' (symbol 5)
-  Debug: Converting source_file rule!
-  Debug: source_file rule body: Symbol { name: "Expression" }
-  Debug: Rule body type: Discriminant(2)
-  Debug: Converting SYMBOL rule: source_file -> Expression
-  Debug: Found symbol Expression with ID 3
-  Debug: Creating rule SymbolId(5) -> [NonTerminal(SymbolId(3))]
-  Debug: Adding rule for SymbolId(5) -> [NonTerminal(SymbolId(3))]
-  Debug: Converting rule 'Expression_Sub_Expression_Sub_1' (symbol 6)
-  Debug: Rule body type: Discriminant(0)
-  Debug: Adding rule for SymbolId(6) -> [Terminal(SymbolId(13))]
-  Debug: Converting rule 'Expression_Mul_Expression_Mul_1' (symbol 7)
-  Debug: Rule body type: Discriminant(0)
-  Debug: Adding rule for SymbolId(7) -> [Terminal(SymbolId(14))]
-  Debug: After conversion, grammar has 8 IR rules
-  Debug: Checking for symbols without rules...
-    WARNING: Symbol '_IDENTIFIER' (SymbolId(10)) has no rules!
-    WARNING: Symbol '-' (SymbolId(13)) has no rules!
-    WARNING: Symbol '_STRING' (SymbolId(8)) has no rules!
-    WARNING: Symbol '_NUMBER' (SymbolId(9)) has no rules!
-    WARNING: Symbol '_1' (SymbolId(11)) has no rules!
-    WARNING: Symbol '*' (SymbolId(14)) has no rules!
-  DEBUG converter: Processing extras, count = 1
-    Processing extra: Symbol { name: "Whitespace" }
-  DEBUG find_extra_symbol: rule = Symbol { name: "Whitespace" }
-    Looking for symbol 'Whitespace'
-      Found symbol 'Whitespace' with id SymbolId(2)
-      Symbol is a rule with 1 alternatives
-      Rule wraps token SymbolId(11), using that for extra
-      Found symbol_id: SymbolId(11)
-  Debug after analysis: source_file is SymbolId(5), has_rules=true, rule_count=1
-  Debug after remove_unused_symbols: source_file is SymbolId(5), has_rules=true, rule_count=1
-  Debug after inline_simple_rules: source_file is SymbolId(5), has_rules=true, rule_count=1
-  Debug after merge_equivalent_tokens: source_file is SymbolId(5), has_rules=true, rule_count=1
-  Debug after optimize_left_recursion: source_file is SymbolId(5), has_rules=true, rule_count=1
-  Debug after eliminate_unit_rules: source_file is SymbolId(5), has_rules=false, rule_count=0
-  DEBUG renumber_symbols: Assigning new IDs
-    Tokens: [SymbolId(14), SymbolId(13), SymbolId(12), SymbolId(11)]
-    Non-terminals: [SymbolId(3), SymbolId(4), SymbolId(0)]
-    Externals: []
-    Token SymbolId(14) -> SymbolId(1)
-    Token SymbolId(13) -> SymbolId(2)
-    Token SymbolId(12) -> SymbolId(3)
-    Token SymbolId(11) -> SymbolId(4)
-    Non-terminal SymbolId(3) -> SymbolId(5)
-    Non-terminal SymbolId(4) -> SymbolId(6)
-    Non-terminal SymbolId(0) -> SymbolId(7)
-  DEBUG renumber_symbols: Updating extras
-    Old extras: [SymbolId(11)]
-    Extra SymbolId(11) -> SymbolId(4)
-    New extras: [SymbolId(4)]
-  Debug after renumber_symbols: source_file not found!
-  DEBUG: Added augmented start rule: 65535 -> 5
-  Debug: Found 1 augmented start rules
-  Debug: Added augmented start item: rule_id=65535, position=0, lookahead=0
-  Debug: Computing closure for item set with 1 initial items
-  Debug: Closure complete after 3 iterations. Final size: 5 items
-  Debug: Initial set after closure has 5 items
-  Debug:   Item: rule_id=3, position=0, lookahead=0
-  Debug:   Item: rule_id=3, position=0, lookahead=2
-  Debug:   Item: rule_id=8, position=0, lookahead=0
-  Debug:   Item: rule_id=8, position=0, lookahead=2
-  Debug:   Item: rule_id=65535, position=0, lookahead=0
 
-  === State 0 ===
-    [3] SymbolId(5) ->  • Terminal(SymbolId(3))  , lookahead=0
-    [3] SymbolId(5) ->  • Terminal(SymbolId(3))  , lookahead=2
-    [8] SymbolId(5) ->  • NonTerminal(SymbolId(5)) Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  , lookahead=0
-    [8] SymbolId(5) ->  • NonTerminal(SymbolId(5)) Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  , lookahead=2
-    [65535] SymbolId(65535) ->  • NonTerminal(SymbolId(5))  , lookahead=0
-    Shiftable symbols: 2 total
-  Debug: Computing closure for item set with 2 initial items
-  Debug: Closure complete after 1 iterations. Final size: 2 items
-  DEBUG: Added goto(0, 3) = 1
-  Debug: Computing closure for item set with 3 initial items
-  Debug: Closure complete after 1 iterations. Final size: 3 items
-  DEBUG: Added goto(0, 5) = 2
-
-  === State 1 ===
-    [3] SymbolId(5) -> Terminal(SymbolId(3))  •  , lookahead=0
-    [3] SymbolId(5) -> Terminal(SymbolId(3))  •  , lookahead=2
-    Shiftable symbols: 0 total
-
-  === State 2 ===
-    [8] SymbolId(5) -> NonTerminal(SymbolId(5))  • Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  , lookahead=0
-    [8] SymbolId(5) -> NonTerminal(SymbolId(5))  • Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  , lookahead=2
-    [65535] SymbolId(65535) -> NonTerminal(SymbolId(5))  •  , lookahead=0
-    Shiftable symbols: 1 total
-  Debug: Computing closure for item set with 2 initial items
-  Debug: Closure complete after 2 iterations. Final size: 6 items
-  DEBUG: Added goto(2, 2) = 3
-
-  === State 3 ===
-    [3] SymbolId(5) ->  • Terminal(SymbolId(3))  , lookahead=0
-    [3] SymbolId(5) ->  • Terminal(SymbolId(3))  , lookahead=2
-    [8] SymbolId(5) ->  • NonTerminal(SymbolId(5)) Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  , lookahead=0
-    [8] SymbolId(5) ->  • NonTerminal(SymbolId(5)) Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  , lookahead=2
-    [8] SymbolId(5) -> NonTerminal(SymbolId(5)) Terminal(SymbolId(2))  • NonTerminal(SymbolId(5))  , lookahead=0
-    [8] SymbolId(5) -> NonTerminal(SymbolId(5)) Terminal(SymbolId(2))  • NonTerminal(SymbolId(5))  , lookahead=2
-    Shiftable symbols: 2 total
-  Debug: Computing closure for item set with 2 initial items
-  Debug: Closure complete after 1 iterations. Final size: 2 items
-  DEBUG: Added goto(3, 3) = 1
-  Debug: Computing closure for item set with 4 initial items
-  Debug: Closure complete after 1 iterations. Final size: 4 items
-  DEBUG: Added goto(3, 5) = 4
-
-  === State 4 ===
-    [8] SymbolId(5) -> NonTerminal(SymbolId(5))  • Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  , lookahead=0
-    [8] SymbolId(5) -> NonTerminal(SymbolId(5))  • Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  , lookahead=2
-    [8] SymbolId(5) -> NonTerminal(SymbolId(5)) Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  •  , lookahead=0
-    [8] SymbolId(5) -> NonTerminal(SymbolId(5)) Terminal(SymbolId(2)) NonTerminal(SymbolId(5))  •  , lookahead=2
-    Shiftable symbols: 1 total
-  Debug: Computing closure for item set with 2 initial items
-  Debug: Closure complete after 2 iterations. Final size: 6 items
-  DEBUG: Added goto(4, 2) = 3
-  DEBUG: Collection goto table has 6 entries
-    goto(0, 3) = 1
-    goto(0, 5) = 2
-    goto(2, 2) = 3
-    goto(3, 3) = 1
-    goto(3, 5) = 4
-    goto(4, 2) = 3
-  DEBUG: Adding action for state 0 symbol 3 (id=3) -> goto state 1
-  DEBUG: Adding action for state 0 symbol 3 (id=3) -> goto state 1
-  DEBUG: Adding action for state 0 symbol 5 (id=5) -> goto state 2
-  DEBUG: Adding action for state 0 symbol 5 (id=5) -> goto state 2
-  DEBUG: Adding action for state 0 symbol 5 (id=5) -> goto state 2
-  DEBUG: State 1 - Adding reduce action for lookahead 0 (symbol 0) -> reduce by rule 3
-  DEBUG: State 1 - Adding reduce action for lookahead 2 (symbol 2) -> reduce by rule 3
-  DEBUG: Adding action for state 2 symbol 2 (id=2) -> goto state 3
-  DEBUG: Adding action for state 2 symbol 2 (id=2) -> goto state 3
-  DEBUG: State 2 - Adding ACCEPT action for EOF
-  DEBUG: Adding action for state 3 symbol 3 (id=3) -> goto state 1
-  DEBUG: Adding action for state 3 symbol 3 (id=3) -> goto state 1
-  DEBUG: Adding action for state 3 symbol 5 (id=5) -> goto state 4
-  DEBUG: Adding action for state 3 symbol 5 (id=5) -> goto state 4
-  DEBUG: Adding action for state 3 symbol 5 (id=5) -> goto state 4
-  DEBUG: Adding action for state 3 symbol 5 (id=5) -> goto state 4
-  DEBUG: Adding action for state 4 symbol 2 (id=2) -> goto state 3
-  DEBUG: Adding action for state 4 symbol 2 (id=2) -> goto state 3
-  DEBUG: State 4 - Adding reduce action for lookahead 0 (symbol 0) -> reduce by rule 8
-  DEBUG: State 4 - Adding reduce action for lookahead 2 (symbol 2) -> reduce by rule 8
-  DEBUG: Precedence resolution at state 4 symbol 2: prefer reduce
-  DEBUG: Adding goto as shift: state 0 symbol 3 (id=3) -> state 1
-  DEBUG: Skipping goto - action already exists at [0, 3]: Shift(StateId(1))
-  DEBUG: Adding goto as shift: state 0 symbol 5 (id=5) -> state 2
-  DEBUG: Skipping goto - action already exists at [0, 5]: Shift(StateId(2))
-  DEBUG: Adding goto as shift: state 2 symbol 2 (id=2) -> state 3
-  DEBUG: Skipping goto - action already exists at [2, 2]: Shift(StateId(3))
-  DEBUG: Adding goto as shift: state 3 symbol 3 (id=3) -> state 1
-  DEBUG: Skipping goto - action already exists at [3, 3]: Shift(StateId(1))
-  DEBUG: Adding goto as shift: state 3 symbol 5 (id=5) -> state 4
-  DEBUG: Skipping goto - action already exists at [3, 5]: Shift(StateId(4))
-  DEBUG: Adding goto as shift: state 4 symbol 2 (id=2) -> state 3
-  DEBUG: Skipping goto - action already exists at [4, 2]: Reduce(RuleId(8))
-  DEBUG: Start symbol is SymbolId(5)
-  DEBUG compress: symbol_to_index has 8 entries
-  DEBUG compress: index_to_symbol mapping:
-    Index 0 -> Symbol 0
-    Index 1 -> Symbol 1
-    Index 2 -> Symbol 2
-    Index 3 -> Symbol 3
-    Index 4 -> Symbol 4
-    Index 5 -> Symbol 5
-    Index 6 -> Symbol 6
-    Index 7 -> Symbol 7
-  DEBUG compress: State 0 actions:
-    Default action: Error
-    Index 3 (symbol 3) -> action Shift(StateId(1))
-    Index 5 (symbol 5) -> action Shift(StateId(2))
-
-  DEBUG generate_symbol_metadata: Starting metadata generation
-    grammar.extras = [SymbolId(4)]
-    All tokens in grammar:
-      Token SymbolId(4): name='_1', pattern=Regex("\\s")
-      Token SymbolId(3): name='/\d+/', pattern=Regex("\\d+")
-      Token SymbolId(2): name='-', pattern=String("-")
-      Token SymbolId(1): name='*', pattern=String("*")
-  DEBUG find_extra_tokens: grammar.extras = [SymbolId(4)]
-    Extra symbol SymbolId(4) is directly a token!
-    Processing extra symbol: SymbolId(4)
-      Found terminal: SymbolId(4)
-  DEBUG find_extra_tokens: result = {SymbolId(4)}
-    extra_tokens found = {SymbolId(4)}
-    Looking for whitespace token (should be symbol 4):
-      Found whitespace-like token: SymbolId(4) -> _1
-    Generating metadata in parse table order:
-    symbol_to_index mapping: {SymbolId(0): 0, SymbolId(1): 1, SymbolId(2): 2, SymbolId(3): 3, SymbolId(4): 4, SymbolId(5): 5, SymbolId(6): 6, SymbolId(7): 7}
-      Index 0: EOF, metadata=0x1
-      Index 1: Token * (id=SymbolId(1)): visible=true, named=false, hidden=false, metadata=0x1
-      Index 2: Token - (id=SymbolId(2)): visible=true, named=false, hidden=false, metadata=0x1
-      Index 3: Token /\d+/ (id=SymbolId(3)): visible=true, named=true, hidden=false, metadata=0x3
-      WHITESPACE TOKEN FOUND: _1 (id=SymbolId(4))
-        Pattern: Regex("\\s")
-        Was in extra_tokens: true
-      Index 4: Token _1 (id=SymbolId(4)): visible=false, named=false, hidden=true, metadata=0x4
-      Index 5: Non-terminal Expression (id=SymbolId(5)): visible=true, named=true, supertype=false, metadata=0x3
-      Index 6: Non-terminal Expression_Mul (id=SymbolId(6)): visible=true, named=true, supertype=false, metadata=0x3
-      Index 7: Non-terminal Expression_Sub (id=SymbolId(7)): visible=true, named=true, supertype=false, metadata=0x3
-  Debug: NodeTypesGenerator - grammar has 3 rules
-  Debug: Adding rule name 'Expression_Sub' for symbol 7
-  Debug: Adding rule name 'Expression' for symbol 5
-  Debug: Adding rule name 'Expression_Mul' for symbol 6
-  Debug: Processing 3 rules for node types
-  Debug: Processing symbol 7 with 1 rules
-  Debug: Processing symbol 5 with 3 rules
-  Debug: Processing symbol 6 with 1 rules
-  Debug: Collecting symbol 'Language' as SymbolId(0)
-  Debug: Collecting symbol 'Number_v' as SymbolId(1)
-  Debug: Collecting symbol 'Language__s' as SymbolId(2)
-  Debug: Collecting symbol 'Language_v' as SymbolId(3)
-  Debug: Collecting symbol 'source_file' as SymbolId(4)
-  Debug: FOUND source_file! Adding to symbol_names and rule_names as SymbolId(4)
-  Debug: Collecting symbol 'Language__d' as SymbolId(5)
-  Debug: Collecting symbol 'Number' as SymbolId(6)
-  Debug: Converting 7 grammar.js rules
-  Debug: Converting rule 'Language' (symbol 0)
-  Debug: Rule body type: Discriminant(4)
-  Debug: rule_to_symbol for Symbol 'Language__s'
-  Debug:   Found symbol ID 2
-  Debug:   Symbol 2 is not a pattern, returning NonTerminal
-  Debug: Adding rule for SymbolId(0) -> [NonTerminal(SymbolId(2))]
-  Debug: Converting rule 'Number_v' (symbol 1)
-  Debug: Rule body type: Discriminant(1)
-  Debug: Adding rule for SymbolId(1) -> [Terminal(SymbolId(10))]
-  Debug: Converting rule 'Language__s' (symbol 2)
-  Debug: Rule body type: Discriminant(0)
-  Debug: Adding rule for SymbolId(2) -> [Terminal(SymbolId(11))]
-  Debug: Converting rule 'Language_v' (symbol 3)
-  Debug: Rule body type: Discriminant(1)
-  Debug: Adding rule for SymbolId(3) -> [Terminal(SymbolId(12))]
-  Debug: Converting rule 'source_file' (symbol 4)
-  Debug: Converting source_file rule!
-  Debug: source_file rule body: Symbol { name: "Language" }
-  Debug: Rule body type: Discriminant(2)
-  Debug: Converting SYMBOL rule: source_file -> Language
-  Debug: Found symbol Language with ID 0
-  Debug: Creating rule SymbolId(4) -> [NonTerminal(SymbolId(0))]
-  Debug: Adding rule for SymbolId(4) -> [NonTerminal(SymbolId(0))]
-  Debug: Converting rule 'Language__d' (symbol 5)
-  Debug: Rule body type: Discriminant(0)
-  Debug: Adding rule for SymbolId(5) -> [Terminal(SymbolId(13))]
-  Debug: Converting rule 'Number' (symbol 6)
-  Debug: Rule body type: Discriminant(4)
-  Debug: rule_to_symbol for Symbol 'Number_v'
-  Debug:   Found symbol ID 1
-  Debug:   Symbol 1 is a pattern, returning Terminal(10)
-  Debug: Adding rule for SymbolId(6) -> [Terminal(SymbolId(10))]
-  Debug: After conversion, grammar has 7 IR rules
-  Debug: Checking for symbols without rules...
-    WARNING: Symbol '_NUMBER' (SymbolId(8)) has no rules!
-    WARNING: Symbol '_IDENTIFIER' (SymbolId(9)) has no rules!
-    WARNING: Symbol '_1' (SymbolId(10)) has no rules!
-    WARNING: Symbol '_' (SymbolId(11)) has no rules!
-    WARNING: Symbol '.' (SymbolId(13)) has no rules!
-    WARNING: Symbol '_STRING' (SymbolId(7)) has no rules!
-    WARNING: Symbol '_3' (SymbolId(12)) has no rules!
-  DEBUG converter: Processing extras, count = 0
-  Debug after analysis: source_file is SymbolId(4), has_rules=true, rule_count=1
-  Debug after remove_unused_symbols: source_file is SymbolId(4), has_rules=true, rule_count=1
-  Debug after inline_simple_rules: source_file is SymbolId(4), has_rules=true, rule_count=1
-  Debug after merge_equivalent_tokens: source_file is SymbolId(4), has_rules=true, rule_count=1
-  Debug after optimize_left_recursion: source_file is SymbolId(4), has_rules=true, rule_count=1
-  Debug after eliminate_unit_rules: source_file is SymbolId(4), has_rules=false, rule_count=0
-  DEBUG renumber_symbols: Assigning new IDs
-    Tokens: [SymbolId(13), SymbolId(11), SymbolId(10)]
-    Non-terminals: []
-    Externals: []
-    Token SymbolId(13) -> SymbolId(1)
-    Token SymbolId(11) -> SymbolId(2)
-    Token SymbolId(10) -> SymbolId(3)
-  DEBUG renumber_symbols: Updating extras
-    Old extras: []
-    New extras: []
-  Debug after renumber_symbols: source_file not found!
-  Failed to build pure-Rust parser: Failed to build LR(1) automaton
-  Falling back to C parser generation
-  DEBUG gen_struct_or_variant: path=Expression_Number, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(27368..27379) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(27381..27385) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(27386..27393) }, Punct { char: '=', spacing: Alone, span: bytes(27394..27395) }, Literal { lit: r"\d+", span: bytes(27396..27402) }, Punct { char: ',', spacing: Alone, span: bytes(27402..27403) }, Ident { sym: transform, span: bytes(27404..27413) }, Punct { char: '=', spacing: Alone, span: bytes(27414..27415) }, Punct { char: '|', spacing: Alone, span: bytes(27416..27417) }, Ident { sym: v, span: bytes(27417..27418) }, Punct { char: '|', spacing: Alone, span: bytes(27418..27419) }, Ident { sym: v, span: bytes(27420..27421) }, Punct { char: '.', spacing: Alone, span: bytes(27421..27422) }, Ident { sym: parse, span: bytes(27422..27427) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(27427..27429) }, Punct { char: '.', spacing: Alone, span: bytes(27429..27430) }, Ident { sym: unwrap, span: bytes(27430..27436) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(27436..27438) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(27441..27444) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=Expression_Sub, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Box, span: bytes(27509..27512) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(27513..27523) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(27540..27551) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(27553..27557) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(27558..27562) }, Punct { char: '=', spacing: Alone, span: bytes(27563..27564) }, Literal { lit: "-", span: bytes(27565..27568) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Box, span: bytes(27587..27590) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(27591..27601) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Expression_Mul, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Box, span: bytes(27677..27680) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(27681..27691) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(27708..27719) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(27721..27725) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(27726..27730) }, Punct { char: '=', spacing: Alone, span: bytes(27731..27732) }, Literal { lit: "*", span: bytes(27733..27736) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Box, span: bytes(27755..27758) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(27759..27769) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(27850..27861) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(27863..27867) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(27868..27875) }, Punct { char: '=', spacing: Alone, span: bytes(27876..27877) }, Literal { lit: r"\s", span: bytes(27878..27883) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(27894..27905) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "Expression_Sub_Expression_Sub_1", "Expression_Sub", "Expression_Mul_Expression_Mul_1", "Expression_Mul", "Expression", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=Language, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(32913..32924) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(32926..32930) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(32931..32938) }, Punct { char: '=', spacing: Alone, span: bytes(32939..32940) }, Literal { lit: r"\d+", span: bytes(32941..32947) }, Punct { char: ',', spacing: Alone, span: bytes(32947..32948) }, Ident { sym: transform, span: bytes(32949..32958) }, Punct { char: '=', spacing: Alone, span: bytes(32959..32960) }, Punct { char: '|', spacing: Alone, span: bytes(32961..32962) }, Ident { sym: v, span: bytes(32962..32963) }, Punct { char: '|', spacing: Alone, span: bytes(32963..32964) }, Ident { sym: v, span: bytes(32965..32966) }, Punct { char: '.', spacing: Alone, span: bytes(32966..32967) }, Ident { sym: parse, span: bytes(32967..32972) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(32972..32974) }, Punct { char: '.', spacing: Alone, span: bytes(32974..32975) }, Ident { sym: unwrap, span: bytes(32975..32981) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(32981..32983) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: v, span: bytes(32994..32995) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(32997..33003) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(33004..33007) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(33020..33031) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(33033..33037) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(33038..33042) }, Punct { char: '=', spacing: Alone, span: bytes(33043..33044) }, Literal { lit: "_", span: bytes(33045..33048) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _s, span: bytes(33059..33061) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: t, span: bytes(33075..33076) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(33078..33085) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(33086..33092) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Number, span: bytes(33093..33099) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(33113..33124) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(33126..33130) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(33131..33135) }, Punct { char: '=', spacing: Alone, span: bytes(33136..33137) }, Literal { lit: ".", span: bytes(33138..33141) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _d, span: bytes(33152..33154) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(33156..33162) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Tuple { paren_token: Paren, elems: [] })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Number, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(33230..33241) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(33243..33247) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(33248..33255) }, Punct { char: '=', spacing: Alone, span: bytes(33256..33257) }, Literal { lit: r"\d+", span: bytes(33258..33264) }, Punct { char: ',', spacing: Alone, span: bytes(33264..33265) }, Ident { sym: transform, span: bytes(33266..33275) }, Punct { char: '=', spacing: Alone, span: bytes(33276..33277) }, Punct { char: '|', spacing: Alone, span: bytes(33278..33279) }, Ident { sym: v, span: bytes(33279..33280) }, Punct { char: '|', spacing: Alone, span: bytes(33280..33281) }, Ident { sym: v, span: bytes(33282..33283) }, Punct { char: '.', spacing: Alone, span: bytes(33283..33284) }, Ident { sym: parse, span: bytes(33284..33289) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(33289..33291) }, Punct { char: '.', spacing: Alone, span: bytes(33291..33292) }, Ident { sym: unwrap, span: bytes(33292..33298) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(33298..33300) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: v, span: bytes(33311..33312) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(33314..33317) }, arguments: PathArguments::None }] } } }, Comma] }
-  DEBUG expansion: extras_list = []
-  DEBUG expansion: rules_map keys = ["source_file", "Language_v", "Language__s", "Language__d", "Language", "Number_v", "Number"]
-  DEBUG gen_struct_or_variant: path=NumberList, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(34113..34124) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: repeat, span: bytes(34126..34132) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: non_empty, span: bytes(34133..34142) }, Punct { char: '=', spacing: Alone, span: bytes(34143..34144) }, Ident { sym: true, span: bytes(34145..34149) }] } }, Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(34162..34173) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: delimited, span: bytes(34175..34184) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Punct { char: '#', spacing: Alone, span: bytes(34198..34199) }, Group { delimiter: Bracket, stream: TokenStream [Ident { sym: rust_sitter, span: bytes(34200..34211) }, Punct { char: ':', spacing: Joint, span: bytes(34211..34212) }, Punct { char: ':', spacing: Alone, span: bytes(34212..34213) }, Ident { sym: leaf, span: bytes(34213..34217) }, Group { delimiter: Parenthesis, stream: TokenStream [Ident { sym: text, span: bytes(34218..34222) }, Punct { char: '=', spacing: Alone, span: bytes(34223..34224) }, Literal { lit: ",", span: bytes(34225..34228) }], span: bytes(34217..34229) }], span: bytes(34199..34230) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(34243..34245) }] } }, Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(34267..34278) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(34280..34284) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(34285..34292) }, Punct { char: '=', spacing: Alone, span: bytes(34293..34294) }, Literal { lit: r"\d+", span: bytes(34295..34301) }, Punct { char: ',', spacing: Alone, span: bytes(34301..34302) }, Ident { sym: transform, span: bytes(34303..34312) }, Punct { char: '=', spacing: Alone, span: bytes(34313..34314) }, Punct { char: '|', spacing: Alone, span: bytes(34315..34316) }, Ident { sym: v, span: bytes(34316..34317) }, Punct { char: '|', spacing: Alone, span: bytes(34317..34318) }, Ident { sym: v, span: bytes(34319..34320) }, Punct { char: '.', spacing: Alone, span: bytes(34320..34321) }, Ident { sym: parse, span: bytes(34321..34326) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(34326..34328) }, Punct { char: '.', spacing: Alone, span: bytes(34328..34329) }, Ident { sym: unwrap, span: bytes(34329..34335) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(34335..34337) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: numbers, span: bytes(34348..34355) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(34357..34364) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Vec, span: bytes(34365..34368) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(34369..34376) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(34377..34380) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG: Generating field for Vec contents:
-    path: NumberList_numbers
-    inner_type_vec: "Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(34369..34376) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(34377..34380) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } }"
-    leaf_attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(34267..34278) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(34280..34284) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(34285..34292) }, Punct { char: '=', spacing: Alone, span: bytes(34293..34294) }, Literal { lit: r"\d+", span: bytes(34295..34301) }, Punct { char: ',', spacing: Alone, span: bytes(34301..34302) }, Ident { sym: transform, span: bytes(34303..34312) }, Punct { char: '=', spacing: Alone, span: bytes(34313..34314) }, Punct { char: '|', spacing: Alone, span: bytes(34315..34316) }, Ident { sym: v, span: bytes(34316..34317) }, Punct { char: '|', spacing: Alone, span: bytes(34317..34318) }, Ident { sym: v, span: bytes(34319..34320) }, Punct { char: '.', spacing: Alone, span: bytes(34320..34321) }, Ident { sym: parse, span: bytes(34321..34326) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(34326..34328) }, Punct { char: '.', spacing: Alone, span: bytes(34328..34329) }, Ident { sym: unwrap, span: bytes(34329..34335) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(34335..34337) }] } }]
-    Generated field_json: Object {"type": String("SYMBOL"), "name": String("NumberList_numbers")}
-    field_optional: false
-  DEBUG: Inserting vec_contents rule:
-    key: NumberList_numbers_vec_contents
-    value: {
-    "type": "SEQ",
-    "members": [
-      {
-        "type": "FIELD",
-        "name": "NumberList_numbers_vec_element",
-        "content": {
-          "type": "SYMBOL",
-          "name": "NumberList_numbers"
-        }
-      },
-      {
-        "type": "REPEAT",
-        "content": {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "NumberList_numbers_vec_delimiter"
-            },
-            {
-              "type": "FIELD",
-              "name": "NumberList_numbers_vec_element",
-              "content": {
-                "type": "SYMBOL",
-                "name": "NumberList_numbers"
-              }
-            }
-          ]
-        }
-      }
-    ]
-  }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(34452..34463) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(34465..34469) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(34470..34477) }, Punct { char: '=', spacing: Alone, span: bytes(34478..34479) }, Literal { lit: r"\s", span: bytes(34480..34485) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(34496..34507) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "NumberList_numbers", "NumberList_numbers_vec_delimiter", "NumberList_numbers_vec_contents", "NumberList", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=NumberList, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(34737..34748) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(34750..34754) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(34755..34762) }, Punct { char: '=', spacing: Alone, span: bytes(34763..34764) }, Literal { lit: r"\d+", span: bytes(34765..34771) }, Punct { char: ',', spacing: Alone, span: bytes(34771..34772) }, Ident { sym: transform, span: bytes(34773..34782) }, Punct { char: '=', spacing: Alone, span: bytes(34783..34784) }, Punct { char: '|', spacing: Alone, span: bytes(34785..34786) }, Ident { sym: v, span: bytes(34786..34787) }, Punct { char: '|', spacing: Alone, span: bytes(34787..34788) }, Ident { sym: v, span: bytes(34789..34790) }, Punct { char: '.', spacing: Alone, span: bytes(34790..34791) }, Ident { sym: parse, span: bytes(34791..34796) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(34796..34798) }, Punct { char: '.', spacing: Alone, span: bytes(34798..34799) }, Ident { sym: unwrap, span: bytes(34799..34805) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(34805..34807) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: numbers, span: bytes(34818..34825) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(34827..34834) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Vec, span: bytes(34835..34838) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(34839..34846) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(34847..34850) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG: Generating field for Vec contents:
-    path: NumberList_numbers
-    inner_type_vec: "Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(34839..34846) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(34847..34850) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } }"
-    leaf_attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(34737..34748) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(34750..34754) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(34755..34762) }, Punct { char: '=', spacing: Alone, span: bytes(34763..34764) }, Literal { lit: r"\d+", span: bytes(34765..34771) }, Punct { char: ',', spacing: Alone, span: bytes(34771..34772) }, Ident { sym: transform, span: bytes(34773..34782) }, Punct { char: '=', spacing: Alone, span: bytes(34783..34784) }, Punct { char: '|', spacing: Alone, span: bytes(34785..34786) }, Ident { sym: v, span: bytes(34786..34787) }, Punct { char: '|', spacing: Alone, span: bytes(34787..34788) }, Ident { sym: v, span: bytes(34789..34790) }, Punct { char: '.', spacing: Alone, span: bytes(34790..34791) }, Ident { sym: parse, span: bytes(34791..34796) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(34796..34798) }, Punct { char: '.', spacing: Alone, span: bytes(34798..34799) }, Ident { sym: unwrap, span: bytes(34799..34805) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(34805..34807) }] } }]
-    Generated field_json: Object {"type": String("SYMBOL"), "name": String("NumberList_numbers")}
-    field_optional: false
-  DEBUG: Inserting vec_contents rule:
-    key: NumberList_numbers_vec_contents
-    value: {
-    "type": "REPEAT",
-    "content": {
-      "type": "FIELD",
-      "name": "NumberList_numbers_vec_element",
-      "content": {
-        "type": "SYMBOL",
-        "name": "NumberList_numbers"
-      }
-    }
-  }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(34922..34933) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(34935..34939) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(34940..34947) }, Punct { char: '=', spacing: Alone, span: bytes(34948..34949) }, Literal { lit: r"\s", span: bytes(34950..34955) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(34966..34977) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "NumberList_numbers", "NumberList_numbers_vec_contents", "NumberList", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=NumberList, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(35207..35218) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: delimited, span: bytes(35220..35229) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Punct { char: '#', spacing: Alone, span: bytes(35243..35244) }, Group { delimiter: Bracket, stream: TokenStream [Ident { sym: rust_sitter, span: bytes(35245..35256) }, Punct { char: ':', spacing: Joint, span: bytes(35256..35257) }, Punct { char: ':', spacing: Alone, span: bytes(35257..35258) }, Ident { sym: leaf, span: bytes(35258..35262) }, Group { delimiter: Parenthesis, stream: TokenStream [Ident { sym: text, span: bytes(35263..35267) }, Punct { char: '=', spacing: Alone, span: bytes(35268..35269) }, Literal { lit: ",", span: bytes(35270..35273) }], span: bytes(35262..35274) }], span: bytes(35244..35275) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(35288..35290) }] } }, Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(35312..35323) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(35325..35329) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(35330..35337) }, Punct { char: '=', spacing: Alone, span: bytes(35338..35339) }, Literal { lit: r"\d+", span: bytes(35340..35346) }, Punct { char: ',', spacing: Alone, span: bytes(35346..35347) }, Ident { sym: transform, span: bytes(35348..35357) }, Punct { char: '=', spacing: Alone, span: bytes(35358..35359) }, Punct { char: '|', spacing: Alone, span: bytes(35360..35361) }, Ident { sym: v, span: bytes(35361..35362) }, Punct { char: '|', spacing: Alone, span: bytes(35362..35363) }, Ident { sym: v, span: bytes(35364..35365) }, Punct { char: '.', spacing: Alone, span: bytes(35365..35366) }, Ident { sym: parse, span: bytes(35366..35371) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(35371..35373) }, Punct { char: '.', spacing: Alone, span: bytes(35373..35374) }, Ident { sym: unwrap, span: bytes(35374..35380) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(35380..35382) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: numbers, span: bytes(35393..35400) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(35402..35409) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Vec, span: bytes(35410..35413) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(35414..35421) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(35422..35428) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(35429..35432) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(35448..35459) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: skip, span: bytes(35461..35465) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Literal { lit: 123, span: bytes(35466..35469) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: metadata, span: bytes(35480..35488) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: u32, span: bytes(35490..35493) }, arguments: PathArguments::None }] } } }, Comma] }
-  DEBUG: Generating field for Vec contents:
-    path: NumberList_numbers
-    inner_type_vec: "Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Spanned, span: bytes(35414..35421) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Option, span: bytes(35422..35428) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(35429..35432) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } })], gt_token: Gt } }] } }"
-    leaf_attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(35312..35323) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(35325..35329) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(35330..35337) }, Punct { char: '=', spacing: Alone, span: bytes(35338..35339) }, Literal { lit: r"\d+", span: bytes(35340..35346) }, Punct { char: ',', spacing: Alone, span: bytes(35346..35347) }, Ident { sym: transform, span: bytes(35348..35357) }, Punct { char: '=', spacing: Alone, span: bytes(35358..35359) }, Punct { char: '|', spacing: Alone, span: bytes(35360..35361) }, Ident { sym: v, span: bytes(35361..35362) }, Punct { char: '|', spacing: Alone, span: bytes(35362..35363) }, Ident { sym: v, span: bytes(35364..35365) }, Punct { char: '.', spacing: Alone, span: bytes(35365..35366) }, Ident { sym: parse, span: bytes(35366..35371) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(35371..35373) }, Punct { char: '.', spacing: Alone, span: bytes(35373..35374) }, Ident { sym: unwrap, span: bytes(35374..35380) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(35380..35382) }] } }]
-    Generated field_json: Object {"type": String("SYMBOL"), "name": String("NumberList_numbers")}
-    field_optional: true
-  DEBUG: Inserting vec_contents rule:
-    key: NumberList_numbers_vec_contents
-    value: {
-    "type": "SEQ",
-    "members": [
-      {
-        "type": "CHOICE",
-        "members": [
-          {
-            "type": "BLANK"
-          },
-          {
-            "type": "FIELD",
-            "name": "NumberList_numbers_vec_element",
-            "content": {
-              "type": "SYMBOL",
-              "name": "NumberList_numbers"
-            }
-          }
-        ]
-      },
-      {
-        "type": "REPEAT1",
-        "content": {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "NumberList_numbers_vec_delimiter"
-            },
-            {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "BLANK"
-                },
-                {
-                  "type": "FIELD",
-                  "name": "NumberList_numbers_vec_element",
-                  "content": {
-                    "type": "SYMBOL",
-                    "name": "NumberList_numbers"
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      }
-    ]
-  }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(35562..35573) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(35575..35579) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(35580..35587) }, Punct { char: '=', spacing: Alone, span: bytes(35588..35589) }, Literal { lit: r"\s", span: bytes(35590..35595) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(35606..35617) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "NumberList_numbers", "NumberList_numbers_vec_delimiter", "NumberList_numbers_vec_contents", "NumberList", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=Words, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(36647..36658) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(36660..36664) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(36665..36669) }, Punct { char: '=', spacing: Alone, span: bytes(36670..36671) }, Literal { lit: r"if", span: bytes(36672..36677) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _keyword, span: bytes(36688..36696) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(36712..36723) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: word, span: bytes(36725..36729) }, arguments: PathArguments::None }] } }, Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(36741..36752) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(36754..36758) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(36759..36766) }, Punct { char: '=', spacing: Alone, span: bytes(36767..36768) }, Literal { lit: r"[a-z_]+", span: bytes(36769..36779) }, Punct { char: ',', spacing: Alone, span: bytes(36779..36780) }, Ident { sym: transform, span: bytes(36781..36790) }, Punct { char: '=', spacing: Alone, span: bytes(36791..36792) }, Punct { char: '|', spacing: Alone, span: bytes(36793..36794) }, Ident { sym: v, span: bytes(36794..36795) }, Punct { char: '|', spacing: Alone, span: bytes(36795..36796) }, Ident { sym: v, span: bytes(36797..36798) }, Punct { char: '.', spacing: Alone, span: bytes(36798..36799) }, Ident { sym: to_string, span: bytes(36799..36808) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(36808..36810) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _word, span: bytes(36821..36826) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: String, span: bytes(36828..36834) }, arguments: PathArguments::None }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(36903..36914) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(36916..36920) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(36921..36928) }, Punct { char: '=', spacing: Alone, span: bytes(36929..36930) }, Literal { lit: r"\s", span: bytes(36931..36936) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _whitespace, span: bytes(36947..36958) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "Words__keyword", "Words__word", "Words", "Whitespace__whitespace", "Whitespace"]
-  DEBUG gen_struct_or_variant: path=Statement_If, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: IfStatement, span: bytes(37536..37547) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=Statement_Expression, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(37569..37579) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=IfStatement, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(37632..37643) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(37645..37649) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(37650..37654) }, Punct { char: '=', spacing: Alone, span: bytes(37655..37656) }, Literal { lit: "if", span: bytes(37657..37661) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _if, span: bytes(37672..37675) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: condition, span: bytes(37689..37698) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Expression, span: bytes(37700..37710) }, arguments: PathArguments::None }] } } }, Comma, Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(37722..37733) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(37735..37739) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: text, span: bytes(37740..37744) }, Punct { char: '=', spacing: Alone, span: bytes(37745..37746) }, Literal { lit: ":", span: bytes(37747..37750) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _colon, span: bytes(37761..37767) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma, Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: body, span: bytes(37781..37785) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Vec, span: bytes(37787..37790) }, arguments: PathArguments::AngleBracketed { colon2_token: None, lt_token: Lt, args: [GenericArgument::Type(Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Statement, span: bytes(37791..37800) }, arguments: PathArguments::None }] } })], gt_token: Gt } }] } } }, Comma] }
-  DEBUG: Generating field for Vec contents:
-    path: IfStatement_body
-    inner_type_vec: "Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Statement, span: bytes(37791..37800) }, arguments: PathArguments::None }] } }"
-    leaf_attrs: []
-    Generated field_json: Object {"type": String("SYMBOL"), "name": String("Statement")}
-    field_optional: false
-  DEBUG: Inserting vec_contents rule:
-    key: IfStatement_body_vec_contents
-    value: {
-    "type": "REPEAT",
-    "content": {
-      "type": "FIELD",
-      "name": "IfStatement_body_vec_element",
-      "content": {
-        "type": "SYMBOL",
-        "name": "Statement"
-      }
-    }
-  }
-  DEBUG gen_struct_or_variant: path=Expression_Identifier, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: Identifier, span: bytes(37859..37869) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=Expression_Number, fields=Fields::Unnamed { paren_token: Paren, unnamed: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(37902..37913) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(37915..37919) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(37920..37927) }, Punct { char: '=', spacing: Alone, span: bytes(37928..37929) }, Literal { lit: r"\d+", span: bytes(37930..37936) }, Punct { char: ',', spacing: Alone, span: bytes(37936..37937) }, Ident { sym: transform, span: bytes(37938..37947) }, Punct { char: '=', spacing: Alone, span: bytes(37948..37949) }, Punct { char: '|', spacing: Alone, span: bytes(37950..37951) }, Ident { sym: v, span: bytes(37951..37952) }, Punct { char: '|', spacing: Alone, span: bytes(37952..37953) }, Ident { sym: v, span: bytes(37954..37955) }, Punct { char: '.', spacing: Alone, span: bytes(37955..37956) }, Ident { sym: parse, span: bytes(37956..37961) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(37961..37963) }, Punct { char: '.', spacing: Alone, span: bytes(37963..37964) }, Ident { sym: unwrap, span: bytes(37964..37970) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: bytes(37970..37972) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: None, colon_token: None, ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: i32, span: bytes(37987..37990) }, arguments: PathArguments::None }] } } }] }
-  DEBUG gen_struct_or_variant: path=Identifier, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(38140..38151) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(38153..38157) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(38158..38165) }, Punct { char: '=', spacing: Alone, span: bytes(38166..38167) }, Literal { lit: r"[a-zA-Z_]\w*", span: bytes(38168..38183) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: name, span: bytes(38194..38198) }), colon_token: Some(Colon), ty: Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: String, span: bytes(38200..38206) }, arguments: PathArguments::None }] } } }, Comma] }
-  DEBUG gen_struct_or_variant: path=Whitespace, fields=Fields::Named { brace_token: Brace, named: [Field { attrs: [Attribute { pound_token: Pound, style: AttrStyle::Outer, bracket_token: Bracket, meta: Meta::List { path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { sym: rust_sitter, span: bytes(38538..38549) }, arguments: PathArguments::None }, PathSep, PathSegment { ident: Ident { sym: leaf, span: bytes(38551..38555) }, arguments: PathArguments::None }] }, delimiter: MacroDelimiter::Paren(Paren), tokens: TokenStream [Ident { sym: pattern, span: bytes(38556..38563) }, Punct { char: '=', spacing: Alone, span: bytes(38564..38565) }, Literal { lit: r"[ \t]+", span: bytes(38566..38575) }] } }], vis: Visibility::Inherited, mutability: FieldMutability::None, ident: Some(Ident { sym: _ws, span: bytes(38586..38589) }), colon_token: Some(Colon), ty: Type::Tuple { paren_token: Paren, elems: [] } }, Comma] }
-  DEBUG expansion: Found rust_sitter::extra on symbol 'Whitespace'
-  DEBUG expansion: extras_list = [Object {"type": String("SYMBOL"), "name": String("Whitespace")}]
-  DEBUG expansion: rules_map keys = ["source_file", "Statement_If", "Statement_Expression", "Statement", "IfStatement__if", "IfStatement__colon", "IfStatement_body_vec_contents", "IfStatement", "Expression_Identifier", "Expression", "Identifier_name", "Identifier", "Whitespace__ws", "Whitespace"]
-
-  thread 'main' panicked at tool/src/lib.rs:87:91:
-  called `Result::unwrap()` on an `Err` value: Prepare(FlattenGrammar(EmptyString("NumberList_numbers_vec_contents")))
+  thread 'main' panicked at tool/src/lib.rs:93:91:
+  called `Result::unwrap()` on an `Err` value: Prepare(FlattenGrammar(EmptyString("Module")))
   note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

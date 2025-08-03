@@ -241,17 +241,18 @@ fn gen_field(
             })
         };
 
+        // Always create the wrapper rule to avoid issues with Tree-sitter
         let contents_ident = format!("{path}_vec_contents");
         out.insert(contents_ident.clone(), vec_contents);
-
-        // For Vec fields, we don't make them optional at the field level
-        // The REPEAT/REPEAT1 handles whether the vec can be empty
+        
+        // REPEAT already handles empty sequences, so we don't mark it as optional
+        // even when non_empty = false
         (
             json!({
                 "type": "SYMBOL",
                 "name": contents_ident,
             }),
-            false,
+            false  // Never make Vec fields optional - REPEAT handles empty case
         )
     } else {
         // is_option

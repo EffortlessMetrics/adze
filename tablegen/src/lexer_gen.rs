@@ -18,11 +18,57 @@ pub fn generate_lexer(
     let mut regex_patterns = Vec::new();
     let mut identifier_pattern = None;
     
-    for (id, token) in &grammar.tokens {
+    // Track which patterns we've already seen to avoid duplicates
+    let mut seen_string_patterns = std::collections::HashSet::new();
+    let mut seen_regex_patterns = std::collections::HashSet::new();
+    
+    // Write debug info to a file
+    use std::io::Write;
+    if let Ok(mut file) = std::fs::File::create("/tmp/lexer_gen_debug.txt") {
+        writeln!(file, "DEBUG generate_lexer: Processing tokens with symbol_to_index mapping").ok();
+        writeln!(file, "  symbol_to_index = {:?}", symbol_to_index).ok();
+        
+        for (id, token) in &grammar.tokens {
+            writeln!(file, "  Processing token: id={:?}, name={}, pattern={:?}", id, token.name, token.pattern).ok();
+            if let Some(&idx) = symbol_to_index.get(id) {
+                writeln!(file, "    -> mapped to index {}", idx).ok();
+            } else {
+                writeln!(file, "    -> WARNING: No mapping found!").ok();
+            }
+        }
+    }
+    
+    eprintln!("DEBUG generate_lexer: Processing tokens with symbol_to_index mapping");
+    eprintln!("  symbol_to_index = {:?}", symbol_to_index);
+    
+    // Sort tokens by name to process primary tokens (with meaningful names) first
+    let mut sorted_tokens: Vec<_> = grammar.tokens.iter().collect();
+    sorted_tokens.sort_by_key(|(_, token)| {
+        // Prioritize tokens with meaningful names (starting with _ followed by letters)
+        // over those with numeric names (like _10, _17, etc.)
+        if token.name.starts_with('_') && token.name[1..].chars().all(|c| c.is_ascii_digit()) {
+            // Numeric tokens get lower priority
+            (1, token.name.clone())
+        } else {
+            // Named tokens get higher priority
+            (0, token.name.clone())
+        }
+    });
+    
+    for (id, token) in sorted_tokens {
+        eprintln!("  Processing token: id={:?}, name={}, pattern={:?}", id, token.name, token.pattern);
         if let Some(&idx) = symbol_to_index.get(id) {
+            eprintln!("    -> mapped to index {}", idx);
             let symbol_index = idx as u16;
             match &token.pattern {
                 TokenPattern::String(s) => {
+                    // Skip if we've already seen this exact string pattern
+                    if seen_string_patterns.contains(s) {
+                        eprintln!("    -> SKIPPING: Duplicate string pattern");
+                        continue;
+                    }
+                    seen_string_patterns.insert(s.clone());
+                    
                     // Check if it's a keyword (all alphabetic characters)
                     if s.chars().all(|c| c.is_ascii_alphabetic() || c == '_') && s.len() > 1 {
                         keywords.push((symbol_index, s.clone()));
@@ -31,6 +77,13 @@ pub fn generate_lexer(
                     }
                 }
                 TokenPattern::Regex(pattern) => {
+                    // Skip if we've already seen this regex pattern
+                    if seen_regex_patterns.contains(pattern) {
+                        eprintln!("    -> SKIPPING: Duplicate regex pattern");
+                        continue;
+                    }
+                    seen_regex_patterns.insert(pattern.clone());
+                    
                     if pattern == r"[a-zA-Z_][a-zA-Z0-9_]*" {
                         identifier_pattern = Some(symbol_index);
                     } else {
@@ -38,6 +91,8 @@ pub fn generate_lexer(
                     }
                 }
             }
+        } else {
+            eprintln!("    -> WARNING: No mapping found!");
         }
     }
     
@@ -88,6 +143,14 @@ pub fn generate_lexer(
         }
     }
     
+    // Sort regex patterns by complexity/specificity (more specific patterns first)
+    regex_patterns.sort_by(|a, b| {
+        // Prioritize patterns with more complexity
+        let a_complexity = a.1.len() + a.1.matches(|c: char| "?+*()[]{}^$.|\\-".contains(c)).count() * 10;
+        let b_complexity = b.1.len() + b.1.matches(|c: char| "?+*()[]{}^$.|\\-".contains(c)).count() * 10;
+        b_complexity.cmp(&a_complexity) // Reverse order - more complex first
+    });
+    
     // Third: Add regex patterns (except identifier)
     for (symbol_index, pattern) in regex_patterns {
         if pattern == r"\d+" {
@@ -115,8 +178,35 @@ pub fn generate_lexer(
                     return true;
                 }
             });
+        } else if pattern == r"-?\d+(\.\d+)?" {
+            // Number with optional negative sign and optional decimal
+            token_matches.push(quote! {
+                let mut offset = 0;
+                // Check for optional negative sign
+                if position + offset < input.len() && input[position + offset] == b'-' {
+                    offset += 1;
+                }
+                // Must have at least one digit after optional minus
+                if position + offset < input.len() && input[position + offset].is_ascii_digit() {
+                    offset += 1;
+                    // Match remaining digits
+                    while position + offset < input.len() && input[position + offset].is_ascii_digit() {
+                        offset += 1;
+                    }
+                    // Check for optional decimal part
+                    if position + offset + 1 < input.len() && input[position + offset] == b'.' && input[position + offset + 1].is_ascii_digit() {
+                        offset += 2; // Skip '.' and first decimal digit
+                        while position + offset < input.len() && input[position + offset].is_ascii_digit() {
+                            offset += 1;
+                        }
+                    }
+                    state.result_symbol = #symbol_index;
+                    state.result_length = offset;
+                    return true;
+                }
+            });
         } else if pattern == r"\d+(\.\d+)?" {
-            // Number with optional decimal
+            // Number with optional decimal (no negative)
             token_matches.push(quote! {
                 if input[position].is_ascii_digit() {
                     let mut len = 1;

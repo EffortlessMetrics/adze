@@ -71,12 +71,19 @@ pub mod grammar {
 
 pub use grammar::*;
 
-#[cfg(test)]
-mod debug_test;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn print_tree(node: &rust_sitter::pure_parser::ParsedNode, source: &[u8], indent: usize) {
+        let text = std::str::from_utf8(&source[node.start_byte..node.end_byte]).unwrap_or("<invalid>");
+        eprintln!("{:indent$}Node: symbol={} kind='{}' range={}..{} text='{}'",
+            "", node.symbol, node.kind(), node.start_byte, node.end_byte, text, indent = indent);
+        for child in &node.children {
+            print_tree(child, source, indent + 2);
+        }
+    }
 
     #[test]
     fn test_primary_expression() {
@@ -102,6 +109,24 @@ mod tests {
         
         // Test parsing "42" as a PrimaryExpression
         let input = "42";
+        
+        // Parse with debug output
+        use rust_sitter::pure_parser::Parser;
+        let mut parser = Parser::new();
+        parser.set_language(lang).unwrap();
+        let parse_result = parser.parse_bytes(input.as_bytes());
+        
+        eprintln!("\n=== Parse result ===");
+        eprintln!("Has root: {}", parse_result.root.is_some());
+        eprintln!("Errors: {:?}", parse_result.errors);
+        
+        if let Some(tree) = &parse_result.root {
+            eprintln!("\n=== Parse tree ===");
+            print_tree(tree, input.as_bytes(), 0);
+        } else {
+            eprintln!("\n=== Parse failed ===");
+        }
+        
         let result = parse(input);
         assert!(result.is_ok(), "Failed to parse '42'");
         
@@ -219,3 +244,5 @@ mod tests {
         assert!(result.is_ok(), "Failed to parse assignment");
     }
 }
+
+

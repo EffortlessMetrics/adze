@@ -239,6 +239,7 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
     ) -> Vec<U> {
         node.map(|node| {
             let mut out = vec![];
+            
             // For pure-rust, iterate through children directly
             for child in &node.children {
                 // TODO: Check field names when available
