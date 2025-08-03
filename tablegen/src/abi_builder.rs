@@ -411,6 +411,10 @@ impl<'a> AbiLanguageBuilder<'a> {
                     table_data.push(quote! { #encoded });
                 }
             }
+            
+            // TODO: Also encode goto table entries
+            // Tree-sitter combines both action and goto entries in the parse table
+            // The goto entries should be added here as well
 
             // Add row offsets to map
             // Note: row_offsets are in terms of entries, but the parse table
@@ -557,10 +561,11 @@ impl<'a> AbiLanguageBuilder<'a> {
                             state_idx, prod_id.0
                         );
                         // Emit default reduce entry with high bit set in symbol
-                        // The symbol field contains the production ID with high bit set
-                        let symbol_with_high_bit = 0x8000u16 | prod_id.0;
-                        table_data.push(quote! { #symbol_with_high_bit });
-                        table_data.push(quote! { 0u16 }); // action value (unused for default reduce)
+                        // The symbol field is 0x8000 to indicate default reduce
+                        // The action value contains the 1-based production ID with high bit set
+                        table_data.push(quote! { 0x8000u16 });
+                        let reduce_action = 0x8000u16 | (prod_id.0 + 1);
+                        table_data.push(quote! { #reduce_action });
                         current_offset += 2;
                         continue; // Skip to next state
                     }
@@ -597,9 +602,11 @@ impl<'a> AbiLanguageBuilder<'a> {
                             state_idx, prod_id.0
                         );
                         // Emit default reduce entry with high bit set in symbol
-                        let symbol_with_high_bit = 0x8000u16 | prod_id.0;
-                        table_data.push(quote! { #symbol_with_high_bit });
-                        table_data.push(quote! { 0u16 }); // action value (unused for default reduce)
+                        // The symbol field is 0x8000 to indicate default reduce
+                        // The action value contains the 1-based production ID with high bit set
+                        table_data.push(quote! { 0x8000u16 });
+                        let reduce_action = 0x8000u16 | (prod_id.0 + 1);
+                        table_data.push(quote! { #reduce_action });
                         current_offset += 2;
                     }
                 } else {

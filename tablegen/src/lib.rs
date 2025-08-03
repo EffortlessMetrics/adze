@@ -649,9 +649,9 @@ impl TableCompressor {
                 }
                 // Reduce actions are encoded with high bit set
                 // bit 15: 1 (indicates reduce)
-                // bits 14-1: rule_id
-                // bit 0: has_precedence (0 for now)
-                Ok(0x8000 | (rule.0 << 1))
+                // bits 14-0: rule_id (1-based)
+                // Tree-sitter uses 1-based production IDs
+                Ok(0x8000 | (rule.0 + 1))
             }
             Action::Accept => Ok(0xFFFF),
             Action::Error => Ok(0xFFFE),

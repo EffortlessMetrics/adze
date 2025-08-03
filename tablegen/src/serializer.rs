@@ -165,7 +165,8 @@ fn generate_parse_table_data(compressed: Option<&CompressedTables>) -> (Vec<u16>
             match &entry.action {
                 rust_sitter_glr_core::Action::Shift(state) => table_data.push(state.0),
                 rust_sitter_glr_core::Action::Reduce(rule) => {
-                    table_data.push(0x8000 | (rule.0 << 1))
+                    // Tree-sitter uses 1-based production IDs
+                    table_data.push(0x8000 | (rule.0 + 1))
                 }
                 rust_sitter_glr_core::Action::Accept => table_data.push(0xFFFF),
                 rust_sitter_glr_core::Action::Error => table_data.push(0xFFFE),

@@ -70,7 +70,8 @@ pub fn build_parser_from_grammar_js(
     // Grammar converted successfully
 
     // Optimize the grammar
-    grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
+    // TODO: Re-enable optimization after fixing unit rule elimination
+    // grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
 
     // Grammar optimized successfully
 
@@ -125,7 +126,8 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
     // Grammar converted from JSON
 
     // Optimize the grammar
-    grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
+    // TODO: Re-enable optimization after fixing unit rule elimination
+    // grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
 
     // Grammar optimized successfully
 

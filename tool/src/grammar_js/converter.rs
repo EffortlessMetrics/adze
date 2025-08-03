@@ -576,6 +576,19 @@ impl GrammarJsConverter {
         associativity: Option<Associativity>,
     ) {
         eprintln!("Debug: Adding rule for SymbolId({}) -> {:?}", lhs.0, rhs);
+        
+        // Check if an identical rule already exists
+        let duplicate_exists = grammar.rules.get(&lhs).map_or(false, |existing_rules| {
+            existing_rules.iter().any(|r| {
+                r.rhs == rhs && r.precedence == precedence && r.associativity == associativity
+            })
+        });
+        
+        if duplicate_exists {
+            eprintln!("Debug: Skipping duplicate rule for SymbolId({}) -> {:?}", lhs.0, rhs);
+            return;
+        }
+        
         let rule = Rule {
             lhs,
             rhs,
@@ -586,8 +599,12 @@ impl GrammarJsConverter {
         };
         self.next_production_id += 1;
 
-        let rule_id = RuleId(grammar.rules.len().try_into().unwrap());
+        // Calculate rule_id before modifying grammar.rules
+        let total_rules = grammar.rules.values().map(|rules| rules.len()).sum::<usize>();
+        let rule_id = RuleId(total_rules.try_into().unwrap());
         grammar.production_ids.insert(rule_id, rule.production_id);
+        
+        // Now add the rule
         grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
     }
 
