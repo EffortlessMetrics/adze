@@ -22,24 +22,6 @@ pub fn generate_lexer(
     let mut seen_string_patterns = std::collections::HashSet::new();
     let mut seen_regex_patterns = std::collections::HashSet::new();
     
-    // Write debug info to a file
-    use std::io::Write;
-    if let Ok(mut file) = std::fs::File::create("/tmp/lexer_gen_debug.txt") {
-        writeln!(file, "DEBUG generate_lexer: Processing tokens with symbol_to_index mapping").ok();
-        writeln!(file, "  symbol_to_index = {:?}", symbol_to_index).ok();
-        
-        for (id, token) in &grammar.tokens {
-            writeln!(file, "  Processing token: id={:?}, name={}, pattern={:?}", id, token.name, token.pattern).ok();
-            if let Some(&idx) = symbol_to_index.get(id) {
-                writeln!(file, "    -> mapped to index {}", idx).ok();
-            } else {
-                writeln!(file, "    -> WARNING: No mapping found!").ok();
-            }
-        }
-    }
-    
-    eprintln!("DEBUG generate_lexer: Processing tokens with symbol_to_index mapping");
-    eprintln!("  symbol_to_index = {:?}", symbol_to_index);
     
     // Sort tokens by name to process primary tokens (with meaningful names) first
     let mut sorted_tokens: Vec<_> = grammar.tokens.iter().collect();
@@ -56,15 +38,12 @@ pub fn generate_lexer(
     });
     
     for (id, token) in sorted_tokens {
-        eprintln!("  Processing token: id={:?}, name={}, pattern={:?}", id, token.name, token.pattern);
         if let Some(&idx) = symbol_to_index.get(id) {
-            eprintln!("    -> mapped to index {}", idx);
             let symbol_index = idx as u16;
             match &token.pattern {
                 TokenPattern::String(s) => {
                     // Skip if we've already seen this exact string pattern
                     if seen_string_patterns.contains(s) {
-                        eprintln!("    -> SKIPPING: Duplicate string pattern");
                         continue;
                     }
                     seen_string_patterns.insert(s.clone());
@@ -79,7 +58,6 @@ pub fn generate_lexer(
                 TokenPattern::Regex(pattern) => {
                     // Skip if we've already seen this regex pattern
                     if seen_regex_patterns.contains(pattern) {
-                        eprintln!("    -> SKIPPING: Duplicate regex pattern");
                         continue;
                     }
                     seen_regex_patterns.insert(pattern.clone());
@@ -91,8 +69,6 @@ pub fn generate_lexer(
                     }
                 }
             }
-        } else {
-            eprintln!("    -> WARNING: No mapping found!");
         }
     }
     

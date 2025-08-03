@@ -155,6 +155,13 @@ impl FirstFollowSets {
         }
 
         // Compute FOLLOW sets
+        // Initialize FOLLOW(start_symbol) with EOF
+        if let Some(start_symbol) = grammar.start_symbol() {
+            if let Some(follow_set) = follow.get_mut(&start_symbol) {
+                follow_set.insert(0); // EOF symbol
+            }
+        }
+        
         changed = true;
         while changed {
             changed = false;
@@ -172,6 +179,8 @@ impl FirstFollowSets {
                             follow_set.union_with(&first_of_remaining);
                             if follow_set.count_ones(..) > old_len {
                                 changed = true;
+                                eprintln!("DEBUG FOLLOW: Added FIRST of remaining to FOLLOW({:?}): {:?}", 
+                                    id, first_of_remaining.ones().collect::<Vec<_>>());
                             }
                         }
 
@@ -183,6 +192,8 @@ impl FirstFollowSets {
                                     follow_set.union_with(&lhs_follow);
                                     if follow_set.count_ones(..) > old_len {
                                         changed = true;
+                                        eprintln!("DEBUG FOLLOW: Added FOLLOW({:?}) to FOLLOW({:?}): {:?}", 
+                                            rule.lhs, id, lhs_follow.ones().collect::<Vec<_>>());
                                     }
                                 }
                             }
@@ -379,6 +390,10 @@ impl ItemSet {
                                 if !self.items.contains(&new_item) {
                                     self.items.insert(new_item);
                                     added = true;
+                                    if rule.rhs.is_empty() {
+                                        eprintln!("DEBUG closure: Added empty production item for symbol {:?} with lookahead {:?}", 
+                                            symbol_id, lookahead_idx);
+                                    }
                                 }
                             }
                         }

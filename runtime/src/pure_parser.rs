@@ -527,10 +527,13 @@ impl Parser {
 
                 Action::Error => {
                     // Record error and try to recover
+                    let expected_symbols = self.get_expected_symbols(language, current_state);
+                    eprintln!("Parser error at position {} (state {}): expected: {:?}, found: {}", 
+                              position, current_state, expected_symbols, token.symbol);
                     errors.push(ParseError {
                         position,
                         point,
-                        expected: self.get_expected_symbols(language, current_state),
+                        expected: expected_symbols,
                         found: token.symbol,
                     });
 
@@ -1056,6 +1059,20 @@ impl Parser {
             let action = self.get_action(language, state, symbol);
             if !matches!(action, Action::Error) {
                 expected.push(symbol);
+                // Debug: print symbol names for expected symbols
+                if state == 0 {
+                    unsafe {
+                        let symbol_names = std::slice::from_raw_parts(language.symbol_names, language.symbol_count as usize);
+                        if symbol < language.symbol_count as u16 {
+                            let name_ptr = symbol_names[symbol as usize];
+                            if !name_ptr.is_null() {
+                                let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
+                                let name = c_str.to_string_lossy();
+                                eprintln!("  State 0 expects symbol {}: '{}' (action: {:?})", symbol, name, action);
+                            }
+                        }
+                    }
+                }
             }
         }
 
