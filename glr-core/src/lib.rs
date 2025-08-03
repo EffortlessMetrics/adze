@@ -8,7 +8,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod advanced_conflict;
+pub mod conflict_resolution;
 pub mod conflict_visualizer;
+pub mod disambiguation;
+pub mod parse_forest;
 pub mod perf_optimizations;
 pub mod precedence_compare;
 pub mod symbol_comparison;
@@ -17,7 +20,9 @@ pub mod version_info;
 pub use advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
 };
+pub use conflict_resolution::VecWrapperResolver;
 pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
+pub use parse_forest::{ParseForest, ParseTree, ParseError, ForestNode, ParseNode};
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
 pub use precedence_compare::{
     PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,

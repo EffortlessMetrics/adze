@@ -14,6 +14,7 @@ members = [
   "grammars/javascript",
   "grammars/python",
   "grammars/python-simple",
+  "grammars/test-vec-wrapper",
   "grammars/go",
   "lsp-generator",
   "playground",

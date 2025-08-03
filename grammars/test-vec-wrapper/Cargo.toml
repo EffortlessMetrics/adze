@@ -1,0 +1,10 @@
+[package]
+name = "test-vec-wrapper"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rust-sitter = { path = "../../runtime" }
+
+[build-dependencies]
+rust-sitter-tool = { path = "../../tool" }
