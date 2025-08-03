@@ -1280,21 +1280,38 @@ pub fn build_lr1_automaton(
                     // Check if we have a goto entry for this symbol
                     if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id))
                     {
-                        // For terminals, add shift action
-                        // For non-terminals, also add shift action (for goto after reduction)
-                        // In a unified table approach, both shifts and gotos are represented as shifts
-                        eprintln!(
-                            "DEBUG: Adding action for state {} symbol {} (id={}) -> goto state {}",
-                            state_idx, symbol_idx, symbol_id.0, goto_state.0
-                        );
-                        let new_action = Action::Shift(goto_state);
-                        add_action_with_conflict(
-                            &mut action_table,
-                            &mut conflicts_by_state,
-                            state_idx,
-                            symbol_idx,
-                            new_action,
-                        );
+                        // Only add shift actions for terminals to the action table
+                        // Non-terminals will be handled by the goto table
+                        match &next_symbol {
+                            Symbol::Terminal(_) => {
+                                eprintln!(
+                                    "DEBUG: Adding shift action for state {} terminal {} (id={}) -> goto state {}",
+                                    state_idx, symbol_idx, symbol_id.0, goto_state.0
+                                );
+                                let new_action = Action::Shift(goto_state);
+                                add_action_with_conflict(
+                                    &mut action_table,
+                                    &mut conflicts_by_state,
+                                    state_idx,
+                                    symbol_idx,
+                                    new_action,
+                                );
+                            }
+                            Symbol::NonTerminal(_) => {
+                                // Non-terminals go in the goto table, not action table
+                                eprintln!(
+                                    "DEBUG: Setting goto for state {} non-terminal {} (id={}) -> state {}",
+                                    state_idx, symbol_idx, symbol_id.0, goto_state.0
+                                );
+                                goto_table[state_idx][symbol_idx] = goto_state;
+                            }
+                            _ => {
+                                eprintln!(
+                                    "DEBUG: Skipping symbol type {:?} for state {} symbol {}",
+                                    next_symbol, state_idx, symbol_idx
+                                );
+                            }
+                        }
                     } else {
                         eprintln!(
                             "DEBUG: No goto entry found for state {} symbol {} (id={})",
