@@ -487,29 +487,13 @@ impl<'a> AbiLanguageBuilder<'a> {
                             Action::Error
                         }
                     } else {
-                        // Non-terminal symbol - use goto table
-                        // Find the goto table index for this non-terminal
-                        let mut goto_idx = 0;
-                        for i in 0..symbol_idx {
-                            let sid = self.parse_table.symbol_to_index
-                                .iter()
-                                .find(|&(_, &idx)| idx == i)
-                                .map(|(id, _)| *id);
-                            if let Some(sid) = sid {
-                                if !self.grammar.tokens.contains_key(&sid) &&
-                                   !self.grammar.externals.iter().any(|e| e.symbol_id == sid) &&
-                                   sid.0 != 0 {
-                                    goto_idx += 1;
-                                }
-                            }
-                        }
-                        
+                        // Non-terminal symbol - use goto table indexed by symbol_idx
                         if state_idx < self.parse_table.goto_table.len()
-                            && goto_idx < self.parse_table.goto_table[state_idx].len()
+                            && symbol_idx < self.parse_table.goto_table[state_idx].len()
                         {
-                            let goto_state = self.parse_table.goto_table[state_idx][goto_idx];
-                            eprintln!("DEBUG: Non-terminal {} (symbol_idx={}) -> goto_table[{}][{}] = state {}", 
-                                     symbol_id.0, symbol_idx, state_idx, goto_idx, goto_state.0);
+                            let goto_state = self.parse_table.goto_table[state_idx][symbol_idx];
+                            eprintln!("DEBUG: Non-terminal {} -> goto_table[{}][{}] = state {}", 
+                                     symbol_id.0, state_idx, symbol_idx, goto_state.0);
                             if goto_state.0 > 0 {
                                 // Convert goto to a shift action for Tree-sitter compatibility
                                 Action::Shift(goto_state)
@@ -517,8 +501,8 @@ impl<'a> AbiLanguageBuilder<'a> {
                                 Action::Error
                             }
                         } else {
-                            eprintln!("DEBUG: Non-terminal {} (symbol_idx={}) -> goto_table bounds check failed: state_idx={}, goto_idx={}, goto_table.len={}, goto_table[{}].len={}", 
-                                     symbol_id.0, symbol_idx, state_idx, goto_idx, 
+                            eprintln!("DEBUG: Non-terminal {} -> goto_table bounds check failed: state_idx={}, symbol_idx={}, goto_table.len={}, goto_table[{}].len={}", 
+                                     symbol_id.0, state_idx, symbol_idx, 
                                      self.parse_table.goto_table.len(),
                                      state_idx,
                                      if state_idx < self.parse_table.goto_table.len() { self.parse_table.goto_table[state_idx].len() } else { 0 });
@@ -670,8 +654,8 @@ impl<'a> AbiLanguageBuilder<'a> {
         match action {
             Action::Shift(state) => Ok(state.0),
             Action::Reduce(rule) => {
-                // Tree-sitter uses 1-based production IDs in the parse table
-                // So we need to add 1 to the rule ID
+                // Tree-sitter uses 1-based production IDs in reduce actions
+                // The runtime will map through PRODUCTION_ID_MAP to get the actual index
                 Ok(0x8000 | (rule.0 + 1))
             }
             Action::Accept => Ok(0x7FFF), // Use 0x7FFF for accept to match parser
@@ -745,8 +729,8 @@ impl<'a> AbiLanguageBuilder<'a> {
                     symbol_id.0 as usize // Fallback to symbol ID
                 }) as u16;
             
-            eprintln!("DEBUG: Production {} (symbol_id={}) -> parse_table index={}", 
-                     rule.production_id.0, symbol_id.0, symbol);
+            eprintln!("DEBUG: Production {} (lhs={:?}, rhs={:?}) -> parse_table index={}", 
+                     rule.production_id.0, rule.lhs, rule.rhs, symbol);
 
             actions[index] = quote! {
                 TSParseAction {

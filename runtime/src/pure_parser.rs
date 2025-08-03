@@ -822,14 +822,23 @@ impl Parser {
         }
 
         unsafe {
-            // Tree-sitter uses 1-based production IDs in the parse table, but 0-based indexing
-            // in the parse_actions array. So we need to subtract 1.
+            // Tree-sitter uses 1-based production IDs in the parse table
+            // We need to subtract 1 and then use production_id_map
             if production_id == 0 {
                 eprintln!("DEBUG reduce: Invalid production_id=0 (production IDs are 1-based)");
                 return false;
             }
-
-            let production_index = production_id - 1;
+            
+            let zero_based_id = production_id - 1;
+            
+            // Use the production_id_map to get the actual production index
+            let production_index = if zero_based_id < language.production_id_count as u16 {
+                *language.production_id_map.add(zero_based_id as usize)
+            } else {
+                eprintln!("DEBUG reduce: Invalid production_id {} (zero_based={}, >= {})", 
+                         production_id, zero_based_id, language.production_id_count);
+                return false;
+            };
 
             // Look up the parse action for this production
             if production_index >= language.production_id_count as u16 {
@@ -844,25 +853,9 @@ impl Parser {
             let child_count = action.child_count as usize;
             let symbol = action.symbol;
 
-            // Debug: map production IDs to understand the grammar
-            let rule_desc = match production_id {
-                1 => "source_file -> Expression",
-                2 => "Whitespace -> ε",
-                3 => "Number -> /\\d+/",
-                4 => "Expression_Sub1 -> Box<Expr>",
-                5 => "Expression_Sub -> Expr - Expr (prec=1)",
-                6 => "Expression_Sub -> Expr - Expr (variant)",
-                7 => "Expression -> Number",
-                8 => "Expression -> Number (from rule)",
-                9 => "Expression -> Expression_Mul",
-                10 => "Expression_Mul -> Expr * Expr (prec=2)",
-                11 => "Expression -> Expression_Sub",
-                _ => "Unknown production",
-            };
-
             eprintln!(
-                "DEBUG reduce: Production {} ({}) reduces to symbol {} with {} children",
-                production_id, rule_desc, symbol, child_count
+                "DEBUG reduce: Production {} reduces to symbol {} with {} children",
+                production_id, symbol, child_count
             );
 
             // If child_count is 3 but we only have 2 items on stack, something is wrong
