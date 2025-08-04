@@ -1,0 +1,24 @@
+---
+source: example/src/repetitions.rs
+assertion_line: 84
+expression: "grammar2::parse(\"1 2\")"
+---
+Ok(
+    NumberList {
+        numbers: Spanned {
+            value: [
+                Spanned {
+                    value: 2,
+                    span: (
+                        2,
+                        3,
+                    ),
+                },
+            ],
+            span: (
+                2,
+                3,
+            ),
+        },
+    },
+)

@@ -923,11 +923,26 @@ impl<'a> AbiLanguageBuilder<'a> {
             });
         }
         
+        // Generate the inverse mapping array (index to symbol ID)
+        let symbol_count = self.parse_table.symbol_to_index.len();
+        let mut index_to_id_entries = vec![quote! { 0 }; symbol_count];
+        
+        for (symbol_id, &index) in &self.parse_table.symbol_to_index {
+            let symbol_id_val = symbol_id.0 as u16;
+            index_to_id_entries[index] = quote! { #symbol_id_val };
+        }
+        
         quote! {
             // Complete symbol ID to parse table index mapping
             // This is used by the Extract trait to correctly identify symbols
             pub const SYMBOL_ID_TO_INDEX: &[(u32, u16)] = &[
                 #(#symbol_entries),*
+            ];
+            
+            // Inverse mapping: index to symbol ID
+            // This is used by the pure parser to convert indices back to symbol IDs
+            pub const SYMBOL_INDEX_TO_ID: &[u16] = &[
+                #(#index_to_id_entries),*
             ];
             
             // Helper function to get symbol index from symbol ID
@@ -936,6 +951,12 @@ impl<'a> AbiLanguageBuilder<'a> {
                 SYMBOL_ID_TO_INDEX.iter()
                     .find(|(id, _)| *id == symbol_id)
                     .map(|(_, index)| *index)
+            }
+            
+            // Helper function to get symbol ID from symbol index
+            #[allow(dead_code)]
+            pub fn get_symbol_id(symbol_index: u16) -> u16 {
+                SYMBOL_INDEX_TO_ID[symbol_index as usize]
             }
         }
     }
