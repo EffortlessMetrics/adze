@@ -169,9 +169,9 @@ impl Grammar {
         for (symbol_id, name) in rule_entries {
             if !self.tokens.contains_key(symbol_id) {
                 let metadata = SymbolMetadata {
-                    visible: true,
+                    visible: !name.starts_with('_'),
                     named: true,
-                    hidden: false,
+                    hidden: name.starts_with('_'),
                     terminal: false,
                 };
                 registry.register(name, metadata);

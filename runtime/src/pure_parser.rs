@@ -672,6 +672,27 @@ impl Parser {
         }
     }
 
+    /// Check if a symbol is marked as hidden (starts with _)
+    fn is_hidden_symbol(&self, language: &TSLanguage, symbol: TSSymbol) -> bool {
+        unsafe {
+            if symbol < language.symbol_count as u16 {
+                let metadata_ptr = language.symbol_metadata;
+                if metadata_ptr.is_null() {
+                    return false;
+                }
+                
+                let metadata = *metadata_ptr.add(symbol as usize);
+                // Check if HIDDEN flag is set (0x04)
+                let is_hidden = (metadata & 0x04) != 0;
+                // Also check if NOT VISIBLE (0x01 is visible flag)
+                let not_visible = (metadata & 0x01) == 0;
+                is_hidden || not_visible
+            } else {
+                false
+            }
+        }
+    }
+
     /// Check if a symbol is marked as extra (e.g., whitespace)
     fn is_extra_symbol(&self, language: &TSLanguage, symbol: TSSymbol) -> bool {
         unsafe {
@@ -942,18 +963,27 @@ impl Parser {
                 }
             }
 
-            // Create parent node
-            let parent = Subtree {
-                symbol,
-                children,
-                start_byte,
-                end_byte,
-                start_point,
-                end_point,
-                is_extra: false,
-                is_error: false,
-                is_missing: false,
-                production_id,
+            // Check if this symbol is hidden (e.g., _Expression)
+            let is_hidden = self.is_hidden_symbol(language, symbol);
+            
+            // Create parent node or unwrap if hidden
+            let parent = if is_hidden && children.len() == 1 {
+                // Return the child directly, skipping the hidden wrapper
+                children.into_iter().next().unwrap()
+            } else {
+                // Create the parent node normally
+                Subtree {
+                    symbol,
+                    children,
+                    start_byte,
+                    end_byte,
+                    start_point,
+                    end_point,
+                    is_extra: false,
+                    is_error: false,
+                    is_missing: false,
+                    production_id,
+                }
             };
 
             // Check if this is the start symbol (source_file)

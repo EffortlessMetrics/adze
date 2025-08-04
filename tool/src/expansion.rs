@@ -315,11 +315,13 @@ fn gen_struct_or_variant(
                             lit: Lit::Str(s), ..
                         }) = pattern
                         {
-                            // Return a PATTERN rule directly
-                            return Some(json!({
+                            // For single-leaf variants, create a rule with the pattern
+                            // Don't return inline - we want a named rule for proper AST nodes
+                            out.insert(path, json!({
                                 "type": "PATTERN",
                                 "value": s.value(),
                             }));
+                            return None;
                         }
                     } else if let Some(text) = params
                         .iter()
@@ -330,11 +332,13 @@ fn gen_struct_or_variant(
                             lit: Lit::Str(s), ..
                         }) = text
                         {
-                            // Return a STRING rule directly
-                            return Some(json!({
+                            // For single-leaf variants, create a rule with the string
+                            // Don't return inline - we want a named rule for proper AST nodes
+                            out.insert(path, json!({
                                 "type": "STRING",
                                 "value": s.value(),
                             }));
+                            return None;
                         }
                     }
                 }
@@ -598,20 +602,26 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                 e.variants.iter().for_each(|v| {
                     let variant_path = format!("{}_{}", e.ident, v.ident);
 
-                    // Try to inline single-leaf variants
-                    if let Some(inlined_rule) = gen_struct_or_variant(
+                    // Generate the variant rule
+                    let _variant_result = gen_struct_or_variant(
                         variant_path.clone(),
                         v.attrs.clone(),
                         v.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
-                    ) {
-                        // This is a single-leaf variant - use the token directly
-                        members.push(inlined_rule);
-                    } else {
-                        // This is a complex variant - check if it has precedence
-                        let prec_attr = v.attrs
-                            .iter()
+                    );
+                    
+                    
+                    // Always reference the variant by name, even for single-leaf variants
+                    // This ensures we get proper node names in the parse tree
+                    let variant_ref = json!({
+                        "type": "SYMBOL",
+                        "name": variant_path.clone()
+                    });
+                    
+                    // Check if this variant has precedence
+                    let prec_attr = v.attrs
+                        .iter()
                             .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec));
                         let prec_left_attr = v.attrs
                             .iter()
@@ -620,11 +630,6 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                             .iter()
                             .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_right));
                         
-                        let symbol_ref = json!({
-                            "type": "SYMBOL",
-                            "name": variant_path
-                        });
-                        
                         // Apply precedence if specified on the variant
                         let member = if let Some(attr) = prec_attr {
                             if let Ok(Expr::Lit(expr_lit)) = attr.parse_args_with(Expr::parse) {
@@ -632,13 +637,13 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                                     json!({
                                         "type": "PREC",
                                         "value": i.base10_parse::<i32>().unwrap(),
-                                        "content": symbol_ref
+                                        "content": variant_ref.clone()
                                     })
                                 } else {
-                                    symbol_ref
+                                    variant_ref.clone()
                                 }
                             } else {
-                                symbol_ref
+                                variant_ref.clone()
                             }
                         } else if let Some(attr) = prec_left_attr {
                             if let Ok(Expr::Lit(expr_lit)) = attr.parse_args_with(Expr::parse) {
@@ -646,13 +651,13 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                                     json!({
                                         "type": "PREC_LEFT",
                                         "value": i.base10_parse::<i32>().unwrap(),
-                                        "content": symbol_ref
+                                        "content": variant_ref.clone()
                                     })
                                 } else {
-                                    symbol_ref
+                                    variant_ref.clone()
                                 }
                             } else {
-                                symbol_ref
+                                variant_ref.clone()
                             }
                         } else if let Some(attr) = prec_right_attr {
                             if let Ok(Expr::Lit(expr_lit)) = attr.parse_args_with(Expr::parse) {
@@ -660,28 +665,45 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                                     json!({
                                         "type": "PREC_RIGHT",
                                         "value": i.base10_parse::<i32>().unwrap(),
-                                        "content": symbol_ref
+                                        "content": variant_ref.clone()
                                     })
                                 } else {
-                                    symbol_ref
+                                    variant_ref.clone()
                                 }
                             } else {
-                                symbol_ref
+                                variant_ref.clone()
                             }
                         } else {
-                            symbol_ref
+                            variant_ref.clone()
                         };
                         
                         members.push(member);
-                    }
                 });
 
+                // For enums, we want the choice to be transparent in the parse tree.
+                // The variants should appear directly without a wrapper node.
+                // However, we still need the enum name to be referenceable in the grammar.
+                // For now, we'll keep the original behavior but add a TODO for future improvement.
+                
+                
+                // Create a hidden rule for the enum to make it transparent in the parse tree
+                // This follows Tree-sitter convention where rules starting with _ are hidden
+                let hidden_rule_name = format!("_{}", e.ident);
+                
                 let rule = json!({
                     "type": "CHOICE",
                     "members": members
                 });
-
-                rules_map.insert(e.ident.to_string(), rule);
+                
+                // Insert the hidden CHOICE rule
+                rules_map.insert(hidden_rule_name.clone(), rule);
+                
+                // Create a visible rule that references the hidden one
+                // This allows the enum to be referenced in the grammar while keeping it transparent
+                rules_map.insert(e.ident.to_string(), json!({
+                    "type": "SYMBOL",
+                    "name": hidden_rule_name
+                }));
 
                 (e.ident.to_string(), e.attrs.clone())
             }
@@ -769,5 +791,6 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
             .insert("externals".to_string(), json!(externals_list));
     }
 
+    
     grammar
 }
