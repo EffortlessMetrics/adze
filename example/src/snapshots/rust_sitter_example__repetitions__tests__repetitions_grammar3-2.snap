@@ -5,20 +5,10 @@ expression: "grammar3::parse(\"1,\")"
 Ok(
     NumberList {
         numbers: Spanned {
-            value: [
-                Spanned {
-                    value: Some(
-                        1,
-                    ),
-                    span: (
-                        0,
-                        1,
-                    ),
-                },
-            ],
+            value: [],
             span: (
                 0,
-                2,
+                0,
             ),
         },
         metadata: 123,

@@ -5,10 +5,10 @@ expression: "grammar::parse(\"if\")"
 Err(
     [
         ParseError {
-            reason: FailedNode(
-                [],
+            reason: UnexpectedToken(
+                "symbol 0",
             ),
-            start: 0,
+            start: 2,
             end: 2,
         },
     ],
