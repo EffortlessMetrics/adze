@@ -135,8 +135,8 @@ fn create_simple_grammar() -> Grammar {
         fields: Default::default(),
     });
     
-    // Set start symbol by adding initial rule
-    grammar.set_start_symbol(s_sym);
+    // Set start symbol
+    // The grammar uses the first rule as the start rule by convention
     grammar
 }
 

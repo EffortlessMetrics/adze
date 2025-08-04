@@ -493,16 +493,16 @@ impl Parser {
                                     if subtree.symbol == 8 && token.symbol == 0 {
                                         // EOF
                                         // Parse successful!
-                                        eprintln!("DEBUG: Parse accepted! Root subtree:");
-                                        fn print_subtree(subtree: &Subtree, indent: usize) {
-                                            eprintln!("{}symbol={}, children={}, bytes={}..{}", 
-                                                "  ".repeat(indent), subtree.symbol, subtree.children.len(), 
-                                                subtree.start_byte, subtree.end_byte);
-                                            for child in &subtree.children {
-                                                print_subtree(child, indent + 1);
-                                            }
-                                        }
-                                        print_subtree(subtree, 1);
+                                        // eprintln!("DEBUG: Parse accepted! Root subtree:");
+                                        // fn print_subtree(subtree: &Subtree, indent: usize) {
+                                        //     eprintln!("{}symbol={}, children={}, bytes={}..{}", 
+                                        //         "  ".repeat(indent), subtree.symbol, subtree.children.len(), 
+                                        //         subtree.start_byte, subtree.end_byte);
+                                        //     for child in &subtree.children {
+                                        //         print_subtree(child, indent + 1);
+                                        //     }
+                                        // }
+                                        // print_subtree(subtree, 1);
                                         
                                         return ParseResult {
                                             root: Some(subtree_to_node(
@@ -619,21 +619,36 @@ impl Parser {
                 };
 
                 // Debug what character we're looking at
-                if position < lexer.input.len() {
-                    eprintln!(
-                        "DEBUG lex_token: About to lex at position={}, char={:?} ({}), input_len={}",
-                        position, lexer.input[position] as char, lexer.input[position], lexer.input.len()
-                    );
-                }
+                // if position < lexer.input.len() {
+                //     eprintln!(
+                //         "DEBUG lex_token: About to lex at position={}, char={:?} ({}), input_len={}",
+                //         position, lexer.input[position] as char, lexer.input[position], lexer.input.len()
+                //     );
+                // }
 
                 let lex_state_ptr = &mut lex_state as *mut _ as *mut c_void;
                 if lex_fn(lex_state_ptr, lex_mode) {
                     let symbol = lex_state.result_symbol;
                     let is_extra = self.is_extra_symbol(language, symbol);
-                    eprintln!(
-                        "DEBUG lex_token: state={}, lex_mode={}, position={}, lexer returned symbol={}, length={}, is_extra={}",
-                        state, lex_mode.lex_state, position, symbol, lex_state.result_length, is_extra
-                    );
+                    // eprintln!(
+                    //     "DEBUG lex_token: state={}, lex_mode={}, position={}, lexer returned symbol={}, length={}, is_extra={}",
+                    //     state, lex_mode.lex_state, position, symbol, lex_state.result_length, is_extra
+                    // );
+                    
+                    // Additional debug to understand symbol mapping
+                    unsafe {
+                        if symbol < language.symbol_count as u16 {
+                            let symbol_names = std::slice::from_raw_parts(language.symbol_names, language.symbol_count as usize);
+                            let name_ptr = symbol_names[symbol as usize];
+                            if !name_ptr.is_null() {
+                                let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
+                                if let Ok(name) = c_str.to_str() {
+                                    // eprintln!("DEBUG lex_token: symbol {} is '{}'", symbol, name);
+                                }
+                            }
+                        }
+                    }
+                    
                     return Token {
                         symbol,
                         length: lex_state.result_length,

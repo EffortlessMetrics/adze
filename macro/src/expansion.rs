@@ -342,6 +342,13 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
 
+                                // Check if this is an enum wrapper node (e.g., "Expression" wrapping "Expression_Number")
+                                if node.kind() == stringify!(#enum_name) && node.child_count() == 1 {
+                                    // This is a wrapper node, extract from its child
+                                    let child = node.child(0);
+                                    return Self::extract(child, source, _last_idx, _leaf_fn);
+                                }
+
                                 // Tree-sitter wraps enum variants in a parent node
                                 // If this is a wrapper node with a single child, extract from the child
                                 if node.child_count() == 1 {
@@ -359,6 +366,13 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             #[cfg(feature = "pure-rust")]
                             fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
+                                
+                                // Check if this is an enum wrapper node (e.g., "Expression" wrapping "Expression_Number")
+                                if node.kind() == stringify!(#enum_name) && node.children.len() == 1 {
+                                    // This is a wrapper node, extract from its child
+                                    let child_node = &node.children[0];
+                                    return Self::extract(Some(child_node), source, _last_idx, _leaf_fn);
+                                }
                                 
                                 // Check if this node directly matches one of our variants
                                 #(#variant_detection_logic)*

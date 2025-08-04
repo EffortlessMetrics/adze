@@ -601,6 +601,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
                 e.variants.iter().for_each(|v| {
                     let variant_path = format!("{}_{}", e.ident, v.ident);
+                    eprintln!("DEBUG: Processing variant: {}", variant_path);
 
                     // Generate the variant rule
                     let _variant_result = gen_struct_or_variant(
@@ -618,6 +619,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                         "type": "SYMBOL",
                         "name": variant_path.clone()
                     });
+                    eprintln!("DEBUG: Created variant_ref for {}: {:?}", variant_path, variant_ref);
                     
                     // Check if this variant has precedence
                     let prec_attr = v.attrs
@@ -677,6 +679,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                             variant_ref.clone()
                         };
                         
+                        eprintln!("DEBUG: Pushing member to members array: {:?}", member);
                         members.push(member);
                 });
 
@@ -686,13 +689,21 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                 
                 // Create a hidden rule for the enum CHOICE
                 let hidden_rule_name = format!("_{}", e.ident);
+                eprintln!("DEBUG: Creating hidden rule for enum '{}'", e.ident);
+                eprintln!("DEBUG: Final members for CHOICE: {:#?}", members);
+                eprintln!("DEBUG: Creating hidden rule {} with {} members", hidden_rule_name, members.len());
+                for (i, member) in members.iter().enumerate() {
+                    eprintln!("  Member {}: {}", i, member);
+                }
                 let rule = json!({
                     "type": "CHOICE",
                     "members": members
                 });
                 
                 // Insert the hidden CHOICE rule
-                rules_map.insert(hidden_rule_name.clone(), rule);
+                rules_map.insert(hidden_rule_name.clone(), rule.clone());
+                
+                // Debug output removed for cleaner builds
                 
                 // Create a visible rule that references the hidden one
                 // This allows the enum to be referenced in the grammar while keeping it transparent

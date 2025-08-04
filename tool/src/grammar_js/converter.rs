@@ -331,14 +331,37 @@ impl GrammarJsConverter {
                     members.len()
                 );
                 for (i, member) in members.iter().enumerate() {
-                    // Convert each member to a symbol
                     eprintln!("Debug: Converting choice member {} for {}", i, lhs.0);
-                    if let Some(symbol) = self.rule_to_symbol(grammar, member) {
-                        eprintln!("Debug: Adding rule {} -> {:?}", lhs.0, symbol);
-                        // Create a rule: lhs -> symbol
-                        self.add_rule(grammar, lhs, vec![symbol], None, None);
-                    } else {
-                        eprintln!("Debug: Failed to convert choice member {} for {}", i, lhs.0);
+                    
+                    // Handle each member, preserving precedence if present
+                    match member {
+                        JsRule::Prec { value, content } => {
+                            if let Some(symbol) = self.rule_to_symbol(grammar, content) {
+                                eprintln!("Debug: Adding rule {} -> {:?} with precedence {}", lhs.0, symbol, value);
+                                self.add_rule(grammar, lhs, vec![symbol], Some(PrecedenceKind::Static(*value as i16)), None);
+                            }
+                        }
+                        JsRule::PrecLeft { value, content } => {
+                            if let Some(symbol) = self.rule_to_symbol(grammar, content) {
+                                eprintln!("Debug: Adding rule {} -> {:?} with left precedence {}", lhs.0, symbol, value);
+                                self.add_rule(grammar, lhs, vec![symbol], Some(PrecedenceKind::Static(*value as i16)), Some(Associativity::Left));
+                            }
+                        }
+                        JsRule::PrecRight { value, content } => {
+                            if let Some(symbol) = self.rule_to_symbol(grammar, content) {
+                                eprintln!("Debug: Adding rule {} -> {:?} with right precedence {}", lhs.0, symbol, value);
+                                self.add_rule(grammar, lhs, vec![symbol], Some(PrecedenceKind::Static(*value as i16)), Some(Associativity::Right));
+                            }
+                        }
+                        _ => {
+                            // For non-precedence members, convert normally
+                            if let Some(symbol) = self.rule_to_symbol(grammar, member) {
+                                eprintln!("Debug: Adding rule {} -> {:?}", lhs.0, symbol);
+                                self.add_rule(grammar, lhs, vec![symbol], None, None);
+                            } else {
+                                eprintln!("Debug: Failed to convert choice member {} for {}", i, lhs.0);
+                            }
+                        }
                     }
                 }
             }
@@ -624,6 +647,13 @@ impl GrammarJsConverter {
             }
             JsRule::Field { content, .. } => {
                 // For fields, return the symbol of the content
+                self.rule_to_symbol(grammar, content)
+            }
+            JsRule::Prec { content, .. } 
+            | JsRule::PrecLeft { content, .. }
+            | JsRule::PrecRight { content, .. } => {
+                // For precedence rules, return the symbol of the content
+                eprintln!("Debug: rule_to_symbol for precedence rule, unwrapping content");
                 self.rule_to_symbol(grammar, content)
             }
             _ => None, // Other types not yet handled
