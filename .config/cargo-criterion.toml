@@ -1,0 +1,24 @@
+# Configuration for cargo-criterion
+# This ensures consistent benchmark settings across local and CI runs
+
+[plotting]
+# Use plotters backend for better graphs
+backend = "plotters"
+
+[output]
+# Output format for CI integration
+format = "bencher"
+
+[measurement]
+# Increase sample size for more accurate measurements
+sample_size = 100
+
+# Measurement time in seconds
+measurement_time = 5
+
+# Warm-up time in seconds
+warm_up_time = 3
+
+[profiling]
+# Enable profiling hooks
+enabled = true

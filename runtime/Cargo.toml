@@ -62,3 +62,11 @@ harness = false
 [[bench]]
 name = "incremental_parsing"
 harness = false
+
+[[bench]]
+name = "incremental_benchmark"
+harness = false
+
+[[bench]]
+name = "incremental_simple"
+harness = false

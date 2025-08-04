@@ -16,6 +16,9 @@ fn create_test_grammar() -> Arc<Grammar> {
     let s_sym = SymbolId(0);
     let a_sym = SymbolId(1);
     
+    // Add symbol names for start symbol detection
+    grammar.rule_names.insert(s_sym, "source_file".to_string());
+    
     // Add rules
     grammar.add_rule(Rule {
         lhs: s_sym,
@@ -97,16 +100,17 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
         let edit_pos = size / 2;
         let mut edited_tokens = tokens.clone();
         if edit_pos < edited_tokens.len() {
-            edited_tokens[edit_pos].text = "b".to_string();
+            // Remove one token to create a valid edit
+            edited_tokens.remove(edit_pos);
         }
         
         let edit = Edit {
             start_byte: edit_pos * 2, // account for spaces
             old_end_byte: edit_pos * 2 + 1,
-            new_end_byte: edit_pos * 2 + 1,
+            new_end_byte: edit_pos * 2, // Deletion - end is same as start
             start_position: Position { line: 0, column: edit_pos * 2 },
             old_end_position: Position { line: 0, column: edit_pos * 2 + 1 },
-            new_end_position: Position { line: 0, column: edit_pos * 2 + 1 },
+            new_end_position: Position { line: 0, column: edit_pos * 2 }, // Same as start for deletion
         };
         
         group.bench_with_input(
@@ -191,16 +195,17 @@ fn benchmark_edit_location_impact(c: &mut Criterion) {
         
         let mut edited_tokens = tokens.clone();
         if edit_pos < edited_tokens.len() {
-            edited_tokens[edit_pos].text = "b".to_string();
+            // Remove one token to create a valid edit
+            edited_tokens.remove(edit_pos);
         }
         
         let edit = Edit {
             start_byte: edit_pos * 2,
             old_end_byte: edit_pos * 2 + 1,
-            new_end_byte: edit_pos * 2 + 1,
+            new_end_byte: edit_pos * 2, // Deletion
             start_position: Position { line: 0, column: edit_pos * 2 },
             old_end_position: Position { line: 0, column: edit_pos * 2 + 1 },
-            new_end_position: Position { line: 0, column: edit_pos * 2 + 1 },
+            new_end_position: Position { line: 0, column: edit_pos * 2 }, // Deletion
         };
         
         group.bench_with_input(
