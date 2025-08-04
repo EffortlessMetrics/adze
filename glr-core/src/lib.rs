@@ -1320,30 +1320,46 @@ pub fn build_lr1_automaton(
                                 StaticPrecedenceResolver::from_grammar(&augmented_grammar);
                             let reduce_prec = precedence_resolver.rule_precedence(item.rule_id);
                             let lookahead_prec =
-                                precedence_resolver.token_precedence(item.lookahead);
+                                precedence_resolver.token_precedence(lookahead);
 
                             // Check if there's a potential shift action for this lookahead
                             let has_shift = item_set.items.iter().any(|other_item| {
                                 !other_item.is_reduce_item(&augmented_grammar)
                                     && other_item.next_symbol(&augmented_grammar).is_some_and(
                                         |sym| match sym {
-                                            Symbol::Terminal(id) => *id == item.lookahead,
+                                            Symbol::Terminal(id) => *id == lookahead,
                                             _ => false,
                                         },
                                     )
                             });
 
+                            // Debug if no shift action exists
+                            if !has_shift {
+                                eprintln!(
+                                    "DEBUG: State {} - No shift action for lookahead {}, will add reduce",
+                                    state_idx, lookahead.0
+                                );
+                            }
+                            
                             // If there's a shift action and precedence favors shift, don't add reduce
                             if has_shift && lookahead_prec.is_some() && reduce_prec.is_some() {
+                                eprintln!(
+                                    "DEBUG: State {} - Checking precedence for lookahead {} (prec={:?}) vs reduce rule {} (prec={:?})",
+                                    state_idx, lookahead.0, lookahead_prec, item.rule_id.0, reduce_prec
+                                );
                                 match compare_precedences(lookahead_prec, reduce_prec) {
                                     PrecedenceComparison::PreferShift => {
                                         eprintln!(
                                             "DEBUG: State {} - Skipping reduce action for lookahead {} due to precedence",
-                                            state_idx, item.lookahead.0
+                                            state_idx, lookahead.0
                                         );
                                         continue;
                                     }
                                     _ => {
+                                        eprintln!(
+                                            "DEBUG: State {} - Adding reduce action for lookahead {} (precedence allows)",
+                                            state_idx, lookahead.0
+                                        );
                                         // Add the reduce action
                                     }
                                 }
@@ -1427,24 +1443,41 @@ pub fn build_lr1_automaton(
     }
 
     // Resolve conflicts using precedence before converting to Fork actions
-    let precedence_resolver = StaticPrecedenceResolver::from_grammar(grammar);
+    let precedence_resolver = StaticPrecedenceResolver::from_grammar(&augmented_grammar);
+    
+    eprintln!("DEBUG: Resolving {} conflicts", conflicts_by_state.len());
+    use std::fs::File;
+    use std::io::Write;
+    let mut debug_file = File::create("/tmp/rust_sitter_debug.txt").unwrap();
+    writeln!(debug_file, "DEBUG: Resolving {} conflicts", conflicts_by_state.len()).unwrap();
 
     for ((state_idx, symbol_idx), actions) in conflicts_by_state {
         if actions.len() > 1 {
+            eprintln!("DEBUG: Conflict at state {} symbol {} with {} actions", state_idx, symbol_idx, actions.len());
+            writeln!(debug_file, "DEBUG: Conflict at state {} symbol {} with {} actions", state_idx, symbol_idx, actions.len()).unwrap();
             // Try to resolve shift/reduce conflicts using precedence
             let mut shift_action = None;
             let mut reduce_actions = Vec::new();
 
             for action in &actions {
                 match action {
-                    Action::Shift(_) => shift_action = Some(action.clone()),
-                    Action::Reduce(_) => reduce_actions.push(action.clone()),
-                    _ => {}
+                    Action::Shift(_) => {
+                        shift_action = Some(action.clone());
+                        writeln!(debug_file, "  Found shift action").unwrap();
+                    }
+                    Action::Reduce(rule_id) => {
+                        reduce_actions.push(action.clone());
+                        writeln!(debug_file, "  Found reduce action for rule {}", rule_id.0).unwrap();
+                    }
+                    _ => {
+                        writeln!(debug_file, "  Found other action: {:?}", action).unwrap();
+                    }
                 }
             }
 
             // Handle shift/reduce conflicts with precedence
             if let (Some(shift), Some(reduce)) = (shift_action.as_ref(), reduce_actions.first()) {
+                writeln!(debug_file, "  Shift/reduce conflict detected!").unwrap();
                 // Get the symbol that triggers the shift
                 let symbol_id = symbol_to_index
                     .iter()
@@ -1459,6 +1492,20 @@ pub fn build_lr1_automaton(
                 } else {
                     None
                 };
+                
+                eprintln!(
+                    "DEBUG: Conflict resolution - symbol {} (id={}) shift_prec={:?}, reduce rule {} prec={:?}",
+                    symbol_idx, symbol_id.0, shift_prec, 
+                    if let Action::Reduce(rule_id) = reduce { rule_id.0 } else { 0 },
+                    reduce_prec
+                );
+                writeln!(
+                    debug_file,
+                    "DEBUG: Conflict resolution - symbol {} (id={}) shift_prec={:?}, reduce rule {} prec={:?}",
+                    symbol_idx, symbol_id.0, shift_prec, 
+                    if let Action::Reduce(rule_id) = reduce { rule_id.0 } else { 0 },
+                    reduce_prec
+                ).unwrap();
 
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
