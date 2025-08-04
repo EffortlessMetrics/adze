@@ -162,6 +162,7 @@ impl FirstFollowSets {
         // Compute FOLLOW sets
         // Initialize FOLLOW(start_symbol) with EOF
         if let Some(start_symbol) = grammar.start_symbol() {
+            eprintln!("DEBUG FOLLOW: Start symbol is {:?}", start_symbol);
             if let Some(follow_set) = follow.get_mut(&start_symbol) {
                 follow_set.insert(0); // EOF symbol
             }
@@ -172,6 +173,28 @@ impl FirstFollowSets {
             changed = false;
 
             for rule in grammar.all_rules() {
+                // Special handling for rules of the form A -> A B (left recursion)
+                if rule.rhs.len() >= 2 {
+                    if let (Symbol::NonTerminal(first_id), Symbol::NonTerminal(second_id)) = (&rule.rhs[0], &rule.rhs[1]) {
+                        if *first_id == rule.lhs {
+                            // This is a left-recursive rule like Module_body_vec_contents -> Module_body_vec_contents Statement
+                            eprintln!("DEBUG FOLLOW: Found left-recursive rule: {:?} -> {:?} {:?}", rule.lhs, first_id, second_id);
+                            // FIRST(Statement) should be in FOLLOW(Module_body_vec_contents)
+                            if let Some(first_of_second) = first.get(second_id) {
+                                if let Some(follow_set) = follow.get_mut(&rule.lhs) {
+                                    let old_len = follow_set.count_ones(..);
+                                    follow_set.union_with(first_of_second);
+                                    if follow_set.count_ones(..) > old_len {
+                                        changed = true;
+                                        eprintln!("DEBUG FOLLOW: Added FIRST({:?}) to FOLLOW({:?}): {:?}", 
+                                            second_id, rule.lhs, first_of_second.ones().collect::<Vec<_>>());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 for (i, symbol) in rule.rhs.iter().enumerate() {
                     if let Symbol::NonTerminal(id) | Symbol::External(id) = symbol {
                         // Add FIRST of remaining symbols to FOLLOW of current symbol
@@ -1142,10 +1165,30 @@ pub fn build_lr1_automaton(
     let mut external_symbols = Vec::new();
 
     // Collect token IDs
+    eprintln!("DEBUG: Collecting tokens from grammar.tokens:");
     for &symbol_id in grammar.tokens.keys() {
+        eprintln!("  Token: {:?}", symbol_id);
         token_symbols.push(symbol_id);
         max_symbol_id = max_symbol_id.max(symbol_id.0);
     }
+    
+    // Also collect terminals from rule RHS that might not be in grammar.tokens
+    eprintln!("DEBUG: Collecting terminals from rules:");
+    for rule in augmented_grammar.all_rules() {
+        for symbol in &rule.rhs {
+            match symbol {
+                Symbol::Terminal(id) => {
+                    if !token_symbols.contains(id) {
+                        eprintln!("  Found terminal in rules not in tokens: {:?}", id);
+                        token_symbols.push(*id);
+                        max_symbol_id = max_symbol_id.max(id.0);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    
     token_symbols.sort_by_key(|s| s.0);
 
     // Collect non-terminal symbols (LHS of rules)
@@ -1235,8 +1278,39 @@ pub fn build_lr1_automaton(
                         }
                     } else {
                         // Regular reduce action - but check precedence first
-                        if let Some(&lookahead_idx) = symbol_to_index.get(&item.lookahead) {
-                            let new_action = Action::Reduce(item.rule_id);
+                        
+                        // Check if this is an empty production
+                        let rule = augmented_grammar.all_rules()
+                            .find(|r| r.production_id.0 == item.rule_id.0)
+                            .expect("Rule not found");
+                        let is_empty_production = rule.rhs.is_empty();
+                        
+                        // For empty productions, we need to add reduce actions for all symbols in FOLLOW set
+                        let lookaheads_to_check: Vec<SymbolId> = if is_empty_production {
+                            eprintln!("DEBUG: Empty production detected for rule {}, LHS={:?}", item.rule_id.0, rule.lhs);
+                            // Get FOLLOW set for the LHS of this rule
+                            if let Some(follow_set) = first_follow.follow(rule.lhs) {
+                                let symbols: Vec<_> = follow_set.ones().map(|idx| SymbolId(idx as u16)).collect();
+                                eprintln!("DEBUG: FOLLOW set for {:?}: {:?}", rule.lhs, symbols);
+                                eprintln!("DEBUG: Checking which symbols are in symbol_to_index:");
+                                for sym in &symbols {
+                                    if symbol_to_index.contains_key(sym) {
+                                        eprintln!("  Symbol {:?} -> index {}", sym, symbol_to_index[sym]);
+                                    } else {
+                                        eprintln!("  Symbol {:?} NOT IN symbol_to_index!", sym);
+                                    }
+                                }
+                                symbols
+                            } else {
+                                vec![item.lookahead]
+                            }
+                        } else {
+                            vec![item.lookahead]
+                        };
+                        
+                        for lookahead in lookaheads_to_check {
+                            if let Some(&lookahead_idx) = symbol_to_index.get(&lookahead) {
+                                let new_action = Action::Reduce(item.rule_id);
 
                             // Check if we should add this reduce based on precedence
                             let precedence_resolver =
@@ -1280,11 +1354,12 @@ pub fn build_lr1_automaton(
                                 new_action,
                             );
 
-                            // Debug: Log reduce actions being added
-                            eprintln!(
-                                "DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}",
-                                state_idx, lookahead_idx, item.lookahead.0, item.rule_id.0
-                            );
+                                // Debug: Log reduce actions being added
+                                eprintln!(
+                                    "DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}",
+                                    state_idx, lookahead_idx, lookahead.0, item.rule_id.0
+                                );
+                            }
                         }
                     }
                 }
