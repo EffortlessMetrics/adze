@@ -203,7 +203,7 @@ pub fn run_init(name: &str, in_place: bool) -> Result<()> {
         r#"[package]
 name = "tree-sitter-{}"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 rust-sitter = "0.5.0-beta"

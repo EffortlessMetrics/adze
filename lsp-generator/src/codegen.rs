@@ -155,7 +155,7 @@ impl LanguageServer for {} {{
             r#"[package]
 name = "{}"
 version = "{}"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 tower-lsp = "0.20"
