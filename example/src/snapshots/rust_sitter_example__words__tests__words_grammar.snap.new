@@ -1,0 +1,16 @@
+---
+source: example/src/words.rs
+assertion_line: 26
+expression: "grammar::parse(\"if\")"
+---
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 0",
+            ),
+            start: 2,
+            end: 2,
+        },
+    ],
+)

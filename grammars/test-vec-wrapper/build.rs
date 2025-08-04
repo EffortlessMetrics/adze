@@ -2,10 +2,16 @@ use std::path::Path;
 
 fn main() {
     // Use pure Rust parser generation
-    std::env::set_var("RUST_SITTER_USE_PURE_RUST", "1");
+    // SAFETY: This is safe in a build script as it runs in a single-threaded context
+    unsafe {
+        std::env::set_var("RUST_SITTER_USE_PURE_RUST", "1");
+    }
     
     // Enable debug output
-    std::env::set_var("RUST_SITTER_EMIT_ARTIFACTS", "true");
+    // SAFETY: This is safe in a build script as it runs in a single-threaded context
+    unsafe {
+        std::env::set_var("RUST_SITTER_EMIT_ARTIFACTS", "true");
+    }
     
     // Generate grammars first to see what's being generated
     let grammars = rust_sitter_tool::generate_grammars(Path::new("src/lib.rs"));
