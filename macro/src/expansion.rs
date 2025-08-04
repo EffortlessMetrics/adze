@@ -342,24 +342,32 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
 
+                                // Recursively unwrap hidden rules and wrapper nodes
+                                fn unwrap_hidden_rules(node: ::rust_sitter::tree_sitter::Node) -> ::rust_sitter::tree_sitter::Node {
+                                    // If this is a hidden rule (starts with '_') or has a single child, unwrap it
+                                    if (node.kind().starts_with('_') || node.child_count() == 1) && node.child_count() > 0 {
+                                        if let Some(child) = node.child(0) {
+                                            return unwrap_hidden_rules(child);
+                                        }
+                                    }
+                                    node
+                                }
+                                
+                                let unwrapped_node = unwrap_hidden_rules(node);
+
                                 // Check if this is an enum wrapper node (e.g., "Expression" wrapping "Expression_Number")
-                                if node.kind() == stringify!(#enum_name) && node.child_count() == 1 {
+                                if unwrapped_node.kind() == stringify!(#enum_name) && unwrapped_node.child_count() == 1 {
                                     // This is a wrapper node, extract from its child
-                                    let child = node.child(0);
+                                    let child = unwrapped_node.child(0);
                                     return Self::extract(child, source, _last_idx, _leaf_fn);
                                 }
 
-                                // Tree-sitter wraps enum variants in a parent node
-                                // If this is a wrapper node with a single child, extract from the child
-                                if node.child_count() == 1 {
-                                    let child = node.child(0).unwrap();
-                                    let child_node = child;
+                                // Check the unwrapped node structure to determine variant
+                                let child_node = unwrapped_node;
+                                #(#variant_detection_logic_std)*
 
-                                    // Check the child node structure to determine variant
-                                    #(#variant_detection_logic_std)*
-                                }
-
-                                panic!("Could not determine enum variant from tree structure")
+                                panic!("Could not determine enum variant from tree structure: node kind='{}', child_count={}", 
+                                    unwrapped_node.kind(), unwrapped_node.child_count())
                             }
 
                             #[allow(non_snake_case)]
@@ -367,28 +375,32 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
                                 
+                                // Recursively unwrap hidden rules and wrapper nodes
+                                fn unwrap_hidden_rules<'a>(node: &'a ::rust_sitter::pure_parser::ParsedNode) -> &'a ::rust_sitter::pure_parser::ParsedNode {
+                                    eprintln!("DEBUG unwrap: node kind='{}', children={}", node.kind(), node.children.len());
+                                    // If this is a hidden rule (starts with '_') or has a single child, unwrap it
+                                    if (node.kind().starts_with('_') || node.children.len() == 1) && node.children.len() > 0 {
+                                        eprintln!("DEBUG unwrap: unwrapping to child");
+                                        return unwrap_hidden_rules(&node.children[0]);
+                                    }
+                                    node
+                                }
+                                
+                                let unwrapped_node = unwrap_hidden_rules(node);
+                                
                                 // Check if this is an enum wrapper node (e.g., "Expression" wrapping "Expression_Number")
-                                if node.kind() == stringify!(#enum_name) && node.children.len() == 1 {
+                                if unwrapped_node.kind() == stringify!(#enum_name) && unwrapped_node.children.len() == 1 {
                                     // This is a wrapper node, extract from its child
-                                    let child_node = &node.children[0];
+                                    let child_node = &unwrapped_node.children[0];
                                     return Self::extract(Some(child_node), source, _last_idx, _leaf_fn);
                                 }
                                 
                                 // Check if this node directly matches one of our variants
+                                let node = unwrapped_node;
                                 #(#variant_detection_logic)*
-                                
-                                // Tree-sitter wraps enum variants in a parent node
-                                // If this is a wrapper node with a single child, extract from the child
-                                if node.children.len() == 1 {
-                                    let child_node = &node.children[0];
-
-                                    // Apply variant detection logic to the child node
-                                    let node = child_node;
-                                    #(#variant_detection_logic)*
-                                }
 
                                 panic!("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}", 
-                                    node.kind(), node.symbol, node.children.len())
+                                    unwrapped_node.kind(), unwrapped_node.symbol, unwrapped_node.children.len())
                             }
                         }
                     };
