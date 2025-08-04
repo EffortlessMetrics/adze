@@ -6,7 +6,10 @@ fn main() {
 
     // Build the parser
     // Enable pure-rust parser generation
-    std::env::set_var("RUST_SITTER_USE_PURE_RUST", "1");
+    // SAFETY: This is safe in a build script as it runs in a single-threaded context
+    unsafe {
+        std::env::set_var("RUST_SITTER_USE_PURE_RUST", "1");
+    }
     rust_sitter_tool::build_parsers(&PathBuf::from("src/lib.rs"));
 
     // Register the external scanner
