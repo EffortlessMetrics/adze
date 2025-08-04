@@ -103,14 +103,45 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_input() {
-        // Test parsing empty string
-        let result = grammar::parse("");
-        println!("Parse result for empty string: {:?}", result);
+    fn test_simple() {
+        // Test parsing just "1"
+        let result = grammar::parse("1");
+        println!("Parse result for '1': {:?}", result);
+        match result {
+            Ok(parsed) => {
+                println!("Successfully parsed as: {:?}", parsed);
+            }
+            Err(e) => panic!("Parse failed: {:?}", e)
+        }
+    }
+
+    #[test]
+    fn test_precedence() {
+        // Test parsing 1 - 2 * 3
+        let result = grammar::parse("1 - 2 * 3");
+        println!("Parse result for '1 - 2 * 3': {:?}", result);
         
-        // Test parsing whitespace-only string
-        let result2 = grammar::parse("   ");
-        println!("Parse result for whitespace: {:?}", result2);
+        match result {
+            Ok(parsed) => {
+                // Expected: Sub(1, Mul(2, 3))
+                // This should be true if precedence is correct
+                if let Expression::Sub(ref left, _, ref right) = parsed {
+                    println!("Got Sub, left={:?}, right={:?}", left, right);
+                    assert!(matches!(left.as_ref(), Expression::Number(1)));
+                    assert!(matches!(right.as_ref(), Expression::Mul(_, _, _)));
+                } else {
+                    panic!("Expected Sub at top level, got {:?}", parsed);
+                }
+            }
+            Err(e) => panic!("Parse failed: {:?}", e)
+        }
+    }
+
+    #[test]
+    fn test_empty_input() {
+        // Empty input should fail
+        let result = grammar::parse("");
+        assert!(result.is_err());
     }
 
     #[test]

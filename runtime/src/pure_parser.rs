@@ -407,8 +407,8 @@ impl Parser {
 
             // Get action for current state and token
             let action = self.get_action(language, current_state, token.symbol);
-            // Only log for the first few iterations to avoid spam
-            if position < 10 {
+            // Debug logging for arithmetic parsing
+            if source.len() < 20 {
                 let _byte_repr = if position < source.len() {
                     format!(
                         "'{}' (0x{:02x})",
@@ -417,19 +417,21 @@ impl Parser {
                 } else {
                     "EOF".to_string()
                 };
-                ////eprintln!($
-                    //"DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}",
-                    //position, current_state, token.symbol, action, byte_repr
-                //);
-                ////eprintln!($
-                //    "DEBUG: Stack size: {}, token.length={}",
-                //    self.stack.len(),
-                //    token.length
-                //);
+                eprintln!(
+                    "DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}",
+                    position, current_state, token.symbol, action, _byte_repr
+                );
+                eprintln!(
+                    "DEBUG: Stack size: {}, token.length={}",
+                    self.stack.len(),
+                    token.length
+                );
             }
             match action {
                 Action::Shift(next_state) => {
-                    ////eprintln!("DEBUG: Shifting to state {}", next_state);
+                    if source.len() < 20 {
+                        eprintln!("DEBUG: Shifting token symbol {} to state {}", token.symbol, next_state);
+                    }
                     // Create leaf node
                     let end_point =
                         advance_point(point, &source[position..position + token.length]);
@@ -538,7 +540,7 @@ impl Parser {
                 Action::Error => {
                     // Record error and try to recover
                     let expected_symbols = self.get_expected_symbols(language, current_state);
-                    eprintln!("Parser error at position {} (state {}): expected: {:?}, found: {}", 
+                    eprintln!("Parser error at position {} (state {}): expected: {:?}, found: {} (expected symbols are indices, found is index)", 
                               position, current_state, expected_symbols, token.symbol);
                     errors.push(ParseError {
                         position,
@@ -861,23 +863,31 @@ impl Parser {
     }
 
     /// Perform a reduction
-    fn reduce(&mut self, language: &TSLanguage, production_id: u16, _source: &[u8]) -> bool {
-        if production_id < 10 {
-            ////eprintln!($
-            //    "DEBUG reduce: Reducing with production_id={} (from parse table)",
-            //    production_id
-            //);
-            ////eprintln!($
-            //    "DEBUG reduce: Stack before reduction has {} entries",
-            //    self.stack.len()
-            //);
-            for (_i, _entry) in self.stack.iter().enumerate() {
-                ////eprintln!($
-                //    "  Stack[{}]: state={}, has_subtree={}",
-                //    i,
-                //    entry.state,
-                //    entry.subtree.is_some()
-                //);
+    fn reduce(&mut self, language: &TSLanguage, production_id: u16, source: &[u8]) -> bool {
+        if source.len() < 20 {
+            eprintln!(
+                "DEBUG reduce: Reducing with production_id={} (from parse table)",
+                production_id
+            );
+            eprintln!(
+                "DEBUG reduce: Stack before reduction has {} entries",
+                self.stack.len()
+            );
+            for (i, entry) in self.stack.iter().enumerate() {
+                if let Some(ref subtree) = entry.subtree {
+                    eprintln!(
+                        "  Stack[{}]: state={}, symbol={}",
+                        i,
+                        entry.state,
+                        subtree.symbol
+                    );
+                } else {
+                    eprintln!(
+                        "  Stack[{}]: state={}, no subtree",
+                        i,
+                        entry.state
+                    );
+                }
             }
         }
 
@@ -913,10 +923,12 @@ impl Parser {
             let child_count = action.child_count as usize;
             let symbol = action.symbol;
 
-            ////eprintln!($
-                //"DEBUG reduce: Production {} reduces to symbol {} with {} children",
-                //production_id, symbol, child_count
-            //);
+            if source.len() < 20 {
+                eprintln!(
+                    "DEBUG reduce: Production {} (index {}) reduces to symbol {} with {} children",
+                    production_id, production_index, symbol, child_count
+                );
+            }
 
             // If child_count is 3 but we only have 2 items on stack, something is wrong
             if child_count > self.stack.len() {
