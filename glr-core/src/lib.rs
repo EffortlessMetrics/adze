@@ -1213,9 +1213,12 @@ pub fn build_lr1_automaton(
     external_symbols.sort_by_key(|s| s.0);
 
     // Now assign indices: tokens first, then non-terminals, then externals
+    eprintln!("DEBUG: Assigning token indices:");
     for symbol_id in token_symbols {
         if !symbol_to_index.contains_key(&symbol_id) {
-            symbol_to_index.insert(symbol_id, symbol_to_index.len());
+            let idx = symbol_to_index.len();
+            symbol_to_index.insert(symbol_id, idx);
+            eprintln!("  Symbol {} -> index {}", symbol_id.0, idx);
         }
     }
 

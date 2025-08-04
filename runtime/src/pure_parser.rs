@@ -1056,6 +1056,7 @@ impl Parser {
         0
     }
 
+
     /// Get expected symbols for error reporting
     fn get_expected_symbols(&self, language: &TSLanguage, state: TSStateId) -> Vec<TSSymbol> {
         let mut expected = Vec::new();
