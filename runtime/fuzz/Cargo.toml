@@ -1,0 +1,43 @@
+[package]
+name = "rust-sitter-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+lazy_static = "1.4"
+arbitrary = { version = "1", features = ["derive"] }
+rust-sitter-ir = { path = "../../ir" }
+rust-sitter-glr-core = { path = "../../glr-core" }
+
+[dependencies.rust-sitter]
+path = ".."
+features = ["pure-rust"]
+
+[[bin]]
+name = "fuzz_glr_parser"
+path = "fuzz_targets/fuzz_glr_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_incremental_edits"
+path = "fuzz_targets/fuzz_incremental_edits.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_lexer_simple"
+path = "fuzz_targets/fuzz_lexer_simple.rs"
+test = false
+doc = false
+bench = false
+
