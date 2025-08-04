@@ -58,3 +58,7 @@ harness = false
 [[bench]]
 name = "glr_parser_bench"
 harness = false
+
+[[bench]]
+name = "incremental_parsing"
+harness = false
