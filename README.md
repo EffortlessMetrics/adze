@@ -7,6 +7,10 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 
 ## Documentation
 
+📚 **[Read the Book](https://hydro-project.github.io/rust-sitter/)** - Comprehensive guide and reference
+
+### Quick Links
+
 - [Project Status](./PROJECT_STATUS.md) - Current status and feature overview
 - [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference
 - [Migration Guide](./MIGRATION_GUIDE.md) - Migrating from Tree-sitter

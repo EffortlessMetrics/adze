@@ -143,7 +143,7 @@ fuzz_target!(|input: FuzzInput| {
     };
     
     // Create incremental parser
-    let glr_parser = GLRParser::new(PARSE_TABLE.clone(), (*TEST_GRAMMAR).clone());
+    let glr_parser = GLRParser::new(PARSE_TABLE.clone(), (**TEST_GRAMMAR).clone());
     let mut incremental = IncrementalGLRParser::new(glr_parser, TEST_GRAMMAR.clone());
     
     // Parse initial text
@@ -192,7 +192,7 @@ fuzz_target!(|input: FuzzInput| {
         };
         
         // Parse incrementally - should not panic
-        let new_tree_result = incremental.parse_incremental(&new_tokens, &[edit], Some(current_tree));
+        let new_tree_result = incremental.parse_incremental(&new_tokens, &[edit], Some(current_tree.clone()));
         
         match new_tree_result {
             Ok(new_tree) => {

@@ -1,0 +1,99 @@
+name: Fuzz Testing
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        fuzz-target:
+          - fuzz_lexer_simple
+          - fuzz_glr_parser
+          - fuzz_incremental_edits
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install nightly toolchain
+      uses: dtolnay/rust-toolchain@nightly
+    
+    - name: Install cargo-fuzz
+      run: cargo +nightly install cargo-fuzz
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-fuzz-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-fuzz-
+    
+    - name: Run fuzzer
+      run: |
+        cd runtime
+        cargo +nightly fuzz run ${{ matrix.fuzz-target }} -- -max_total_time=300 -print_final_stats=1
+      env:
+        RUST_BACKTRACE: 1
+    
+    - name: Upload crash artifacts
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: fuzz-crash-${{ matrix.fuzz-target }}
+        path: runtime/fuzz/artifacts/
+
+  # Separate job for longer nightly fuzzing
+  fuzz-nightly:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        fuzz-target:
+          - fuzz_lexer_simple
+          - fuzz_glr_parser
+          - fuzz_incremental_edits
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install nightly toolchain
+      uses: dtolnay/rust-toolchain@nightly
+    
+    - name: Install cargo-fuzz
+      run: cargo +nightly install cargo-fuzz
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-fuzz-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-fuzz-
+    
+    - name: Run extended fuzzing
+      run: |
+        cd runtime
+        # Run for 30 minutes on nightly builds
+        cargo +nightly fuzz run ${{ matrix.fuzz-target }} -- -max_total_time=1800 -print_final_stats=1
+      env:
+        RUST_BACKTRACE: 1
+    
+    - name: Upload crash artifacts
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: fuzz-crash-nightly-${{ matrix.fuzz-target }}
+        path: runtime/fuzz/artifacts/

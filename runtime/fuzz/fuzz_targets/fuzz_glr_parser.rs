@@ -151,10 +151,16 @@ fuzz_target!(|data: &[u8]| {
             let tokens = lexer.tokenize_all();
             
             // Create parser and try to parse
-            let glr_parser = GLRParser::new(PARSE_TABLE.clone(), (*TEST_GRAMMAR).clone());
+            let mut glr_parser = GLRParser::new(PARSE_TABLE.clone(), (**TEST_GRAMMAR).clone());
             
             // Parse should not panic, even with malformed input
-            let _result = glr_parser.parse_tokens(&tokens);
+            // Process each token
+            for token in &tokens {
+                glr_parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+            }
+            
+            // Finish parsing
+            let _result = glr_parser.finish();
             
             // We don't care about the result, just that it doesn't panic
         }

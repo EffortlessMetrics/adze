@@ -1,0 +1,25 @@
+[book]
+title = "Rust-Sitter Documentation"
+authors = ["Rust-Sitter Contributors"]
+description = "The official documentation for Rust-Sitter - a Rust framework for generating Tree-sitter parsers"
+language = "en"
+
+[build]
+build-dir = "book"
+
+[rust]
+edition = "2021"
+
+[output.html]
+theme = "rust"
+default-theme = "rust"
+git-repository-url = "https://github.com/hydro-project/rust-sitter"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/hydro-project/rust-sitter/edit/main/book/{path}"
+
+[output.html.playground]
+runnable = false
+
+[output.html.fold]
+enable = true
+level = 0
