@@ -966,6 +966,7 @@ impl Parser {
             // Check if this symbol is hidden (e.g., _Expression)
             let is_hidden = self.is_hidden_symbol(language, symbol);
             
+            
             // Create parent node or unwrap if hidden
             let parent = if is_hidden && children.len() == 1 {
                 // Return the child directly, skipping the hidden wrapper
