@@ -1813,7 +1813,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sitter"
-version = "0.5.0-beta"
+version = "1.0.0"
 dependencies = [
  "ahash",
  "anyhow",
@@ -1847,7 +1847,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sitter-cli"
-version = "0.5.0-beta"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1868,7 +1868,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sitter-common"
-version = "0.5.0-beta"
+version = "1.0.0"
 dependencies = [
  "quote",
  "syn 2.0.98",
@@ -1876,7 +1876,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sitter-example"
-version = "0.5.0-beta"
+version = "1.0.0"
 dependencies = [
  "codemap",
  "codemap-diagnostic",
@@ -1888,7 +1888,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sitter-glr-core"
-version = "0.5.0-beta"
+version = "1.0.0"
 dependencies = [
  "fixedbitset",
  "indexmap",
@@ -1919,7 +1919,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sitter-ir"
-version = "0.5.0-beta"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "indexmap",
@@ -1952,7 +1952,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sitter-macro"
-version = "0.5.0-beta"
+version = "1.0.0"
 dependencies = [
  "insta",
  "proc-macro2",
@@ -1998,7 +1998,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sitter-tablegen"
-version = "0.5.0-beta"
+version = "1.0.0"
 dependencies = [
  "indexmap",
  "insta",
@@ -2032,7 +2032,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sitter-tool"
-version = "0.5.0-beta"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "cc",

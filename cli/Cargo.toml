@@ -1,6 +1,6 @@
 [package]
 name = "rust-sitter-cli"
-version = "0.5.0-beta"
+version = "1.0.0"
 edition = "2021"
 authors = ["Tree-sitter Contributors"]
 description = "CLI tools for rust-sitter grammar development"

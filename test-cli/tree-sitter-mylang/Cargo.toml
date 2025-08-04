@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rust-sitter = "0.5.0-beta"
+rust-sitter = "1.0.0"
 
 [build-dependencies]
-rust-sitter-tool = "0.5.0-beta"
+rust-sitter-tool = "1.0.0"
