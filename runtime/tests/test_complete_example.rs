@@ -153,24 +153,14 @@ mod json_parser {
         );
 
         // pair -> string : value
-
-        grammar
-            .rules
-            .entry(pair)
-            .or_insert_with(Vec::new)
-            .push(Rule {
-                lhs: pair,
-                rhs: vec![
-                    Symbol::Terminal(string),
-                    Symbol::Terminal(colon),
-                    Symbol::NonTerminal(value),
-                ],
-                production_id: ProductionId(rule_id),
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-            });
-        rule_id += 1;
+        add_rule(
+            pair,
+            vec![
+                Symbol::Terminal(string),
+                Symbol::Terminal(colon),
+                Symbol::NonTerminal(value),
+            ],
+        );
 
         // array -> [ ] | [ values ]
         add_rule(

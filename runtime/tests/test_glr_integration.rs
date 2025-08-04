@@ -9,8 +9,9 @@ use rust_sitter::glr_query::{QueryParser, QueryCursor};
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern, validation::GrammarValidator,
+    TokenPattern,
 };
+use rust_sitter::glr_validation::GLRGrammarValidator;
 
 // Import internal modules for testing
 use std::sync::Arc;

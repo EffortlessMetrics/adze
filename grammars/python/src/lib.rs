@@ -127,13 +127,11 @@ pub mod grammar {
         _open: (),
         // Allow optional whitespace to prevent empty rule
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws1: (),
         #[rust_sitter::repeat]
         #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub params: Vec<Parameter>,
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws2: (),
         #[rust_sitter::leaf(text = ")")]
         _close: (),
@@ -145,6 +143,7 @@ pub mod grammar {
     }
 
     #[rust_sitter::language]
+    #[rust_sitter::prec_left(1)]
     pub struct Block {
         #[rust_sitter::repeat(non_empty = true)]
         pub statements: Vec<Statement>,
@@ -168,13 +167,11 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws1: (),
         #[rust_sitter::repeat]
         #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub bases: Vec<Expression>,
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws2: (),
         #[rust_sitter::leaf(text = ")")]
         _close: (),
@@ -379,13 +376,11 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws1: (),
         #[rust_sitter::repeat]
         #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub args: Vec<Expression>,
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws2: (),
         #[rust_sitter::leaf(text = ")")]
         _close: (),
@@ -486,13 +481,11 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "[")]
         _open: (),
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws1: (),
         #[rust_sitter::repeat]
         #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub elements: Vec<Expression>,
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws2: (),
         #[rust_sitter::leaf(text = "]")]
         _close: (),
@@ -503,13 +496,11 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "(")]
         _open: (),
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws1: (),
         #[rust_sitter::repeat]
         #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub elements: Vec<Expression>,
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws2: (),
         #[rust_sitter::leaf(text = ")")]
         _close: (),
@@ -520,13 +511,11 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "{")]
         _open: (),
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws1: (),
         #[rust_sitter::repeat]
         #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
         pub items: Vec<DictItem>,
         #[rust_sitter::leaf(pattern = r"\s*")]
-        #[rust_sitter::skip]
         _ws2: (),
         #[rust_sitter::leaf(text = "}")]
         _close: (),

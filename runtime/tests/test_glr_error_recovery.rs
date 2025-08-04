@@ -248,6 +248,7 @@ fn test_panic_mode_recovery() {
         max_panic_skip: 10,
         sync_tokens,
         insertable_tokens: HashSet::new(),
+        deletable_tokens: HashSet::new(),
         max_consecutive_errors: 3,
         enable_phrase_recovery: false,
         enable_scope_recovery: false,

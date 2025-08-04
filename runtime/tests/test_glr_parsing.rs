@@ -6,6 +6,7 @@ use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_glr_core::{ParseTable, Action, FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::*;
 use indexmap::IndexMap;
+use std::collections::BTreeMap;
 
 /// Create the classic ambiguous expression grammar
 /// E -> E + E | E * E | num
@@ -167,7 +168,7 @@ fn create_conflicting_parse_table() -> ParseTable {
         symbol_metadata: vec![],
         state_count: 10,
         symbol_count: 11,
-        symbol_to_index: IndexMap::new(),
+        symbol_to_index: BTreeMap::new(),
     }
 }
 

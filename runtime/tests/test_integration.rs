@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use indexmap::IndexMap;
+use std::collections::BTreeMap;
 use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
 use rust_sitter::external_scanner::ExternalScanner;
 use rust_sitter::incremental_v3::{Edit, IncrementalParser, Position};
@@ -159,7 +160,7 @@ fn create_test_parse_table() -> ParseTable {
         symbol_metadata: vec![],
         state_count: 20,
         symbol_count: 10,
-        symbol_to_index: IndexMap::new(),
+        symbol_to_index: BTreeMap::new(),
     }
 }
 
@@ -293,7 +294,7 @@ fn test_query_language_integration() -> Result<()> {
     match compile_query(query_str, &grammar) {
         Ok(query) => {
             let mut cursor = QueryCursor::new();
-            let matches = cursor.matches(&query, &tree);
+            let matches: Vec<_> = cursor.matches(&query, &tree).collect();
 
             println!("Query found {} matches", matches.len());
 

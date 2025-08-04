@@ -5,7 +5,7 @@
 pub mod grammar {
     #[rust_sitter::language]
     pub struct Program {
-        #[rust_sitter::repeat]
+        #[rust_sitter::repeat(non_empty = true)]
         pub statements: Vec<Statement>,
     }
 

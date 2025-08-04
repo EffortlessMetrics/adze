@@ -265,17 +265,11 @@ fn test_lexer() {
 fn test_simple_parse() {
     let grammar = create_arithmetic_grammar();
     let parse_table = create_arithmetic_parse_table();
-    let mut parser = Parser::new(grammar, parse_table, "test".to_string());
+    let mut parser = Parser::new(grammar, parse_table);
 
-    // Create tokens for "123"
-    let tokens = vec![IrToken {
-        symbol: SymbolId(1), // number
-        text: b"123".to_vec(),
-        start: 0,
-        end: 3,
-    }];
-
-    let result = parser.parse(tokens);
+    // Parse the string "123"
+    let input = "123";
+    let result = parser.parse(input);
 
     // For now this will fail because our parse table is incomplete
     // but it demonstrates the structure

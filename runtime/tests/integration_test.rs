@@ -27,7 +27,8 @@ fn test_complete_workflow() {
     );
     assert!(result.root.is_some(), "No parse tree produced");
 
-    let tree = rust_sitter::pure_incremental::Tree::new(result.root.unwrap());
+    let language = create_test_language();
+    let tree = rust_sitter::pure_incremental::Tree::new(result.root.unwrap(), language, input.as_bytes());
 
     // 4. Make an edit
     let edited_source = "function hello() { return 43; }";
@@ -142,7 +143,7 @@ fn test_timeout() {
 
 #[test]
 fn test_external_scanner_integration() {
-    use rust_sitter::pure_external_scanner::{ExternalScanner, ExternalScannerContext};
+    use rust_sitter::pure_external_scanner::{ExternalScanner, Lexer};
     use std::sync::{Arc, Mutex};
 
     // Create a simple external scanner
@@ -152,15 +153,15 @@ fn test_external_scanner_integration() {
     }
 
     impl ExternalScanner for TestScanner {
-        fn scan(&mut self, context: &mut dyn ExternalScannerContext, valid_tokens: &[u16]) -> bool {
+        fn scan(&mut self, lexer: &mut Lexer, valid_symbols: &[bool]) -> bool {
             self.count += 1;
 
             // Simple scanner that accepts any letter as token 1
-            if valid_tokens.contains(&1) {
-                if let Some(ch) = context.peek() {
-                    if ch.is_alphabetic() {
-                        context.advance();
-                        context.accept_token(1);
+            if valid_symbols.len() > 1 && valid_symbols[1] {
+                if let Some(ch) = lexer.lookahead() {
+                    if (ch as char).is_alphabetic() {
+                        lexer.advance(false);
+                        lexer.result(1);
                         return true;
                     }
                 }
@@ -168,8 +169,11 @@ fn test_external_scanner_integration() {
             false
         }
 
-        fn serialize(&self, buffer: &mut Vec<u8>) {
-            buffer.extend_from_slice(&self.count.to_le_bytes());
+        fn serialize(&self, buffer: &mut [u8]) -> usize {
+            let bytes = self.count.to_le_bytes();
+            let len = bytes.len().min(buffer.len());
+            buffer[..len].copy_from_slice(&bytes[..len]);
+            len
         }
 
         fn deserialize(&mut self, buffer: &[u8]) {
@@ -205,24 +209,33 @@ fn create_test_language() -> &'static rust_sitter::pure_parser::TSLanguage {
         production_id_count: 1,
         field_count: 0,
         max_alias_sequence_length: 0,
-        parse_table: &[],
-        small_parse_table: &[],
-        small_parse_table_map: &[],
-        parse_actions: &[],
-        symbol_names: &[],
-        field_names: &[],
-        field_map_slices: &[],
-        field_map_entries: &[],
-        symbol_metadata: &[],
-        public_symbol_map: &[],
-        alias_map: &[],
-        alias_sequences: &[],
-        lex_modes: &[],
+        parse_table: [].as_ptr(),
+        small_parse_table: [].as_ptr(),
+        small_parse_table_map: [].as_ptr(),
+        parse_actions: std::ptr::null(),
+        symbol_names: std::ptr::null(),
+        field_names: std::ptr::null(),
+        field_map_slices: [].as_ptr(),
+        field_map_entries: [].as_ptr(),
+        symbol_metadata: [].as_ptr(),
+        public_symbol_map: [].as_ptr(),
+        alias_map: [].as_ptr(),
+        alias_sequences: [].as_ptr(),
+        lex_modes: std::ptr::null(),
         lex_fn: None,
         keyword_lex_fn: None,
         keyword_capture_token: 0,
-        external_scanner: None,
-        primary_state_ids: &[],
+        external_scanner: rust_sitter::pure_parser::ExternalScanner {
+            states: std::ptr::null(),
+            symbol_map: std::ptr::null(),
+            create: None,
+            destroy: None,
+            scan: None,
+            serialize: None,
+            deserialize: None,
+        },
+        primary_state_ids: std::ptr::null(),
+        production_id_map: std::ptr::null(),
     };
     &LANGUAGE
 }
@@ -247,7 +260,7 @@ fn find_node_with_text(
 }
 
 fn contains_error_node(node: &rust_sitter::pure_parser::ParsedNode) -> bool {
-    if node.kind == "ERROR" {
+    if node.kind() == "ERROR" {
         return true;
     }
 

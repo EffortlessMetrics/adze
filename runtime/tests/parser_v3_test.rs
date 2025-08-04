@@ -3,6 +3,7 @@
 use rust_sitter::parser::Parser;
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::*;
+use std::collections::BTreeMap;
 
 fn create_simple_arithmetic_grammar() -> Grammar {
     let mut grammar = Grammar {
@@ -149,7 +150,7 @@ fn create_simple_parse_table() -> ParseTable {
         symbol_metadata: vec![],
         state_count: 6,
         symbol_count: 4,
-        symbol_to_index,
+        symbol_to_index: symbol_to_index.into_iter().collect(),
     }
 }
 
