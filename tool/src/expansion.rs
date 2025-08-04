@@ -682,20 +682,24 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
                 // For enums, we want the choice to be transparent in the parse tree.
                 // The variants should appear directly without a wrapper node.
-                // However, we still need the enum name to be referenceable in the grammar.
-                // For now, we'll keep the original behavior but add a TODO for future improvement.
+                // Tree-sitter convention: rules starting with _ are hidden.
                 
-                
-                // For enums, we create the CHOICE rule directly with the enum name
-                // Tree-sitter's approach: the enum itself is the choice, no wrapper needed
+                // Create a hidden rule for the enum CHOICE
+                let hidden_rule_name = format!("_{}", e.ident);
                 let rule = json!({
                     "type": "CHOICE",
                     "members": members
                 });
                 
-                // Mark the enum rule for inlining in the grammar IR
-                // This will be handled during IR → parse table conversion
-                rules_map.insert(e.ident.to_string(), rule);
+                // Insert the hidden CHOICE rule
+                rules_map.insert(hidden_rule_name.clone(), rule);
+                
+                // Create a visible rule that references the hidden one
+                // This allows the enum to be referenced in the grammar while keeping it transparent
+                rules_map.insert(e.ident.to_string(), json!({
+                    "type": "SYMBOL",
+                    "name": hidden_rule_name
+                }));
 
                 (e.ident.to_string(), e.attrs.clone())
             }
@@ -767,21 +771,12 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
     });
 
     // source_file rule already inserted above - don't overwrite it!
-    
-    // Collect inline rules (enums should be inlined)
-    let mut inline_list = vec![];
-    contents.iter().for_each(|c| {
-        if let Item::Enum(e) = c {
-            inline_list.push(json!(e.ident.to_string()));
-        }
-    });
 
     let mut grammar = json!({
         "name": grammar_name,
         "word": word_rule,
         "rules": rules_map,
-        "extras": extras_list,
-        "inline": inline_list
+        "extras": extras_list
     });
 
     // Only include externals if there are any
