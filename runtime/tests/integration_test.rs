@@ -28,7 +28,7 @@ fn test_complete_workflow() {
     assert!(result.root.is_some(), "No parse tree produced");
 
     let language = create_test_language();
-    let tree = rust_sitter::pure_incremental::Tree::new(result.root.unwrap(), language, input.as_bytes());
+    let tree = rust_sitter::pure_incremental::Tree::new(result.root.unwrap(), language, source.as_bytes());
 
     // 4. Make an edit
     let edited_source = "function hello() { return 43; }";

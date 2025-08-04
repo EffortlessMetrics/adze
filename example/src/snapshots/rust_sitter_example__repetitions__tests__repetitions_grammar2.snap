@@ -2,14 +2,14 @@
 source: example/src/repetitions.rs
 expression: "grammar2::parse(\"\")"
 ---
-Err(
-    [
-        ParseError {
-            reason: UnexpectedToken(
-                "symbol 0",
+Ok(
+    NumberList {
+        numbers: Spanned {
+            value: [],
+            span: (
+                0,
+                0,
             ),
-            start: 0,
-            end: 0,
         },
-    ],
+    },
 )

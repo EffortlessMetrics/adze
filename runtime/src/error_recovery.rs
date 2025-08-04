@@ -700,7 +700,9 @@ mod tests2 {
 
     #[test]
     fn test_error_recovery_state_scope_operations() {
-        let config = ErrorRecoveryConfig::default();
+        let mut config = ErrorRecoveryConfig::default();
+        // Set up scope delimiters for the test
+        config.scope_delimiters = vec![(100, 101), (200, 201)];
         let mut state = ErrorRecoveryState::new(config);
 
         // Push scope

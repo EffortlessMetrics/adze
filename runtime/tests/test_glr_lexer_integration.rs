@@ -230,17 +230,18 @@ fn test_json_with_lexer() {
     );
 
     // Rules: value → number | object
-    grammar.rules.entry(
-        value_id,
-        Rule {
+    grammar
+        .rules
+        .entry(value_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(number_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
 
     grammar
         .rules
@@ -256,17 +257,18 @@ fn test_json_with_lexer() {
         });
 
     // object → { }
-    grammar.rules.entry(
-        object_id,
-        Rule {
+    grammar
+        .rules
+        .entry(object_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: object_id,
             rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(2),
-        },
-    );
+        });
 
     grammar.rule_names.insert(value_id, "value".to_string());
     grammar.rule_names.insert(object_id, "object".to_string());
