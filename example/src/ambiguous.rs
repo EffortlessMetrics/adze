@@ -5,8 +5,8 @@
 //! 1. if a then (if b then c else d)
 //! 2. if a then (if b then c) else d
 
-use rust_sitter::*;
 
+#[allow(dead_code)]
 #[rust_sitter::grammar("ambiguous")]
 pub mod grammar {
     #[rust_sitter::language]

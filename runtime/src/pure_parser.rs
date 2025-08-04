@@ -409,7 +409,7 @@ impl Parser {
             let action = self.get_action(language, current_state, token.symbol);
             // Only log for the first few iterations to avoid spam
             if position < 10 {
-                let byte_repr = if position < source.len() {
+                let _byte_repr = if position < source.len() {
                     format!(
                         "'{}' (0x{:02x})",
                         source[position] as char, source[position]
@@ -686,7 +686,7 @@ impl Parser {
                 if symbol == 3 || symbol == 4 {
                     ////eprintln!("DEBUG metadata array dump for symbol {}:", symbol);
                     for i in 0..std::cmp::min(9, language.symbol_count) {
-                        let byte = *metadata_ptr.add(i as usize);
+                        let _byte = *metadata_ptr.add(i as usize);
                         //eprintln!("  metadata[{}] = {:#x}", i, byte);
                     }
                 }
@@ -835,7 +835,7 @@ impl Parser {
             //    "DEBUG reduce: Stack before reduction has {} entries",
             //    self.stack.len()
             //);
-            for (i, entry) in self.stack.iter().enumerate() {
+            for (_i, _entry) in self.stack.iter().enumerate() {
                 ////eprintln!($
                 //    "  Stack[{}]: state={}, has_subtree={}",
                 //    i,
@@ -1028,6 +1028,7 @@ impl Parser {
     }
 
     /// Get production ID for field mappings
+    #[allow(dead_code)]
     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
         unsafe {
             if action_index < language.production_id_count as u16 {
@@ -1039,6 +1040,7 @@ impl Parser {
     }
 
     /// Get goto state after reduction
+    #[allow(dead_code)]
     fn get_goto_state(
         &self,
         _language: &TSLanguage,

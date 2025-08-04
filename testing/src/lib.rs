@@ -141,8 +141,8 @@ impl BetaTester {
     /// Test a single file
     fn test_file(
         &self,
-        grammar: &Grammar,
-        parse_table: &ParseTable,
+        _grammar: &Grammar,
+        _parse_table: &ParseTable,
         file_path: &Path,
     ) -> Result<FileTestResult> {
         use std::time::Instant;
@@ -266,6 +266,7 @@ impl BetaTester {
 /// Result for a single file test
 #[derive(Debug)]
 struct FileTestResult {
+    #[allow(dead_code)]
     file_path: PathBuf,
     parse_time_ms: f64,
     output: String,

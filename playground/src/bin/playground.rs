@@ -111,7 +111,7 @@ fn main() -> Result<()> {
         } => {
             println!("🧪 Running tests...");
 
-            let builder = PlaygroundBuilder::new()
+            let _builder = PlaygroundBuilder::new()
                 .grammar(grammar.to_string_lossy())
                 .tests(tests.to_string_lossy())
                 .feature(PlaygroundFeature::TestRunner)
@@ -131,7 +131,7 @@ fn main() -> Result<()> {
         Commands::Analyze { grammar, format } => {
             println!("🔍 Analyzing grammar...");
 
-            let builder = PlaygroundBuilder::new()
+            let _builder = PlaygroundBuilder::new()
                 .grammar(grammar.to_string_lossy())
                 .feature(PlaygroundFeature::Analysis)
                 .build()?;

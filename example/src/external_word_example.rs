@@ -1,7 +1,7 @@
 //! Example demonstrating external scanner and word token attributes
 
-use rust_sitter::Extract;
 
+#[allow(dead_code)]
 #[rust_sitter::grammar("python_like")]
 mod grammar {
     #[rust_sitter::language]

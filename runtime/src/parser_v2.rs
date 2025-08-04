@@ -455,6 +455,7 @@ impl ParserV2 {
     }
     
     /// Handle fork action (for backward compatibility)
+    #[allow(dead_code)]
     fn handle_fork(&mut self, _actions: Vec<Action>, _token: &Token) -> Result<ParseNode, ParseError> {
         // This method is no longer used with the two-phase algorithm
         // The fork handling is integrated into the main parse loop

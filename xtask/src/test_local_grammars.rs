@@ -1,6 +1,5 @@
 use anyhow::Result;
 use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
-use std::fs;
 
 pub fn test_local_grammars() -> Result<()> {
     println!("Testing local grammar files...\n");

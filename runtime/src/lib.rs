@@ -234,7 +234,7 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
     fn extract(
         node: Option<&crate::pure_parser::ParsedNode>,
         source: &[u8],
-        mut last_idx: usize,
+        last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
     ) -> Vec<U> {
         node.map(|node| {

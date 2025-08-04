@@ -907,7 +907,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             let index_val = index as u16;
             
             // Also include the symbol name for debugging
-            let symbol_name = if symbol_id.0 == 0 {
+            let _symbol_name = if symbol_id.0 == 0 {
                 "EOF".to_string()
             } else if let Some(token) = self.grammar.tokens.get(&symbol_id) {
                 token.name.clone()

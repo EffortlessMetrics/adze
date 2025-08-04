@@ -80,6 +80,7 @@ pub fn parse_file(
 }
 
 /// Parse using a compiled Rust parser
+#[allow(dead_code)]
 pub fn parse_with_rust_parser(
     file_path: &Path,
     grammar_name: &str,
@@ -95,6 +96,7 @@ pub fn parse_with_rust_parser(
 }
 
 /// Auto-detect parser based on file extension
+#[allow(dead_code)]
 pub fn auto_detect_parser(file_path: &Path) -> Option<String> {
     let ext = file_path.extension()?.to_str()?;
 

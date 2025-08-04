@@ -1,8 +1,8 @@
 // Performance comparison test for rust-sitter
-use std::time::Instant;
 
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
     use super::*;
     use crate::arithmetic;
 

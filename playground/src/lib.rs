@@ -16,6 +16,7 @@ pub mod web;
 #[derive(Debug, Clone)]
 pub struct PlaygroundSession {
     grammar: Grammar,
+    #[allow(dead_code)]
     parse_table: Option<ParseTable>,
     test_cases: Vec<TestCase>,
     analysis_cache: HashMap<String, AnalysisResult>,
@@ -321,7 +322,7 @@ impl PlaygroundBuilder {
         Ok(Grammar::default())
     }
 
-    fn load_tests(&self, path: &str) -> Result<Vec<TestCase>> {
+    fn load_tests(&self, _path: &str) -> Result<Vec<TestCase>> {
         // Placeholder - would load from file
         Ok(vec![])
     }

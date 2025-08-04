@@ -119,5 +119,6 @@ fn extract_fields_from_rule(rule: &Value) -> HashMap<String, Vec<String>> {
 pub struct NodeTypeInfo {
     pub name: String,
     pub named: bool,
+    #[allow(dead_code)]
     pub fields: HashMap<String, Vec<String>>,
 }

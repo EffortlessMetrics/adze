@@ -176,6 +176,7 @@ struct TestCase {
 }
 
 /// Generate a test corpus from examples
+#[allow(dead_code)]
 pub fn generate_corpus(examples_dir: &Path, output_dir: &Path, language: &str) -> Result<()> {
     println!("Generating corpus from examples in {:?}", examples_dir);
     println!("Output directory: {:?}", output_dir);

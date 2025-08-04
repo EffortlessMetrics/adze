@@ -138,6 +138,7 @@ fn create_symbol_completions() -> Vec<lsp_types::CompletionItem> {{
 
 /// Hover provider for LSP
 pub struct HoverProvider {
+    #[allow(dead_code)]
     documentation: std::collections::HashMap<String, String>,
 }
 

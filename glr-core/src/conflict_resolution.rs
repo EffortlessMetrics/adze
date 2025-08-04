@@ -107,7 +107,7 @@ impl VecWrapperResolver {
 }
 
 impl RuntimeConflictResolver for VecWrapperResolver {
-    fn resolve(&self, state: StateId, lookahead: SymbolId, actions: &[Action]) -> Option<Action> {
+    fn resolve(&self, _state: StateId, lookahead: SymbolId, actions: &[Action]) -> Option<Action> {
         debug_assert!(actions.len() == 2, "VecWrapperResolver expects exactly 2 conflicting actions");
         
         // Look for a reduce action that's a vec_contents empty production

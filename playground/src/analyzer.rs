@@ -21,8 +21,6 @@ pub fn analyze_grammar(grammar: &Grammar) -> Result<AnalysisResult> {
 }
 
 fn compute_stats(grammar: &Grammar) -> GrammarStats {
-    let mut terminal_count = 0;
-    let mut nonterminal_count = 0;
     let mut total_rule_length = 0;
     let mut max_rule_length = 0;
     let mut nullable_rules = 0;
@@ -69,8 +67,8 @@ fn compute_stats(grammar: &Grammar) -> GrammarStats {
         }
     }
 
-    terminal_count = terminals.len();
-    nonterminal_count = nonterminals.len();
+    let terminal_count = terminals.len();
+    let nonterminal_count = nonterminals.len();
 
     let avg_rule_length = if rule_count == 0 {
         0.0
@@ -90,6 +88,7 @@ fn compute_stats(grammar: &Grammar) -> GrammarStats {
     }
 }
 
+#[allow(dead_code)]
 fn count_symbols(symbol: &Symbol) -> usize {
     match symbol {
         Symbol::Terminal(_) | Symbol::NonTerminal(_) | Symbol::External(_) | Symbol::Epsilon => 1,
@@ -100,6 +99,7 @@ fn count_symbols(symbol: &Symbol) -> usize {
     }
 }
 
+#[allow(dead_code)]
 fn is_nullable(symbol: &Symbol) -> bool {
     match symbol {
         Symbol::Terminal(_) | Symbol::NonTerminal(_) | Symbol::External(_) => false,
@@ -155,17 +155,17 @@ fn collect_terminals(symbol: &Symbol, terminals: &mut HashSet<String>) {
     }
 }
 
-fn detect_conflicts(grammar: &Grammar) -> Result<Vec<Conflict>> {
+fn detect_conflicts(_grammar: &Grammar) -> Result<Vec<Conflict>> {
     // This would integrate with the GLR parser builder to detect actual conflicts
     // For now, return a placeholder
     Ok(vec![])
 }
 
-fn detect_ambiguities(grammar: &Grammar) -> Vec<Ambiguity> {
-    let mut ambiguities = Vec::new();
+fn detect_ambiguities(_grammar: &Grammar) -> Vec<Ambiguity> {
+    let ambiguities = Vec::new();
 
     // Detect common ambiguity patterns
-    for (symbol_id, rules) in &grammar.rules {
+    for (_symbol_id, rules) in &_grammar.rules {
         // Check for ambiguous operator precedence
         for _rule in rules {
             // For now, skip ambiguity detection
@@ -176,12 +176,14 @@ fn detect_ambiguities(grammar: &Grammar) -> Vec<Ambiguity> {
     ambiguities
 }
 
+#[allow(dead_code)]
 fn is_potentially_ambiguous(_symbol: &Symbol) -> bool {
     // For now, just return false
     // In the future, this would analyze expression patterns
     false
 }
 
+#[allow(dead_code)]
 fn generate_ambiguous_example(rule_name: &str) -> String {
     // Generate example based on common patterns
     match rule_name {
@@ -192,7 +194,7 @@ fn generate_ambiguous_example(rule_name: &str) -> String {
 }
 
 fn generate_suggestions(
-    grammar: &Grammar,
+    _grammar: &Grammar,
     stats: &GrammarStats,
     conflicts: &Vec<Conflict>,
 ) -> Vec<Suggestion> {

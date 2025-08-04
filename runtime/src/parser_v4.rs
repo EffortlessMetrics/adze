@@ -31,6 +31,7 @@ pub struct Parser {
     /// External scanner runtime
     external_runtime: Option<ExternalScannerRuntime>,
     /// Language name for scanner registry lookup
+    #[allow(dead_code)]
     language: String,
 }
 
@@ -266,6 +267,7 @@ impl Parser {
     }
 
     /// Get expected symbols for error reporting
+    #[allow(dead_code)]
     fn get_expected_symbols(&self, state: StateId) -> Vec<SymbolId> {
         let state_idx = state.0 as usize;
         let mut expected = Vec::new();

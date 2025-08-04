@@ -26,10 +26,11 @@ struct TreeNode {
 struct Layout {
     width: f64,
     height: f64,
+    #[allow(dead_code)]
     positions: Vec<(f64, f64)>,
 }
 
-fn parse_tree_string(tree: &str) -> Result<TreeNode> {
+fn parse_tree_string(_tree: &str) -> Result<TreeNode> {
     // Simple parser for tree strings like "(expr (num 1) + (num 2))"
     // This is a placeholder implementation
     Ok(TreeNode {
@@ -38,7 +39,7 @@ fn parse_tree_string(tree: &str) -> Result<TreeNode> {
     })
 }
 
-fn calculate_layout(root: &TreeNode) -> Layout {
+fn calculate_layout(_root: &TreeNode) -> Layout {
     // Calculate positions for each node
     Layout {
         width: 800.0,
