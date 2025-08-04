@@ -21,4 +21,5 @@ members = [
   "cli",
   "benchmarks",
   "test-mini",
+  "golden-tests",
 ]

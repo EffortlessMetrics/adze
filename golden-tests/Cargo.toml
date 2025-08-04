@@ -1,0 +1,21 @@
+[package]
+name = "rust-sitter-golden-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1.0"
+sha2 = "0.10"
+
+# Grammar dependencies (to be added when grammars are integrated)
+# rust-sitter-python = { path = "../grammars/python", optional = true }
+# rust-sitter-javascript = { path = "../grammars/javascript", optional = true }
+
+[features]
+default = []
+python-grammar = []  # Enable when Python grammar is available
+javascript-grammar = []  # Enable when JavaScript grammar is available
+all-grammars = ["python-grammar", "javascript-grammar"]
+
+[dev-dependencies]
