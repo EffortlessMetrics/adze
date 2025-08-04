@@ -31,6 +31,11 @@ enum TokenMatcher {
 
 impl TokenMatcher {
     fn matches_at(&self, input: &str, pos: usize) -> Option<usize> {
+        // Safety: ensure we're at a valid UTF-8 boundary
+        if !input.is_char_boundary(pos) {
+            return None;
+        }
+        
         match self {
             TokenMatcher::Literal(s) => {
                 if input[pos..].starts_with(s) {
@@ -108,8 +113,14 @@ impl GLRLexer {
         // Try each token pattern
         for (symbol_id, matcher) in &self.token_patterns {
             if let Some(len) = matcher.matches_at(&self.input, self.position) {
-                let text = self.input[self.position..self.position + len].to_string();
-                self.position += len;
+                // Ensure we're not splitting a UTF-8 sequence
+                let end_pos = self.position + len;
+                if !self.input.is_char_boundary(end_pos) {
+                    continue;
+                }
+                
+                let text = self.input[self.position..end_pos].to_string();
+                self.position = end_pos;
 
                 return Some(TokenWithPosition {
                     symbol_id: *symbol_id,
@@ -120,19 +131,42 @@ impl GLRLexer {
             }
         }
 
-        // No token matched - return error token or skip character
-        // For now, skip one character and try again
-        self.position += 1;
-        self.next_token()
+        // No token matched - skip one UTF-8 character and try again
+        // Find the next character boundary
+        let mut next_pos = self.position + 1;
+        while next_pos < self.input.len() && !self.input.is_char_boundary(next_pos) {
+            next_pos += 1;
+        }
+        self.position = next_pos;
+        
+        if self.position < self.input.len() {
+            self.next_token()
+        } else {
+            None
+        }
     }
 
     /// Skip whitespace characters
     fn skip_whitespace(&mut self) {
-        while self.position < self.input.len() {
-            let ch = self.input.chars().nth(self.position);
-            match ch {
-                Some(' ') | Some('\t') | Some('\n') | Some('\r') => {
-                    self.position += 1;
+        let input_chars: Vec<char> = self.input.chars().collect();
+        let mut char_pos = 0;
+        let mut byte_pos = 0;
+        
+        // Find current position in characters
+        for (i, ch) in self.input.chars().enumerate() {
+            if byte_pos >= self.position {
+                char_pos = i;
+                break;
+            }
+            byte_pos += ch.len_utf8();
+        }
+        
+        // Skip whitespace characters
+        while char_pos < input_chars.len() {
+            match input_chars[char_pos] {
+                ' ' | '\t' | '\n' | '\r' => {
+                    self.position += input_chars[char_pos].len_utf8();
+                    char_pos += 1;
                 }
                 _ => break,
             }
@@ -286,5 +320,55 @@ mod tests {
         assert_eq!(tokens[2].text, "2");
         assert_eq!(tokens[3].text, "+");
         assert_eq!(tokens[4].text, "3");
+    }
+
+    #[test]
+    fn test_utf8_boundary_safety() {
+        let mut grammar = Grammar::new("test".to_string());
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "word".to_string(),
+                pattern: TokenPattern::Regex(r"[a-zA-Z]+".to_string()),
+                fragile: false,
+            },
+        );
+
+        // Test input that caused fuzzer panic - byte 0xBE at invalid UTF-8 boundary
+        let input = vec![190u8, 0, 0];
+        let input_str = String::from_utf8_lossy(&input).to_string();
+        
+        // This should not panic
+        let mut lexer = GLRLexer::new(&grammar, input_str).unwrap();
+        let tokens = lexer.tokenize_all();
+        
+        // Should handle the invalid UTF-8 gracefully
+        assert_eq!(tokens.len(), 0); // No valid tokens in malformed input
+    }
+
+    #[test]
+    fn test_multibyte_character_handling() {
+        let mut grammar = Grammar::new("test".to_string());
+        
+        // Add a pattern that matches individual letters
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "letter".to_string(),
+                pattern: TokenPattern::Regex(r"[a-zA-Z]".to_string()),
+                fragile: false,
+            },
+        );
+
+        // Input with multi-byte UTF-8 emoji
+        let input = "a🦀b".to_string();
+        
+        let mut lexer = GLRLexer::new(&grammar, input).unwrap();
+        let tokens = lexer.tokenize_all();
+        
+        // Should tokenize only the ASCII letters, skipping the emoji
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0].text, "a");
+        assert_eq!(tokens[1].text, "b");
     }
 }
