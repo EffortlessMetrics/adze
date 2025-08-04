@@ -69,6 +69,7 @@
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
 use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
+use rust_sitter_glr_core::{RuntimeConflictResolver, VecWrapperResolver, FirstFollowSets};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
 use std::collections::VecDeque;
@@ -154,11 +155,18 @@ pub struct GLRParser {
 
     /// Error recovery state
     recovery_state: Option<ErrorRecoveryState>,
+    
+    /// Conflict resolver for vec wrapper conflicts
+    vec_wrapper_resolver: Option<VecWrapperResolver>,
 }
 
 impl GLRParser {
     pub fn new(table: ParseTable, grammar: Grammar) -> Self {
         let initial_stack = ParseStack::new(StateId(0), 0);
+        
+        // Compute FIRST/FOLLOW sets for the resolver
+        let first_follow = FirstFollowSets::compute(&grammar);
+        let vec_wrapper_resolver = Some(VecWrapperResolver::new(&grammar, &first_follow));
 
         Self {
             table,
@@ -168,6 +176,7 @@ impl GLRParser {
             pending_stacks: VecDeque::from([0]),
             error_recovery: None,
             recovery_state: None,
+            vec_wrapper_resolver,
         }
     }
 
@@ -240,16 +249,20 @@ impl GLRParser {
                     }
 
                     Action::Fork(actions) => {
-                        // Handle GLR fork - only process non-reduction actions here
-                        // Reductions were handled in phase 1
-                        for fork_action in actions.iter() {
-                            match fork_action {
+                        // Try to resolve the conflict with the vec wrapper resolver
+                        let resolved_action = if let Some(resolver) = &self.vec_wrapper_resolver {
+                            resolver.resolve(state, token, actions)
+                        } else {
+                            None
+                        };
+                        
+                        if let Some(action) = resolved_action {
+                            // Resolver chose a specific action
+                            match action {
                                 Action::Shift(new_state) => {
-                                    let mut forked = stack.fork(self.next_stack_id);
-                                    self.next_stack_id += 1;
-
-                                    forked.push(
-                                        *new_state,
+                                    let mut resolved_stack = stack.clone();
+                                    resolved_stack.push(
+                                        new_state,
                                         Arc::new(Subtree::new(
                                             SubtreeNode {
                                                 symbol_id: token,
@@ -259,8 +272,33 @@ impl GLRParser {
                                             vec![],
                                         )),
                                     );
-                                    new_stacks.push(forked);
+                                    new_stacks.push(resolved_stack);
                                 }
+                                _ => {} // Other actions handled elsewhere
+                            }
+                        } else {
+                            // No resolution - fork as usual
+                            // Handle GLR fork - only process non-reduction actions here
+                            // Reductions were handled in phase 1
+                            for fork_action in actions.iter() {
+                                match fork_action {
+                                    Action::Shift(new_state) => {
+                                        let mut forked = stack.fork(self.next_stack_id);
+                                        self.next_stack_id += 1;
+
+                                        forked.push(
+                                            *new_state,
+                                            Arc::new(Subtree::new(
+                                                SubtreeNode {
+                                                    symbol_id: token,
+                                                    is_error: false,
+                                                    byte_range: byte_offset..byte_offset + text.len(),
+                                                },
+                                                vec![],
+                                            )),
+                                        );
+                                        new_stacks.push(forked);
+                                    }
 
                                 Action::Reduce(_) => {
                                     // Reductions should have been handled in phase 1
@@ -268,6 +306,7 @@ impl GLRParser {
                                 }
 
                                 _ => {}
+                                }
                             }
                         }
                     }

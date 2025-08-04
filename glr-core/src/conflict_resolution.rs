@@ -2,6 +2,13 @@ use crate::{Grammar, StateId, SymbolId, ProductionId, Action, ParseTable, FirstF
 use rustc_hash::FxHashMap;
 use fixedbitset::FixedBitSet;
 
+/// Trait for resolving conflicts at runtime
+pub trait RuntimeConflictResolver {
+    /// Resolve a conflict between multiple actions
+    /// Returns Some(action) to take that action, or None to use default fork behavior
+    fn resolve(&self, state: StateId, lookahead: SymbolId, actions: &[Action]) -> Option<Action>;
+}
+
 pub struct VecWrapperResolver {
     // Cache: state -> optional vec wrapper empty production
     wrapper_states: FxHashMap<StateId, Option<ProductionId>>,
@@ -96,5 +103,36 @@ impl VecWrapperResolver {
     pub fn should_reduce_empty(&self, token: SymbolId) -> bool {
         // Reduce empty if NOT a statement starter
         !self.statement_starters.contains(token.0 as usize)
+    }
+}
+
+impl RuntimeConflictResolver for VecWrapperResolver {
+    fn resolve(&self, state: StateId, lookahead: SymbolId, actions: &[Action]) -> Option<Action> {
+        debug_assert!(actions.len() == 2, "VecWrapperResolver expects exactly 2 conflicting actions");
+        
+        // Look for a reduce action that's a vec_contents empty production
+        let mut reduce_action = None;
+        let mut shift_action = None;
+        
+        for action in actions {
+            match action {
+                Action::Reduce(_) => reduce_action = Some(action.clone()),
+                Action::Shift(_) => shift_action = Some(action.clone()),
+                _ => {}
+            }
+        }
+        
+        // If we have both shift and reduce actions
+        if let (Some(reduce), Some(shift)) = (reduce_action, shift_action) {
+            // Heuristic: if the lookahead is in FIRST(Statement), choose Shift
+            // Otherwise, choose Reduce (empty vec)
+            if self.statement_starters.contains(lookahead.0 as usize) {
+                Some(shift)
+            } else {
+                Some(reduce)
+            }
+        } else {
+            None
+        }
     }
 }
