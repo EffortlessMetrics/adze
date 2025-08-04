@@ -1,4 +1,4 @@
-use test_vec_wrapper::grammar::{parse, TestModule};
+use test_vec_wrapper::grammar::parse;
 
 #[test]
 fn test_empty_vec_no_fork() {

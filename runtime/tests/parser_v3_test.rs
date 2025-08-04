@@ -3,7 +3,6 @@
 use rust_sitter::parser::Parser;
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::*;
-use std::collections::BTreeMap;
 
 fn create_simple_arithmetic_grammar() -> Grammar {
     let mut grammar = Grammar {

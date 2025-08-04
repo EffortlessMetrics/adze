@@ -1,8 +1,6 @@
 //! Simple demonstration of incremental parsing capabilities
 
-use rust_sitter::{
-    glr_incremental::{Edit, IncrementalGLRParser, Position, ReuseStats},
-};
+use rust_sitter::glr_incremental::{Edit, Position, ReuseStats};
 
 fn main() {
     println!("=== Incremental Parsing Feature Demo ===\n");

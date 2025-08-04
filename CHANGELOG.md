@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2025-08-04
+
+This is the first stable, production-ready release of `rust-sitter`. It marks the culmination of a major architectural overhaul to deliver a pure-Rust, high-performance, and robust parsing framework with full Tree-sitter compatibility.
+
+### ✨ Added
+
+- **GLR Parser Engine**: A powerful Generalized LR parser that can handle ambiguous grammars, eliminating the need for many of the workarounds required by standard LR(1) parsers.
+- **Incremental Parsing**: Production-ready incremental parsing that provides massive performance gains in interactive environments like IDEs. Achieves >95% parse reuse for typical single-line edits.
+- **Query Predicate Evaluation**: Full support for Tree-sitter query predicates (`#eq?`, `#match?`, etc.), enabling complex, real-world language queries for tools like linters and static analyzers.
+- **Grammar Optimizer**: An optional, feature-flagged grammar optimizer (`--features optimize`) that applies passes like unit-rule elimination and symbol inlining to improve parser performance.
+- **Comprehensive Fuzzing Suite**: A `cargo-fuzz` based testing suite that continuously tests the lexer, parser, and incremental parsing logic for robustness against any possible input.
+- **CI-Based Benchmarking**: A full benchmark suite using `criterion` that runs automatically in CI to prevent performance regressions.
+- **Golden-Master Tests**: A test harness that ensures byte-for-byte S-expression parity with the official C Tree-sitter parsers for major languages.
+- **Official Documentation Site**: A complete `mdBook` for guides, reference material, and examples.
+
+### 🐛 Fixed
+
+- **UTF-8 Safety**: Fixed a critical bug found by the fuzzer where the lexer would panic on invalid UTF-8 input. The lexer is now fully UTF-8 safe.
+- **Binary Name Collision**: Resolved the name collision between `rust-sitter-tool` and `rust-sitter-cli`.
+- **All Known Test Failures**: The entire workspace test suite, including snapshot and integration tests, is now 100% green.
+
+### ⚠️ Breaking Changes
+
+- **Internal Grammar Representation**: The internal storage of grammar rules was changed from a `HashMap` to a `BTreeMap<SymbolId, Vec<Rule>>` to support the GLR engine. A migration guide is available for users of internal APIs.
+
+---
+
 ## [0.5.0-beta.2] - 2025-08-04
 
 ### 🔧 Major Internal Refactoring

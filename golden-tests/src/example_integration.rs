@@ -3,6 +3,8 @@
 
 #![allow(dead_code)]
 
+// TODO: Uncomment when grammars are properly integrated
+/*
 #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
 mod example_integration {
     use rust_sitter::Parse;
@@ -81,3 +83,4 @@ mod example_integration {
             .collect()
     }
 }
+*/

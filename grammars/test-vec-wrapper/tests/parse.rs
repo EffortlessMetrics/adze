@@ -1,4 +1,3 @@
-use test_vec_wrapper::grammar::{TestModule, TestStatement};
 
 #[test]
 fn test_empty() {
