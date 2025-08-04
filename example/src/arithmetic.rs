@@ -103,6 +103,17 @@ mod tests {
     }
 
     #[test]
+    fn test_empty_input() {
+        // Test parsing empty string
+        let result = grammar::parse("");
+        println!("Parse result for empty string: {:?}", result);
+        
+        // Test parsing whitespace-only string
+        let result2 = grammar::parse("   ");
+        println!("Parse result for whitespace: {:?}", result2);
+    }
+
+    #[test]
     fn failed_parses() {
         insta::assert_debug_snapshot!(grammar::parse("1 + 2"));
         insta::assert_debug_snapshot!(grammar::parse("1 - 2 -"));
