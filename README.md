@@ -10,6 +10,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [Project Status](./PROJECT_STATUS.md) - Current status and feature overview
 - [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference
 - [Migration Guide](./MIGRATION_GUIDE.md) - Migrating from Tree-sitter
+- [v0.5 Migration](./docs/migration-to-v0.5.md) - Upgrading from v0.4 to v0.5
 - [Roadmap](./ROADMAP.md) - Project roadmap and future plans
 - [Testing Framework](./TESTING_FRAMEWORK.md) - Comprehensive testing guide
 - [Performance Guide](./PERFORMANCE_GUIDE.md) - Optimization and benchmarking
@@ -305,31 +306,29 @@ for match_ in cursor.matches(&query, tree.root_node(), source.as_bytes()) {
 }
 ```
 
-### GLR Parsing (NEW!)
-Handle ambiguous grammars with a production-ready Generalized LR parser featuring full Tree-sitter compatibility:
+### GLR Parsing (NEW in v0.5!)
+Handle ambiguous grammars with a production-ready Generalized LR parser featuring runtime conflict resolution:
 
 ```rust
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, VecWrapperResolver};
+use rust_sitter::parser_v4::Parser;
 
 // Build LR(1) automaton with GLR support
 let first_follow = FirstFollowSets::compute(&grammar);
-let (states, parse_table) = build_lr1_automaton(&grammar, &first_follow)?;
+let (_states, parse_table) = build_lr1_automaton(&grammar, &first_follow)?;
 
-// Create GLR parser
-let mut parser = GLRParser::new(grammar, states, parse_table);
+// Create parser with conflict resolver for vec wrapper patterns
+let resolver = VecWrapperResolver::new(&grammar, &first_follow);
+let mut parser = Parser::new(grammar.clone(), parse_table, "my_language".to_string());
 
 // Parse with automatic conflict resolution
-parser.process_token(token_id, text, byte_offset);
-parser.process_eof();
+let result = parser.parse(source_code)?;
 
-if let Some(tree) = parser.get_best_parse() {
-    // Tree-sitter compatible conflict resolution:
-    // 1. Error cost (prefer fewer errors)
-    // 2. Dynamic precedence (PREC_DYNAMIC)
-    // 3. Static precedence and associativity
-    // 4. Lexicographic symbol comparison
-}
+// The parser automatically handles:
+// 1. Shift/reduce conflicts via GLR forking
+// 2. Vec wrapper empty production conflicts
+// 3. Error recovery with scope tracking
+// 4. Ambiguity resolution using precedence
 ```
 
 **GLR Features:**
