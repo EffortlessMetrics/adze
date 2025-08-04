@@ -1315,63 +1315,14 @@ pub fn build_lr1_automaton(
                             if let Some(&lookahead_idx) = symbol_to_index.get(&lookahead) {
                                 let new_action = Action::Reduce(item.rule_id);
 
-                            // Check if we should add this reduce based on precedence
-                            let precedence_resolver =
-                                StaticPrecedenceResolver::from_grammar(&augmented_grammar);
-                            let reduce_prec = precedence_resolver.rule_precedence(item.rule_id);
-                            let lookahead_prec =
-                                precedence_resolver.token_precedence(lookahead);
-
-                            // Check if there's a potential shift action for this lookahead
-                            let has_shift = item_set.items.iter().any(|other_item| {
-                                !other_item.is_reduce_item(&augmented_grammar)
-                                    && other_item.next_symbol(&augmented_grammar).is_some_and(
-                                        |sym| match sym {
-                                            Symbol::Terminal(id) => *id == lookahead,
-                                            _ => false,
-                                        },
-                                    )
-                            });
-
-                            // Debug if no shift action exists
-                            if !has_shift {
-                                eprintln!(
-                                    "DEBUG: State {} - No shift action for lookahead {}, will add reduce",
-                                    state_idx, lookahead.0
+                                // Always add reduce actions - let conflict resolution handle precedence
+                                add_action_with_conflict(
+                                    &mut action_table,
+                                    &mut conflicts_by_state,
+                                    state_idx,
+                                    lookahead_idx,
+                                    new_action,
                                 );
-                            }
-                            
-                            // If there's a shift action and precedence favors shift, don't add reduce
-                            if has_shift && lookahead_prec.is_some() && reduce_prec.is_some() {
-                                eprintln!(
-                                    "DEBUG: State {} - Checking precedence for lookahead {} (prec={:?}) vs reduce rule {} (prec={:?})",
-                                    state_idx, lookahead.0, lookahead_prec, item.rule_id.0, reduce_prec
-                                );
-                                match compare_precedences(lookahead_prec, reduce_prec) {
-                                    PrecedenceComparison::PreferShift => {
-                                        eprintln!(
-                                            "DEBUG: State {} - Skipping reduce action for lookahead {} due to precedence",
-                                            state_idx, lookahead.0
-                                        );
-                                        continue;
-                                    }
-                                    _ => {
-                                        eprintln!(
-                                            "DEBUG: State {} - Adding reduce action for lookahead {} (precedence allows)",
-                                            state_idx, lookahead.0
-                                        );
-                                        // Add the reduce action
-                                    }
-                                }
-                            }
-
-                            add_action_with_conflict(
-                                &mut action_table,
-                                &mut conflicts_by_state,
-                                state_idx,
-                                lookahead_idx,
-                                new_action,
-                            );
 
                                 // Debug: Log reduce actions being added
                                 eprintln!(
