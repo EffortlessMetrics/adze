@@ -83,6 +83,12 @@ pub fn extract_struct_or_variant<T>(
     node: &ParsedNode,
     construct_expr: impl Fn(&mut Option<TreeCursor>, &mut usize) -> T,
 ) -> T {
+    // Debug output commented out
+    // eprintln!("DEBUG extract_struct_or_variant: node.symbol={}, children={}", node.symbol, node.children.len());
+    // for (i, child) in node.children.iter().enumerate() {
+    //     eprintln!("  child[{}]: symbol={}, field_name={:?}", i, child.symbol, child.field_name);
+    // }
+    
     let mut cursor = TreeCursor::new(node);
     let mut cursor_opt = if cursor.goto_first_child() {
         Some(cursor)
@@ -140,20 +146,36 @@ pub fn extract_field<LT: Extract<T>, T>(
     closure_ref: Option<&LT::LeafFn>,
 ) -> T {
     if let Some(cursor) = cursor_opt.as_mut() {
-        loop {
-            let n = cursor.node();
-            // TODO: Field names are not yet supported in pure-rust parser
-            // For now, we'll just get the next child
-            let out = LT::extract(Some(n), source, *last_idx, closure_ref);
-
-            if !cursor.goto_next_sibling() {
-                *cursor_opt = None;
-            }
-
-            *last_idx = n.end_byte;
-            return out;
+        // Since field names are not available in pure-rust parser,
+        // we extract from the current child and advance the cursor
+        let n = cursor.node();
+        // eprintln!("DEBUG extract_field: Field '{}' requested, node: symbol={}, children={}", 
+        //     _field_name, n.symbol, n.children.len());
+        
+        // Check if we're dealing with a node that has no children
+        // This happens when a struct has a single leaf field - the node IS the field value
+        if n.children.is_empty() && cursor.current_index == 0 {
+            // eprintln!("  Special case: node has no children, likely a single-field struct");
+            // The parent node itself contains the field value
+            // Don't advance cursor since there are no siblings
+            let parent_node = cursor.node;
+            let end_byte = parent_node.end_byte;
+            *cursor_opt = None;
+            *last_idx = end_byte;
+            return LT::extract(Some(parent_node), source, *last_idx, closure_ref);
         }
+        
+        let out = LT::extract(Some(n), source, *last_idx, closure_ref);
+        
+        if !cursor.goto_next_sibling() {
+            *cursor_opt = None;
+        }
+        
+        *last_idx = n.end_byte;
+        
+        return out;
     } else {
+        // eprintln!("DEBUG extract_field: No cursor for field '{}'", _field_name);
         LT::extract(None, source, *last_idx, closure_ref)
     }
 }

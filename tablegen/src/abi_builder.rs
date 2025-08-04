@@ -29,11 +29,45 @@ impl<'a> AbiLanguageBuilder<'a> {
         self.compressed_tables = Some(tables);
         self
     }
+    
+    /// Get the name of a symbol for debugging
+    fn get_symbol_name(&self, symbol_id: SymbolId) -> String {
+        if symbol_id.0 == 0 {
+            "end".to_string()
+        } else if let Some(name) = self.grammar.rule_names.get(&symbol_id) {
+            name.clone()
+        } else if let Some(token) = self.grammar.tokens.get(&symbol_id) {
+            token.name.clone()
+        } else {
+            format!("???{}", symbol_id.0)
+        }
+    }
 
     /// Generate the complete language module
     pub fn generate(&self) -> TokenStream {
         let language_name = &self.grammar.name;
         let language_fn_ident = quote::format_ident!("tree_sitter_{}", language_name);
+        
+        eprintln!("DEBUG AbiLanguageBuilder: Generating language for '{}'", language_name);
+        eprintln!("DEBUG AbiLanguageBuilder: symbol_to_index mapping:");
+        for (symbol_id, &index) in &self.parse_table.symbol_to_index {
+            let symbol_name = self.get_symbol_name(*symbol_id);
+            eprintln!("  SymbolId({}) -> index {} ('{}')", symbol_id.0, index, symbol_name);
+        }
+        
+        // Check what the initial state expects
+        if !self.parse_table.action_table.is_empty() {
+            eprintln!("DEBUG AbiLanguageBuilder: State 0 actions:");
+            for (symbol_idx, action) in self.parse_table.action_table[0].iter().enumerate() {
+                if !matches!(action, Action::Error) {
+                    // Find the symbol ID for this index
+                    let symbol_id = self.parse_table.symbol_to_index.iter()
+                        .find(|(_, idx)| **idx == symbol_idx)
+                        .map(|(id, _)| *id);
+                    eprintln!("  Index {} (SymbolId {:?}): {:?}", symbol_idx, symbol_id, action);
+                }
+            }
+        }
 
         // Generate all static data with deterministic ordering
         let (symbol_names, symbol_name_ptrs) = self.generate_symbol_names();

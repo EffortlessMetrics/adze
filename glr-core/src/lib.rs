@@ -1086,6 +1086,11 @@ pub fn build_lr1_automaton(
     let original_start = grammar
         .start_symbol()
         .ok_or(GLRError::GrammarError(GrammarError::UnresolvedSymbol(SymbolId(0))))?;
+        
+    eprintln!("DEBUG augment_grammar: Original start symbol is SymbolId({})", original_start.0);
+    if let Some(name) = grammar.rule_names.get(&original_start) {
+        eprintln!("DEBUG augment_grammar: Start symbol name: '{}'", name);
+    }
 
     // Create a new start symbol S' with a high ID that won't conflict
     let augmented_start = SymbolId(65535); // High ID to avoid conflicts

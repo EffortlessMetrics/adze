@@ -243,32 +243,35 @@ fn gen_field(
             })
         };
 
-        if repeat_non_empty {
-            // Non-empty vectors: create a named rule and reference it
-            let contents_ident = format!("{path}_vec_contents");
-            out.insert(contents_ident.clone(), vec_contents);
-            
-            (
-                json!({
-                    "type": "SYMBOL",
-                    "name": contents_ident,
-                }),
-                false
-            )
+        // Always create a named rule with REPEAT1 (never empty)
+        let contents_ident = format!("{path}_vec_contents");
+        out.insert(contents_ident.clone(), vec_contents);
+        
+        // Return a reference to the named rule
+        // If the Vec can be empty, wrap in CHOICE to make it optional
+        let reference = if !repeat_non_empty {
+            // Vec can be empty, so make the reference optional
+            json!({
+                "type": "CHOICE",
+                "members": [
+                    {
+                        "type": "BLANK"
+                    },
+                    {
+                        "type": "SYMBOL",
+                        "name": contents_ident,
+                    }
+                ]
+            })
         } else {
-            // Empty vectors: inline the CHOICE to avoid creating a potentially empty named rule
-            // This prevents Tree-sitter's EmptyString error
-            (
-                json!({
-                    "type": "CHOICE",
-                    "members": [
-                        {"type": "BLANK"},
-                        vec_contents  // Inline the REPEAT1 directly
-                    ]
-                }),
-                false  // Already wrapped in CHOICE, don't make it optional again
-            )
-        }
+            // Vec must have at least one element
+            json!({
+                "type": "SYMBOL",
+                "name": contents_ident,
+            })
+        };
+        
+        (reference, false) // Never mark as optional since we handle it in the reference
     } else {
         // is_option
         let (field_json, field_optional) =

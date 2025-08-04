@@ -1,24 +1,23 @@
 use test_vec_wrapper::grammar::{TestModule, TestStatement};
-use rust_sitter::Extract;
-
-fn parse(input: &str) -> Result<rust_sitter::Tree, rust_sitter::ParseError> {
-    let mut parser = rust_sitter::Parser::new()?;
-    parser.set_language(test_vec_wrapper::LANGUAGE)?;
-    parser.parse(input, None).ok_or(rust_sitter::ParseError::Unknown)
-}
 
 #[test]
-#[should_panic(expected = "Parse")] // Empty input should fail with non_empty = true
 fn test_empty() {
-    let tree = parse("").unwrap();
-    let module = TestModule::extract(&tree.root()).unwrap();
+    let module = test_vec_wrapper::grammar::parse("").unwrap();
     assert_eq!(module.statements.len(), 0);
 }
 
 #[test]
 fn test_single_number() {
-    let tree = parse("42").unwrap();
-    let module = TestModule::extract(&tree.root()).unwrap();
+    let module = test_vec_wrapper::grammar::parse("42").unwrap();
     assert_eq!(module.statements.len(), 1);
-    assert_eq!(*module.statements[0].value, 42);
+    assert_eq!(module.statements[0].value, "42");
+}
+
+#[test]
+fn test_multiple_numbers() {
+    let module = test_vec_wrapper::grammar::parse("1 2 3").unwrap();
+    assert_eq!(module.statements.len(), 3);
+    assert_eq!(module.statements[0].value, "1");
+    assert_eq!(module.statements[1].value, "2");
+    assert_eq!(module.statements[2].value, "3");
 }

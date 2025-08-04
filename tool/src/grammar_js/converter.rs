@@ -36,6 +36,9 @@ impl GrammarJsConverter {
 
     /// Convert Grammar.js to Rust-sitter Grammar IR
     pub fn convert(mut self) -> Result<Grammar> {
+        eprintln!("DEBUG converter.convert: Starting conversion for grammar '{}'", self.grammar_js.name);
+        eprintln!("DEBUG converter.convert: Grammar.js has {} rules", self.grammar_js.rules.len());
+        
         let mut grammar = Grammar {
             name: self.grammar_js.name.clone(),
             rules: IndexMap::new(),
@@ -117,6 +120,22 @@ impl GrammarJsConverter {
 
         // Copy fields
         grammar.fields = self.fields.clone();
+        
+        eprintln!("DEBUG converter.convert: Final grammar has {} rules", grammar.rules.len());
+        eprintln!("DEBUG converter.convert: Final grammar has {} tokens", grammar.tokens.len());
+        eprintln!("DEBUG converter.convert: Final grammar rule_names:");
+        for (symbol_id, name) in &grammar.rule_names {
+            eprintln!("  SymbolId({}) -> '{}'", symbol_id.0, name);
+        }
+        
+        // Check what the start symbol will be
+        if let Some(start_symbol) = grammar.start_symbol() {
+            eprintln!("DEBUG converter.convert: Start symbol is SymbolId({}) -> '{}'", 
+                start_symbol.0, 
+                grammar.rule_names.get(&start_symbol).unwrap_or(&"???".to_string()));
+        } else {
+            eprintln!("DEBUG converter.convert: No start symbol found!");
+        }
 
         Ok(grammar)
     }
@@ -141,9 +160,11 @@ impl GrammarJsConverter {
         }
 
         // Add common terminal tokens
-        self.add_terminal_token(grammar, "_STRING", r#""[^"]*""#)?;
-        self.add_terminal_token(grammar, "_NUMBER", r"-?\d+(\.\d+)?")?;
-        self.add_terminal_token(grammar, "_IDENTIFIER", r"[a-zA-Z_]\w*")?;
+        // NOTE: Commented out because these default tokens interfere with custom patterns
+        // and cause incorrect lexer generation
+        // self.add_terminal_token(grammar, "_STRING", r#""[^"]*""#)?;
+        // self.add_terminal_token(grammar, "_NUMBER", r"-?\d+(\.\d+)?")?;
+        // self.add_terminal_token(grammar, "_IDENTIFIER", r"[a-zA-Z_]\w*")?;
 
         // Add whitespace token if in extras
         let has_whitespace = self.grammar_js.extras.iter().any(|extra| {
@@ -364,7 +385,48 @@ impl GrammarJsConverter {
                     "Debug: FIELD conversion - lhs: SymbolId({}), field: {}, content: {:?}",
                     lhs.0, name, content
                 );
-                if let Some(symbol) = self.rule_to_symbol(grammar, content) {
+                
+                // Special handling for CHOICE in field content
+                if let JsRule::Choice { members } = content.as_ref() {
+                    eprintln!("Debug: FIELD contains CHOICE, converting each member with field");
+                    // For CHOICE in field, we need to create rules for each member with the field attached
+                    for (i, member) in members.iter().enumerate() {
+                        eprintln!("Debug: Converting choice member {} for field {}", i, name);
+                        
+                        // Handle BLANK specially - create empty rule with field
+                        if matches!(member, JsRule::Blank) {
+                            eprintln!("Debug: Adding empty rule for BLANK with field {}", name);
+                            let rule = Rule {
+                                lhs,
+                                rhs: vec![], // Empty rule
+                                precedence: None,
+                                associativity: None,
+                                fields: vec![], // Empty rules don't have field positions
+                                production_id: ProductionId(self.next_production_id.try_into().unwrap()),
+                            };
+                            self.next_production_id += 1;
+                            
+                            let rule_id = RuleId(grammar.rules.values().map(|v| v.len()).sum::<usize>().try_into().unwrap());
+                            grammar.production_ids.insert(rule_id, rule.production_id);
+                            grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
+                        } else if let Some(symbol) = self.rule_to_symbol(grammar, member) {
+                            eprintln!("Debug: Adding rule with symbol {:?} and field {}", symbol, name);
+                            let rule = Rule {
+                                lhs,
+                                rhs: vec![symbol],
+                                precedence: None,
+                                associativity: None,
+                                fields: vec![(field_id, 0)], // Attach field to position 0
+                                production_id: ProductionId(self.next_production_id.try_into().unwrap()),
+                            };
+                            self.next_production_id += 1;
+                            
+                            let rule_id = RuleId(grammar.rules.values().map(|v| v.len()).sum::<usize>().try_into().unwrap());
+                            grammar.production_ids.insert(rule_id, rule.production_id);
+                            grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
+                        }
+                    }
+                } else if let Some(symbol) = self.rule_to_symbol(grammar, content) {
                     eprintln!("Debug: FIELD resolved to symbol: {:?}", symbol);
                     let rule = Rule {
                         lhs,

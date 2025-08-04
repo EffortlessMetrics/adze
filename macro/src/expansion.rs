@@ -396,6 +396,11 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                     });
 
 
+                    // Generate different extract expressions for pure-rust vs non-pure-rust
+                    // because pure-rust uses &ParsedNode while non-pure-rust uses Node by value
+                    let extract_expr_std = extract_expr.clone();
+                    
+                    // Always generate both versions - the cfg will be evaluated when the generated code is compiled
                     let extract_impl: Item = syn::parse_quote! {
                         impl ::rust_sitter::Extract<#struct_name> for #struct_name {
                             type LeafFn = ();
@@ -404,7 +409,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             #[cfg(not(feature = "pure-rust"))]
                             fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
-                                #extract_expr
+                                #extract_expr_std
                             }
 
                             #[allow(non_snake_case)]
@@ -423,48 +428,60 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         })
         .sift::<Vec<_>>()?.into_iter().flatten().collect();
 
-    #[cfg(not(feature = "pure-rust"))]
+    // Generate both backend implementations with cfg attributes in the output
     let tree_sitter_ident = Ident::new(&format!("tree_sitter_{grammar_name}"), Span::call_site());
 
     // For C backend compatibility
-    #[cfg(not(feature = "pure-rust"))]
     transformed.push(syn::parse_quote! {
+        #[cfg(not(feature = "pure-rust"))]
         unsafe extern "C" {
             fn #tree_sitter_ident() -> ::rust_sitter::tree_sitter::Language;
         }
     });
 
-    #[cfg(not(feature = "pure-rust"))]
     transformed.push(syn::parse_quote! {
+        #[cfg(not(feature = "pure-rust"))]
         pub fn language() -> ::rust_sitter::tree_sitter::Language {
             unsafe { #tree_sitter_ident() }
         }
     });
 
     // For pure-rust backend
-    #[cfg(feature = "pure-rust")]
-    {
-        // Generate a function that includes the generated parser at runtime
-        transformed.push(syn::parse_quote! {
-            include!(concat!(env!("OUT_DIR"), "/grammar_", #grammar_name, "/parser_", #grammar_name, ".rs"));
-        });
+    transformed.push(syn::parse_quote! {
+        #[cfg(feature = "pure-rust")]
+        include!(concat!(env!("OUT_DIR"), "/grammar_", #grammar_name, "/parser_", #grammar_name, ".rs"));
+    });
 
-        transformed.push(syn::parse_quote! {
-            pub fn language() -> &'static ::rust_sitter::pure_parser::TSLanguage {
-                unsafe { &LANGUAGE }
-            }
-        });
-    }
+    transformed.push(syn::parse_quote! {
+        #[cfg(feature = "pure-rust")]
+        pub fn language() -> &'static ::rust_sitter::pure_parser::TSLanguage {
+            unsafe { &LANGUAGE }
+        }
+    });
 
     let root_type_docstr = format!("[`{root_type}`]");
+    
+    // Generate parse function for non-pure-rust
     transformed.push(syn::parse_quote! {
-    /// Parse an input string according to the grammar. Returns either any parsing errors that happened, or a
-    #[doc = #root_type_docstr]
-    /// instance containing the parsed structured data.
-      pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::rust_sitter::errors::ParseError>> {
-        ::rust_sitter::__private::parse::<#root_type>(input, language)
-      }
-  });
+        /// Parse an input string according to the grammar. Returns either any parsing errors that happened, or a
+        #[doc = #root_type_docstr]
+        /// instance containing the parsed structured data.
+        #[cfg(not(feature = "pure-rust"))]
+        pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::rust_sitter::errors::ParseError>> {
+            ::rust_sitter::__private::parse::<#root_type>(input, language)
+        }
+    });
+    
+    // Generate parse function for pure-rust
+    transformed.push(syn::parse_quote! {
+        /// Parse an input string according to the grammar. Returns either any parsing errors that happened, or a
+        #[doc = #root_type_docstr]
+        /// instance containing the parsed structured data.
+        #[cfg(feature = "pure-rust")]
+        pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::rust_sitter::errors::ParseError>> {
+            ::rust_sitter::__private::parse::<#root_type>(input, language)
+        }
+    });
 
     let mut filtered_attrs = input.attrs;
     filtered_attrs.retain(|a| !is_sitter_attr(a));

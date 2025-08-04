@@ -493,7 +493,17 @@ impl Parser {
                                     if subtree.symbol == 8 && token.symbol == 0 {
                                         // EOF
                                         // Parse successful!
-                                        ////eprintln!("DEBUG: Parse accepted! Root symbol found.");
+                                        eprintln!("DEBUG: Parse accepted! Root subtree:");
+                                        fn print_subtree(subtree: &Subtree, indent: usize) {
+                                            eprintln!("{}symbol={}, children={}, bytes={}..{}", 
+                                                "  ".repeat(indent), subtree.symbol, subtree.children.len(), 
+                                                subtree.start_byte, subtree.end_byte);
+                                            for child in &subtree.children {
+                                                print_subtree(child, indent + 1);
+                                            }
+                                        }
+                                        print_subtree(subtree, 1);
+                                        
                                         return ParseResult {
                                             root: Some(subtree_to_node(
                                                 subtree.clone(),

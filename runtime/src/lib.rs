@@ -240,12 +240,49 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
         node.map(|node| {
             let mut out = vec![];
             
-            // For pure-rust, iterate through children directly
-            for child in &node.children {
-                // TODO: Check field names when available
-                out.push(T::extract(Some(child), source, last_idx, leaf_fn));
-                last_idx = child.end_byte;
+            // Debug output commented out
+            // eprintln!("DEBUG Vec extract: node.symbol={}, children.len()={}", node.symbol, node.children.len());
+            // for (i, child) in node.children.iter().enumerate() {
+            //     eprintln!("  child[{}]: symbol={}, field_name={:?}", i, child.symbol, child.field_name);
+            // }
+            
+            // For pure-rust parser, REPEAT1 creates a right-recursive structure:
+            // For "12 23", the structure is:
+            // - Vec_contents has [Vec_contents("12"), TestStatement("23")]
+            // We need to flatten this recursively
+            fn flatten_repeat1<T: Extract<U>, U>(
+                node: &crate::pure_parser::ParsedNode,
+                source: &[u8],
+                mut last_idx: usize,
+                leaf_fn: Option<&T::LeafFn>,
+                out: &mut Vec<U>,
+            ) {
+                // eprintln!("  flatten_repeat1: node.symbol={}, children={}", node.symbol, node.children.len());
+                
+                // Check if this node has exactly 2 children and the first is the same symbol
+                // This indicates a REPEAT1 recursive structure
+                if node.children.len() == 2 && !node.children.is_empty() && node.children[0].symbol == node.symbol {
+                    // Recursively process the first child (which contains earlier elements)
+                    flatten_repeat1::<T, U>(&node.children[0], source, last_idx, leaf_fn, out);
+                    // Then extract the second child (the last element)
+                    // eprintln!("  Extracting element from symbol={}", node.children[1].symbol);
+                    out.push(T::extract(Some(&node.children[1]), source, node.children[0].end_byte, leaf_fn));
+                } else if node.children.len() == 1 {
+                    // Base case: single element
+                    // eprintln!("  Base case: extracting single element from symbol={}", node.children[0].symbol);
+                    out.push(T::extract(Some(&node.children[0]), source, last_idx, leaf_fn));
+                } else {
+                    // Fallback: extract all children
+                    for child in &node.children {
+                        // eprintln!("  Fallback: extracting child symbol={}", child.symbol);
+                        out.push(T::extract(Some(child), source, last_idx, leaf_fn));
+                        last_idx = child.end_byte;
+                    }
+                }
             }
+            
+            flatten_repeat1::<T, U>(node, source, last_idx, leaf_fn, &mut out);
+            // eprintln!("  Vec extract returning {} items", out.len());
             out
         })
         .unwrap_or_default()

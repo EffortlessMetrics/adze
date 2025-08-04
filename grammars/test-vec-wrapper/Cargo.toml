@@ -3,8 +3,13 @@ name = "test-vec-wrapper"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["pure-rust"]
+pure-rust = ["rust-sitter/pure-rust"]
+
 [dependencies]
-rust-sitter = { path = "../../runtime", features = ["pure-rust"] }
+rust-sitter = { path = "../../runtime" }
 
 [build-dependencies]
 rust-sitter-tool = { path = "../../tool" }
+serde_json = "1.0"
