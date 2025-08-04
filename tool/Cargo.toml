@@ -19,6 +19,7 @@ build_parsers = [
     "dep:cc",
 ]
 no_opt = []   # compile without the optimizer for debugging
+optimize = ["rust-sitter-ir/optimize"]
 
 [dependencies]
 syn = { version = "2", features = ["full", "extra-traits"] }

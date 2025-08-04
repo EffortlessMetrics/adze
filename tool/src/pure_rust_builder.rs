@@ -63,18 +63,18 @@ pub fn build_parser_from_grammar_js(
 
     // Convert to IR
     let converter = GrammarJsConverter::new(grammar_js);
-    let grammar = converter
+    let mut grammar = converter
         .convert()
         .context("Failed to convert grammar.js to IR")?;
 
     // Grammar converted successfully
 
     // Optimize the grammar
-    // TODO: Re-enable optimization after fixing unit rule elimination
-    // #[cfg(not(feature = "no_opt"))]
-    // {
-    //     grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
-    // }
+    #[cfg(feature = "optimize")]
+    {
+        use rust_sitter_ir::optimizer::optimize_grammar;
+        grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
+    }
 
     // Grammar optimized successfully
 
