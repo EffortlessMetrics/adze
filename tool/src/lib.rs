@@ -1,5 +1,6 @@
 use serde_json::Value;
 use syn::{Item, parse_quote};
+use std::error::Error;
 
 mod expansion;
 use expansion::*;
@@ -75,7 +76,13 @@ pub fn build_parsers(root_file: &Path) {
             }
             Err(e) => {
                 eprintln!("Failed to build pure-Rust parser: {}", e);
-                eprintln!("Falling back to C parser generation");
+                // Print the full error chain
+                let mut source = e.source();
+                while let Some(err) = source {
+                    eprintln!("  Caused by: {}", err);
+                    source = err.source();
+                }
+                panic!("FATAL: Pure-Rust parser generation failed: {:#}", e);
             }
         }
     }

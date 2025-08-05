@@ -187,7 +187,7 @@ impl StaticLanguageGenerator {
             let supertype = false;
 
             metadata.push(quote! {
-                ts::ffi::TSSymbolMetadata {
+                rust_sitter::ffi::TSSymbolMetadata {
                     visible: #visible,
                     named: #named,
                     supertype: #supertype,
@@ -207,7 +207,7 @@ impl StaticLanguageGenerator {
             let supertype = self.grammar.supertypes.contains(symbol_id);
 
             metadata.push(quote! {
-                ts::ffi::TSSymbolMetadata {
+                rust_sitter::ffi::TSSymbolMetadata {
                     visible: #visible,
                     named: #named,
                     supertype: #supertype,
@@ -223,7 +223,7 @@ impl StaticLanguageGenerator {
             let supertype = false;
 
             metadata.push(quote! {
-                ts::ffi::TSSymbolMetadata {
+                rust_sitter::ffi::TSSymbolMetadata {
                     visible: #visible,
                     named: #named,
                     supertype: #supertype,
@@ -247,7 +247,7 @@ impl StaticLanguageGenerator {
         let goto_entries = self.generate_goto_table_entries();
 
         let action_table = quote! {
-            static ACTION_TABLE: &[&[ts::ffi::TSParseActionEntry]] = &[#(#action_entries),*];
+            static ACTION_TABLE: &[&[rust_sitter::ffi::TSParseActionEntry]] = &[#(#action_entries),*];
         };
 
         let goto_table = quote! {
@@ -372,8 +372,8 @@ impl StaticLanguageGenerator {
                         Action::Shift(state) => {
                             let state_id = state.0;
                             quote! {
-                                ts::ffi::TSParseActionEntry {
-                                    type_: ts::ffi::TSParseActionType::Shift,
+                                rust_sitter::ffi::TSParseActionEntry {
+                                    type_: rust_sitter::ffi::TSParseActionType::Shift,
                                     state: #state_id,
                                     symbol: 0,
                                     child_count: 0,
@@ -385,8 +385,8 @@ impl StaticLanguageGenerator {
                         Action::Reduce(rule) => {
                             let rule_id = rule.0;
                             quote! {
-                                ts::ffi::TSParseActionEntry {
-                                    type_: ts::ffi::TSParseActionType::Reduce,
+                                rust_sitter::ffi::TSParseActionEntry {
+                                    type_: rust_sitter::ffi::TSParseActionType::Reduce,
                                     state: 0,
                                     symbol: #rule_id,
                                     child_count: 0, // Will be filled with actual child count
@@ -397,8 +397,8 @@ impl StaticLanguageGenerator {
                         }
                         Action::Accept => {
                             quote! {
-                                ts::ffi::TSParseActionEntry {
-                                    type_: ts::ffi::TSParseActionType::Accept,
+                                rust_sitter::ffi::TSParseActionEntry {
+                                    type_: rust_sitter::ffi::TSParseActionType::Accept,
                                     state: 0,
                                     symbol: 0,
                                     child_count: 0,
@@ -409,8 +409,8 @@ impl StaticLanguageGenerator {
                         }
                         Action::Error => {
                             quote! {
-                                ts::ffi::TSParseActionEntry {
-                                    type_: ts::ffi::TSParseActionType::Error,
+                                rust_sitter::ffi::TSParseActionEntry {
+                                    type_: rust_sitter::ffi::TSParseActionType::Error,
                                     state: 0,
                                     symbol: 0,
                                     child_count: 0,
@@ -427,8 +427,8 @@ impl StaticLanguageGenerator {
                                     Action::Shift(state) => {
                                         let state_id = state.0;
                                         quote! {
-                                            ts::ffi::TSParseActionEntry {
-                                                type_: ts::ffi::TSParseActionType::Shift,
+                                            rust_sitter::ffi::TSParseActionEntry {
+                                                type_: rust_sitter::ffi::TSParseActionType::Shift,
                                                 state: #state_id,
                                                 symbol: 0,
                                                 child_count: 0,
@@ -439,8 +439,8 @@ impl StaticLanguageGenerator {
                                     }
                                     _ => {
                                         quote! {
-                                            ts::ffi::TSParseActionEntry {
-                                                type_: ts::ffi::TSParseActionType::Error,
+                                            rust_sitter::ffi::TSParseActionEntry {
+                                                type_: rust_sitter::ffi::TSParseActionType::Error,
                                                 state: 0,
                                                 symbol: 0,
                                                 child_count: 0,
@@ -452,8 +452,8 @@ impl StaticLanguageGenerator {
                                 }
                             } else {
                                 quote! {
-                                    ts::ffi::TSParseActionEntry {
-                                        type_: ts::ffi::TSParseActionType::Error,
+                                    rust_sitter::ffi::TSParseActionEntry {
+                                        type_: rust_sitter::ffi::TSParseActionType::Error,
                                         state: 0,
                                         symbol: 0,
                                         child_count: 0,

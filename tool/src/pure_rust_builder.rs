@@ -206,8 +206,18 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     }
 
     // Step 2: Build LR(1) automaton
-    let parse_table =
-        build_lr1_automaton(&grammar, &first_follow).context("Failed to build LR(1) automaton")?;
+    let parse_table = match build_lr1_automaton(&grammar, &first_follow) {
+        Ok(table) => table,
+        Err(e) => {
+            eprintln!("ERROR building LR(1) automaton for {}: {}", grammar_name, e);
+            eprintln!("Grammar stats: {} tokens, {} rules, {} externals", 
+                grammar.tokens.len(), 
+                grammar.rules.len(), 
+                grammar.externals.len()
+            );
+            return Err(anyhow::anyhow!("Failed to build LR(1) automaton: {}", e));
+        }
+    };
 
     writeln!(
         debug_file,

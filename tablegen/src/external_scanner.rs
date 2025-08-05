@@ -75,7 +75,7 @@ impl ExternalScannerGenerator {
             static EXTERNAL_SCANNER_SYMBOL_MAP: &[u16] = &[#(#symbol_map),*];
 
             // External scanner data
-            static EXTERNAL_SCANNER_DATA: ts::ffi::TSExternalScannerData = ts::ffi::TSExternalScannerData {
+            static EXTERNAL_SCANNER_DATA: rust_sitter::ffi::TSExternalScannerData = rust_sitter::ffi::TSExternalScannerData {
                 states: EXTERNAL_SCANNER_STATES.as_ptr(),
                 symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr(),
                 create: None, // TODO: Link to user scanner

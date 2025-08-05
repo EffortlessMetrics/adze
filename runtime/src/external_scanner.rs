@@ -1,7 +1,7 @@
 // External scanner runtime for the pure-Rust Tree-sitter implementation
 // This module provides the runtime support for custom lexing logic
 
-use rust_sitter_ir::SymbolId;
+use crate::SymbolId;
 use std::collections::HashSet;
 
 /// Result of external scanning

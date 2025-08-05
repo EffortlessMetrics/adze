@@ -1,7 +1,40 @@
 //! FFI types and functions for bridging between C and Rust interfaces
 
-use core::ffi::c_void;
+use core::ffi::c_char;
 use crate::external_scanner_ffi::TSLexer;
+
+// Re-export types from external_scanner_ffi
+pub use crate::external_scanner_ffi::TSExternalScannerData;
+
+// Type alias for TSSymbol
+pub type TSSymbol = u16;
+
+/// Tree-sitter symbol metadata
+#[repr(C)]
+pub struct TSSymbolMetadata {
+    pub visible: bool,
+    pub named: bool,
+    pub supertype: bool,
+}
+
+/// Tree-sitter parse action types
+#[repr(C)]
+pub enum TSParseActionType {
+    Shift = 0,
+    Reduce = 1,
+    Accept = 2,
+    Error = 3,
+}
+
+/// Tree-sitter parse action entry
+#[repr(C)]
+pub struct TSParseActionEntry {
+    pub type_: TSParseActionType,
+    pub state: u16,
+    pub symbol: u16,
+    pub child_count: u8,
+    pub production_id: u8,
+}
 
 /// Runtime state for the lexer adapter
 pub struct LexerAdapterState {
@@ -13,6 +46,8 @@ pub struct LexerAdapterState {
     pub length: usize,
     /// End position of the current token
     pub token_end: usize,
+    /// Current lookahead character
+    pub lookahead: u32,
 }
 
 /// Create a lexer adapter for use in scan functions
@@ -25,11 +60,19 @@ pub unsafe fn create_lexer_adapter(
     length: usize,
 ) -> (*mut TSLexer, *mut LexerAdapterState) {
     // Create the adapter state
+    let mut initial_lookahead = 0u32;
+    if position < length {
+        unsafe {
+            initial_lookahead = *input.add(position) as u32;
+        }
+    }
+    
     let state = Box::new(LexerAdapterState {
         input,
         position,
         length,
         token_end: position,
+        lookahead: initial_lookahead,
     });
     let state_ptr = Box::into_raw(state);
     
@@ -47,8 +90,10 @@ pub unsafe fn create_lexer_adapter(
     
     // Store the state pointer in a way that the callback functions can access it
     // For simplicity, we'll use the lexer pointer + 1 to store the state pointer
-    let state_storage = lexer_ptr.add(1) as *mut *mut LexerAdapterState;
-    *state_storage = state_ptr;
+    let state_storage = unsafe { lexer_ptr.add(1) } as *mut *mut LexerAdapterState;
+    unsafe {
+        *state_storage = state_ptr;
+    }
     
     (lexer_ptr, state_ptr)
 }
@@ -59,10 +104,14 @@ pub unsafe fn destroy_lexer_adapter(
     state: *mut LexerAdapterState,
 ) {
     if !lexer.is_null() {
-        let _ = Box::from_raw(lexer);
+        unsafe {
+            let _ = Box::from_raw(lexer);
+        }
     }
     if !state.is_null() {
-        let _ = Box::from_raw(state);
+        unsafe {
+            let _ = Box::from_raw(state);
+        }
     }
 }
 
@@ -75,15 +124,7 @@ extern "C" fn ts_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
             return 0;
         }
         let state = &*state_ptr;
-        
-        if state.position >= state.length {
-            return 0; // EOF
-        }
-        
-        // Get the current byte and convert to UTF-32
-        let byte = *state.input.add(state.position);
-        // For simplicity, just return the byte as-is (assumes ASCII/UTF-8)
-        byte as u32
+        state.lookahead
     }
 }
 
@@ -97,12 +138,12 @@ extern "C" fn ts_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
         
         if state.position < state.length {
             state.position += 1;
-            // Update the lookahead character
+            // Update the lookahead character in state
             if state.position < state.length {
                 let byte = *state.input.add(state.position);
-                (*lexer).lookahead = byte as u32;
+                state.lookahead = byte as u32;
             } else {
-                (*lexer).lookahead = 0; // EOF
+                state.lookahead = 0; // EOF
             }
         }
     }

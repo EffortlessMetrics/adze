@@ -1,7 +1,7 @@
 // Python indentation scanner for rust-sitter
 
 use rust_sitter::external_scanner::{ExternalScanner, ScanResult};
-use rust_sitter_ir::SymbolId;
+use rust_sitter::SymbolId;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u16)]
@@ -49,7 +49,7 @@ impl ExternalScanner for PythonScanner {
                             self.inside_string = false;
                             self.string_delimiter = None;
                             return Some(ScanResult {
-                                symbol: SymbolId(TokenType::StringEnd as u16),
+                                symbol: TokenType::StringEnd as u16,
                                 length: 1,
                             });
                         }
@@ -59,7 +59,7 @@ impl ExternalScanner for PythonScanner {
                             self.inside_string = false;
                             self.string_delimiter = None;
                             return Some(ScanResult {
-                                symbol: SymbolId(TokenType::StringEnd as u16),
+                                symbol: TokenType::StringEnd as u16,
                                 length: 1,
                             });
                         }
@@ -69,7 +69,7 @@ impl ExternalScanner for PythonScanner {
                             self.inside_string = false;
                             self.string_delimiter = None;
                             return Some(ScanResult {
-                                symbol: SymbolId(TokenType::StringEnd as u16),
+                                symbol: TokenType::StringEnd as u16,
                                 length: 3,
                             });
                         }
@@ -79,7 +79,7 @@ impl ExternalScanner for PythonScanner {
                             self.inside_string = false;
                             self.string_delimiter = None;
                             return Some(ScanResult {
-                                symbol: SymbolId(TokenType::StringEnd as u16),
+                                symbol: TokenType::StringEnd as u16,
                                 length: 3,
                             });
                         }
@@ -116,7 +116,7 @@ impl ExternalScanner for PythonScanner {
                 
                 if length > 0 {
                     return Some(ScanResult {
-                        symbol: SymbolId(TokenType::StringContent as u16),
+                        symbol: TokenType::StringContent as u16,
                         length,
                     });
                 }
@@ -132,7 +132,7 @@ impl ExternalScanner for PythonScanner {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::TripleSingleQuote);
                 return Some(ScanResult {
-                    symbol: SymbolId(TokenType::StringStart as u16),
+                    symbol: TokenType::StringStart as u16,
                     length: 3,
                 });
             }
@@ -141,7 +141,7 @@ impl ExternalScanner for PythonScanner {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::TripleDoubleQuote);
                 return Some(ScanResult {
-                    symbol: SymbolId(TokenType::StringStart as u16),
+                    symbol: TokenType::StringStart as u16,
                     length: 3,
                 });
             }
@@ -151,7 +151,7 @@ impl ExternalScanner for PythonScanner {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::SingleQuote);
                 return Some(ScanResult {
-                    symbol: SymbolId(TokenType::StringStart as u16),
+                    symbol: TokenType::StringStart as u16,
                     length: 1,
                 });
             }
@@ -160,7 +160,7 @@ impl ExternalScanner for PythonScanner {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::DoubleQuote);
                 return Some(ScanResult {
-                    symbol: SymbolId(TokenType::StringStart as u16),
+                    symbol: TokenType::StringStart as u16,
                     length: 1,
                 });
             }
@@ -170,7 +170,7 @@ impl ExternalScanner for PythonScanner {
         if valid_symbols.get(TokenType::Newline as usize) == Some(&true) {
             if position < input.len() && input[position] == b'\n' {
                 return Some(ScanResult {
-                    symbol: SymbolId(TokenType::Newline as u16),
+                    symbol: TokenType::Newline as u16,
                     length: 1,
                 });
             }
@@ -203,7 +203,7 @@ impl ExternalScanner for PythonScanner {
                     && indent_length > current_indent {
                     self.indent_stack.push(indent_length);
                     return Some(ScanResult {
-                        symbol: SymbolId(TokenType::Indent as u16),
+                        symbol: TokenType::Indent as u16,
                         length: 0, // Indents don't consume characters
                     });
                 }
@@ -219,7 +219,7 @@ impl ExternalScanner for PythonScanner {
                     }
                     
                     return Some(ScanResult {
-                        symbol: SymbolId(TokenType::Dedent as u16),
+                        symbol: TokenType::Dedent as u16,
                         length: 0, // Dedents don't consume characters
                     });
                 }

@@ -864,20 +864,24 @@ impl Parser {
     /// Perform a reduction
     fn reduce(&mut self, language: &TSLanguage, production_id: u16, source: &[u8]) -> bool {
         if source.len() < 20 {
+            eprintln!(
                 "DEBUG reduce: Reducing with production_id={} (from parse table)",
                 production_id
             );
+            eprintln!(
                 "DEBUG reduce: Stack before reduction has {} entries",
                 self.stack.len()
             );
             for (i, entry) in self.stack.iter().enumerate() {
                 if let Some(ref subtree) = entry.subtree {
+                    eprintln!(
                         "  Stack[{}]: state={}, symbol={}",
                         i,
                         entry.state,
                         subtree.symbol
                     );
                 } else {
+                    eprintln!(
                         "  Stack[{}]: state={}, no subtree",
                         i,
                         entry.state
@@ -919,6 +923,7 @@ impl Parser {
             let symbol = action.symbol;
 
             if source.len() < 20 {
+                eprintln!(
                     "DEBUG reduce: Production {} (index {}) reduces to symbol {} with {} children",
                     production_id, production_index, symbol, child_count
                 );
