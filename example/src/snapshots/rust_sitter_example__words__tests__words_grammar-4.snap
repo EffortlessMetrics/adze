@@ -2,9 +2,49 @@
 source: example/src/words.rs
 expression: "grammar::parse(\"if hello\")"
 ---
-Ok(
-    Words {
-        _keyword: (),
-        _word: "hello",
-    },
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 104",
+            ),
+            start: 3,
+            end: 3,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 101",
+            ),
+            start: 4,
+            end: 4,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 108",
+            ),
+            start: 5,
+            end: 5,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 108",
+            ),
+            start: 6,
+            end: 6,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 111",
+            ),
+            start: 7,
+            end: 7,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 0",
+            ),
+            start: 8,
+            end: 8,
+        },
+    ],
 )

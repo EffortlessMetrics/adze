@@ -346,6 +346,13 @@ fn gen_struct_or_variant(
         }
     }
 
+    // Check for precedence attributes early to determine if we should inline operators
+    let has_precedence = attrs.iter().any(|attr| {
+        attr.path() == &syn::parse_quote!(rust_sitter::prec) ||
+        attr.path() == &syn::parse_quote!(rust_sitter::prec_left) ||
+        attr.path() == &syn::parse_quote!(rust_sitter::prec_right)
+    });
+
     fn gen_field_optional(
         path: &str,
         field: &Field,
@@ -393,26 +400,74 @@ fn gen_struct_or_variant(
             {
                 None
             } else {
-                // Check for #[rust_sitter::field("name")] attribute
-                let field_name = field
-                    .attrs
-                    .iter()
-                    .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::field))
-                    .and_then(|attr| attr.parse_args::<syn::LitStr>().ok().map(|lit| lit.value()));
-
-                let ident_str = field_name.unwrap_or_else(|| {
-                    field
-                        .ident
-                        .as_ref()
-                        .map(|v| v.to_string())
-                        .unwrap_or_else(|| {
-                            // Generate a deterministic name based on the path and field index
-                            // This ensures consistent naming across builds
-                            format!("{path}_{i}")
-                        })
+                // Check if this is a leaf field with text parameter (operator)
+                let is_operator_field = field.attrs.iter().any(|attr| {
+                    if attr.path() == &syn::parse_quote!(rust_sitter::leaf) {
+                        if let Ok(params) = attr.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated) {
+                            params.iter().any(|param| param.path == "text")
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
                 });
 
-                Some(gen_field_optional(&path, field, word_rule, out, ident_str))
+                // Try to inline operator fields for precedence (only if this variant has precedence)
+                let inlined_operator = if is_operator_field && has_precedence {
+                    field.attrs.iter()
+                        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf))
+                        .and_then(|leaf_attr| {
+                            leaf_attr.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated).ok()
+                                .and_then(|params| {
+                                    params.iter()
+                                        .find(|param| param.path == "text")
+                                        .and_then(|p| {
+                                            if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = &p.expr {
+                                                // Only inline simple operators (single chars or simple symbols)
+                                                let text_val = s.value();
+                                                if text_val.len() <= 2 || text_val == "&&" || text_val == "||" || text_val == "==" || text_val == "!=" {
+                                                    Some(json!({
+                                                        "type": "STRING",
+                                                        "value": text_val
+                                                    }))
+                                                } else {
+                                                    None
+                                                }
+                                            } else {
+                                                None
+                                            }
+                                        })
+                                })
+                        })
+                } else {
+                    None
+                };
+                
+                if let Some(operator) = inlined_operator {
+                    Some(operator)
+                } else {
+                    // Check for #[rust_sitter::field("name")] attribute
+                    let field_name = field
+                        .attrs
+                        .iter()
+                        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::field))
+                        .and_then(|attr| attr.parse_args::<syn::LitStr>().ok().map(|lit| lit.value()));
+
+                    let ident_str = field_name.unwrap_or_else(|| {
+                        field
+                            .ident
+                            .as_ref()
+                            .map(|v| v.to_string())
+                            .unwrap_or_else(|| {
+                                // Generate a deterministic name based on the path and field index
+                                // This ensures consistent naming across builds
+                                format!("{path}_{i}")
+                            })
+                    });
+
+                    Some(gen_field_optional(&path, field, word_rule, out, ident_str))
+                }
             }
         })
         .collect::<Vec<Value>>();
@@ -603,8 +658,8 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                     let variant_path = format!("{}_{}", e.ident, v.ident);
                     eprintln!("DEBUG: Processing variant: {}", variant_path);
 
-                    // Generate the variant rule
-                    let _variant_result = gen_struct_or_variant(
+                    // Generate the variant rule - no need to capture result
+                    gen_struct_or_variant(
                         variant_path.clone(),
                         v.attrs.clone(),
                         v.fields.clone(),
@@ -621,96 +676,24 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                     });
                     eprintln!("DEBUG: Created variant_ref for {}: {:?}", variant_path, variant_ref);
                     
-                    // Check if this variant has precedence
-                    let prec_attr = v.attrs
-                        .iter()
-                            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec));
-                        let prec_left_attr = v.attrs
-                            .iter()
-                            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_left));
-                        let prec_right_attr = v.attrs
-                            .iter()
-                            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_right));
-                        
-                        // Apply precedence if specified on the variant
-                        let member = if let Some(attr) = prec_attr {
-                            if let Ok(Expr::Lit(expr_lit)) = attr.parse_args_with(Expr::parse) {
-                                if let Lit::Int(i) = &expr_lit.lit {
-                                    json!({
-                                        "type": "PREC",
-                                        "value": i.base10_parse::<i32>().unwrap(),
-                                        "content": variant_ref.clone()
-                                    })
-                                } else {
-                                    variant_ref.clone()
-                                }
-                            } else {
-                                variant_ref.clone()
-                            }
-                        } else if let Some(attr) = prec_left_attr {
-                            if let Ok(Expr::Lit(expr_lit)) = attr.parse_args_with(Expr::parse) {
-                                if let Lit::Int(i) = &expr_lit.lit {
-                                    json!({
-                                        "type": "PREC_LEFT",
-                                        "value": i.base10_parse::<i32>().unwrap(),
-                                        "content": variant_ref.clone()
-                                    })
-                                } else {
-                                    variant_ref.clone()
-                                }
-                            } else {
-                                variant_ref.clone()
-                            }
-                        } else if let Some(attr) = prec_right_attr {
-                            if let Ok(Expr::Lit(expr_lit)) = attr.parse_args_with(Expr::parse) {
-                                if let Lit::Int(i) = &expr_lit.lit {
-                                    json!({
-                                        "type": "PREC_RIGHT",
-                                        "value": i.base10_parse::<i32>().unwrap(),
-                                        "content": variant_ref.clone()
-                                    })
-                                } else {
-                                    variant_ref.clone()
-                                }
-                            } else {
-                                variant_ref.clone()
-                            }
-                        } else {
-                            variant_ref.clone()
-                        };
-                        
-                        eprintln!("DEBUG: Pushing member to members array: {:?}", member);
-                        members.push(member);
+                    // For enum variants, precedence is already applied in gen_struct_or_variant
+                    // Just use the variant reference directly
+                    eprintln!("DEBUG: Pushing variant reference to members array: {:?}", variant_ref);
+                    members.push(variant_ref);
                 });
 
-                // For enums, we want the choice to be transparent in the parse tree.
-                // The variants should appear directly without a wrapper node.
-                // Tree-sitter convention: rules starting with _ are hidden.
+                // For precedence to work correctly with the LR algorithm,
+                // we need the CHOICE to be visible. This allows the parser to see
+                // the operators directly and generate proper shift/reduce conflicts.
+                eprintln!("DEBUG: Creating visible CHOICE rule for enum '{}' with {} members", e.ident, members.len());
                 
-                // Create a hidden rule for the enum CHOICE
-                let hidden_rule_name = format!("_{}", e.ident);
-                eprintln!("DEBUG: Creating hidden rule for enum '{}'", e.ident);
-                eprintln!("DEBUG: Final members for CHOICE: {:#?}", members);
-                eprintln!("DEBUG: Creating hidden rule {} with {} members", hidden_rule_name, members.len());
-                for (i, member) in members.iter().enumerate() {
-                    eprintln!("  Member {}: {}", i, member);
-                }
                 let rule = json!({
                     "type": "CHOICE",
                     "members": members
                 });
                 
-                // Insert the hidden CHOICE rule
-                rules_map.insert(hidden_rule_name.clone(), rule.clone());
-                
-                // Debug output removed for cleaner builds
-                
-                // Create a visible rule that references the hidden one
-                // This allows the enum to be referenced in the grammar while keeping it transparent
-                rules_map.insert(e.ident.to_string(), json!({
-                    "type": "SYMBOL",
-                    "name": hidden_rule_name
-                }));
+                // Insert the CHOICE rule directly (no hidden indirection)
+                rules_map.insert(e.ident.to_string(), rule);
 
                 (e.ident.to_string(), e.attrs.clone())
             }

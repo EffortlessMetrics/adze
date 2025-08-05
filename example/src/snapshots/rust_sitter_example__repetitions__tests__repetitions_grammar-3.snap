@@ -7,16 +7,16 @@ Ok(
         numbers: Spanned {
             value: [
                 Spanned {
-                    value: 2,
+                    value: 1,
                     span: (
-                        3,
-                        4,
+                        0,
+                        1,
                     ),
                 },
             ],
             span: (
-                3,
-                4,
+                0,
+                1,
             ),
         },
     },

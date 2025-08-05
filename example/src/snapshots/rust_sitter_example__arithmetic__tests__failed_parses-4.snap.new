@@ -1,6 +1,7 @@
 ---
 source: example/src/arithmetic.rs
-expression: "grammar::parse(\"1 + 2\")"
+assertion_line: 152
+expression: "grammar::parse(\"1a\")"
 ---
 Ok(
     Number(
