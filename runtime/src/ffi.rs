@@ -1,6 +1,5 @@
 //! FFI types and functions for bridging between C and Rust interfaces
 
-use core::ffi::c_char;
 use crate::external_scanner_ffi::TSLexer;
 
 // Re-export types from external_scanner_ffi

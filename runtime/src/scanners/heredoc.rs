@@ -2,7 +2,6 @@
 // Handles heredoc strings with custom delimiters
 
 use crate::external_scanner::{ExternalScanner, ScanResult};
-use rust_sitter_ir::SymbolId;
 
 /// Token indices for heredoc scanner
 pub const HEREDOC_START: usize = 0;
@@ -47,7 +46,7 @@ impl ExternalScanner for HeredocScanner {
                         {
                             self.delimiter = None;
                             return Some(ScanResult {
-                                symbol: SymbolId(HEREDOC_END as u16),
+                                symbol: HEREDOC_END as u16,
                                 length: delimiter_bytes.len(),
                             });
                         }
@@ -74,7 +73,7 @@ impl ExternalScanner for HeredocScanner {
 
                 if length > 0 {
                     return Some(ScanResult {
-                        symbol: SymbolId(HEREDOC_BODY as u16),
+                        symbol: HEREDOC_BODY as u16,
                         length,
                     });
                 }
@@ -123,7 +122,7 @@ impl ExternalScanner for HeredocScanner {
                         self.at_line_start = false;
 
                         return Some(ScanResult {
-                            symbol: SymbolId(HEREDOC_START as u16),
+                            symbol: HEREDOC_START as u16,
                             length: i - position,
                         });
                     }

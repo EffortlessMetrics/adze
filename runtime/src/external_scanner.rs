@@ -7,7 +7,7 @@ use std::collections::HashSet;
 /// Result of external scanning
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScanResult {
-    pub symbol: SymbolId,
+    pub symbol: u16,
     pub length: usize,
 }
 
@@ -151,7 +151,7 @@ impl ExternalScanner for StringScanner {
                     self.in_string = true;
                     self.quote_char = Some(current);
                     return Some(ScanResult {
-                        symbol: SymbolId(STRING_START as u16),
+                        symbol: STRING_START as u16,
                         length: 1,
                     });
                 }
@@ -165,7 +165,7 @@ impl ExternalScanner for StringScanner {
                         self.in_string = false;
                         self.quote_char = None;
                         return Some(ScanResult {
-                            symbol: SymbolId(STRING_END as u16),
+                            symbol: STRING_END as u16,
                             length: 1,
                         });
                     }
@@ -190,7 +190,7 @@ impl ExternalScanner for StringScanner {
 
                     if length > 0 {
                         return Some(ScanResult {
-                            symbol: SymbolId(STRING_CONTENT as u16),
+                            symbol: STRING_CONTENT as u16,
                             length,
                         });
                     }
@@ -252,7 +252,7 @@ impl ExternalScanner for CommentScanner {
                 if current == b'/' && next == b'*' {
                     self.depth = 1;
                     return Some(ScanResult {
-                        symbol: SymbolId(COMMENT_START as u16),
+                        symbol: COMMENT_START as u16,
                         length: 2,
                     });
                 }
@@ -264,7 +264,7 @@ impl ExternalScanner for CommentScanner {
                 self.depth += 1;
                 if valid_symbols.get(COMMENT_CONTENT) == Some(&true) {
                     return Some(ScanResult {
-                        symbol: SymbolId(COMMENT_CONTENT as u16),
+                        symbol: COMMENT_CONTENT as u16,
                         length: 2,
                     });
                 }
@@ -273,12 +273,12 @@ impl ExternalScanner for CommentScanner {
                 self.depth -= 1;
                 if self.depth == 0 && valid_symbols.get(COMMENT_END) == Some(&true) {
                     return Some(ScanResult {
-                        symbol: SymbolId(COMMENT_END as u16),
+                        symbol: COMMENT_END as u16,
                         length: 2,
                     });
                 } else if valid_symbols.get(COMMENT_CONTENT) == Some(&true) {
                     return Some(ScanResult {
-                        symbol: SymbolId(COMMENT_CONTENT as u16),
+                        symbol: COMMENT_CONTENT as u16,
                         length: 2,
                     });
                 }
@@ -299,7 +299,7 @@ impl ExternalScanner for CommentScanner {
 
                 if length > 0 {
                     return Some(ScanResult {
-                        symbol: SymbolId(COMMENT_CONTENT as u16),
+                        symbol: COMMENT_CONTENT as u16,
                         length,
                     });
                 }
@@ -336,7 +336,7 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: SymbolId(0), // STRING_START
+                symbol: 0, // STRING_START
                 length: 1,
             })
         );
@@ -346,7 +346,7 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: SymbolId(1), // STRING_CONTENT
+                symbol: 1, // STRING_CONTENT
                 length: 11,          // "hello world"
             })
         );
@@ -356,7 +356,7 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: SymbolId(2), // STRING_END
+                symbol: 2, // STRING_END
                 length: 1,
             })
         );
@@ -375,7 +375,7 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: SymbolId(1), // STRING_CONTENT
+                symbol: 1, // STRING_CONTENT
                 length: 12,          // includes escape sequence
             })
         );
@@ -393,7 +393,7 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: SymbolId(0), // COMMENT_START
+                symbol: 0, // COMMENT_START
                 length: 2,
             })
         );
@@ -404,7 +404,7 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: SymbolId(1), // COMMENT_CONTENT
+                symbol: 1, // COMMENT_CONTENT
                 length: 2,
             })
         );

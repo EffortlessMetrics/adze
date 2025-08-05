@@ -45,8 +45,8 @@ impl Parser {
             let registry = registry.lock().unwrap();
 
             if let Some(scanner) = registry.create_scanner(&language) {
-                let external_tokens: Vec<SymbolId> =
-                    grammar.externals.iter().map(|ext| ext.symbol_id).collect();
+                let external_tokens: Vec<crate::SymbolId> =
+                    grammar.externals.iter().map(|ext| ext.symbol_id.0).collect();
                 let runtime = ExternalScannerRuntime::new(external_tokens);
                 (Some(scanner), Some(runtime))
             } else {
@@ -195,7 +195,7 @@ impl Parser {
         let valid_symbols: Vec<bool> = runtime
             .get_external_tokens()
             .iter()
-            .map(|token| valid_externals.contains(token))
+            .map(|token| valid_externals.contains(&SymbolId(*token)))
             .collect();
 
         // Try to scan
@@ -209,7 +209,7 @@ impl Parser {
             };
 
             Ok(Some(LexerToken {
-                symbol: result.symbol,
+                symbol: SymbolId(result.symbol),
                 text,
                 start: self.position,
                 end,

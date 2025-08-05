@@ -69,7 +69,7 @@ impl DynExternalScanner for CScannerWrapper {
             let symbol_index = ts_lexer.result_symbol as usize;
             if symbol_index < self.external_tokens.len() {
                 Some(ScanResult {
-                    symbol: self.external_tokens[symbol_index],
+                    symbol: self.external_tokens[symbol_index].0,
                     length: adapter.token_length(),
                 })
             } else {

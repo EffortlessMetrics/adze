@@ -2,7 +2,6 @@
 // Handles INDENT, DEDENT, and NEWLINE tokens
 
 use crate::external_scanner::{ExternalScanner, ScanResult};
-use rust_sitter_ir::SymbolId;
 
 /// Token indices for indentation scanner
 pub const NEWLINE: usize = 0;
@@ -38,7 +37,7 @@ impl ExternalScanner for IndentationScanner {
         if self.pending_dedents > 0 && valid_symbols.get(DEDENT) == Some(&true) {
             self.pending_dedents -= 1;
             return Some(ScanResult {
-                symbol: SymbolId(DEDENT as u16),
+                symbol: DEDENT as u16,
                 length: 0,
             });
         }
@@ -50,7 +49,7 @@ impl ExternalScanner for IndentationScanner {
                 if valid_symbols.get(NEWLINE) == Some(&true) {
                     self.at_line_start = true;
                     return Some(ScanResult {
-                        symbol: SymbolId(NEWLINE as u16),
+                        symbol: NEWLINE as u16,
                         length: 1,
                     });
                 }
@@ -78,7 +77,7 @@ impl ExternalScanner for IndentationScanner {
                 b'\n' => {
                     // Empty line - skip it
                     return Some(ScanResult {
-                        symbol: SymbolId(NEWLINE as u16),
+                        symbol: NEWLINE as u16,
                         length: i - position + 1,
                     });
                 }
@@ -89,7 +88,7 @@ impl ExternalScanner for IndentationScanner {
                     }
                     if i < input.len() {
                         return Some(ScanResult {
-                            symbol: SymbolId(NEWLINE as u16),
+                            symbol: NEWLINE as u16,
                             length: i - position + 1,
                         });
                     }
@@ -115,7 +114,7 @@ impl ExternalScanner for IndentationScanner {
             if valid_symbols.get(INDENT) == Some(&true) {
                 self.indent_stack.push(column);
                 return Some(ScanResult {
-                    symbol: SymbolId(INDENT as u16),
+                    symbol: INDENT as u16,
                     length: indent_length,
                 });
             }
@@ -141,7 +140,7 @@ impl ExternalScanner for IndentationScanner {
                 // Emit first dedent, store rest as pending
                 self.pending_dedents = dedent_count - 1;
                 return Some(ScanResult {
-                    symbol: SymbolId(DEDENT as u16),
+                    symbol: DEDENT as u16,
                     length: indent_length,
                 });
             }
@@ -150,7 +149,7 @@ impl ExternalScanner for IndentationScanner {
         // Same indentation level - consume the whitespace
         if indent_length > 0 {
             return Some(ScanResult {
-                symbol: SymbolId(NEWLINE as u16),
+                symbol: NEWLINE as u16,
                 length: 0, // Don't consume - let parser handle content
             });
         }
@@ -233,7 +232,7 @@ mod tests {
 
         // First line - no indent
         let result = scanner.scan(&valid, input, 0);
-        assert!(result.is_none() || result.unwrap().symbol == SymbolId(NEWLINE as u16));
+        assert!(result.is_none() || result.unwrap().symbol == NEWLINE as u16);
 
         // After newline, should get indent
         scanner.at_line_start = true;
@@ -241,7 +240,7 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: SymbolId(INDENT as u16),
+                symbol: INDENT as u16,
                 length: 4,
             })
         );
@@ -261,7 +260,7 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: SymbolId(DEDENT as u16),
+                symbol: DEDENT as u16,
                 length: 0,
             })
         );

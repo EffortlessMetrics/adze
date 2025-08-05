@@ -149,7 +149,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                         // Call the scanner's scan method
                         if let Some(result) = scanner.scan(valid_symbols_slice, input, position) {
                             // Set the result symbol in the lexer
-                            ts_lexer.result_symbol = result.symbol.0;
+                            ts_lexer.result_symbol = result.symbol;
                             true
                         } else {
                             false
@@ -201,7 +201,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             
             let scanner_struct = quote! {
                 ExternalScanner {
-                    states: EXTERNAL_SCANNER_STATES.as_ptr(),
+                    states: EXTERNAL_SCANNER_STATES.as_ptr() as *const u8,
                     symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr() as *const TSSymbol,
                     create: Some(tree_sitter_external_scanner_create),
                     destroy: Some(tree_sitter_external_scanner_destroy),
@@ -261,6 +261,7 @@ impl<'a> AbiLanguageBuilder<'a> {
 
         quote! {
             use ::rust_sitter::pure_parser::*;
+            use ::rust_sitter::TSSymbol;
 
             // Lexer implementation
             #lexer_code
