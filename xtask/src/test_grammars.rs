@@ -448,7 +448,7 @@ fn generate_report(results: &[TestResult]) -> Result<()> {
     Ok(())
 }
 
-pub fn test_pure_rust(sh: &Shell, grammar: crate::Grammar, verbose: bool) -> Result<()> {
+pub fn test_pure_rust(_sh: &Shell, grammar: crate::Grammar, verbose: bool) -> Result<()> {
     use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
     use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
     
@@ -504,8 +504,7 @@ pub fn test_pure_rust(sh: &Shell, grammar: crate::Grammar, verbose: bool) -> Res
     if !ir.externals.is_empty() {
         println!("\n⚠️  Grammar requires external scanner support");
         println!("   External tokens: {:?}", ir.externals);
-        println!("\n❌ Cannot proceed without external scanner implementation");
-        return Ok(());
+        // Continue anyway - the runtime might have the scanner registered
     }
     
     // Build parser

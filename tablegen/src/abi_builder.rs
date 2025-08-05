@@ -81,6 +81,86 @@ impl<'a> AbiLanguageBuilder<'a> {
         let primary_state_ids = self.generate_primary_state_ids();
         let production_id_map = self.generate_production_id_map();
         let variant_symbol_map = self.generate_variant_symbol_map();
+        
+        // Generate external scanner data if needed
+        let (external_scanner_code, external_scanner_struct) = if !self.grammar.externals.is_empty() {
+            use crate::external_scanner_v2::ExternalScannerGenerator;
+            
+            let scanner_gen = ExternalScannerGenerator::new(self.grammar.clone(), self.parse_table.clone());
+            let scanner_interface = scanner_gen.generate_scanner_interface();
+            
+            // Generate wrapper functions for the external scanner
+            let scanner_functions = quote! {
+                // External scanner wrapper functions
+                #[unsafe(no_mangle)]
+                extern "C" fn tree_sitter_external_scanner_create() -> *mut std::ffi::c_void {
+                    // TODO: Get scanner from registry based on language name
+                    std::ptr::null_mut()
+                }
+                
+                #[unsafe(no_mangle)]
+                extern "C" fn tree_sitter_external_scanner_destroy(scanner: *mut std::ffi::c_void) {
+                    // TODO: Destroy scanner
+                }
+                
+                #[unsafe(no_mangle)]
+                extern "C" fn tree_sitter_external_scanner_scan(
+                    scanner: *mut std::ffi::c_void,
+                    lexer: *mut std::ffi::c_void,
+                    valid_symbols: *const bool,
+                ) -> bool {
+                    // TODO: Call scanner
+                    false
+                }
+                
+                #[unsafe(no_mangle)]
+                extern "C" fn tree_sitter_external_scanner_serialize(
+                    scanner: *mut std::ffi::c_void,
+                    buffer: *mut u8,
+                ) -> u32 {
+                    // TODO: Serialize scanner
+                    0
+                }
+                
+                #[unsafe(no_mangle)]
+                extern "C" fn tree_sitter_external_scanner_deserialize(
+                    scanner: *mut std::ffi::c_void,
+                    buffer: *const u8,
+                    length: u32,
+                ) {
+                    // TODO: Deserialize scanner
+                }
+            };
+            
+            let scanner_struct = quote! {
+                ExternalScanner {
+                    states: EXTERNAL_SCANNER_STATES.as_ptr(),
+                    symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr() as *const TSSymbol,
+                    create: Some(tree_sitter_external_scanner_create),
+                    destroy: Some(tree_sitter_external_scanner_destroy),
+                    scan: Some(tree_sitter_external_scanner_scan),
+                    serialize: Some(tree_sitter_external_scanner_serialize),
+                    deserialize: Some(tree_sitter_external_scanner_deserialize),
+                }
+            };
+            
+            (quote! {
+                #scanner_interface
+                #scanner_functions
+            }, scanner_struct)
+        } else {
+            (quote! {}, quote! {
+                ExternalScanner {
+                    states: std::ptr::null(),
+                    symbol_map: std::ptr::null(),
+                    create: None,
+                    destroy: None,
+                    scan: None,
+                    serialize: None,
+                    deserialize: None,
+                }
+            })
+        };
 
         // Count elements
         let counts = self.calculate_counts();
@@ -166,6 +246,9 @@ impl<'a> AbiLanguageBuilder<'a> {
             // Variant symbol map (for Extract trait to use)
             #variant_symbol_map
 
+            // External scanner support (if needed)
+            #external_scanner_code
+
             // The language structure
             pub static LANGUAGE: TSLanguage = TSLanguage {
                 version: TREE_SITTER_LANGUAGE_VERSION,
@@ -195,15 +278,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 lex_fn: Some(lexer_fn),
                 keyword_lex_fn: None,
                 keyword_capture_token: 0,
-                external_scanner: ExternalScanner {
-                    states: std::ptr::null(),
-                    symbol_map: std::ptr::null(),
-                    create: None,
-                    destroy: None,
-                    scan: None,
-                    serialize: None,
-                    deserialize: None,
-                },
+                external_scanner: #external_scanner_struct,
                 primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
             };
 
