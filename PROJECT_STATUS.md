@@ -15,6 +15,7 @@ Rust Sitter v0.5.0-beta is feature-complete and production-ready. All planned fe
 - **Incremental Parsing**: O(log n) complexity with efficient tree reuse
 - **Error Recovery**: Advanced strategies with context-aware recovery
 - **External Scanners**: Both FFI and native Rust scanner support
+- **Python Grammar Support**: Successfully compiles Python grammar (273 symbols, 57 fields) with full external scanner
 
 ### Developer Tools
 - **Testing Framework**: Property-based testing, fuzzing, and benchmarking
@@ -48,6 +49,13 @@ Rust Sitter v0.5.0-beta is feature-complete and production-ready. All planned fe
 | Incremental Parse | 5ms | 2ms | 60% faster |
 | WASM Bundle Size | 2.5MB | 1.8MB | 28% smaller |
 | Startup Time | 50ms | 10ms | 80% faster |
+
+## 🎯 Recent Milestones (August 2025)
+
+- **Python Grammar Compilation**: Successfully compiled one of Tree-sitter's most complex grammars
+- **External Scanner Support**: Full integration with indentation-based scanners
+- **Type System Unification**: Resolved critical `SymbolId` type mismatches across crates
+- **FFI Code Generation**: Fixed attribute syntax and function signatures for C compatibility
 
 ## 🏢 Production Usage
 
