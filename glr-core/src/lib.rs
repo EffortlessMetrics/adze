@@ -564,13 +564,27 @@ impl ItemSetCollection {
 
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
+            let mut terminal_count = 0;
+            let mut non_terminal_count = 0;
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
+                    match symbol {
+                        Symbol::Terminal(id) => {
+                            terminal_count += 1;
+                            eprintln!("    Terminal symbol {} found in state {}", id.0, current_set.id.0);
+                        },
+                        Symbol::NonTerminal(id) => {
+                            non_terminal_count += 1;
+                            eprintln!("    Non-terminal symbol {} found in state {}", id.0, current_set.id.0);
+                        },
+                        _ => {}
+                    }
                     symbols.insert(symbol.clone());
                 }
             }
 
-            eprintln!("  Shiftable symbols: {} total", symbols.len());
+            eprintln!("  Shiftable symbols: {} total ({} terminals, {} non-terminals)", 
+                symbols.len(), terminal_count, non_terminal_count);
 
             // Compute GOTO for each symbol
             for symbol in symbols {
@@ -724,13 +738,27 @@ impl ItemSetCollection {
 
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
+            let mut terminal_count = 0;
+            let mut non_terminal_count = 0;
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
+                    match symbol {
+                        Symbol::Terminal(id) => {
+                            terminal_count += 1;
+                            eprintln!("    Terminal symbol {} found in state {}", id.0, current_set.id.0);
+                        },
+                        Symbol::NonTerminal(id) => {
+                            non_terminal_count += 1;
+                            eprintln!("    Non-terminal symbol {} found in state {}", id.0, current_set.id.0);
+                        },
+                        _ => {}
+                    }
                     symbols.insert(symbol.clone());
                 }
             }
 
-            eprintln!("  Shiftable symbols: {} total", symbols.len());
+            eprintln!("  Shiftable symbols: {} total ({} terminals, {} non-terminals)", 
+                symbols.len(), terminal_count, non_terminal_count);
             if i == 0 {
                 eprintln!("Debug: State 0 items:");
                 for item in &current_set.items {
@@ -1102,6 +1130,26 @@ pub fn build_lr1_automaton(
     grammar: &Grammar,
     first_follow: &FirstFollowSets,
 ) -> Result<ParseTable, GLRError> {
+    eprintln!("\n\n=== BUILDING LR(1) AUTOMATON ===");
+    eprintln!("Grammar has {} tokens and {} rules", grammar.tokens.len(), grammar.rules.len());
+    
+    // Debug: Print some rules to see their structure
+    eprintln!("\nFirst 10 grammar rules:");
+    let mut rule_count = 0;
+    for rule in grammar.all_rules() {
+        if rule_count >= 10 { break; }
+        let mut rhs_str = String::new();
+        for sym in &rule.rhs {
+            match sym {
+                Symbol::Terminal(id) => rhs_str.push_str(&format!("T({}) ", id.0)),
+                Symbol::NonTerminal(id) => rhs_str.push_str(&format!("NT({}) ", id.0)),
+                _ => rhs_str.push_str("? "),
+            }
+        }
+        eprintln!("  Rule {}: NT({}) -> {}", rule.production_id.0, rule.lhs.0, rhs_str);
+        rule_count += 1;
+    }
+    
     // Create augmented grammar with S' -> S $ rule
     let mut augmented_grammar = grammar.clone();
 
@@ -1256,7 +1304,54 @@ pub fn build_lr1_automaton(
         eprintln!("  goto({}, {}) = {}", from_state.0, symbol.0, to_state.0);
     }
 
-    // Fill action table
+    // First, add shift actions from goto table for terminals
+    // This must be done BEFORE reduce actions to enable shift/reduce conflict detection
+    eprintln!("DEBUG: Adding shift actions from goto table first");
+    eprintln!("DEBUG: Goto table has {} entries", collection.goto_table.len());
+    let mut terminal_count = 0;
+    let mut non_terminal_count = 0;
+    
+    for ((from_state, symbol), to_state) in &collection.goto_table {
+        // Check if this symbol is a terminal (token or external)
+        let is_terminal = augmented_grammar.tokens.contains_key(symbol) || 
+                         augmented_grammar.externals.iter().any(|e| e.symbol_id == *symbol) ||
+                         symbol.0 == 0; // EOF is also a terminal
+        
+        if is_terminal {
+            terminal_count += 1;
+            eprintln!("DEBUG: Found terminal goto: state {} symbol {} -> state {}", from_state.0, symbol.0, to_state.0);
+            if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
+                let state_idx = from_state.0 as usize;
+                if state_idx < action_table.len() && symbol_idx < action_table[state_idx].len() {
+                    // Add as a shift action
+                    let new_action = Action::Shift(*to_state);
+                    eprintln!(
+                        "DEBUG: Adding shift action: state {} symbol {} (id={}) -> state {}",
+                        state_idx, symbol_idx, symbol.0, to_state.0
+                    );
+                    
+                    add_action_with_conflict(
+                        &mut action_table,
+                        &mut conflicts_by_state,
+                        state_idx,
+                        symbol_idx,
+                        new_action,
+                    );
+                } else {
+                    eprintln!("DEBUG: Could not add shift action - indices out of bounds");
+                }
+            } else {
+                eprintln!("DEBUG: Symbol {} not in symbol_to_index map!", symbol.0);
+            }
+        } else {
+            non_terminal_count += 1;
+        }
+    }
+    
+    eprintln!("DEBUG: Found {} terminal gotos and {} non-terminal gotos", terminal_count, non_terminal_count);
+
+    // Now fill action table with reduce actions
+    eprintln!("DEBUG: Adding reduce actions");
     for item_set in &collection.sets {
         let state_idx = item_set.id.0 as usize;
 
@@ -1333,96 +1428,12 @@ pub fn build_lr1_automaton(
                         }
                     }
                 }
-            } else if let Some(next_symbol) = item.next_symbol(&augmented_grammar) {
-                let symbol_id = match &next_symbol {
-                    Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
-                    Symbol::Optional(_)
-                    | Symbol::Repeat(_)
-                    | Symbol::RepeatOne(_)
-                    | Symbol::Choice(_)
-                    | Symbol::Sequence(_)
-                    | Symbol::Epsilon => {
-                        panic!("Complex symbols should be normalized before conflict analysis");
-                    }
-                };
-
-                if let Some(&symbol_idx) = symbol_to_index.get(symbol_id) {
-                    // Check if we have a goto entry for this symbol
-                    if let Some(&goto_state) = collection.goto_table.get(&(item_set.id, *symbol_id))
-                    {
-                        // Only add shift actions for terminals to the action table
-                        // Non-terminals will be handled by the goto table
-                        match &next_symbol {
-                            Symbol::Terminal(_) => {
-                                eprintln!(
-                                    "DEBUG: Adding shift action for state {} terminal {} (id={}) -> goto state {}",
-                                    state_idx, symbol_idx, symbol_id.0, goto_state.0
-                                );
-                                let new_action = Action::Shift(goto_state);
-                                add_action_with_conflict(
-                                    &mut action_table,
-                                    &mut conflicts_by_state,
-                                    state_idx,
-                                    symbol_idx,
-                                    new_action,
-                                );
-                            }
-                            Symbol::NonTerminal(_) => {
-                                // Non-terminals go in the goto table, not action table
-                                eprintln!(
-                                    "DEBUG: Setting goto for state {} non-terminal {} (id={}) -> state {}",
-                                    state_idx, symbol_idx, symbol_id.0, goto_state.0
-                                );
-                                goto_table[state_idx][symbol_idx] = goto_state;
-                            }
-                            _ => {
-                                eprintln!(
-                                    "DEBUG: Skipping symbol type {:?} for state {} symbol {}",
-                                    next_symbol, state_idx, symbol_idx
-                                );
-                            }
-                        }
-                    } else {
-                        eprintln!(
-                            "DEBUG: No goto entry found for state {} symbol {} (id={})",
-                            state_idx, symbol_idx, symbol_id.0
-                        );
-                    }
-                }
             }
+            // Note: Shift actions were already added before this loop
         }
     }
 
-    // Add shift actions from goto table BEFORE conflict resolution
-    // This ensures shift/reduce conflicts can be properly detected and resolved
-    for ((from_state, symbol), to_state) in &collection.goto_table {
-        // Check if this symbol is a terminal (token or external)
-        let is_terminal = grammar.tokens.contains_key(symbol) || 
-                         grammar.externals.iter().any(|e| e.symbol_id == *symbol) ||
-                         symbol.0 == 0; // EOF is also a terminal
-        
-        if is_terminal {
-            if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
-                let state_idx = from_state.0 as usize;
-                if state_idx < action_table.len() && symbol_idx < action_table[state_idx].len() {
-                    // Add as a shift action
-                    let new_action = Action::Shift(*to_state);
-                    eprintln!(
-                        "DEBUG: Adding terminal goto as shift: state {} symbol {} (id={}) -> state {}",
-                        state_idx, symbol_idx, symbol.0, to_state.0
-                    );
-                    
-                    add_action_with_conflict(
-                        &mut action_table,
-                        &mut conflicts_by_state,
-                        state_idx,
-                        symbol_idx,
-                        new_action,
-                    );
-                }
-            }
-        }
-    }
+    // Shift actions were already added before reduce actions
 
     // Resolve conflicts using precedence
     let precedence_resolver = StaticPrecedenceResolver::from_grammar(&augmented_grammar);
@@ -1531,16 +1542,21 @@ pub fn build_lr1_automaton(
     }
 
     // Add non-terminal goto entries to the goto table
+    eprintln!("DEBUG: Adding non-terminal goto entries");
     for ((from_state, symbol), to_state) in &collection.goto_table {
         // Check if this symbol is a non-terminal
-        let is_terminal = grammar.tokens.contains_key(symbol) || 
-                         grammar.externals.iter().any(|e| e.symbol_id == *symbol) ||
+        let is_terminal = augmented_grammar.tokens.contains_key(symbol) || 
+                         augmented_grammar.externals.iter().any(|e| e.symbol_id == *symbol) ||
                          symbol.0 == 0; // EOF is also a terminal
         
         if !is_terminal {
             if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
                 let state_idx = from_state.0 as usize;
                 if state_idx < goto_table.len() && symbol_idx < goto_table[state_idx].len() {
+                    eprintln!(
+                        "DEBUG: Setting goto for state {} non-terminal {} (id={}) -> state {}",
+                        state_idx, symbol_idx, symbol.0, to_state.0
+                    );
                     goto_table[state_idx][symbol_idx] = *to_state;
                 }
             }
