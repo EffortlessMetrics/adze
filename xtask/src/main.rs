@@ -94,6 +94,15 @@ enum Commands {
     },
     /// Test local grammar examples
     TestLocal,
+    /// Test fixture grammars with pure-Rust backend
+    TestPureRust {
+        /// Grammar to test (python, rust, c)
+        #[arg(value_enum)]
+        grammar: Grammar,
+        /// Show detailed output
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
@@ -104,7 +113,7 @@ enum OutputFormat {
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
-enum Grammar {
+pub enum Grammar {
     Arithmetic,
     Javascript,
     Rust,
@@ -181,6 +190,9 @@ fn main() -> Result<()> {
         }
         Commands::TestLocal => {
             test_local_grammars::test_local_grammars()?;
+        }
+        Commands::TestPureRust { grammar, verbose } => {
+            test_grammars::test_pure_rust(&sh, grammar, verbose)?;
         }
     }
 

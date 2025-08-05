@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use xshell::Shell;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GrammarTest {
@@ -444,5 +445,112 @@ fn generate_report(results: &[TestResult]) -> Result<()> {
     fs::write(report_path, report)?;
     println!("\n📊 Report saved to GRAMMAR_TEST_RESULTS.md");
 
+    Ok(())
+}
+
+pub fn test_pure_rust(sh: &Shell, grammar: crate::Grammar, verbose: bool) -> Result<()> {
+    use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
+    use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+    
+    println!("Testing {} grammar with pure-Rust backend...\n", grammar.name());
+    
+    // Get grammar path
+    let grammar_path = PathBuf::from("xtask/fixtures")
+        .join(format!("tree-sitter-{}", grammar.name()))
+        .join("grammar.js");
+    
+    if !grammar_path.exists() {
+        anyhow::bail!("Grammar file not found: {:?}", grammar_path);
+    }
+    
+    let content = fs::read_to_string(&grammar_path)?;
+    
+    // Parse grammar
+    println!("📖 Parsing grammar.js...");
+    let mut parser = GrammarJsParserV3::new(content);
+    let grammar_js = parser.parse().context("Failed to parse grammar.js")?;
+    
+    // Check features
+    let mut features = vec![];
+    if !grammar_js.externals.is_empty() {
+        features.push(format!("externals({})", grammar_js.externals.len()));
+    }
+    if grammar_js.word.is_some() {
+        features.push("word".to_string());
+    }
+    if !grammar_js.conflicts.is_empty() {
+        features.push(format!("conflicts({})", grammar_js.conflicts.len()));
+    }
+    if !grammar_js.precedences.is_empty() {
+        features.push(format!("precedences({})", grammar_js.precedences.len()));
+    }
+    
+    println!("✅ Parsed successfully");
+    println!("   Rules: {}", grammar_js.rules.len());
+    if !features.is_empty() {
+        println!("   Features: {}", features.join(", "));
+    }
+    
+    // Convert to IR
+    println!("\n🔄 Converting to IR...");
+    let converter = GrammarJsConverter::new(grammar_js.clone());
+    let ir = converter.convert().context("Failed to convert to IR")?;
+    
+    println!("✅ Converted successfully");
+    println!("   IR rules: {}", ir.rules.len());
+    println!("   Tokens: {}", ir.tokens.len());
+    
+    // Check for external scanner requirement
+    if !ir.externals.is_empty() {
+        println!("\n⚠️  Grammar requires external scanner support");
+        println!("   External tokens: {:?}", ir.externals);
+        println!("\n❌ Cannot proceed without external scanner implementation");
+        return Ok(());
+    }
+    
+    // Build parser
+    println!("\n🔨 Building pure-Rust parser...");
+    let temp_dir = tempfile::tempdir()?;
+    let options = BuildOptions {
+        out_dir: temp_dir.path().to_str().unwrap().to_string(),
+        emit_artifacts: verbose,
+        compress_tables: true,
+    };
+    
+    match build_parser_from_grammar_js(&grammar_path, options) {
+        Ok(_) => {
+            println!("✅ Build successful!");
+            
+            // Test parsing some example code if available
+            let examples_dir = grammar_path.parent().unwrap().join("examples");
+            if examples_dir.exists() {
+                println!("\n🧪 Testing with example files...");
+                let entries = fs::read_dir(&examples_dir)?;
+                let mut example_count = 0;
+                
+                for entry in entries {
+                    let entry = entry?;
+                    let path = entry.path();
+                    if path.is_file() {
+                        example_count += 1;
+                        if verbose || example_count <= 3 {
+                            println!("   Testing: {}", path.file_name().unwrap().to_string_lossy());
+                        }
+                    }
+                }
+                
+                if example_count > 3 && !verbose {
+                    println!("   ... and {} more examples", example_count - 3);
+                }
+            }
+        }
+        Err(e) => {
+            println!("❌ Build failed: {}", e);
+            if verbose {
+                println!("\nDetailed error:\n{:?}", e);
+            }
+        }
+    }
+    
     Ok(())
 }

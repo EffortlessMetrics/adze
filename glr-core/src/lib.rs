@@ -480,7 +480,6 @@ impl ItemSetCollection {
 
         // Find the augmented start rule
         if let Some(augmented_rules) = grammar.get_rules_for_symbol(augmented_start) {
-            );
             for rule in augmented_rules {
                 // Add S' -> • S with lookahead $ (EOF)
                 let start_item = LRItem::new(
@@ -489,16 +488,13 @@ impl ItemSetCollection {
                     SymbolId(0), // EOF symbol
                 );
                 initial_set.add_item(start_item);
-                );
             }
         }
 
         // Compute closure
         initial_set.closure(grammar, first_follow);
-
-        );
         for item in &initial_set.items {
-            );
+            // Items will be printed here if needed
         }
 
         collection.sets.push(initial_set);
@@ -525,7 +521,8 @@ impl ItemSetCollection {
                     if item.position == rule.rhs.len() {
                         rhs_str.push_str(" • ");
                     }
-                        "  [{}] {:?} -> {} , lookahead={}",
+                    // "  [{}] {:?} -> {} , lookahead={}"
+                }
             }
 
             // Find all symbols that can be shifted from this state
@@ -547,7 +544,7 @@ impl ItemSetCollection {
                 }
             }
 
-                symbols.len(), terminal_count, non_terminal_count);
+            // Debug: symbols.len(), terminal_count, non_terminal_count
             // Compute GOTO for each symbol
             for symbol in symbols {
                 let goto_set = current_set.goto(&symbol, grammar, first_follow);
@@ -589,7 +586,8 @@ impl ItemSetCollection {
                     collection
                         .goto_table
                         .insert((current_set.id, symbol_id), target_state);
-                        "DEBUG: Added goto({}, {}) = {}",
+                    // "DEBUG: Added goto({}, {}) = {}"
+                }
             }
 
             i += 1;
@@ -610,19 +608,19 @@ impl ItemSetCollection {
 
         // Find the start symbol (LHS of the first rule in grammar)
         if let Some(start_symbol) = grammar.start_symbol() {
-                grammar.rule_names.get(&start_symbol)
+            // Debug: grammar.rule_names.get(&start_symbol)
 
             // Add items for ALL rules with the start symbol as LHS
             if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
                 for (idx, rule) in start_rules.iter().enumerate() {
-                        idx, rule.lhs, rule.rhs, rule.production_id.0
+                    // Debug: idx, rule.lhs, rule.rhs, rule.production_id.0
                     let start_item = LRItem::new(
                         RuleId(rule.production_id.0),
                         0,
                         SymbolId(0), // EOF symbol
                     );
                     initial_set.add_item(start_item);
-                        rule.production_id.0
+                    // Debug: rule.production_id.0
                 }
             } else {
             }
@@ -633,11 +631,10 @@ impl ItemSetCollection {
 
         // Only add initial set if it has items
         if initial_set.items.is_empty() {
-            );
-            }
+            // Handle empty initial set if needed
         } else {
             for item in &initial_set.items {
-                    item.rule_id.0, item.position, item.lookahead.0
+                // Debug: item.rule_id.0, item.position, item.lookahead.0
             }
         }
 
@@ -665,7 +662,8 @@ impl ItemSetCollection {
                     if item.position == rule.rhs.len() {
                         rhs_str.push_str(" • ");
                     }
-                        "  [{}] {:?} -> {} , lookahead={}",
+                    // "  [{}] {:?} -> {} , lookahead={}"
+                }
             }
 
             // Find all symbols that can be shifted from this state
@@ -687,23 +685,24 @@ impl ItemSetCollection {
                 }
             }
 
-                symbols.len(), terminal_count, non_terminal_count);
-                for item in &current_set.items {
-                    if let Some(symbol) = item.next_symbol(grammar) {
-                        let symbol_id = match &symbol {
-                            Symbol::Terminal(id)
-                            | Symbol::NonTerminal(id)
-                            | Symbol::External(id) => id,
-                            _ => panic!("Complex symbol"),
-                        };
-                            "  Item rule_id={}, position={}, next_symbol={:?} (id={})",
-                }
-                for symbol in &symbols {
-                    let symbol_id = match symbol {
-                        Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
+            // Debug: symbols.len(), terminal_count, non_terminal_count
+            for item in &current_set.items {
+                if let Some(symbol) = item.next_symbol(grammar) {
+                    let symbol_id = match &symbol {
+                        Symbol::Terminal(id)
+                        | Symbol::NonTerminal(id)
+                        | Symbol::External(id) => id,
                         _ => panic!("Complex symbol"),
                     };
+                    // "  Item rule_id={}, position={}, next_symbol={:?} (id={})"
                 }
+            }
+            
+            for symbol in &symbols {
+                let symbol_id = match symbol {
+                    Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
+                    _ => panic!("Complex symbol"),
+                };
             }
 
             // Compute GOTO for each symbol
@@ -747,7 +746,8 @@ impl ItemSetCollection {
                     collection
                         .goto_table
                         .insert((current_set.id, symbol_id), target_state);
-                        "DEBUG: Added goto({}, {}) = {}",
+                    // "DEBUG: Added goto({}, {}) = {}"
+                }
             }
 
             i += 1;
@@ -1093,7 +1093,7 @@ pub fn build_lr1_automaton(
         .rule_names
         .insert(augmented_start, "$start".to_string());
 
-        "DEBUG: Added augmented start rule: {} -> {}",
+    // "DEBUG: Added augmented start rule: {} -> {}"
     // Build canonical collection of LR(1) item sets with augmented grammar
     let collection = ItemSetCollection::build_canonical_collection_augmented(
         &augmented_grammar,
@@ -1197,8 +1197,7 @@ pub fn build_lr1_automaton(
     let mut conflicts_by_state: BTreeMap<(usize, usize), Vec<Action>> = BTreeMap::new();
 
     // Debug: Print goto table entries
-        "DEBUG: Collection goto table has {} entries",
-    }
+    // println!("DEBUG: Collection goto table has {} entries", collection.goto_table.len());
 
     // First, add shift actions from goto table for terminals
     // This must be done BEFORE reduce actions to enable shift/reduce conflict detection
@@ -1218,7 +1217,7 @@ pub fn build_lr1_automaton(
                 if state_idx < action_table.len() && symbol_idx < action_table[state_idx].len() {
                     // Add as a shift action
                     let new_action = Action::Shift(*to_state);
-                        "DEBUG: Adding shift action: state {} symbol {} (id={}) -> state {}",
+                    // "DEBUG: Adding shift action: state {} symbol {} (id={}) -> state {}"
                     add_action_with_conflict(
                         &mut action_table,
                         &mut conflicts_by_state,
@@ -1299,7 +1298,8 @@ pub fn build_lr1_automaton(
                                 );
 
                                 // Debug: Log reduce actions being added
-                                    "DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}",
+                                // "DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}"
+                            }
                         }
                     }
                 }
@@ -1350,21 +1350,21 @@ pub fn build_lr1_automaton(
                     None
                 };
                 
-                    "DEBUG: Conflict resolution - symbol {} (id={}) shift_prec={:?}, reduce rule {} prec={:?}",
+                    // "DEBUG: Conflict resolution - symbol {} (id={}) shift_prec={:?}, reduce rule {} prec={:?}"
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
-                            "DEBUG: Precedence resolution at state {} symbol {}: prefer shift",
+                        // "DEBUG: Precedence resolution at state {} symbol {}: prefer shift"
                         continue;
                     }
                     PrecedenceComparison::PreferReduce => {
-                            "DEBUG: Precedence resolution at state {} symbol {}: prefer reduce",
+                        // "DEBUG: Precedence resolution at state {} symbol {}: prefer reduce"
                         continue;
                     }
                     PrecedenceComparison::Error => {
-                            "DEBUG: Precedence resolution at state {} symbol {}: non-associative error",
+                        // "DEBUG: Precedence resolution at state {} symbol {}: non-associative error"
                     }
                     PrecedenceComparison::None => {
-                            "DEBUG: No precedence info for conflict at state {} symbol {}",
+                        // "DEBUG: No precedence info for conflict at state {} symbol {}"
                     }
                 }
             }
@@ -1387,7 +1387,7 @@ pub fn build_lr1_automaton(
             if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
                 let state_idx = from_state.0 as usize;
                 if state_idx < goto_table.len() && symbol_idx < goto_table[state_idx].len() {
-                        "DEBUG: Setting goto for state {} non-terminal {} (id={}) -> state {}",
+                    // "DEBUG: Setting goto for state {} non-terminal {} (id={}) -> state {}"
                 }
             }
         }
