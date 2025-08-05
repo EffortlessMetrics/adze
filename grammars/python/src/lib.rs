@@ -3,6 +3,11 @@
 
 pub mod scanner;
 
+// Include the generated parser
+pub mod grammar_python {
+    include!(concat!(env!("OUT_DIR"), "/grammar_python/parser_python.rs"));
+}
+
 // Function to register the scanner - call this from build.rs or when loading the grammar
 pub fn register_scanner() {
     rust_sitter::scanner_registry::register_rust_scanner::<scanner::PythonScanner>("python");

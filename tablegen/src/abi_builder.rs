@@ -96,7 +96,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // External scanner wrapper functions
                 use rust_sitter::scanner_registry::DynExternalScanner;
                 
-                #[unsafe(no_mangle)]
+                #[no_mangle]
                 extern "C" fn tree_sitter_external_scanner_create() -> *mut std::ffi::c_void {
                     let registry = rust_sitter::scanner_registry::get_global_registry();
                     let registry = registry.lock().unwrap();
@@ -110,7 +110,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                     }
                 }
                 
-                #[unsafe(no_mangle)]
+                #[no_mangle]
                 extern "C" fn tree_sitter_external_scanner_destroy(scanner: *mut std::ffi::c_void) {
                     if !scanner.is_null() {
                         unsafe {
@@ -119,7 +119,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                     }
                 }
                 
-                #[unsafe(no_mangle)]
+                #[no_mangle]
                 extern "C" fn tree_sitter_external_scanner_scan(
                     scanner: *mut std::ffi::c_void,
                     lexer: *mut std::ffi::c_void,
@@ -157,7 +157,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                     }
                 }
                 
-                #[unsafe(no_mangle)]
+                #[no_mangle]
                 extern "C" fn tree_sitter_external_scanner_serialize(
                     scanner: *mut std::ffi::c_void,
                     buffer: *mut u8,
@@ -181,7 +181,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                     }
                 }
                 
-                #[unsafe(no_mangle)]
+                #[no_mangle]
                 extern "C" fn tree_sitter_external_scanner_deserialize(
                     scanner: *mut std::ffi::c_void,
                     buffer: *const u8,
@@ -351,7 +351,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             };
 
             /// Get the Tree-sitter Language for this grammar
-            #[unsafe(no_mangle)]
+            #[no_mangle]
             pub extern "C" fn #language_fn_ident() -> *const TSLanguage {
                 &LANGUAGE as *const TSLanguage
             }
