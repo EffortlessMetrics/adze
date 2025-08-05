@@ -1,6 +1,7 @@
 // Python indentation scanner for rust-sitter
 
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use rust_sitter::external_scanner::{ExternalScanner, ScanResult};
+use rust_sitter_ir::SymbolId;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u16)]
@@ -10,6 +11,8 @@ pub enum TokenType {
     Dedent = 2,
     StringStart = 3,
     StringEnd = 4,
+    StringContent = 5,
+    Comment = 6,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -28,187 +31,202 @@ enum StringDelimiter {
 }
 
 impl ExternalScanner for PythonScanner {
-    fn scan(&mut self, lexer: &mut Lexer, valid_symbols: &[bool]) -> ScanResult {
-        // Skip any horizontal whitespace at the start
-        let mut indent_length = 0;
-        let mut found_space_indent = false;
-        let mut found_tab_indent = false;
+    fn new() -> Self {
+        PythonScanner::default()
+    }
+    
+    fn scan(&mut self, valid_symbols: &[bool], input: &[u8], position: usize) -> Option<ScanResult> {
+        if position >= input.len() {
+            return None;
+        }
         
         // Handle string scanning
-        if self.inside_string && valid_symbols[TokenType::StringEnd as usize] {
+        if self.inside_string && valid_symbols.get(TokenType::StringEnd as usize) == Some(&true) {
             if let Some(delimiter) = self.string_delimiter {
                 match delimiter {
                     StringDelimiter::SingleQuote => {
-                        if lexer.lookahead() == '\'' {
-                            lexer.advance(false);
+                        if position < input.len() && input[position] == b'\'' {
                             self.inside_string = false;
                             self.string_delimiter = None;
-                            lexer.result_symbol(TokenType::StringEnd as usize);
-                            return ScanResult::Found;
+                            return Some(ScanResult {
+                                symbol: SymbolId(TokenType::StringEnd as u16),
+                                length: 1,
+                            });
                         }
                     }
                     StringDelimiter::DoubleQuote => {
-                        if lexer.lookahead() == '"' {
-                            lexer.advance(false);
+                        if position < input.len() && input[position] == b'"' {
                             self.inside_string = false;
                             self.string_delimiter = None;
-                            lexer.result_symbol(TokenType::StringEnd as usize);
-                            return ScanResult::Found;
+                            return Some(ScanResult {
+                                symbol: SymbolId(TokenType::StringEnd as u16),
+                                length: 1,
+                            });
                         }
                     }
                     StringDelimiter::TripleSingleQuote => {
-                        if self.match_string(lexer, "'''") {
+                        if self.match_string_at(input, position, b"'''") {
                             self.inside_string = false;
                             self.string_delimiter = None;
-                            lexer.result_symbol(TokenType::StringEnd as usize);
-                            return ScanResult::Found;
+                            return Some(ScanResult {
+                                symbol: SymbolId(TokenType::StringEnd as u16),
+                                length: 3,
+                            });
                         }
                     }
                     StringDelimiter::TripleDoubleQuote => {
-                        if self.match_string(lexer, r#"""""#) {
+                        if self.match_string_at(input, position, b"\"\"\"") {
                             self.inside_string = false;
                             self.string_delimiter = None;
-                            lexer.result_symbol(TokenType::StringEnd as usize);
-                            return ScanResult::Found;
+                            return Some(ScanResult {
+                                symbol: SymbolId(TokenType::StringEnd as u16),
+                                length: 3,
+                            });
                         }
                     }
                 }
             }
-            return ScanResult::NotFound;
+            
+            // If we're in a string but can't find the end, consume content
+            if valid_symbols.get(TokenType::StringContent as usize) == Some(&true) {
+                let mut length = 0;
+                let mut i = position;
+                
+                while i < input.len() {
+                    // Check if we hit the string delimiter
+                    match self.string_delimiter {
+                        Some(StringDelimiter::SingleQuote) if input[i] == b'\'' => break,
+                        Some(StringDelimiter::DoubleQuote) if input[i] == b'"' => break,
+                        Some(StringDelimiter::TripleSingleQuote) 
+                            if self.match_string_at(input, i, b"'''") => break,
+                        Some(StringDelimiter::TripleDoubleQuote) 
+                            if self.match_string_at(input, i, b"\"\"\"") => break,
+                        _ => {}
+                    }
+                    
+                    // Handle escape sequences
+                    if input[i] == b'\\' && i + 1 < input.len() {
+                        i += 2;
+                        length += 2;
+                    } else {
+                        i += 1;
+                        length += 1;
+                    }
+                }
+                
+                if length > 0 {
+                    return Some(ScanResult {
+                        symbol: SymbolId(TokenType::StringContent as u16),
+                        length,
+                    });
+                }
+            }
+            
+            return None;
         }
         
         // Check for string start
-        if valid_symbols[TokenType::StringStart as usize] {
+        if valid_symbols.get(TokenType::StringStart as usize) == Some(&true) {
             // Check for triple quotes first
-            if self.match_string(lexer, "'''") {
+            if self.match_string_at(input, position, b"'''") {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::TripleSingleQuote);
-                lexer.result_symbol(TokenType::StringStart as usize);
-                return ScanResult::Found;
+                return Some(ScanResult {
+                    symbol: SymbolId(TokenType::StringStart as u16),
+                    length: 3,
+                });
             }
             
-            if self.match_string(lexer, r#"""""#) {
+            if self.match_string_at(input, position, b"\"\"\"") {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::TripleDoubleQuote);
-                lexer.result_symbol(TokenType::StringStart as usize);
-                return ScanResult::Found;
+                return Some(ScanResult {
+                    symbol: SymbolId(TokenType::StringStart as u16),
+                    length: 3,
+                });
             }
             
             // Check for single quotes
-            if lexer.lookahead() == '\'' {
-                lexer.advance(false);
+            if position < input.len() && input[position] == b'\'' {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::SingleQuote);
-                lexer.result_symbol(TokenType::StringStart as usize);
-                return ScanResult::Found;
+                return Some(ScanResult {
+                    symbol: SymbolId(TokenType::StringStart as u16),
+                    length: 1,
+                });
             }
             
-            if lexer.lookahead() == '"' {
-                lexer.advance(false);
+            if position < input.len() && input[position] == b'"' {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::DoubleQuote);
-                lexer.result_symbol(TokenType::StringStart as usize);
-                return ScanResult::Found;
+                return Some(ScanResult {
+                    symbol: SymbolId(TokenType::StringStart as u16),
+                    length: 1,
+                });
             }
         }
         
         // Handle newlines and indentation
-        if valid_symbols[TokenType::Newline as usize] {
-            if lexer.lookahead() == '\n' {
-                lexer.advance(false);
-                lexer.mark_end();
-                
-                // Skip blank lines and comments
-                loop {
-                    // Count indentation
-                    indent_length = 0;
-                    while !lexer.eof() {
-                        if lexer.lookahead() == ' ' {
-                            found_space_indent = true;
-                            indent_length += 1;
-                        } else if lexer.lookahead() == '\t' {
-                            found_tab_indent = true;
-                            indent_length += 8; // Tabs count as 8 spaces
-                        } else {
-                            break;
-                        }
-                        lexer.advance(true);
-                    }
-                    
-                    // Check if it's a blank line or comment
-                    if lexer.lookahead() == '\n' {
-                        lexer.advance(false);
-                        continue;
-                    } else if lexer.lookahead() == '#' {
-                        // Skip comment line
-                        while !lexer.eof() && lexer.lookahead() != '\n' {
-                            lexer.advance(true);
-                        }
-                        if lexer.lookahead() == '\n' {
-                            lexer.advance(false);
-                            continue;
-                        }
-                    }
-                    
-                    break;
-                }
-                
-                lexer.result_symbol(TokenType::Newline as usize);
-                return ScanResult::Found;
+        if valid_symbols.get(TokenType::Newline as usize) == Some(&true) {
+            if position < input.len() && input[position] == b'\n' {
+                return Some(ScanResult {
+                    symbol: SymbolId(TokenType::Newline as u16),
+                    length: 1,
+                });
             }
         }
         
-        // Handle indentation at the beginning of a line
-        if lexer.get_column() == 0 {
+        // Handle indentation at the beginning of a line (column 0)
+        if position == 0 || (position > 0 && input[position - 1] == b'\n') {
+            let mut indent_length = 0;
+            let mut i = position;
+            
             // Count leading whitespace
-            while !lexer.eof() {
-                if lexer.lookahead() == ' ' {
-                    found_space_indent = true;
+            while i < input.len() {
+                if input[i] == b' ' {
                     indent_length += 1;
-                    lexer.advance(true);
-                } else if lexer.lookahead() == '\t' {
-                    found_tab_indent = true;
+                    i += 1;
+                } else if input[i] == b'\t' {
                     indent_length += 8; // Tabs count as 8 spaces
-                    lexer.advance(true);
+                    i += 1;
                 } else {
                     break;
                 }
             }
             
             // Don't emit indentation tokens for blank lines or comments
-            if lexer.lookahead() == '\n' || lexer.lookahead() == '#' {
-                return ScanResult::NotFound;
-            }
-            
-            // Get current indentation level
-            let current_indent = if self.indent_stack.is_empty() {
-                0
-            } else {
-                *self.indent_stack.last().unwrap()
-            };
-            
-            if valid_symbols[TokenType::Indent as usize] && indent_length > current_indent {
-                self.indent_stack.push(indent_length);
-                lexer.result_symbol(TokenType::Indent as usize);
-                return ScanResult::Found;
-            }
-            
-            if valid_symbols[TokenType::Dedent as usize] && indent_length < current_indent {
-                // Pop all indentation levels greater than the current line's indentation
-                while !self.indent_stack.is_empty() {
-                    let last_indent = *self.indent_stack.last().unwrap();
-                    if last_indent <= indent_length {
-                        break;
-                    }
-                    self.indent_stack.pop();
+            if i < input.len() && input[i] != b'\n' && input[i] != b'#' {
+                // Get current indentation level
+                let current_indent = self.indent_stack.last().copied().unwrap_or(0);
+                
+                if valid_symbols.get(TokenType::Indent as usize) == Some(&true) 
+                    && indent_length > current_indent {
+                    self.indent_stack.push(indent_length);
+                    return Some(ScanResult {
+                        symbol: SymbolId(TokenType::Indent as u16),
+                        length: 0, // Indents don't consume characters
+                    });
                 }
                 
-                lexer.result_symbol(TokenType::Dedent as usize);
-                return ScanResult::Found;
+                if valid_symbols.get(TokenType::Dedent as usize) == Some(&true) 
+                    && indent_length < current_indent {
+                    // Pop all indentation levels greater than the current line's indentation
+                    while let Some(&last_indent) = self.indent_stack.last() {
+                        if last_indent <= indent_length {
+                            break;
+                        }
+                        self.indent_stack.pop();
+                    }
+                    
+                    return Some(ScanResult {
+                        symbol: SymbolId(TokenType::Dedent as u16),
+                        length: 0, // Dedents don't consume characters
+                    });
+                }
             }
         }
         
-        ScanResult::NotFound
+        None
     }
     
     fn serialize(&self, buffer: &mut Vec<u8>) {
@@ -229,11 +247,11 @@ impl ExternalScanner for PythonScanner {
         });
     }
     
-    fn deserialize(buffer: &[u8]) -> Self where Self: Sized {
-        let mut scanner = PythonScanner::default();
+    fn deserialize(&mut self, buffer: &[u8]) {
+        self.indent_stack.clear();
         
         if buffer.len() < 2 {
-            return scanner;
+            return;
         }
         
         // Deserialize indent stack
@@ -245,18 +263,18 @@ impl ExternalScanner for PythonScanner {
                 break;
             }
             let indent = u16::from_le_bytes([buffer[offset], buffer[offset + 1]]);
-            scanner.indent_stack.push(indent);
+            self.indent_stack.push(indent);
             offset += 2;
         }
         
         // Deserialize string state
         if offset < buffer.len() {
-            scanner.inside_string = buffer[offset] != 0;
+            self.inside_string = buffer[offset] != 0;
             offset += 1;
         }
         
         if offset < buffer.len() {
-            scanner.string_delimiter = match buffer[offset] {
+            self.string_delimiter = match buffer[offset] {
                 1 => Some(StringDelimiter::SingleQuote),
                 2 => Some(StringDelimiter::DoubleQuote),
                 3 => Some(StringDelimiter::TripleSingleQuote),
@@ -264,30 +282,26 @@ impl ExternalScanner for PythonScanner {
                 _ => None,
             };
         }
-        
-        scanner
     }
 }
 
 impl PythonScanner {
-    fn match_string(&self, lexer: &mut Lexer, s: &str) -> bool {
-        let chars: Vec<char> = s.chars().collect();
-        for (i, &ch) in chars.iter().enumerate() {
-            if i > 0 {
-                lexer.advance(false);
-            }
-            if lexer.lookahead() != ch {
+    fn match_string_at(&self, input: &[u8], position: usize, pattern: &[u8]) -> bool {
+        if position + pattern.len() > input.len() {
+            return false;
+        }
+        
+        for (i, &ch) in pattern.iter().enumerate() {
+            if input[position + i] != ch {
                 return false;
             }
         }
-        if !chars.is_empty() {
-            lexer.advance(false);
-        }
+        
         true
     }
 }
 
-// Export the scanner
+// Export the scanner creation function
 pub fn create_scanner() -> Box<dyn ExternalScanner> {
     Box::new(PythonScanner::default())
 }

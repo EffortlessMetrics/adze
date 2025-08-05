@@ -1,6 +1,13 @@
 // Python grammar for rust-sitter
 // Simplified version for v0.5.0-beta (without indentation handling)
 
+pub mod scanner;
+
+// Function to register the scanner - call this from build.rs or when loading the grammar
+pub fn register_scanner() {
+    rust_sitter::scanner_registry::register_rust_scanner::<scanner::PythonScanner>("python");
+}
+
 #[rust_sitter::grammar("python")]
 pub mod grammar {
     #[rust_sitter::language]

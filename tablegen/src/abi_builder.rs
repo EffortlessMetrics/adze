@@ -90,17 +90,33 @@ impl<'a> AbiLanguageBuilder<'a> {
             let scanner_interface = scanner_gen.generate_scanner_interface();
             
             // Generate wrapper functions for the external scanner
+            let language_name_str = language_name.to_string();
+            let num_external_tokens = self.grammar.externals.len();
             let scanner_functions = quote! {
                 // External scanner wrapper functions
+                use rust_sitter::scanner_registry::DynExternalScanner;
+                
                 #[unsafe(no_mangle)]
                 extern "C" fn tree_sitter_external_scanner_create() -> *mut std::ffi::c_void {
-                    // TODO: Get scanner from registry based on language name
-                    std::ptr::null_mut()
+                    let registry = rust_sitter::scanner_registry::get_global_registry();
+                    let registry = registry.lock().unwrap();
+                    
+                    if let Some(scanner) = registry.create_scanner(#language_name_str) {
+                        let boxed: Box<Box<dyn DynExternalScanner>> = Box::new(scanner);
+                        Box::into_raw(boxed) as *mut std::ffi::c_void
+                    } else {
+                        eprintln!("Warning: No scanner registered for language '{}'", #language_name_str);
+                        std::ptr::null_mut()
+                    }
                 }
                 
                 #[unsafe(no_mangle)]
                 extern "C" fn tree_sitter_external_scanner_destroy(scanner: *mut std::ffi::c_void) {
-                    // TODO: Destroy scanner
+                    if !scanner.is_null() {
+                        unsafe {
+                            let _ = Box::from_raw(scanner as *mut Box<dyn DynExternalScanner>);
+                        }
+                    }
                 }
                 
                 #[unsafe(no_mangle)]
@@ -109,8 +125,25 @@ impl<'a> AbiLanguageBuilder<'a> {
                     lexer: *mut std::ffi::c_void,
                     valid_symbols: *const bool,
                 ) -> bool {
-                    // TODO: Call scanner
-                    false
+                    if scanner.is_null() || lexer.is_null() || valid_symbols.is_null() {
+                        return false;
+                    }
+                    
+                    unsafe {
+                        let scanner = &mut *(scanner as *mut Box<dyn DynExternalScanner>);
+                        
+                        // Convert C lexer to our lexer interface
+                        // For now, we'll use a simplified approach
+                        // TODO: Implement proper lexer adapter
+                        
+                        // Build valid symbols slice
+                        let num_external_tokens = #num_external_tokens;
+                        let valid_symbols_slice = std::slice::from_raw_parts(valid_symbols, num_external_tokens);
+                        
+                        // For now, return false as we need to implement the lexer adapter
+                        // This will be fixed in the next step
+                        false
+                    }
                 }
                 
                 #[unsafe(no_mangle)]
@@ -118,8 +151,23 @@ impl<'a> AbiLanguageBuilder<'a> {
                     scanner: *mut std::ffi::c_void,
                     buffer: *mut u8,
                 ) -> u32 {
-                    // TODO: Serialize scanner
-                    0
+                    if scanner.is_null() {
+                        return 0;
+                    }
+                    
+                    unsafe {
+                        let scanner = &*(scanner as *mut Box<dyn DynExternalScanner>);
+                        let mut vec_buffer = Vec::new();
+                        scanner.serialize(&mut vec_buffer);
+                        
+                        if !buffer.is_null() {
+                            let len = vec_buffer.len().min(1024); // Limit buffer size
+                            std::ptr::copy_nonoverlapping(vec_buffer.as_ptr(), buffer as *mut u8, len);
+                            len as u32
+                        } else {
+                            vec_buffer.len() as u32
+                        }
+                    }
                 }
                 
                 #[unsafe(no_mangle)]
@@ -128,7 +176,15 @@ impl<'a> AbiLanguageBuilder<'a> {
                     buffer: *const u8,
                     length: u32,
                 ) {
-                    // TODO: Deserialize scanner
+                    if scanner.is_null() || buffer.is_null() {
+                        return;
+                    }
+                    
+                    unsafe {
+                        let scanner = &mut *(scanner as *mut Box<dyn DynExternalScanner>);
+                        let buffer_slice = std::slice::from_raw_parts(buffer as *const u8, length as usize);
+                        scanner.deserialize(buffer_slice);
+                    }
                 }
             };
             
