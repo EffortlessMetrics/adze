@@ -417,9 +417,11 @@ impl Parser {
                 } else {
                     "EOF".to_string()
                 };
+                eprintln!(
                     "DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}",
                     position, current_state, token.symbol, action, _byte_repr
                 );
+                eprintln!(
                     "DEBUG: Stack size: {}, token.length={}",
                     self.stack.len(),
                     token.length
@@ -537,6 +539,7 @@ impl Parser {
                 Action::Error => {
                     // Record error and try to recover
                     let expected_symbols = self.get_expected_symbols(language, current_state);
+                    eprintln!("ERROR: position={}, current_state={}, expected_symbols={:?}, token.symbol={}", 
                               position, current_state, expected_symbols, token.symbol);
                     errors.push(ParseError {
                         position,

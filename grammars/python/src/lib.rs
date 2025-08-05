@@ -10,6 +10,34 @@ pub fn register_scanner() {
 
 #[rust_sitter::grammar("python")]
 pub mod grammar {
+    // External scanner tokens for Python's indentation
+    #[rust_sitter::external]
+    pub struct Newline;
+
+    #[rust_sitter::external]
+    pub struct Indent;
+
+    #[rust_sitter::external]
+    pub struct Dedent;
+
+    #[rust_sitter::external]
+    pub struct StringStart;
+
+    #[rust_sitter::external]
+    pub struct StringContent;
+
+    #[rust_sitter::external]
+    pub struct StringEnd;
+
+    #[rust_sitter::external]
+    pub struct Comment;
+
+    #[rust_sitter::external]
+    pub struct LineJoining;
+
+    #[rust_sitter::external]
+    pub struct ErrorSentinel;
+
     #[rust_sitter::language]
     pub struct Module {
         // For an empty module, we need at least one statement
