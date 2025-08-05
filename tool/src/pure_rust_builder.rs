@@ -56,8 +56,17 @@ pub fn build_parser_from_grammar_js(
     let grammar_js_content = fs::read_to_string(grammar_js_path)
         .with_context(|| format!("Failed to read grammar.js file at {:?}", grammar_js_path))?;
 
-    let grammar_js =
-        parse_grammar_js_v2(&grammar_js_content).context("Failed to parse grammar.js")?;
+    // Try v3 parser first, fall back to v2 if needed
+    let grammar_js = {
+        let mut parser_v3 = crate::grammar_js::GrammarJsParserV3::new(grammar_js_content.clone());
+        match parser_v3.parse() {
+            Ok(g) => g,
+            Err(_) => {
+                // Fall back to v2 parser
+                parse_grammar_js_v2(&grammar_js_content).context("Failed to parse grammar.js")?
+            }
+        }
+    };
 
     // Parse grammar.js successfully
 
