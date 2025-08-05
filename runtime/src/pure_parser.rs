@@ -417,11 +417,9 @@ impl Parser {
                 } else {
                     "EOF".to_string()
                 };
-                eprintln!(
                     "DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}",
                     position, current_state, token.symbol, action, _byte_repr
                 );
-                eprintln!(
                     "DEBUG: Stack size: {}, token.length={}",
                     self.stack.len(),
                     token.length
@@ -430,7 +428,6 @@ impl Parser {
             match action {
                 Action::Shift(next_state) => {
                     if source.len() < 20 {
-                        eprintln!("DEBUG: Shifting token symbol {} to state {}", token.symbol, next_state);
                     }
                     // Create leaf node
                     let end_point =
@@ -540,7 +537,6 @@ impl Parser {
                 Action::Error => {
                     // Record error and try to recover
                     let expected_symbols = self.get_expected_symbols(language, current_state);
-                    eprintln!("Parser error at position {} (state {}): expected: {:?}, found: {} (expected symbols are indices, found is index)", 
                               position, current_state, expected_symbols, token.symbol);
                     errors.push(ParseError {
                         position,
@@ -865,24 +861,20 @@ impl Parser {
     /// Perform a reduction
     fn reduce(&mut self, language: &TSLanguage, production_id: u16, source: &[u8]) -> bool {
         if source.len() < 20 {
-            eprintln!(
                 "DEBUG reduce: Reducing with production_id={} (from parse table)",
                 production_id
             );
-            eprintln!(
                 "DEBUG reduce: Stack before reduction has {} entries",
                 self.stack.len()
             );
             for (i, entry) in self.stack.iter().enumerate() {
                 if let Some(ref subtree) = entry.subtree {
-                    eprintln!(
                         "  Stack[{}]: state={}, symbol={}",
                         i,
                         entry.state,
                         subtree.symbol
                     );
                 } else {
-                    eprintln!(
                         "  Stack[{}]: state={}, no subtree",
                         i,
                         entry.state
@@ -924,7 +916,6 @@ impl Parser {
             let symbol = action.symbol;
 
             if source.len() < 20 {
-                eprintln!(
                     "DEBUG reduce: Production {} (index {}) reduces to symbol {} with {} children",
                     production_id, production_index, symbol, child_count
                 );
@@ -1138,7 +1129,6 @@ impl Parser {
                             if !name_ptr.is_null() {
                                 let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
                                 let name = c_str.to_string_lossy();
-                                eprintln!("  State 0 expects symbol {}: '{}' (action: {:?})", symbol, name, action);
                             }
                         }
                     }

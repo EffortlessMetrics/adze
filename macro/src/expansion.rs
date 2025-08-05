@@ -325,7 +325,6 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             if v.ident == "Number" {
                                 Some(quote! {
                                     // Number terminals often have generated names like _1, _2, etc
-                                    eprintln!("DEBUG: Trying to extract Number from terminal");
                                     return #extract_expr;
                                 })
                             } else {
@@ -412,10 +411,8 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 
                                 // Recursively unwrap hidden rules and wrapper nodes
                                 fn unwrap_hidden_rules<'a>(node: &'a ::rust_sitter::pure_parser::ParsedNode) -> &'a ::rust_sitter::pure_parser::ParsedNode {
-                                    eprintln!("DEBUG unwrap: node kind='{}', children={}", node.kind(), node.children.len());
                                     // If this is a hidden rule (starts with '_') or has a single child, unwrap it
                                     if (node.kind().starts_with('_') || node.children.len() == 1) && node.children.len() > 0 {
-                                        eprintln!("DEBUG unwrap: unwrapping to child");
                                         return unwrap_hidden_rules(&node.children[0]);
                                     }
                                     node
@@ -436,7 +433,6 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 
                                 // Special handling for terminal nodes that represent leaf variants
                                 if unwrapped_node.children.is_empty() {
-                                    eprintln!("DEBUG: Checking terminal node kind='{}' for leaf variants", unwrapped_node.kind());
                                     // This is a terminal node, it might be a leaf variant
                                     let node = unwrapped_node;
                                     #(#leaf_variant_detection)*

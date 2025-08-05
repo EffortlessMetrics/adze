@@ -656,7 +656,6 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
                 e.variants.iter().for_each(|v| {
                     let variant_path = format!("{}_{}", e.ident, v.ident);
-                    eprintln!("DEBUG: Processing variant: {}", variant_path);
 
                     // Generate the variant rule - no need to capture result
                     gen_struct_or_variant(
@@ -674,18 +673,15 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                         "type": "SYMBOL",
                         "name": variant_path.clone()
                     });
-                    eprintln!("DEBUG: Created variant_ref for {}: {:?}", variant_path, variant_ref);
                     
                     // For enum variants, precedence is already applied in gen_struct_or_variant
                     // Just use the variant reference directly
-                    eprintln!("DEBUG: Pushing variant reference to members array: {:?}", variant_ref);
                     members.push(variant_ref);
                 });
 
                 // For precedence to work correctly with the LR algorithm,
                 // we need the CHOICE to be visible. This allows the parser to see
                 // the operators directly and generate proper shift/reduce conflicts.
-                eprintln!("DEBUG: Creating visible CHOICE rule for enum '{}' with {} members", e.ident, members.len());
                 
                 let rule = json!({
                     "type": "CHOICE",
