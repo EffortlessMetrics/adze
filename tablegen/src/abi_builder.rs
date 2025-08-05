@@ -131,18 +131,29 @@ impl<'a> AbiLanguageBuilder<'a> {
                     
                     unsafe {
                         let scanner = &mut *(scanner as *mut Box<dyn DynExternalScanner>);
-                        
-                        // Convert C lexer to our lexer interface
-                        // For now, we'll use a simplified approach
-                        // TODO: Implement proper lexer adapter
+                        let ts_lexer = &mut *(lexer as *mut rust_sitter::external_scanner_ffi::TSLexer);
                         
                         // Build valid symbols slice
                         let num_external_tokens = #num_external_tokens;
                         let valid_symbols_slice = std::slice::from_raw_parts(valid_symbols, num_external_tokens);
                         
-                        // For now, return false as we need to implement the lexer adapter
-                        // This will be fixed in the next step
-                        false
+                        // The DynExternalScanner expects input and position, not a lexer
+                        // For now, we'll use a simplified approach to get the scanner working
+                        // In a real implementation, we'd extract input/position from the parser state
+                        
+                        // Temporary: assume empty input at position 0
+                        // This will be properly implemented when we integrate with the parser
+                        let input = &[];
+                        let position = 0;
+                        
+                        // Call the scanner's scan method
+                        if let Some(result) = scanner.scan(valid_symbols_slice, input, position) {
+                            // Set the result symbol in the lexer
+                            ts_lexer.result_symbol = result.symbol.0;
+                            true
+                        } else {
+                            false
+                        }
                     }
                 }
                 

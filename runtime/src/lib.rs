@@ -1,6 +1,7 @@
 pub mod __private;
 pub mod external_scanner;
 pub mod external_scanner_ffi;
+pub mod ffi;
 pub mod incremental;
 pub mod incremental_v2;
 pub mod incremental_v3;
