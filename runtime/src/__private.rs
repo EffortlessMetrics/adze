@@ -149,8 +149,8 @@ pub fn extract_field<LT: Extract<T>, T>(
         // Since field names are not available in pure-rust parser,
         // we extract from the current child and advance the cursor
         let n = cursor.node();
-        // eprintln!("DEBUG extract_field: Field '{}' requested, node: symbol={}, children={}", 
-        //     _field_name, n.symbol, n.children.len());
+        eprintln!("DEBUG extract_field: Field '{}' requested, node: kind='{}', symbol={}, children={}", 
+            _field_name, n.kind(), n.symbol, n.children.len());
         
         // Check if we're dealing with a node that has no children
         // This happens when a struct has a single leaf field - the node IS the field value

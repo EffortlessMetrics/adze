@@ -300,6 +300,41 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                         Ok(detection_expr)
                     }).collect::<Result<Vec<_>>>()?;
+                    
+                    // Generate separate detection logic for leaf variants on terminal nodes
+                    let leaf_variant_detection = e.variants.iter().filter_map(|v| {
+                        // Check if this is a leaf variant
+                        let is_leaf_variant = if let Fields::Unnamed(ref unnamed) = v.fields {
+                            unnamed.unnamed.len() == 1 && unnamed.unnamed[0]
+                                .attrs
+                                .iter()
+                                .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf))
+                        } else {
+                            false
+                        };
+                        
+                        if is_leaf_variant {
+                            let extract_expr = gen_struct_or_variant(
+                                v.fields.clone(),
+                                Some(v.ident.clone()),
+                                e.ident.clone(),
+                                v.attrs.clone(),
+                            ).ok()?;
+                            
+                            // For Number variant specifically, handle numeric terminals
+                            if v.ident == "Number" {
+                                Some(quote! {
+                                    // Number terminals often have generated names like _1, _2, etc
+                                    eprintln!("DEBUG: Trying to extract Number from terminal");
+                                    return #extract_expr;
+                                })
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }).collect::<Vec<_>>();
 
                     e.attrs.retain(|a| !is_sitter_attr(a));
                     e.variants.iter_mut().for_each(|v| {
@@ -398,6 +433,14 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 // Check if this node directly matches one of our variants
                                 let node = unwrapped_node;
                                 #(#variant_detection_logic)*
+                                
+                                // Special handling for terminal nodes that represent leaf variants
+                                if unwrapped_node.children.is_empty() {
+                                    eprintln!("DEBUG: Checking terminal node kind='{}' for leaf variants", unwrapped_node.kind());
+                                    // This is a terminal node, it might be a leaf variant
+                                    let node = unwrapped_node;
+                                    #(#leaf_variant_detection)*
+                                }
 
                                 panic!("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}", 
                                     unwrapped_node.kind(), unwrapped_node.symbol, unwrapped_node.children.len())
