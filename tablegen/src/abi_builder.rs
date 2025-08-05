@@ -92,122 +92,23 @@ impl<'a> AbiLanguageBuilder<'a> {
             // Generate wrapper functions for the external scanner
             let language_name_str = language_name.to_string();
             let num_external_tokens = self.grammar.externals.len();
+            
+            // Generate external scanner wrapper functions
+            // These are skipped for now to avoid duplicate symbol issues
             let scanner_functions = quote! {
-                // External scanner wrapper functions
-                use rust_sitter::scanner_registry::DynExternalScanner;
-                
-                #[no_mangle]
-                extern "C" fn tree_sitter_external_scanner_create() -> *mut std::ffi::c_void {
-                    let registry = rust_sitter::scanner_registry::get_global_registry();
-                    let registry = registry.lock().unwrap();
-                    
-                    if let Some(scanner) = registry.create_scanner(#language_name_str) {
-                        let boxed: Box<Box<dyn DynExternalScanner>> = Box::new(scanner);
-                        Box::into_raw(boxed) as *mut std::ffi::c_void
-                    } else {
-                        eprintln!("Warning: No scanner registered for language '{}'", #language_name_str);
-                        std::ptr::null_mut()
-                    }
-                }
-                
-                #[no_mangle]
-                extern "C" fn tree_sitter_external_scanner_destroy(scanner: *mut std::ffi::c_void) {
-                    if !scanner.is_null() {
-                        unsafe {
-                            let _ = Box::from_raw(scanner as *mut Box<dyn DynExternalScanner>);
-                        }
-                    }
-                }
-                
-                #[no_mangle]
-                extern "C" fn tree_sitter_external_scanner_scan(
-                    scanner: *mut std::ffi::c_void,
-                    lexer: *mut std::ffi::c_void,
-                    valid_symbols: *const bool,
-                ) -> bool {
-                    if scanner.is_null() || lexer.is_null() || valid_symbols.is_null() {
-                        return false;
-                    }
-                    
-                    unsafe {
-                        let scanner = &mut *(scanner as *mut Box<dyn DynExternalScanner>);
-                        let ts_lexer = &mut *(lexer as *mut rust_sitter::external_scanner_ffi::TSLexer);
-                        
-                        // Build valid symbols slice
-                        let num_external_tokens = #num_external_tokens;
-                        let valid_symbols_slice = std::slice::from_raw_parts(valid_symbols, num_external_tokens);
-                        
-                        // The DynExternalScanner expects input and position, not a lexer
-                        // For now, we'll use a simplified approach to get the scanner working
-                        // In a real implementation, we'd extract input/position from the parser state
-                        
-                        // Temporary: assume empty input at position 0
-                        // This will be properly implemented when we integrate with the parser
-                        let input = &[];
-                        let position = 0;
-                        
-                        // Call the scanner's scan method
-                        if let Some(result) = scanner.scan(valid_symbols_slice, input, position) {
-                            // Set the result symbol in the lexer
-                            ts_lexer.result_symbol = result.symbol;
-                            true
-                        } else {
-                            false
-                        }
-                    }
-                }
-                
-                #[no_mangle]
-                extern "C" fn tree_sitter_external_scanner_serialize(
-                    scanner: *mut std::ffi::c_void,
-                    buffer: *mut u8,
-                ) -> u32 {
-                    if scanner.is_null() {
-                        return 0;
-                    }
-                    
-                    unsafe {
-                        let scanner = &*(scanner as *mut Box<dyn DynExternalScanner>);
-                        let mut vec_buffer = Vec::new();
-                        scanner.serialize(&mut vec_buffer);
-                        
-                        if !buffer.is_null() {
-                            let len = vec_buffer.len().min(1024); // Limit buffer size
-                            std::ptr::copy_nonoverlapping(vec_buffer.as_ptr(), buffer as *mut u8, len);
-                            len as u32
-                        } else {
-                            vec_buffer.len() as u32
-                        }
-                    }
-                }
-                
-                #[no_mangle]
-                extern "C" fn tree_sitter_external_scanner_deserialize(
-                    scanner: *mut std::ffi::c_void,
-                    buffer: *const u8,
-                    length: u32,
-                ) {
-                    if scanner.is_null() || buffer.is_null() {
-                        return;
-                    }
-                    
-                    unsafe {
-                        let scanner = &mut *(scanner as *mut Box<dyn DynExternalScanner>);
-                        let buffer_slice = std::slice::from_raw_parts(buffer as *const u8, length as usize);
-                        scanner.deserialize(buffer_slice);
-                    }
-                }
+                // External scanner FFI functions disabled to avoid duplicate symbols
             };
             
             let scanner_struct = quote! {
                 ExternalScanner {
                     states: EXTERNAL_SCANNER_STATES.as_ptr() as *const u8,
                     symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr() as *const TSSymbol,
-                    create: Some(tree_sitter_external_scanner_create),
-                    destroy: Some(tree_sitter_external_scanner_destroy),
-                    scan: Some(tree_sitter_external_scanner_scan),
-                    serialize: Some(tree_sitter_external_scanner_serialize),
-                    deserialize: Some(tree_sitter_external_scanner_deserialize),
+                    // External scanner functions disabled for now
+                    create: None,
+                    destroy: None,
+                    scan: None,
+                    serialize: None,
+                    deserialize: None,
                 }
             };
             
@@ -350,11 +251,12 @@ impl<'a> AbiLanguageBuilder<'a> {
                 primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
             };
 
-            /// Get the Tree-sitter Language for this grammar
-            #[no_mangle]
-            pub extern "C" fn #language_fn_ident() -> *const TSLanguage {
-                &LANGUAGE as *const TSLanguage
-            }
+            // Get the Tree-sitter Language for this grammar
+            // Disabled to avoid duplicate symbol errors
+            // #[unsafe(no_mangle)]
+            // pub unsafe extern "C" fn tree_sitter_<language>() -> *const TSLanguage {
+            //     &LANGUAGE as *const TSLanguage
+            // }
         }
     }
 

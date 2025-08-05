@@ -501,6 +501,31 @@ impl Parser {
             bail!("No parse tree found")
         }
     }
+
+    /// Get raw input bytes
+    pub fn raw_input(&self) -> &[u8] {
+        &self.input
+    }
+
+    /// Get current byte position
+    pub fn byte_pos(&self) -> usize {
+        self.position
+    }
+
+    /// Borrow the lexer (placeholder for compatibility)
+    pub fn borrow_lexer(&mut self) -> &mut Self {
+        self
+    }
+
+    /// Advance from scanner result
+    pub fn advance_from_scanner(&mut self, length: usize) {
+        self.position += length;
+    }
+
+    /// Get TS lexer pointer (for FFI compatibility)
+    pub fn ts_lexer_ptr(&mut self) -> *mut std::ffi::c_void {
+        self as *mut _ as *mut std::ffi::c_void
+    }
 }
 
 #[cfg(test)]
