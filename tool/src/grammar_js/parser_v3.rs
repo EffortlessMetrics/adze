@@ -5,6 +5,12 @@ use std::collections::HashMap;
 use super::helpers::HelperFunctions;
 use super::{ExternalToken, GrammarJs, Rule};
 
+/// Check if a string is a symbol reference like $.identifier
+fn is_symbol_ref(s: &str) -> bool {
+    let trimmed = s.trim();
+    trimmed.starts_with("$.") && trimmed.len() > 2 && trimmed[2..].chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
 /// A more robust parser for grammar.js files
 pub struct GrammarJsParserV3 {
     content: String,
@@ -20,7 +26,10 @@ impl GrammarJsParserV3 {
     }
 
     pub fn parse(&mut self) -> Result<GrammarJs> {
-        // First, find the module.exports pattern
+        // First, extract any JavaScript constants like PREC
+        self.extract_js_constants()?;
+        
+        // Then find the module.exports pattern
         let exports_regex = Regex::new(r"module\.exports\s*=\s*grammar\s*\(")?;
 
         let grammar_content = if let Some(mat) = exports_regex.find(&self.content) {
@@ -78,6 +87,49 @@ impl GrammarJsParserV3 {
         grammar.rules = self.extract_rules(content)?;
 
         Ok(grammar)
+    }
+    
+    fn extract_js_constants(&mut self) -> Result<()> {
+        // Look for const PREC = { ... } or similar patterns
+        let const_regex = Regex::new(r"const\s+(\w+)\s*=\s*\{")?;
+        
+        if let Some(mat) = const_regex.find(&self.content) {
+            let const_name = self.content[mat.start()..mat.end()]
+                .split_whitespace()
+                .nth(1)
+                .unwrap_or("")
+                .trim_end_matches('=');
+            
+            if const_name == "PREC" {
+                // Extract the object content
+                let start = mat.end();
+                let end = self.find_matching_brace(&self.content[start..])?;
+                let prec_content = self.content[start..start + end].to_string();
+                
+                // Parse the precedence object
+                self.parse_prec_object(&prec_content)?;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    fn parse_prec_object(&mut self, content: &str) -> Result<()> {
+        // Parse JavaScript object like { lambda: -2, typed_parameter: -1, ... }
+        // Use a simple regex to extract key: value pairs
+        let pair_regex = Regex::new(r"(\w+)\s*:\s*(-?\d+)")?;
+        
+        for caps in pair_regex.captures_iter(content) {
+            let name = caps[1].to_string();
+            let value: i32 = caps[2].parse()?;
+            self.precedence_map.insert(name, value);
+        }
+        
+        Ok(())
+    }
+    
+    fn find_matching_brace(&self, content: &str) -> Result<usize> {
+        self.find_matching_bracket(content, '{', '}')
     }
 
     fn extract_grammar_name(&self, content: &str) -> Result<String> {
@@ -274,7 +326,9 @@ impl GrammarJsParserV3 {
     }
 
     fn parse_rule(&self, rule_def: &str) -> Result<Rule> {
-        let trimmed = rule_def.trim();
+        // Strip arrow function callbacks (we don't need JS callbacks for code generation)
+        let rule_def = rule_def.split("=>").next().unwrap_or(rule_def).trim();
+        let trimmed = rule_def;
 
         // Handle different rule patterns
         if trimmed.starts_with("prec.left(") {
@@ -326,7 +380,7 @@ impl GrammarJsParserV3 {
                 bail!("Unterminated regex pattern")
             }
         } else if trimmed.starts_with("{") {
-            // Function block - extract the return statement
+            // Function block - extract the return statement or parse const/table-based definitions
             self.parse_function_block(trimmed)
         } else if trimmed.contains('(') {
             // Could be a helper function call
@@ -352,6 +406,14 @@ impl GrammarJsParserV3 {
     fn parse_function_block(&self, block: &str) -> Result<Rule> {
         // Function blocks have JavaScript code that ends with a return statement
         // We need to extract the return value
+
+        // Special case: binary_operator-style table definitions
+        if block.contains("const table = [") {
+            // This is the pattern used in binary_operator: const table = [...] return choice(...table.map(...))
+            // For now, return a placeholder since we can't execute JavaScript
+            eprintln!("Warning: Complex JavaScript table definition found, returning placeholder");
+            return Ok(Rule::Choice { members: vec![] });
+        }
 
         // Find the last 'return' statement
         if let Some(return_pos) = block.rfind("return ") {
@@ -431,11 +493,12 @@ impl GrammarJsParserV3 {
     fn parse_rule_array(&self, content: &str) -> Result<Vec<Rule>> {
         let mut rules = vec![];
 
-        // Split by commas (simplified - doesn't handle nested commas)
-        for part in content.split(',') {
-            let trimmed = part.trim();
+        // Use split_args for proper comma handling
+        let args = self.split_args(content, -1)?;
+        for arg in args {
+            let trimmed = arg.trim();
             if !trimmed.is_empty() {
-                rules.push(self.parse_rule(trimmed)?);
+                rules.push(self.parse_arg(&trimmed)?);
             }
         }
 
@@ -459,69 +522,103 @@ impl GrammarJsParserV3 {
         }
     }
 
-    // Parse precedence functions
-    fn parse_prec(&self, rule_def: &str) -> Result<Rule> {
-        // prec(level, rule) - level can be numeric or a string name
-        let content = self.extract_function_args(rule_def, "prec")?;
-        let parts = self.split_args(&content, 2)?;
+    /// Parse any argument that could be a symbol reference, string literal, or nested rule
+    fn parse_arg(&self, text: &str) -> Result<Rule> {
+        let trimmed = text.trim();
+        if is_symbol_ref(trimmed) {
+            Ok(Rule::Symbol {
+                name: trimmed[2..].to_string(),
+            })
+        } else if trimmed.starts_with("'") || trimmed.starts_with('"') {
+            Ok(Rule::String {
+                value: self.extract_string_literal(trimmed)?,
+            })
+        } else {
+            // nested rule expression - recurse
+            self.parse_rule(trimmed)
+        }
+    }
 
-        let level_str = parts[0].trim();
-        let value = if let Ok(val) = level_str.parse::<i32>() {
-            val
+    fn parse_precedence_value(&self, level_str: &str) -> Result<i32> {
+        if let Ok(val) = level_str.parse::<i32>() {
+            Ok(val)
         } else {
             // Try to look up named precedence
-            let name = level_str.trim_matches(|c| c == '\'' || c == '"');
-            *self
+            let name = if level_str.starts_with("PREC.") {
+                // Handle PREC.name format
+                &level_str[5..]
+            } else {
+                // Handle 'name' format
+                level_str.trim_matches(|c| c == '\'' || c == '"')
+            };
+            self
                 .precedence_map
                 .get(name)
-                .with_context(|| format!("Unknown precedence name: {}", name))?
+                .copied()
+                .with_context(|| format!("Unknown precedence name: {}", name))
+        }
+    }
+
+    // Parse precedence functions
+    fn parse_prec(&self, rule_def: &str) -> Result<Rule> {
+        // prec(level, rule) OR prec(rule) - level can be numeric or a string name
+        let content = self.extract_function_args(rule_def, "prec")?;
+        let parts = self.split_args(&content, -1)?;
+
+        let (value, rule_idx) = if parts.len() == 1 {
+            // No explicit precedence, use default 0
+            (0, 0)
+        } else if parts.len() == 2 {
+            let level_str = parts[0].trim();
+            let value = self.parse_precedence_value(level_str)?;
+            (value, 1)
+        } else {
+            bail!("prec() expects 1 or 2 arguments, got {}", parts.len());
         };
 
-        let content = Box::new(self.parse_rule(&parts[1])?);
+        let content = Box::new(self.parse_rule(&parts[rule_idx])?);
 
         Ok(Rule::Prec { value, content })
     }
 
     fn parse_prec_left(&self, rule_def: &str) -> Result<Rule> {
-        // prec.left(level, rule) - level can be numeric or a string name
+        // prec.left(level, rule) OR prec.left(rule) - level can be numeric or a string name
         let content = self.extract_function_args(rule_def, "prec.left")?;
-        let parts = self.split_args(&content, 2)?;
+        let parts = self.split_args(&content, -1)?;
 
-        let level_str = parts[0].trim();
-        let value = if let Ok(val) = level_str.parse::<i32>() {
-            val
+        let (value, rule_idx) = if parts.len() == 1 {
+            // No explicit precedence, use default 0
+            (0, 0)
+        } else if parts.len() == 2 {
+            let level_str = parts[0].trim();
+            let value = self.parse_precedence_value(level_str)?;
+            (value, 1)
         } else {
-            // Try to look up named precedence
-            let name = level_str.trim_matches(|c| c == '\'' || c == '"');
-            *self
-                .precedence_map
-                .get(name)
-                .with_context(|| format!("Unknown precedence name: {}", name))?
+            bail!("prec.left() expects 1 or 2 arguments, got {}", parts.len());
         };
 
-        let content = Box::new(self.parse_rule(&parts[1])?);
+        let content = Box::new(self.parse_rule(&parts[rule_idx])?);
 
         Ok(Rule::PrecLeft { value, content })
     }
 
     fn parse_prec_right(&self, rule_def: &str) -> Result<Rule> {
-        // prec.right(level, rule) - level can be numeric or a string name
+        // prec.right(level, rule) OR prec.right(rule) - level can be numeric or a string name
         let content = self.extract_function_args(rule_def, "prec.right")?;
-        let parts = self.split_args(&content, 2)?;
+        let parts = self.split_args(&content, -1)?;
 
-        let level_str = parts[0].trim();
-        let value = if let Ok(val) = level_str.parse::<i32>() {
-            val
+        let (value, rule_idx) = if parts.len() == 1 {
+            // No explicit precedence, use default 0
+            (0, 0)
+        } else if parts.len() == 2 {
+            let level_str = parts[0].trim();
+            let value = self.parse_precedence_value(level_str)?;
+            (value, 1)
         } else {
-            // Try to look up named precedence
-            let name = level_str.trim_matches(|c| c == '\'' || c == '"');
-            *self
-                .precedence_map
-                .get(name)
-                .with_context(|| format!("Unknown precedence name: {}", name))?
+            bail!("prec.right() expects 1 or 2 arguments, got {}", parts.len());
         };
 
-        let content = Box::new(self.parse_rule(&parts[1])?);
+        let content = Box::new(self.parse_rule(&parts[rule_idx])?);
 
         Ok(Rule::PrecRight { value, content })
     }
@@ -529,19 +626,14 @@ impl GrammarJsParserV3 {
     fn parse_prec_dynamic(&self, rule_def: &str) -> Result<Rule> {
         // prec.dynamic(level, rule) - level can be numeric or a string name
         let content = self.extract_function_args(rule_def, "prec.dynamic")?;
-        let parts = self.split_args(&content, 2)?;
+        let parts = self.split_args(&content, -1)?;
+
+        if parts.len() != 2 {
+            bail!("prec.dynamic() expects exactly 2 arguments, got {}", parts.len());
+        }
 
         let level_str = parts[0].trim();
-        let value = if let Ok(val) = level_str.parse::<i32>() {
-            val
-        } else {
-            // Try to look up named precedence
-            let name = level_str.trim_matches(|c| c == '\'' || c == '"');
-            *self
-                .precedence_map
-                .get(name)
-                .with_context(|| format!("Unknown precedence name: {}", name))?
-        };
+        let value = self.parse_precedence_value(level_str)?;
 
         let content = Box::new(self.parse_rule(&parts[1])?);
 
@@ -559,10 +651,10 @@ impl GrammarJsParserV3 {
                 content
             );
             // Try to parse what we can
-            let members = self.parse_rule_list(&content)?;
+            let members = self.parse_arg_list(&content)?;
             Ok(Rule::Seq { members })
         } else {
-            let members = self.parse_rule_list(&content)?;
+            let members = self.parse_arg_list(&content)?;
             Ok(Rule::Seq { members })
         }
     }
@@ -580,26 +672,26 @@ impl GrammarJsParserV3 {
             );
             Ok(Rule::Choice { members: vec![] })
         } else {
-            let members = self.parse_rule_list(&content)?;
+            let members = self.parse_arg_list(&content)?;
             Ok(Rule::Choice { members })
         }
     }
 
     fn parse_repeat(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "repeat")?;
-        let content = Box::new(self.parse_rule(&content)?);
+        let content = Box::new(self.parse_arg(&content)?);
         Ok(Rule::Repeat { content })
     }
 
     fn parse_repeat1(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "repeat1")?;
-        let content = Box::new(self.parse_rule(&content)?);
+        let content = Box::new(self.parse_arg(&content)?);
         Ok(Rule::Repeat1 { content })
     }
 
     fn parse_optional(&self, rule_def: &str) -> Result<Rule> {
         let content = self.extract_function_args(rule_def, "optional")?;
-        let value = Box::new(self.parse_rule(&content)?);
+        let value = Box::new(self.parse_arg(&content)?);
         Ok(Rule::Optional { value })
     }
 
@@ -609,13 +701,13 @@ impl GrammarJsParserV3 {
         let parts = self.split_args(&content, 2)?;
 
         let name = self.extract_string_literal(&parts[0])?;
-        let content = Box::new(self.parse_rule(&parts[1])?);
+        let content = Box::new(self.parse_arg(&parts[1])?);
 
         Ok(Rule::Field { name, content })
     }
 
     fn parse_alias(&self, rule_def: &str) -> Result<Rule> {
-        // alias(rule, 'name') or alias(rule, 'name', named)
+        // alias(rule, 'name') or alias(rule, $.symbol) or alias(rule, 'name', named)
         let content = self.extract_function_args(rule_def, "alias")?;
         let parts = self.split_args(&content, -1)?; // Variable number of args
 
@@ -624,7 +716,16 @@ impl GrammarJsParserV3 {
         }
 
         let content = Box::new(self.parse_rule(&parts[0])?);
-        let value = self.extract_string_literal(&parts[1])?;
+        
+        // The second argument can be either a string literal or a symbol reference
+        let value = if parts[1].trim().starts_with("$.") {
+            // It's a symbol reference like $.block - extract the symbol name
+            parts[1].trim()[2..].to_string()
+        } else {
+            // It's a string literal
+            self.extract_string_literal(&parts[1])?
+        };
+        
         let named = if parts.len() > 2 {
             parts[2].trim() == "true"
         } else {
@@ -717,6 +818,17 @@ impl GrammarJsParserV3 {
 
         for arg in args {
             rules.push(self.parse_rule(&arg)?);
+        }
+
+        Ok(rules)
+    }
+
+    fn parse_arg_list(&self, content: &str) -> Result<Vec<Rule>> {
+        let args = self.split_args(content, -1)?;
+        let mut rules = Vec::new();
+
+        for arg in args {
+            rules.push(self.parse_arg(&arg)?);
         }
 
         Ok(rules)
