@@ -121,6 +121,7 @@ impl ExternalScannerRuntime {
 }
 
 /// Example external scanner for string literals with escape sequences
+#[derive(Default)]
 pub struct StringScanner {
     /// Whether we're inside a string
     in_string: bool,
@@ -337,16 +338,46 @@ mod tests {
     #![allow(dead_code, unused_imports)]
     use super::*;
 
-    // #[test]
-    #[allow(dead_code)]
+    #[test]
     fn test_string_scanner() {
         let mut scanner = StringScanner::new();
 
         // Test string start
         let input = b"\"hello world\"";
         let valid = vec![true, true, true]; // All tokens valid
-
-        let result = scanner.scan(&valid, input, 0);
+        
+        // Create a test lexer
+        struct TestLexer<'a> {
+            input: &'a [u8],
+            position: usize,
+        }
+        
+        impl<'a> Lexer for TestLexer<'a> {
+            fn advance(&mut self, n: usize) {
+                self.position = (self.position + n).min(self.input.len());
+            }
+            
+            fn lookahead(&self) -> Option<u8> {
+                if self.position < self.input.len() {
+                    Some(self.input[self.position])
+                } else {
+                    None
+                }
+            }
+            
+            fn mark_end(&mut self) {}
+            
+            fn column(&self) -> usize {
+                self.position
+            }
+            
+            fn is_eof(&self) -> bool {
+                self.position >= self.input.len()
+            }
+        }
+        
+        let mut lexer = TestLexer { input, position: 0 };
+        let result = scanner.scan(&mut lexer, &valid);
         assert_eq!(
             result,
             Some(ScanResult {
@@ -356,7 +387,8 @@ mod tests {
         );
 
         // Test string content
-        let result = scanner.scan(&valid, input, 1);
+        let mut lexer = TestLexer { input, position: 1 };
+        let result = scanner.scan(&mut lexer, &valid);
         assert_eq!(
             result,
             Some(ScanResult {
@@ -366,7 +398,8 @@ mod tests {
         );
 
         // Test string end
-        let result = scanner.scan(&valid, input, 12);
+        let mut lexer = TestLexer { input, position: 12 };
+        let result = scanner.scan(&mut lexer, &valid);
         assert_eq!(
             result,
             Some(ScanResult {

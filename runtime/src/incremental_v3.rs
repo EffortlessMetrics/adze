@@ -571,6 +571,7 @@ mod tests {
             state_count: 0,
             symbol_count: 0,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let mut parser = IncrementalParser::new(grammar, parse_table);
