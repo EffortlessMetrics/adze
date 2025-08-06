@@ -1234,6 +1234,60 @@ pub fn build_lr1_automaton(
         }
     }
     
+    // Add shift actions for external tokens in appropriate states
+    // External tokens can appear at many points in the parse, especially in the initial state
+    eprintln!("Adding external tokens to states. Grammar has {} externals", augmented_grammar.externals.len());
+    for external in &augmented_grammar.externals {
+        eprintln!("  External: {:?} (symbol_id={})", external.name, external.symbol_id.0);
+    }
+    
+    for (state_idx, item_set) in collection.sets.iter().enumerate() {
+        // For now, add external tokens to states that can shift on any terminal
+        // This is a simplified approach - a more sophisticated implementation would
+        // analyze the grammar to determine exactly where externals are valid
+        
+        // Check if this state has any shift actions on terminals
+        let has_terminal_shifts = item_set.items.iter().any(|item| {
+            if let Some(symbol) = item.next_symbol(&augmented_grammar) {
+                matches!(symbol, Symbol::Terminal(_))
+            } else {
+                false
+            }
+        });
+        
+        // For the initial state (0) or states with terminal shifts, add external token shifts
+        if state_idx == 0 || has_terminal_shifts {
+            eprintln!("State {} qualifies for external tokens (is_initial={}, has_terminal_shifts={})", 
+                     state_idx, state_idx == 0, has_terminal_shifts);
+            for external in &augmented_grammar.externals {
+                eprintln!("  Checking external {} (symbol_id={})", external.name, external.symbol_id.0);
+                if let Some(&external_idx) = symbol_to_index.get(&external.symbol_id) {
+                    eprintln!("    Found in symbol_to_index at index {}", external_idx);
+                    // Check if there's already a goto entry for this external
+                    let target_state = if let Some(&actual_target) = collection.goto_table.get(&(StateId(state_idx as u16), external.symbol_id)) {
+                        actual_target
+                    } else {
+                        // Create a dummy target state for external tokens
+                        // In practice, the external scanner will determine the actual next state
+                        // For now, use state 0 as a placeholder - this will be refined later
+                        StateId(0)
+                    };
+                    
+                    // Add shift action for this external token
+                    if state_idx < action_table.len() && external_idx < action_table[state_idx].len() {
+                        let new_action = Action::Shift(target_state);
+                        add_action_with_conflict(
+                            &mut action_table,
+                            &mut conflicts_by_state,
+                            state_idx,
+                            external_idx,
+                            new_action,
+                        );
+                    }
+                }
+            }
+        }
+    }
 
     // Now fill action table with reduce actions
     for item_set in &collection.sets {
