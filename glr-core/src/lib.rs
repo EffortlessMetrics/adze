@@ -11,6 +11,8 @@ pub mod advanced_conflict;
 pub mod conflict_resolution;
 pub mod conflict_visualizer;
 pub mod disambiguation;
+pub mod gss;
+pub mod gss_arena;
 pub mod parse_forest;
 pub mod perf_optimizations;
 pub mod precedence_compare;
@@ -22,6 +24,7 @@ pub use advanced_conflict::{
 };
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
 pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
+pub use gss::{GraphStructuredStack, GSSStats, StackNode};
 pub use parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree};
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
 pub use precedence_compare::{

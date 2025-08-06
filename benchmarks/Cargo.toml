@@ -7,8 +7,13 @@ edition = "2024"
 name = "parse_bench"
 harness = false
 
+[[bench]]
+name = "glr_performance"
+harness = false
+
 [dependencies]
 rust-sitter = { path = "../runtime" }
+rust-sitter-example = { path = "../example" }
 tree-sitter = "0.20"
 criterion = "0.5"
 

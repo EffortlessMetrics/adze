@@ -14,6 +14,7 @@ indexmap = { version = "2.0", features = ["serde"] }
 fixedbitset = { version = "0.5", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2"
+typed-arena = "2.0"
 
 # Optional parallel processing
 rayon = { version = "1.0", optional = true }
