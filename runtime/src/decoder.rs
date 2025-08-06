@@ -4,13 +4,12 @@
 //! and decodes it into rust-sitter's native structures.
 
 use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{Grammar, Rule, SymbolId, Token, ExternalToken, ProductionId};
+use rust_sitter_ir::{Grammar, Rule, SymbolId, Token, ExternalToken, ProductionId, RuleId, StateId};
 use std::collections::BTreeMap;
 use indexmap::IndexMap;
 use std::ffi::{CStr, c_char};
 
 use crate::pure_parser::{TSLanguage, TSParseAction};
-use crate::ffi::TSSymbol;
 
 /// Decode a Grammar from a TSLanguage struct
 pub fn decode_grammar(lang: &'static TSLanguage) -> Grammar {
@@ -100,7 +99,7 @@ pub fn decode_grammar(lang: &'static TSLanguage) -> Grammar {
 /// Decode a ParseTable from a TSLanguage struct
 pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     let mut action_table = Vec::new();
-    let mut goto_table = Vec::new();
+    let goto_table = Vec::new();
     let mut symbol_metadata = Vec::new();
     let mut symbol_to_index = BTreeMap::new();
     
@@ -166,10 +165,11 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 }
 
 /// Determine if a symbol is a terminal based on metadata and name
-fn is_terminal(metadata: u8, name: &str) -> bool {
+fn is_terminal(_metadata: u8, name: &str) -> bool {
     // In Tree-sitter:
     // - Terminals usually start with "anon_sym_", "sym_", or "aux_sym_"
     // - Or have specific metadata bits set
+    // TODO: Also check metadata bits when we understand the encoding better
     name.starts_with("anon_sym_") || 
     name.starts_with("aux_sym_") ||
     name.starts_with("sym_") ||
@@ -186,11 +186,43 @@ fn is_hidden(metadata: u8) -> bool {
 
 /// Decode a TSParseAction into our Action enum
 fn decode_action(action: &TSParseAction) -> Action {
-    // TSParseAction encodes the action type, state, and other data
-    // The exact encoding is complex and needs reverse engineering from Tree-sitter source
+    // Based on Tree-sitter's encoding, action_type determines the action
+    // The TSParseAction struct contains different data depending on action type
     
-    // For now, return a stub action until we understand the exact encoding
-    Action::Error
+    // Tree-sitter action types:
+    // 0 = Shift
+    // 1 = Reduce  
+    // 2 = Accept
+    // 3 = Recover (error recovery)
+    
+    match action.action_type {
+        0 => {
+            // Shift action: move to a new state
+            // The symbol field contains the state to shift to
+            // extra field indicates if this is an "extra" token (whitespace, etc.)
+            Action::Shift(StateId(action.symbol))
+        }
+        1 => {
+            // Reduce action: apply a production rule
+            // symbol field contains the rule ID to apply
+            // child_count is stored separately in the action struct
+            // For now, we use symbol as the rule ID
+            Action::Reduce(RuleId(action.symbol))
+        }
+        2 => {
+            // Accept action: parsing complete
+            Action::Accept
+        }
+        3 => {
+            // Recover action: error recovery
+            // For now, treat as error
+            Action::Error
+        }
+        _ => {
+            // Unknown action type
+            Action::Error
+        }
+    }
 }
 
 #[cfg(test)]
@@ -201,5 +233,56 @@ mod tests {
     fn test_decoder_safety() {
         // This test ensures our decoder doesn't panic on null pointers
         // In real use, we'd test with actual TSLanguage structs
+    }
+    
+    #[test]
+    fn test_action_decoding() {
+        // Test that we can decode different action types correctly
+        
+        // Test Shift action
+        let shift_action = TSParseAction {
+            action_type: 0,
+            extra: 0,
+            child_count: 0,
+            dynamic_precedence: 0,
+            symbol: 42,
+        };
+        match decode_action(&shift_action) {
+            Action::Shift(StateId(state)) => assert_eq!(state, 42),
+            _ => panic!("Expected Shift action"),
+        }
+        
+        // Test Reduce action
+        let reduce_action = TSParseAction {
+            action_type: 1,
+            extra: 0,
+            child_count: 3,
+            dynamic_precedence: 0,
+            symbol: 123,
+        };
+        match decode_action(&reduce_action) {
+            Action::Reduce(RuleId(rule)) => assert_eq!(rule, 123),
+            _ => panic!("Expected Reduce action"),
+        }
+        
+        // Test Accept action
+        let accept_action = TSParseAction {
+            action_type: 2,
+            extra: 0,
+            child_count: 0,
+            dynamic_precedence: 0,
+            symbol: 0,
+        };
+        assert!(matches!(decode_action(&accept_action), Action::Accept));
+        
+        // Test Error/Recover action
+        let recover_action = TSParseAction {
+            action_type: 3,
+            extra: 0,
+            child_count: 0,
+            dynamic_precedence: 0,
+            symbol: 0,
+        };
+        assert!(matches!(decode_action(&recover_action), Action::Error));
     }
 }

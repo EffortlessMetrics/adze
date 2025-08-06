@@ -5,7 +5,7 @@ use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
-use anyhow::{Result, bail};
+use anyhow::{Result, bail, anyhow};
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId};
 use std::collections::HashSet;
@@ -175,22 +175,221 @@ impl Parser {
 
     /// Parse the input string
     pub fn parse(&mut self, input: &str) -> Result<Tree> {
-        // For now, return a stub tree to validate the API
-        // The real implementation would do the actual parsing
-        
         // Store the input
         self.input = input.as_bytes().to_vec();
         self.position = 0;
         
-        // Create a simple stub tree
-        // In a real implementation, this would be the result of the parsing loop
-        Ok(Tree {
-            root_kind: 267, // module symbol ID for Python
-            error_count: 0,
-            source: input.to_string(),
-        })
+        // Initialize the parser state
+        let mut state_stack: Vec<StateId> = vec![StateId(0)]; // Start in state 0
+        let mut symbol_stack: Vec<SymbolId> = vec![];
+        let mut node_stack: Vec<ParseNode> = vec![];
+        let mut error_count = 0;
+        
+        // For now, use a simplified tokenization approach
+        // In a real implementation, we'd use a proper lexer with the grammar's tokens
+        let tokens = vec![];  // We'll populate this from the grammar
+        let mut lexer = GrammarLexer::new(&tokens);
+        
+        // Main parsing loop
+        let mut token_position = 0;
+        loop {
+            // Get current state
+            let current_state = *state_stack.last()
+                .ok_or_else(|| anyhow!("State stack is empty"))?;
+            
+            // For now, simulate EOF - real implementation would tokenize the input
+            let lookahead = SymbolId(0); // EOF symbol
+            
+            // Get the action for this state and lookahead symbol
+            let action = self.get_parse_action(current_state, lookahead)?;
+            
+            match action {
+                Action::Shift(next_state) => {
+                    // For now, create a dummy token since we don't have real tokenization yet
+                    // In a real implementation, we'd get this from the lexer
+                    let token_symbol = lookahead;
+                    
+                    // Create a leaf node for the token
+                    let node = ParseNode {
+                        symbol: token_symbol,
+                        start_byte: token_position,
+                        end_byte: token_position + 1,
+                        children: vec![],
+                        field_name: None,
+                    };
+                    
+                    state_stack.push(next_state);
+                    symbol_stack.push(token_symbol);
+                    node_stack.push(node);
+                    token_position += 1;
+                }
+                
+                Action::Reduce(rule_id) => {
+                    // Find the rule to apply
+                    let rule = self.find_rule_by_production_id(rule_id)?;
+                    let child_count = rule.rhs.len();
+                    
+                    // Pop items from stacks
+                    let mut children = Vec::new();
+                    for _ in 0..child_count {
+                        state_stack.pop();
+                        symbol_stack.pop();
+                        if let Some(child) = node_stack.pop() {
+                            children.push(child);
+                        }
+                    }
+                    children.reverse(); // Children were popped in reverse order
+                    
+                    // Create a parent node
+                    let start_byte = children.first().map(|n| n.start_byte).unwrap_or(token_position);
+                    let end_byte = children.last().map(|n| n.end_byte).unwrap_or(token_position);
+                    let parent_node = ParseNode {
+                        symbol: rule.lhs,
+                        start_byte,
+                        end_byte,
+                        children,
+                        field_name: None,
+                    };
+                    
+                    // Get the goto state for the non-terminal
+                    let goto_from_state = *state_stack.last()
+                        .ok_or_else(|| anyhow!("State stack is empty after reduce"))?;
+                    let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
+                    
+                    // Push the new state and symbol
+                    state_stack.push(goto_state);
+                    symbol_stack.push(rule.lhs);
+                    node_stack.push(parent_node);
+                }
+                
+                Action::Accept => {
+                    // Parsing complete!
+                    let root_node = node_stack.pop()
+                        .ok_or_else(|| anyhow!("No root node after accept"))?;
+                    
+                    return Ok(Tree {
+                        root_kind: root_node.symbol.0,
+                        error_count,
+                        source: input.to_string(),
+                    });
+                }
+                
+                Action::Error => {
+                    // For now, just break on error
+                    // A real implementation would do error recovery
+                    error_count += 1;
+                    
+                    // Return a partial tree with errors
+                    let root_kind = if let Some(node) = node_stack.last() {
+                        node.symbol.0
+                    } else {
+                        0
+                    };
+                    
+                    return Ok(Tree {
+                        root_kind,
+                        error_count,
+                        source: input.to_string(),
+                    });
+                }
+                
+                Action::Fork(actions) => {
+                    // GLR fork point - multiple valid parse paths
+                    // For now, just take the first action
+                    // A real GLR implementation would fork the parser state
+                    if let Some(first_action) = actions.first() {
+                        // Process the first action by continuing the loop
+                        // We'd need to restructure this to handle forking properly
+                        match first_action {
+                            Action::Shift(_) | Action::Reduce(_) | Action::Accept => {
+                                // For now, just treat it as an error
+                                // Real implementation would fork the parser
+                                error_count += 1;
+                                let root_kind = if let Some(node) = node_stack.last() {
+                                    node.symbol.0
+                                } else {
+                                    0
+                                };
+                                return Ok(Tree {
+                                    root_kind,
+                                    error_count,
+                                    source: input.to_string(),
+                                });
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            
+            // Safety check to prevent infinite loops
+            if state_stack.len() > 10000 {
+                return Err(anyhow!("Parse stack overflow"));
+            }
+        }
     }
 
+    /// Get the parse action for a state and symbol
+    fn get_parse_action(&self, state: StateId, symbol: SymbolId) -> Result<Action> {
+        // Look up the action in the parse table
+        let state_idx = state.0 as usize;
+        let symbol_idx = symbol.0 as usize;
+        
+        if state_idx >= self.parse_table.action_table.len() {
+            return Ok(Action::Error);
+        }
+        
+        let state_actions = &self.parse_table.action_table[state_idx];
+        if symbol_idx >= state_actions.len() {
+            return Ok(Action::Error);
+        }
+        
+        Ok(state_actions[symbol_idx].clone())
+    }
+    
+    /// Find a rule by its production ID
+    fn find_rule_by_production_id(&self, rule_id: RuleId) -> Result<&Rule> {
+        // Search through all rules to find one with matching production ID
+        for (_, rules) in &self.grammar.rules {
+            for rule in rules {
+                // Check if the rule's production ID matches
+                // For now, we'll match based on the RuleId value
+                if rule.production_id.0 == rule_id.0 {
+                    return Ok(rule);
+                }
+            }
+        }
+        bail!("Rule with ID {:?} not found", rule_id)
+    }
+    
+    /// Get the goto state for a non-terminal after a reduce
+    fn get_goto_state(&self, from_state: StateId, symbol: SymbolId) -> Result<StateId> {
+        // For now, return a default state
+        // A real implementation would look up the goto table
+        // Since we don't have a proper goto table yet, we'll use a simple heuristic
+        
+        // If we have a goto table, use it
+        if !self.parse_table.goto_table.is_empty() {
+            let state_idx = from_state.0 as usize;
+            let symbol_idx = symbol.0 as usize;
+            
+            if state_idx < self.parse_table.goto_table.len() {
+                let state_gotos = &self.parse_table.goto_table[state_idx];
+                if symbol_idx < state_gotos.len() {
+                    // The goto table contains StateId values
+                    return Ok(state_gotos[symbol_idx]);
+                }
+            }
+        }
+        
+        // Fallback: look for a shift action in the parse table
+        let action = self.get_parse_action(from_state, symbol)?;
+        match action {
+            Action::Shift(next_state) => Ok(next_state),
+            _ => Ok(StateId(0)), // Default to state 0 if no goto found
+        }
+    }
+    
     /// Try to scan for external tokens
     fn try_external_scanner(&mut self, current_state: StateId) -> Result<Option<LexerToken>> {
         // Compute valid external tokens for this state first (before mutable borrow)
