@@ -310,6 +310,12 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         }
     }
     
+    // TODO: Decode external scanner states from the TSLanguage struct
+    // For now, create empty tables - this will be populated when we have
+    // a proper Tree-sitter language to decode from
+    let external_scanner_states = vec![vec![]; lang.state_count as usize];
+    let external_scanner_map = BTreeMap::new();
+    
     ParseTable {
         action_table,
         goto_table,
@@ -317,6 +323,8 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         state_count: lang.state_count as usize,
         symbol_count: lang.symbol_count as usize,
         symbol_to_index,
+        external_scanner_states,
+        external_scanner_map,
     }
 }
 

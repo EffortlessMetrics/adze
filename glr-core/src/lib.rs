@@ -766,6 +766,10 @@ pub struct ParseTable {
     pub state_count: usize,
     pub symbol_count: usize,
     pub symbol_to_index: BTreeMap<SymbolId, usize>,
+    /// For each state, a bitset indicating which external tokens are valid
+    pub external_scanner_states: Vec<Vec<bool>>,
+    /// Maps (state, external_symbol) -> next_state for external token transitions
+    pub external_scanner_map: BTreeMap<(StateId, SymbolId), StateId>,
 }
 
 /// Actions in GLR parse table (supporting multiple actions per state)
@@ -1240,91 +1244,8 @@ pub fn build_lr1_automaton(
     // For Python and other indentation-sensitive languages, external tokens like INDENT/DEDENT
     // must be valid in the initial state and many other states
     
-    // Write debug info to a file since stderr might not be visible during build
-    if !augmented_grammar.externals.is_empty() {
-        if let Ok(mut debug_file) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/glr_debug.log") 
-        {
-            use std::io::Write;
-            let _ = writeln!(debug_file, "=== build_lr1_automaton debug ===");
-            let _ = writeln!(debug_file, "Processing {} external tokens", augmented_grammar.externals.len());
-            for external in &augmented_grammar.externals {
-                let _ = writeln!(debug_file, "  External: {} (id={})", external.name, external.symbol_id.0);
-            }
-        }
-    }
-    
-    for (state_idx, item_set) in collection.sets.iter().enumerate() {
-        // For now, add external tokens to states that can shift on any terminal
-        // This is a simplified approach - a more sophisticated implementation would
-        // analyze the grammar to determine exactly where externals are valid
-        
-        // Check if this state has any shift actions on terminals
-        let has_terminal_shifts = item_set.items.iter().any(|item| {
-            if let Some(symbol) = item.next_symbol(&augmented_grammar) {
-                matches!(symbol, Symbol::Terminal(_))
-            } else {
-                false
-            }
-        });
-        
-        // For the initial state (0) or states with terminal shifts, add external token shifts
-        // IMPORTANT: For indentation-sensitive languages, external tokens MUST be valid in state 0
-        if state_idx == 0 || has_terminal_shifts {
-            for external in &augmented_grammar.externals {
-                if let Some(&external_idx) = symbol_to_index.get(&external.symbol_id) {
-                    // For state 0, always add external tokens with a self-loop
-                    // The actual transition will be determined by the scanner at runtime
-                    let target_state = if state_idx == 0 {
-                        // State 0 should loop to itself for external tokens initially
-                        // This allows the scanner to provide tokens at the start
-                        StateId(0)
-                    } else if let Some(&actual_target) = collection.goto_table.get(&(StateId(state_idx as u16), external.symbol_id)) {
-                        actual_target
-                    } else {
-                        // Default to state 0 for safety
-                        StateId(0)
-                    };
-                    
-                    // Ensure indices are valid before adding
-                    if state_idx < action_table.len() && external_idx < action_table[state_idx].len() {
-                        let new_action = Action::Shift(target_state);
-                        
-                        // Log to file for debugging
-                        if let Ok(mut debug_file) = std::fs::OpenOptions::new()
-                            .create(true)
-                            .append(true)
-                            .open("/tmp/glr_debug.log") 
-                        {
-                            use std::io::Write;
-                            let _ = writeln!(debug_file, "  Adding external {} to state {} at index {} -> Shift({})",
-                                           external.name, state_idx, external_idx, target_state.0);
-                        }
-                        
-                        add_action_with_conflict(
-                            &mut action_table,
-                            &mut conflicts_by_state,
-                            state_idx,
-                            external_idx,
-                            new_action,
-                        );
-                    } else {
-                        // Log warning to file
-                        if let Ok(mut debug_file) = std::fs::OpenOptions::new()
-                            .create(true)
-                            .append(true)
-                            .open("/tmp/glr_debug.log") 
-                        {
-                            use std::io::Write;
-                            let _ = writeln!(debug_file, "  WARNING: Cannot add external {} - out of bounds", external.name);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // External tokens are now handled via separate external_scanner_states table
+    // They don't get added to the main action table
 
     // Now fill action table with reduce actions
     for item_set in &collection.sets {
@@ -1552,6 +1473,56 @@ pub fn build_lr1_automaton(
         });
     }
 
+    // Compute external scanner states
+    // For each state, determine which external tokens are valid
+    let mut external_scanner_states = vec![vec![false; augmented_grammar.externals.len()]; state_count];
+    let mut external_scanner_map = BTreeMap::new();
+    
+    // Create a mapping from external symbol_id to index
+    let mut external_symbol_to_idx = BTreeMap::new();
+    for (idx, external) in augmented_grammar.externals.iter().enumerate() {
+        external_symbol_to_idx.insert(external.symbol_id, idx);
+        eprintln!("External {} has symbol_id {} at index {}", external.name, external.symbol_id.0, idx);
+    }
+    
+    // External tokens in Tree-sitter are special - they're not part of the grammar rules.
+    // They are injected by the external scanner at specific points.
+    // 
+    // For Python and similar indentation-sensitive languages:
+    // - State 0 MUST accept all external tokens (for start of file)
+    // - Most other states should also accept external tokens to handle indentation changes
+    // 
+    // This is a simplified approach - a more sophisticated implementation would analyze
+    // the grammar to determine exactly where externals are valid.
+    
+    // For now, enable external tokens in all states. This is overly permissive but ensures
+    // that the external scanner can inject tokens where needed.
+    for state_idx in 0..state_count {
+        for (external_idx, external) in augmented_grammar.externals.iter().enumerate() {
+            external_scanner_states[state_idx][external_idx] = true;
+            
+            // External tokens typically loop to the same state
+            // The actual transition depends on the token and context
+            external_scanner_map.insert(
+                (StateId(state_idx as u16), external.symbol_id), 
+                StateId(state_idx as u16)
+            );
+        }
+    }
+    
+    eprintln!("Enabled {} external tokens in all {} states", augmented_grammar.externals.len(), state_count);
+    
+    // Debug: print external scanner states for first few states
+    for state_idx in 0..std::cmp::min(5, state_count) {
+        let externals_str: Vec<String> = augmented_grammar.externals.iter().enumerate()
+            .filter(|(idx, _)| external_scanner_states[state_idx][*idx])
+            .map(|(_, e)| e.name.clone())
+            .collect();
+        if !externals_str.is_empty() {
+            eprintln!("State {} valid externals: {:?}", state_idx, externals_str);
+        }
+    }
+
     Ok(ParseTable {
         action_table,
         goto_table,
@@ -1559,6 +1530,8 @@ pub fn build_lr1_automaton(
         state_count,
         symbol_count,
         symbol_to_index,
+        external_scanner_states,
+        external_scanner_map,
     })
 }
 

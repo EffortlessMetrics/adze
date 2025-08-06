@@ -34,46 +34,15 @@ impl ExternalScannerGenerator {
 
     /// Computes which external tokens are valid in each state
     pub fn compute_state_validity(&self) -> Vec<Vec<bool>> {
-        let state_count = self.parse_table.state_count;
-        let external_count = self.external_tokens.len();
-        let mut state_bitmap = vec![vec![false; external_count]; state_count];
-
-        // Build a set of external symbol IDs for quick lookup
-        let external_symbols: HashSet<SymbolId> = self
-            .external_tokens
-            .iter()
-            .map(|token| token.symbol_id)
-            .collect();
-
-        // For each state, check which external tokens can be shifted
-        for state_index in 0..state_count {
-            // Check each symbol's action in this state
-            for (&symbol_id, &symbol_index) in &self.parse_table.symbol_to_index {
-                // If this is an external symbol
-                if external_symbols.contains(&symbol_id) {
-                    if let Some(&external_index) = self.symbol_map.get(&symbol_id) {
-                        // Check if there's a valid action for this symbol in this state
-                        if symbol_index < self.parse_table.symbol_count
-                            && state_index < self.parse_table.action_table.len()
-                            && symbol_index < self.parse_table.action_table[state_index].len()
-                        {
-                            let action = &self.parse_table.action_table[state_index][symbol_index];
-                            // Any non-error action means the external token is valid
-                            if !matches!(action, rust_sitter_glr_core::Action::Error) {
-                                state_bitmap[state_index][external_index] = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        state_bitmap
+        // Use the pre-computed external scanner states from the parse table
+        // These were already calculated during LR(1) automaton construction
+        self.parse_table.external_scanner_states.clone()
     }
 
     /// Generates the external scanner state bitmap with computed validity
     pub fn generate_state_bitmap(&self) -> Vec<Vec<bool>> {
-        self.compute_state_validity()
+        // Use the pre-computed external scanner states from the parse table
+        self.parse_table.external_scanner_states.clone()
     }
 
     /// Generates the symbol map array that maps external scanner indices to symbol IDs
