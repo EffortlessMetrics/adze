@@ -252,4 +252,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ## License
 
-Rust Sitter is dual-licensed under MIT and Apache 2.0, maintaining compatibility with Tree-sitter's MIT license.
+Rust Sitter is dual-licensed under MIT OR Apache 2.0, maintaining compatibility with Tree-sitter's MIT license.
