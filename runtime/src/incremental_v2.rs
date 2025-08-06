@@ -219,7 +219,14 @@ impl<'a> IncrementalParserState<'a> {
 
             // Get action for current state and token
             if let Some(actions) = self.table.action_table.get(state.0 as usize) {
-                if let Some(action) = actions.get(token.symbol.0 as usize) {
+                if let Some(action_cell) = actions.get(token.symbol.0 as usize) {
+                    // Handle Vec<Action> - use first action for now (TODO: proper GLR handling)
+                    let action = if action_cell.is_empty() {
+                        &Action::Error
+                    } else {
+                        &action_cell[0]
+                    };
+                    
                     match action {
                         Action::Shift(next_state) => {
                             let node = ParseNode {

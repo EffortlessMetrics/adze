@@ -557,7 +557,7 @@ impl ErrorRecoveryState {
         let mut expected_tokens = Vec::new();
         for (symbol_id, &symbol_idx) in &table.symbol_to_index {
             let action = &table.action_table[state.0 as usize][symbol_idx];
-            if !matches!(action, rust_sitter_glr_core::Action::Error) {
+            if !action.is_empty() {
                 expected_tokens.push(*symbol_id);
             }
         }

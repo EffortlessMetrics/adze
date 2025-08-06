@@ -438,7 +438,14 @@ impl<'a> IncrementalParseSession<'a> {
             anyhow::bail!("Invalid symbol");
         }
 
-        Ok(self.parse_table.action_table[state_idx][symbol_idx].clone())
+        let action_cell = &self.parse_table.action_table[state_idx][symbol_idx];
+        if action_cell.is_empty() {
+            Ok(Action::Error)
+        } else if action_cell.len() == 1 {
+            Ok(action_cell[0].clone())
+        } else {
+            Ok(Action::Fork(action_cell.clone()))
+        }
     }
 
     /// Get goto state

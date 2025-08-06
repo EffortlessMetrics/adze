@@ -218,10 +218,19 @@ impl GLRParser {
             let state = stack.current_state();
             
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                let action = &self.table.action_table[state.0 as usize][*symbol_idx];
+                let action_cell = &self.table.action_table[state.0 as usize][*symbol_idx];
                 // Check action for token
                 
-                match action {
+                // Convert ActionCell to single action or Fork
+                let action = if action_cell.is_empty() {
+                    Action::Error
+                } else if action_cell.len() == 1 {
+                    action_cell[0].clone()
+                } else {
+                    Action::Fork(action_cell.clone())
+                };
+                
+                match &action {
                     Action::Shift(new_state) => {
                         let mut new_stack = stack.clone();
                         new_stack.push(
@@ -328,9 +337,12 @@ impl GLRParser {
                                         if let Some(&missing_idx) =
                                             self.table.symbol_to_index.get(&missing_token)
                                         {
-                                            let missing_action = &self.table.action_table
+                                            let missing_action_cell = &self.table.action_table
                                                 [state.0 as usize][missing_idx];
-                                            if let Action::Shift(new_state) = missing_action {
+                                            // Find shift action in cell
+                                            let shift_action = missing_action_cell.iter()
+                                                .find(|a| matches!(a, Action::Shift(_)));
+                                            if let Some(Action::Shift(new_state)) = shift_action {
                                                 let mut recovery_stack = stack.clone();
                                                 // Create dummy node for inserted token
                                                 let error_node = Arc::new(Subtree {
@@ -437,49 +449,77 @@ impl GLRParser {
                 let state = stack.current_state();
                 
                 if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                    let action = self.table.action_table[state.0 as usize][*symbol_idx].clone();
+                    let action_cell = self.table.action_table[state.0 as usize][*symbol_idx].clone();
                     
-                    match &action {
-                        Action::Reduce(rule_id) => {
-                            any_reduction_performed = true;
-                            let mut reduced_stack = stack.clone();
-                            self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
-                            // Performed reduction
-                            result_stacks.push(reduced_stack);
-                        }
-                        
-                        Action::Fork(actions) => {
-                            // Check if any fork branch is a reduction
-                            let mut has_reduction = false;
-                            let mut fork_results = Vec::new();
-                            
-                            for fork_action in actions {
-                                match fork_action {
-                                    Action::Reduce(rule_id) => {
-                                        has_reduction = true;
-                                        any_reduction_performed = true;
-                                        let mut forked = stack.fork(self.next_stack_id);
-                                        self.next_stack_id += 1;
-                                        self.perform_reduction_on_stack(&mut forked, *rule_id);
-                                        // Performed fork reduction
-                                        fork_results.push(forked);
-                                    }
-                                    _ => {
-                                        // Non-reduction fork branches will be handled in phase 2
+                    // Handle multiple actions in the cell (GLR)
+                    if action_cell.is_empty() {
+                        // No action available, keep stack as is
+                        result_stacks.push(stack);
+                    } else if action_cell.len() == 1 {
+                        // Single action
+                        match &action_cell[0] {
+                            Action::Reduce(rule_id) => {
+                                any_reduction_performed = true;
+                                let mut reduced_stack = stack.clone();
+                                self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
+                                result_stacks.push(reduced_stack);
+                            }
+                            Action::Fork(actions) => {
+                                // Handle fork action
+                                let mut has_reduction = false;
+                                let mut fork_results = Vec::new();
+                                
+                                for fork_action in actions {
+                                    match fork_action {
+                                        Action::Reduce(rule_id) => {
+                                            has_reduction = true;
+                                            any_reduction_performed = true;
+                                            let mut forked = stack.fork(self.next_stack_id);
+                                            self.next_stack_id += 1;
+                                            self.perform_reduction_on_stack(&mut forked, *rule_id);
+                                            fork_results.push(forked);
+                                        }
+                                        _ => {
+                                            // Non-reduction fork branches will be handled in phase 2
+                                        }
                                     }
                                 }
+                                
+                                if has_reduction {
+                                    result_stacks.extend(fork_results);
+                                } else {
+                                    result_stacks.push(stack);
+                                }
                             }
-                            
-                            if has_reduction {
-                                result_stacks.extend(fork_results);
-                            } else {
-                                // No reductions in fork, keep original stack
+                            _ => {
+                                // Non-reduction action, keep stack
                                 result_stacks.push(stack);
                             }
                         }
+                    } else {
+                        // Multiple actions - need to fork
+                        let mut has_reduction = false;
+                        let mut fork_results = Vec::new();
                         
-                        _ => {
-                            // No reduction available, keep the stack as-is
+                        for action in &action_cell {
+                            match action {
+                                Action::Reduce(rule_id) => {
+                                    has_reduction = true;
+                                    any_reduction_performed = true;
+                                    let mut forked = stack.fork(self.next_stack_id);
+                                    self.next_stack_id += 1;
+                                    self.perform_reduction_on_stack(&mut forked, *rule_id);
+                                    fork_results.push(forked);
+                                }
+                                _ => {
+                                    // Non-reduction actions will be handled in phase 2
+                                }
+                            }
+                        }
+                        
+                        if has_reduction {
+                            result_stacks.extend(fork_results);
+                        } else {
                             result_stacks.push(stack);
                         }
                     }
@@ -536,22 +576,23 @@ impl GLRParser {
             // Look up goto state from the unified action table
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&rule.lhs) {
                 let current_state = stack.current_state();
-                let action = &self.table.action_table[current_state.0 as usize][*symbol_idx];
-                match action {
-                    Action::Shift(goto_state) => {
-                        // Goto state after reduction
-                        stack.push(*goto_state, subtree);
-                    }
-                    _ => {
-                        // Fall back to goto table if action table doesn't have a shift
-                        let goto_state =
-                            self.table.goto_table[current_state.0 as usize][*symbol_idx];
-                        if goto_state.0 != 0 {
-                            // Goto state from goto table
-                            stack.push(goto_state, subtree);
-                        } else {
-                            // No goto state found - error condition
-                        }
+                let action_cell = &self.table.action_table[current_state.0 as usize][*symbol_idx];
+                
+                // Find shift action in the cell
+                let shift_action = action_cell.iter().find(|a| matches!(a, Action::Shift(_)));
+                
+                if let Some(Action::Shift(goto_state)) = shift_action {
+                    // Goto state after reduction
+                    stack.push(*goto_state, subtree);
+                } else {
+                    // Fall back to goto table if action table doesn't have a shift
+                    let goto_state =
+                        self.table.goto_table[current_state.0 as usize][*symbol_idx];
+                    if goto_state.0 != 0 {
+                        // Goto state from goto table
+                        stack.push(goto_state, subtree);
+                    } else {
+                        // No goto state found - error condition
                     }
                 }
             } else {
@@ -908,7 +949,15 @@ impl GLRParser {
         if state_idx < self.table.action_table.len() {
             if let Some(&symbol_idx) = self.table.symbol_to_index.get(&symbol) {
                 if symbol_idx < self.table.action_table[state_idx].len() {
-                    return Some(self.table.action_table[state_idx][symbol_idx].clone());
+                    let action_cell = &self.table.action_table[state_idx][symbol_idx];
+                    if action_cell.is_empty() {
+                        return Some(Action::Error);
+                    } else if action_cell.len() == 1 {
+                        return Some(action_cell[0].clone());
+                    } else {
+                        // Multiple actions - create a Fork
+                        return Some(Action::Fork(action_cell.clone()));
+                    }
                 }
             }
         }
