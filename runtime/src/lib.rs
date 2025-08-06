@@ -36,6 +36,8 @@ pub mod pure_incremental;
 pub mod pure_parser;
 #[cfg(feature = "pure-rust")]
 pub mod decoder;
+#[cfg(feature = "pure-rust")]
+pub mod grammar_json;
 pub mod query;
 #[cfg(feature = "serialization")]
 pub mod serialization;

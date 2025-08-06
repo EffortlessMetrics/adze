@@ -121,12 +121,26 @@ pub fn decode_grammar_with_patterns(lang: &'static TSLanguage, token_patterns: &
         }
     }
     
-    // Debug: Find 'def' keyword
+    // Debug: Find 'def' keyword and show symbol mapping
     for i in 0..lang.symbol_count as usize {
         if symbol_names[i] == "def" {
             let metadata = unsafe { *lang.symbol_metadata.add(i) };
             eprintln!("Found 'def' at Symbol {}: '{}' (metadata: 0x{:02x})", i, symbol_names[i], metadata);
             break;
+        }
+    }
+    
+    // Debug: Show first few terminal mappings
+    eprintln!("\nFirst few terminals with their patterns:");
+    let mut count = 0;
+    for i in 0..lang.symbol_count as usize {
+        let metadata = unsafe { *lang.symbol_metadata.add(i) };
+        if is_terminal(metadata, &symbol_names[i]) && count < 10 {
+            let pattern = token_patterns.get(&symbol_names[i])
+                .map(|p| format!("{:?}", p))
+                .unwrap_or_else(|| "no pattern".to_string());
+            eprintln!("  Symbol {}: '{}' -> {}", i, symbol_names[i], pattern);
+            count += 1;
         }
     }
     

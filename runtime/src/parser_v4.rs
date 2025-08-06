@@ -184,6 +184,7 @@ impl Parser {
 
     /// Parse the input string
     pub fn parse(&mut self, input: &str) -> Result<Tree> {
+        eprintln!("\nStarting parse of: {:?}", input);
         // Store the input
         self.input = input.as_bytes().to_vec();
         self.position = 0;
@@ -199,10 +200,19 @@ impl Parser {
             .map(|(symbol_id, token)| (*symbol_id, token.pattern.clone(), 0))
             .collect();
         
-        // Debug: print token count and some examples
+        // Debug: print token count and check for "def"
         eprintln!("Creating lexer with {} tokens", tokens.len());
         for (i, (symbol_id, pattern, _)) in tokens.iter().take(10).enumerate() {
             eprintln!("  Token {}: Symbol {} = {:?}", i, symbol_id.0, pattern);
+        }
+        // Check if "def" is in the token list
+        for (symbol_id, pattern, _) in &tokens {
+            if let TokenPattern::String(s) = pattern {
+                if s == "def" {
+                    eprintln!("Found 'def' pattern at symbol {}", symbol_id.0);
+                    break;
+                }
+            }
         }
         
         let mut lexer = GrammarLexer::new(&tokens);
@@ -229,9 +239,14 @@ impl Parser {
             } else {
                 // Try to get a real token
                 match lexer.next_token(input_bytes, current_position) {
-                    Some(tok) => tok,
+                    Some(tok) => {
+                        eprintln!("At position {}: matched token symbol {} with length {}", 
+                            current_position, tok.symbol.0, tok.end - tok.start);
+                        tok
+                    },
                     None => {
                         // Lexer couldn't match anything - create error token and skip a byte
+                        eprintln!("No valid token at position {}, skipping", current_position);
                         error_count += 1;
                         current_position += 1;
                         continue;
@@ -242,7 +257,9 @@ impl Parser {
             let lookahead = token.symbol;
             
             // Get the action for this state and lookahead symbol
+            eprintln!("State {}, lookahead symbol {}: getting action", current_state.0, lookahead.0);
             let action = self.get_parse_action(current_state, lookahead)?;
+            eprintln!("  Action: {:?}", action);
             
             match action {
                 Action::Shift(next_state) => {
