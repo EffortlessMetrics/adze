@@ -35,7 +35,7 @@ pub mod pure_external_scanner;
 pub mod pure_incremental;
 pub mod pure_parser;
 #[cfg(feature = "pure-rust")]
-mod decoder;
+pub mod decoder;
 pub mod query;
 #[cfg(feature = "serialization")]
 pub mod serialization;

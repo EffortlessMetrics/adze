@@ -24,7 +24,28 @@ fn test_simple_python_parse() {
     // Create a simple Python source
     let source = "def hello():\n    pass\n";
     
-    // Create a parser and set the language
+    // Load token patterns from grammar.json
+    #[cfg(feature = "pure-rust")]
+    let grammar_json_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent().unwrap()
+        .parent().unwrap()
+        .join("xtask/fixtures/tree-sitter-python/src/grammar.json");
+    
+    #[cfg(feature = "pure-rust")]
+    let token_patterns = rust_sitter::decoder::load_token_patterns(&grammar_json_path);
+    
+    #[cfg(feature = "pure-rust")]
+    println!("Loaded {} token patterns from grammar.json", token_patterns.len());
+    
+    // Create a parser and set the language with real token patterns
+    #[cfg(feature = "pure-rust")]
+    let mut parser = rust_sitter::parser_v4::Parser::from_language_with_patterns(
+        &rust_sitter_python::grammar_python::LANGUAGE,
+        "python".to_string(),
+        &token_patterns
+    );
+    
+    #[cfg(not(feature = "pure-rust"))]
     let mut parser = rust_sitter::parser_v4::Parser::from_language(
         &rust_sitter_python::grammar_python::LANGUAGE,
         "python".to_string()

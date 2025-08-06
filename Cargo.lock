@@ -1981,6 +1981,7 @@ dependencies = [
  "insta",
  "rust-sitter",
  "rust-sitter-tool",
+ "serde_json",
 ]
 
 [[package]]

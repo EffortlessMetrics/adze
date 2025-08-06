@@ -97,8 +97,17 @@ impl Parser {
     
     /// Create a new parser from a TSLanguage struct
     pub fn from_language(language: &'static crate::pure_parser::TSLanguage, language_name: String) -> Self {
+        Self::from_language_with_patterns(language, language_name, &std::collections::HashMap::new())
+    }
+    
+    /// Create a new parser from a TSLanguage struct with token patterns from grammar.json
+    pub fn from_language_with_patterns(
+        language: &'static crate::pure_parser::TSLanguage, 
+        language_name: String,
+        token_patterns: &std::collections::HashMap<String, TokenPattern>
+    ) -> Self {
         // Decode the grammar and parse table from the TSLanguage struct
-        let grammar = crate::decoder::decode_grammar(language);
+        let grammar = crate::decoder::decode_grammar_with_patterns(language, token_patterns);
         let parse_table = crate::decoder::decode_parse_table(language);
         
         // Check for external scanner
@@ -189,6 +198,13 @@ impl Parser {
         let tokens: Vec<(SymbolId, TokenPattern, i32)> = self.grammar.tokens.iter()
             .map(|(symbol_id, token)| (*symbol_id, token.pattern.clone(), 0))
             .collect();
+        
+        // Debug: print token count and some examples
+        eprintln!("Creating lexer with {} tokens", tokens.len());
+        for (i, (symbol_id, pattern, _)) in tokens.iter().take(10).enumerate() {
+            eprintln!("  Token {}: Symbol {} = {:?}", i, symbol_id.0, pattern);
+        }
+        
         let mut lexer = GrammarLexer::new(&tokens);
         
         // Track current position in input
