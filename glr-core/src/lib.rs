@@ -532,11 +532,14 @@ impl ItemSetCollection {
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
-                        Symbol::Terminal(id) => {
+                        Symbol::Terminal(_id) => {
                             terminal_count += 1;
                         },
-                        Symbol::NonTerminal(id) => {
+                        Symbol::NonTerminal(_id) => {
                             non_terminal_count += 1;
+                        },
+                        Symbol::External(_id) => {
+                            terminal_count += 1; // Count externals as terminals
                         },
                         _ => {}
                     }
@@ -673,11 +676,14 @@ impl ItemSetCollection {
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
-                        Symbol::Terminal(id) => {
+                        Symbol::Terminal(_id) => {
                             terminal_count += 1;
                         },
-                        Symbol::NonTerminal(id) => {
+                        Symbol::NonTerminal(_id) => {
                             non_terminal_count += 1;
+                        },
+                        Symbol::External(_id) => {
+                            terminal_count += 1; // Count externals as terminals
                         },
                         _ => {}
                     }
@@ -768,8 +774,6 @@ pub struct ParseTable {
     pub symbol_to_index: BTreeMap<SymbolId, usize>,
     /// For each state, a bitset indicating which external tokens are valid
     pub external_scanner_states: Vec<Vec<bool>>,
-    /// Maps (state, external_symbol) -> next_state for external token transitions
-    pub external_scanner_map: BTreeMap<(StateId, SymbolId), StateId>,
 }
 
 /// Actions in GLR parse table (supporting multiple actions per state)
@@ -1238,31 +1242,8 @@ pub fn build_lr1_automaton(
         }
     }
     
-    // Add shift actions for external tokens in appropriate states
-    // External tokens can appear at many points in the parse, especially in the initial state
-    
-    // For Python and other indentation-sensitive languages, external tokens like INDENT/DEDENT
-    // must be valid in the initial state and many other states
-    
-    // Add shift actions for external tokens to the action table
-    // For now, external tokens loop to the same state (like extras/whitespace)
-    for state_idx in 0..state_count {
-        for (external_idx, external) in augmented_grammar.externals.iter().enumerate() {
-            // Check if this external token is valid in this state
-            // For now, we're enabling all externals in all states (overly permissive)
-            if let Some(&symbol_idx) = symbol_to_index.get(&external.symbol_id) {
-                // Add a shift action that loops to the same state
-                // This allows external tokens to be consumed without changing the parse state
-                add_action_with_conflict(
-                    &mut action_table,
-                    &mut conflicts_by_state,
-                    state_idx,
-                    symbol_idx,
-                    Action::Shift(StateId(state_idx as u16)),
-                );
-            }
-        }
-    }
+    // External tokens now get their shift actions from the goto_table above
+    // No special handling needed - they're treated exactly like regular terminals
 
     // Now fill action table with reduce actions
     for item_set in &collection.sets {
@@ -1492,55 +1473,25 @@ pub fn build_lr1_automaton(
 
     // Compute external scanner states
     // For each state, determine which external tokens are valid
+    // Now we only track validity - transitions are in the main action table
     let mut external_scanner_states = vec![vec![false; augmented_grammar.externals.len()]; state_count];
-    let mut external_scanner_map = BTreeMap::new();
     
     // Create a mapping from external symbol_id to index
     let mut external_symbol_to_idx = BTreeMap::new();
     for (idx, external) in augmented_grammar.externals.iter().enumerate() {
         external_symbol_to_idx.insert(external.symbol_id, idx);
-        eprintln!("External {} has symbol_id {} at index {}", external.name, external.symbol_id.0, idx);
     }
     
-    // External tokens in Tree-sitter are special - they're not part of the grammar rules.
-    // They are injected by the external scanner at specific points.
-    // 
-    // For Python and similar indentation-sensitive languages:
-    // - State 0 MUST accept all external tokens (for start of file)
-    // - Most other states should also accept external tokens to handle indentation changes
-    // 
-    // This is a simplified approach - a more sophisticated implementation would analyze
-    // the grammar to determine exactly where externals are valid.
-    
-    // For now, enable external tokens in all states. This is overly permissive but ensures
-    // that the external scanner can inject tokens where needed.
+    // Determine which external tokens are valid in each state
+    // An external token is valid if there's a shift action for it in that state
     for state_idx in 0..state_count {
         for (external_idx, external) in augmented_grammar.externals.iter().enumerate() {
-            external_scanner_states[state_idx][external_idx] = true;
-            
-            // Determine the next state for this external token
-            // For now, we use a simple heuristic:
-            // - Most external tokens loop to the same state (like whitespace, comments)
-            // - INDENT/DEDENT need special handling in real implementations
-            // - This is a simplified approach; production parsers would compute this from the grammar
-            
-            let next_state = if external.name.contains("INDENT") {
-                // INDENT typically transitions to a state expecting indented content
-                // For now, we'll loop to the same state but this should be computed from the grammar
-                StateId(state_idx as u16)
-            } else if external.name.contains("DEDENT") {
-                // DEDENT typically transitions to a state at a lower indentation level
-                // For now, we'll loop to the same state but this should be computed from the grammar
-                StateId(state_idx as u16)
-            } else {
-                // Other external tokens (NEWLINE, comments, etc.) typically loop
-                StateId(state_idx as u16)
-            };
-            
-            external_scanner_map.insert(
-                (StateId(state_idx as u16), external.symbol_id), 
-                next_state
-            );
+            // Check if this external has a shift action in this state
+            if let Some(&symbol_idx) = symbol_to_index.get(&external.symbol_id) {
+                if let Action::Shift(_) = action_table[state_idx][symbol_idx] {
+                    external_scanner_states[state_idx][external_idx] = true;
+                }
+            }
         }
     }
     
@@ -1565,7 +1516,6 @@ pub fn build_lr1_automaton(
         symbol_count,
         symbol_to_index,
         external_scanner_states,
-        external_scanner_map,
     })
 }
 

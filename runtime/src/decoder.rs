@@ -334,25 +334,8 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         vec![vec![]; lang.state_count as usize]
     };
     
-    // Build external scanner map - for now, external tokens loop to the same state
-    // This is a simplified approach; Tree-sitter handles this more sophisticatedly
-    let mut external_scanner_map = BTreeMap::new();
-    for (state_idx, valid_externals) in external_scanner_states.iter().enumerate() {
-        for (external_idx, &is_valid) in valid_externals.iter().enumerate() {
-            if is_valid && external_idx < lang.external_token_count as usize {
-                // Get the actual symbol ID from the external scanner's symbol map
-                let external_symbol_id = unsafe {
-                    let symbol = *lang.external_scanner.symbol_map.add(external_idx);
-                    SymbolId(symbol)
-                };
-                // For now, external tokens transition to the same state (self-loop)
-                external_scanner_map.insert(
-                    (StateId(state_idx as u16), external_symbol_id),
-                    StateId(state_idx as u16)
-                );
-            }
-        }
-    }
+    // External tokens now have their transitions in the main action_table
+    // No separate map needed
     
     ParseTable {
         action_table,
@@ -362,7 +345,6 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         symbol_count: lang.symbol_count as usize,
         symbol_to_index,
         external_scanner_states,
-        external_scanner_map,
     }
 }
 
