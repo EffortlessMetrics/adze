@@ -1,6 +1,6 @@
 // Syntax highlighting support using queries
 use super::{Query, QueryCursor};
-use crate::parser_v3::ParseNode;
+use crate::parser_v4::ParseNode;
 use std::collections::HashMap;
 
 /// Standard capture names for syntax highlighting

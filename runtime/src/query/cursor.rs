@@ -1,6 +1,6 @@
 // Query cursor for efficient matching
 use super::{Query, QueryMatch, QueryMatches};
-use crate::parser_v3::ParseNode;
+use crate::parser_v4::ParseNode;
 use std::ops::Range;
 
 /// A stateful object for executing queries on a syntax tree

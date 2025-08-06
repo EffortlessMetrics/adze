@@ -1,6 +1,6 @@
 // Predicate evaluation for query patterns
 use super::ast::Predicate;
-use crate::parser_v3::ParseNode;
+use crate::parser_v4::ParseNode;
 use regex::Regex;
 use std::cell::RefCell;
 use std::collections::HashMap;

@@ -89,6 +89,30 @@ impl Parser {
             None
         }
     }
+    
+    /// Parse source code with incremental parsing support
+    /// 
+    /// # Arguments
+    /// * `source` - The source code to parse
+    /// * `old_tree` - Previous tree for incremental parsing
+    /// * `edit` - The edit that was applied to transform the old source to the new source
+    /// 
+    /// # Returns
+    /// * `Some(Tree)` on successful parse
+    /// * `None` if parsing fails or no language is set
+    /// 
+    /// # Note
+    /// Currently falls back to full reparse. GLR-aware incremental parsing is being implemented.
+    pub fn parse_with_old_tree(&mut self, source: &[u8], old_tree: Option<&parser_v4::Tree>, edit: Option<&crate::pure_incremental::Edit>) -> Option<parser_v4::Tree> {
+        if let Some(ref mut parser) = self.inner {
+            // TODO: Implement GLR-aware incremental parsing
+            // For now, just do a full reparse
+            let source_str = std::str::from_utf8(source).ok()?;
+            parser.parse(source_str).ok()
+        } else {
+            None
+        }
+    }
 
     /// Parse source code with detailed error information
     /// 

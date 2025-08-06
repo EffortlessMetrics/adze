@@ -6,18 +6,24 @@ pub mod ffi;
 // Re-export commonly used types
 pub use ffi::TSSymbol;
 pub type SymbolId = TSSymbol;
+
+// Legacy incremental modules - depend on deprecated parsers
+#[cfg(feature = "legacy-parsers")]
 pub mod incremental;
+#[cfg(feature = "legacy-parsers")]
 pub mod incremental_v2;
+#[cfg(feature = "legacy-parsers")]
 pub mod incremental_v3;
 pub mod lexer;
 pub mod scanner_registry;
 pub mod scanners;
-// Use parser_v3 as the main parser implementation
+// Use parser_v4 (GLR) as the main parser implementation
 pub mod parser {
-    pub use super::parser_v3::*;
+    pub use super::parser_v4::*;
 }
 pub mod error_recovery;
 pub mod error_reporting;
+#[cfg(feature = "legacy-parsers")]
 pub mod glr;
 pub mod glr_forest;
 pub mod glr_incremental;
@@ -32,8 +38,14 @@ pub mod decoder;
 #[cfg(feature = "pure-rust")]
 pub mod grammar_json;
 pub mod optimizations;
+
+// Legacy parser versions - deprecated
+#[cfg(feature = "legacy-parsers")]
 mod parser_v2;
+#[cfg(feature = "legacy-parsers")]
 mod parser_v3;
+
+// Current parser version
 pub mod parser_v4;
 pub mod pure_external_scanner;
 pub mod pure_incremental;

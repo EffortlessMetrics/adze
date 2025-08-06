@@ -11,8 +11,40 @@ use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::collections::HashSet;
 use std::rc::Rc;
 
-// Re-export types from parser_v3
-pub use crate::parser_v3::{ParseError, ParseNode, ParserState};
+// Define types directly in parser_v4 (no longer dependent on parser_v3)
+
+/// Error type for parsing operations
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error("No language set")]
+    NoLanguage,
+    #[error("Lexer error: {0}")]
+    LexerError(String),
+    #[error("Parser error: {0}")]
+    ParserError(String),
+    #[error("Invalid action: {0}")]
+    InvalidAction(String),
+    #[error("Unexpected token: expected {expected:?}, got {got:?}")]
+    UnexpectedToken { expected: Vec<String>, got: String },
+}
+
+/// A node in the parse tree
+#[derive(Debug, Clone)]
+pub struct ParseNode {
+    pub symbol: SymbolId,
+    pub symbol_id: SymbolId, // Keep both for compatibility
+    pub start_byte: usize,
+    pub end_byte: usize,
+    pub field_name: Option<String>,
+    pub children: Vec<ParseNode>,
+}
+
+/// Parser state for incremental parsing
+#[derive(Debug, Clone)]
+pub struct ParserState {
+    pub stack: Vec<(StateId, Option<ParseNode>)>,
+    pub position: usize,
+}
 
 /// Simple tree structure returned from parsing
 #[derive(Debug, Clone)]

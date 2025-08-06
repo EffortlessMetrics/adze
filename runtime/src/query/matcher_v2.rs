@@ -1,7 +1,7 @@
 // Enhanced query pattern matching with predicate evaluation
 use super::ast::*;
 use super::predicate_eval::PredicateContext;
-use crate::parser_v3::ParseNode;
+use crate::parser_v4::ParseNode;
 use std::collections::HashMap;
 
 /// A match of a query pattern

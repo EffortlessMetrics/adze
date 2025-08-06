@@ -1,6 +1,6 @@
 // Query pattern matching implementation
 use super::ast::*;
-use crate::parser_v3::ParseNode;
+use crate::parser_v4::ParseNode;
 use std::collections::HashMap;
 
 /// A match of a query pattern
