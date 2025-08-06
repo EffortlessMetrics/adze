@@ -417,7 +417,14 @@ impl Parser {
             bail!("Invalid symbol index: {}", symbol_idx);
         }
 
-        Ok(state_actions[symbol_idx].clone())
+        let action_cell = &state_actions[symbol_idx];
+        if action_cell.is_empty() {
+            Ok(Action::Error)
+        } else if action_cell.len() == 1 {
+            Ok(action_cell[0].clone())
+        } else {
+            Ok(Action::Fork(action_cell.clone()))
+        }
     }
 
     /// Get expected symbols for error reporting
@@ -428,8 +435,8 @@ impl Parser {
         if state_idx < self.parse_table.action_table.len() {
             let state_actions = &self.parse_table.action_table[state_idx];
 
-            for (symbol_idx, action) in state_actions.iter().enumerate() {
-                if !matches!(action, Action::Error) {
+            for (symbol_idx, action_cell) in state_actions.iter().enumerate() {
+                if !action_cell.is_empty() {
                     expected.push(SymbolId(symbol_idx as u16));
                 }
             }

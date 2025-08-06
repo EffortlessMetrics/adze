@@ -246,7 +246,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         let non_error_actions: Vec<_> = actions
             .iter()
             .enumerate()
-            .filter(|(_, a)| !matches!(a, Action::Error))
+            .filter(|(_, a)| !a.is_empty())
             .collect();
         if !non_error_actions.is_empty() {
             writeln!(

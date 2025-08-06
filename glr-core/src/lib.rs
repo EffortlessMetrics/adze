@@ -805,7 +805,7 @@ impl ItemSetCollection {
 /// GLR-compatible parse table supporting multiple actions per state
 #[derive(Debug, Clone)]
 pub struct ParseTable {
-    pub action_table: Vec<Vec<Action>>,
+    pub action_table: Vec<Vec<ActionCell>>,
     pub goto_table: Vec<Vec<StateId>>,
     pub symbol_metadata: Vec<SymbolMetadata>,
     pub state_count: usize,
@@ -824,6 +824,9 @@ pub enum Action {
     Error,
     Fork(Vec<Action>), // GLR fork point - multiple valid actions
 }
+
+/// Action cell that can hold multiple actions for GLR
+pub type ActionCell = Vec<Action>;
 
 /// Symbol metadata for the parse table
 #[derive(Debug, Clone)]
@@ -1237,7 +1240,7 @@ pub fn build_lr1_automaton(
     let state_count = collection.sets.len();
     let symbol_count = indexed_symbol_count; // Keep for compatibility
 
-    let mut action_table = vec![vec![Action::Error; indexed_symbol_count]; state_count];
+    let mut action_table = vec![vec![Vec::new(); indexed_symbol_count]; state_count];
     let mut goto_table = vec![vec![StateId(0); indexed_symbol_count]; state_count];
 
     // Track conflicts as we build the table
@@ -1294,10 +1297,10 @@ pub fn build_lr1_automaton(
         for extra_symbol_id in &augmented_grammar.extras {
             if let Some(&symbol_idx) = symbol_to_index.get(extra_symbol_id) {
                 // Check if an action already exists for this extra token in this state.
-                // Only add self-loop if no action exists yet (Action::Error means no action)
-                if matches!(action_table[state_idx][symbol_idx], Action::Error) {
+                // Only add self-loop if no action exists yet (empty cell means no action)
+                if action_table[state_idx][symbol_idx].is_empty() {
                     // Add a self-looping shift that stays in the same state
-                    action_table[state_idx][symbol_idx] = Action::Shift(StateId(state_idx as u16));
+                    action_table[state_idx][symbol_idx].push(Action::Shift(StateId(state_idx as u16)));
                 }
             }
         }
@@ -1421,27 +1424,27 @@ pub fn build_lr1_automaton(
                     // "DEBUG: Conflict resolution - symbol {} (id={}) shift_prec={:?}, reduce rule {} prec={:?}"
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
-                        // "DEBUG: Precedence resolution at state {} symbol {}: prefer shift"
-                        continue;
+                        // For GLR, we still keep both actions but can mark preference
+                        eprintln!("State {}: Precedence prefers shift over reduce for symbol {}", state_idx, symbol_idx);
                     }
                     PrecedenceComparison::PreferReduce => {
-                        // "DEBUG: Precedence resolution at state {} symbol {}: prefer reduce"
-                        continue;
+                        // For GLR, we still keep both actions but can mark preference
+                        eprintln!("State {}: Precedence prefers reduce over shift for symbol {}", state_idx, symbol_idx);
                     }
                     PrecedenceComparison::Error => {
-                        // "DEBUG: Precedence resolution at state {} symbol {}: non-associative error"
+                        eprintln!("State {}: Non-associative conflict for symbol {}", state_idx, symbol_idx);
                     }
                     PrecedenceComparison::None => {
-                        // "DEBUG: No precedence info for conflict at state {} symbol {}"
+                        eprintln!("State {}: No precedence info for conflict at symbol {}", state_idx, symbol_idx);
                     }
                 }
             }
 
-            // If not resolved, convert to Fork action
-            action_table[state_idx][symbol_idx] = Action::Fork(actions);
-        } else if let Some(action) = actions.into_iter().next() {
-            action_table[state_idx][symbol_idx] = action;
+            // For GLR, we keep all conflicting actions in the cell
+            // The runtime parser will handle forking
+            // The actions are already in the cell from add_action_with_conflict
         }
+        // No need to do anything - actions are already in the cell
     }
 
     // Add non-terminal goto entries to the goto table
@@ -1486,8 +1489,8 @@ pub fn build_lr1_automaton(
                 if let Some(rule_id) = reduce_rule_id {
                     if let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0)) {
                         // Check if EOF action already exists
-                        if matches!(action_table[state_idx][eof_idx], Action::Error) {
-                            action_table[state_idx][eof_idx] = Action::Reduce(rule_id);
+                        if action_table[state_idx][eof_idx].is_empty() {
+                            action_table[state_idx][eof_idx].push(Action::Reduce(rule_id));
                         }
                     }
                 }
@@ -1546,7 +1549,8 @@ pub fn build_lr1_automaton(
         for (external_idx, external) in augmented_grammar.externals.iter().enumerate() {
             // Check if this external has a shift action in this state
             if let Some(&symbol_idx) = symbol_to_index.get(&external.symbol_id) {
-                if let Action::Shift(_) = action_table[state_idx][symbol_idx] {
+                // Check if any action in the cell is a shift
+                if action_table[state_idx][symbol_idx].iter().any(|a| matches!(a, Action::Shift(_))) {
                     external_scanner_states[state_idx][external_idx] = true;
                 }
             }
@@ -1567,7 +1571,7 @@ pub fn build_lr1_automaton(
 
 /// Add an action to the parse table, tracking conflicts
 fn add_action_with_conflict(
-    action_table: &mut Vec<Vec<Action>>,
+    action_table: &mut Vec<Vec<ActionCell>>,
     conflicts_by_state: &mut BTreeMap<(usize, usize), Vec<Action>>,
     state_idx: usize,
     symbol_idx: usize,
@@ -1588,32 +1592,19 @@ fn add_action_with_conflict(
         );
     }
 
-    let current_action = &action_table[state_idx][symbol_idx];
+    let current_cell = &mut action_table[state_idx][symbol_idx];
 
-    match current_action {
-        Action::Error => {
-            // No conflict, just set the action
-            action_table[state_idx][symbol_idx] = new_action.clone();
-        }
-        _ => {
-            // Conflict detected! Track it
+    // Check if this action already exists
+    if !current_cell.iter().any(|a| action_eq(a, &new_action)) {
+        // Add the action to the cell
+        current_cell.push(new_action.clone());
+        
+        // If there are now multiple actions, track as a conflict
+        if current_cell.len() > 1 {
             let entry = conflicts_by_state
                 .entry((state_idx, symbol_idx))
                 .or_default();
-
-            // Add the current action if not already tracked
-            if entry.is_empty() {
-                if let Action::Fork(actions) = current_action {
-                    entry.extend(actions.clone());
-                } else {
-                    entry.push(current_action.clone());
-                }
-            }
-
-            // Add the new action if not duplicate
-            if !entry.iter().any(|a| action_eq(a, &new_action)) {
-                entry.push(new_action);
-            }
+            *entry = current_cell.clone();
         }
     }
 }

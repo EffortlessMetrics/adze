@@ -367,8 +367,10 @@ impl StaticLanguageGenerator {
         for state_actions in &self.parse_table.action_table {
             let actions: Vec<TokenStream> = state_actions
                 .iter()
-                .map(|action| {
-                    match action {
+                .flat_map(|action_cell| {
+                    // For each action cell, generate entries for all actions
+                    action_cell.iter().map(|action| {
+                        match action {
                         Action::Shift(state) => {
                             let state_id = state.0;
                             quote! {
@@ -463,7 +465,8 @@ impl StaticLanguageGenerator {
                                 }
                             }
                         }
-                    }
+                        }
+                    })
                 })
                 .collect();
 

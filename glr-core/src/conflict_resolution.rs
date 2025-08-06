@@ -62,36 +62,42 @@ impl VecWrapperResolver {
         
         // Look through the action table for reduce actions in this state
         if let Some(state_actions) = table.action_table.get(state.0 as usize) {
-            for (_symbol_idx, action) in state_actions.iter().enumerate() {
-                match action {
-                    Action::Reduce(rule_id) => {
-                        // Find the corresponding rule in the grammar
-                        if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == rule_id.0) {
-                            // Check if this is a vec wrapper empty rule
-                            if let Some(rule_name) = grammar.rule_names.get(&rule.lhs) {
-                                if rule_name.ends_with("_vec_contents") && rule.rhs.is_empty() {
-                                    result = Some(ProductionId(rule_id.0));
-                                    break;
+            for (_symbol_idx, action_cell) in state_actions.iter().enumerate() {
+                // Each cell now contains a Vec<Action>
+                for action in action_cell {
+                    match action {
+                        Action::Reduce(rule_id) => {
+                            // Find the corresponding rule in the grammar
+                            if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == rule_id.0) {
+                                // Check if this is a vec wrapper empty rule
+                                if let Some(rule_name) = grammar.rule_names.get(&rule.lhs) {
+                                    if rule_name.ends_with("_vec_contents") && rule.rhs.is_empty() {
+                                        result = Some(ProductionId(rule_id.0));
+                                        break;
+                                    }
                                 }
                             }
-                        }
-                    },
-                    Action::Fork(actions) => {
-                        // Check fork actions too
-                        for fork_action in actions {
-                            if let Action::Reduce(rule_id) = fork_action {
-                                if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == rule_id.0) {
-                                    if let Some(rule_name) = grammar.rule_names.get(&rule.lhs) {
-                                        if rule_name.ends_with("_vec_contents") && rule.rhs.is_empty() {
-                                            result = Some(ProductionId(rule_id.0));
-                                            break;
+                        },
+                        Action::Fork(actions) => {
+                            // Check fork actions too
+                            for fork_action in actions {
+                                if let Action::Reduce(rule_id) = fork_action {
+                                    if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == rule_id.0) {
+                                        if let Some(rule_name) = grammar.rule_names.get(&rule.lhs) {
+                                            if rule_name.ends_with("_vec_contents") && rule.rhs.is_empty() {
+                                                result = Some(ProductionId(rule_id.0));
+                                                break;
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                    },
-                    _ => {}
+                        },
+                        _ => {}
+                    }
+                }
+                if result.is_some() {
+                    break;
                 }
             }
         }

@@ -280,13 +280,20 @@ impl<'a> LanguageGenerator<'a> {
         if state < self.parse_table.action_table.len()
             && symbol < self.parse_table.action_table[state].len()
         {
-            let action = &self.parse_table.action_table[state][symbol];
-            match action {
-                rust_sitter_glr_core::Action::Shift(s) => s.0,
-                rust_sitter_glr_core::Action::Reduce(r) => 0x8000 | (r.0 << 1),
-                rust_sitter_glr_core::Action::Accept => 0xFFFF,
-                rust_sitter_glr_core::Action::Error => 0xFFFE,
-                rust_sitter_glr_core::Action::Fork(_) => 0xFFFE, // TODO: Handle GLR forks
+            let action_cell = &self.parse_table.action_table[state][symbol];
+            // For Tree-sitter compatibility, we need to pick one action
+            // Use the first action if multiple exist (GLR conflicts)
+            if action_cell.is_empty() {
+                0xFFFE // Error action
+            } else {
+                let action = &action_cell[0];
+                match action {
+                    rust_sitter_glr_core::Action::Shift(s) => s.0,
+                    rust_sitter_glr_core::Action::Reduce(r) => 0x8000 | (r.0 << 1),
+                    rust_sitter_glr_core::Action::Accept => 0xFFFF,
+                    rust_sitter_glr_core::Action::Error => 0xFFFE,
+                    rust_sitter_glr_core::Action::Fork(_) => 0xFFFE, // TODO: Handle GLR forks
+                }
             }
         } else {
             0xFFFE // Error action

@@ -58,13 +58,13 @@ impl<'a> AbiLanguageBuilder<'a> {
         // Check what the initial state expects
         if !self.parse_table.action_table.is_empty() {
             eprintln!("DEBUG AbiLanguageBuilder: State 0 actions:");
-            for (symbol_idx, action) in self.parse_table.action_table[0].iter().enumerate() {
-                if !matches!(action, Action::Error) {
+            for (symbol_idx, action_cell) in self.parse_table.action_table[0].iter().enumerate() {
+                if !action_cell.is_empty() {
                     // Find the symbol ID for this index
                     let symbol_id = self.parse_table.symbol_to_index.iter()
                         .find(|(_, idx)| **idx == symbol_idx)
                         .map(|(id, _)| *id);
-                    eprintln!("  Index {} (SymbolId {:?}): {:?}", symbol_idx, symbol_id, action);
+                    eprintln!("  Index {} (SymbolId {:?}): {:?}", symbol_idx, symbol_id, action_cell);
                 }
             }
         }
@@ -673,7 +673,16 @@ impl<'a> AbiLanguageBuilder<'a> {
                         if state_idx < self.parse_table.action_table.len()
                             && symbol_idx < self.parse_table.action_table[state_idx].len()
                         {
-                            self.parse_table.action_table[state_idx][symbol_idx].clone()
+                            let actions = &self.parse_table.action_table[state_idx][symbol_idx];
+                            if actions.is_empty() {
+                                Action::Error
+                            } else if actions.len() == 1 {
+                                actions[0].clone()
+                            } else {
+                                // Multiple actions - for now use Fork, though Tree-sitter
+                                // typically resolves these during table generation
+                                Action::Fork(actions.clone())
+                            }
                         } else {
                             Action::Error
                         }

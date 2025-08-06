@@ -262,15 +262,15 @@ impl Parser {
             
             let lookahead = token.symbol;
             
-            // Get the action for this state and lookahead symbol (works for both regular and external tokens)
-            let action = self.get_parse_action(current_state, lookahead)?;
-            eprintln!("State {}, Symbol {} -> Action: {:?}", current_state.0, lookahead.0, action);
+            // Get the actions for this state and lookahead symbol (works for both regular and external tokens)
+            let actions = self.get_parse_actions(current_state, lookahead)?;
+            eprintln!("State {}, Symbol {} -> Actions: {:?}", current_state.0, lookahead.0, actions);
             // Debug: print what actions are available in state 0
-            if current_state.0 == 0 && matches!(action, Action::Error) {
+            if current_state.0 == 0 && actions.is_empty() {
                 eprintln!("  Available actions in state 0:");
-                for (sym_idx, act) in self.parse_table.action_table[0].iter().enumerate() {
-                    if !matches!(act, Action::Error) {
-                        eprintln!("    Symbol {} -> {:?}", sym_idx, act);
+                for (sym_idx, act_cell) in self.parse_table.action_table[0].iter().enumerate() {
+                    if !act_cell.is_empty() {
+                        eprintln!("    Symbol {} -> {:?}", sym_idx, act_cell);
                     }
                 }
                 eprintln!("  'def' token has symbol {}, looking for it in grammar...", token.symbol.0);
@@ -281,6 +281,16 @@ impl Parser {
                     }
                 }
             }
+            
+            // Handle the action(s)
+            let action = if actions.is_empty() {
+                Action::Error
+            } else if actions.len() == 1 {
+                actions[0].clone()
+            } else {
+                // Multiple actions - create a Fork
+                Action::Fork(actions)
+            };
             
             match action {
                 Action::Shift(next_state) => {
@@ -469,21 +479,22 @@ impl Parser {
         }
     }
 
-    /// Get the parse action for a state and symbol
-    fn get_parse_action(&self, state: StateId, symbol: SymbolId) -> Result<Action> {
-        // Look up the action in the parse table
+    /// Get the parse actions for a state and symbol
+    fn get_parse_actions(&self, state: StateId, symbol: SymbolId) -> Result<Vec<Action>> {
+        // Look up the actions in the parse table
         let state_idx = state.0 as usize;
         let symbol_idx = symbol.0 as usize;
         
         if state_idx >= self.parse_table.action_table.len() {
-            return Ok(Action::Error);
+            return Ok(vec![]);
         }
         
         let state_actions = &self.parse_table.action_table[state_idx];
         if symbol_idx >= state_actions.len() {
-            return Ok(Action::Error);
+            return Ok(vec![]);
         }
         
+        // Return the action cell (which is a Vec<Action>)
         Ok(state_actions[symbol_idx].clone())
     }
     
@@ -523,11 +534,14 @@ impl Parser {
         }
         
         // Fallback: look for a shift action in the parse table
-        let action = self.get_parse_action(from_state, symbol)?;
-        match action {
-            Action::Shift(next_state) => Ok(next_state),
-            _ => Ok(StateId(0)), // Default to state 0 if no goto found
+        let actions = self.get_parse_actions(from_state, symbol)?;
+        // Find the first shift action
+        for action in actions {
+            if let Action::Shift(next_state) = action {
+                return Ok(next_state);
+            }
         }
+        Ok(StateId(0)) // Default to state 0 if no goto found
     }
     
     /// Try to scan for external tokens
@@ -663,7 +677,15 @@ impl Parser {
         if state_idx < self.parse_table.action_table.len() {
             if let Some(&symbol_idx) = self.parse_table.symbol_to_index.get(&symbol) {
                 if symbol_idx < self.parse_table.action_table[state_idx].len() {
-                    return Ok(self.parse_table.action_table[state_idx][symbol_idx].clone());
+                    let action_cell = &self.parse_table.action_table[state_idx][symbol_idx];
+                    if action_cell.is_empty() {
+                        return Ok(Action::Error);
+                    } else if action_cell.len() == 1 {
+                        return Ok(action_cell[0].clone());
+                    } else {
+                        // Multiple actions - create a Fork
+                        return Ok(Action::Fork(action_cell.clone()));
+                    }
                 }
             }
         }
@@ -684,9 +706,8 @@ impl Parser {
             // Iterate through all symbols to find ones with non-error actions
             for (&symbol_id, &idx) in &self.parse_table.symbol_to_index {
                 if idx < state_actions.len() {
-                    match &state_actions[idx] {
-                        Action::Error => continue,
-                        _ => {
+                    let action_cell = &state_actions[idx];
+                    if !action_cell.is_empty() {
                             // Include only terminals and external tokens
                             if self.grammar.tokens.contains_key(&symbol_id)
                                 || self
@@ -697,7 +718,6 @@ impl Parser {
                             {
                                 expected.push(symbol_id);
                             }
-                        }
                     }
                 }
             }

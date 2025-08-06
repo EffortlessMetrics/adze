@@ -214,7 +214,7 @@ impl TableCompressor {
     /// Compress action table using Tree-sitter's small table format
     pub fn compress_action_table_small(
         &self,
-        action_table: &[Vec<Action>],
+        action_table: &[Vec<Vec<Action>>],
         symbol_to_index: &BTreeMap<SymbolId, usize>,
     ) -> Result<CompressedActionTable, TableGenError> {
         let mut entries = Vec::new();
@@ -240,25 +240,28 @@ impl TableCompressor {
             );
         }
 
-        for (state_idx, actions) in action_table.iter().enumerate() {
-            // Find the most common action
-            let mut action_counts: HashMap<&Action, usize> = HashMap::new();
+        for (state_idx, action_row) in action_table.iter().enumerate() {
+            // Find the most common action across all cells
+            let mut action_counts: HashMap<Action, usize> = HashMap::new();
             let mut has_shift = false;
             let mut has_accept = false;
 
-            for action in actions {
-                *action_counts.entry(action).or_insert(0) += 1;
-                match action {
-                    Action::Shift(_) => has_shift = true,
-                    Action::Accept => has_accept = true,
-                    _ => {}
+            // Collect all actions from all cells in this row
+            for action_cell in action_row {
+                for action in action_cell {
+                    *action_counts.entry(action.clone()).or_insert(0) += 1;
+                    match action {
+                        Action::Shift(_) => has_shift = true,
+                        Action::Accept => has_accept = true,
+                        _ => {}
+                    }
                 }
             }
 
             let most_common = action_counts
                 .iter()
                 .max_by_key(|(_, count)| *count)
-                .map(|(action, _)| (*action).clone())
+                .map(|(action, _)| action.clone())
                 .unwrap_or(Action::Error);
 
             let default_action = match &most_common {
@@ -275,28 +278,31 @@ impl TableCompressor {
                 eprintln!("  Default action: {:?}", default_action);
             }
 
-            for (index, action) in actions.iter().enumerate() {
-                if action == &default_action {
-                    continue;
+            for (index, action_cell) in action_row.iter().enumerate() {
+                // Process each action in the cell
+                for action in action_cell {
+                    if action == &default_action {
+                        continue;
+                    }
+
+                    // Get the actual symbol ID from the index
+                    let symbol_id = index_to_symbol
+                        .get(&index)
+                        .map(|id| id.0)
+                        .unwrap_or(index as u16);
+
+                    if state_idx == 0 {
+                        eprintln!(
+                            "  Index {} (symbol {}) -> action {:?}",
+                            index, symbol_id, action
+                        );
+                    }
+
+                    entries.push(CompressedActionEntry {
+                        symbol: symbol_id,
+                        action: action.clone(),
+                    });
                 }
-
-                // Get the actual symbol ID from the index
-                let symbol_id = index_to_symbol
-                    .get(&index)
-                    .map(|id| id.0)
-                    .unwrap_or(index as u16);
-
-                if state_idx == 0 {
-                    eprintln!(
-                        "  Index {} (symbol {}) -> action {:?}",
-                        index, symbol_id, action
-                    );
-                }
-
-                entries.push(CompressedActionEntry {
-                    symbol: symbol_id,
-                    action: action.clone(),
-                });
             }
         }
 

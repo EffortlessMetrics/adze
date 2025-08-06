@@ -270,7 +270,13 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                     Action::Error
                 }
             };
-            state_actions.push(action);
+            // Create an action cell with single action (Tree-sitter doesn't store multiple actions)
+            let action_cell = if matches!(action, Action::Error) {
+                vec![]
+            } else {
+                vec![action]
+            };
+            state_actions.push(action_cell);
         }
         
         action_table.push(state_actions);
@@ -282,7 +288,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     if !lang.small_parse_table_map.is_null() && !lang.small_parse_table.is_null() {
         eprintln!("Decoding {} compressed states", lang.state_count - lang.large_state_count);
         for state in lang.large_state_count as usize..lang.state_count as usize {
-            let mut state_actions = vec![Action::Error; lang.symbol_count as usize];
+            let mut state_actions = vec![vec![]; lang.symbol_count as usize];
             
             // Get the offset into small_parse_table from the map
             let map_index = state - lang.large_state_count as usize;
@@ -309,7 +315,9 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                         let action_entry = &*lang.parse_actions.add(action_index);
                         decode_action(action_entry)
                     };
-                    state_actions[symbol] = action;
+                    if !matches!(action, Action::Error) {
+                        state_actions[symbol].push(action);
+                    }
                 }
             }
             

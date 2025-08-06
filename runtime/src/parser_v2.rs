@@ -472,7 +472,15 @@ impl ParserV2 {
             .action_table
             .get(state_idx)
             .and_then(|row| row.get(symbol_idx))
-            .cloned()
+            .map(|action_cell| {
+                if action_cell.is_empty() {
+                    Action::Error
+                } else if action_cell.len() == 1 {
+                    action_cell[0].clone()
+                } else {
+                    Action::Fork(action_cell.clone())
+                }
+            })
             .ok_or(ParseError::InvalidState)
     }
 
@@ -496,7 +504,7 @@ impl ParserV2 {
 
         if let Some(row) = self.parse_table.action_table.get(state_idx) {
             for (symbol_idx, action) in row.iter().enumerate() {
-                if !matches!(action, Action::Error) {
+                if !action.is_empty() {
                     expected.push(SymbolId(symbol_idx as u16));
                 }
             }
