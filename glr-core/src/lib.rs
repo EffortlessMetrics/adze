@@ -368,13 +368,13 @@ impl ItemSet {
 
     /// Compute closure of this item set
     pub fn closure(&mut self, grammar: &Grammar, first_follow: &FirstFollowSets) {
-        let initial_size = self.items.len();
+        let _initial_size = self.items.len();
 
         let mut added = true;
-        let mut iteration = 0;
+        let mut _iteration = 0;
         while added {
             added = false;
-            iteration += 1;
+            _iteration += 1;
             let current_items: Vec<_> = self.items.iter().cloned().collect();
 
             for item in current_items {
@@ -1242,25 +1242,6 @@ pub fn build_lr1_automaton(
         }
     }
     
-    // External tokens are special - they're not in grammar rules, so they don't appear
-    // in the goto_table naturally. We need to add shift actions for them manually.
-    // For simplicity, we'll make external tokens loop back to the same state (like whitespace).
-    // A more sophisticated implementation would determine the actual next state from the grammar.
-    for state_idx in 0..state_count {
-        for external in &augmented_grammar.externals {
-            if let Some(&symbol_idx) = symbol_to_index.get(&external.symbol_id) {
-                // Add a shift action that loops to the same state
-                // This allows external tokens to be consumed without breaking the parse
-                add_action_with_conflict(
-                    &mut action_table,
-                    &mut conflicts_by_state,
-                    state_idx,
-                    symbol_idx,
-                    Action::Shift(StateId(state_idx as u16)),
-                );
-            }
-        }
-    }
 
     // Now fill action table with reduce actions
     for item_set in &collection.sets {

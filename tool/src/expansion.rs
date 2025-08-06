@@ -762,6 +762,17 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
     // source_file rule already inserted above - don't overwrite it!
 
+    // Add all external tokens to the extras list as well
+    // This makes them behave like implicit tokens that can appear anywhere
+    for external in &externals_list {
+        if let Some(name) = external.get("name") {
+            extras_list.push(json!({
+                "type": "SYMBOL",
+                "name": name
+            }));
+        }
+    }
+
     let mut grammar = json!({
         "name": grammar_name,
         "word": word_rule,

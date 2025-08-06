@@ -63,18 +63,12 @@ impl Default for PythonScanner {
 
 impl ExternalScanner for PythonScanner {
     fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
-        // Debug output
-        eprintln!("PythonScanner::scan called");
-        eprintln!("  Position: column={}", lexer.column());
-        eprintln!("  Valid symbols: {:?}", valid_symbols);
-        eprintln!("  Lookahead: {:?}", lexer.lookahead().map(|c| c as char));
         
         // Special case: handle NEWLINE when we're at column 0 and it's valid
         // But only if we're actually at a newline character, not just at the start of input
         if lexer.column() == 0 && valid_symbols.len() > NEWLINE_INDEX && valid_symbols[NEWLINE_INDEX] {
             // Check if we're actually at a newline character
             if let Some(b'\n') = lexer.lookahead() {
-                eprintln!("  Emitting NEWLINE for actual newline character");
                 lexer.advance(1); // Consume the newline
                 lexer.mark_end();
                 return Some(ScanResult {
