@@ -227,9 +227,13 @@ impl Parser {
             let current_state = *state_stack.last()
                 .ok_or_else(|| anyhow!("State stack is empty"))?;
             
+            // Track whether token came from external scanner
+            let is_external_token: bool;
+            
             // Get the next token from the lexer
             let token = if current_position >= input_bytes.len() {
                 // We're at EOF
+                is_external_token = false;
                 LexerToken {
                     symbol: SymbolId(0), // EOF symbol
                     text: vec![],
@@ -242,9 +246,11 @@ impl Parser {
                 if let Some(external_token) = self.try_external_scanner(current_state)? {
                     eprintln!("At position {}: external scanner returned symbol {} with length {}", 
                         current_position, external_token.symbol.0, external_token.end - external_token.start);
+                    is_external_token = true;
                     external_token
                 } else {
                     eprintln!("External scanner returned None at position {}", current_position);
+                    is_external_token = false;
                     // Fall back to regular lexer
                     match lexer.next_token(input_bytes, current_position) {
                         Some(tok) => {
@@ -265,7 +271,41 @@ impl Parser {
             
             let lookahead = token.symbol;
             
-            // Get the action for this state and lookahead symbol
+            // Handle external tokens specially - they don't use the regular action table
+            if is_external_token {
+                eprintln!("Processing external token {} in state {}", lookahead.0, current_state.0);
+                
+                // Look up the next state in the external scanner map
+                if let Some(&next_state) = self.parse_table.external_scanner_map.get(&(current_state, lookahead)) {
+                    eprintln!("External scanner map: state {} + symbol {} -> state {}", 
+                        current_state.0, lookahead.0, next_state.0);
+                    
+                    // Perform a direct shift for the external token
+                    let node = ParseNode {
+                        symbol: token.symbol,
+                        start_byte: token.start,
+                        end_byte: token.end,
+                        children: vec![],
+                        field_name: None,
+                    };
+                    
+                    state_stack.push(next_state);
+                    symbol_stack.push(token.symbol);
+                    node_stack.push(node);
+                    
+                    // Advance position to the end of this token
+                    current_position = token.end;
+                    
+                    // Continue to next iteration
+                    continue;
+                } else {
+                    eprintln!("No external scanner map entry for state {} + symbol {}", 
+                        current_state.0, lookahead.0);
+                    // Fall through to regular action table handling (will likely error)
+                }
+            }
+            
+            // Get the action for this state and lookahead symbol (regular tokens only)
             eprintln!("State {}, lookahead symbol {}: getting action", current_state.0, lookahead.0);
             let action = self.get_parse_action(current_state, lookahead)?;
             eprintln!("  Action: {:?}", action);
