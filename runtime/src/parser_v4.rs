@@ -186,20 +186,71 @@ impl Parser {
         }
 
         // Check if we have external scanner
-        let (scanner, runtime) = match (&mut self.external_scanner, &mut self.external_runtime) {
-            (Some(s), Some(r)) => (s, r),
-            _ => return Ok(None),
-        };
+        if self.external_scanner.is_none() || self.external_runtime.is_none() {
+            return Ok(None);
+        }
 
         // Convert valid externals to bool array
-        let valid_symbols: Vec<bool> = runtime
+        let valid_symbols: Vec<bool> = self
+            .external_runtime
+            .as_ref()
+            .unwrap()
             .get_external_tokens()
             .iter()
             .map(|token| valid_externals.contains(&SymbolId(*token)))
             .collect();
 
-        // Try to scan
-        if let Some(result) = scanner.scan(&valid_symbols, &self.input, self.position) {
+        // Create a simple lexer adapter
+        struct LexerAdapter<'a> {
+            parser: &'a mut Parser,
+        }
+        
+        impl<'a> crate::external_scanner::Lexer for LexerAdapter<'a> {
+            fn lookahead(&self) -> Option<u8> {
+                if self.parser.position < self.parser.input.len() {
+                    Some(self.parser.input[self.parser.position])
+                } else {
+                    None
+                }
+            }
+            
+            fn advance(&mut self, n: usize) {
+                self.parser.position = std::cmp::min(
+                    self.parser.position + n, 
+                    self.parser.input.len()
+                );
+            }
+            
+            fn mark_end(&mut self) {
+                // No-op for now
+            }
+            
+            fn column(&self) -> usize {
+                let mut col = 0;
+                for i in (0..self.parser.position).rev() {
+                    if self.parser.input[i] == b'\n' {
+                        break;
+                    }
+                    col += 1;
+                }
+                col
+            }
+            
+            fn is_eof(&self) -> bool {
+                self.parser.position >= self.parser.input.len()
+            }
+        }
+        
+        // We need to temporarily take the scanner out to avoid double borrow
+        let mut scanner = self.external_scanner.take().unwrap();
+        let scan_result = {
+            let mut adapter = LexerAdapter { parser: self };
+            scanner.scan(&mut adapter, &valid_symbols)
+        };
+        // Put the scanner back
+        self.external_scanner = Some(scanner);
+        
+        if let Some(result) = scan_result {
             // Extract token text
             let end = self.position + result.length;
             let text = if end <= self.input.len() {
@@ -512,9 +563,9 @@ impl Parser {
         self.position
     }
 
-    /// Borrow the lexer (placeholder for compatibility)
-    pub fn borrow_lexer(&mut self) -> &mut Self {
-        self
+    /// Borrow the lexer as a trait object
+    pub fn borrow_lexer(&mut self) -> &mut dyn crate::external_scanner::Lexer {
+        self as &mut dyn crate::external_scanner::Lexer
     }
 
     /// Advance from scanner result
@@ -525,6 +576,50 @@ impl Parser {
     /// Get TS lexer pointer (for FFI compatibility)
     pub fn ts_lexer_ptr(&mut self) -> *mut std::ffi::c_void {
         self as *mut _ as *mut std::ffi::c_void
+    }
+    
+    /// Set the language for this parser
+    /// This is a placeholder for now - in the future it should update grammar and parse table
+    pub fn set_language(&mut self, _language: &'static crate::pure_parser::TSLanguage) {
+        // TODO: Extract grammar and parse table from TSLanguage
+        // For now, this is a no-op as we create the parser with grammar already
+    }
+}
+
+/// Implement the Lexer trait for Parser so it can be used by external scanners
+impl crate::external_scanner::Lexer for Parser {
+    fn lookahead(&self) -> Option<u8> {
+        if self.position < self.input.len() {
+            Some(self.input[self.position])
+        } else {
+            None
+        }
+    }
+    
+    fn advance(&mut self, n: usize) {
+        self.position = std::cmp::min(self.position + n, self.input.len());
+    }
+    
+    fn mark_end(&mut self) {
+        // For external scanners, mark_end is typically used to mark
+        // the end of the current token. This is handled by the scanner
+        // returning the length, so this is a no-op for now.
+    }
+    
+    fn column(&self) -> usize {
+        // Calculate column by counting back from current position to last newline
+        let mut col = 0;
+        for i in (0..self.position).rev() {
+            if self.input[i] == b'\n' {
+                break;
+            }
+            col += 1;
+        }
+        col
+    }
+    
+    fn is_eof(&self) -> bool {
+        self.position >= self.input.len()
     }
 }
 

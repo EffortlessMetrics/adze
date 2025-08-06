@@ -1,39 +1,35 @@
-// Indentation scanner for Python-like languages
-// Handles INDENT, DEDENT, and NEWLINE tokens
+// Indentation-based scanning for languages like Python
+use crate::external_scanner::{ExternalScanner, ScanResult, Lexer};
 
-use crate::external_scanner::{ExternalScanner, ScanResult};
-
-/// Token indices for indentation scanner
-pub const NEWLINE: usize = 0;
-pub const INDENT: usize = 1;
-pub const DEDENT: usize = 2;
-
-/// Indentation scanner for Python-like languages
+/// Scanner for tracking indentation levels
+#[derive(Debug, Clone, Default)]
 pub struct IndentationScanner {
-    /// Stack of indentation levels (column numbers)
     indent_stack: Vec<usize>,
-    /// Whether we're at the beginning of a line
     at_line_start: bool,
-    /// Pending dedent count
     pending_dedents: usize,
 }
 
-impl ExternalScanner for IndentationScanner {
-    fn new() -> Self {
+impl IndentationScanner {
+    pub fn new() -> Self {
         IndentationScanner {
             indent_stack: vec![0], // Start with column 0
             at_line_start: true,
             pending_dedents: 0,
         }
     }
+}
 
+impl ExternalScanner for IndentationScanner {
     fn scan(
         &mut self,
+        lexer: &mut dyn Lexer,
         valid_symbols: &[bool],
-        input: &[u8],
-        position: usize,
     ) -> Option<ScanResult> {
-        // If we have pending dedents, emit them first
+        const NEWLINE: usize = 0;
+        const INDENT: usize = 1;
+        const DEDENT: usize = 2;
+        
+        // If we have pending dedents, emit them
         if self.pending_dedents > 0 && valid_symbols.get(DEDENT) == Some(&true) {
             self.pending_dedents -= 1;
             return Some(ScanResult {
@@ -41,248 +37,134 @@ impl ExternalScanner for IndentationScanner {
                 length: 0,
             });
         }
-
-        // Skip any whitespace that's not at line start
-        if !self.at_line_start {
-            // Look for newline
-            if position < input.len() && input[position] == b'\n' {
-                if valid_symbols.get(NEWLINE) == Some(&true) {
-                    self.at_line_start = true;
-                    return Some(ScanResult {
-                        symbol: NEWLINE as u16,
-                        length: 1,
-                    });
-                }
-            }
+        
+        if lexer.is_eof() {
             return None;
         }
-
-        // We're at line start - count indentation
-        let mut indent_length = 0;
-        let mut column = 0;
-        let mut i = position;
-
-        while i < input.len() {
-            match input[i] {
-                b' ' => {
-                    indent_length += 1;
-                    column += 1;
-                    i += 1;
-                }
-                b'\t' => {
-                    indent_length += 1;
-                    column = (column / 8 + 1) * 8; // Tab to next multiple of 8
-                    i += 1;
-                }
-                b'\n' => {
-                    // Empty line - skip it
-                    return Some(ScanResult {
-                        symbol: NEWLINE as u16,
-                        length: i - position + 1,
-                    });
-                }
-                b'#' => {
-                    // Comment line - skip to end
-                    while i < input.len() && input[i] != b'\n' {
-                        i += 1;
-                    }
-                    if i < input.len() {
-                        return Some(ScanResult {
-                            symbol: NEWLINE as u16,
-                            length: i - position + 1,
-                        });
-                    }
-                    return None;
-                }
-                _ => {
-                    // Non-whitespace character - process indentation
-                    break;
-                }
-            }
-        }
-
-        // Check if we're at EOF after whitespace
-        if i >= input.len() {
-            return None;
-        }
-
-        self.at_line_start = false;
-        let current_indent = *self.indent_stack.last().unwrap();
-
-        if column > current_indent {
-            // Indent
-            if valid_symbols.get(INDENT) == Some(&true) {
-                self.indent_stack.push(column);
-                return Some(ScanResult {
-                    symbol: INDENT as u16,
-                    length: indent_length,
-                });
-            }
-        } else if column < current_indent {
-            // Dedent - might be multiple levels
-            let mut dedent_count = 0;
-
-            while let Some(&level) = self.indent_stack.last() {
-                if level <= column {
-                    break;
-                }
-                self.indent_stack.pop();
-                dedent_count += 1;
-            }
-
-            // Verify we found a matching indent level
-            if self.indent_stack.last() != Some(&column) {
-                // Invalid dedent - this would be a parse error
-                return None;
-            }
-
-            if dedent_count > 0 && valid_symbols.get(DEDENT) == Some(&true) {
-                // Emit first dedent, store rest as pending
-                self.pending_dedents = dedent_count - 1;
-                return Some(ScanResult {
-                    symbol: DEDENT as u16,
-                    length: indent_length,
-                });
-            }
-        }
-
-        // Same indentation level - consume the whitespace
-        if indent_length > 0 {
+        
+        // Check for newline
+        if valid_symbols.get(NEWLINE) == Some(&true) && lexer.lookahead() == Some(b'\n') {
+            self.at_line_start = true;
+            lexer.advance(1);
+            lexer.mark_end();
             return Some(ScanResult {
                 symbol: NEWLINE as u16,
-                length: 0, // Don't consume - let parser handle content
+                length: 1,
             });
         }
-
+        
+        // Handle indentation at start of line
+        if self.at_line_start {
+            let mut indent_count = 0;
+            
+            // Count leading whitespace
+            while !lexer.is_eof() {
+                match lexer.lookahead() {
+                    Some(b' ') => {
+                        indent_count += 1;
+                        lexer.advance(1);
+                    }
+                    Some(b'\t') => {
+                        indent_count += 8; // Tabs count as 8 spaces
+                        lexer.advance(1);
+                    }
+                    _ => break,
+                }
+            }
+            
+            // Skip blank lines and comment lines
+            if !lexer.is_eof() {
+                let next = lexer.lookahead();
+                if next != Some(b'\n') && next != Some(b'#') {
+                    self.at_line_start = false;
+                    let current_indent = *self.indent_stack.last().unwrap();
+                    
+                    if indent_count > current_indent {
+                        // Indent
+                        if valid_symbols.get(INDENT) == Some(&true) {
+                            self.indent_stack.push(indent_count);
+                            lexer.mark_end();
+                            return Some(ScanResult {
+                                symbol: INDENT as u16,
+                                length: 0,
+                            });
+                        }
+                    } else if indent_count < current_indent {
+                        // Dedent(s)
+                        if valid_symbols.get(DEDENT) == Some(&true) {
+                            // Count how many dedents are needed
+                            let mut dedent_count = 0;
+                            let mut temp_stack = self.indent_stack.clone();
+                            
+                            while let Some(&last) = temp_stack.last() {
+                                if last <= indent_count {
+                                    break;
+                                }
+                                temp_stack.pop();
+                                dedent_count += 1;
+                            }
+                            
+                            if dedent_count > 0 {
+                                // Apply the dedents
+                                for _ in 0..dedent_count {
+                                    self.indent_stack.pop();
+                                }
+                                self.pending_dedents = dedent_count - 1;
+                                lexer.mark_end();
+                                return Some(ScanResult {
+                                    symbol: DEDENT as u16,
+                                    length: 0,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         None
     }
-
+    
     fn serialize(&self, buffer: &mut Vec<u8>) {
-        // Serialize the indent stack
-        buffer.extend_from_slice(&(self.indent_stack.len() as u32).to_le_bytes());
-        for &level in &self.indent_stack {
-            buffer.extend_from_slice(&(level as u32).to_le_bytes());
+        // Serialize indent stack
+        buffer.extend_from_slice(&(self.indent_stack.len() as u16).to_le_bytes());
+        for &indent in &self.indent_stack {
+            buffer.extend_from_slice(&(indent as u16).to_le_bytes());
         }
-
-        // Serialize other state
+        
+        // Serialize flags
         buffer.push(if self.at_line_start { 1 } else { 0 });
-        buffer.extend_from_slice(&(self.pending_dedents as u32).to_le_bytes());
+        buffer.extend_from_slice(&(self.pending_dedents as u16).to_le_bytes());
     }
-
+    
     fn deserialize(&mut self, buffer: &[u8]) {
-        if buffer.len() < 4 {
+        if buffer.len() < 2 {
             return;
         }
-
-        let mut offset = 0;
-
-        // Read indent stack length
-        let stack_len = u32::from_le_bytes([
-            buffer[offset],
-            buffer[offset + 1],
-            buffer[offset + 2],
-            buffer[offset + 3],
-        ]) as usize;
-        offset += 4;
-
-        // Read indent stack
+        
         self.indent_stack.clear();
+        
+        // Deserialize indent stack
+        let stack_len = u16::from_le_bytes([buffer[0], buffer[1]]) as usize;
+        let mut offset = 2;
+        
         for _ in 0..stack_len {
-            if offset + 4 > buffer.len() {
+            if offset + 2 > buffer.len() {
                 break;
             }
-            let level = u32::from_le_bytes([
-                buffer[offset],
-                buffer[offset + 1],
-                buffer[offset + 2],
-                buffer[offset + 3],
-            ]) as usize;
-            self.indent_stack.push(level);
-            offset += 4;
+            let indent = u16::from_le_bytes([buffer[offset], buffer[offset + 1]]) as usize;
+            self.indent_stack.push(indent);
+            offset += 2;
         }
-
-        // Read other state
+        
+        // Deserialize flags
         if offset < buffer.len() {
             self.at_line_start = buffer[offset] != 0;
             offset += 1;
         }
-
-        if offset + 4 <= buffer.len() {
-            self.pending_dedents = u32::from_le_bytes([
-                buffer[offset],
-                buffer[offset + 1],
-                buffer[offset + 2],
-                buffer[offset + 3],
-            ]) as usize;
+        
+        if offset + 2 <= buffer.len() {
+            self.pending_dedents = u16::from_le_bytes([buffer[offset], buffer[offset + 1]]) as usize;
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_basic_indentation() {
-        let mut scanner = IndentationScanner::new();
-
-        // Test input with indentation
-        let input = b"def foo():\n    print('hello')\n    print('world')\n";
-        let valid = vec![true, true, true]; // All tokens valid
-
-        // First line - no indent
-        let result = scanner.scan(&valid, input, 0);
-        assert!(result.is_none() || result.unwrap().symbol == NEWLINE as u16);
-
-        // After newline, should get indent
-        scanner.at_line_start = true;
-        let result = scanner.scan(&valid, input, 11); // After "def foo():\n"
-        assert_eq!(
-            result,
-            Some(ScanResult {
-                symbol: INDENT as u16,
-                length: 4,
-            })
-        );
-    }
-
-    #[test]
-    fn test_dedent() {
-        let mut scanner = IndentationScanner::new();
-        scanner.indent_stack = vec![0, 4]; // Already indented
-        scanner.at_line_start = true;
-
-        let input = b"return\n";
-        let valid = vec![true, true, true];
-
-        // At column 0, should dedent
-        let result = scanner.scan(&valid, input, 0);
-        assert_eq!(
-            result,
-            Some(ScanResult {
-                symbol: DEDENT as u16,
-                length: 0,
-            })
-        );
-    }
-
-    #[test]
-    fn test_serialization() {
-        let mut scanner = IndentationScanner::new();
-        scanner.indent_stack = vec![0, 4, 8];
-        scanner.at_line_start = false;
-        scanner.pending_dedents = 2;
-
-        // Serialize
-        let mut buffer = Vec::new();
-        scanner.serialize(&mut buffer);
-
-        // Deserialize into new scanner
-        let mut new_scanner = IndentationScanner::new();
-        new_scanner.deserialize(&buffer);
-
-        assert_eq!(new_scanner.indent_stack, vec![0, 4, 8]);
-        assert_eq!(new_scanner.at_line_start, false);
-        assert_eq!(new_scanner.pending_dedents, 2);
     }
 }

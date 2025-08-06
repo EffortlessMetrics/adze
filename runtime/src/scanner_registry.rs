@@ -10,8 +10,11 @@ use std::sync::{Arc, Mutex};
 /// Type-erased external scanner
 pub trait DynExternalScanner: Send + Sync {
     /// Scan for external tokens
-    fn scan(&mut self, valid_symbols: &[bool], input: &[u8], position: usize)
-    -> Option<ScanResult>;
+    fn scan(
+        &mut self,
+        lexer: &mut dyn crate::external_scanner::Lexer,
+        valid_symbols: &[bool],
+    ) -> Option<ScanResult>;
 
     /// Serialize scanner state
     fn serialize(&self, buffer: &mut Vec<u8>);
@@ -28,11 +31,10 @@ struct RustScannerWrapper<S: ExternalScanner> {
 impl<S: ExternalScanner> DynExternalScanner for RustScannerWrapper<S> {
     fn scan(
         &mut self,
+        lexer: &mut dyn crate::external_scanner::Lexer,
         valid_symbols: &[bool],
-        input: &[u8],
-        position: usize,
     ) -> Option<ScanResult> {
-        self.scanner.scan(valid_symbols, input, position)
+        self.scanner.scan(lexer, valid_symbols)
     }
 
     fn serialize(&self, buffer: &mut Vec<u8>) {
@@ -53,10 +55,13 @@ struct CScannerWrapper {
 impl DynExternalScanner for CScannerWrapper {
     fn scan(
         &mut self,
+        lexer: &mut dyn crate::external_scanner::Lexer,
         valid_symbols: &[bool],
-        input: &[u8],
-        position: usize,
     ) -> Option<ScanResult> {
+        // For C scanners, we need to adapt the Rust lexer to C API
+        // Extract input and position from lexer - this needs better API
+        let input = &[]; // TODO: Get from lexer
+        let position = 0; // TODO: Get from lexer
         use crate::external_scanner_ffi::RustLexerAdapter;
 
         // Create a lexer adapter
@@ -111,12 +116,12 @@ impl ScannerRegistry {
     }
 
     /// Register a Rust external scanner
-    pub fn register_rust_scanner<S: ExternalScanner + 'static>(&mut self, language: &str)
+    pub fn register_rust_scanner<S: ExternalScanner + Default + 'static>(&mut self, language: &str)
     where
         S: Send + Sync,
     {
         let factory: ScannerFactory =
-            Box::new(|| Box::new(RustScannerWrapper { scanner: S::new() }));
+            Box::new(|| Box::new(RustScannerWrapper { scanner: S::default() }));
         self.scanners.insert(language.to_string(), factory);
     }
 
@@ -163,7 +168,7 @@ pub fn get_global_registry() -> Arc<Mutex<ScannerRegistry>> {
 }
 
 /// Register a Rust scanner with the global registry
-pub fn register_rust_scanner<S: ExternalScanner + 'static>(language: &str)
+pub fn register_rust_scanner<S: ExternalScanner + Default + 'static>(language: &str)
 where
     S: Send + Sync,
 {
@@ -205,7 +210,7 @@ impl ExternalScannerBuilder {
     }
 
     /// Register a Rust scanner
-    pub fn register_rust<S: ExternalScanner + 'static>(self) -> Self
+    pub fn register_rust<S: ExternalScanner + Default + 'static>(self) -> Self
     where
         S: Send + Sync,
     {
