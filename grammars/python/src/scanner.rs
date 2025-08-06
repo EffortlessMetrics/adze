@@ -2,17 +2,33 @@
 
 use rust_sitter::external_scanner::{ExternalScanner, ScanResult, Lexer};
 
+// These are the actual symbol IDs from the Python grammar
+// Found from test output: Valid externals for state 0: {SymbolId(203-211)}
+// The valid_symbols array uses indices 0-8, not the symbol IDs
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u16)]
 pub enum TokenType {
-    Newline = 0,
-    Indent = 1,
-    Dedent = 2,
-    StringStart = 3,
-    StringEnd = 4,
-    StringContent = 5,
-    Comment = 6,
+    Newline = 203,
+    Indent = 204,
+    Dedent = 205,
+    StringStart = 206,
+    StringEnd = 207,  
+    StringContent = 208,
+    Comment = 209,
+    LineJoining = 210,
+    ErrorRecovery = 211,
 }
+
+// Indices in the valid_symbols array
+const NEWLINE_INDEX: usize = 0;
+const INDENT_INDEX: usize = 1;
+const DEDENT_INDEX: usize = 2;
+const STRING_START_INDEX: usize = 3;
+const STRING_END_INDEX: usize = 4;
+const STRING_CONTENT_INDEX: usize = 5;
+const COMMENT_INDEX: usize = 6;
+const LINE_JOINING_INDEX: usize = 7;
+const ERROR_RECOVERY_INDEX: usize = 8;
 
 #[derive(Debug, Clone)]
 pub struct PythonScanner {
@@ -47,12 +63,29 @@ impl Default for PythonScanner {
 
 impl ExternalScanner for PythonScanner {
     fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
+        // Debug output
+        eprintln!("PythonScanner::scan called");
+        eprintln!("  Position: column={}", lexer.column());
+        eprintln!("  Valid symbols: {:?}", valid_symbols);
+        eprintln!("  Lookahead: {:?}", lexer.lookahead().map(|c| c as char));
+        
+        // Special case: at the very start of parsing, we might need to emit a NEWLINE
+        // to satisfy the Python grammar's expectation
+        if lexer.column() == 0 && valid_symbols.len() > NEWLINE_INDEX && valid_symbols[NEWLINE_INDEX] {
+            eprintln!("  Emitting NEWLINE at start");
+            // Don't consume any input, just signal a NEWLINE
+            return Some(ScanResult {
+                symbol: TokenType::Newline as u16,
+                length: 0,
+            });
+        }
+        
         if lexer.is_eof() {
             return None;
         }
         
         // Handle string scanning
-        if self.inside_string && valid_symbols.get(TokenType::StringEnd as usize) == Some(&true) {
+        if self.inside_string && valid_symbols.get(STRING_END_INDEX) == Some(&true) {
             if let Some(delimiter) = self.string_delimiter {
                 match delimiter {
                     StringDelimiter::SingleQuote => {
@@ -103,7 +136,7 @@ impl ExternalScanner for PythonScanner {
             }
             
             // If we're in a string but can't find the end, consume content
-            if valid_symbols.get(TokenType::StringContent as usize) == Some(&true) {
+            if valid_symbols.get(STRING_CONTENT_INDEX) == Some(&true) {
                 let mut length = 0;
                 
                 while !lexer.is_eof() {
@@ -145,7 +178,7 @@ impl ExternalScanner for PythonScanner {
         }
         
         // Check for string start
-        if valid_symbols.get(TokenType::StringStart as usize) == Some(&true) {
+        if valid_symbols.get(STRING_START_INDEX) == Some(&true) {
             // Check for triple quotes first
             if self.match_triple_at_lexer(lexer, b'\'') {
                 self.inside_string = true;
@@ -192,7 +225,7 @@ impl ExternalScanner for PythonScanner {
         }
         
         // Handle newlines and indentation
-        if valid_symbols.get(TokenType::Newline as usize) == Some(&true) {
+        if valid_symbols.get(NEWLINE_INDEX) == Some(&true) {
             if lexer.lookahead() == Some(b'\n') {
                 lexer.advance(1);
                 lexer.mark_end();
@@ -229,7 +262,7 @@ impl ExternalScanner for PythonScanner {
                     // Get current indentation level
                     let current_indent = self.indent_stack.last().copied().unwrap_or(0);
                     
-                    if valid_symbols.get(TokenType::Indent as usize) == Some(&true) 
+                    if valid_symbols.get(INDENT_INDEX) == Some(&true) 
                         && indent_length > current_indent {
                         self.indent_stack.push(indent_length);
                         lexer.mark_end();
@@ -239,7 +272,7 @@ impl ExternalScanner for PythonScanner {
                         });
                     }
                     
-                    if valid_symbols.get(TokenType::Dedent as usize) == Some(&true) 
+                    if valid_symbols.get(DEDENT_INDEX) == Some(&true) 
                         && indent_length < current_indent {
                         // Pop all indentation levels greater than the current line's indentation
                         while let Some(&last_indent) = self.indent_stack.last() {

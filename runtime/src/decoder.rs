@@ -310,10 +310,31 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         }
     }
     
-    // TODO: Decode external scanner states from the TSLanguage struct
-    // For now, create empty tables - this will be populated when we have
-    // a proper Tree-sitter language to decode from
-    let external_scanner_states = vec![vec![]; lang.state_count as usize];
+    // Decode external scanner states from the TSLanguage struct
+    let external_scanner_states = if lang.external_token_count > 0 && !lang.external_scanner.states.is_null() {
+        let mut states = Vec::with_capacity(lang.state_count as usize);
+        let external_count = lang.external_token_count as usize;
+        
+        // The states are stored as a flat array of bools
+        // Each state has external_token_count bools indicating which externals are valid
+        unsafe {
+            let states_ptr = lang.external_scanner.states as *const bool;
+            for state_idx in 0..lang.state_count as usize {
+                let mut state_externals = Vec::with_capacity(external_count);
+                for external_idx in 0..external_count {
+                    let idx = state_idx * external_count + external_idx;
+                    let is_valid = *states_ptr.add(idx);
+                    state_externals.push(is_valid);
+                }
+                states.push(state_externals);
+            }
+        }
+        states
+    } else {
+        vec![vec![]; lang.state_count as usize]
+    };
+    
+    // TODO: Decode external scanner map if needed
     let external_scanner_map = BTreeMap::new();
     
     ParseTable {

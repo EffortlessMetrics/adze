@@ -586,6 +586,15 @@ impl Parser {
             }
         }
         
+        // Convert the valid externals to a boolean array for the scanner
+        // The scanner expects an array indexed by external token index (0-8)
+        let mut valid_symbols = vec![false; self.grammar.externals.len()];
+        for (idx, external) in self.grammar.externals.iter().enumerate() {
+            if valid_externals.contains(&external.symbol_id) {
+                valid_symbols[idx] = true;
+            }
+        }
+        
         // We need to temporarily take the scanner out to avoid double borrow
         let mut scanner = self.external_scanner.take().unwrap();
         let scan_result = {
