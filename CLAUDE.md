@@ -177,9 +177,28 @@ When working on the pure-Rust implementation:
 2. **External Scanner Integration**: Corrected `ScanResult` struct and scanner trait implementations
 3. **FFI Code Generation**: Fixed `#[unsafe(no_mangle)]` attribute syntax and external scanner function signatures
 4. **Symbol Registration**: Resolved "no entry found for key" panics by properly registering all symbols including externals
+5. **GLR Parser Implementation**: Fixed action table structure to support true GLR parsing with multiple actions per cell (Vec<Vec<Vec<Action>>>), enabling proper shift/reduce conflict handling
+
+### GLR Parser Architecture
+
+The pure-Rust implementation now features a true GLR (Generalized LR) parser that handles ambiguous grammars:
+
+1. **Action Table Structure**: Changed from `Vec<Vec<Action>>` to `Vec<Vec<ActionCell>>` where `ActionCell = Vec<Action>`
+   - Allows multiple actions per state/symbol pair
+   - Enables runtime forking for shift/reduce and reduce/reduce conflicts
+
+2. **Conflict Resolution**: 
+   - During table generation, ALL conflicting actions are preserved in cells
+   - Runtime parser handles forking when multiple actions exist
+   - Precedence/associativity still used to order actions, but doesn't eliminate them
+
+3. **Python Grammar Fix**: Resolved "state 0 only has reduce action" bug
+   - Root cause: Empty module rule (REPEAT(_statement)) creates shift/reduce conflict
+   - Solution: Keep both shift and reduce actions in state 0, allowing proper parsing of both empty files and files with content
 
 ### Known Issues
 
 1. **Parser API Mismatch**: The `parser_v4` module uses a different API than Tree-sitter's standard parser
 2. **External Scanner FFI**: Scanner FFI functions are currently disabled to avoid duplicate symbol errors
 3. **Runtime Parsing**: While code generation works, actual parsing with generated grammars needs runtime integration work
+4. **GLR Runtime**: Full GLR fork/merge logic in runtime parsers needs implementation for handling Fork actions
