@@ -174,6 +174,11 @@ impl<'a> ArenaGSS<'a> {
             i += 1;
         }
     }
+    
+    /// Get a reference to the GSS statistics
+    pub fn get_stats(&self) -> &ArenaGSSStats {
+        &self.stats
+    }
 }
 
 /// Manager for arena-based GSS parsing sessions

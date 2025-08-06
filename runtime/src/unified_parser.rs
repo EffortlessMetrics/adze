@@ -32,9 +32,20 @@ impl Parser {
     /// * `Ok(())` on success
     /// * `Err` if the language cannot be loaded or decoded
     pub fn set_language(&mut self, language: &'static TSLanguage) -> Result<()> {
-        // For now, use a default language name
-        // TODO: Extract from symbol_names or other metadata if needed
-        let language_name = "unknown".to_string();
+        self.set_language_with_name(language, "unknown")
+    }
+    
+    /// Set the language for parsing with a specific language name
+    /// 
+    /// # Arguments
+    /// * `language` - The Tree-sitter language definition
+    /// * `name` - The name of the language (used for scanner registry lookup)
+    /// 
+    /// # Returns
+    /// * `Ok(())` on success
+    /// * `Err` if the language cannot be loaded or decoded
+    pub fn set_language_with_name(&mut self, language: &'static TSLanguage, name: &str) -> Result<()> {
+        let language_name = name.to_string();
 
         // Create a V4 (GLR) parser for this language
         let v4_parser = parser_v4::Parser::from_language(language, language_name.clone());
@@ -114,6 +125,15 @@ impl Parser {
         if let Some(ref mut parser) = self.inner {
             parser.reset();
         }
+    }
+    
+    /// Get GLR parser statistics
+    /// 
+    /// Returns performance statistics about the GLR parsing process,
+    /// including fork/merge counts and memory usage metrics.
+    /// Returns None if no language is set.
+    pub fn get_glr_stats(&self) -> Option<&crate::glr_forest::GLRStats> {
+        self.inner.as_ref().map(|parser| parser.get_glr_stats())
     }
 }
 

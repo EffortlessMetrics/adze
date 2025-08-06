@@ -1014,6 +1014,11 @@ impl Parser {
             }
         }
     }
+    
+    /// Get the GLR parser statistics
+    pub fn get_glr_stats(&self) -> &crate::glr_forest::GLRStats {
+        self.glr_state.get_stats()
+    }
 }
 
 /// Implement the Lexer trait for Parser so it can be used by external scanners

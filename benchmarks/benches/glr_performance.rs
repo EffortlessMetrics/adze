@@ -63,6 +63,16 @@ fn benchmark_glr_forking(c: &mut Criterion) {
                 let tree = parser.parse(black_box(&input), None);
                 black_box(tree);
             });
+            
+            // Print GLR statistics after benchmark
+            if let Some(stats) = parser.get_glr_stats() {
+                eprintln!("  Arithmetic {} terms - GLR Stats:", terms);
+                eprintln!("    Total nodes created: {}", stats.total_nodes_created);
+                eprintln!("    Max active heads: {}", stats.max_active_heads);
+                eprintln!("    Total forks: {}", stats.total_forks);
+                eprintln!("    Total merges: {}", stats.total_merges);
+                eprintln!("    Forest cache hits: {}", stats.forest_cache_hits);
+            }
         });
     }
     
@@ -77,14 +87,27 @@ fn benchmark_large_files(c: &mut Criterion) {
         let size = input.len();
         
         group.bench_function(format!("lines_{}_size_{}", lines, size), |b| {
+            // Register the Python external scanner for indentation tracking
+            rust_sitter_python::register_scanner();
+            
             // Use the real Python parser
             let mut parser = Parser::new();
-            parser.set_language(rust_sitter_python::get_language()).unwrap();
+            parser.set_language_with_name(rust_sitter_python::get_language(), "python").unwrap();
             
             b.iter(|| {
                 let tree = parser.parse(black_box(&input), None);
                 black_box(tree);
             });
+            
+            // Print GLR statistics after benchmark
+            if let Some(stats) = parser.get_glr_stats() {
+                eprintln!("  Python {} lines - GLR Stats:", lines);
+                eprintln!("    Total nodes created: {}", stats.total_nodes_created);
+                eprintln!("    Max active heads: {}", stats.max_active_heads);
+                eprintln!("    Total forks: {}", stats.total_forks);
+                eprintln!("    Total merges: {}", stats.total_merges);
+                eprintln!("    Forest cache hits: {}", stats.forest_cache_hits);
+            }
         });
     }
     

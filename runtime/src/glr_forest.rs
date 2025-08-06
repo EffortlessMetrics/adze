@@ -57,6 +57,21 @@ pub struct GSSLink {
     pub tree_node: Rc<ForestNode>,
 }
 
+/// Statistics for GLR parsing
+#[derive(Debug, Default, Clone)]
+pub struct GLRStats {
+    /// Total number of GSS nodes created
+    pub total_nodes_created: usize,
+    /// Maximum number of active heads at any point
+    pub max_active_heads: usize,
+    /// Total number of forks performed
+    pub total_forks: usize,
+    /// Total number of merges performed
+    pub total_merges: usize,
+    /// Number of shared forest nodes (cache hits)
+    pub forest_cache_hits: usize,
+}
+
 /// GLR parser state that supports forking
 pub struct GLRParserState {
     /// Pool of GSS nodes
@@ -67,6 +82,8 @@ pub struct GLRParserState {
     pub next_gss_id: usize,
     /// Cache for sharing forest nodes
     pub forest_cache: HashMap<(SymbolId, usize, usize), Rc<ForestNode>>,
+    /// Statistics for performance monitoring
+    pub stats: GLRStats,
 }
 
 impl GLRParserState {
@@ -76,6 +93,7 @@ impl GLRParserState {
             active_heads: Vec::new(),
             next_gss_id: 0,
             forest_cache: HashMap::new(),
+            stats: GLRStats::default(),
         };
 
         // Create initial GSS node for state 0
@@ -87,6 +105,8 @@ impl GLRParserState {
         state.gss_nodes.push(initial_node);
         state.active_heads.push(0);
         state.next_gss_id = 1;
+        state.stats.total_nodes_created = 1;
+        state.stats.max_active_heads = 1;
 
         state
     }
@@ -112,6 +132,11 @@ impl GLRParserState {
         let new_idx = self.gss_nodes.len();
         self.gss_nodes.push(new_node);
         self.active_heads.push(new_idx);
+        
+        // Update statistics
+        self.stats.total_nodes_created += 1;
+        self.stats.total_forks += 1;
+        self.stats.max_active_heads = self.stats.max_active_heads.max(self.active_heads.len());
 
         new_idx
     }
@@ -127,6 +152,7 @@ impl GLRParserState {
         let key = (symbol, start, end);
 
         if let Some(node) = self.forest_cache.get(&key) {
+            self.stats.forest_cache_hits += 1;
             return node.clone();
         }
 
@@ -157,6 +183,7 @@ impl GLRParserState {
                     alternatives: new_alts,
                 });
                 self.forest_cache.insert(key, merged.clone());
+                self.stats.total_merges += 1;
                 merged
             } else {
                 existing.clone()
@@ -172,6 +199,11 @@ impl GLRParserState {
             self.forest_cache.insert(key, node.clone());
             node
         }
+    }
+    
+    /// Get a reference to the parser statistics
+    pub fn get_stats(&self) -> &GLRStats {
+        &self.stats
     }
 }
 
