@@ -151,8 +151,43 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         action_table.push(state_actions);
     }
     
-    // TODO: Decode small_parse_table for compressed states
-    // This requires understanding the small_parse_table_map compression format
+    // Decode small_parse_table for compressed states
+    if !lang.small_parse_table_map.is_null() && !lang.small_parse_table.is_null() {
+        for state in lang.large_state_count as usize..lang.state_count as usize {
+            let mut state_actions = vec![Action::Error; lang.symbol_count as usize];
+            
+            // Get the offset into small_parse_table from the map
+            let map_index = state - lang.large_state_count as usize;
+            let offset = unsafe { *lang.small_parse_table_map.add(map_index) } as usize;
+            
+            // Read from small_parse_table at the offset
+            let mut ptr = unsafe { lang.small_parse_table.add(offset) };
+            
+            // First value is the field count (number of symbol/action pairs)
+            let field_count = unsafe { *ptr } as usize;
+            ptr = unsafe { ptr.add(1) };
+            
+            // Read field_count pairs of (symbol, action_index)
+            for _ in 0..field_count {
+                let symbol = unsafe { *ptr } as usize;
+                ptr = unsafe { ptr.add(1) };
+                
+                let action_index = unsafe { *ptr } as usize;
+                ptr = unsafe { ptr.add(1) };
+                
+                // Decode the action
+                if action_index != 0 && symbol < lang.symbol_count as usize {
+                    let action = unsafe {
+                        let action_entry = &*lang.parse_actions.add(action_index);
+                        decode_action(action_entry)
+                    };
+                    state_actions[symbol] = action;
+                }
+            }
+            
+            action_table.push(state_actions);
+        }
+    }
     
     ParseTable {
         action_table,

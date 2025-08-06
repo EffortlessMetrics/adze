@@ -7,7 +7,7 @@ use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
 use anyhow::{Result, bail, anyhow};
 use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId};
+use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::collections::HashSet;
 use std::rc::Rc;
 
@@ -185,43 +185,66 @@ impl Parser {
         let mut node_stack: Vec<ParseNode> = vec![];
         let mut error_count = 0;
         
-        // For now, use a simplified tokenization approach
-        // In a real implementation, we'd use a proper lexer with the grammar's tokens
-        let tokens = vec![];  // We'll populate this from the grammar
+        // Create lexer with grammar's actual tokens
+        let tokens: Vec<(SymbolId, TokenPattern, i32)> = self.grammar.tokens.iter()
+            .map(|(symbol_id, token)| (*symbol_id, token.pattern.clone(), 0))
+            .collect();
         let mut lexer = GrammarLexer::new(&tokens);
         
+        // Track current position in input
+        let input_bytes = input.as_bytes();
+        let mut current_position = 0;
+        
         // Main parsing loop
-        let mut token_position = 0;
         loop {
             // Get current state
             let current_state = *state_stack.last()
                 .ok_or_else(|| anyhow!("State stack is empty"))?;
             
-            // For now, simulate EOF - real implementation would tokenize the input
-            let lookahead = SymbolId(0); // EOF symbol
+            // Get the next token from the lexer
+            let token = if current_position >= input_bytes.len() {
+                // We're at EOF
+                LexerToken {
+                    symbol: SymbolId(0), // EOF symbol
+                    text: vec![],
+                    start: current_position,
+                    end: current_position,
+                }
+            } else {
+                // Try to get a real token
+                match lexer.next_token(input_bytes, current_position) {
+                    Some(tok) => tok,
+                    None => {
+                        // Lexer couldn't match anything - create error token and skip a byte
+                        error_count += 1;
+                        current_position += 1;
+                        continue;
+                    }
+                }
+            };
+            
+            let lookahead = token.symbol;
             
             // Get the action for this state and lookahead symbol
             let action = self.get_parse_action(current_state, lookahead)?;
             
             match action {
                 Action::Shift(next_state) => {
-                    // For now, create a dummy token since we don't have real tokenization yet
-                    // In a real implementation, we'd get this from the lexer
-                    let token_symbol = lookahead;
-                    
                     // Create a leaf node for the token
                     let node = ParseNode {
-                        symbol: token_symbol,
-                        start_byte: token_position,
-                        end_byte: token_position + 1,
+                        symbol: token.symbol,
+                        start_byte: token.start,
+                        end_byte: token.end,
                         children: vec![],
                         field_name: None,
                     };
                     
                     state_stack.push(next_state);
-                    symbol_stack.push(token_symbol);
+                    symbol_stack.push(token.symbol);
                     node_stack.push(node);
-                    token_position += 1;
+                    
+                    // Advance position to the end of this token
+                    current_position = token.end;
                 }
                 
                 Action::Reduce(rule_id) => {
@@ -241,8 +264,8 @@ impl Parser {
                     children.reverse(); // Children were popped in reverse order
                     
                     // Create a parent node
-                    let start_byte = children.first().map(|n| n.start_byte).unwrap_or(token_position);
-                    let end_byte = children.last().map(|n| n.end_byte).unwrap_or(token_position);
+                    let start_byte = children.first().map(|n| n.start_byte).unwrap_or(current_position);
+                    let end_byte = children.last().map(|n| n.end_byte).unwrap_or(current_position);
                     let parent_node = ParseNode {
                         symbol: rule.lhs,
                         start_byte,
