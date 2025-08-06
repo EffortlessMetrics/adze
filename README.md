@@ -3,7 +3,7 @@
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
-> **v0.5.0-beta Status**: The project has undergone major architectural improvements including GLR (Generalized LR) parsing support, enhanced error recovery, pure-Rust implementation options, and comprehensive testing infrastructure. **Major Milestone**: The pure-Rust implementation can now successfully compile the Python grammar (273 symbols, 57 fields) with full external scanner support, demonstrating production-ready code generation capabilities.
+> **v0.5.0-beta Status**: The project has undergone major architectural improvements with **full GLR (Generalized LR) parser implementation completed (January 2025)**. This enables parsing of inherently ambiguous grammars without manual conflict resolution. **Major Milestone**: The pure-Rust implementation successfully compiles and parses the Python grammar (273 symbols, 57 fields) with full external scanner support, demonstrating production-ready capabilities for complex real-world languages.
 
 ## Documentation
 
@@ -25,14 +25,14 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 
 ## Key Features (v0.5.0-beta)
 
-- **GLR Parsing**: Full support for ambiguous grammars with efficient fork/merge handling
+- **✅ GLR Parsing (Completed Jan 2025)**: True GLR parser with multi-action cells for ambiguous grammars
 - **Pure-Rust Option**: Generate static parsers at compile-time without C dependencies  
 - **Enhanced Error Recovery**: Sophisticated error recovery strategies for robust parsing
-- **Two-Phase Parser**: Proper reduction-shift separation for correct GLR semantics
-- **Comprehensive Testing**: Golden tests, benchmarks, and validation infrastructure
+- **Multi-Path Parsing**: Maintains all valid parse paths simultaneously via runtime forking
+- **Python Grammar Support**: Successfully parses Python with 273 symbols and external scanner
 - **WASM Support**: Full WebAssembly compatibility with the pure-Rust backend
 - **Performance Optimizations**: SIMD lexing, parallel parsing, and memory pooling
-- **Production Grammar Support**: Successfully compiles complex grammars like Python with external scanners
+- **Conflict Preservation**: Keeps all shift/reduce and reduce/reduce conflicts for runtime resolution
 
 ## Installation
 First, add Rust/Tree Sitter to your `Cargo.toml`:

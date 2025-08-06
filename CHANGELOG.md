@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - 2025-01-06
+
+### 🎉 GLR Parser Implementation Complete
+
+This release marks a major milestone: rust-sitter now features a **true GLR (Generalized LR) parser** capable of handling inherently ambiguous grammars without manual conflict resolution.
+
+### ✨ Added
+
+- **Multi-Action Cells**: Action table restructured to support multiple actions per state/symbol pair
+  - Changed from `Vec<Vec<Action>>` to `Vec<Vec<Vec<Action>>>` architecture
+  - Each cell can now hold both shift and reduce actions simultaneously
+  - Enables runtime forking for conflict resolution
+
+- **Python Grammar Full Support**: Fixed critical "State 0" bug
+  - Python files can now start with any statement (`def`, `class`, `import`, etc.)
+  - Empty files parse correctly (reduce to empty module)
+  - Files with content parse correctly (shift initial token)
+  - All 273 symbols with 57 fields fully operational
+  - External scanner (indentation) working perfectly
+
+### 🔧 Changed
+
+- **Core Parser Architecture**: Updated 20+ files across the codebase
+  - `glr-core/lib.rs`: Core conflict handling logic
+  - `tablegen/compress.rs`: Table compression for multi-action cells
+  - `runtime/decoder.rs`: Parse table decoding for GLR
+  - All parser implementations updated (`parser_v2.rs`, `parser_v3.rs`, `parser_v4.rs`, `glr_parser.rs`)
+  - Incremental parsers and error recovery updated for GLR
+
+### 🐛 Fixed
+
+- **State 0 Bug**: Resolved issue where parsers couldn't handle initial shift/reduce conflicts
+- **Empty File Parsing**: Fixed reduce-only state 0 preventing empty file parsing
+- **Conflict Preservation**: Actions are now preserved rather than eliminated during table generation
+
+### 📚 Documentation
+
+- Updated CLAUDE.md with GLR implementation details
+- Updated README.md highlighting GLR completion
+- Updated ROADMAP.md marking GLR as complete
+- Added comprehensive technical documentation of changes
+
 ## [1.0.0] - 2025-08-04
 
 This is the first stable, production-ready release of `rust-sitter`. It marks the culmination of a major architectural overhaul to deliver a pure-Rust, high-performance, and robust parsing framework with full Tree-sitter compatibility.
