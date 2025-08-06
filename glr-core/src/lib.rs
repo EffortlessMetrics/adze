@@ -1236,9 +1236,24 @@ pub fn build_lr1_automaton(
     
     // Add shift actions for external tokens in appropriate states
     // External tokens can appear at many points in the parse, especially in the initial state
-    eprintln!("Adding external tokens to states. Grammar has {} externals", augmented_grammar.externals.len());
-    for external in &augmented_grammar.externals {
-        eprintln!("  External: {:?} (symbol_id={})", external.name, external.symbol_id.0);
+    
+    // For Python and other indentation-sensitive languages, external tokens like INDENT/DEDENT
+    // must be valid in the initial state and many other states
+    
+    // Write debug info to a file since stderr might not be visible during build
+    if !augmented_grammar.externals.is_empty() {
+        if let Ok(mut debug_file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/glr_debug.log") 
+        {
+            use std::io::Write;
+            let _ = writeln!(debug_file, "=== build_lr1_automaton debug ===");
+            let _ = writeln!(debug_file, "Processing {} external tokens", augmented_grammar.externals.len());
+            for external in &augmented_grammar.externals {
+                let _ = writeln!(debug_file, "  External: {} (id={})", external.name, external.symbol_id.0);
+            }
+        }
     }
     
     for (state_idx, item_set) in collection.sets.iter().enumerate() {
@@ -1256,26 +1271,38 @@ pub fn build_lr1_automaton(
         });
         
         // For the initial state (0) or states with terminal shifts, add external token shifts
+        // IMPORTANT: For indentation-sensitive languages, external tokens MUST be valid in state 0
         if state_idx == 0 || has_terminal_shifts {
-            eprintln!("State {} qualifies for external tokens (is_initial={}, has_terminal_shifts={})", 
-                     state_idx, state_idx == 0, has_terminal_shifts);
             for external in &augmented_grammar.externals {
-                eprintln!("  Checking external {} (symbol_id={})", external.name, external.symbol_id.0);
                 if let Some(&external_idx) = symbol_to_index.get(&external.symbol_id) {
-                    eprintln!("    Found in symbol_to_index at index {}", external_idx);
-                    // Check if there's already a goto entry for this external
-                    let target_state = if let Some(&actual_target) = collection.goto_table.get(&(StateId(state_idx as u16), external.symbol_id)) {
+                    // For state 0, always add external tokens with a self-loop
+                    // The actual transition will be determined by the scanner at runtime
+                    let target_state = if state_idx == 0 {
+                        // State 0 should loop to itself for external tokens initially
+                        // This allows the scanner to provide tokens at the start
+                        StateId(0)
+                    } else if let Some(&actual_target) = collection.goto_table.get(&(StateId(state_idx as u16), external.symbol_id)) {
                         actual_target
                     } else {
-                        // Create a dummy target state for external tokens
-                        // In practice, the external scanner will determine the actual next state
-                        // For now, use state 0 as a placeholder - this will be refined later
+                        // Default to state 0 for safety
                         StateId(0)
                     };
                     
-                    // Add shift action for this external token
+                    // Ensure indices are valid before adding
                     if state_idx < action_table.len() && external_idx < action_table[state_idx].len() {
                         let new_action = Action::Shift(target_state);
+                        
+                        // Log to file for debugging
+                        if let Ok(mut debug_file) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/glr_debug.log") 
+                        {
+                            use std::io::Write;
+                            let _ = writeln!(debug_file, "  Adding external {} to state {} at index {} -> Shift({})",
+                                           external.name, state_idx, external_idx, target_state.0);
+                        }
+                        
                         add_action_with_conflict(
                             &mut action_table,
                             &mut conflicts_by_state,
@@ -1283,6 +1310,16 @@ pub fn build_lr1_automaton(
                             external_idx,
                             new_action,
                         );
+                    } else {
+                        // Log warning to file
+                        if let Ok(mut debug_file) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/glr_debug.log") 
+                        {
+                            use std::io::Write;
+                            let _ = writeln!(debug_file, "  WARNING: Cannot add external {} - out of bounds", external.name);
+                        }
                     }
                 }
             }

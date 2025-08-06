@@ -623,23 +623,29 @@ impl Parser {
         let state_idx = state.0 as usize;
         if state_idx < self.parse_table.action_table.len() {
             let state_actions = &self.parse_table.action_table[state_idx];
-            // Check each action in the state
-            for (idx, _action) in state_actions.iter().enumerate() {
-                if let Some(&symbol_id) = self
-                    .parse_table
-                    .symbol_to_index
-                    .iter()
-                    .find_map(|(sym, &i)| if i == idx { Some(sym) } else { None })
-                {
-                    // Check if this is an external symbol by comparing with grammar externals
-                    if self
-                        .grammar
-                        .externals
-                        .iter()
-                        .any(|ext| ext.symbol_id == symbol_id)
-                    {
-                        valid_externals.insert(symbol_id);
+            
+            // Debug: show action table size
+            eprintln!("State {} has {} actions", state_idx, state_actions.len());
+            
+            // Check external symbols directly
+            for external in &self.grammar.externals {
+                // Find the index for this external symbol
+                if let Some(&idx) = self.parse_table.symbol_to_index.get(&external.symbol_id) {
+                    eprintln!("  External {} (id={}) is at index {}", external.name, external.symbol_id.0, idx);
+                    
+                    // Check if there's a valid action at this index
+                    if idx < state_actions.len() {
+                        let action = &state_actions[idx];
+                        eprintln!("    Action at index {}: {:?}", idx, action);
+                        if !matches!(action, Action::Error) {
+                            valid_externals.insert(external.symbol_id);
+                            eprintln!("    Added to valid externals!");
+                        }
+                    } else {
+                        eprintln!("    Index {} is out of bounds for state actions", idx);
                     }
+                } else {
+                    eprintln!("  External {} (id={}) not found in symbol_to_index", external.name, external.symbol_id.0);
                 }
             }
         }
