@@ -273,6 +273,13 @@ impl Parser {
                         eprintln!("    Symbol {} -> {:?}", sym_idx, act);
                     }
                 }
+                eprintln!("  'def' token has symbol {}, looking for it in grammar...", token.symbol.0);
+                // Check if 'def' is in the grammar tokens
+                for (sym_id, tok) in &self.grammar.tokens {
+                    if matches!(tok.pattern, TokenPattern::String(ref s) if s == "def") {
+                        eprintln!("    Found 'def' in grammar at SymbolId {}", sym_id.0);
+                    }
+                }
             }
             
             match action {

@@ -493,8 +493,13 @@ impl ItemSetCollection {
 
         // Compute closure
         initial_set.closure(grammar, first_follow);
-        for _item in &initial_set.items {
-            // Items will be printed here if needed
+        eprintln!("Initial state 0 after closure has {} items:", initial_set.items.len());
+        for item in &initial_set.items {
+            // Print each item to debug
+            if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
+                eprintln!("  Item: {:?} -> {:?}, pos={}, lookahead={}", 
+                    rule.lhs, rule.rhs, item.position, item.lookahead.0);
+            }
         }
 
         collection.sets.push(initial_set);
@@ -529,6 +534,9 @@ impl ItemSetCollection {
             let mut symbols = BTreeSet::new();
             let mut _terminal_count = 0;
             let mut _non_terminal_count = 0;
+            if i == 0 {
+                eprintln!("State 0: Finding symbols that can be shifted...");
+            }
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
@@ -544,6 +552,17 @@ impl ItemSetCollection {
                         _ => {}
                     }
                     symbols.insert(symbol.clone());
+                    if i == 0 {
+                        // Check if this is 'def'
+                        if let Symbol::Terminal(id) = &symbol {
+                            if let Some(token) = grammar.tokens.get(id) {
+                                if matches!(token.pattern, TokenPattern::String(ref s) if s == "def") {
+                                    eprintln!("  Found 'def' as shiftable symbol: {:?}", symbol);
+                                }
+                            }
+                        }
+                        eprintln!("  Can shift symbol: {:?}", symbol);
+                    }
                 }
             }
 
@@ -586,6 +605,9 @@ impl ItemSetCollection {
                             );
                         }
                     };
+                    if current_set.id.0 == 0 {
+                        eprintln!("  State 0 GOTO: symbol {:?} -> state {}", symbol_id, target_state.0);
+                    }
                     collection
                         .goto_table
                         .insert((current_set.id, symbol_id), target_state);
@@ -673,6 +695,9 @@ impl ItemSetCollection {
             let mut symbols = BTreeSet::new();
             let mut _terminal_count = 0;
             let mut _non_terminal_count = 0;
+            if i == 0 {
+                eprintln!("State 0: Finding symbols that can be shifted...");
+            }
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
@@ -688,6 +713,17 @@ impl ItemSetCollection {
                         _ => {}
                     }
                     symbols.insert(symbol.clone());
+                    if i == 0 {
+                        // Check if this is 'def'
+                        if let Symbol::Terminal(id) = &symbol {
+                            if let Some(token) = grammar.tokens.get(id) {
+                                if matches!(token.pattern, TokenPattern::String(ref s) if s == "def") {
+                                    eprintln!("  Found 'def' as shiftable symbol: {:?}", symbol);
+                                }
+                            }
+                        }
+                        eprintln!("  Can shift symbol: {:?}", symbol);
+                    }
                 }
             }
 
@@ -749,6 +785,9 @@ impl ItemSetCollection {
                             );
                         }
                     };
+                    if current_set.id.0 == 0 {
+                        eprintln!("  State 0 GOTO: symbol {:?} -> state {}", symbol_id, target_state.0);
+                    }
                     collection
                         .goto_table
                         .insert((current_set.id, symbol_id), target_state);
@@ -1217,6 +1256,11 @@ pub fn build_lr1_automaton(
         let is_terminal = augmented_grammar.tokens.contains_key(symbol) || 
                          augmented_grammar.externals.iter().any(|e| e.symbol_id == *symbol) ||
                          symbol.0 == 0; // EOF is also a terminal
+        
+        if from_state.0 == 0 {
+            eprintln!("State 0 goto entry: symbol {} -> state {}, is_terminal={}", 
+                symbol.0, to_state.0, is_terminal);
+        }
         
         if is_terminal {
             _terminal_count += 1;
