@@ -1,4 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use rust_sitter::unified_parser::Parser;
 
 // Create a deliberately ambiguous arithmetic expression for benchmarking GLR forking
 fn generate_ambiguous_expression(depth: usize) -> String {
@@ -54,11 +55,13 @@ fn benchmark_glr_forking(c: &mut Criterion) {
         }
         
         group.bench_function(format!("terms_{}", terms), |b| {
+            // Use the real arithmetic parser
+            let mut parser = Parser::new();
+            parser.set_language(rust_sitter_example::get_arithmetic_language()).unwrap();
+            
             b.iter(|| {
-                // Placeholder for actual parsing
-                // This will be replaced once we have stable parser API
-                let _result = black_box(&input).len();
-                black_box(_result);
+                let tree = parser.parse(black_box(&input), None);
+                black_box(tree);
             });
         });
     }
@@ -74,10 +77,13 @@ fn benchmark_large_files(c: &mut Criterion) {
         let size = input.len();
         
         group.bench_function(format!("lines_{}_size_{}", lines, size), |b| {
+            // Use the real Python parser
+            let mut parser = Parser::new();
+            parser.set_language(rust_sitter_python::get_language()).unwrap();
+            
             b.iter(|| {
-                // Placeholder for actual parsing
-                let _result = black_box(&input).len();
-                black_box(_result);
+                let tree = parser.parse(black_box(&input), None);
+                black_box(tree);
             });
         });
     }

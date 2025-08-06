@@ -13,6 +13,11 @@ pub fn register_scanner() {
     rust_sitter::scanner_registry::register_rust_scanner::<scanner::PythonScanner>("python");
 }
 
+// Expose the generated LANGUAGE struct for external use (e.g., benchmarks)
+pub fn get_language() -> &'static rust_sitter::pure_parser::TSLanguage {
+    &grammar_python::LANGUAGE
+}
+
 #[rust_sitter::grammar("python")]
 pub mod grammar {
     // External scanner tokens for Python's indentation

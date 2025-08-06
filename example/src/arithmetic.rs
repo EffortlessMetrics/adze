@@ -1,3 +1,13 @@
+// Include the generated parser
+pub mod grammar_arithmetic {
+    include!(concat!(env!("OUT_DIR"), "/grammar_arithmetic/parser_arithmetic.rs"));
+}
+
+// Expose the generated LANGUAGE struct for external use (e.g., benchmarks)
+pub fn get_language() -> &'static rust_sitter::pure_parser::TSLanguage {
+    &grammar_arithmetic::LANGUAGE
+}
+
 #[rust_sitter::grammar("arithmetic")]
 pub mod grammar {
     #[rust_sitter::language]

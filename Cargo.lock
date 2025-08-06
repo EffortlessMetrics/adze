@@ -1839,6 +1839,7 @@ dependencies = [
  "criterion 0.5.1",
  "rust-sitter",
  "rust-sitter-example",
+ "rust-sitter-python",
  "tree-sitter 0.20.10",
 ]
 

@@ -14,6 +14,7 @@ harness = false
 [dependencies]
 rust-sitter = { path = "../runtime" }
 rust-sitter-example = { path = "../example" }
+rust-sitter-python = { path = "../grammars/python" }
 tree-sitter = "0.20"
 criterion = "0.5"
 
