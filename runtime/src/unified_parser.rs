@@ -113,6 +113,24 @@ impl Parser {
             None
         }
     }
+    
+    /// Reparse source code incrementally after an edit
+    /// 
+    /// # Arguments
+    /// * `source` - The new source code after the edit
+    /// * `old_tree` - The previous parse tree
+    /// * `edit` - The edit that was applied to transform the old source to the new source
+    /// 
+    /// # Returns
+    /// * `Some(Tree)` on successful reparse
+    /// * `None` if reparsing fails or no language is set
+    /// 
+    /// # Note
+    /// This is the main API for GLR-aware incremental parsing.
+    /// Currently delegates to parse_with_old_tree as a placeholder.
+    pub fn reparse(&mut self, source: &[u8], old_tree: &parser_v4::Tree, edit: &crate::pure_incremental::Edit) -> Option<parser_v4::Tree> {
+        self.parse_with_old_tree(source, Some(old_tree), Some(edit))
+    }
 
     /// Parse source code with detailed error information
     /// 

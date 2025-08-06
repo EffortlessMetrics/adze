@@ -214,6 +214,7 @@ pub fn forest_to_parse_tree(forest: &ForestNode) -> ParseNode {
             symbol, start, end, ..
         } => ParseNode {
             symbol: *symbol,
+            symbol_id: *symbol,
             start_byte: *start,
             end_byte: *end,
             children: Vec::new(),
@@ -236,6 +237,7 @@ pub fn forest_to_parse_tree(forest: &ForestNode) -> ParseNode {
 
             ParseNode {
                 symbol: *symbol,
+                symbol_id: *symbol,
                 start_byte: *start,
                 end_byte: *end,
                 children,

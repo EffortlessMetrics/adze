@@ -353,6 +353,7 @@ impl Parser {
                     // Create a leaf node for the token
                     let node = ParseNode {
                         symbol: token.symbol,
+                        symbol_id: token.symbol,
                         start_byte: token.start,
                         end_byte: token.end,
                         children: vec![],
@@ -394,6 +395,7 @@ impl Parser {
                         .unwrap_or(current_position);
                     let parent_node = ParseNode {
                         symbol: rule.lhs,
+                        symbol_id: rule.lhs,
                         start_byte,
                         end_byte,
                         children,
@@ -468,6 +470,7 @@ impl Parser {
                                 // Apply shift as normal
                                 let node = ParseNode {
                                     symbol: token.symbol,
+                                    symbol_id: token.symbol,
                                     start_byte: token.start,
                                     end_byte: token.end,
                                     children: vec![],
@@ -510,6 +513,7 @@ impl Parser {
                                     .unwrap_or(current_position);
                                 let parent_node = ParseNode {
                                     symbol: rule.lhs,
+                                    symbol_id: rule.lhs,
                                     start_byte,
                                     end_byte,
                                     children,
