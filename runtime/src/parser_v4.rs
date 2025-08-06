@@ -237,19 +237,28 @@ impl Parser {
                     end: current_position,
                 }
             } else {
-                // Try to get a real token
-                match lexer.next_token(input_bytes, current_position) {
-                    Some(tok) => {
-                        eprintln!("At position {}: matched token symbol {} with length {}", 
-                            current_position, tok.symbol.0, tok.end - tok.start);
-                        tok
-                    },
-                    None => {
-                        // Lexer couldn't match anything - create error token and skip a byte
-                        eprintln!("No valid token at position {}, skipping", current_position);
-                        error_count += 1;
-                        current_position += 1;
-                        continue;
+                // First try the external scanner for special tokens (indent/dedent/newline)
+                eprintln!("Trying external scanner at position {} in state {}", current_position, current_state.0);
+                if let Some(external_token) = self.try_external_scanner(current_state)? {
+                    eprintln!("At position {}: external scanner returned symbol {} with length {}", 
+                        current_position, external_token.symbol.0, external_token.end - external_token.start);
+                    external_token
+                } else {
+                    eprintln!("External scanner returned None at position {}", current_position);
+                    // Fall back to regular lexer
+                    match lexer.next_token(input_bytes, current_position) {
+                        Some(tok) => {
+                            eprintln!("At position {}: matched token symbol {} with length {}", 
+                                current_position, tok.symbol.0, tok.end - tok.start);
+                            tok
+                        },
+                        None => {
+                            // Lexer couldn't match anything - create error token and skip a byte
+                            eprintln!("No valid token at position {}, skipping", current_position);
+                            error_count += 1;
+                            current_position += 1;
+                            continue;
+                        }
                     }
                 }
             };
@@ -351,29 +360,92 @@ impl Parser {
                 
                 Action::Fork(actions) => {
                     // GLR fork point - multiple valid parse paths
-                    // For now, just take the first action
-                    // A real GLR implementation would fork the parser state
-                    if let Some(first_action) = actions.first() {
-                        // Process the first action by continuing the loop
-                        // We'd need to restructure this to handle forking properly
-                        match first_action {
-                            Action::Shift(_) | Action::Reduce(_) | Action::Accept => {
-                                // For now, just treat it as an error
-                                // Real implementation would fork the parser
-                                error_count += 1;
-                                let root_kind = if let Some(node) = node_stack.last() {
-                                    node.symbol.0
-                                } else {
-                                    0
+                    // Quick implementation: try each action in sequence, use first successful one
+                    eprintln!("Fork with {} actions at state {}", actions.len(), current_state.0);
+                    
+                    let mut fork_succeeded = false;
+                    for (i, fork_action) in actions.iter().enumerate() {
+                        eprintln!("  Trying fork action {}: {:?}", i, fork_action);
+                        
+                        // Clone the current parser state for this fork
+                        let saved_state_stack = state_stack.clone();
+                        let saved_symbol_stack = symbol_stack.clone();
+                        let saved_node_stack = node_stack.clone();
+                        
+                        // Try to apply the action
+                        match fork_action {
+                            Action::Shift(next_state) => {
+                                // Apply shift as normal
+                                let node = ParseNode {
+                                    symbol: token.symbol,
+                                    start_byte: token.start,
+                                    end_byte: token.end,
+                                    children: vec![],
+                                    field_name: None,
                                 };
-                                return Ok(Tree {
-                                    root_kind,
-                                    error_count,
-                                    source: input.to_string(),
-                                });
+                                
+                                state_stack.push(*next_state);
+                                symbol_stack.push(token.symbol);
+                                node_stack.push(node);
+                                
+                                // Advance position
+                                current_position = token.end;
+                                fork_succeeded = true;
+                                break;
                             }
-                            _ => {}
+                            Action::Reduce(rule_id) => {
+                                // Apply reduce as normal
+                                let rule = self.find_rule_by_production_id(*rule_id)?;
+                                let child_count = rule.rhs.len();
+                                
+                                // Pop items from stacks
+                                let mut children = Vec::new();
+                                for _ in 0..child_count {
+                                    state_stack.pop();
+                                    symbol_stack.pop();
+                                    if let Some(child) = node_stack.pop() {
+                                        children.push(child);
+                                    }
+                                }
+                                children.reverse();
+                                
+                                // Create a parent node
+                                let start_byte = children.first().map(|n| n.start_byte).unwrap_or(current_position);
+                                let end_byte = children.last().map(|n| n.end_byte).unwrap_or(current_position);
+                                let parent_node = ParseNode {
+                                    symbol: rule.lhs,
+                                    start_byte,
+                                    end_byte,
+                                    children,
+                                    field_name: None,
+                                };
+                                
+                                // Get the goto state
+                                let goto_from_state = *state_stack.last()
+                                    .ok_or_else(|| anyhow!("State stack is empty after reduce"))?;
+                                let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
+                                
+                                // Push the new state and symbol
+                                state_stack.push(goto_state);
+                                symbol_stack.push(rule.lhs);
+                                node_stack.push(parent_node);
+                                
+                                fork_succeeded = true;
+                                break;
+                            }
+                            _ => {
+                                // Try next fork action
+                                state_stack = saved_state_stack.clone();
+                                symbol_stack = saved_symbol_stack.clone();
+                                node_stack = saved_node_stack.clone();
+                            }
                         }
+                    }
+                    
+                    if !fork_succeeded {
+                        eprintln!("All fork actions failed");
+                        error_count += 1;
+                        current_position += 1;
                     }
                 }
             }
@@ -450,13 +522,16 @@ impl Parser {
     fn try_external_scanner(&mut self, current_state: StateId) -> Result<Option<LexerToken>> {
         // Compute valid external tokens for this state first (before mutable borrow)
         let valid_externals = self.compute_valid_externals(current_state)?;
+        eprintln!("Valid externals for state {}: {:?}", current_state.0, valid_externals);
 
         if valid_externals.is_empty() {
+            eprintln!("No valid externals for state {}", current_state.0);
             return Ok(None);
         }
 
         // Check if we have external scanner
         if self.external_scanner.is_none() || self.external_runtime.is_none() {
+            eprintln!("No external scanner available");
             return Ok(None);
         }
 

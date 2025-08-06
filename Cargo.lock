@@ -1816,6 +1816,7 @@ dependencies = [
  "indexmap",
  "insta",
  "log",
+ "once_cell",
  "rayon",
  "regex",
  "rust-sitter-glr-core",

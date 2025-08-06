@@ -34,6 +34,7 @@ serde = { version = "1.0.219", features = ["derive"], optional = true }
 serde_json = { version = "1.0.142", optional = true }
 anyhow = "1.0.98"
 indexmap = "2.10.0"
+once_cell = "1.19"
 thiserror = "2.0.12"
 rayon = "1.10.0"
 ahash = "0.8.12"

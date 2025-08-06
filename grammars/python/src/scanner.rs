@@ -14,7 +14,7 @@ pub enum TokenType {
     Comment = 6,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct PythonScanner {
     indent_stack: Vec<u16>,
     inside_string: bool,
@@ -31,7 +31,17 @@ enum StringDelimiter {
 
 impl PythonScanner {
     pub fn new() -> Self {
-        PythonScanner::default()
+        PythonScanner {
+            indent_stack: vec![0], // Start with zero indentation
+            inside_string: false,
+            string_delimiter: None,
+        }
+    }
+}
+
+impl Default for PythonScanner {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

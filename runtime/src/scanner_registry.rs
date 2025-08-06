@@ -6,6 +6,7 @@ use crate::external_scanner_ffi::{CExternalScanner, TSExternalScannerData};
 use rust_sitter_ir::SymbolId;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use once_cell::sync::Lazy;
 
 /// Type-erased external scanner
 pub trait DynExternalScanner: Send + Sync {
@@ -100,7 +101,9 @@ impl DynExternalScanner for CScannerWrapper {
 pub type ScannerFactory = Box<dyn Fn() -> Box<dyn DynExternalScanner> + Send + Sync>;
 
 /// Global scanner registry
-static SCANNER_REGISTRY: Mutex<Option<ScannerRegistry>> = Mutex::new(None);
+static SCANNER_REGISTRY: Lazy<Arc<Mutex<ScannerRegistry>>> = Lazy::new(|| {
+    Arc::new(Mutex::new(ScannerRegistry::new()))
+});
 
 /// Registry for external scanners
 pub struct ScannerRegistry {
@@ -120,9 +123,11 @@ impl ScannerRegistry {
     where
         S: Send + Sync,
     {
+        eprintln!("Registering scanner for language: {}", language);
         let factory: ScannerFactory =
             Box::new(|| Box::new(RustScannerWrapper { scanner: S::default() }));
         self.scanners.insert(language.to_string(), factory);
+        eprintln!("Scanner registered. Total scanners: {}", self.scanners.len());
     }
 
     /// Register a C external scanner
@@ -154,17 +159,15 @@ impl ScannerRegistry {
 
     /// Create a scanner instance for a language
     pub fn create_scanner(&self, language: &str) -> Option<Box<dyn DynExternalScanner>> {
+        eprintln!("Looking for scanner for language: '{}'. Available: {:?}", 
+                  language, self.scanners.keys().collect::<Vec<_>>());
         self.scanners.get(language).map(|factory| factory())
     }
 }
 
-/// Get the global scanner registry
+/// Get the global scanner registry  
 pub fn get_global_registry() -> Arc<Mutex<ScannerRegistry>> {
-    let mut guard = SCANNER_REGISTRY.lock().unwrap();
-    if guard.is_none() {
-        *guard = Some(ScannerRegistry::new());
-    }
-    Arc::new(Mutex::new(guard.take().unwrap()))
+    SCANNER_REGISTRY.clone()
 }
 
 /// Register a Rust scanner with the global registry
