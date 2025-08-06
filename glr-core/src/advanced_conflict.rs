@@ -155,12 +155,13 @@ mod tests {
     #[test]
     fn test_conflict_analyzer() {
         let table = ParseTable {
-            action_table: vec![vec![Action::Shift(StateId(1))]],
+            action_table: vec![vec![vec![Action::Shift(StateId(1))]]],
             goto_table: vec![],
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 1,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let mut analyzer = ConflictAnalyzer::new();

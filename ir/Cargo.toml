@@ -1,6 +1,6 @@
 [package]
 name = "rust-sitter-ir"
-version = "1.0.0"
+version = "0.6.0-beta.1"
 edition = "2024"
 description = "Grammar Intermediate Representation for pure-Rust Tree-sitter"
 license = "MIT"

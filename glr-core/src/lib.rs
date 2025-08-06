@@ -1920,12 +1920,13 @@ mod tests {
     #[test]
     fn test_parse_table_creation() {
         let parse_table = ParseTable {
-            action_table: vec![vec![Action::Error; 5]; 3], // 3 states, 5 symbols
+            action_table: vec![vec![vec![Action::Error]; 5]; 3], // 3 states, 5 symbols
             goto_table: vec![vec![StateId(0); 5]; 3],
             symbol_metadata: vec![],
             state_count: 3,
             symbol_count: 5,
             symbol_to_index: BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         assert_eq!(parse_table.state_count, 3);
