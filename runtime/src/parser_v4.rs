@@ -97,17 +97,9 @@ impl Parser {
     
     /// Create a new parser from a TSLanguage struct
     pub fn from_language(language: &'static crate::pure_parser::TSLanguage, language_name: String) -> Self {
-        // For now, create a dummy grammar and parse table
-        // In a real implementation, we'd decode these from the TSLanguage pointers
-        let grammar = Grammar::default();
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 0,
-            symbol_count: 0,
-            symbol_to_index: std::collections::BTreeMap::new(),
-        };
+        // Decode the grammar and parse table from the TSLanguage struct
+        let grammar = crate::decoder::decode_grammar(language);
+        let parse_table = crate::decoder::decode_parse_table(language);
         
         // Check for external scanner
         let (external_scanner, external_runtime) = if language.external_token_count > 0 {
@@ -154,17 +146,9 @@ impl Parser {
             );
         }
         
-        // For now, create dummy grammar and parse table
-        // In a real implementation, we'd decode these from the TSLanguage pointers
-        self.grammar = Grammar::default();
-        self.parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 0,
-            symbol_count: 0,
-            symbol_to_index: std::collections::BTreeMap::new(),
-        };
+        // Decode the grammar and parse table from the TSLanguage struct
+        self.grammar = crate::decoder::decode_grammar(language);
+        self.parse_table = crate::decoder::decode_parse_table(language);
         self.language = language_name.clone();
         
         // Update external scanner if needed
