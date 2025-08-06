@@ -493,7 +493,7 @@ impl ItemSetCollection {
 
         // Compute closure
         initial_set.closure(grammar, first_follow);
-        for item in &initial_set.items {
+        for _item in &initial_set.items {
             // Items will be printed here if needed
         }
 
@@ -527,19 +527,19 @@ impl ItemSetCollection {
 
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
-            let mut terminal_count = 0;
-            let mut non_terminal_count = 0;
+            let mut _terminal_count = 0;
+            let mut _non_terminal_count = 0;
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
                         Symbol::Terminal(_id) => {
-                            terminal_count += 1;
+                            _terminal_count += 1;
                         },
                         Symbol::NonTerminal(_id) => {
-                            non_terminal_count += 1;
+                            _non_terminal_count += 1;
                         },
                         Symbol::External(_id) => {
-                            terminal_count += 1; // Count externals as terminals
+                            _terminal_count += 1; // Count externals as terminals
                         },
                         _ => {}
                     }
@@ -671,19 +671,19 @@ impl ItemSetCollection {
 
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
-            let mut terminal_count = 0;
-            let mut non_terminal_count = 0;
+            let mut _terminal_count = 0;
+            let mut _non_terminal_count = 0;
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
                         Symbol::Terminal(_id) => {
-                            terminal_count += 1;
+                            _terminal_count += 1;
                         },
                         Symbol::NonTerminal(_id) => {
-                            non_terminal_count += 1;
+                            _non_terminal_count += 1;
                         },
                         Symbol::External(_id) => {
-                            terminal_count += 1; // Count externals as terminals
+                            _terminal_count += 1; // Count externals as terminals
                         },
                         _ => {}
                     }
@@ -1209,8 +1209,8 @@ pub fn build_lr1_automaton(
 
     // First, add shift actions from goto table for terminals
     // This must be done BEFORE reduce actions to enable shift/reduce conflict detection
-    let mut terminal_count = 0;
-    let mut non_terminal_count = 0;
+    let mut _terminal_count = 0;
+    let mut _non_terminal_count = 0;
     
     for ((from_state, symbol), to_state) in &collection.goto_table {
         // Check if this symbol is a terminal (token or external)
@@ -1219,7 +1219,7 @@ pub fn build_lr1_automaton(
                          symbol.0 == 0; // EOF is also a terminal
         
         if is_terminal {
-            terminal_count += 1;
+            _terminal_count += 1;
             if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
                 let state_idx = from_state.0 as usize;
                 if state_idx < action_table.len() && symbol_idx < action_table[state_idx].len() {
@@ -1238,10 +1238,26 @@ pub fn build_lr1_automaton(
             } else {
             }
         } else {
-            non_terminal_count += 1;
+            _non_terminal_count += 1;
         }
     }
     
+    // Handle "extras" (like comments, whitespace, and external tokens marked as extras).
+    // In every state, for every "extra" token, if there isn't already a specific
+    // action, add a self-looping SHIFT action. This allows extras to appear
+    // anywhere in the grammar without changing the parser's state.
+    for state_idx in 0..state_count {
+        for extra_symbol_id in &augmented_grammar.extras {
+            if let Some(&symbol_idx) = symbol_to_index.get(extra_symbol_id) {
+                // Check if an action already exists for this extra token in this state.
+                // Only add self-loop if no action exists yet (Action::Error means no action)
+                if matches!(action_table[state_idx][symbol_idx], Action::Error) {
+                    // Add a self-looping shift that stays in the same state
+                    action_table[state_idx][symbol_idx] = Action::Shift(StateId(state_idx as u16));
+                }
+            }
+        }
+    }
 
     // Now fill action table with reduce actions
     for item_set in &collection.sets {

@@ -766,7 +766,6 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
     // This makes them behave like implicit tokens that can appear anywhere
     for external in &externals_list {
         if let Some(name) = external.get("name") {
-            eprintln!("Adding external '{}' to extras list", name);
             extras_list.push(json!({
                 "type": "SYMBOL",
                 "name": name
