@@ -69,15 +69,20 @@ impl ExternalScanner for PythonScanner {
         eprintln!("  Valid symbols: {:?}", valid_symbols);
         eprintln!("  Lookahead: {:?}", lexer.lookahead().map(|c| c as char));
         
-        // Special case: at the very start of parsing, we might need to emit a NEWLINE
-        // to satisfy the Python grammar's expectation
+        // Special case: handle NEWLINE when we're at column 0 and it's valid
+        // But only if we're actually at a newline character, not just at the start of input
         if lexer.column() == 0 && valid_symbols.len() > NEWLINE_INDEX && valid_symbols[NEWLINE_INDEX] {
-            eprintln!("  Emitting NEWLINE at start");
-            // Don't consume any input, just signal a NEWLINE
-            return Some(ScanResult {
-                symbol: TokenType::Newline as u16,
-                length: 0,
-            });
+            // Check if we're actually at a newline character
+            if let Some(b'\n') = lexer.lookahead() {
+                eprintln!("  Emitting NEWLINE for actual newline character");
+                lexer.advance(1); // Consume the newline
+                lexer.mark_end();
+                return Some(ScanResult {
+                    symbol: TokenType::Newline as u16,
+                    length: 1,
+                });
+            }
+            // Otherwise, don't emit a NEWLINE just because we're at column 0
         }
         
         if lexer.is_eof() {

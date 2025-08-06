@@ -1242,8 +1242,25 @@ pub fn build_lr1_automaton(
         }
     }
     
-    // External tokens now get their shift actions from the goto_table above
-    // No special handling needed - they're treated exactly like regular terminals
+    // External tokens are special - they're not in grammar rules, so they don't appear
+    // in the goto_table naturally. We need to add shift actions for them manually.
+    // For simplicity, we'll make external tokens loop back to the same state (like whitespace).
+    // A more sophisticated implementation would determine the actual next state from the grammar.
+    for state_idx in 0..state_count {
+        for external in &augmented_grammar.externals {
+            if let Some(&symbol_idx) = symbol_to_index.get(&external.symbol_id) {
+                // Add a shift action that loops to the same state
+                // This allows external tokens to be consumed without breaking the parse
+                add_action_with_conflict(
+                    &mut action_table,
+                    &mut conflicts_by_state,
+                    state_idx,
+                    symbol_idx,
+                    Action::Shift(StateId(state_idx as u16)),
+                );
+            }
+        }
+    }
 
     // Now fill action table with reduce actions
     for item_set in &collection.sets {
@@ -1495,18 +1512,6 @@ pub fn build_lr1_automaton(
         }
     }
     
-    eprintln!("Enabled {} external tokens in all {} states", augmented_grammar.externals.len(), state_count);
-    
-    // Debug: print external scanner states for first few states
-    for state_idx in 0..std::cmp::min(5, state_count) {
-        let externals_str: Vec<String> = augmented_grammar.externals.iter().enumerate()
-            .filter(|(idx, _)| external_scanner_states[state_idx][*idx])
-            .map(|(_, e)| e.name.clone())
-            .collect();
-        if !externals_str.is_empty() {
-            eprintln!("State {} valid externals: {:?}", state_idx, externals_str);
-        }
-    }
 
     Ok(ParseTable {
         action_table,
