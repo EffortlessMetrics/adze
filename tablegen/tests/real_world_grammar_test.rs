@@ -1,10 +1,7 @@
 // Tests with real-world-like grammars to validate the pure-Rust implementation
 
 use rust_sitter_glr_core::FirstFollowSets;
-use rust_sitter_ir::{
-    FieldId, Grammar, ProductionId, Rule, Symbol,
-    SymbolId, Token, TokenPattern,
-};
+use rust_sitter_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::{NodeTypesGenerator, StaticLanguageGenerator};
 
 /// Create a JSON-like grammar that resembles real Tree-sitter grammars

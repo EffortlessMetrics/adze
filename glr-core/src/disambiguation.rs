@@ -1,10 +1,12 @@
-use crate::parse_forest::{ParseForest, ParseTree, ParseError, ForestNode, ParseNode};
+use crate::parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree};
 
 impl ParseForest {
     /// Convert forest to single tree - for now just pick first complete parse
     pub fn to_single_tree(self) -> Result<ParseTree, ParseError> {
         // Find all complete parses (reached EOF at root symbol)
-        let complete_parses: Vec<_> = self.roots.iter()
+        let complete_parses: Vec<_> = self
+            .roots
+            .iter()
             .filter(|r| {
                 if let Some(start) = self.grammar.start_symbol() {
                     r.symbol == start && r.is_complete()
@@ -36,7 +38,9 @@ impl ParseForest {
         ParseNode {
             symbol: forest_node.symbol,
             span: forest_node.span,
-            children: alt.children.iter()
+            children: alt
+                .children
+                .iter()
                 .map(|child_id| self.build_tree_node(&self.nodes[child_id]))
                 .collect(),
         }

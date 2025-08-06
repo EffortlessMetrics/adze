@@ -3,12 +3,12 @@
 use super::{GrammarJs, Rule as JsRule};
 use anyhow::{Context, Result};
 use indexmap::IndexMap;
+use indexmap::IndexMap as OrderedMap;
 use rust_sitter_ir::{
     Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId, Grammar,
     PrecedenceKind, ProductionId, Rule, RuleId, Symbol, SymbolId, Token, TokenPattern,
 };
 use std::collections::HashMap;
-use indexmap::IndexMap as OrderedMap;
 
 /// Converts a Grammar.js structure to Rust-sitter IR
 pub struct GrammarJsConverter {
@@ -27,7 +27,7 @@ impl GrammarJsConverter {
             grammar_js,
             symbol_names: OrderedMap::new(),
             pattern_symbols: HashMap::new(),
-            next_symbol_id: 1,  // Start at 1 to reserve SymbolId(0) for EOF
+            next_symbol_id: 1, // Start at 1 to reserve SymbolId(0) for EOF
             next_production_id: 0,
             next_field_id: 0,
             fields: IndexMap::new(),
@@ -36,9 +36,15 @@ impl GrammarJsConverter {
 
     /// Convert Grammar.js to Rust-sitter Grammar IR
     pub fn convert(mut self) -> Result<Grammar> {
-        eprintln!("DEBUG converter.convert: Starting conversion for grammar '{}'", self.grammar_js.name);
-        eprintln!("DEBUG converter.convert: Grammar.js has {} rules", self.grammar_js.rules.len());
-        
+        eprintln!(
+            "DEBUG converter.convert: Starting conversion for grammar '{}'",
+            self.grammar_js.name
+        );
+        eprintln!(
+            "DEBUG converter.convert: Grammar.js has {} rules",
+            self.grammar_js.rules.len()
+        );
+
         let mut grammar = Grammar {
             name: self.grammar_js.name.clone(),
             rules: IndexMap::new(),
@@ -120,19 +126,30 @@ impl GrammarJsConverter {
 
         // Copy fields
         grammar.fields = self.fields.clone();
-        
-        eprintln!("DEBUG converter.convert: Final grammar has {} rules", grammar.rules.len());
-        eprintln!("DEBUG converter.convert: Final grammar has {} tokens", grammar.tokens.len());
+
+        eprintln!(
+            "DEBUG converter.convert: Final grammar has {} rules",
+            grammar.rules.len()
+        );
+        eprintln!(
+            "DEBUG converter.convert: Final grammar has {} tokens",
+            grammar.tokens.len()
+        );
         eprintln!("DEBUG converter.convert: Final grammar rule_names:");
         for (symbol_id, name) in &grammar.rule_names {
             eprintln!("  SymbolId({}) -> '{}'", symbol_id.0, name);
         }
-        
+
         // Check what the start symbol will be
         if let Some(start_symbol) = grammar.start_symbol() {
-            eprintln!("DEBUG converter.convert: Start symbol is SymbolId({}) -> '{}'", 
-                start_symbol.0, 
-                grammar.rule_names.get(&start_symbol).unwrap_or(&"???".to_string()));
+            eprintln!(
+                "DEBUG converter.convert: Start symbol is SymbolId({}) -> '{}'",
+                start_symbol.0,
+                grammar
+                    .rule_names
+                    .get(&start_symbol)
+                    .unwrap_or(&"???".to_string())
+            );
         } else {
             eprintln!("DEBUG converter.convert: No start symbol found!");
         }
@@ -332,25 +349,52 @@ impl GrammarJsConverter {
                 );
                 for (i, member) in members.iter().enumerate() {
                     eprintln!("Debug: Converting choice member {} for {}", i, lhs.0);
-                    
+
                     // Handle each member, preserving precedence if present
                     match member {
                         JsRule::Prec { value, content } => {
                             if let Some(symbol) = self.rule_to_symbol(grammar, content) {
-                                eprintln!("Debug: Adding rule {} -> {:?} with precedence {}", lhs.0, symbol, value);
-                                self.add_rule(grammar, lhs, vec![symbol], Some(PrecedenceKind::Static(*value as i16)), None);
+                                eprintln!(
+                                    "Debug: Adding rule {} -> {:?} with precedence {}",
+                                    lhs.0, symbol, value
+                                );
+                                self.add_rule(
+                                    grammar,
+                                    lhs,
+                                    vec![symbol],
+                                    Some(PrecedenceKind::Static(*value as i16)),
+                                    None,
+                                );
                             }
                         }
                         JsRule::PrecLeft { value, content } => {
                             if let Some(symbol) = self.rule_to_symbol(grammar, content) {
-                                eprintln!("Debug: Adding rule {} -> {:?} with left precedence {}", lhs.0, symbol, value);
-                                self.add_rule(grammar, lhs, vec![symbol], Some(PrecedenceKind::Static(*value as i16)), Some(Associativity::Left));
+                                eprintln!(
+                                    "Debug: Adding rule {} -> {:?} with left precedence {}",
+                                    lhs.0, symbol, value
+                                );
+                                self.add_rule(
+                                    grammar,
+                                    lhs,
+                                    vec![symbol],
+                                    Some(PrecedenceKind::Static(*value as i16)),
+                                    Some(Associativity::Left),
+                                );
                             }
                         }
                         JsRule::PrecRight { value, content } => {
                             if let Some(symbol) = self.rule_to_symbol(grammar, content) {
-                                eprintln!("Debug: Adding rule {} -> {:?} with right precedence {}", lhs.0, symbol, value);
-                                self.add_rule(grammar, lhs, vec![symbol], Some(PrecedenceKind::Static(*value as i16)), Some(Associativity::Right));
+                                eprintln!(
+                                    "Debug: Adding rule {} -> {:?} with right precedence {}",
+                                    lhs.0, symbol, value
+                                );
+                                self.add_rule(
+                                    grammar,
+                                    lhs,
+                                    vec![symbol],
+                                    Some(PrecedenceKind::Static(*value as i16)),
+                                    Some(Associativity::Right),
+                                );
                             }
                         }
                         _ => {
@@ -359,7 +403,10 @@ impl GrammarJsConverter {
                                 eprintln!("Debug: Adding rule {} -> {:?}", lhs.0, symbol);
                                 self.add_rule(grammar, lhs, vec![symbol], None, None);
                             } else {
-                                eprintln!("Debug: Failed to convert choice member {} for {}", i, lhs.0);
+                                eprintln!(
+                                    "Debug: Failed to convert choice member {} for {}",
+                                    i, lhs.0
+                                );
                             }
                         }
                     }
@@ -408,14 +455,14 @@ impl GrammarJsConverter {
                     "Debug: FIELD conversion - lhs: SymbolId({}), field: {}, content: {:?}",
                     lhs.0, name, content
                 );
-                
+
                 // Special handling for CHOICE in field content
                 if let JsRule::Choice { members } = content.as_ref() {
                     eprintln!("Debug: FIELD contains CHOICE, converting each member with field");
                     // For CHOICE in field, we need to create rules for each member with the field attached
                     for (i, member) in members.iter().enumerate() {
                         eprintln!("Debug: Converting choice member {} for field {}", i, name);
-                        
+
                         // Handle BLANK specially - create empty rule with field
                         if matches!(member, JsRule::Blank) {
                             eprintln!("Debug: Adding empty rule for BLANK with field {}", name);
@@ -425,26 +472,49 @@ impl GrammarJsConverter {
                                 precedence: None,
                                 associativity: None,
                                 fields: vec![], // Empty rules don't have field positions
-                                production_id: ProductionId(self.next_production_id.try_into().unwrap()),
+                                production_id: ProductionId(
+                                    self.next_production_id.try_into().unwrap(),
+                                ),
                             };
                             self.next_production_id += 1;
-                            
-                            let rule_id = RuleId(grammar.rules.values().map(|v| v.len()).sum::<usize>().try_into().unwrap());
+
+                            let rule_id = RuleId(
+                                grammar
+                                    .rules
+                                    .values()
+                                    .map(|v| v.len())
+                                    .sum::<usize>()
+                                    .try_into()
+                                    .unwrap(),
+                            );
                             grammar.production_ids.insert(rule_id, rule.production_id);
                             grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
                         } else if let Some(symbol) = self.rule_to_symbol(grammar, member) {
-                            eprintln!("Debug: Adding rule with symbol {:?} and field {}", symbol, name);
+                            eprintln!(
+                                "Debug: Adding rule with symbol {:?} and field {}",
+                                symbol, name
+                            );
                             let rule = Rule {
                                 lhs,
                                 rhs: vec![symbol],
                                 precedence: None,
                                 associativity: None,
                                 fields: vec![(field_id, 0)], // Attach field to position 0
-                                production_id: ProductionId(self.next_production_id.try_into().unwrap()),
+                                production_id: ProductionId(
+                                    self.next_production_id.try_into().unwrap(),
+                                ),
                             };
                             self.next_production_id += 1;
-                            
-                            let rule_id = RuleId(grammar.rules.values().map(|v| v.len()).sum::<usize>().try_into().unwrap());
+
+                            let rule_id = RuleId(
+                                grammar
+                                    .rules
+                                    .values()
+                                    .map(|v| v.len())
+                                    .sum::<usize>()
+                                    .try_into()
+                                    .unwrap(),
+                            );
                             grammar.production_ids.insert(rule_id, rule.production_id);
                             grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
                         }
@@ -649,7 +719,7 @@ impl GrammarJsConverter {
                 // For fields, return the symbol of the content
                 self.rule_to_symbol(grammar, content)
             }
-            JsRule::Prec { content, .. } 
+            JsRule::Prec { content, .. }
             | JsRule::PrecLeft { content, .. }
             | JsRule::PrecRight { content, .. } => {
                 // For precedence rules, return the symbol of the content
@@ -669,19 +739,22 @@ impl GrammarJsConverter {
         associativity: Option<Associativity>,
     ) {
         eprintln!("Debug: Adding rule for SymbolId({}) -> {:?}", lhs.0, rhs);
-        
+
         // Check if an identical rule already exists
         let duplicate_exists = grammar.rules.get(&lhs).map_or(false, |existing_rules| {
             existing_rules.iter().any(|r| {
                 r.rhs == rhs && r.precedence == precedence && r.associativity == associativity
             })
         });
-        
+
         if duplicate_exists {
-            eprintln!("Debug: Skipping duplicate rule for SymbolId({}) -> {:?}", lhs.0, rhs);
+            eprintln!(
+                "Debug: Skipping duplicate rule for SymbolId({}) -> {:?}",
+                lhs.0, rhs
+            );
             return;
         }
-        
+
         let rule = Rule {
             lhs,
             rhs,
@@ -693,10 +766,14 @@ impl GrammarJsConverter {
         self.next_production_id += 1;
 
         // Calculate rule_id before modifying grammar.rules
-        let total_rules = grammar.rules.values().map(|rules| rules.len()).sum::<usize>();
+        let total_rules = grammar
+            .rules
+            .values()
+            .map(|rules| rules.len())
+            .sum::<usize>();
         let rule_id = RuleId(total_rules.try_into().unwrap());
         grammar.production_ids.insert(rule_id, rule.production_id);
-        
+
         // Now add the rule
         grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
     }

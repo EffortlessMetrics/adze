@@ -73,8 +73,16 @@ fn create_simple_arithmetic_grammar() -> Grammar {
         production_id: ProductionId(1),
     };
 
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(rule0);
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(rule1);
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(rule0);
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(rule1);
 
     grammar.production_ids.insert(RuleId(0), ProductionId(0));
     grammar.production_ids.insert(RuleId(1), ProductionId(1));
@@ -142,7 +150,7 @@ fn create_simple_parse_table() -> ParseTable {
     symbol_to_index.insert(SymbolId(1), 1); // number
     symbol_to_index.insert(SymbolId(2), 2); // +
     symbol_to_index.insert(SymbolId(3), 3); // expr
-    
+
     ParseTable {
         action_table,
         goto_table,

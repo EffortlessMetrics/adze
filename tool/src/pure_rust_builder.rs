@@ -3,7 +3,7 @@
 
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 use anyhow::{Context, Result};
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::Grammar;
 use rust_sitter_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
 use serde_json::Value;
@@ -210,9 +210,10 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         Ok(table) => table,
         Err(e) => {
             eprintln!("ERROR building LR(1) automaton for {}: {}", grammar_name, e);
-            eprintln!("Grammar stats: {} tokens, {} rules, {} externals", 
-                grammar.tokens.len(), 
-                grammar.rules.len(), 
+            eprintln!(
+                "Grammar stats: {} tokens, {} rules, {} externals",
+                grammar.tokens.len(),
+                grammar.rules.len(),
                 grammar.externals.len()
             );
             return Err(anyhow::anyhow!("Failed to build LR(1) automaton: {}", e));

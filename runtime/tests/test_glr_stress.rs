@@ -1,11 +1,11 @@
 //! Stress tests for GLR parser with deeply ambiguous grammars
-//! 
+//!
 //! These tests verify that the GLR parser can handle complex ambiguous grammars
 //! without exponential blowup or incorrect behavior.
 
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Create a deeply ambiguous expression grammar
@@ -73,7 +73,11 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     // expr -> expr + expr (left associative)
     grammar.rules.entry(expr_id).or_default().push(Rule {
         lhs: expr_id,
-        rhs: vec![Symbol::Terminal(expr_id), Symbol::Terminal(plus_id), Symbol::Terminal(expr_id)],
+        rhs: vec![
+            Symbol::Terminal(expr_id),
+            Symbol::Terminal(plus_id),
+            Symbol::Terminal(expr_id),
+        ],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -84,7 +88,11 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     // expr -> expr * expr (left associative)
     grammar.rules.entry(expr_id).or_default().push(Rule {
         lhs: expr_id,
-        rhs: vec![Symbol::Terminal(expr_id), Symbol::Terminal(times_id), Symbol::Terminal(expr_id)],
+        rhs: vec![
+            Symbol::Terminal(expr_id),
+            Symbol::Terminal(times_id),
+            Symbol::Terminal(expr_id),
+        ],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -106,7 +114,11 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     // term -> term + factor (different precedence level)
     grammar.rules.entry(term_id).or_default().push(Rule {
         lhs: term_id,
-        rhs: vec![Symbol::Terminal(term_id), Symbol::Terminal(plus_id), Symbol::Terminal(factor_id)],
+        rhs: vec![
+            Symbol::Terminal(term_id),
+            Symbol::Terminal(plus_id),
+            Symbol::Terminal(factor_id),
+        ],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -128,7 +140,11 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     // factor -> ( expr )
     grammar.rules.entry(factor_id).or_default().push(Rule {
         lhs: factor_id,
-        rhs: vec![Symbol::Terminal(lparen_id), Symbol::Terminal(expr_id), Symbol::Terminal(rparen_id)],
+        rhs: vec![
+            Symbol::Terminal(lparen_id),
+            Symbol::Terminal(expr_id),
+            Symbol::Terminal(rparen_id),
+        ],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -147,7 +163,9 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     });
 
     // Set expr as the start symbol by adding it to rule_names
-    grammar.rule_names.insert(expr_id, "source_file".to_string());
+    grammar
+        .rule_names
+        .insert(expr_id, "source_file".to_string());
     grammar
 }
 
@@ -157,7 +175,7 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
 
     // Tokens
     let num_id = SymbolId(1);
-    let op_id = SymbolId(2);  // Single operator that can mean different things
+    let op_id = SymbolId(2); // Single operator that can mean different things
 
     // Non-terminals
     let expr_id = SymbolId(10);
@@ -188,7 +206,11 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     // expr -> expr @ expr (version 1)
     grammar.rules.entry(expr_id).or_default().push(Rule {
         lhs: expr_id,
-        rhs: vec![Symbol::Terminal(expr_id), Symbol::Terminal(op_id), Symbol::Terminal(expr_id)],
+        rhs: vec![
+            Symbol::Terminal(expr_id),
+            Symbol::Terminal(op_id),
+            Symbol::Terminal(expr_id),
+        ],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -210,7 +232,11 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     // expr2 -> expr2 @ expr3 (version 2)
     grammar.rules.entry(expr2_id).or_default().push(Rule {
         lhs: expr2_id,
-        rhs: vec![Symbol::Terminal(expr2_id), Symbol::Terminal(op_id), Symbol::Terminal(expr3_id)],
+        rhs: vec![
+            Symbol::Terminal(expr2_id),
+            Symbol::Terminal(op_id),
+            Symbol::Terminal(expr3_id),
+        ],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -232,7 +258,11 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     // expr3 -> expr @ expr3 (version 3, right associative)
     grammar.rules.entry(expr3_id).or_default().push(Rule {
         lhs: expr3_id,
-        rhs: vec![Symbol::Terminal(expr_id), Symbol::Terminal(op_id), Symbol::Terminal(expr3_id)],
+        rhs: vec![
+            Symbol::Terminal(expr_id),
+            Symbol::Terminal(op_id),
+            Symbol::Terminal(expr3_id),
+        ],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -270,7 +300,9 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     });
 
     // Set expr as the start symbol by adding it to rule_names
-    grammar.rule_names.insert(expr_id, "source_file".to_string());
+    grammar
+        .rule_names
+        .insert(expr_id, "source_file".to_string());
     grammar
 }
 
@@ -279,7 +311,7 @@ fn test_deeply_nested_ambiguous_expression() {
     let grammar = create_ambiguous_expression_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
-    
+
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
     // Test deeply nested expression: ((1 + 2) * (3 + 4)) + 5
@@ -295,11 +327,18 @@ fn test_deeply_nested_ambiguous_expression() {
     }
 
     parser.process_eof();
-    
+
     let result = parser.finish();
-    assert!(result.is_ok(), "Failed to parse deeply nested expression: {:?}", result);
-    
-    println!("Successfully parsed deeply nested expression with {} active stacks", parser.stack_count());
+    assert!(
+        result.is_ok(),
+        "Failed to parse deeply nested expression: {:?}",
+        result
+    );
+
+    println!(
+        "Successfully parsed deeply nested expression with {} active stacks",
+        parser.stack_count()
+    );
 }
 
 #[test]
@@ -307,7 +346,7 @@ fn test_extremely_ambiguous_parsing() {
     let grammar = create_extremely_ambiguous_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
-    
+
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
     // Test expression with multiple ambiguous parses: 1 @ 2 @ 3 @ 4
@@ -325,15 +364,26 @@ fn test_extremely_ambiguous_parsing() {
 
     for token in tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
-        println!("After token '{}': {} active stacks", token.text, parser.stack_count());
+        println!(
+            "After token '{}': {} active stacks",
+            token.text,
+            parser.stack_count()
+        );
     }
 
     parser.process_eof();
-    
+
     let result = parser.finish();
-    assert!(result.is_ok(), "Failed to parse extremely ambiguous expression: {:?}", result);
-    
-    println!("Successfully parsed with final stack count: {}", parser.stack_count());
+    assert!(
+        result.is_ok(),
+        "Failed to parse extremely ambiguous expression: {:?}",
+        result
+    );
+
+    println!(
+        "Successfully parsed with final stack count: {}",
+        parser.stack_count()
+    );
 }
 
 #[test]
@@ -341,7 +391,7 @@ fn test_long_ambiguous_chain() {
     let grammar = create_ambiguous_expression_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
-    
+
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
     // Test a long chain: 1 + 2 * 3 + 4 * 5 + 6
@@ -356,18 +406,29 @@ fn test_long_ambiguous_chain() {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
         let stack_count = parser.stack_count();
         max_stacks = max_stacks.max(stack_count);
-        println!("After token '{}': {} active stacks", token.text, stack_count);
+        println!(
+            "After token '{}': {} active stacks",
+            token.text, stack_count
+        );
     }
 
     parser.process_eof();
-    
+
     let result = parser.finish();
-    assert!(result.is_ok(), "Failed to parse long ambiguous chain: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse long ambiguous chain: {:?}",
+        result
+    );
+
     println!("Successfully parsed. Max concurrent stacks: {}", max_stacks);
-    
+
     // Ensure we're handling ambiguity efficiently
-    assert!(max_stacks < 50, "Too many concurrent stacks ({}), possible exponential blowup", max_stacks);
+    assert!(
+        max_stacks < 50,
+        "Too many concurrent stacks ({}), possible exponential blowup",
+        max_stacks
+    );
 }
 
 #[test]
@@ -375,7 +436,7 @@ fn test_stress_deeply_nested_parentheses() {
     let grammar = create_ambiguous_expression_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
-    
+
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
     // Create deeply nested parentheses
@@ -410,9 +471,13 @@ fn test_stress_deeply_nested_parentheses() {
     }
 
     parser.process_eof();
-    
+
     let result = parser.finish();
-    assert!(result.is_ok(), "Failed to parse deeply nested parentheses: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse deeply nested parentheses: {:?}",
+        result
+    );
+
     println!("Successfully parsed {} levels of nesting", depth);
 }

@@ -1,17 +1,17 @@
+use rust_sitter::glr_incremental::{Edit, IncrementalGLRParser};
 use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
 use rust_sitter::glr_parser::GLRParser;
+use rust_sitter::glr_query::{QueryCursor, QueryParser};
 use rust_sitter::subtree::Subtree;
-use rust_sitter::glr_incremental::{IncrementalGLRParser, Edit};
-use rust_sitter::glr_query::{QueryParser, QueryCursor};
 // Integration test for the full GLR parsing pipeline
 // This test demonstrates parsing a complete grammar from definition to tree output
 
+use rust_sitter::glr_validation::GLRGrammarValidator;
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };
-use rust_sitter::glr_validation::GLRGrammarValidator;
 
 // Import internal modules for testing
 use std::sync::Arc;
@@ -354,28 +354,32 @@ fn test_glr_with_ambiguous_grammar() {
     grammar.rule_names.insert(e_id, "E".to_string());
 
     // E → E E (ambiguous concatenation)
-    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(e_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: e_id,
             rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(0),
             fields: vec![],
-        },
-    );
+        });
 
     // E → 'a'
-    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(e_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: e_id,
             rhs: vec![Symbol::Terminal(a_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(1),
             fields: vec![],
-        },
-    );
+        });
 
     // Validate - should detect ambiguity
     let mut validator = GLRGrammarValidator::new();

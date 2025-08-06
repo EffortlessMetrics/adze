@@ -17,12 +17,11 @@ pub fn generate_lexer(
     let mut other_strings = Vec::new();
     let mut regex_patterns = Vec::new();
     let mut identifier_pattern = None;
-    
+
     // Track which patterns we've already seen to avoid duplicates
     let mut seen_string_patterns = std::collections::HashSet::new();
     let mut seen_regex_patterns = std::collections::HashSet::new();
-    
-    
+
     // Sort tokens by name to process primary tokens (with meaningful names) first
     let mut sorted_tokens: Vec<_> = grammar.tokens.iter().collect();
     sorted_tokens.sort_by_key(|(_, token)| {
@@ -36,7 +35,7 @@ pub fn generate_lexer(
             (0, token.name.clone())
         }
     });
-    
+
     for (id, token) in sorted_tokens {
         if let Some(&idx) = symbol_to_index.get(id) {
             let symbol_index = idx as u16;
@@ -47,7 +46,7 @@ pub fn generate_lexer(
                         continue;
                     }
                     seen_string_patterns.insert(s.clone());
-                    
+
                     // Check if it's a keyword (all alphabetic characters)
                     if s.chars().all(|c| c.is_ascii_alphabetic() || c == '_') && s.len() > 1 {
                         keywords.push((symbol_index, s.clone()));
@@ -61,7 +60,7 @@ pub fn generate_lexer(
                         continue;
                     }
                     seen_regex_patterns.insert(pattern.clone());
-                    
+
                     if pattern == r"[a-zA-Z_][a-zA-Z0-9_]*" {
                         identifier_pattern = Some(symbol_index);
                     } else {
@@ -71,21 +70,21 @@ pub fn generate_lexer(
             }
         }
     }
-    
+
     // Sort keywords by length (longest first) to match longer keywords before shorter ones
     keywords.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
-    
+
     let mut token_matches = Vec::new();
-    
+
     // First: Add keyword matching (before identifier pattern)
     for (symbol_index, keyword) in keywords {
         let bytes = keyword.as_bytes();
         let len = bytes.len();
         let byte_values = bytes.iter().copied().collect::<Vec<_>>();
         token_matches.push(quote! {
-            if position + #len <= input.len() && 
+            if position + #len <= input.len() &&
                &input[position..position + #len] == &[#(#byte_values),*] &&
-               (position + #len >= input.len() || 
+               (position + #len >= input.len() ||
                 (!input[position + #len].is_ascii_alphanumeric() && input[position + #len] != b'_')) {
                 state.result_symbol = #symbol_index;
                 state.result_length = #len;
@@ -93,7 +92,7 @@ pub fn generate_lexer(
             }
         });
     }
-    
+
     // Second: Add other string patterns (operators, punctuation)
     for (symbol_index, s) in other_strings {
         if s.len() == 1 {
@@ -118,15 +117,23 @@ pub fn generate_lexer(
             });
         }
     }
-    
+
     // Sort regex patterns by complexity/specificity (more specific patterns first)
     regex_patterns.sort_by(|a, b| {
         // Prioritize patterns with more complexity
-        let a_complexity = a.1.len() + a.1.matches(|c: char| "?+*()[]{}^$.|\\-".contains(c)).count() * 10;
-        let b_complexity = b.1.len() + b.1.matches(|c: char| "?+*()[]{}^$.|\\-".contains(c)).count() * 10;
+        let a_complexity = a.1.len()
+            + a.1
+                .matches(|c: char| "?+*()[]{}^$.|\\-".contains(c))
+                .count()
+                * 10;
+        let b_complexity = b.1.len()
+            + b.1
+                .matches(|c: char| "?+*()[]{}^$.|\\-".contains(c))
+                .count()
+                * 10;
         b_complexity.cmp(&a_complexity) // Reverse order - more complex first
     });
-    
+
     // Third: Add regex patterns (except identifier)
     for (symbol_index, pattern) in regex_patterns {
         if pattern == r"\d+" {
@@ -222,13 +229,13 @@ pub fn generate_lexer(
         }
         // TODO: Add more pattern support
     }
-    
+
     // Fourth: Add identifier pattern last (after all keywords have been checked)
     if let Some(symbol_index) = identifier_pattern {
         token_matches.push(quote! {
             if input[position].is_ascii_alphabetic() || input[position] == b'_' {
                 let mut len = 1;
-                while position + len < input.len() && 
+                while position + len < input.len() &&
                       (input[position + len].is_ascii_alphanumeric() || input[position + len] == b'_') {
                     len += 1;
                 }

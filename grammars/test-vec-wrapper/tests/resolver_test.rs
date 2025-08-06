@@ -9,7 +9,7 @@ fn test_empty_vec_no_fork() {
     assert_eq!(module.statements.len(), 0);
 }
 
-#[test] 
+#[test]
 fn test_whitespace_only_no_fork() {
     // Whitespace only should produce empty Vec without forking
     let result = parse("  \n\t  ");

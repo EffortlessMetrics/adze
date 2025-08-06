@@ -246,7 +246,7 @@ fn gen_field(
         // Always create a named rule with REPEAT1 (never empty)
         let contents_ident = format!("{path}_vec_contents");
         out.insert(contents_ident.clone(), vec_contents);
-        
+
         // Return a reference to the named rule
         // If the Vec can be empty, wrap in CHOICE to make it optional
         let reference = if !repeat_non_empty {
@@ -270,7 +270,7 @@ fn gen_field(
                 "name": contents_ident,
             })
         };
-        
+
         (reference, false) // Never mark as optional since we handle it in the reference
     } else {
         // is_option
@@ -317,10 +317,13 @@ fn gen_struct_or_variant(
                         {
                             // For single-leaf variants, create a rule with the pattern
                             // Don't return inline - we want a named rule for proper AST nodes
-                            out.insert(path, json!({
-                                "type": "PATTERN",
-                                "value": s.value(),
-                            }));
+                            out.insert(
+                                path,
+                                json!({
+                                    "type": "PATTERN",
+                                    "value": s.value(),
+                                }),
+                            );
                             return None;
                         }
                     } else if let Some(text) = params
@@ -334,10 +337,13 @@ fn gen_struct_or_variant(
                         {
                             // For single-leaf variants, create a rule with the string
                             // Don't return inline - we want a named rule for proper AST nodes
-                            out.insert(path, json!({
-                                "type": "STRING",
-                                "value": s.value(),
-                            }));
+                            out.insert(
+                                path,
+                                json!({
+                                    "type": "STRING",
+                                    "value": s.value(),
+                                }),
+                            );
                             return None;
                         }
                     }
@@ -348,9 +354,9 @@ fn gen_struct_or_variant(
 
     // Check for precedence attributes early to determine if we should inline operators
     let has_precedence = attrs.iter().any(|attr| {
-        attr.path() == &syn::parse_quote!(rust_sitter::prec) ||
-        attr.path() == &syn::parse_quote!(rust_sitter::prec_left) ||
-        attr.path() == &syn::parse_quote!(rust_sitter::prec_right)
+        attr.path() == &syn::parse_quote!(rust_sitter::prec)
+            || attr.path() == &syn::parse_quote!(rust_sitter::prec_left)
+            || attr.path() == &syn::parse_quote!(rust_sitter::prec_right)
     });
 
     fn gen_field_optional(
@@ -403,7 +409,9 @@ fn gen_struct_or_variant(
                 // Check if this is a leaf field with text parameter (operator)
                 let is_operator_field = field.attrs.iter().any(|attr| {
                     if attr.path() == &syn::parse_quote!(rust_sitter::leaf) {
-                        if let Ok(params) = attr.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated) {
+                        if let Ok(params) = attr.parse_args_with(
+                            Punctuated::<NameValueExpr, Token![,]>::parse_terminated,
+                        ) {
                             params.iter().any(|param| param.path == "text")
                         } else {
                             false
@@ -415,18 +423,33 @@ fn gen_struct_or_variant(
 
                 // Try to inline operator fields for precedence (only if this variant has precedence)
                 let inlined_operator = if is_operator_field && has_precedence {
-                    field.attrs.iter()
+                    field
+                        .attrs
+                        .iter()
                         .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf))
                         .and_then(|leaf_attr| {
-                            leaf_attr.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated).ok()
+                            leaf_attr
+                                .parse_args_with(
+                                    Punctuated::<NameValueExpr, Token![,]>::parse_terminated,
+                                )
+                                .ok()
                                 .and_then(|params| {
-                                    params.iter()
+                                    params
+                                        .iter()
                                         .find(|param| param.path == "text")
                                         .and_then(|p| {
-                                            if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = &p.expr {
+                                            if let Expr::Lit(ExprLit {
+                                                lit: Lit::Str(s), ..
+                                            }) = &p.expr
+                                            {
                                                 // Only inline simple operators (single chars or simple symbols)
                                                 let text_val = s.value();
-                                                if text_val.len() <= 2 || text_val == "&&" || text_val == "||" || text_val == "==" || text_val == "!=" {
+                                                if text_val.len() <= 2
+                                                    || text_val == "&&"
+                                                    || text_val == "||"
+                                                    || text_val == "=="
+                                                    || text_val == "!="
+                                                {
                                                     Some(json!({
                                                         "type": "STRING",
                                                         "value": text_val
@@ -443,7 +466,7 @@ fn gen_struct_or_variant(
                 } else {
                     None
                 };
-                
+
                 if let Some(operator) = inlined_operator {
                     Some(operator)
                 } else {
@@ -452,7 +475,9 @@ fn gen_struct_or_variant(
                         .attrs
                         .iter()
                         .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::field))
-                        .and_then(|attr| attr.parse_args::<syn::LitStr>().ok().map(|lit| lit.value()));
+                        .and_then(|attr| {
+                            attr.parse_args::<syn::LitStr>().ok().map(|lit| lit.value())
+                        });
 
                     let ident_str = field_name.unwrap_or_else(|| {
                         field
@@ -525,23 +550,37 @@ fn gen_struct_or_variant(
     // Check if this rule could be empty (single optional field)
     let potentially_empty = match &base_rule {
         Value::Object(obj) => {
-            obj.get("type").and_then(|t| t.as_str()) == Some("FIELD") &&
-            obj.get("content").and_then(|c| c.as_object()).map(|c| {
-                c.get("type").and_then(|t| t.as_str()) == Some("CHOICE") &&
-                c.get("members").and_then(|m| m.as_array()).map(|m| {
-                    m.iter().any(|member| {
-                        member.as_object().and_then(|o| o.get("type")).and_then(|t| t.as_str()) == Some("BLANK")
+            obj.get("type").and_then(|t| t.as_str()) == Some("FIELD")
+                && obj
+                    .get("content")
+                    .and_then(|c| c.as_object())
+                    .map(|c| {
+                        c.get("type").and_then(|t| t.as_str()) == Some("CHOICE")
+                            && c.get("members")
+                                .and_then(|m| m.as_array())
+                                .map(|m| {
+                                    m.iter().any(|member| {
+                                        member
+                                            .as_object()
+                                            .and_then(|o| o.get("type"))
+                                            .and_then(|t| t.as_str())
+                                            == Some("BLANK")
+                                    })
+                                })
+                                .unwrap_or(false)
                     })
-                }).unwrap_or(false)
-            }).unwrap_or(false)
-        },
-        _ => false
+                    .unwrap_or(false)
+        }
+        _ => false,
     };
-    
+
     if potentially_empty {
-        eprintln!("Warning: Rule '{}' can match empty input. Tree-sitter requires all named rules to match at least one character. Consider adding at least one required field or using 'non_empty = true' for Vec fields.", path);
+        eprintln!(
+            "Warning: Rule '{}' can match empty input. Tree-sitter requires all named rules to match at least one character. Consider adding at least one required field or using 'non_empty = true' for Vec fields.",
+            path
+        );
     }
-    
+
     let rule = if let Some(Expr::Lit(lit)) = prec_param {
         if prec_left_attr.is_some() || prec_right_attr.is_some() {
             panic!("only one of prec, prec_left, and prec_right can be specified");
@@ -665,15 +704,14 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                         &mut rules_map,
                         &mut word_rule,
                     );
-                    
-                    
+
                     // Always reference the variant by name, even for single-leaf variants
                     // This ensures we get proper node names in the parse tree
                     let variant_ref = json!({
                         "type": "SYMBOL",
                         "name": variant_path.clone()
                     });
-                    
+
                     // For enum variants, precedence is already applied in gen_struct_or_variant
                     // Just use the variant reference directly
                     members.push(variant_ref);
@@ -682,12 +720,12 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                 // For precedence to work correctly with the LR algorithm,
                 // we need the CHOICE to be visible. This allows the parser to see
                 // the operators directly and generate proper shift/reduce conflicts.
-                
+
                 let rule = json!({
                     "type": "CHOICE",
                     "members": members
                 });
-                
+
                 // Insert the CHOICE rule directly (no hidden indirection)
                 rules_map.insert(e.ident.to_string(), rule);
 
@@ -788,6 +826,5 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
             .insert("externals".to_string(), json!(externals_list));
     }
 
-    
     grammar
 }

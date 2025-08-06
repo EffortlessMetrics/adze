@@ -505,7 +505,6 @@ struct Token {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_subtree_pool_collection() {

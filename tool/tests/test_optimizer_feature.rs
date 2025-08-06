@@ -12,10 +12,10 @@ mod tests {
         let mut grammar = Grammar::new("test".to_string());
         let mut optimizer = GrammarOptimizer::new();
         let stats = optimizer.optimize(&mut grammar);
-        
+
         // The optimizer should run without error
         assert_eq!(stats.total(), 0); // Empty grammar, no optimizations
-        
+
         Ok(())
     }
 

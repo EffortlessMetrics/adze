@@ -40,16 +40,16 @@ impl ExternalScannerState {
 pub trait Lexer {
     /// Get the next byte at the current position
     fn lookahead(&self) -> Option<u8>;
-    
+
     /// Advance the lexer by n bytes
     fn advance(&mut self, n: usize);
-    
+
     /// Mark the end of the current token
     fn mark_end(&mut self);
-    
+
     /// Get the current column position
     fn column(&self) -> usize;
-    
+
     /// Check if at end of file
     fn is_eof(&self) -> bool;
 }
@@ -57,11 +57,7 @@ pub trait Lexer {
 /// Trait for implementing external scanners (object-safe)
 pub trait ExternalScanner: Send + Sync {
     /// Scan for external tokens
-    fn scan(
-        &mut self,
-        lexer: &mut dyn Lexer,
-        valid_symbols: &[bool],
-    ) -> Option<ScanResult>;
+    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult>;
 
     /// Serialize scanner state
     fn serialize(&self, buffer: &mut Vec<u8>);
@@ -142,11 +138,7 @@ impl StringScanner {
 }
 
 impl ExternalScanner for StringScanner {
-    fn scan(
-        &mut self,
-        lexer: &mut dyn Lexer,
-        valid_symbols: &[bool],
-    ) -> Option<ScanResult> {
+    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
         // Check for string start/content/end tokens
         const STRING_START: usize = 0;
         const STRING_CONTENT: usize = 1;
@@ -247,11 +239,7 @@ impl CommentScanner {
 }
 
 impl ExternalScanner for CommentScanner {
-    fn scan(
-        &mut self,
-        lexer: &mut dyn Lexer,
-        valid_symbols: &[bool],
-    ) -> Option<ScanResult> {
+    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
         const COMMENT_START: usize = 0;
         const COMMENT_CONTENT: usize = 1;
         const COMMENT_END: usize = 2;
@@ -311,9 +299,7 @@ impl ExternalScanner for CommentScanner {
                     lexer.advance(1);
                     if !lexer.is_eof() {
                         let next_ch = lexer.lookahead().unwrap_or(0);
-                        if (ch == b'/' && next_ch == b'*')
-                            || (ch == b'*' && next_ch == b'/')
-                        {
+                        if (ch == b'/' && next_ch == b'*') || (ch == b'*' && next_ch == b'/') {
                             // Move back one position
                             break;
                         }
@@ -374,8 +360,8 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: 1, // STRING_CONTENT
-                length: 11,          // "hello world"
+                symbol: 1,  // STRING_CONTENT
+                length: 11, // "hello world"
             })
         );
 
@@ -404,8 +390,8 @@ mod tests {
         assert_eq!(
             result,
             Some(ScanResult {
-                symbol: 1, // STRING_CONTENT
-                length: 12,          // includes escape sequence
+                symbol: 1,  // STRING_CONTENT
+                length: 12, // includes escape sequence
             })
         );
     }

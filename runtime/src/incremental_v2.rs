@@ -226,7 +226,7 @@ impl<'a> IncrementalParserState<'a> {
                     } else {
                         &action_cell[0]
                     };
-                    
+
                     match action {
                         Action::Shift(next_state) => {
                             let node = ParseNode {

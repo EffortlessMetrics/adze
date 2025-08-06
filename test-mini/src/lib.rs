@@ -10,7 +10,7 @@ pub mod grammar {
 #[cfg(test)]
 mod tests {
     use crate::grammar;
-    
+
     #[test]
     fn test_number() {
         let result = grammar::parse("42");

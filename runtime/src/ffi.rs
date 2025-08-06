@@ -50,7 +50,7 @@ pub struct LexerAdapterState {
 }
 
 /// Create a lexer adapter for use in scan functions
-/// 
+///
 /// This function creates a TSLexer struct that the external scanner can use
 /// to read input and mark token boundaries.
 pub unsafe fn create_lexer_adapter(
@@ -65,7 +65,7 @@ pub unsafe fn create_lexer_adapter(
             initial_lookahead = *input.add(position) as u32;
         }
     }
-    
+
     let state = Box::new(LexerAdapterState {
         input,
         position,
@@ -74,7 +74,7 @@ pub unsafe fn create_lexer_adapter(
         lookahead: initial_lookahead,
     });
     let state_ptr = Box::into_raw(state);
-    
+
     // Create the TSLexer struct with function pointers
     let lexer = Box::new(TSLexer {
         lookahead: ts_lexer_lookahead,
@@ -86,22 +86,19 @@ pub unsafe fn create_lexer_adapter(
         result_symbol: 0,
     });
     let lexer_ptr = Box::into_raw(lexer);
-    
+
     // Store the state pointer in a way that the callback functions can access it
     // For simplicity, we'll use the lexer pointer + 1 to store the state pointer
     let state_storage = unsafe { lexer_ptr.add(1) } as *mut *mut LexerAdapterState;
     unsafe {
         *state_storage = state_ptr;
     }
-    
+
     (lexer_ptr, state_ptr)
 }
 
 /// Clean up the lexer adapter
-pub unsafe fn destroy_lexer_adapter(
-    lexer: *mut TSLexer,
-    state: *mut LexerAdapterState,
-) {
+pub unsafe fn destroy_lexer_adapter(lexer: *mut TSLexer, state: *mut LexerAdapterState) {
     if !lexer.is_null() {
         unsafe {
             let _ = Box::from_raw(lexer);
@@ -134,7 +131,7 @@ extern "C" fn ts_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
             return;
         }
         let state = &mut *state_ptr;
-        
+
         if state.position < state.length {
             state.position += 1;
             // Update the lookahead character in state
@@ -166,11 +163,11 @@ extern "C" fn ts_lexer_get_column(lexer: *mut TSLexer) -> u32 {
             return 0;
         }
         let state = &*state_ptr;
-        
+
         // Count columns from the beginning of the current line
         let mut column = 0;
         let mut pos = state.position;
-        
+
         // Go back to find the start of the line
         while pos > 0 {
             pos -= 1;
@@ -180,7 +177,7 @@ extern "C" fn ts_lexer_get_column(lexer: *mut TSLexer) -> u32 {
             }
             column += 1;
         }
-        
+
         column
     }
 }

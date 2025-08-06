@@ -93,20 +93,25 @@ fn test_simple_expression() {
     let expr_id = SymbolId(10);
 
     // expr -> num
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(SymbolId(0))],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
 
     // expr -> expr + expr
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::NonTerminal(expr_id),
@@ -117,8 +122,7 @@ fn test_simple_expression() {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(1),
-        },
-    );
+        });
 
     println!("\nExpression grammar:");
     println!("  Rules: {}", grammar.rules.len());

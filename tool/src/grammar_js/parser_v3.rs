@@ -8,7 +8,11 @@ use super::{ExternalToken, GrammarJs, Rule};
 /// Check if a string is a symbol reference like $.identifier
 fn is_symbol_ref(s: &str) -> bool {
     let trimmed = s.trim();
-    trimmed.starts_with("$.") && trimmed.len() > 2 && trimmed[2..].chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    trimmed.starts_with("$.")
+        && trimmed.len() > 2
+        && trimmed[2..]
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 /// A more robust parser for grammar.js files
@@ -28,7 +32,7 @@ impl GrammarJsParserV3 {
     pub fn parse(&mut self) -> Result<GrammarJs> {
         // First, extract any JavaScript constants like PREC
         self.extract_js_constants()?;
-        
+
         // Then find the module.exports pattern
         let exports_regex = Regex::new(r"module\.exports\s*=\s*grammar\s*\(")?;
 
@@ -88,46 +92,46 @@ impl GrammarJsParserV3 {
 
         Ok(grammar)
     }
-    
+
     fn extract_js_constants(&mut self) -> Result<()> {
         // Look for const PREC = { ... } or similar patterns
         let const_regex = Regex::new(r"const\s+(\w+)\s*=\s*\{")?;
-        
+
         if let Some(mat) = const_regex.find(&self.content) {
             let const_name = self.content[mat.start()..mat.end()]
                 .split_whitespace()
                 .nth(1)
                 .unwrap_or("")
                 .trim_end_matches('=');
-            
+
             if const_name == "PREC" {
                 // Extract the object content
                 let start = mat.end();
                 let end = self.find_matching_brace(&self.content[start..])?;
                 let prec_content = self.content[start..start + end].to_string();
-                
+
                 // Parse the precedence object
                 self.parse_prec_object(&prec_content)?;
             }
         }
-        
+
         Ok(())
     }
-    
+
     fn parse_prec_object(&mut self, content: &str) -> Result<()> {
         // Parse JavaScript object like { lambda: -2, typed_parameter: -1, ... }
         // Use a simple regex to extract key: value pairs
         let pair_regex = Regex::new(r"(\w+)\s*:\s*(-?\d+)")?;
-        
+
         for caps in pair_regex.captures_iter(content) {
             let name = caps[1].to_string();
             let value: i32 = caps[2].parse()?;
             self.precedence_map.insert(name, value);
         }
-        
+
         Ok(())
     }
-    
+
     fn find_matching_brace(&self, content: &str) -> Result<usize> {
         self.find_matching_bracket(content, '{', '}')
     }
@@ -551,8 +555,7 @@ impl GrammarJsParserV3 {
                 // Handle 'name' format
                 level_str.trim_matches(|c| c == '\'' || c == '"')
             };
-            self
-                .precedence_map
+            self.precedence_map
                 .get(name)
                 .copied()
                 .with_context(|| format!("Unknown precedence name: {}", name))
@@ -629,7 +632,10 @@ impl GrammarJsParserV3 {
         let parts = self.split_args(&content, -1)?;
 
         if parts.len() != 2 {
-            bail!("prec.dynamic() expects exactly 2 arguments, got {}", parts.len());
+            bail!(
+                "prec.dynamic() expects exactly 2 arguments, got {}",
+                parts.len()
+            );
         }
 
         let level_str = parts[0].trim();
@@ -716,7 +722,7 @@ impl GrammarJsParserV3 {
         }
 
         let content = Box::new(self.parse_rule(&parts[0])?);
-        
+
         // The second argument can be either a string literal or a symbol reference
         let value = if parts[1].trim().starts_with("$.") {
             // It's a symbol reference like $.block - extract the symbol name
@@ -725,7 +731,7 @@ impl GrammarJsParserV3 {
             // It's a string literal
             self.extract_string_literal(&parts[1])?
         };
-        
+
         let named = if parts.len() > 2 {
             parts[2].trim() == "true"
         } else {

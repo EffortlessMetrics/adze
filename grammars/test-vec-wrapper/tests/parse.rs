@@ -1,4 +1,3 @@
-
 #[test]
 fn test_empty() {
     let module = test_vec_wrapper::grammar::parse("").unwrap();

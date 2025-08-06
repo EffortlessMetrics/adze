@@ -52,10 +52,10 @@ pub struct ParseNode {
 pub enum ParseError {
     #[error("Incomplete parse")]
     Incomplete,
-    
+
     #[error("Parse failed: {0}")]
     Failed(String),
-    
+
     #[error("Unknown error")]
     Unknown,
 }

@@ -5,7 +5,7 @@ use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
-use anyhow::{Result, bail, anyhow};
+use anyhow::{Result, anyhow, bail};
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::collections::HashSet;
@@ -30,7 +30,7 @@ impl Tree {
     pub fn root_kind(&self) -> u16 {
         self.root_kind
     }
-    
+
     /// Get the number of errors in the tree
     pub fn error_count(&self) -> usize {
         self.error_count
@@ -68,8 +68,11 @@ impl Parser {
             let registry = registry.lock().unwrap();
 
             if let Some(scanner) = registry.create_scanner(&language) {
-                let external_tokens: Vec<crate::SymbolId> =
-                    grammar.externals.iter().map(|ext| ext.symbol_id.0).collect();
+                let external_tokens: Vec<crate::SymbolId> = grammar
+                    .externals
+                    .iter()
+                    .map(|ext| ext.symbol_id.0)
+                    .collect();
                 let runtime = ExternalScannerRuntime::new(external_tokens);
                 (Some(scanner), Some(runtime))
             } else {
@@ -94,22 +97,29 @@ impl Parser {
             language,
         }
     }
-    
+
     /// Create a new parser from a TSLanguage struct
-    pub fn from_language(language: &'static crate::pure_parser::TSLanguage, language_name: String) -> Self {
-        Self::from_language_with_patterns(language, language_name, &std::collections::HashMap::new())
+    pub fn from_language(
+        language: &'static crate::pure_parser::TSLanguage,
+        language_name: String,
+    ) -> Self {
+        Self::from_language_with_patterns(
+            language,
+            language_name,
+            &std::collections::HashMap::new(),
+        )
     }
-    
+
     /// Create a new parser from a TSLanguage struct with token patterns from grammar.json
     pub fn from_language_with_patterns(
-        language: &'static crate::pure_parser::TSLanguage, 
+        language: &'static crate::pure_parser::TSLanguage,
         language_name: String,
-        token_patterns: &std::collections::HashMap<String, TokenPattern>
+        token_patterns: &std::collections::HashMap<String, TokenPattern>,
     ) -> Self {
         // Decode the grammar and parse table from the TSLanguage struct
         let grammar = crate::decoder::decode_grammar_with_patterns(language, token_patterns);
         let parse_table = crate::decoder::decode_parse_table(language);
-        
+
         // Check for external scanner
         let (external_scanner, external_runtime) = if language.external_token_count > 0 {
             // Get scanner from registry
@@ -132,7 +142,7 @@ impl Parser {
         } else {
             (None, None)
         };
-        
+
         Self {
             grammar,
             parse_table,
@@ -144,9 +154,13 @@ impl Parser {
             language: language_name,
         }
     }
-    
+
     /// Set the language for this parser from a TSLanguage struct
-    pub fn set_language(&mut self, language: &'static crate::pure_parser::TSLanguage, language_name: String) -> Result<()> {
+    pub fn set_language(
+        &mut self,
+        language: &'static crate::pure_parser::TSLanguage,
+        language_name: String,
+    ) -> Result<()> {
         // Validate version
         if language.version != 15 {
             bail!(
@@ -154,12 +168,12 @@ impl Parser {
                 language.version
             );
         }
-        
+
         // Decode the grammar and parse table from the TSLanguage struct
         self.grammar = crate::decoder::decode_grammar(language);
         self.parse_table = crate::decoder::decode_parse_table(language);
         self.language = language_name.clone();
-        
+
         // Update external scanner if needed
         if language.external_token_count > 0 {
             let registry = get_global_registry();
@@ -178,7 +192,7 @@ impl Parser {
             self.external_scanner = None;
             self.external_runtime = None;
         }
-        
+
         Ok(())
     }
 
@@ -188,18 +202,21 @@ impl Parser {
         // Store the input
         self.input = input.as_bytes().to_vec();
         self.position = 0;
-        
+
         // Initialize the parser state
         let mut state_stack: Vec<StateId> = vec![StateId(0)]; // Start in state 0
         let mut symbol_stack: Vec<SymbolId> = vec![];
         let mut node_stack: Vec<ParseNode> = vec![];
         let mut error_count = 0;
-        
+
         // Create lexer with grammar's actual tokens
-        let tokens: Vec<(SymbolId, TokenPattern, i32)> = self.grammar.tokens.iter()
+        let tokens: Vec<(SymbolId, TokenPattern, i32)> = self
+            .grammar
+            .tokens
+            .iter()
             .map(|(symbol_id, token)| (*symbol_id, token.pattern.clone(), 0))
             .collect();
-        
+
         // Debug: print token count and check for "def"
         eprintln!("Creating lexer with {} tokens", tokens.len());
         for (i, (symbol_id, pattern, _)) in tokens.iter().take(10).enumerate() {
@@ -214,19 +231,20 @@ impl Parser {
                 }
             }
         }
-        
+
         let mut lexer = GrammarLexer::new(&tokens);
-        
+
         // Track current position in input
         let input_bytes = input.as_bytes();
         let mut current_position = 0;
-        
+
         // Main parsing loop
         loop {
             // Get current state
-            let current_state = *state_stack.last()
+            let current_state = *state_stack
+                .last()
                 .ok_or_else(|| anyhow!("State stack is empty"))?;
-            
+
             // Get the next token from the lexer
             let token = if current_position >= input_bytes.len() {
                 // We're at EOF
@@ -259,12 +277,15 @@ impl Parser {
                     }
                 }
             };
-            
+
             let lookahead = token.symbol;
-            
+
             // Get the actions for this state and lookahead symbol (works for both regular and external tokens)
             let actions = self.get_parse_actions(current_state, lookahead)?;
-            eprintln!("State {}, Symbol {} -> Actions: {:?}", current_state.0, lookahead.0, actions);
+            eprintln!(
+                "State {}, Symbol {} -> Actions: {:?}",
+                current_state.0, lookahead.0, actions
+            );
             // Debug: print what actions are available in state 0
             if current_state.0 == 0 && actions.is_empty() {
                 eprintln!("  Available actions in state 0:");
@@ -273,7 +294,10 @@ impl Parser {
                         eprintln!("    Symbol {} -> {:?}", sym_idx, act_cell);
                     }
                 }
-                eprintln!("  'def' token has symbol {}, looking for it in grammar...", token.symbol.0);
+                eprintln!(
+                    "  'def' token has symbol {}, looking for it in grammar...",
+                    token.symbol.0
+                );
                 // Check if 'def' is in the grammar tokens
                 for (sym_id, tok) in &self.grammar.tokens {
                     if matches!(tok.pattern, TokenPattern::String(ref s) if s == "def") {
@@ -281,7 +305,7 @@ impl Parser {
                     }
                 }
             }
-            
+
             // Handle the action(s)
             let action = if actions.is_empty() {
                 Action::Error
@@ -291,7 +315,7 @@ impl Parser {
                 // Multiple actions - create a Fork
                 Action::Fork(actions)
             };
-            
+
             match action {
                 Action::Shift(next_state) => {
                     // Create a leaf node for the token
@@ -302,20 +326,20 @@ impl Parser {
                         children: vec![],
                         field_name: None,
                     };
-                    
+
                     state_stack.push(next_state);
                     symbol_stack.push(token.symbol);
                     node_stack.push(node);
-                    
+
                     // Advance position to the end of this token
                     current_position = token.end;
                 }
-                
+
                 Action::Reduce(rule_id) => {
                     // Find the rule to apply
                     let rule = self.find_rule_by_production_id(rule_id)?;
                     let child_count = rule.rhs.len();
-                    
+
                     // Pop items from stacks
                     let mut children = Vec::new();
                     for _ in 0..child_count {
@@ -326,10 +350,16 @@ impl Parser {
                         }
                     }
                     children.reverse(); // Children were popped in reverse order
-                    
+
                     // Create a parent node
-                    let start_byte = children.first().map(|n| n.start_byte).unwrap_or(current_position);
-                    let end_byte = children.last().map(|n| n.end_byte).unwrap_or(current_position);
+                    let start_byte = children
+                        .first()
+                        .map(|n| n.start_byte)
+                        .unwrap_or(current_position);
+                    let end_byte = children
+                        .last()
+                        .map(|n| n.end_byte)
+                        .unwrap_or(current_position);
                     let parent_node = ParseNode {
                         symbol: rule.lhs,
                         start_byte,
@@ -337,63 +367,69 @@ impl Parser {
                         children,
                         field_name: None,
                     };
-                    
+
                     // Get the goto state for the non-terminal
-                    let goto_from_state = *state_stack.last()
+                    let goto_from_state = *state_stack
+                        .last()
                         .ok_or_else(|| anyhow!("State stack is empty after reduce"))?;
                     let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
-                    
+
                     // Push the new state and symbol
                     state_stack.push(goto_state);
                     symbol_stack.push(rule.lhs);
                     node_stack.push(parent_node);
                 }
-                
+
                 Action::Accept => {
                     // Parsing complete!
-                    let root_node = node_stack.pop()
+                    let root_node = node_stack
+                        .pop()
                         .ok_or_else(|| anyhow!("No root node after accept"))?;
-                    
+
                     return Ok(Tree {
                         root_kind: root_node.symbol.0,
                         error_count,
                         source: input.to_string(),
                     });
                 }
-                
+
                 Action::Error => {
                     // For now, just break on error
                     // A real implementation would do error recovery
                     error_count += 1;
-                    
+
                     // Return a partial tree with errors
                     let root_kind = if let Some(node) = node_stack.last() {
                         node.symbol.0
                     } else {
                         0
                     };
-                    
+
                     return Ok(Tree {
                         root_kind,
                         error_count,
                         source: input.to_string(),
                     });
                 }
-                
+
                 Action::Fork(actions) => {
                     // GLR fork point - multiple valid parse paths
                     // Quick implementation: try each action in sequence, use first successful one
-                    eprintln!("Fork with {} actions at state {}", actions.len(), current_state.0);
-                    
+                    eprintln!(
+                        "Fork with {} actions at state {}",
+                        actions.len(),
+                        current_state.0
+                    );
+
                     let mut fork_succeeded = false;
                     for (i, fork_action) in actions.iter().enumerate() {
                         eprintln!("  Trying fork action {}: {:?}", i, fork_action);
-                        
+
                         // Clone the current parser state for this fork
                         let saved_state_stack = state_stack.clone();
                         let saved_symbol_stack = symbol_stack.clone();
                         let saved_node_stack = node_stack.clone();
-                        
+
                         // Try to apply the action
                         match fork_action {
                             Action::Shift(next_state) => {
@@ -405,11 +441,11 @@ impl Parser {
                                     children: vec![],
                                     field_name: None,
                                 };
-                                
+
                                 state_stack.push(*next_state);
                                 symbol_stack.push(token.symbol);
                                 node_stack.push(node);
-                                
+
                                 // Advance position
                                 current_position = token.end;
                                 fork_succeeded = true;
@@ -419,7 +455,7 @@ impl Parser {
                                 // Apply reduce as normal
                                 let rule = self.find_rule_by_production_id(*rule_id)?;
                                 let child_count = rule.rhs.len();
-                                
+
                                 // Pop items from stacks
                                 let mut children = Vec::new();
                                 for _ in 0..child_count {
@@ -430,10 +466,16 @@ impl Parser {
                                     }
                                 }
                                 children.reverse();
-                                
+
                                 // Create a parent node
-                                let start_byte = children.first().map(|n| n.start_byte).unwrap_or(current_position);
-                                let end_byte = children.last().map(|n| n.end_byte).unwrap_or(current_position);
+                                let start_byte = children
+                                    .first()
+                                    .map(|n| n.start_byte)
+                                    .unwrap_or(current_position);
+                                let end_byte = children
+                                    .last()
+                                    .map(|n| n.end_byte)
+                                    .unwrap_or(current_position);
                                 let parent_node = ParseNode {
                                     symbol: rule.lhs,
                                     start_byte,
@@ -441,17 +483,18 @@ impl Parser {
                                     children,
                                     field_name: None,
                                 };
-                                
+
                                 // Get the goto state
-                                let goto_from_state = *state_stack.last()
+                                let goto_from_state = *state_stack
+                                    .last()
                                     .ok_or_else(|| anyhow!("State stack is empty after reduce"))?;
                                 let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
-                                
+
                                 // Push the new state and symbol
                                 state_stack.push(goto_state);
                                 symbol_stack.push(rule.lhs);
                                 node_stack.push(parent_node);
-                                
+
                                 fork_succeeded = true;
                                 break;
                             }
@@ -463,7 +506,7 @@ impl Parser {
                             }
                         }
                     }
-                    
+
                     if !fork_succeeded {
                         eprintln!("All fork actions failed");
                         error_count += 1;
@@ -471,7 +514,7 @@ impl Parser {
                     }
                 }
             }
-            
+
             // Safety check to prevent infinite loops
             if state_stack.len() > 10000 {
                 return Err(anyhow!("Parse stack overflow"));
@@ -484,20 +527,20 @@ impl Parser {
         // Look up the actions in the parse table
         let state_idx = state.0 as usize;
         let symbol_idx = symbol.0 as usize;
-        
+
         if state_idx >= self.parse_table.action_table.len() {
             return Ok(vec![]);
         }
-        
+
         let state_actions = &self.parse_table.action_table[state_idx];
         if symbol_idx >= state_actions.len() {
             return Ok(vec![]);
         }
-        
+
         // Return the action cell (which is a Vec<Action>)
         Ok(state_actions[symbol_idx].clone())
     }
-    
+
     /// Find a rule by its production ID
     fn find_rule_by_production_id(&self, rule_id: RuleId) -> Result<&Rule> {
         // Search through all rules to find one with matching production ID
@@ -512,18 +555,18 @@ impl Parser {
         }
         bail!("Rule with ID {:?} not found", rule_id)
     }
-    
+
     /// Get the goto state for a non-terminal after a reduce
     fn get_goto_state(&self, from_state: StateId, symbol: SymbolId) -> Result<StateId> {
         // For now, return a default state
         // A real implementation would look up the goto table
         // Since we don't have a proper goto table yet, we'll use a simple heuristic
-        
+
         // If we have a goto table, use it
         if !self.parse_table.goto_table.is_empty() {
             let state_idx = from_state.0 as usize;
             let symbol_idx = symbol.0 as usize;
-            
+
             if state_idx < self.parse_table.goto_table.len() {
                 let state_gotos = &self.parse_table.goto_table[state_idx];
                 if symbol_idx < state_gotos.len() {
@@ -532,7 +575,7 @@ impl Parser {
                 }
             }
         }
-        
+
         // Fallback: look for a shift action in the parse table
         let actions = self.get_parse_actions(from_state, symbol)?;
         // Find the first shift action
@@ -543,12 +586,15 @@ impl Parser {
         }
         Ok(StateId(0)) // Default to state 0 if no goto found
     }
-    
+
     /// Try to scan for external tokens
     fn try_external_scanner(&mut self, current_state: StateId) -> Result<Option<LexerToken>> {
         // Compute valid external tokens for this state first (before mutable borrow)
         let valid_externals = self.compute_valid_externals(current_state)?;
-        eprintln!("Valid externals for state {}: {:?}", current_state.0, valid_externals);
+        eprintln!(
+            "Valid externals for state {}: {:?}",
+            current_state.0, valid_externals
+        );
 
         if valid_externals.is_empty() {
             eprintln!("No valid externals for state {}", current_state.0);
@@ -562,7 +608,7 @@ impl Parser {
         }
 
         // Convert valid externals to bool array
-        let valid_symbols: Vec<bool> = self
+        let _valid_symbols: Vec<bool> = self
             .external_runtime
             .as_ref()
             .unwrap()
@@ -575,7 +621,7 @@ impl Parser {
         struct LexerAdapter<'a> {
             parser: &'a mut Parser,
         }
-        
+
         impl<'a> crate::external_scanner::Lexer for LexerAdapter<'a> {
             fn lookahead(&self) -> Option<u8> {
                 if self.parser.position < self.parser.input.len() {
@@ -584,18 +630,16 @@ impl Parser {
                     None
                 }
             }
-            
+
             fn advance(&mut self, n: usize) {
-                self.parser.position = std::cmp::min(
-                    self.parser.position + n, 
-                    self.parser.input.len()
-                );
+                self.parser.position =
+                    std::cmp::min(self.parser.position + n, self.parser.input.len());
             }
-            
+
             fn mark_end(&mut self) {
                 // No-op for now
             }
-            
+
             fn column(&self) -> usize {
                 let mut col = 0;
                 for i in (0..self.parser.position).rev() {
@@ -606,12 +650,12 @@ impl Parser {
                 }
                 col
             }
-            
+
             fn is_eof(&self) -> bool {
                 self.parser.position >= self.parser.input.len()
             }
         }
-        
+
         // Convert the valid externals to a boolean array for the scanner
         // The scanner expects an array indexed by external token index (0-8)
         let mut valid_symbols = vec![false; self.grammar.externals.len()];
@@ -620,7 +664,7 @@ impl Parser {
                 valid_symbols[idx] = true;
             }
         }
-        
+
         // We need to temporarily take the scanner out to avoid double borrow
         let mut scanner = self.external_scanner.take().unwrap();
         let scan_result = {
@@ -629,7 +673,7 @@ impl Parser {
         };
         // Put the scanner back
         self.external_scanner = Some(scanner);
-        
+
         if let Some(result) = scan_result {
             // Extract token text
             let end = self.position + result.length;
@@ -653,13 +697,13 @@ impl Parser {
     /// Compute which external tokens are valid in the given state
     fn compute_valid_externals(&self, state: StateId) -> Result<HashSet<SymbolId>> {
         let mut valid_externals = HashSet::new();
-        
+
         let state_idx = state.0 as usize;
-        
+
         // Check the external_scanner_states table
         if state_idx < self.parse_table.external_scanner_states.len() {
             let external_states = &self.parse_table.external_scanner_states[state_idx];
-            
+
             // For each external token, check if it's valid in this state
             for (idx, external) in self.grammar.externals.iter().enumerate() {
                 if idx < external_states.len() && external_states[idx] {
@@ -667,7 +711,7 @@ impl Parser {
                 }
             }
         }
-        
+
         Ok(valid_externals)
     }
 
@@ -708,16 +752,16 @@ impl Parser {
                 if idx < state_actions.len() {
                     let action_cell = &state_actions[idx];
                     if !action_cell.is_empty() {
-                            // Include only terminals and external tokens
-                            if self.grammar.tokens.contains_key(&symbol_id)
-                                || self
-                                    .grammar
-                                    .externals
-                                    .iter()
-                                    .any(|ext| ext.symbol_id == symbol_id)
-                            {
-                                expected.push(symbol_id);
-                            }
+                        // Include only terminals and external tokens
+                        if self.grammar.tokens.contains_key(&symbol_id)
+                            || self
+                                .grammar
+                                .externals
+                                .iter()
+                                .any(|ext| ext.symbol_id == symbol_id)
+                        {
+                            expected.push(symbol_id);
+                        }
                     }
                 }
             }
@@ -963,17 +1007,17 @@ impl crate::external_scanner::Lexer for Parser {
             None
         }
     }
-    
+
     fn advance(&mut self, n: usize) {
         self.position = std::cmp::min(self.position + n, self.input.len());
     }
-    
+
     fn mark_end(&mut self) {
         // For external scanners, mark_end is typically used to mark
         // the end of the current token. This is handled by the scanner
         // returning the length, so this is a no-op for now.
     }
-    
+
     fn column(&self) -> usize {
         // Calculate column by counting back from current position to last newline
         let mut col = 0;
@@ -985,7 +1029,7 @@ impl crate::external_scanner::Lexer for Parser {
         }
         col
     }
-    
+
     fn is_eof(&self) -> bool {
         self.position >= self.input.len()
     }

@@ -2,9 +2,7 @@
 // This module provides additional conflict resolution capabilities beyond the basic resolver
 
 use crate::{Action, ParseTable};
-use rust_sitter_ir::{
-    Associativity, Grammar, PrecedenceKind, SymbolId,
-};
+use rust_sitter_ir::{Associativity, Grammar, PrecedenceKind, SymbolId};
 use std::collections::HashMap;
 
 /// Statistics about conflict resolution

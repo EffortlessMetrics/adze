@@ -1,8 +1,6 @@
 // Conflict visualization and debugging tools for GLR parsing
 
-use crate::{
-    Action, Conflict, ConflictType, ItemSet, ItemSetCollection, LRItem, RuleId, SymbolId,
-};
+use crate::{Action, Conflict, ConflictType, ItemSet, ItemSetCollection, LRItem, RuleId, SymbolId};
 use rust_sitter_ir::{Grammar, Symbol};
 use std::fmt::Write;
 
@@ -297,7 +295,7 @@ pub fn generate_dot_graph(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::{StateId, RuleId};
+    use rust_sitter_ir::{RuleId, StateId};
     // use crate::{ConflictResolver, FirstFollowSets};
 
     #[test]

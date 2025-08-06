@@ -69,8 +69,11 @@ fn test_arithmetic_with_lexer() {
 
     // Add rules with precedence
     // expr → expr + term (left associative)
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::NonTerminal(expr_id),
@@ -81,8 +84,7 @@ fn test_arithmetic_with_lexer() {
             associativity: Some(rust_sitter_ir::Associativity::Left),
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
 
     // expr → term
     grammar
@@ -99,8 +101,11 @@ fn test_arithmetic_with_lexer() {
         });
 
     // term → term * factor (left associative, higher precedence)
-    grammar.rules.entry(term_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(term_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: term_id,
             rhs: vec![
                 Symbol::NonTerminal(term_id),
@@ -111,8 +116,7 @@ fn test_arithmetic_with_lexer() {
             associativity: Some(rust_sitter_ir::Associativity::Left),
             fields: vec![],
             production_id: ProductionId(2),
-        },
-    );
+        });
 
     // term → factor
     grammar
@@ -129,16 +133,18 @@ fn test_arithmetic_with_lexer() {
         });
 
     // factor → number
-    grammar.rules.entry(factor_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(factor_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: factor_id,
             rhs: vec![Symbol::Terminal(number_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(4),
-        },
-    );
+        });
 
     // factor → ( expr )
     grammar

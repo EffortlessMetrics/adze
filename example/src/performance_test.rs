@@ -2,9 +2,9 @@
 
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
     use super::*;
     use crate::arithmetic;
+    use std::time::Instant;
 
     #[test]
     fn measure_parsing_performance() {

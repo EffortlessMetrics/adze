@@ -1,7 +1,7 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Create a highly ambiguous arithmetic expression grammar
@@ -71,7 +71,7 @@ fn create_ambiguous_grammar() -> Grammar {
             production_id: ProductionId(0),
             precedence: None,
             associativity: None,
-            fields: vec![]
+            fields: vec![],
         },
         // E -> E * E
         Rule {
@@ -84,7 +84,7 @@ fn create_ambiguous_grammar() -> Grammar {
             production_id: ProductionId(1),
             precedence: None,
             associativity: None,
-            fields: vec![]
+            fields: vec![],
         },
         // E -> ( E )
         Rule {
@@ -97,7 +97,7 @@ fn create_ambiguous_grammar() -> Grammar {
             production_id: ProductionId(2),
             precedence: None,
             associativity: None,
-            fields: vec![]
+            fields: vec![],
         },
         // E -> number
         Rule {
@@ -106,7 +106,7 @@ fn create_ambiguous_grammar() -> Grammar {
             production_id: ProductionId(3),
             precedence: None,
             associativity: None,
-            fields: vec![]
+            fields: vec![],
         },
     ];
 
@@ -125,12 +125,12 @@ fn benchmark_simple_expression(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = GLRLexer::new(&grammar, black_box("1 + 2 * 3").to_string()).unwrap();
             let mut parser = GLRParser::new(parse_table.clone(), grammar.clone());
-            
+
             let mut tokens = Vec::new();
             while let Some(token) = lexer.next_token() {
                 tokens.push(token);
             }
-            
+
             for token in &tokens {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
@@ -152,12 +152,12 @@ fn benchmark_deeply_nested_expression(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = GLRLexer::new(&grammar, black_box(input).to_string()).unwrap();
             let mut parser = GLRParser::new(parse_table.clone(), grammar.clone());
-            
+
             let mut tokens = Vec::new();
             while let Some(token) = lexer.next_token() {
                 tokens.push(token);
             }
-            
+
             for token in &tokens {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
@@ -179,12 +179,12 @@ fn benchmark_highly_ambiguous_expression(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = GLRLexer::new(&grammar, black_box(input).to_string()).unwrap();
             let mut parser = GLRParser::new(parse_table.clone(), grammar.clone());
-            
+
             let mut tokens = Vec::new();
             while let Some(token) = lexer.next_token() {
                 tokens.push(token);
             }
-            
+
             for token in &tokens {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
@@ -206,12 +206,12 @@ fn benchmark_fork_performance(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = GLRLexer::new(&grammar, black_box(input).to_string()).unwrap();
             let mut parser = GLRParser::new(parse_table.clone(), grammar.clone());
-            
+
             let mut tokens = Vec::new();
             while let Some(token) = lexer.next_token() {
                 tokens.push(token);
             }
-            
+
             for token in &tokens {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }

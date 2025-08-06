@@ -3,17 +3,17 @@
 
 use crate::external_scanner::{ExternalScanner, ScanResult};
 use crate::external_scanner_ffi::{CExternalScanner, TSExternalScannerData};
+use once_cell::sync::Lazy;
 use rust_sitter_ir::SymbolId;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use once_cell::sync::Lazy;
 
 /// Type-erased external scanner
 pub trait DynExternalScanner: Send + Sync {
     /// Scan for external tokens
     fn scan(
         &mut self,
-        lexer: &mut dyn crate::external_scanner::Lexer,
+        _lexer: &mut dyn crate::external_scanner::Lexer,
         valid_symbols: &[bool],
     ) -> Option<ScanResult>;
 
@@ -56,7 +56,7 @@ struct CScannerWrapper {
 impl DynExternalScanner for CScannerWrapper {
     fn scan(
         &mut self,
-        lexer: &mut dyn crate::external_scanner::Lexer,
+        _lexer: &mut dyn crate::external_scanner::Lexer,
         valid_symbols: &[bool],
     ) -> Option<ScanResult> {
         // For C scanners, we need to adapt the Rust lexer to C API
@@ -101,9 +101,8 @@ impl DynExternalScanner for CScannerWrapper {
 pub type ScannerFactory = Box<dyn Fn() -> Box<dyn DynExternalScanner> + Send + Sync>;
 
 /// Global scanner registry
-static SCANNER_REGISTRY: Lazy<Arc<Mutex<ScannerRegistry>>> = Lazy::new(|| {
-    Arc::new(Mutex::new(ScannerRegistry::new()))
-});
+static SCANNER_REGISTRY: Lazy<Arc<Mutex<ScannerRegistry>>> =
+    Lazy::new(|| Arc::new(Mutex::new(ScannerRegistry::new())));
 
 /// Registry for external scanners
 pub struct ScannerRegistry {
@@ -124,10 +123,16 @@ impl ScannerRegistry {
         S: Send + Sync,
     {
         eprintln!("Registering scanner for language: {}", language);
-        let factory: ScannerFactory =
-            Box::new(|| Box::new(RustScannerWrapper { scanner: S::default() }));
+        let factory: ScannerFactory = Box::new(|| {
+            Box::new(RustScannerWrapper {
+                scanner: S::default(),
+            })
+        });
         self.scanners.insert(language.to_string(), factory);
-        eprintln!("Scanner registered. Total scanners: {}", self.scanners.len());
+        eprintln!(
+            "Scanner registered. Total scanners: {}",
+            self.scanners.len()
+        );
     }
 
     /// Register a C external scanner
@@ -159,8 +164,11 @@ impl ScannerRegistry {
 
     /// Create a scanner instance for a language
     pub fn create_scanner(&self, language: &str) -> Option<Box<dyn DynExternalScanner>> {
-        eprintln!("Looking for scanner for language: '{}'. Available: {:?}", 
-                  language, self.scanners.keys().collect::<Vec<_>>());
+        eprintln!(
+            "Looking for scanner for language: '{}'. Available: {:?}",
+            language,
+            self.scanners.keys().collect::<Vec<_>>()
+        );
         self.scanners.get(language).map(|factory| factory())
     }
 }

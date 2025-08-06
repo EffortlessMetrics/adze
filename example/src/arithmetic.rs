@@ -45,10 +45,10 @@ mod tests {
                 panic!("Failed to parse '1'");
             }
         }
-        
+
         // Remove the return to run all tests
         // The precedence issue is a separate problem from hidden rules
-        
+
         assert_eq!(
             grammar::parse("1 - 2 - 3").unwrap(),
             Expression::Sub(
@@ -111,7 +111,7 @@ mod tests {
             Ok(parsed) => {
                 println!("Successfully parsed as: {:?}", parsed);
             }
-            Err(e) => panic!("Parse failed: {:?}", e)
+            Err(e) => panic!("Parse failed: {:?}", e),
         }
     }
 
@@ -120,7 +120,7 @@ mod tests {
         // Test parsing 1 - 2 * 3
         let result = grammar::parse("1 - 2 * 3");
         println!("Parse result for '1 - 2 * 3': {:?}", result);
-        
+
         match result {
             Ok(parsed) => {
                 // Expected: Sub(1, Mul(2, 3))
@@ -133,7 +133,7 @@ mod tests {
                     panic!("Expected Sub at top level, got {:?}", parsed);
                 }
             }
-            Err(e) => panic!("Parse failed: {:?}", e)
+            Err(e) => panic!("Parse failed: {:?}", e),
         }
     }
 

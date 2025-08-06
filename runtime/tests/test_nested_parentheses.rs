@@ -67,8 +67,11 @@ fn create_expression_grammar() -> Grammar {
     let number_rule_id = SymbolId(25);
 
     // expression → expression + expression
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::NonTerminal(expr_id),
@@ -79,12 +82,14 @@ fn create_expression_grammar() -> Grammar {
             associativity: Some(Associativity::Left),
             production_id: ProductionId(0),
             fields: vec![],
-        },
-    );
+        });
 
     // expression → ( expression )
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::Terminal(lparen_id),
@@ -95,20 +100,21 @@ fn create_expression_grammar() -> Grammar {
             associativity: None,
             production_id: ProductionId(1),
             fields: vec![],
-        },
-    );
+        });
 
     // expression → number
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(number_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(2),
             fields: vec![],
-        },
-    );
+        });
 
     grammar
 }

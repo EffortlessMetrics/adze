@@ -138,7 +138,7 @@ pub mod grammar {
             first: Identifier,
             #[rust_sitter::repeat(non_empty = true)]
             rest: Vec<DottedNamePart>,
-        }
+        },
     }
 
     #[rust_sitter::language]

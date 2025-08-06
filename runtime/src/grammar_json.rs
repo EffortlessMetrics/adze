@@ -1,15 +1,21 @@
+#[cfg(feature = "serialization")]
+use rust_sitter_ir::{SymbolId, TokenPattern};
+#[cfg(feature = "serialization")]
 use std::collections::HashMap;
+#[cfg(feature = "serialization")]
 use std::fs::File;
+#[cfg(feature = "serialization")]
 use std::path::Path;
-use rust_sitter_ir::{TokenPattern, SymbolId};
 
 /// Load token patterns from a Tree-sitter grammar.json file
 #[cfg(feature = "serialization")]
-pub fn load_patterns_from_grammar_json(path: &Path) -> Result<HashMap<String, TokenPattern>, Box<dyn std::error::Error>> {
+pub fn load_patterns_from_grammar_json(
+    path: &Path,
+) -> Result<HashMap<String, TokenPattern>, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let json: serde_json::Value = serde_json::from_reader(file)?;
     let mut patterns = HashMap::new();
-    
+
     // The rules object contains all grammar rules
     if let Some(rules) = json.get("rules").and_then(|r| r.as_object()) {
         for (symbol_name, rule) in rules {
@@ -20,7 +26,7 @@ pub fn load_patterns_from_grammar_json(path: &Path) -> Result<HashMap<String, To
             }
         }
     }
-    
+
     Ok(patterns)
 }
 
@@ -63,8 +69,8 @@ fn extract_pattern_from_rule(rule: &serde_json::Value) -> Option<TokenPattern> {
             // Reference to another rule, not a terminal pattern
             None
         }
-        Some("SEQ") | Some("REPEAT") | Some("REPEAT1") | Some("PREC") | 
-        Some("PREC_LEFT") | Some("PREC_RIGHT") | Some("PREC_DYNAMIC") => {
+        Some("SEQ") | Some("REPEAT") | Some("REPEAT1") | Some("PREC") | Some("PREC_LEFT")
+        | Some("PREC_RIGHT") | Some("PREC_DYNAMIC") => {
             // These are non-terminals or complex rules
             None
         }
@@ -78,18 +84,18 @@ fn extract_pattern_from_rule(rule: &serde_json::Value) -> Option<TokenPattern> {
 /// Load patterns and create a symbol name to ID mapping
 #[cfg(feature = "serialization")]
 pub fn load_patterns_with_symbol_map(
-    grammar_json_path: &Path, 
-    symbol_names: &[String]
+    grammar_json_path: &Path,
+    symbol_names: &[String],
 ) -> Result<HashMap<SymbolId, TokenPattern>, Box<dyn std::error::Error>> {
     let patterns_by_name = load_patterns_from_grammar_json(grammar_json_path)?;
     let mut patterns_by_id = HashMap::new();
-    
+
     // Map patterns from name to symbol ID
     for (idx, name) in symbol_names.iter().enumerate() {
         if let Some(pattern) = patterns_by_name.get(name) {
             patterns_by_id.insert(SymbolId(idx as u16), pattern.clone());
         }
     }
-    
+
     Ok(patterns_by_id)
 }

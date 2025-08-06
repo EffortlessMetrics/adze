@@ -81,7 +81,11 @@ impl<'a> QueryMatcher<'a> {
         if self.match_node(&pattern.root, node, &mut state) {
             // Check predicates with source text
             let predicate_ctx = PredicateContext::new(self.source);
-            if pattern.predicates.iter().all(|pred| predicate_ctx.evaluate(pred, &state.captures)) {
+            if pattern
+                .predicates
+                .iter()
+                .all(|pred| predicate_ctx.evaluate(pred, &state.captures))
+            {
                 // Convert captures to vector
                 let mut captures: Vec<_> = state
                     .captures

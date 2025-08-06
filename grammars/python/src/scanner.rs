@@ -1,6 +1,6 @@
 // Python indentation scanner for rust-sitter
 
-use rust_sitter::external_scanner::{ExternalScanner, ScanResult, Lexer};
+use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 // These are the actual symbol IDs from the Python grammar
 // Found from test output: Valid externals for state 0: {SymbolId(203-211)}
@@ -12,7 +12,7 @@ pub enum TokenType {
     Indent = 204,
     Dedent = 205,
     StringStart = 206,
-    StringEnd = 207,  
+    StringEnd = 207,
     StringContent = 208,
     Comment = 209,
     LineJoining = 210,
@@ -63,10 +63,12 @@ impl Default for PythonScanner {
 
 impl ExternalScanner for PythonScanner {
     fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
-        
         // Special case: handle NEWLINE when we're at column 0 and it's valid
         // But only if we're actually at a newline character, not just at the start of input
-        if lexer.column() == 0 && valid_symbols.len() > NEWLINE_INDEX && valid_symbols[NEWLINE_INDEX] {
+        if lexer.column() == 0
+            && valid_symbols.len() > NEWLINE_INDEX
+            && valid_symbols[NEWLINE_INDEX]
+        {
             // Check if we're actually at a newline character
             if let Some(b'\n') = lexer.lookahead() {
                 lexer.advance(1); // Consume the newline
@@ -78,11 +80,11 @@ impl ExternalScanner for PythonScanner {
             }
             // Otherwise, don't emit a NEWLINE just because we're at column 0
         }
-        
+
         if lexer.is_eof() {
             return None;
         }
-        
+
         // Handle string scanning
         if self.inside_string && valid_symbols.get(STRING_END_INDEX) == Some(&true) {
             if let Some(delimiter) = self.string_delimiter {
@@ -133,23 +135,33 @@ impl ExternalScanner for PythonScanner {
                     }
                 }
             }
-            
+
             // If we're in a string but can't find the end, consume content
             if valid_symbols.get(STRING_CONTENT_INDEX) == Some(&true) {
                 let mut length = 0;
-                
+
                 while !lexer.is_eof() {
                     // Check if we hit the string delimiter
                     match self.string_delimiter {
-                        Some(StringDelimiter::SingleQuote) if lexer.lookahead() == Some(b'\'') => break,
-                        Some(StringDelimiter::DoubleQuote) if lexer.lookahead() == Some(b'"') => break,
-                        Some(StringDelimiter::TripleSingleQuote) 
-                            if self.match_triple_at_lexer(lexer, b'\'') => break,
-                        Some(StringDelimiter::TripleDoubleQuote) 
-                            if self.match_triple_at_lexer(lexer, b'"') => break,
+                        Some(StringDelimiter::SingleQuote) if lexer.lookahead() == Some(b'\'') => {
+                            break;
+                        }
+                        Some(StringDelimiter::DoubleQuote) if lexer.lookahead() == Some(b'"') => {
+                            break;
+                        }
+                        Some(StringDelimiter::TripleSingleQuote)
+                            if self.match_triple_at_lexer(lexer, b'\'') =>
+                        {
+                            break;
+                        }
+                        Some(StringDelimiter::TripleDoubleQuote)
+                            if self.match_triple_at_lexer(lexer, b'"') =>
+                        {
+                            break;
+                        }
                         _ => {}
                     }
-                    
+
                     // Handle escape sequences
                     if lexer.lookahead() == Some(b'\\') {
                         lexer.advance(1);
@@ -163,7 +175,7 @@ impl ExternalScanner for PythonScanner {
                         length += 1;
                     }
                 }
-                
+
                 if length > 0 {
                     lexer.mark_end();
                     return Some(ScanResult {
@@ -172,10 +184,10 @@ impl ExternalScanner for PythonScanner {
                     });
                 }
             }
-            
+
             return None;
         }
-        
+
         // Check for string start
         if valid_symbols.get(STRING_START_INDEX) == Some(&true) {
             // Check for triple quotes first
@@ -188,7 +200,7 @@ impl ExternalScanner for PythonScanner {
                     length: 3,
                 });
             }
-            
+
             if self.match_triple_at_lexer(lexer, b'"') {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::TripleDoubleQuote);
@@ -198,7 +210,7 @@ impl ExternalScanner for PythonScanner {
                     length: 3,
                 });
             }
-            
+
             // Check for single quotes
             if lexer.lookahead() == Some(b'\'') {
                 self.inside_string = true;
@@ -210,7 +222,7 @@ impl ExternalScanner for PythonScanner {
                     length: 1,
                 });
             }
-            
+
             if lexer.lookahead() == Some(b'"') {
                 self.inside_string = true;
                 self.string_delimiter = Some(StringDelimiter::DoubleQuote);
@@ -222,7 +234,7 @@ impl ExternalScanner for PythonScanner {
                 });
             }
         }
-        
+
         // Handle newlines and indentation
         if valid_symbols.get(NEWLINE_INDEX) == Some(&true) {
             if lexer.lookahead() == Some(b'\n') {
@@ -234,11 +246,11 @@ impl ExternalScanner for PythonScanner {
                 });
             }
         }
-        
+
         // Handle indentation at the beginning of a line (column 0)
         if lexer.column() == 0 {
             let mut indent_length = 0;
-            
+
             // Count leading whitespace
             while !lexer.is_eof() {
                 match lexer.lookahead() {
@@ -253,16 +265,17 @@ impl ExternalScanner for PythonScanner {
                     _ => break,
                 }
             }
-            
+
             // Don't emit indentation tokens for blank lines or comments
             if !lexer.is_eof() {
                 let next_char = lexer.lookahead();
                 if next_char != Some(b'\n') && next_char != Some(b'#') {
                     // Get current indentation level
                     let current_indent = self.indent_stack.last().copied().unwrap_or(0);
-                    
-                    if valid_symbols.get(INDENT_INDEX) == Some(&true) 
-                        && indent_length > current_indent {
+
+                    if valid_symbols.get(INDENT_INDEX) == Some(&true)
+                        && indent_length > current_indent
+                    {
                         self.indent_stack.push(indent_length);
                         lexer.mark_end();
                         return Some(ScanResult {
@@ -270,9 +283,10 @@ impl ExternalScanner for PythonScanner {
                             length: 0, // Indents don't consume characters
                         });
                     }
-                    
-                    if valid_symbols.get(DEDENT_INDEX) == Some(&true) 
-                        && indent_length < current_indent {
+
+                    if valid_symbols.get(DEDENT_INDEX) == Some(&true)
+                        && indent_length < current_indent
+                    {
                         // Pop all indentation levels greater than the current line's indentation
                         while let Some(&last_indent) = self.indent_stack.last() {
                             if last_indent <= indent_length {
@@ -280,7 +294,7 @@ impl ExternalScanner for PythonScanner {
                             }
                             self.indent_stack.pop();
                         }
-                        
+
                         lexer.mark_end();
                         return Some(ScanResult {
                             symbol: TokenType::Dedent as u16,
@@ -290,17 +304,17 @@ impl ExternalScanner for PythonScanner {
                 }
             }
         }
-        
+
         None
     }
-    
+
     fn serialize(&self, buffer: &mut Vec<u8>) {
         // Serialize the indent stack
         buffer.extend_from_slice(&(self.indent_stack.len() as u16).to_le_bytes());
         for &indent in &self.indent_stack {
             buffer.extend_from_slice(&indent.to_le_bytes());
         }
-        
+
         // Serialize string state
         buffer.push(if self.inside_string { 1 } else { 0 });
         buffer.push(match self.string_delimiter {
@@ -311,18 +325,18 @@ impl ExternalScanner for PythonScanner {
             Some(StringDelimiter::TripleDoubleQuote) => 4,
         });
     }
-    
+
     fn deserialize(&mut self, buffer: &[u8]) {
         self.indent_stack.clear();
-        
+
         if buffer.len() < 2 {
             return;
         }
-        
+
         // Deserialize indent stack
         let stack_len = u16::from_le_bytes([buffer[0], buffer[1]]) as usize;
         let mut offset = 2;
-        
+
         for _ in 0..stack_len {
             if offset + 2 > buffer.len() {
                 break;
@@ -331,13 +345,13 @@ impl ExternalScanner for PythonScanner {
             self.indent_stack.push(indent);
             offset += 2;
         }
-        
+
         // Deserialize string state
         if offset < buffer.len() {
             self.inside_string = buffer[offset] != 0;
             offset += 1;
         }
-        
+
         if offset < buffer.len() {
             self.string_delimiter = match buffer[offset] {
                 1 => Some(StringDelimiter::SingleQuote),
@@ -356,12 +370,12 @@ impl PythonScanner {
         if lexer.lookahead() != Some(quote) {
             return false;
         }
-        
+
         // Look ahead without advancing to check for triple quotes
         // This is a simplified check - ideally we'd need a peek(n) method
         // For now, we'll rely on the lexer's lookahead for single-char checks
         // TODO: Improve this with proper multi-char lookahead support
-        
+
         // For now, return false for triple quotes to keep it simple
         // This will need to be fixed when we have better lexer API
         false

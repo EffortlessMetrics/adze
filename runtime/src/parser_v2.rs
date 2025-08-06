@@ -1,7 +1,7 @@
 // Enhanced parser with full reduction support
 // This implements a complete LR parser with grammar-aware reductions
 
-use rust_sitter_glr_core::{Action, ParseTable, VersionInfo, compare_versions, CompareResult};
+use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -28,7 +28,7 @@ impl ParseStack {
             id,
         }
     }
-    
+
     fn current_state(&self) -> StateId {
         *self.state_stack.last().expect("Empty state stack")
     }
@@ -157,7 +157,7 @@ impl ParserV2 {
         }
 
         let initial_stack = ParseStack::new(StateId(0), 0);
-        
+
         Self {
             grammar,
             parse_table,
@@ -202,34 +202,34 @@ impl ParserV2 {
 
         Err(ParseError::InvalidState)
     }
-    
+
     /// Process a single token using the two-phase GLR algorithm
     fn process_token(&mut self, token: Token) -> Result<(), ParseError> {
         // Phase 1: Perform all possible reductions
         self.stacks = self.reduce_until_saturated(token.symbol);
-        
+
         // Phase 2: Process token (shift/fork/error)
         self.process_token_phase2(token)
     }
-    
+
     /// Phase 1: Perform all reductions until no more apply
     fn reduce_until_saturated(&mut self, lookahead: SymbolId) -> Vec<ParseStack> {
         let mut stacks = std::mem::take(&mut self.stacks);
         let mut iteration = 0;
-        
+
         loop {
             iteration += 1;
             if iteration > 20 {
                 panic!("Too many reduction iterations - possible grammar issue");
             }
-            
+
             let mut any_reduction = false;
             let mut new_stacks = Vec::new();
-            
+
             for stack in stacks {
                 let state = stack.current_state();
                 let action = self.get_action(state, lookahead).unwrap_or(Action::Error);
-                
+
                 match action {
                     Action::Reduce(rule_id) => {
                         any_reduction = true;
@@ -240,19 +240,21 @@ impl ParserV2 {
                     Action::Fork(ref actions) => {
                         // Check if fork contains any reductions
                         let mut non_reduce_actions = Vec::new();
-                        
+
                         for action in actions {
                             match action {
                                 Action::Reduce(rule_id) => {
                                     any_reduction = true;
-                                    if let Some(reduced_stack) = self.reduce_stack(stack.clone(), *rule_id) {
+                                    if let Some(reduced_stack) =
+                                        self.reduce_stack(stack.clone(), *rule_id)
+                                    {
                                         new_stacks.push(reduced_stack);
                                     }
                                 }
                                 _ => non_reduce_actions.push(action.clone()),
                             }
                         }
-                        
+
                         // If there were non-reduce actions, keep the stack for phase 2
                         if !non_reduce_actions.is_empty() {
                             new_stacks.push(stack);
@@ -264,27 +266,29 @@ impl ParserV2 {
                     }
                 }
             }
-            
+
             // Merge duplicate stacks
             stacks = self.merge_stacks(new_stacks);
-            
+
             if !any_reduction {
                 break;
             }
         }
-        
+
         stacks
     }
-    
+
     /// Phase 2: Process token with shift/fork/error actions
     fn process_token_phase2(&mut self, token: Token) -> Result<(), ParseError> {
         let mut new_stacks = Vec::new();
         let mut any_success = false;
-        
+
         for stack in &self.stacks {
             let state = stack.current_state();
-            let action = self.get_action(state, token.symbol).unwrap_or(Action::Error);
-            
+            let action = self
+                .get_action(state, token.symbol)
+                .unwrap_or(Action::Error);
+
             match action {
                 Action::Shift(next_state) => {
                     any_success = true;
@@ -312,7 +316,7 @@ impl ParserV2 {
                                 let mut forked = stack.clone();
                                 forked.id = self.next_stack_id;
                                 self.next_stack_id += 1;
-                                
+
                                 let node = Arc::new(ParseNode::terminal(
                                     token.symbol,
                                     token.text.clone(),
@@ -340,7 +344,7 @@ impl ParserV2 {
                 _ => {}
             }
         }
-        
+
         if !any_success && new_stacks.is_empty() {
             return Err(ParseError::UnexpectedToken {
                 expected: self.get_expected_symbols(self.stacks[0].current_state()),
@@ -348,7 +352,7 @@ impl ParserV2 {
                 position: token.start,
             });
         }
-        
+
         self.stacks = self.merge_stacks(new_stacks);
         Ok(())
     }
@@ -356,11 +360,11 @@ impl ParserV2 {
     /// Perform a reduction on a specific stack
     fn reduce_stack(&mut self, mut stack: ParseStack, rule_id: RuleId) -> Option<ParseStack> {
         let rule = self.rule_map.get(&rule_id)?;
-        
+
         // Pop nodes for each symbol in the rule's RHS
         let rhs_len = rule.rhs.len();
         let mut children = Vec::with_capacity(rhs_len);
-        
+
         // Pop nodes and states
         for _ in 0..rhs_len {
             if let Some(node) = stack.node_stack.pop() {
@@ -369,18 +373,18 @@ impl ParserV2 {
             stack.state_stack.pop();
         }
         children.reverse();
-        
+
         // Get the goto state for the LHS symbol
         let current_state = *stack.state_stack.last()?;
         let goto_state = self.get_goto(current_state, rule.lhs).ok()?;
-        
+
         // Create non-terminal node
         let start_byte = children
             .first()
             .map(|n| n.start_byte)
             .unwrap_or(self.position);
         let end_byte = children.last().map(|n| n.end_byte).unwrap_or(self.position);
-        
+
         let node = Arc::new(ParseNode::non_terminal(
             rule.lhs,
             rule_id,
@@ -388,11 +392,11 @@ impl ParserV2 {
             start_byte,
             end_byte,
         ));
-        
+
         // Push new node and state
         stack.node_stack.push(node);
         stack.state_stack.push(goto_state);
-        
+
         // Update version info if rule has dynamic precedence
         if let Some(prec) = rule.precedence {
             match prec {
@@ -404,41 +408,43 @@ impl ParserV2 {
                 }
             }
         }
-        
+
         Some(stack)
     }
-    
+
     /// Merge stacks that have reached the same state
     fn merge_stacks(&mut self, stacks: Vec<ParseStack>) -> Vec<ParseStack> {
         let mut merged = Vec::new();
         let mut processed = vec![false; stacks.len()];
-        
+
         for i in 0..stacks.len() {
             if processed[i] {
                 continue;
             }
-            
+
             let mut best_stack = stacks[i].clone();
             processed[i] = true;
-            
+
             // Look for other stacks with same state
             for j in (i + 1)..stacks.len() {
                 if processed[j] {
                     continue;
                 }
-                
+
                 let other = &stacks[j];
-                
+
                 // Check if stacks can be merged (same state and same parse tree structure)
-                if best_stack.current_state() == other.current_state() 
-                    && best_stack.node_stack.len() == other.node_stack.len() {
-                    
+                if best_stack.current_state() == other.current_state()
+                    && best_stack.node_stack.len() == other.node_stack.len()
+                {
                     // Use version comparison to pick the better stack
                     match compare_versions(&best_stack.version, &other.version) {
                         CompareResult::TakeRight => {
                             best_stack = other.clone();
                         }
-                        CompareResult::PreferLeft | CompareResult::PreferRight | CompareResult::Tie => {
+                        CompareResult::PreferLeft
+                        | CompareResult::PreferRight
+                        | CompareResult::Tie => {
                             // Can't decide definitively - keep both
                             continue;
                         }
@@ -447,21 +453,24 @@ impl ParserV2 {
                     processed[j] = true;
                 }
             }
-            
+
             merged.push(best_stack);
         }
-        
+
         merged
     }
-    
+
     /// Handle fork action (for backward compatibility)
     #[allow(dead_code)]
-    fn handle_fork(&mut self, _actions: Vec<Action>, _token: &Token) -> Result<ParseNode, ParseError> {
+    fn handle_fork(
+        &mut self,
+        _actions: Vec<Action>,
+        _token: &Token,
+    ) -> Result<ParseNode, ParseError> {
         // This method is no longer used with the two-phase algorithm
         // The fork handling is integrated into the main parse loop
         Err(ParseError::InvalidState)
     }
-
 
     /// Get action for state and symbol
     fn get_action(&self, state: StateId, symbol: SymbolId) -> Result<Action, ParseError> {

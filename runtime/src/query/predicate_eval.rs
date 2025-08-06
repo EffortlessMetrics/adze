@@ -44,9 +44,13 @@ impl<'a> PredicateContext<'a> {
 
             Predicate::Match { capture, regex } => self.evaluate_match(*capture, regex, captures),
 
-            Predicate::NotMatch { capture, regex } => !self.evaluate_match(*capture, regex, captures),
+            Predicate::NotMatch { capture, regex } => {
+                !self.evaluate_match(*capture, regex, captures)
+            }
 
-            Predicate::AnyOf { capture, values } => self.evaluate_any_of(*capture, values, captures),
+            Predicate::AnyOf { capture, values } => {
+                self.evaluate_any_of(*capture, values, captures)
+            }
 
             Predicate::Set { .. } | Predicate::Is { .. } | Predicate::IsNot { .. } => {
                 // Property predicates are handled separately
@@ -87,7 +91,12 @@ impl<'a> PredicateContext<'a> {
     }
 
     /// Evaluate #match? predicate
-    fn evaluate_match(&self, capture: u32, regex_str: &str, captures: &HashMap<u32, ParseNode>) -> bool {
+    fn evaluate_match(
+        &self,
+        capture: u32,
+        regex_str: &str,
+        captures: &HashMap<u32, ParseNode>,
+    ) -> bool {
         if let Some(node) = captures.get(&capture) {
             let text = self.node_text(node);
 
@@ -110,7 +119,12 @@ impl<'a> PredicateContext<'a> {
     }
 
     /// Evaluate #any-of? predicate
-    fn evaluate_any_of(&self, capture: u32, values: &[String], captures: &HashMap<u32, ParseNode>) -> bool {
+    fn evaluate_any_of(
+        &self,
+        capture: u32,
+        values: &[String],
+        captures: &HashMap<u32, ParseNode>,
+    ) -> bool {
         if let Some(node) = captures.get(&capture) {
             let text = self.node_text(node);
             return values.iter().any(|v| text == v);
@@ -220,7 +234,11 @@ mod tests {
         // Test matching any-of
         let pred = Predicate::AnyOf {
             capture: 0,
-            values: vec!["public".to_string(), "private".to_string(), "protected".to_string()],
+            values: vec![
+                "public".to_string(),
+                "private".to_string(),
+                "protected".to_string(),
+            ],
         };
         assert!(ctx.evaluate(&pred, &captures));
 

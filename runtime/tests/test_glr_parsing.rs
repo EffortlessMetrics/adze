@@ -1,11 +1,11 @@
 // Comprehensive tests for GLR (Generalized LR) parsing
 // These tests verify fork/merge handling for ambiguous grammars
 
+use indexmap::IndexMap;
 use rust_sitter::glr::{GLRStack, ParseStack};
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{ParseTable, Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use rust_sitter_ir::*;
-use indexmap::IndexMap;
 use std::collections::BTreeMap;
 
 /// Create the classic ambiguous expression grammar
@@ -89,9 +89,21 @@ fn create_ambiguous_grammar() -> Grammar {
         fields: vec![],
     };
 
-    grammar.rules.entry(expr).or_insert_with(Vec::new).push(rule1);
-    grammar.rules.entry(expr).or_insert_with(Vec::new).push(rule2);
-    grammar.rules.entry(expr).or_insert_with(Vec::new).push(rule3);
+    grammar
+        .rules
+        .entry(expr)
+        .or_insert_with(Vec::new)
+        .push(rule1);
+    grammar
+        .rules
+        .entry(expr)
+        .or_insert_with(Vec::new)
+        .push(rule2);
+    grammar
+        .rules
+        .entry(expr)
+        .or_insert_with(Vec::new)
+        .push(rule3);
 
     // Add rule names
     grammar.rule_names.insert(expr, "expression".to_string());
@@ -239,11 +251,11 @@ fn test_ambiguous_expression_parsing() {
     // // Parse "1 + 2 * 3"
     // // This should create a fork at the shift/reduce conflict
     // let input = "1 + 2 * 3";
-    // 
+    //
     // match parser.parse(input) {
     //     Ok(tree) => {
     //         println!("Parsed ambiguous expression: {:?}", tree);
-    // 
+    //
     //         // Check if we got an ambiguity node
     //         if tree.field_name == Some("ambiguous".to_string()) {
     //             assert_eq!(tree.symbol, SymbolId(0xFFFF));
@@ -265,7 +277,7 @@ fn test_ambiguous_expression_parsing() {
 //     let first_follow = FirstFollowSets::compute(&grammar);
 //     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 //     let mut glr_parser = GLRParser::new(parse_table, grammar);
-// 
+//
 //     // Process tokens for "1 + 2 * 3"
 //     glr_parser.process_token(SymbolId(1), "1", 0);
 //     glr_parser.process_token(SymbolId(2), "+", 2);
@@ -319,8 +331,16 @@ fn test_dangling_else_grammar() {
         fields: vec![],
     };
 
-    grammar.rules.entry(stmt).or_insert_with(Vec::new).push(rule1);
-    grammar.rules.entry(stmt).or_insert_with(Vec::new).push(rule2);
+    grammar
+        .rules
+        .entry(stmt)
+        .or_insert_with(Vec::new)
+        .push(rule1);
+    grammar
+        .rules
+        .entry(stmt)
+        .or_insert_with(Vec::new)
+        .push(rule2);
 
     // The grammar is ambiguous for:
     // "if expr then if expr then stmt else stmt"
@@ -339,7 +359,7 @@ fn test_precedence_resolution() {
     let plus = SymbolId(2);
     let mult = SymbolId(3);
     let expr = SymbolId(10);
-    
+
     // Set precedence and associativity on the rules
     for rule in grammar.rules.get_mut(&expr).unwrap() {
         if rule.rhs.contains(&Symbol::Terminal(plus)) {

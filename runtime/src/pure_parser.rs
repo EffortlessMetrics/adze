@@ -378,8 +378,8 @@ impl Parser {
             // Handle extra tokens (like whitespace)
             if token.is_extra {
                 ////eprintln!($
-                    //"DEBUG: Skipping extra token symbol={} at position={}",
-                    //token.symbol, position
+                //"DEBUG: Skipping extra token symbol={} at position={}",
+                //token.symbol, position
                 //);
                 // Create extra node and attach it to the previous node on stack
                 let end_point = advance_point(point, &source[position..position + token.length]);
@@ -429,8 +429,7 @@ impl Parser {
             }
             match action {
                 Action::Shift(next_state) => {
-                    if source.len() < 20 {
-                    }
+                    if source.len() < 20 {}
                     // Create leaf node
                     let end_point =
                         advance_point(point, &source[position..position + token.length]);
@@ -496,15 +495,15 @@ impl Parser {
                                         // Parse successful!
                                         // eprintln!("DEBUG: Parse accepted! Root subtree:");
                                         // fn print_subtree(subtree: &Subtree, indent: usize) {
-                                        //     eprintln!("{}symbol={}, children={}, bytes={}..{}", 
-                                        //         "  ".repeat(indent), subtree.symbol, subtree.children.len(), 
+                                        //     eprintln!("{}symbol={}, children={}, bytes={}..{}",
+                                        //         "  ".repeat(indent), subtree.symbol, subtree.children.len(),
                                         //         subtree.start_byte, subtree.end_byte);
                                         //     for child in &subtree.children {
                                         //         print_subtree(child, indent + 1);
                                         //     }
                                         // }
                                         // print_subtree(subtree, 1);
-                                        
+
                                         return ParseResult {
                                             root: Some(subtree_to_node(
                                                 subtree.clone(),
@@ -539,8 +538,10 @@ impl Parser {
                 Action::Error => {
                     // Record error and try to recover
                     let expected_symbols = self.get_expected_symbols(language, current_state);
-                    eprintln!("ERROR: position={}, current_state={}, expected_symbols={:?}, token.symbol={}", 
-                              position, current_state, expected_symbols, token.symbol);
+                    eprintln!(
+                        "ERROR: position={}, current_state={}, expected_symbols={:?}, token.symbol={}",
+                        position, current_state, expected_symbols, token.symbol
+                    );
                     errors.push(ParseError {
                         position,
                         point,
@@ -635,21 +636,24 @@ impl Parser {
                     //     "DEBUG lex_token: state={}, lex_mode={}, position={}, lexer returned symbol={}, length={}, is_extra={}",
                     //     state, lex_mode.lex_state, position, symbol, lex_state.result_length, is_extra
                     // );
-                    
+
                     // Additional debug to understand symbol mapping
-                    unsafe {
+                    {
                         if symbol < language.symbol_count as u16 {
-                            let symbol_names = std::slice::from_raw_parts(language.symbol_names, language.symbol_count as usize);
+                            let symbol_names = std::slice::from_raw_parts(
+                                language.symbol_names,
+                                language.symbol_count as usize,
+                            );
                             let name_ptr = symbol_names[symbol as usize];
                             if !name_ptr.is_null() {
                                 let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
-                                if let Ok(name) = c_str.to_str() {
+                                if let Ok(_name) = c_str.to_str() {
                                     // eprintln!("DEBUG lex_token: symbol {} is '{}'", symbol, name);
                                 }
                             }
                         }
                     }
-                    
+
                     return Token {
                         symbol,
                         length: lex_state.result_length,
@@ -696,7 +700,7 @@ impl Parser {
                 if metadata_ptr.is_null() {
                     return false;
                 }
-                
+
                 let metadata = *metadata_ptr.add(symbol as usize);
                 // Check if HIDDEN flag is set (0x04)
                 let is_hidden = (metadata & 0x04) != 0;
@@ -732,8 +736,8 @@ impl Parser {
                 // Check if HIDDEN flag is set (0x04)
                 let is_hidden = (metadata & 0x04) != 0;
                 ////eprintln!($
-                    //"DEBUG is_extra_symbol: symbol={}, metadata_ptr={:p}, offset={}, metadata={:#x}, is_hidden={}",
-                    //symbol, metadata_ptr, symbol as usize, metadata, is_hidden
+                //"DEBUG is_extra_symbol: symbol={}, metadata_ptr={:p}, offset={}, metadata={:#x}, is_hidden={}",
+                //symbol, metadata_ptr, symbol as usize, metadata, is_hidden
                 //);
                 is_hidden
             } else {
@@ -810,8 +814,8 @@ impl Parser {
                     if action_value != 0 {
                         let action = self.decode_action(language, action_value as usize);
                         ////eprintln!($
-                            //"DEBUG get_action: DEFAULT REDUCE! Returning action: {:?}",
-                            //action
+                        //"DEBUG get_action: DEFAULT REDUCE! Returning action: {:?}",
+                        //action
                         //);
                         return action;
                     } else {
@@ -876,16 +880,10 @@ impl Parser {
                 if let Some(ref subtree) = entry.subtree {
                     eprintln!(
                         "  Stack[{}]: state={}, symbol={}",
-                        i,
-                        entry.state,
-                        subtree.symbol
+                        i, entry.state, subtree.symbol
                     );
                 } else {
-                    eprintln!(
-                        "  Stack[{}]: state={}, no subtree",
-                        i,
-                        entry.state
-                    );
+                    eprintln!("  Stack[{}]: state={}, no subtree", i, entry.state);
                 }
             }
         }
@@ -897,14 +895,14 @@ impl Parser {
                 ////eprintln!("DEBUG reduce: Invalid production_id=0 (production IDs are 1-based)");
                 return false;
             }
-            
+
             let zero_based_id = production_id - 1;
-            
+
             // Use the production_id_map to get the actual production index
             let production_index = if zero_based_id < language.production_id_count as u16 {
                 *language.production_id_map.add(zero_based_id as usize)
             } else {
-                ////eprintln!("DEBUG reduce: Invalid production_id {} (zero_based={}, >= {})", 
+                ////eprintln!("DEBUG reduce: Invalid production_id {} (zero_based={}, >= {})",
                 //         production_id, zero_based_id, language.production_id_count);
                 return false;
             };
@@ -991,7 +989,7 @@ impl Parser {
 
             // Check if this symbol is hidden (e.g., _Expression)
             let is_hidden = self.is_hidden_symbol(language, symbol);
-            
+
             // Create parent node or unwrap if hidden
             let parent = if is_hidden && children.len() == 1 {
                 // Return the child directly, skipping the hidden wrapper
@@ -1030,8 +1028,8 @@ impl Parser {
             };
 
             ////eprintln!($
-                //"DEBUG reduce: Looking up goto for symbol {} from state {}",
-                //symbol, prev_state
+            //"DEBUG reduce: Looking up goto for symbol {} from state {}",
+            //symbol, prev_state
             //);
 
             // Check if this is an accept condition
@@ -1042,8 +1040,8 @@ impl Parser {
 
             if is_root_symbol && is_initial_state {
                 ////eprintln!($
-                    //"DEBUG reduce: Accept condition met - reduced to root symbol {} in state 0",
-                    //symbol
+                //"DEBUG reduce: Accept condition met - reduced to root symbol {} in state 0",
+                //symbol
                 //);
                 // This is a successful parse!
                 // Push the final node onto the stack
@@ -1063,8 +1061,8 @@ impl Parser {
             match goto_action {
                 Action::Shift(next_state) => {
                     ////eprintln!($
-                        //"DEBUG reduce: Pushing reduced node with state {}",
-                        //next_state
+                    //"DEBUG reduce: Pushing reduced node with state {}",
+                    //next_state
                     //);
                     // Push the reduced node with the goto state
                     self.stack.push(StackEntry {
@@ -1112,7 +1110,6 @@ impl Parser {
         0
     }
 
-
     /// Get expected symbols for error reporting
     fn get_expected_symbols(&self, language: &TSLanguage, state: TSStateId) -> Vec<TSSymbol> {
         let mut expected = Vec::new();
@@ -1131,12 +1128,15 @@ impl Parser {
                 // Debug: print symbol names for expected symbols
                 if state == 0 {
                     unsafe {
-                        let symbol_names = std::slice::from_raw_parts(language.symbol_names, language.symbol_count as usize);
+                        let symbol_names = std::slice::from_raw_parts(
+                            language.symbol_names,
+                            language.symbol_count as usize,
+                        );
                         if symbol < language.symbol_count as u16 {
                             let name_ptr = symbol_names[symbol as usize];
                             if !name_ptr.is_null() {
                                 let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
-                                let name = c_str.to_string_lossy();
+                                let _name = c_str.to_string_lossy();
                             }
                         }
                     }

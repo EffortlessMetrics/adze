@@ -3,7 +3,7 @@ mod example_integration;
 #[cfg(test)]
 mod tests {
     #![allow(dead_code)]
-    
+
     use anyhow::{Context, Result};
     use sha2::{Digest, Sha256};
     use std::fs;
@@ -24,7 +24,9 @@ mod tests {
         }
 
         fn expected_hash_path(&self) -> PathBuf {
-            let base_name = self.fixture_name.replace(&format!(".{}", self.language), "");
+            let base_name = self
+                .fixture_name
+                .replace(&format!(".{}", self.language), "");
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join(self.language)
                 .join("expected")
@@ -32,7 +34,9 @@ mod tests {
         }
 
         fn expected_sexp_path(&self) -> PathBuf {
-            let base_name = self.fixture_name.replace(&format!(".{}", self.language), "");
+            let base_name = self
+                .fixture_name
+                .replace(&format!(".{}", self.language), "");
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join(self.language)
                 .join("expected")
@@ -96,14 +100,14 @@ mod tests {
         if std::env::var("UPDATE_GOLDEN").is_ok() {
             // Update mode: generate new reference files
             println!("Updating golden reference for {}", test.fixture_name);
-            
+
             // Note: In real implementation, we'd run tree-sitter here
             // For now, we just save what rust-sitter produces
             fs::write(&test.expected_sexp_path(), &sexp)?;
-            
+
             let hash = compute_hash(&sexp);
             fs::write(&test.expected_hash_path(), &hash)?;
-            
+
             return Ok(());
         }
 
@@ -114,19 +118,19 @@ mod tests {
                 .with_context(|| "Failed to read expected hash")?
                 .trim()
                 .to_string();
-            
+
             let actual_hash = compute_hash(&sexp);
-            
+
             if actual_hash != expected_hash {
                 // On hash mismatch, show more detailed error
                 if test.expected_sexp_path().exists() {
                     let expected_sexp = fs::read_to_string(&test.expected_sexp_path())
                         .with_context(|| "Failed to read expected S-expression")?;
-                    
+
                     // Save actual output for debugging
                     let debug_path = test.expected_sexp_path().with_extension("actual.sexp");
                     fs::write(&debug_path, &sexp)?;
-                    
+
                     anyhow::bail!(
                         "Parse tree mismatch for {}:\n\
                          Expected hash: {}\n\
@@ -143,7 +147,7 @@ mod tests {
                         debug_path.display()
                     );
                 }
-                
+
                 anyhow::bail!(
                     "Parse tree hash mismatch for {}:\n\
                      Expected: {}\n\
@@ -180,7 +184,7 @@ mod tests {
     #[cfg(feature = "javascript-grammar")]
     fn javascript_react_dom_golden() -> Result<()> {
         run_golden_test(GoldenTest {
-            language: "javascript", 
+            language: "javascript",
             fixture_name: "react_dom_sample.js",
         })
     }
@@ -188,8 +192,7 @@ mod tests {
     // Test to ensure reference generation script exists
     #[test]
     fn reference_script_exists() {
-        let script_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("generate_references.sh");
+        let script_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("generate_references.sh");
         assert!(
             script_path.exists(),
             "Reference generation script not found at: {}",

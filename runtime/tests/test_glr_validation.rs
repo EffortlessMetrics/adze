@@ -72,8 +72,11 @@ fn test_comprehensive_validation() {
     let expr_id = SymbolId(10);
     grammar.rule_names.insert(expr_id, "expr".to_string());
 
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::NonTerminal(expr_id),
@@ -84,8 +87,7 @@ fn test_comprehensive_validation() {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
 
     let mut validator = GLRGrammarValidator::new();
     let result = validator.validate(&grammar);
@@ -138,16 +140,18 @@ fn test_undefined_symbol_with_typo() {
     let expr_id = SymbolId(10);
     let identifer_typo_id = SymbolId(99);
 
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(identifer_typo_id)], // typo
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
     grammar.rule_names.insert(expr_id, "expr".to_string());
     grammar
         .rule_names
@@ -186,40 +190,46 @@ fn test_non_productive_cycle_detection() {
     let b_id = SymbolId(2);
     let c_id = SymbolId(3);
 
-    grammar.rules.entry(a_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(a_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: a_id,
             rhs: vec![Symbol::NonTerminal(b_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
     grammar.rule_names.insert(a_id, "A".to_string());
 
-    grammar.rules.entry(b_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(b_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: b_id,
             rhs: vec![Symbol::NonTerminal(c_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(1),
-        },
-    );
+        });
     grammar.rule_names.insert(b_id, "B".to_string());
 
-    grammar.rules.entry(c_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(c_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: c_id,
             rhs: vec![Symbol::NonTerminal(a_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(2),
-        },
-    );
+        });
     grammar.rule_names.insert(c_id, "C".to_string());
 
     let mut validator = GLRGrammarValidator::new();
@@ -302,21 +312,26 @@ fn test_ambiguous_grammar_detection() {
 
     // Rules that create ambiguity
     // stmt → if_stmt
-    grammar.rules.entry(stmt_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(stmt_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: stmt_id,
             rhs: vec![Symbol::NonTerminal(if_stmt_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
     grammar.rule_names.insert(stmt_id, "stmt".to_string());
 
     // if_stmt → if expr then stmt
-    grammar.rules.entry(if_stmt_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(if_stmt_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: if_stmt_id,
             rhs: vec![
                 Symbol::Terminal(if_id),
@@ -328,13 +343,15 @@ fn test_ambiguous_grammar_detection() {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(1),
-        },
-    );
+        });
     grammar.rule_names.insert(if_stmt_id, "if_stmt".to_string());
 
     // Also allow: if_stmt → if expr then stmt else stmt (creates ambiguity)
-    grammar.rules.entry(if_stmt_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(if_stmt_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: if_stmt_id,
             rhs: vec![
                 Symbol::Terminal(if_id),
@@ -348,8 +365,7 @@ fn test_ambiguous_grammar_detection() {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(2),
-        },
-    );
+        });
 
     let mut validator = GLRGrammarValidator::new();
     let result = validator.validate(&grammar);
@@ -424,16 +440,18 @@ fn test_token_validation() {
 
     // Add a rule to make grammar non-empty
     let expr_id = SymbolId(10);
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(word1_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
     grammar.rule_names.insert(expr_id, "expr".to_string());
 
     let mut validator = GLRGrammarValidator::new();
@@ -470,16 +488,18 @@ fn test_helpful_error_formatting() {
     let expr_id = SymbolId(1);
     let undefined_id = SymbolId(99);
 
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(undefined_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
     grammar.rule_names.insert(expr_id, "expression".to_string());
     grammar
         .rule_names
@@ -538,30 +558,34 @@ fn test_unreachable_symbol_warning() {
 
     // Create a rule that only uses one token
     let expr_id = SymbolId(10);
-    grammar.rules.entry(expr_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(expr_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(used_token)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
-    );
+        });
     grammar.rule_names.insert(expr_id, "expr".to_string());
 
     // Create an unreachable rule
     let unreachable_rule = SymbolId(11);
-    grammar.rules.entry(unreachable_rule).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(unreachable_rule)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: unreachable_rule,
             rhs: vec![Symbol::Terminal(unused_token)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(1),
-        },
-    );
+        });
     grammar
         .rule_names
         .insert(unreachable_rule, "unreachable_rule".to_string());

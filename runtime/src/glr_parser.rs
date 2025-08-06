@@ -1,63 +1,63 @@
 //! GLR (Generalized LR) Parser Implementation
-//! 
+//!
 //! This module implements a GLR parser that can handle ambiguous grammars by maintaining
 //! multiple parse stacks simultaneously. When the parser encounters a shift/reduce or
 //! reduce/reduce conflict, it forks the parse stack and explores both possibilities.
-//! 
+//!
 //! ## Algorithm Overview
-//! 
+//!
 //! The parser uses a two-phase approach for processing tokens:
-//! 
+//!
 //! ### Phase 1: Reduction Saturation
 //! Before consuming any token, the parser performs all possible reductions on all active
 //! stacks. This is crucial because:
 //! - Reductions can cascade (one reduction enables another)
 //! - We must complete all reductions before shifting to maintain correctness
 //! - This prevents tokens from being consumed prematurely or processed multiple times
-//! 
+//!
 //! ### Phase 2: Token Processing  
 //! After all reductions are complete, the parser:
 //! - Processes shift actions for the current token
 //! - Handles fork actions (creating new stacks for conflicts)
 //! - Processes error recovery if no valid actions exist
-//! 
+//!
 //! ## Fork/Merge Strategy
-//! 
+//!
 //! When conflicts occur, the parser:
 //! 1. Forks the current stack into multiple stacks (one per conflicting action)
 //! 2. Processes each fork independently
 //! 3. Merges stacks that reach the same state with the same parse tree structure
 //! 4. Uses dynamic precedence to resolve ambiguities when possible
-//! 
+//!
 //! ## Error Recovery
-//! 
+//!
 //! The parser supports configurable error recovery strategies:
 //! - Token deletion (skip unexpected tokens)
 //! - Token insertion (insert missing tokens)
 //! - Panic mode (skip to synchronization points)
-//! 
+//!
 //! ## Example Usage
-//! 
+//!
 //! ```rust,no_run
 //! use rust_sitter::glr_parser::GLRParser;
 //! use rust_sitter::glr_lexer::GLRLexer;
 //! use rust_sitter_ir::{Grammar, SymbolId};
 //! use rust_sitter_glr_core::ParseTable;
-//! 
+//!
 //! // Create parser with grammar and parse table
 //! let grammar: Grammar = /* ... */;
 //! let parse_table: ParseTable = /* ... */;
 //! let mut parser = GLRParser::new(grammar, parse_table);
-//! 
+//!
 //! // Create lexer and tokenize input
 //! let mut lexer = GLRLexer::new(&grammar);
 //! let tokens = lexer.tokenize("1 + 2 * 3").unwrap();
-//! 
+//!
 //! // Process each token
 //! for token in tokens {
 //!     parser.process_token(token.symbol, &token.text, token.start_byte);
 //! }
-//! 
+//!
 //! // Process EOF and get result
 //! parser.process_eof();
 //! match parser.finish() {
@@ -69,7 +69,7 @@
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
 use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
-use rust_sitter_glr_core::{RuntimeConflictResolver, VecWrapperResolver, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, RuntimeConflictResolver, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
 use std::collections::VecDeque;
@@ -155,7 +155,7 @@ pub struct GLRParser {
 
     /// Error recovery state
     recovery_state: Option<ErrorRecoveryState>,
-    
+
     /// Conflict resolver for vec wrapper conflicts
     vec_wrapper_resolver: Option<VecWrapperResolver>,
 }
@@ -163,7 +163,7 @@ pub struct GLRParser {
 impl GLRParser {
     pub fn new(table: ParseTable, grammar: Grammar) -> Self {
         let initial_stack = ParseStack::new(StateId(0), 0);
-        
+
         // Compute FIRST/FOLLOW sets for the resolver
         let first_follow = FirstFollowSets::compute(&grammar);
         let vec_wrapper_resolver = Some(VecWrapperResolver::new(&grammar, &first_follow));
@@ -187,17 +187,17 @@ impl GLRParser {
     }
 
     /// Process one token through all active stacks
-    /// 
+    ///
     /// This is the main entry point for processing tokens. It implements the two-phase
     /// approach described in the module documentation:
-    /// 
+    ///
     /// 1. First, it performs all possible reductions on all active stacks using
     ///    `reduce_until_saturated()`. This ensures all cascading reductions complete
     ///    before any shifts occur.
-    /// 
+    ///
     /// 2. Then, it processes the token by examining shift and fork actions on the
     ///    reduced stacks.
-    /// 
+    ///
     /// # Arguments
     /// * `token` - The symbol ID of the token to process
     /// * `text` - The text content of the token
@@ -208,19 +208,19 @@ impl GLRParser {
         // Phase 1: Perform all possible reductions until saturation
         let mut stacks_to_process = std::mem::take(&mut self.stacks);
         self.pending_stacks.clear();
-        
+
         stacks_to_process = self.reduce_until_saturated(stacks_to_process, token);
 
         // Phase 2: Process shifts and other actions on all post-reduction stacks
         let mut new_stacks = Vec::new();
-        
+
         for stack in stacks_to_process {
             let state = stack.current_state();
-            
+
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
                 let action_cell = &self.table.action_table[state.0 as usize][*symbol_idx];
                 // Check action for token
-                
+
                 // Convert ActionCell to single action or Fork
                 let action = if action_cell.is_empty() {
                     Action::Error
@@ -229,7 +229,7 @@ impl GLRParser {
                 } else {
                     Action::Fork(action_cell.clone())
                 };
-                
+
                 match &action {
                     Action::Shift(new_state) => {
                         let mut new_stack = stack.clone();
@@ -246,12 +246,12 @@ impl GLRParser {
                         );
                         new_stacks.push(new_stack);
                     }
-                    
+
                     Action::Accept => {
                         // Keep the accepting stack
                         new_stacks.push(stack);
                     }
-                    
+
                     Action::Reduce(_) => {
                         // This shouldn't happen after reduce_until_saturated
                         unreachable!("Found reduce action after saturation");
@@ -264,7 +264,7 @@ impl GLRParser {
                         } else {
                             None
                         };
-                        
+
                         if let Some(action) = resolved_action {
                             // Resolver chose a specific action
                             match action {
@@ -301,7 +301,8 @@ impl GLRParser {
                                                 SubtreeNode {
                                                     symbol_id: token,
                                                     is_error: false,
-                                                    byte_range: byte_offset..byte_offset + text.len(),
+                                                    byte_range: byte_offset
+                                                        ..byte_offset + text.len(),
                                                 },
                                                 vec![],
                                             )),
@@ -309,12 +310,12 @@ impl GLRParser {
                                         new_stacks.push(forked);
                                     }
 
-                                Action::Reduce(_) => {
-                                    // Reductions should have been handled in phase 1
-                                    // This shouldn't happen if reduce_until_saturated worked correctly
-                                }
+                                    Action::Reduce(_) => {
+                                        // Reductions should have been handled in phase 1
+                                        // This shouldn't happen if reduce_until_saturated worked correctly
+                                    }
 
-                                _ => {}
+                                    _ => {}
                                 }
                             }
                         }
@@ -340,7 +341,8 @@ impl GLRParser {
                                             let missing_action_cell = &self.table.action_table
                                                 [state.0 as usize][missing_idx];
                                             // Find shift action in cell
-                                            let shift_action = missing_action_cell.iter()
+                                            let shift_action = missing_action_cell
+                                                .iter()
                                                 .find(|a| matches!(a, Action::Shift(_)));
                                             if let Some(Action::Shift(new_state)) = shift_action {
                                                 let mut recovery_stack = stack.clone();
@@ -401,7 +403,7 @@ impl GLRParser {
                 }
             }
         }
-        
+
         // Merge stacks that reach the same state
         self.merge_stacks(&mut new_stacks);
 
@@ -409,48 +411,53 @@ impl GLRParser {
         self.stacks = new_stacks;
         self.pending_stacks = (0..self.stacks.len()).collect();
     }
-    
+
     /// Perform all possible reductions on the given stacks until no more reductions apply
-    /// 
+    ///
     /// This method implements the reduction saturation phase of GLR parsing. It repeatedly
     /// applies all possible reductions to all stacks until no more reductions are available.
     /// This is essential for correctness because:
-    /// 
+    ///
     /// 1. **Cascading Reductions**: One reduction may enable another. For example, reducing
     ///    `E → E + E` might enable reducing `S → E` at a higher level.
-    /// 
+    ///
     /// 2. **Completeness**: We must explore all reduction paths before shifting to ensure
     ///    we don't miss valid parses.
-    /// 
+    ///
     /// 3. **Fork Handling**: When a fork action contains both reduce and shift actions,
     ///    we process all reductions in this phase and defer shifts to phase 2.
-    /// 
+    ///
     /// The method includes an iteration limit to prevent infinite loops in case of
     /// grammar bugs.
-    /// 
+    ///
     /// # Arguments
     /// * `stacks` - The parse stacks to process
     /// * `token` - The lookahead token (used to determine which reductions apply)
-    /// 
+    ///
     /// # Returns
     /// A vector of stacks with all reductions applied
-    fn reduce_until_saturated(&mut self, mut stacks: Vec<ParseStack>, token: SymbolId) -> Vec<ParseStack> {
+    fn reduce_until_saturated(
+        &mut self,
+        mut stacks: Vec<ParseStack>,
+        token: SymbolId,
+    ) -> Vec<ParseStack> {
         let mut iteration = 0;
         loop {
             iteration += 1;
             if iteration > 20 {
                 panic!("Too many reduction iterations - possible infinite loop");
             }
-            
+
             let mut any_reduction_performed = false;
             let mut result_stacks = Vec::new();
-            
+
             for stack in stacks {
                 let state = stack.current_state();
-                
+
                 if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                    let action_cell = self.table.action_table[state.0 as usize][*symbol_idx].clone();
-                    
+                    let action_cell =
+                        self.table.action_table[state.0 as usize][*symbol_idx].clone();
+
                     // Handle multiple actions in the cell (GLR)
                     if action_cell.is_empty() {
                         // No action available, keep stack as is
@@ -468,7 +475,7 @@ impl GLRParser {
                                 // Handle fork action
                                 let mut has_reduction = false;
                                 let mut fork_results = Vec::new();
-                                
+
                                 for fork_action in actions {
                                     match fork_action {
                                         Action::Reduce(rule_id) => {
@@ -484,7 +491,7 @@ impl GLRParser {
                                         }
                                     }
                                 }
-                                
+
                                 if has_reduction {
                                     result_stacks.extend(fork_results);
                                 } else {
@@ -500,7 +507,7 @@ impl GLRParser {
                         // Multiple actions - need to fork
                         let mut has_reduction = false;
                         let mut fork_results = Vec::new();
-                        
+
                         for action in &action_cell {
                             match action {
                                 Action::Reduce(rule_id) => {
@@ -516,7 +523,7 @@ impl GLRParser {
                                 }
                             }
                         }
-                        
+
                         if has_reduction {
                             result_stacks.extend(fork_results);
                         } else {
@@ -528,14 +535,14 @@ impl GLRParser {
                     result_stacks.push(stack);
                 }
             }
-            
+
             stacks = result_stacks;
-            
+
             if !any_reduction_performed {
                 break;
             }
         }
-        
+
         stacks
     }
 
@@ -577,17 +584,16 @@ impl GLRParser {
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&rule.lhs) {
                 let current_state = stack.current_state();
                 let action_cell = &self.table.action_table[current_state.0 as usize][*symbol_idx];
-                
+
                 // Find shift action in the cell
                 let shift_action = action_cell.iter().find(|a| matches!(a, Action::Shift(_)));
-                
+
                 if let Some(Action::Shift(goto_state)) = shift_action {
                     // Goto state after reduction
                     stack.push(*goto_state, subtree);
                 } else {
                     // Fall back to goto table if action table doesn't have a shift
-                    let goto_state =
-                        self.table.goto_table[current_state.0 as usize][*symbol_idx];
+                    let goto_state = self.table.goto_table[current_state.0 as usize][*symbol_idx];
                     if goto_state.0 != 0 {
                         // Goto state from goto table
                         stack.push(goto_state, subtree);
@@ -602,17 +608,17 @@ impl GLRParser {
     }
 
     /// Merge stacks that have reached the same state
-    /// 
+    ///
     /// In GLR parsing, multiple parse stacks can reach the same parser state through
     /// different paths. When this happens, we can merge these stacks to avoid exponential
     /// growth in the number of stacks.
-    /// 
+    ///
     /// The merging process:
     /// 1. Identifies stacks with identical state sequences
     /// 2. Compares their parse trees using dynamic precedence and other criteria
     /// 3. Keeps the best parse according to the comparison rules
     /// 4. Handles ambiguity by potentially keeping multiple parses if they're equally valid
-    /// 
+    ///
     /// This is a key optimization that makes GLR parsing practical for real grammars.
     fn merge_stacks(&mut self, stacks: &mut Vec<ParseStack>) {
         let mut merged = Vec::new();
@@ -698,19 +704,19 @@ impl GLRParser {
     }
 
     /// Finish parsing and get the result
-    /// 
+    ///
     /// This method is called after all tokens have been processed (including EOF) to
     /// extract the final parse tree. It examines all remaining stacks and returns the
     /// parse tree from a successfully completed parse.
-    /// 
+    ///
     /// A successful parse is identified by:
     /// 1. Having exactly one node on the stack (the root of the parse tree)
     /// 2. That node representing a non-terminal symbol (not a raw token)
-    /// 
+    ///
     /// # Returns
     /// * `Ok(Arc<Subtree>)` - The root of the parse tree if parsing succeeded
     /// * `Err(String)` - An error message with debugging information if parsing failed
-    /// 
+    ///
     /// # Note
     /// In case of ambiguous parses where multiple stacks complete successfully, this
     /// currently returns the first valid parse found. Future enhancements could return

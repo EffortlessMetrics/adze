@@ -1,6 +1,5 @@
 //! Example demonstrating external scanner and word token attributes
 
-
 #[allow(dead_code)]
 #[rust_sitter::grammar("python_like")]
 mod grammar {

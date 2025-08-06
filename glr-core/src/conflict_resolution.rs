@@ -1,6 +1,6 @@
-use crate::{Grammar, StateId, SymbolId, ProductionId, Action, ParseTable, FirstFollowSets};
-use rustc_hash::FxHashMap;
+use crate::{Action, FirstFollowSets, Grammar, ParseTable, ProductionId, StateId, SymbolId};
 use fixedbitset::FixedBitSet;
+use rustc_hash::FxHashMap;
 
 /// Trait for resolving conflicts at runtime
 pub trait RuntimeConflictResolver {
@@ -18,12 +18,15 @@ pub struct VecWrapperResolver {
 impl VecWrapperResolver {
     pub fn new(grammar: &Grammar, first_follow: &FirstFollowSets) -> Self {
         // Get the maximum symbol ID to size our bitset properly
-        let max_symbol_id = grammar.rules.keys()
+        let max_symbol_id = grammar
+            .rules
+            .keys()
             .chain(grammar.tokens.keys())
             .map(|id| id.0)
             .max()
-            .unwrap_or(0) as usize + 1;
-        
+            .unwrap_or(0) as usize
+            + 1;
+
         let mut statement_starters = FixedBitSet::with_capacity(max_symbol_id);
 
         // Find FIRST(Statement) - you already compute this
@@ -34,7 +37,12 @@ impl VecWrapperResolver {
         }
 
         // Also check for other common statement starters
-        for name in &["ExpressionStatement", "AssignmentStatement", "Primary", "Number"] {
+        for name in &[
+            "ExpressionStatement",
+            "AssignmentStatement",
+            "Primary",
+            "Number",
+        ] {
             if let Some(id) = grammar.find_symbol_by_name(name) {
                 if let Some(first_set) = first_follow.first(id) {
                     statement_starters.union_with(first_set);
@@ -48,10 +56,12 @@ impl VecWrapperResolver {
         }
     }
 
-    pub fn get_vec_wrapper_action(&mut self,
-                                  state: StateId,
-                                  table: &ParseTable,
-                                  grammar: &Grammar) -> Option<ProductionId> {
+    pub fn get_vec_wrapper_action(
+        &mut self,
+        state: StateId,
+        table: &ParseTable,
+        grammar: &Grammar,
+    ) -> Option<ProductionId> {
         // Check cache first
         if let Some(&cached) = self.wrapper_states.get(&state) {
             return cached;
@@ -59,7 +69,7 @@ impl VecWrapperResolver {
 
         // Find vec wrapper empty production in this state
         let mut result = None;
-        
+
         // Look through the action table for reduce actions in this state
         if let Some(state_actions) = table.action_table.get(state.0 as usize) {
             for (_symbol_idx, action_cell) in state_actions.iter().enumerate() {
@@ -68,7 +78,9 @@ impl VecWrapperResolver {
                     match action {
                         Action::Reduce(rule_id) => {
                             // Find the corresponding rule in the grammar
-                            if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == rule_id.0) {
+                            if let Some(rule) =
+                                grammar.all_rules().find(|r| r.production_id.0 == rule_id.0)
+                            {
                                 // Check if this is a vec wrapper empty rule
                                 if let Some(rule_name) = grammar.rule_names.get(&rule.lhs) {
                                     if rule_name.ends_with("_vec_contents") && rule.rhs.is_empty() {
@@ -77,14 +89,18 @@ impl VecWrapperResolver {
                                     }
                                 }
                             }
-                        },
+                        }
                         Action::Fork(actions) => {
                             // Check fork actions too
                             for fork_action in actions {
                                 if let Action::Reduce(rule_id) = fork_action {
-                                    if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == rule_id.0) {
+                                    if let Some(rule) =
+                                        grammar.all_rules().find(|r| r.production_id.0 == rule_id.0)
+                                    {
                                         if let Some(rule_name) = grammar.rule_names.get(&rule.lhs) {
-                                            if rule_name.ends_with("_vec_contents") && rule.rhs.is_empty() {
+                                            if rule_name.ends_with("_vec_contents")
+                                                && rule.rhs.is_empty()
+                                            {
                                                 result = Some(ProductionId(rule_id.0));
                                                 break;
                                             }
@@ -92,7 +108,7 @@ impl VecWrapperResolver {
                                     }
                                 }
                             }
-                        },
+                        }
                         _ => {}
                     }
                 }
@@ -114,12 +130,15 @@ impl VecWrapperResolver {
 
 impl RuntimeConflictResolver for VecWrapperResolver {
     fn resolve(&self, _state: StateId, lookahead: SymbolId, actions: &[Action]) -> Option<Action> {
-        debug_assert!(actions.len() == 2, "VecWrapperResolver expects exactly 2 conflicting actions");
-        
+        debug_assert!(
+            actions.len() == 2,
+            "VecWrapperResolver expects exactly 2 conflicting actions"
+        );
+
         // Look for a reduce action that's a vec_contents empty production
         let mut reduce_action = None;
         let mut shift_action = None;
-        
+
         for action in actions {
             match action {
                 Action::Reduce(_) => reduce_action = Some(action.clone()),
@@ -127,7 +146,7 @@ impl RuntimeConflictResolver for VecWrapperResolver {
                 _ => {}
             }
         }
-        
+
         // If we have both shift and reduce actions
         if let (Some(reduce), Some(shift)) = (reduce_action, shift_action) {
             // Heuristic: if the lookahead is in FIRST(Statement), choose Shift

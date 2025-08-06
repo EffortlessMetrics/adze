@@ -35,28 +35,32 @@ fn create_ambiguous_grammar() -> Grammar {
     grammar.rule_names.insert(e_id, "E".to_string());
 
     // Rule 1: E → a
-    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(e_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: e_id,
             rhs: vec![Symbol::Terminal(a_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(0),
             fields: vec![],
-        },
-    );
+        });
 
     // Rule 2: E → E E (ambiguous concatenation)
-    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(e_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: e_id,
             rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(1),
             fields: vec![],
-        },
-    );
+        });
 
     grammar
 }
@@ -103,8 +107,11 @@ fn create_arithmetic_grammar() -> Grammar {
 
     // Rules with precedence
     // E → E + E (lower precedence)
-    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(e_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: e_id,
             rhs: vec![
                 Symbol::NonTerminal(e_id),
@@ -115,12 +122,14 @@ fn create_arithmetic_grammar() -> Grammar {
             associativity: Some(rust_sitter_ir::Associativity::Left),
             production_id: ProductionId(0),
             fields: vec![],
-        },
-    );
+        });
 
     // E → E * E (higher precedence)
-    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(e_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: e_id,
             rhs: vec![
                 Symbol::NonTerminal(e_id),
@@ -131,20 +140,21 @@ fn create_arithmetic_grammar() -> Grammar {
             associativity: Some(rust_sitter_ir::Associativity::Left),
             production_id: ProductionId(1),
             fields: vec![],
-        },
-    );
+        });
 
     // E → number
-    grammar.rules.entry(e_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(e_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: e_id,
             rhs: vec![Symbol::Terminal(num_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(2),
             fields: vec![],
-        },
-    );
+        });
 
     grammar
 }

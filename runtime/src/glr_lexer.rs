@@ -35,7 +35,7 @@ impl TokenMatcher {
         if !input.is_char_boundary(pos) {
             return None;
         }
-        
+
         match self {
             TokenMatcher::Literal(s) => {
                 if input[pos..].starts_with(s) {
@@ -118,7 +118,7 @@ impl GLRLexer {
                 if !self.input.is_char_boundary(end_pos) {
                     continue;
                 }
-                
+
                 let text = self.input[self.position..end_pos].to_string();
                 self.position = end_pos;
 
@@ -138,7 +138,7 @@ impl GLRLexer {
             next_pos += 1;
         }
         self.position = next_pos;
-        
+
         if self.position < self.input.len() {
             self.next_token()
         } else {
@@ -151,7 +151,7 @@ impl GLRLexer {
         let input_chars: Vec<char> = self.input.chars().collect();
         let mut char_pos = 0;
         let mut byte_pos = 0;
-        
+
         // Find current position in characters
         for (i, ch) in self.input.chars().enumerate() {
             if byte_pos >= self.position {
@@ -160,7 +160,7 @@ impl GLRLexer {
             }
             byte_pos += ch.len_utf8();
         }
-        
+
         // Skip whitespace characters
         while char_pos < input_chars.len() {
             match input_chars[char_pos] {
@@ -337,11 +337,11 @@ mod tests {
         // Test input that caused fuzzer panic - byte 0xBE at invalid UTF-8 boundary
         let input = vec![190u8, 0, 0];
         let input_str = String::from_utf8_lossy(&input).to_string();
-        
+
         // This should not panic
         let mut lexer = GLRLexer::new(&grammar, input_str).unwrap();
         let tokens = lexer.tokenize_all();
-        
+
         // Should handle the invalid UTF-8 gracefully
         assert_eq!(tokens.len(), 0); // No valid tokens in malformed input
     }
@@ -349,7 +349,7 @@ mod tests {
     #[test]
     fn test_multibyte_character_handling() {
         let mut grammar = Grammar::new("test".to_string());
-        
+
         // Add a pattern that matches individual letters
         grammar.tokens.insert(
             SymbolId(1),
@@ -362,10 +362,10 @@ mod tests {
 
         // Input with multi-byte UTF-8 emoji
         let input = "a🦀b".to_string();
-        
+
         let mut lexer = GLRLexer::new(&grammar, input).unwrap();
         let tokens = lexer.tokenize_all();
-        
+
         // Should tokenize only the ASCII letters, skipping the emoji
         assert_eq!(tokens.len(), 2);
         assert_eq!(tokens[0].text, "a");

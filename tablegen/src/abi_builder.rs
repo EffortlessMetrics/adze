@@ -29,7 +29,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         self.compressed_tables = Some(tables);
         self
     }
-    
+
     /// Get the name of a symbol for debugging
     fn get_symbol_name(&self, symbol_id: SymbolId) -> String {
         if symbol_id.0 == 0 {
@@ -47,24 +47,36 @@ impl<'a> AbiLanguageBuilder<'a> {
     pub fn generate(&self) -> TokenStream {
         let language_name = &self.grammar.name;
         let language_fn_ident = quote::format_ident!("tree_sitter_{}", language_name);
-        
-        eprintln!("DEBUG AbiLanguageBuilder: Generating language for '{}'", language_name);
+
+        eprintln!(
+            "DEBUG AbiLanguageBuilder: Generating language for '{}'",
+            language_name
+        );
         eprintln!("DEBUG AbiLanguageBuilder: symbol_to_index mapping:");
         for (symbol_id, &index) in &self.parse_table.symbol_to_index {
             let symbol_name = self.get_symbol_name(*symbol_id);
-            eprintln!("  SymbolId({}) -> index {} ('{}')", symbol_id.0, index, symbol_name);
+            eprintln!(
+                "  SymbolId({}) -> index {} ('{}')",
+                symbol_id.0, index, symbol_name
+            );
         }
-        
+
         // Check what the initial state expects
         if !self.parse_table.action_table.is_empty() {
             eprintln!("DEBUG AbiLanguageBuilder: State 0 actions:");
             for (symbol_idx, action_cell) in self.parse_table.action_table[0].iter().enumerate() {
                 if !action_cell.is_empty() {
                     // Find the symbol ID for this index
-                    let symbol_id = self.parse_table.symbol_to_index.iter()
+                    let symbol_id = self
+                        .parse_table
+                        .symbol_to_index
+                        .iter()
                         .find(|(_, idx)| **idx == symbol_idx)
                         .map(|(id, _)| *id);
-                    eprintln!("  Index {} (SymbolId {:?}): {:?}", symbol_idx, symbol_id, action_cell);
+                    eprintln!(
+                        "  Index {} (SymbolId {:?}): {:?}",
+                        symbol_idx, symbol_id, action_cell
+                    );
                 }
             }
         }
@@ -81,32 +93,43 @@ impl<'a> AbiLanguageBuilder<'a> {
         let primary_state_ids = self.generate_primary_state_ids();
         let production_id_map = self.generate_production_id_map();
         let variant_symbol_map = self.generate_variant_symbol_map();
-        
+
         // Generate external scanner data if needed
-        let (external_scanner_code, external_scanner_struct) = if !self.grammar.externals.is_empty() {
+        let (external_scanner_code, external_scanner_struct) = if !self.grammar.externals.is_empty()
+        {
             use crate::external_scanner_v2::ExternalScannerGenerator;
-            
-            let scanner_gen = ExternalScannerGenerator::new(self.grammar.clone(), self.parse_table.clone());
+
+            let scanner_gen =
+                ExternalScannerGenerator::new(self.grammar.clone(), self.parse_table.clone());
             let scanner_interface = scanner_gen.generate_scanner_interface();
-            
+
             // Generate wrapper functions for the external scanner
             let language_name_str = language_name.to_string();
             let num_external_tokens = self.grammar.externals.len();
-            
+
             // Generate external scanner wrapper functions
-            let scanner_create_fn = quote::format_ident!("tree_sitter_{}_external_scanner_create", language_name_str);
-            let scanner_destroy_fn = quote::format_ident!("tree_sitter_{}_external_scanner_destroy", language_name_str);
-            let scanner_scan_fn = quote::format_ident!("tree_sitter_{}_external_scanner_scan", language_name_str);
-            let scanner_serialize_fn = quote::format_ident!("tree_sitter_{}_external_scanner_serialize", language_name_str);
-            let scanner_deserialize_fn = quote::format_ident!("tree_sitter_{}_external_scanner_deserialize", language_name_str);
-            
+            let scanner_create_fn =
+                quote::format_ident!("tree_sitter_{}_external_scanner_create", language_name_str);
+            let scanner_destroy_fn =
+                quote::format_ident!("tree_sitter_{}_external_scanner_destroy", language_name_str);
+            let scanner_scan_fn =
+                quote::format_ident!("tree_sitter_{}_external_scanner_scan", language_name_str);
+            let scanner_serialize_fn = quote::format_ident!(
+                "tree_sitter_{}_external_scanner_serialize",
+                language_name_str
+            );
+            let scanner_deserialize_fn = quote::format_ident!(
+                "tree_sitter_{}_external_scanner_deserialize",
+                language_name_str
+            );
+
             let scanner_functions = quote! {
                 #[cfg(feature = "scanner-ffi")]
                 mod external_scanner_ffi {
                     use ::rust_sitter::ffi::{TSLexer, TSSymbol};
                     use ::rust_sitter::external_scanner::{DynExternalScanner, ScanResult};
                     use ::std::ffi::c_void;
-                    
+
                     #[no_mangle]
                     pub unsafe extern "C" fn #scanner_create_fn() -> *mut c_void {
                         // Get scanner from registry or create directly
@@ -115,14 +138,14 @@ impl<'a> AbiLanguageBuilder<'a> {
                         let scanner = Box::new(Box::new(crate::scanner::PythonScanner::new()) as Box<DynExternalScanner>);
                         Box::into_raw(scanner) as *mut c_void
                     }
-                    
+
                     #[no_mangle]
                     pub unsafe extern "C" fn #scanner_destroy_fn(scanner: *mut c_void) {
                         if !scanner.is_null() {
                             let _ = Box::from_raw(scanner as *mut Box<DynExternalScanner>);
                         }
                     }
-                    
+
                     #[no_mangle]
                     pub unsafe extern "C" fn #scanner_scan_fn(
                         scanner: *mut c_void,
@@ -132,29 +155,29 @@ impl<'a> AbiLanguageBuilder<'a> {
                         if scanner.is_null() || lexer.is_null() || valid_symbols.is_null() {
                             return false;
                         }
-                        
+
                         // Cast pointers to their correct types
                         let parser = &mut *(lexer as *mut ::rust_sitter::parser_v4::Parser);
                         let scanner = &mut *(scanner as *mut Box<DynExternalScanner>);
                         let valid = std::slice::from_raw_parts(valid_symbols, #num_external_tokens);
-                        
+
                         // Get parser's live input and position
                         let lexer = parser.borrow_lexer();
-                        
+
                         // Call the scanner
                         if let Some(result) = scanner.scan(lexer, valid) {
                             // Update the TSLexer result
                             let ts_lexer = lexer as *mut _ as *mut TSLexer;
                             (*ts_lexer).result_symbol = result.symbol as TSSymbol;
-                            
+
                             // Advance the parser by the scanned length
                             parser.advance_from_scanner(result.length);
                             return true;
                         }
-                        
+
                         false
                     }
-                    
+
                     #[no_mangle]
                     pub unsafe extern "C" fn #scanner_serialize_fn(
                         scanner: *mut c_void,
@@ -163,16 +186,16 @@ impl<'a> AbiLanguageBuilder<'a> {
                         if scanner.is_null() || buffer.is_null() {
                             return 0;
                         }
-                        
+
                         let scanner = &*(scanner as *mut Box<DynExternalScanner>);
                         let mut vec = Vec::new();
                         scanner.serialize(&mut vec);
-                        
+
                         let len = vec.len().min(1024) as u32; // Limit to 1KB
                         std::ptr::copy_nonoverlapping(vec.as_ptr(), buffer, len as usize);
                         len
                     }
-                    
+
                     #[no_mangle]
                     pub unsafe extern "C" fn #scanner_deserialize_fn(
                         scanner: *mut c_void,
@@ -182,14 +205,14 @@ impl<'a> AbiLanguageBuilder<'a> {
                         if scanner.is_null() || buffer.is_null() {
                             return;
                         }
-                        
+
                         let scanner = &mut *(scanner as *mut Box<DynExternalScanner>);
                         let slice = std::slice::from_raw_parts(buffer, length as usize);
                         scanner.deserialize(slice);
                     }
                 }
             };
-            
+
             let scanner_struct = quote! {
                 ExternalScanner {
                     states: EXTERNAL_SCANNER_STATES.as_ptr() as *const u8,
@@ -216,23 +239,29 @@ impl<'a> AbiLanguageBuilder<'a> {
                     deserialize: None,
                 }
             };
-            
-            (quote! {
-                #scanner_interface
-                #scanner_functions
-            }, scanner_struct)
+
+            (
+                quote! {
+                    #scanner_interface
+                    #scanner_functions
+                },
+                scanner_struct,
+            )
         } else {
-            (quote! {}, quote! {
-                ExternalScanner {
-                    states: std::ptr::null(),
-                    symbol_map: std::ptr::null(),
-                    create: None,
-                    destroy: None,
-                    scan: None,
-                    serialize: None,
-                    deserialize: None,
-                }
-            })
+            (
+                quote! {},
+                quote! {
+                    ExternalScanner {
+                        states: std::ptr::null(),
+                        symbol_map: std::ptr::null(),
+                        create: None,
+                        destroy: None,
+                        scan: None,
+                        serialize: None,
+                        deserialize: None,
+                    }
+                },
+            )
         };
 
         // Count elements
@@ -295,7 +324,7 @@ impl<'a> AbiLanguageBuilder<'a> {
 
             // Small parse table (compressed states data)
             static SMALL_PARSE_TABLE: &[u16] = &[#(#parse_table_data),*];
-            
+
             // Small parse table map
             static SMALL_PARSE_TABLE_MAP: &[u32] = &[#(#small_parse_table_map),*];
 
@@ -602,7 +631,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                     table_data.push(quote! { #encoded });
                 }
             }
-            
+
             // TODO: Also encode goto table entries
             // Tree-sitter combines both action and goto entries in the parse table
             // The goto entries should be added here as well
@@ -645,27 +674,35 @@ impl<'a> AbiLanguageBuilder<'a> {
                 );
                 for symbol_idx in 0..self.parse_table.symbol_count {
                     // Get the symbol ID for this index
-                    let symbol_id = self.parse_table.symbol_to_index
+                    let symbol_id = self
+                        .parse_table
+                        .symbol_to_index
                         .iter()
                         .find(|&(_, &idx)| idx == symbol_idx)
                         .map(|(id, _)| *id);
-                    
+
                     if symbol_id.is_none() {
                         eprintln!("DEBUG: No symbol ID found for index {}", symbol_idx);
                         continue;
                     }
-                    
+
                     let symbol_id = symbol_id.unwrap();
-                    
+
                     // Debug: Print symbol mapping
-                    eprintln!("DEBUG: State {} checking symbol_idx={} -> symbol_id={}", 
-                             state_idx, symbol_idx, symbol_id.0);
-                    
+                    eprintln!(
+                        "DEBUG: State {} checking symbol_idx={} -> symbol_id={}",
+                        state_idx, symbol_idx, symbol_id.0
+                    );
+
                     // Check if this symbol is a terminal or non-terminal
                     // Terminals include tokens and externals
-                    let is_terminal = self.grammar.tokens.contains_key(&symbol_id) ||
-                                     self.grammar.externals.iter().any(|e| e.symbol_id == symbol_id) ||
-                                     symbol_id.0 == 0; // EOF is also a terminal
+                    let is_terminal = self.grammar.tokens.contains_key(&symbol_id)
+                        || self
+                            .grammar
+                            .externals
+                            .iter()
+                            .any(|e| e.symbol_id == symbol_id)
+                        || symbol_id.0 == 0; // EOF is also a terminal
 
                     // Create owned action to avoid borrowing issues
                     let action_owned = if is_terminal {
@@ -692,8 +729,10 @@ impl<'a> AbiLanguageBuilder<'a> {
                             && symbol_idx < self.parse_table.goto_table[state_idx].len()
                         {
                             let goto_state = self.parse_table.goto_table[state_idx][symbol_idx];
-                            eprintln!("DEBUG: Non-terminal {} -> goto_table[{}][{}] = state {}", 
-                                     symbol_id.0, state_idx, symbol_idx, goto_state.0);
+                            eprintln!(
+                                "DEBUG: Non-terminal {} -> goto_table[{}][{}] = state {}",
+                                symbol_id.0, state_idx, symbol_idx, goto_state.0
+                            );
                             if goto_state.0 > 0 {
                                 // Convert goto to a shift action for Tree-sitter compatibility
                                 Action::Shift(goto_state)
@@ -701,11 +740,19 @@ impl<'a> AbiLanguageBuilder<'a> {
                                 Action::Error
                             }
                         } else {
-                            eprintln!("DEBUG: Non-terminal {} -> goto_table bounds check failed: state_idx={}, symbol_idx={}, goto_table.len={}, goto_table[{}].len={}", 
-                                     symbol_id.0, state_idx, symbol_idx, 
-                                     self.parse_table.goto_table.len(),
-                                     state_idx,
-                                     if state_idx < self.parse_table.goto_table.len() { self.parse_table.goto_table[state_idx].len() } else { 0 });
+                            eprintln!(
+                                "DEBUG: Non-terminal {} -> goto_table bounds check failed: state_idx={}, symbol_idx={}, goto_table.len={}, goto_table[{}].len={}",
+                                symbol_id.0,
+                                state_idx,
+                                symbol_idx,
+                                self.parse_table.goto_table.len(),
+                                state_idx,
+                                if state_idx < self.parse_table.goto_table.len() {
+                                    self.parse_table.goto_table[state_idx].len()
+                                } else {
+                                    0
+                                }
+                            );
                             Action::Error
                         }
                     };
@@ -913,24 +960,37 @@ impl<'a> AbiLanguageBuilder<'a> {
         ];
 
         // Fill in the actual productions at their correct indices
-        eprintln!("DEBUG: Building PARSE_ACTIONS for {} productions", self.grammar.all_rules().count());
-        eprintln!("DEBUG: symbol_to_index mapping: {:?}", self.parse_table.symbol_to_index);
-        
+        eprintln!(
+            "DEBUG: Building PARSE_ACTIONS for {} productions",
+            self.grammar.all_rules().count()
+        );
+        eprintln!(
+            "DEBUG: symbol_to_index mapping: {:?}",
+            self.parse_table.symbol_to_index
+        );
+
         for rule in self.grammar.all_rules() {
             let index = rule.production_id.0 as usize;
             let child_count = rule.rhs.len() as u8;
             // Convert symbol ID to symbol index for the parse table
             let symbol_id = rule.lhs;
-            let symbol = self.parse_table.symbol_to_index.get(&symbol_id)
+            let symbol = self
+                .parse_table
+                .symbol_to_index
+                .get(&symbol_id)
                 .copied()
                 .unwrap_or_else(|| {
-                    eprintln!("WARNING: No symbol index found for symbol ID {} in production {}", 
-                             symbol_id.0, rule.production_id.0);
+                    eprintln!(
+                        "WARNING: No symbol index found for symbol ID {} in production {}",
+                        symbol_id.0, rule.production_id.0
+                    );
                     symbol_id.0 as usize // Fallback to symbol ID
                 }) as u16;
-            
-            eprintln!("DEBUG: Production {} (lhs={:?}, rhs={:?}) -> parse_table index={}", 
-                     rule.production_id.0, rule.lhs, rule.rhs, symbol);
+
+            eprintln!(
+                "DEBUG: Production {} (lhs={:?}, rhs={:?}) -> parse_table index={}",
+                rule.production_id.0, rule.lhs, rule.rhs, symbol
+            );
 
             actions[index] = quote! {
                 TSParseAction {
@@ -1055,19 +1115,19 @@ impl<'a> AbiLanguageBuilder<'a> {
         // For now, just generate the complete symbol-to-index mapping
         // that the macro can use to fix enum variant extraction
         let mut symbol_entries = Vec::new();
-        
+
         // Sort symbols by their index to ensure deterministic output
         let mut index_to_symbol: Vec<(usize, SymbolId)> = Vec::new();
         for (symbol_id, &index) in &self.parse_table.symbol_to_index {
             index_to_symbol.push((index, *symbol_id));
         }
         index_to_symbol.sort_by_key(|(idx, _)| *idx);
-        
+
         // Generate entries for the mapping
         for (index, symbol_id) in index_to_symbol {
             let symbol_id_val = symbol_id.0 as u32;
             let index_val = index as u16;
-            
+
             // Also include the symbol name for debugging
             let _symbol_name = if symbol_id.0 == 0 {
                 "EOF".to_string()
@@ -1078,35 +1138,35 @@ impl<'a> AbiLanguageBuilder<'a> {
             } else {
                 format!("symbol_{}", symbol_id.0)
             };
-            
+
             symbol_entries.push(quote! {
                 // #symbol_name
                 (#symbol_id_val, #index_val)
             });
         }
-        
+
         // Generate the inverse mapping array (index to symbol ID)
         let symbol_count = self.parse_table.symbol_to_index.len();
         let mut index_to_id_entries = vec![quote! { 0 }; symbol_count];
-        
+
         for (symbol_id, &index) in &self.parse_table.symbol_to_index {
             let symbol_id_val = symbol_id.0 as u16;
             index_to_id_entries[index] = quote! { #symbol_id_val };
         }
-        
+
         quote! {
             // Complete symbol ID to parse table index mapping
             // This is used by the Extract trait to correctly identify symbols
             pub const SYMBOL_ID_TO_INDEX: &[(u32, u16)] = &[
                 #(#symbol_entries),*
             ];
-            
+
             // Inverse mapping: index to symbol ID
             // This is used by the pure parser to convert indices back to symbol IDs
             pub const SYMBOL_INDEX_TO_ID: &[u16] = &[
                 #(#index_to_id_entries),*
             ];
-            
+
             // Helper function to get symbol index from symbol ID
             #[allow(dead_code)]
             pub fn get_symbol_index(symbol_id: u32) -> Option<u16> {
@@ -1114,7 +1174,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                     .find(|(id, _)| *id == symbol_id)
                     .map(|(_, index)| *index)
             }
-            
+
             // Helper function to get symbol ID from symbol index
             #[allow(dead_code)]
             pub fn get_symbol_id(symbol_index: u16) -> u16 {
@@ -1147,7 +1207,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         // The production_id_map maps from 1-based parse table IDs to 0-based production indices
         // Since we have N productions (0..N-1), the parse table will use IDs 1..N
         let num_productions = rules.len();
-        
+
         // Build the map: production_id_map[parse_table_id - 1] = production_index
         // For each production index 0..N-1, the parse table uses ID index+1
         for i in 0..num_productions {

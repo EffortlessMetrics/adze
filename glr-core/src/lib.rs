@@ -22,7 +22,7 @@ pub use advanced_conflict::{
 };
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
 pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
-pub use parse_forest::{ParseForest, ParseTree, ParseError, ForestNode, ParseNode};
+pub use parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree};
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
 pub use precedence_compare::{
     PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
@@ -52,11 +52,7 @@ impl FirstFollowSets {
                 .map(Self::get_max_symbol_id)
                 .max()
                 .unwrap_or(0),
-            Symbol::Sequence(seq) => seq
-                .iter()
-                .map(Self::get_max_symbol_id)
-                .max()
-                .unwrap_or(0),
+            Symbol::Sequence(seq) => seq.iter().map(Self::get_max_symbol_id).max().unwrap_or(0),
             Symbol::Epsilon => 0,
         }
     }
@@ -166,7 +162,7 @@ impl FirstFollowSets {
                 follow_set.insert(0); // EOF symbol
             }
         }
-        
+
         changed = true;
         while changed {
             changed = false;
@@ -174,7 +170,9 @@ impl FirstFollowSets {
             for rule in grammar.all_rules() {
                 // Special handling for rules of the form A -> A B (left recursion)
                 if rule.rhs.len() >= 2 {
-                    if let (Symbol::NonTerminal(first_id), Symbol::NonTerminal(second_id)) = (&rule.rhs[0], &rule.rhs[1]) {
+                    if let (Symbol::NonTerminal(first_id), Symbol::NonTerminal(second_id)) =
+                        (&rule.rhs[0], &rule.rhs[1])
+                    {
                         if *first_id == rule.lhs {
                             // This is a left-recursive rule like Module_body_vec_contents -> Module_body_vec_contents Statement
                             // FIRST(Statement) should be in FOLLOW(Module_body_vec_contents)
@@ -190,7 +188,7 @@ impl FirstFollowSets {
                         }
                     }
                 }
-                
+
                 for (i, symbol) in rule.rhs.iter().enumerate() {
                     if let Symbol::NonTerminal(id) | Symbol::External(id) = symbol {
                         // Add FIRST of remaining symbols to FOLLOW of current symbol
@@ -493,12 +491,20 @@ impl ItemSetCollection {
 
         // Compute closure
         initial_set.closure(grammar, first_follow);
-        eprintln!("Initial state 0 after closure has {} items:", initial_set.items.len());
+        eprintln!(
+            "Initial state 0 after closure has {} items:",
+            initial_set.items.len()
+        );
         for item in &initial_set.items {
             // Print each item to debug
-            if let Some(rule) = grammar.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
-                eprintln!("  Item: {:?} -> {:?}, pos={}, lookahead={}", 
-                    rule.lhs, rule.rhs, item.position, item.lookahead.0);
+            if let Some(rule) = grammar
+                .all_rules()
+                .find(|r| r.production_id.0 == item.rule_id.0)
+            {
+                eprintln!(
+                    "  Item: {:?} -> {:?}, pos={}, lookahead={}",
+                    rule.lhs, rule.rhs, item.position, item.lookahead.0
+                );
             }
         }
 
@@ -542,13 +548,13 @@ impl ItemSetCollection {
                     match symbol {
                         Symbol::Terminal(_id) => {
                             _terminal_count += 1;
-                        },
+                        }
                         Symbol::NonTerminal(_id) => {
                             _non_terminal_count += 1;
-                        },
+                        }
                         Symbol::External(_id) => {
                             _terminal_count += 1; // Count externals as terminals
-                        },
+                        }
                         _ => {}
                     }
                     symbols.insert(symbol.clone());
@@ -556,7 +562,8 @@ impl ItemSetCollection {
                         // Check if this is 'def'
                         if let Symbol::Terminal(id) = &symbol {
                             if let Some(token) = grammar.tokens.get(id) {
-                                if matches!(token.pattern, TokenPattern::String(ref s) if s == "def") {
+                                if matches!(token.pattern, TokenPattern::String(ref s) if s == "def")
+                                {
                                     eprintln!("  Found 'def' as shiftable symbol: {:?}", symbol);
                                 }
                             }
@@ -606,7 +613,10 @@ impl ItemSetCollection {
                         }
                     };
                     if current_set.id.0 == 0 {
-                        eprintln!("  State 0 GOTO: symbol {:?} -> state {}", symbol_id, target_state.0);
+                        eprintln!(
+                            "  State 0 GOTO: symbol {:?} -> state {}",
+                            symbol_id, target_state.0
+                        );
                     }
                     collection
                         .goto_table
@@ -637,7 +647,7 @@ impl ItemSetCollection {
 
             // Add items for ALL rules with the start symbol as LHS
             if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
-                for (idx, rule) in start_rules.iter().enumerate() {
+                for (_idx, rule) in start_rules.iter().enumerate() {
                     // Debug: idx, rule.lhs, rule.rhs, rule.production_id.0
                     let start_item = LRItem::new(
                         RuleId(rule.production_id.0),
@@ -658,7 +668,7 @@ impl ItemSetCollection {
         if initial_set.items.is_empty() {
             // Handle empty initial set if needed
         } else {
-            for item in &initial_set.items {
+            for _item in &initial_set.items {
                 // Debug: item.rule_id.0, item.position, item.lookahead.0
             }
         }
@@ -703,13 +713,13 @@ impl ItemSetCollection {
                     match symbol {
                         Symbol::Terminal(_id) => {
                             _terminal_count += 1;
-                        },
+                        }
                         Symbol::NonTerminal(_id) => {
                             _non_terminal_count += 1;
-                        },
+                        }
                         Symbol::External(_id) => {
                             _terminal_count += 1; // Count externals as terminals
-                        },
+                        }
                         _ => {}
                     }
                     symbols.insert(symbol.clone());
@@ -717,7 +727,8 @@ impl ItemSetCollection {
                         // Check if this is 'def'
                         if let Symbol::Terminal(id) = &symbol {
                             if let Some(token) = grammar.tokens.get(id) {
-                                if matches!(token.pattern, TokenPattern::String(ref s) if s == "def") {
+                                if matches!(token.pattern, TokenPattern::String(ref s) if s == "def")
+                                {
                                     eprintln!("  Found 'def' as shiftable symbol: {:?}", symbol);
                                 }
                             }
@@ -730,18 +741,16 @@ impl ItemSetCollection {
             // Debug: symbols.len(), terminal_count, non_terminal_count
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
-                    let symbol_id = match &symbol {
-                        Symbol::Terminal(id)
-                        | Symbol::NonTerminal(id)
-                        | Symbol::External(id) => id,
+                    let _symbol_id = match &symbol {
+                        Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
                         _ => panic!("Complex symbol"),
                     };
                     // "  Item rule_id={}, position={}, next_symbol={:?} (id={})"
                 }
             }
-            
+
             for symbol in &symbols {
-                let symbol_id = match symbol {
+                let _symbol_id = match symbol {
                     Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id,
                     _ => panic!("Complex symbol"),
                 };
@@ -786,7 +795,10 @@ impl ItemSetCollection {
                         }
                     };
                     if current_set.id.0 == 0 {
-                        eprintln!("  State 0 GOTO: symbol {:?} -> state {}", symbol_id, target_state.0);
+                        eprintln!(
+                            "  State 0 GOTO: symbol {:?} -> state {}",
+                            symbol_id, target_state.0
+                        );
                     }
                     collection
                         .goto_table
@@ -919,10 +931,7 @@ impl ConflictResolver {
                     if let Some(target_state) = item_sets.goto_table.get(&(item_set.id, symbol_id))
                     {
                         let action = Action::Shift(*target_state);
-                        actions_by_symbol
-                            .entry(symbol_id)
-                            .or_default()
-                            .push(action);
+                        actions_by_symbol.entry(symbol_id).or_default().push(action);
                     }
                 }
             }
@@ -1097,11 +1106,12 @@ pub fn build_lr1_automaton(
     grammar: &Grammar,
     first_follow: &FirstFollowSets,
 ) -> Result<ParseTable, GLRError> {
-    
     // Debug: Print some rules to see their structure
     let mut rule_count = 0;
     for rule in grammar.all_rules() {
-        if rule_count >= 10 { break; }
+        if rule_count >= 10 {
+            break;
+        }
         let mut rhs_str = String::new();
         for sym in &rule.rhs {
             match sym {
@@ -1112,17 +1122,19 @@ pub fn build_lr1_automaton(
         }
         rule_count += 1;
     }
-    
+
     // Create augmented grammar with S' -> S $ rule
     let mut augmented_grammar = grammar.clone();
 
     // Find the original start symbol
-    let original_start = grammar
-        .start_symbol()
-        .ok_or(GLRError::GrammarError(GrammarError::UnresolvedSymbol(SymbolId(0))))?;
-        
-    if let Some(name) = grammar.rule_names.get(&original_start) {
-    }
+    let original_start =
+        grammar
+            .start_symbol()
+            .ok_or(GLRError::GrammarError(GrammarError::UnresolvedSymbol(
+                SymbolId(0),
+            )))?;
+
+    if let Some(_name) = grammar.rule_names.get(&original_start) {}
 
     // Create a new start symbol S' with a high ID that won't conflict
     let augmented_start = SymbolId(65535); // High ID to avoid conflicts
@@ -1174,7 +1186,7 @@ pub fn build_lr1_automaton(
         token_symbols.push(symbol_id);
         max_symbol_id = max_symbol_id.max(symbol_id.0);
     }
-    
+
     // Also collect terminals from rule RHS that might not be in grammar.tokens
     for rule in augmented_grammar.all_rules() {
         for symbol in &rule.rhs {
@@ -1189,7 +1201,7 @@ pub fn build_lr1_automaton(
             }
         }
     }
-    
+
     token_symbols.sort_by_key(|s| s.0);
 
     // Collect non-terminal symbols (LHS of rules)
@@ -1253,18 +1265,23 @@ pub fn build_lr1_automaton(
     // This must be done BEFORE reduce actions to enable shift/reduce conflict detection
     let mut _terminal_count = 0;
     let mut _non_terminal_count = 0;
-    
+
     for ((from_state, symbol), to_state) in &collection.goto_table {
         // Check if this symbol is a terminal (token or external)
-        let is_terminal = augmented_grammar.tokens.contains_key(symbol) || 
-                         augmented_grammar.externals.iter().any(|e| e.symbol_id == *symbol) ||
-                         symbol.0 == 0; // EOF is also a terminal
-        
+        let is_terminal = augmented_grammar.tokens.contains_key(symbol)
+            || augmented_grammar
+                .externals
+                .iter()
+                .any(|e| e.symbol_id == *symbol)
+            || symbol.0 == 0; // EOF is also a terminal
+
         if from_state.0 == 0 {
-            eprintln!("State 0 goto entry: symbol {} -> state {}, is_terminal={}", 
-                symbol.0, to_state.0, is_terminal);
+            eprintln!(
+                "State 0 goto entry: symbol {} -> state {}, is_terminal={}",
+                symbol.0, to_state.0, is_terminal
+            );
         }
-        
+
         if is_terminal {
             _terminal_count += 1;
             if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
@@ -1288,7 +1305,7 @@ pub fn build_lr1_automaton(
             _non_terminal_count += 1;
         }
     }
-    
+
     // Handle "extras" (like comments, whitespace, and external tokens marked as extras).
     // In every state, for every "extra" token, if there isn't already a specific
     // action, add a self-looping SHIFT action. This allows extras to appear
@@ -1300,7 +1317,8 @@ pub fn build_lr1_automaton(
                 // Only add self-loop if no action exists yet (empty cell means no action)
                 if action_table[state_idx][symbol_idx].is_empty() {
                     // Add a self-looping shift that stays in the same state
-                    action_table[state_idx][symbol_idx].push(Action::Shift(StateId(state_idx as u16)));
+                    action_table[state_idx][symbol_idx]
+                        .push(Action::Shift(StateId(state_idx as u16)));
                 }
             }
         }
@@ -1330,18 +1348,20 @@ pub fn build_lr1_automaton(
                         }
                     } else {
                         // Regular reduce action - but check precedence first
-                        
+
                         // Check if this is an empty production
-                        let rule = augmented_grammar.all_rules()
+                        let rule = augmented_grammar
+                            .all_rules()
                             .find(|r| r.production_id.0 == item.rule_id.0)
                             .expect("Rule not found");
                         let is_empty_production = rule.rhs.is_empty();
-                        
+
                         // For empty productions, we need to add reduce actions for all symbols in FOLLOW set
                         let lookaheads_to_check: Vec<SymbolId> = if is_empty_production {
                             // Get FOLLOW set for the LHS of this rule
                             if let Some(follow_set) = first_follow.follow(rule.lhs) {
-                                let symbols: Vec<_> = follow_set.ones().map(|idx| SymbolId(idx as u16)).collect();
+                                let symbols: Vec<_> =
+                                    follow_set.ones().map(|idx| SymbolId(idx as u16)).collect();
                                 for sym in &symbols {
                                     if symbol_to_index.contains_key(sym) {
                                     } else {
@@ -1354,7 +1374,7 @@ pub fn build_lr1_automaton(
                         } else {
                             vec![item.lookahead]
                         };
-                        
+
                         for lookahead in lookaheads_to_check {
                             if let Some(&lookahead_idx) = symbol_to_index.get(&lookahead) {
                                 let new_action = Action::Reduce(item.rule_id);
@@ -1383,7 +1403,6 @@ pub fn build_lr1_automaton(
 
     // Resolve conflicts using precedence
     let precedence_resolver = StaticPrecedenceResolver::from_grammar(&augmented_grammar);
-    
 
     for ((state_idx, symbol_idx), actions) in conflicts_by_state {
         if actions.len() > 1 {
@@ -1396,16 +1415,15 @@ pub fn build_lr1_automaton(
                     Action::Shift(_) => {
                         shift_action = Some(action.clone());
                     }
-                    Action::Reduce(rule_id) => {
+                    Action::Reduce(_rule_id) => {
                         reduce_actions.push(action.clone());
                     }
-                    _ => {
-                    }
+                    _ => {}
                 }
             }
 
             // Handle shift/reduce conflicts with precedence
-            if let (Some(shift), Some(reduce)) = (shift_action.as_ref(), reduce_actions.first()) {
+            if let (Some(_shift), Some(reduce)) = (shift_action.as_ref(), reduce_actions.first()) {
                 // Get the symbol that triggers the shift
                 let symbol_id = symbol_to_index
                     .iter()
@@ -1420,22 +1438,34 @@ pub fn build_lr1_automaton(
                 } else {
                     None
                 };
-                
-                    // "DEBUG: Conflict resolution - symbol {} (id={}) shift_prec={:?}, reduce rule {} prec={:?}"
+
+                // "DEBUG: Conflict resolution - symbol {} (id={}) shift_prec={:?}, reduce rule {} prec={:?}"
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
                         // For GLR, we still keep both actions but can mark preference
-                        eprintln!("State {}: Precedence prefers shift over reduce for symbol {}", state_idx, symbol_idx);
+                        eprintln!(
+                            "State {}: Precedence prefers shift over reduce for symbol {}",
+                            state_idx, symbol_idx
+                        );
                     }
                     PrecedenceComparison::PreferReduce => {
                         // For GLR, we still keep both actions but can mark preference
-                        eprintln!("State {}: Precedence prefers reduce over shift for symbol {}", state_idx, symbol_idx);
+                        eprintln!(
+                            "State {}: Precedence prefers reduce over shift for symbol {}",
+                            state_idx, symbol_idx
+                        );
                     }
                     PrecedenceComparison::Error => {
-                        eprintln!("State {}: Non-associative conflict for symbol {}", state_idx, symbol_idx);
+                        eprintln!(
+                            "State {}: Non-associative conflict for symbol {}",
+                            state_idx, symbol_idx
+                        );
                     }
                     PrecedenceComparison::None => {
-                        eprintln!("State {}: No precedence info for conflict at symbol {}", state_idx, symbol_idx);
+                        eprintln!(
+                            "State {}: No precedence info for conflict at symbol {}",
+                            state_idx, symbol_idx
+                        );
                     }
                 }
             }
@@ -1450,10 +1480,13 @@ pub fn build_lr1_automaton(
     // Add non-terminal goto entries to the goto table
     for ((from_state, symbol), to_state) in &collection.goto_table {
         // Check if this symbol is a non-terminal
-        let is_terminal = augmented_grammar.tokens.contains_key(symbol) || 
-                         augmented_grammar.externals.iter().any(|e| e.symbol_id == *symbol) ||
-                         symbol.0 == 0; // EOF is also a terminal
-        
+        let is_terminal = augmented_grammar.tokens.contains_key(symbol)
+            || augmented_grammar
+                .externals
+                .iter()
+                .any(|e| e.symbol_id == *symbol)
+            || symbol.0 == 0; // EOF is also a terminal
+
         if !is_terminal {
             if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
                 let state_idx = from_state.0 as usize;
@@ -1476,8 +1509,7 @@ pub fn build_lr1_automaton(
     // The accept action is added when we see S' -> S • with EOF lookahead
 
     // But we still need to handle the original grammar's symbol mapping
-    if let Some(start_symbol) = grammar.start_symbol() {
-
+    if let Some(_start_symbol) = grammar.start_symbol() {
         // Find all states and check if they need EOF reduce actions
         for (state_idx, _item_set) in collection.sets.iter().enumerate() {
             // Skip this post-processing - handled by augmentation
@@ -1535,14 +1567,15 @@ pub fn build_lr1_automaton(
     // Compute external scanner states
     // For each state, determine which external tokens are valid
     // Now we only track validity - transitions are in the main action table
-    let mut external_scanner_states = vec![vec![false; augmented_grammar.externals.len()]; state_count];
-    
+    let mut external_scanner_states =
+        vec![vec![false; augmented_grammar.externals.len()]; state_count];
+
     // Create a mapping from external symbol_id to index
     let mut external_symbol_to_idx = BTreeMap::new();
     for (idx, external) in augmented_grammar.externals.iter().enumerate() {
         external_symbol_to_idx.insert(external.symbol_id, idx);
     }
-    
+
     // Determine which external tokens are valid in each state
     // An external token is valid if there's a shift action for it in that state
     for state_idx in 0..state_count {
@@ -1550,13 +1583,15 @@ pub fn build_lr1_automaton(
             // Check if this external has a shift action in this state
             if let Some(&symbol_idx) = symbol_to_index.get(&external.symbol_id) {
                 // Check if any action in the cell is a shift
-                if action_table[state_idx][symbol_idx].iter().any(|a| matches!(a, Action::Shift(_))) {
+                if action_table[state_idx][symbol_idx]
+                    .iter()
+                    .any(|a| matches!(a, Action::Shift(_)))
+                {
                     external_scanner_states[state_idx][external_idx] = true;
                 }
             }
         }
     }
-    
 
     Ok(ParseTable {
         action_table,
@@ -1598,7 +1633,7 @@ fn add_action_with_conflict(
     if !current_cell.iter().any(|a| action_eq(a, &new_action)) {
         // Add the action to the cell
         current_cell.push(new_action.clone());
-        
+
         // If there are now multiple actions, track as a conflict
         if current_cell.len() > 1 {
             let entry = conflicts_by_state

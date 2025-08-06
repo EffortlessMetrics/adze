@@ -10,7 +10,7 @@ pub mod grammar {
         #[rust_sitter::leaf(pattern = r"\d+")]
         pub value: String,
     }
-    
+
     #[rust_sitter::extra]
     struct Whitespace {
         #[rust_sitter::leaf(pattern = r"\s")]

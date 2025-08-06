@@ -21,16 +21,18 @@ fn create_simple_grammar() -> Grammar {
     grammar.rule_names.insert(s_id, "S".to_string());
 
     // Rule: S -> identifier
-    grammar.rules.entry(s_id).or_insert_with(Vec::new).push(
-        Rule {
+    grammar
+        .rules
+        .entry(s_id)
+        .or_insert_with(Vec::new)
+        .push(Rule {
             lhs: s_id,
             rhs: vec![Symbol::Terminal(id_token)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(0),
             fields: vec![],
-        },
-    );
+        });
 
     grammar
 }

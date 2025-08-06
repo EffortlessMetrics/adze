@@ -2,7 +2,7 @@
 
 use rust_sitter::{
     parser::ParseNode,
-    query::{predicate_eval::PredicateContext, ast::{Predicate}},
+    query::{ast::Predicate, predicate_eval::PredicateContext},
 };
 use rust_sitter_ir::SymbolId;
 use std::collections::HashMap;
@@ -10,7 +10,7 @@ use std::collections::HashMap;
 fn main() {
     // Example source code
     let source = "hello world test hello";
-    
+
     // Create a simple parse tree (normally this would come from a parser)
     let tree = ParseNode {
         symbol: SymbolId(0), // program
@@ -56,26 +56,26 @@ fn main() {
     println!("=== Testing #eq? predicate with value ===");
     let mut captures = HashMap::new();
     captures.insert(0, tree.children[0].clone()); // "hello"
-    
+
     let eq_pred = Predicate::Eq {
         capture1: 0,
         capture2: None,
         value: Some("hello".to_string()),
     };
-    
+
     let result = predicate_ctx.evaluate(&eq_pred, &captures);
     println!("Is first identifier 'hello'? {}", result);
 
     // Example 2: #eq? predicate between captures
     println!("\n=== Testing #eq? predicate between captures ===");
     captures.insert(1, tree.children[3].clone()); // also "hello"
-    
+
     let eq_captures_pred = Predicate::Eq {
         capture1: 0,
         capture2: Some(1),
         value: None,
     };
-    
+
     let result = predicate_ctx.evaluate(&eq_captures_pred, &captures);
     println!("Are capture 0 and capture 1 equal? {}", result);
 
@@ -83,12 +83,12 @@ fn main() {
     println!("\n=== Testing #match? predicate ===");
     captures.clear();
     captures.insert(0, tree.children[1].clone()); // "world"
-    
+
     let match_pred = Predicate::Match {
         capture: 0,
         regex: r"^w\w+d$".to_string(), // matches words starting with 'w' and ending with 'd'
     };
-    
+
     let result = predicate_ctx.evaluate(&match_pred, &captures);
     println!("Does 'world' match pattern ^w\\w+d$? {}", result);
 
@@ -98,7 +98,7 @@ fn main() {
         capture: 0,
         values: vec!["hello".to_string(), "world".to_string(), "test".to_string()],
     };
-    
+
     let result = predicate_ctx.evaluate(&any_of_pred, &captures);
     println!("Is 'world' in [hello, world, test]? {}", result);
 
@@ -109,7 +109,7 @@ fn main() {
         capture2: None,
         value: Some("hello".to_string()),
     };
-    
+
     let result = predicate_ctx.evaluate(&not_eq_pred, &captures);
     println!("Is 'world' NOT equal to 'hello'? {}", result);
 

@@ -3,7 +3,6 @@
 
 use anyhow::Result;
 use indexmap::IndexMap;
-use std::collections::BTreeMap;
 use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
 use rust_sitter::external_scanner::ExternalScanner;
 use rust_sitter::incremental_v3::{Edit, IncrementalParser, Position};
@@ -14,6 +13,7 @@ use rust_sitter::scanners::IndentationScanner;
 use rust_sitter_glr_core::*;
 use rust_sitter_ir::*;
 use rust_sitter_tablegen::StaticLanguageGenerator;
+use std::collections::BTreeMap;
 
 /// Create a simple Python-like grammar with indentation
 fn create_python_like_grammar() -> Grammar {

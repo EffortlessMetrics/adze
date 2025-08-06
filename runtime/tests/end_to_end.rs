@@ -292,7 +292,7 @@ fn test_simple_parse() {
 //     let num1 = ParseNode::terminal(SymbolId(1), b"123".to_vec(), 0, 3);
 //     let plus = ParseNode::terminal(SymbolId(2), b"+".to_vec(), 4, 5);
 //     let num2 = ParseNode::terminal(SymbolId(1), b"456".to_vec(), 6, 9);
-// 
+//
 //     let expr = ParseNode::non_terminal(
 //         SymbolId(10), // expression
 //         RuleId(100),  // expression -> expression + term
@@ -300,7 +300,7 @@ fn test_simple_parse() {
 //         0,
 //         9,
 //     );
-// 
+//
 //     assert_eq!(expr.symbol, SymbolId(10));
 //     assert_eq!(expr.children.len(), 3);
 //     assert_eq!(expr.start_byte, 0);

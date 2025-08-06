@@ -27,6 +27,10 @@ pub mod glr_query;
 pub mod glr_tree_bridge;
 pub mod glr_validation;
 // pub mod glr_visualization; // TODO: Update for new GLRStack structure
+#[cfg(feature = "pure-rust")]
+pub mod decoder;
+#[cfg(feature = "pure-rust")]
+pub mod grammar_json;
 pub mod optimizations;
 mod parser_v2;
 mod parser_v3;
@@ -34,10 +38,6 @@ pub mod parser_v4;
 pub mod pure_external_scanner;
 pub mod pure_incremental;
 pub mod pure_parser;
-#[cfg(feature = "pure-rust")]
-pub mod decoder;
-#[cfg(feature = "pure-rust")]
-pub mod grammar_json;
 pub mod query;
 #[cfg(feature = "serialization")]
 pub mod serialization;
@@ -248,13 +248,13 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
     ) -> Vec<U> {
         node.map(|node| {
             let mut out = vec![];
-            
+
             // Debug output commented out
             // eprintln!("DEBUG Vec extract: node.symbol={}, children.len()={}", node.symbol, node.children.len());
             // for (i, child) in node.children.iter().enumerate() {
             //     eprintln!("  child[{}]: symbol={}, field_name={:?}", i, child.symbol, child.field_name);
             // }
-            
+
             // For pure-rust parser, REPEAT1 creates a right-recursive structure:
             // For "12 23", the structure is:
             // - Vec_contents has [Vec_contents("12"), TestStatement("23")]
@@ -267,19 +267,32 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
                 out: &mut Vec<U>,
             ) {
                 // eprintln!("  flatten_repeat1: node.symbol={}, children={}", node.symbol, node.children.len());
-                
+
                 // Check if this node has exactly 2 children and the first is the same symbol
                 // This indicates a REPEAT1 recursive structure
-                if node.children.len() == 2 && !node.children.is_empty() && node.children[0].symbol == node.symbol {
+                if node.children.len() == 2
+                    && !node.children.is_empty()
+                    && node.children[0].symbol == node.symbol
+                {
                     // Recursively process the first child (which contains earlier elements)
                     flatten_repeat1::<T, U>(&node.children[0], source, last_idx, leaf_fn, out);
                     // Then extract the second child (the last element)
                     // eprintln!("  Extracting element from symbol={}", node.children[1].symbol);
-                    out.push(T::extract(Some(&node.children[1]), source, node.children[0].end_byte, leaf_fn));
+                    out.push(T::extract(
+                        Some(&node.children[1]),
+                        source,
+                        node.children[0].end_byte,
+                        leaf_fn,
+                    ));
                 } else if node.children.len() == 1 {
                     // Base case: single element
                     // eprintln!("  Base case: extracting single element from symbol={}", node.children[0].symbol);
-                    out.push(T::extract(Some(&node.children[0]), source, last_idx, leaf_fn));
+                    out.push(T::extract(
+                        Some(&node.children[0]),
+                        source,
+                        last_idx,
+                        leaf_fn,
+                    ));
                 } else {
                     // Fallback: extract all children
                     for child in &node.children {
@@ -289,7 +302,7 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
                     }
                 }
             }
-            
+
             flatten_repeat1::<T, U>(node, source, last_idx, leaf_fn, &mut out);
             // eprintln!("  Vec extract returning {} items", out.len());
             out

@@ -448,7 +448,6 @@ impl<'a> TransformWalker<'a> {
 
 #[cfg(test)]
 mod tests {
-    
 
     // Mock Node for testing
     #[derive(Debug, Clone, Copy)]

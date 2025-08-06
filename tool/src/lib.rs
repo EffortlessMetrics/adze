@@ -1,6 +1,5 @@
 use serde_json::Value;
 use syn::{Item, parse_quote};
-use std::error::Error;
 
 mod expansion;
 use expansion::*;
@@ -94,7 +93,10 @@ pub fn build_parsers(root_file: &Path) {
     generate_grammars(root_file).iter().for_each(|grammar| {
         let grammar_str = grammar.to_string();
         if emit_artifacts {
-            eprintln!("Generated grammar JSON:\n{}", serde_json::to_string_pretty(&grammar).unwrap());
+            eprintln!(
+                "Generated grammar JSON:\n{}",
+                serde_json::to_string_pretty(&grammar).unwrap()
+            );
         }
         let (grammar_name, grammar_c) =
             generate_parser_for_grammar(&grammar_str, GENERATED_SEMANTIC_VERSION).unwrap();

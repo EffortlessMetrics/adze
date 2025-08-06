@@ -291,7 +291,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         let enum_name = e.ident.to_string();
                         let variant_name = v.ident.to_string();
                         let expected_symbol = format!("{}_{}", enum_name, variant_name);
-                        
+
                         let detection_expr = quote! {
                             if node.kind() == #expected_symbol {
                                 return #extract_expr;
@@ -300,7 +300,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                         Ok(detection_expr)
                     }).collect::<Result<Vec<_>>>()?;
-                    
+
                     // Generate separate detection logic for leaf variants on terminal nodes
                     let leaf_variant_detection = e.variants.iter().filter_map(|v| {
                         // Check if this is a leaf variant
@@ -312,7 +312,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         } else {
                             false
                         };
-                        
+
                         if is_leaf_variant {
                             let extract_expr = gen_struct_or_variant(
                                 v.fields.clone(),
@@ -320,7 +320,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 e.ident.clone(),
                                 v.attrs.clone(),
                             ).ok()?;
-                            
+
                             // For Number variant specifically, handle numeric terminals
                             if v.ident == "Number" {
                                 Some(quote! {
@@ -356,7 +356,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         let enum_name = e.ident.to_string();
                         let variant_name = v.ident.to_string();
                         let expected_symbol = format!("{}_{}", enum_name, variant_name);
-                        
+
                         let detection_expr = quote! {
                             if child_node.kind() == #expected_symbol {
                                 return #extract_expr;
@@ -386,7 +386,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                     }
                                     node
                                 }
-                                
+
                                 let unwrapped_node = unwrap_hidden_rules(node);
 
                                 // Check if this is an enum wrapper node (e.g., "Expression" wrapping "Expression_Number")
@@ -400,7 +400,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 let child_node = unwrapped_node;
                                 #(#variant_detection_logic_std)*
 
-                                panic!("Could not determine enum variant from tree structure: node kind='{}', child_count={}", 
+                                panic!("Could not determine enum variant from tree structure: node kind='{}', child_count={}",
                                     unwrapped_node.kind(), unwrapped_node.child_count())
                             }
 
@@ -408,7 +408,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             #[cfg(feature = "pure-rust")]
                             fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
-                                
+
                                 // Recursively unwrap hidden rules and wrapper nodes
                                 fn unwrap_hidden_rules<'a>(node: &'a ::rust_sitter::pure_parser::ParsedNode) -> &'a ::rust_sitter::pure_parser::ParsedNode {
                                     // If this is a hidden rule (starts with '_') or has a single child, unwrap it
@@ -417,20 +417,20 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                     }
                                     node
                                 }
-                                
+
                                 let unwrapped_node = unwrap_hidden_rules(node);
-                                
+
                                 // Check if this is an enum wrapper node (e.g., "Expression" wrapping "Expression_Number")
                                 if unwrapped_node.kind() == stringify!(#enum_name) && unwrapped_node.children.len() == 1 {
                                     // This is a wrapper node, extract from its child
                                     let child_node = &unwrapped_node.children[0];
                                     return Self::extract(Some(child_node), source, _last_idx, _leaf_fn);
                                 }
-                                
+
                                 // Check if this node directly matches one of our variants
                                 let node = unwrapped_node;
                                 #(#variant_detection_logic)*
-                                
+
                                 // Special handling for terminal nodes that represent leaf variants
                                 if unwrapped_node.children.is_empty() {
                                     // This is a terminal node, it might be a leaf variant
@@ -438,7 +438,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                     #(#leaf_variant_detection)*
                                 }
 
-                                panic!("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}", 
+                                panic!("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}",
                                     unwrapped_node.kind(), unwrapped_node.symbol, unwrapped_node.children.len())
                             }
                         }
@@ -464,7 +464,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                     // Generate different extract expressions for pure-rust vs non-pure-rust
                     // because pure-rust uses &ParsedNode while non-pure-rust uses Node by value
                     let extract_expr_std = extract_expr.clone();
-                    
+
                     // Always generate both versions - the cfg will be evaluated when the generated code is compiled
                     let extract_impl: Item = syn::parse_quote! {
                         impl ::rust_sitter::Extract<#struct_name> for #struct_name {
@@ -525,7 +525,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
     });
 
     let root_type_docstr = format!("[`{root_type}`]");
-    
+
     // Generate parse function for non-pure-rust
     transformed.push(syn::parse_quote! {
         /// Parse an input string according to the grammar. Returns either any parsing errors that happened, or a
@@ -536,7 +536,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
             ::rust_sitter::__private::parse::<#root_type>(input, language)
         }
     });
-    
+
     // Generate parse function for pure-rust
     transformed.push(syn::parse_quote! {
         /// Parse an input string according to the grammar. Returns either any parsing errors that happened, or a

@@ -4,8 +4,8 @@ use rust_sitter::subtree::Subtree;
 // Test incremental parsing functionality
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{
-    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
-    Token, TokenPattern,
+    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
+    TokenPattern,
 };
 use std::sync::Arc;
 
