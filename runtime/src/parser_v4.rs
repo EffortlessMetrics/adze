@@ -264,6 +264,16 @@ impl Parser {
             
             // Get the action for this state and lookahead symbol (works for both regular and external tokens)
             let action = self.get_parse_action(current_state, lookahead)?;
+            eprintln!("State {}, Symbol {} -> Action: {:?}", current_state.0, lookahead.0, action);
+            // Debug: print what actions are available in state 0
+            if current_state.0 == 0 && matches!(action, Action::Error) {
+                eprintln!("  Available actions in state 0:");
+                for (sym_idx, act) in self.parse_table.action_table[0].iter().enumerate() {
+                    if !matches!(act, Action::Error) {
+                        eprintln!("    Symbol {} -> {:?}", sym_idx, act);
+                    }
+                }
+            }
             
             match action {
                 Action::Shift(next_state) => {

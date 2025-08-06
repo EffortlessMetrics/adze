@@ -290,9 +290,12 @@ impl<'a> AbiLanguageBuilder<'a> {
             // Symbol metadata (visibility, named, etc.)
             static SYMBOL_METADATA: &[u8] = &[#(#symbol_metadata),*];
 
-            // Parse table (compressed)
-            static PARSE_TABLE: &[u16] = &[#(#parse_table_data),*];
+            // Parse table (for large states - empty if all states are compressed)
+            static PARSE_TABLE: &[u16] = &[];
 
+            // Small parse table (compressed states data)
+            static SMALL_PARSE_TABLE: &[u16] = &[#(#parse_table_data),*];
+            
             // Small parse table map
             static SMALL_PARSE_TABLE_MAP: &[u32] = &[#(#small_parse_table_map),*];
 
@@ -337,7 +340,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 max_alias_sequence_length: #max_alias_sequence_length,
                 production_id_map: PRODUCTION_ID_MAP.as_ptr(),
                 parse_table: PARSE_TABLE.as_ptr(),
-                small_parse_table: std::ptr::null(),
+                small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
                 small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
                 parse_actions: PARSE_ACTIONS.as_ptr(),
                 symbol_names: SYMBOL_NAME_PTRS.as_ptr() as *const SyncPtr as *const *const u8,

@@ -224,6 +224,10 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     let mut symbol_metadata = Vec::new();
     let mut symbol_to_index = BTreeMap::new();
     
+    eprintln!("Decoding parse table: {} states ({} large, {} small), {} symbols", 
+        lang.state_count, lang.large_state_count, 
+        lang.state_count - lang.large_state_count, lang.symbol_count);
+    
     // Build symbol to index mapping and metadata
     for i in 0..lang.symbol_count as usize {
         symbol_to_index.insert(SymbolId(i as u16), i);
@@ -273,7 +277,10 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     }
     
     // Decode small_parse_table for compressed states
+    eprintln!("small_parse_table_map null: {}, small_parse_table null: {}", 
+        lang.small_parse_table_map.is_null(), lang.small_parse_table.is_null());
     if !lang.small_parse_table_map.is_null() && !lang.small_parse_table.is_null() {
+        eprintln!("Decoding {} compressed states", lang.state_count - lang.large_state_count);
         for state in lang.large_state_count as usize..lang.state_count as usize {
             let mut state_actions = vec![Action::Error; lang.symbol_count as usize];
             
@@ -308,6 +315,11 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             
             action_table.push(state_actions);
         }
+    }
+    
+    eprintln!("Final action_table has {} states", action_table.len());
+    if !action_table.is_empty() {
+        eprintln!("State 0 has {} actions", action_table[0].len());
     }
     
     // Decode external scanner states from the TSLanguage struct
