@@ -1244,8 +1244,25 @@ pub fn build_lr1_automaton(
     // For Python and other indentation-sensitive languages, external tokens like INDENT/DEDENT
     // must be valid in the initial state and many other states
     
-    // External tokens are now handled via separate external_scanner_states table
-    // They don't get added to the main action table
+    // Add shift actions for external tokens to the action table
+    // For now, external tokens loop to the same state (like extras/whitespace)
+    for state_idx in 0..state_count {
+        for (external_idx, external) in augmented_grammar.externals.iter().enumerate() {
+            // Check if this external token is valid in this state
+            // For now, we're enabling all externals in all states (overly permissive)
+            if let Some(&symbol_idx) = symbol_to_index.get(&external.symbol_id) {
+                // Add a shift action that loops to the same state
+                // This allows external tokens to be consumed without changing the parse state
+                add_action_with_conflict(
+                    &mut action_table,
+                    &mut conflicts_by_state,
+                    state_idx,
+                    symbol_idx,
+                    Action::Shift(StateId(state_idx as u16)),
+                );
+            }
+        }
+    }
 
     // Now fill action table with reduce actions
     for item_set in &collection.sets {
@@ -1501,11 +1518,28 @@ pub fn build_lr1_automaton(
         for (external_idx, external) in augmented_grammar.externals.iter().enumerate() {
             external_scanner_states[state_idx][external_idx] = true;
             
-            // External tokens typically loop to the same state
-            // The actual transition depends on the token and context
+            // Determine the next state for this external token
+            // For now, we use a simple heuristic:
+            // - Most external tokens loop to the same state (like whitespace, comments)
+            // - INDENT/DEDENT need special handling in real implementations
+            // - This is a simplified approach; production parsers would compute this from the grammar
+            
+            let next_state = if external.name.contains("INDENT") {
+                // INDENT typically transitions to a state expecting indented content
+                // For now, we'll loop to the same state but this should be computed from the grammar
+                StateId(state_idx as u16)
+            } else if external.name.contains("DEDENT") {
+                // DEDENT typically transitions to a state at a lower indentation level
+                // For now, we'll loop to the same state but this should be computed from the grammar
+                StateId(state_idx as u16)
+            } else {
+                // Other external tokens (NEWLINE, comments, etc.) typically loop
+                StateId(state_idx as u16)
+            };
+            
             external_scanner_map.insert(
                 (StateId(state_idx as u16), external.symbol_id), 
-                StateId(state_idx as u16)
+                next_state
             );
         }
     }
