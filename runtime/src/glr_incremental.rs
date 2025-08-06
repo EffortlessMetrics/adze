@@ -4,6 +4,8 @@
 use crate::glr_lexer::TokenWithPosition;
 use crate::glr_parser::GLRParser;
 use crate::subtree::Subtree;
+use crate::parser_v4;
+use crate::unified_parser;
 use rust_sitter_ir::{Grammar, SymbolId};
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
@@ -323,6 +325,79 @@ impl IncrementalGLRParser {
     pub fn clear_pool(&mut self) {
         self.subtree_pool = SubtreePool::new(self.grammar.clone());
     }
+}
+
+/// Main entry point for GLR-aware incremental parsing
+/// Called from unified_parser::Parser::reparse
+pub fn reparse(
+    parser: &mut unified_parser::Parser,
+    source: &[u8],
+    old_tree: &parser_v4::Tree,
+    edit: &crate::pure_incremental::Edit,
+) -> Option<parser_v4::Tree> {
+    // For now, we'll do a full reparse but with incremental infrastructure in place
+    // This is the Week 2 core implementation task
+    
+    // Step 1: Identify affected regions
+    let edit_start = edit.start_byte;
+    let edit_old_end = edit.old_end_byte;
+    let edit_new_end = edit.new_end_byte;
+    
+    // Step 2: Calculate the byte delta for position adjustments
+    let byte_delta = edit_new_end as isize - edit_old_end as isize;
+    
+    // Step 3: For now, do a full reparse with error tracking
+    // In a true incremental implementation, we would:
+    // - Find the smallest set of invalidated nodes
+    // - Locate GSS heads at the start of invalid regions
+    // - Fork and replay from those states
+    // - Merge when re-converging with valid nodes
+    
+    // Full reparse fallback (temporary)
+    // Convert source bytes to string for now
+    let source_str = std::str::from_utf8(source).ok()?;
+    parser.parse(source_str, None)
+}
+
+/// Represents an invalidated region in the tree
+#[derive(Debug)]
+struct InvalidatedRegion {
+    start_byte: usize,
+    end_byte: usize,
+    // GSS heads that can be used as reparse starting points
+    gss_heads: Vec<GSSHead>,
+}
+
+/// Represents a GSS (Graph-Structured Stack) head for reparse
+#[derive(Debug)]
+struct GSSHead {
+    state_id: usize,
+    position: usize,
+    // Stack context leading to this head
+    stack_context: Vec<usize>,
+}
+
+impl InvalidatedRegion {
+    /// Find all GSS heads that can be used to restart parsing
+    fn find_gss_heads(&self, _old_tree: &parser_v4::Tree) -> Vec<GSSHead> {
+        // TODO: Implement actual GSS head discovery
+        // This would traverse the old tree and identify valid restart points
+        vec![]
+    }
+}
+
+/// Find regions invalidated by an edit
+fn find_invalidated_regions(
+    _old_tree: &parser_v4::Tree,
+    edit: &crate::pure_incremental::Edit,
+) -> Vec<InvalidatedRegion> {
+    // TODO: Implement actual invalidation logic
+    // For now, treat the entire edit region as invalid
+    vec![InvalidatedRegion {
+        start_byte: edit.start_byte,
+        end_byte: edit.old_end_byte,
+        gss_heads: vec![],
+    }]
 }
 
 #[cfg(test)]

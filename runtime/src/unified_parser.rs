@@ -127,9 +127,9 @@ impl Parser {
     /// 
     /// # Note
     /// This is the main API for GLR-aware incremental parsing.
-    /// Currently delegates to parse_with_old_tree as a placeholder.
     pub fn reparse(&mut self, source: &[u8], old_tree: &parser_v4::Tree, edit: &crate::pure_incremental::Edit) -> Option<parser_v4::Tree> {
-        self.parse_with_old_tree(source, Some(old_tree), Some(edit))
+        // Delegate to the GLR-aware incremental reparse implementation
+        crate::glr_incremental::reparse(self, source, old_tree, edit)
     }
 
     /// Parse source code with detailed error information

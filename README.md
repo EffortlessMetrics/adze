@@ -34,6 +34,31 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - **Performance Optimizations**: SIMD lexing, parallel parsing, and memory pooling
 - **Conflict Preservation**: Keeps all shift/reduce and reduce/reduce conflicts for runtime resolution
 
+## Quick Start
+
+```rust
+use rust_sitter::unified_parser::Parser;
+
+fn main() {
+    // Create a parser instance
+    let mut parser = Parser::new();
+    
+    // Set your language (generated from your grammar)
+    parser.set_language(my_language::get_language())
+        .expect("Failed to set language");
+    
+    // Parse some source code
+    let source = "fn main() { println!(\"Hello, world!\"); }";
+    let tree = parser.parse(source, None)
+        .expect("Failed to parse");
+    
+    // Check for errors
+    if tree.error_count() == 0 {
+        println!("Parse successful!");
+    }
+}
+```
+
 ## Installation
 First, add Rust/Tree Sitter to your `Cargo.toml`:
 ```toml

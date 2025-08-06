@@ -24,7 +24,7 @@ pub mod parser {
 pub mod error_recovery;
 pub mod error_reporting;
 #[cfg(feature = "legacy-parsers")]
-pub mod glr;
+pub mod glr; // Legacy GLR module that depends on parser_v3
 pub mod glr_forest;
 pub mod glr_incremental;
 pub mod glr_lexer;
