@@ -220,11 +220,15 @@ impl<'a> IncrementalParserState<'a> {
             // Get action for current state and token
             if let Some(actions) = self.table.action_table.get(state.0 as usize) {
                 if let Some(action_cell) = actions.get(token.symbol.0 as usize) {
-                    // Handle Vec<Action> - use first action for now (TODO: proper GLR handling)
+                    // Handle Vec<Action> - prefer shift over reduce for now
+                    // TODO: Implement full GLR-aware incremental re-parse
                     let action = if action_cell.is_empty() {
                         &Action::Error
                     } else {
-                        &action_cell[0]
+                        // Prefer shift actions over reduce actions for better parsing behavior
+                        action_cell.iter()
+                            .find(|a| matches!(a, Action::Shift(_)))
+                            .unwrap_or(&action_cell[0])
                     };
 
                     match action {
