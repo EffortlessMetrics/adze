@@ -729,12 +729,10 @@ impl GLRParser {
 
         for stack in &self.stacks {
             if stack.nodes.len() == 1 {
-                // Check if the single node is a non-terminal (not a raw token)
+                // Accept if we have exactly one node after EOF processing
+                // This should be the root of the parse tree (the start symbol)
                 let node = &stack.nodes[0];
-                // In our grammar, non-terminals have IDs >= 10
-                if node.node.symbol_id.0 >= 10 {
-                    return Ok(node.clone());
-                }
+                return Ok(node.clone());
             }
         }
 
@@ -962,6 +960,60 @@ impl GLRParser {
     /// Set the next stack ID for restoring fork tracking
     pub fn set_next_stack_id(&mut self, id: usize) {
         self.next_stack_id = id;
+    }
+    
+    /// Inject multiple alternative subtrees (for ambiguous parses)
+    /// This is used for incremental GLR parsing to preserve ambiguity
+    pub fn inject_ambiguous_subtrees(&mut self, subtrees: Vec<Arc<Subtree>>) -> Result<(), String> {
+        if self.stacks.is_empty() {
+            return Err("No active stacks to inject subtrees into".to_string());
+        }
+        
+        if subtrees.is_empty() {
+            return Err("No subtrees to inject".to_string());
+        }
+        
+        // For each subtree alternative, create potential parse stacks
+        let mut new_stacks = Vec::new();
+        
+        for subtree in subtrees {
+            for stack in &self.stacks {
+                let mut new_stack = stack.clone();
+                
+                // Get the current state
+                let current_state = new_stack.current_state();
+                
+                // Look up the goto state after shifting this symbol
+                let symbol = subtree.node.symbol_id;
+                if let Some(&symbol_idx) = self.table.symbol_to_index.get(&symbol) {
+                    let state_idx = current_state.0 as usize;
+                    
+                    // Check if there's a shift action for this symbol
+                    if state_idx < self.table.action_table.len() 
+                        && symbol_idx < self.table.action_table[state_idx].len() {
+                        
+                        let action_cell = &self.table.action_table[state_idx][symbol_idx];
+                        
+                        // Look for shift actions
+                        for action in action_cell {
+                            if let Action::Shift(next_state) = action {
+                                // Push the subtree and advance to the next state
+                                let mut forked_stack = new_stack.clone();
+                                forked_stack.push(*next_state, subtree.clone());
+                                new_stacks.push(forked_stack);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        if new_stacks.is_empty() {
+            return Err("Cannot inject any subtrees in current state".to_string());
+        }
+        
+        self.stacks = new_stacks;
+        Ok(())
     }
     
     /// Inject a pre-parsed subtree at the current position

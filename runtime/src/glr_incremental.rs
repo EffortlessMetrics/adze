@@ -349,7 +349,7 @@ pub struct ForkAlternative {
 #[derive(Debug)]
 pub struct ReuseMap {
     /// Maps byte ranges to reusable forest nodes
-    nodes: HashMap<Range<usize>, Arc<ForestNode>>,
+    pub nodes: HashMap<Range<usize>, Arc<ForestNode>>,
     /// Tracks which byte ranges are affected by edits
     affected_ranges: HashSet<Range<usize>>,
 }
@@ -673,16 +673,30 @@ impl IncrementalGLRParser {
             };
             
             // Process tokens with reuse and snapshot capture
-            for (idx, token) in tokens.iter().enumerate().skip(start_token_idx) {
-                // Check if we have a reusable subtree at this position
-                let token_range = token.start_byte..token.end_byte;
+            let mut idx = start_token_idx;
+            while idx < tokens.len() {
+                let token = &tokens[idx];
                 
-                if let Some(reusable_node) = self.reuse_map.get_node(&token_range) {
-                    // We found a reusable subtree! Skip over these tokens
-                    println!("DEBUG: Reusing subtree at byte range {:?}", token_range);
-                    
-                    // Inject the reusable subtree into the parser
-                    self.inject_subtree_into_parser(&mut parser, reusable_node);
+                // Check if we have a reusable subtree starting at this position
+                // Look for any subtree that starts at the current byte position
+                let mut found_reusable = false;
+                for (range, node) in &self.reuse_map.nodes {
+                    if range.start == token.start_byte {
+                        // We found a reusable subtree!
+                        
+                        // Inject the reusable subtree into the parser
+                        self.inject_subtree_into_parser(&mut parser, node.clone());
+                        
+                        // Skip all tokens covered by this subtree
+                        while idx < tokens.len() && tokens[idx].end_byte <= range.end {
+                            idx += 1;
+                        }
+                        found_reusable = true;
+                        break;
+                    }
+                }
+                
+                if found_reusable {
                     continue;
                 }
                 
@@ -694,6 +708,7 @@ impl IncrementalGLRParser {
                 }
                 
                 parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
+                idx += 1;
             }
             
             parser.process_eof();
@@ -748,39 +763,70 @@ impl IncrementalGLRParser {
         })
     }
     
-    /// Inject a reusable subtree into the parser
+    /// Inject a reusable subtree into the parser, preserving ambiguity
     fn inject_subtree_into_parser(&self, parser: &mut GLRParser, node: Arc<ForestNode>) {
-        // Convert the ForestNode to a Subtree
+        // Convert each alternative in the ForestNode to a separate Subtree
+        let subtrees: Vec<Arc<Subtree>> = if node.alternatives.is_empty() {
+            // Leaf node or empty node
+            let subtree_node = crate::subtree::SubtreeNode {
+                symbol_id: node.symbol,
+                is_error: false,
+                byte_range: node.byte_range.clone(),
+            };
+            vec![Arc::new(Subtree::new(subtree_node, vec![]))]
+        } else {
+            // For each alternative, create a separate subtree
+            node.alternatives.iter().map(|alt| {
+                let subtree_node = crate::subtree::SubtreeNode {
+                    symbol_id: node.symbol,
+                    is_error: false,
+                    byte_range: node.byte_range.clone(),
+                };
+                
+                // Recursively convert children for this alternative
+                let children: Vec<Arc<Subtree>> = alt.children.iter()
+                    .map(|child| self.forest_to_subtree_preserving_first_alt(child))
+                    .collect();
+                
+                Arc::new(Subtree::new(subtree_node, children))
+            }).collect()
+        };
+        
+        // Inject all alternative subtrees into the parser
+        match parser.inject_ambiguous_subtrees(subtrees) {
+            Ok(_) => {
+                // Successfully injected the subtrees
+                SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
+            }
+            Err(_) => {
+                // Failed to inject - parser will re-parse this region
+            }
+        }
+    }
+    
+    /// Helper function that creates a single subtree from a forest node
+    /// Used when we need a single subtree for children but still want to be consistent
+    fn forest_to_subtree_preserving_first_alt(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
         let subtree_node = crate::subtree::SubtreeNode {
             symbol_id: node.symbol,
             is_error: false,
             byte_range: node.byte_range.clone(),
         };
         
-        // Create the subtree with its children
-        let children: Vec<Arc<Subtree>> = node.alternatives.iter()
-            .flat_map(|alt| alt.children.iter())
-            .map(|child| self.forest_to_subtree(child))
-            .collect();
+        // For children, we still need to pick one alternative (limitation of Subtree structure)
+        // But at least at the top level we preserve all alternatives
+        let children = if let Some(alt) = node.alternatives.first() {
+            alt.children.iter()
+                .map(|child| self.forest_to_subtree_preserving_first_alt(child))
+                .collect()
+        } else {
+            vec![]
+        };
         
-        let subtree = Arc::new(Subtree::new(subtree_node, children));
-        
-        // Inject the subtree into the parser
-        match parser.inject_subtree(subtree) {
-            Ok(_) => {
-                // Successfully injected the subtree
-                SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
-                println!("DEBUG: Injected subtree with {} bytes", 
-                         node.byte_range.end - node.byte_range.start);
-            }
-            Err(e) => {
-                // Failed to inject - parser will re-parse this region
-                println!("DEBUG: Failed to inject subtree: {}", e);
-            }
-        }
+        Arc::new(Subtree::new(subtree_node, children))
     }
     
-    /// Helper function to convert ForestNode to Subtree
+    /// Helper function to convert ForestNode to Subtree (legacy, only uses first alternative)
     fn forest_to_subtree(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
         let subtree_node = crate::subtree::SubtreeNode {
             symbol_id: node.symbol,
@@ -807,28 +853,34 @@ impl IncrementalGLRParser {
         fork_id: usize,
         tokens: &[GLRToken],
     ) -> Arc<ForestNode> {
-        // Get byte range from tokens
-        let byte_range = if !tokens.is_empty() {
-            tokens[0].start_byte..tokens[tokens.len() - 1].end_byte
-        } else {
-            0..0
-        };
+        // Recursively build ForestNode from Subtree
+        self.subtree_to_forest_recursive(subtree, fork_id)
+    }
+    
+    /// Recursively convert a Subtree to a ForestNode with proper children
+    fn subtree_to_forest_recursive(
+        &mut self,
+        subtree: Arc<Subtree>,
+        fork_id: usize,
+    ) -> Arc<ForestNode> {
+        // Convert children recursively
+        let children: Vec<Arc<ForestNode>> = subtree.children.iter()
+            .map(|child| self.subtree_to_forest_recursive(child.clone(), fork_id))
+            .collect();
         
-        let token_range = 0..tokens.len();
-        
-        // Create forest node with single alternative
+        // Create forest node with proper children
         let alternative = ForkAlternative {
             fork_id,
             rule_id: None,
-            children: Vec::new(),
+            children,
             subtree: subtree.clone(),
         };
         
         Arc::new(ForestNode {
-            symbol: SymbolId(0),
+            symbol: subtree.node.symbol_id,
             alternatives: vec![alternative],
-            byte_range,
-            token_range,
+            byte_range: subtree.node.byte_range.clone(),
+            token_range: 0..0, // This would need proper calculation in a real implementation
             cached_subtree: Some(subtree),
         })
     }
