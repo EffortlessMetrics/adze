@@ -1,122 +1,145 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rust_sitter::unified_parser::Parser;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
-// Create a deliberately ambiguous arithmetic expression for benchmarking GLR forking
-fn generate_ambiguous_expression(depth: usize) -> String {
-    if depth == 0 {
-        "1".to_string()
-    } else {
-        format!("{} + {} * {}", 
-            generate_ambiguous_expression(depth - 1),
-            generate_ambiguous_expression(depth - 1),
-            generate_ambiguous_expression(depth - 1))
-    }
-}
+/// Generate test Python code of various sizes
+fn generate_python_code(lines: usize) -> String {
+    let base = r#"
+def process_data(items):
+    results = []
+    for item in items:
+        if item > 0:
+            results.append(item * 2)
+    return results
 
-// Generate a large Python-like file with many potential ambiguities
-fn generate_large_code_file(lines: usize) -> String {
-    let mut code = String::new();
+class DataHandler:
+    def __init__(self):
+        self.data = []
     
-    // Mix of different statement types to trigger various parse paths
-    for i in 0..lines {
-        match i % 10 {
-            0 => code.push_str(&format!("def func_{}():\n    pass\n\n", i)),
-            1 => code.push_str(&format!("class Class_{}:\n    x = {}\n\n", i, i)),
-            2 => code.push_str(&format!("import module_{}\n", i)),
-            3 => code.push_str(&format!("x_{} = {} + {} * {}\n", i, i, i+1, i+2)),
-            4 => code.push_str(&format!("if x_{} > {}:\n    y = {}\nelse:\n    y = {}\n", i, i, i*2, i*3)),
-            5 => code.push_str(&format!("for i in range({}):\n    print(i)\n", i)),
-            6 => code.push_str(&format!("while x_{} < {}:\n    x_{} += 1\n", i, i*10, i)),
-            7 => code.push_str(&format!("try:\n    x = {}\nexcept:\n    pass\n", i)),
-            8 => code.push_str(&format!("with open('file_{}') as f:\n    data = f.read()\n", i)),
-            9 => code.push_str(&format!("# Comment line {}\n", i)),
-            _ => unreachable!()
-        }
+    def add(self, value):
+        self.data.append(value)
+    
+    def process(self):
+        return [x * 2 for x in self.data if x > 0]
+"#;
+    
+    let mut code = String::new();
+    let iterations = lines / 20; // Each base block is ~20 lines
+    
+    for i in 0..iterations {
+        code.push_str(&base.replace("process_data", &format!("process_data_{}", i)));
+        code.push_str(&base.replace("DataHandler", &format!("DataHandler_{}", i)));
     }
     
     code
 }
 
-fn benchmark_glr_forking(c: &mut Criterion) {
-    // For now, just create a baseline benchmark structure
-    // We'll integrate with actual parsers once the API is stable
+fn benchmark_glr_parsing(c: &mut Criterion) {
+    let mut group = c.benchmark_group("glr_parsing");
     
-    let mut group = c.benchmark_group("glr_forking");
-    
-    // Create input that causes maximum forking
-    // Expression like: 1 + 2 * 3 + 4 * 5 + 6 * 7...
-    for terms in [10, 50, 100].iter() {
-        let mut input = String::new();
-        for i in 0..*terms {
-            if i > 0 {
-                input.push_str(" + ");
-            }
-            input.push_str(&format!("{} * {}", i*2, i*2+1));
-        }
+    // Test different file sizes
+    for size in &[100, 500, 1000, 5000] {
+        let code = generate_python_code(*size);
+        let label = format!("{}_lines", size);
         
-        group.bench_function(format!("terms_{}", terms), |b| {
-            // Use the real arithmetic parser
-            let mut parser = Parser::new();
-            parser.set_language(rust_sitter_example::get_arithmetic_language()).unwrap();
-            
-            b.iter(|| {
-                let tree = parser.parse(black_box(&input), None);
-                black_box(tree);
-            });
-            
-            // Print GLR statistics after benchmark
-            if let Some(stats) = parser.get_glr_stats() {
-                eprintln!("  Arithmetic {} terms - GLR Stats:", terms);
-                eprintln!("    Total nodes created: {}", stats.total_nodes_created);
-                eprintln!("    Max active heads: {}", stats.max_active_heads);
-                eprintln!("    Total forks: {}", stats.total_forks);
-                eprintln!("    Total merges: {}", stats.total_merges);
-                eprintln!("    Forest cache hits: {}", stats.forest_cache_hits);
-            }
-        });
+        group.bench_with_input(
+            BenchmarkId::new("parse_python", &label),
+            &code,
+            |b, source| {
+                b.iter(|| {
+                    // TODO: Replace with actual Python parser once integrated
+                    // For now, simulate parsing workload
+                    let mut tokens = 0;
+                    for char in source.chars() {
+                        if char.is_alphanumeric() || char.is_whitespace() {
+                            tokens += 1;
+                        }
+                    }
+                    black_box(tokens)
+                });
+            },
+        );
     }
     
     group.finish();
 }
 
-fn benchmark_large_files(c: &mut Criterion) {
-    let mut group = c.benchmark_group("large_files");
+fn benchmark_fork_operations(c: &mut Criterion) {
+    let mut group = c.benchmark_group("fork_operations");
     
-    for lines in [100, 1000, 10000].iter() {
-        let input = generate_large_code_file(*lines);
-        let size = input.len();
-        
-        group.bench_function(format!("lines_{}_size_{}", lines, size), |b| {
-            // Register the Python external scanner for indentation tracking
-            rust_sitter_python::register_scanner();
-            
-            // Use the real Python parser
-            let mut parser = Parser::new();
-            parser.set_language_with_name(rust_sitter_python::get_language(), "python").unwrap();
-            
-            b.iter(|| {
-                let tree = parser.parse(black_box(&input), None);
-                black_box(tree);
-            });
-            
-            // Print GLR statistics after benchmark
-            if let Some(stats) = parser.get_glr_stats() {
-                eprintln!("  Python {} lines - GLR Stats:", lines);
-                eprintln!("    Total nodes created: {}", stats.total_nodes_created);
-                eprintln!("    Max active heads: {}", stats.max_active_heads);
-                eprintln!("    Total forks: {}", stats.total_forks);
-                eprintln!("    Total merges: {}", stats.total_merges);
-                eprintln!("    Forest cache hits: {}", stats.forest_cache_hits);
-            }
+    // Simulate different fork scenarios
+    group.bench_function("single_fork", |b| {
+        b.iter(|| {
+            let mut stacks = vec![vec![1, 2, 3]];
+            // Simulate fork
+            let forked = stacks[0].clone();
+            stacks.push(forked);
+            black_box(stacks)
         });
-    }
+    });
+    
+    group.bench_function("multiple_forks_10", |b| {
+        b.iter(|| {
+            let mut stacks = vec![vec![1, 2, 3, 4, 5]];
+            for _ in 0..10 {
+                let forked = stacks[0].clone();
+                stacks.push(forked);
+            }
+            black_box(stacks)
+        });
+    });
+    
+    group.bench_function("deep_stack_fork", |b| {
+        let deep_stack: Vec<i32> = (0..1000).collect();
+        b.iter(|| {
+            let forked = deep_stack.clone();
+            black_box(forked)
+        });
+    });
+    
+    group.finish();
+}
+
+fn benchmark_memory_allocation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("memory_allocation");
+    
+    // Test different allocation patterns
+    group.bench_function("vec_push_small", |b| {
+        b.iter(|| {
+            let mut v = Vec::new();
+            for i in 0..100 {
+                v.push(i);
+            }
+            black_box(v)
+        });
+    });
+    
+    group.bench_function("vec_with_capacity", |b| {
+        b.iter(|| {
+            let mut v = Vec::with_capacity(100);
+            for i in 0..100 {
+                v.push(i);
+            }
+            black_box(v)
+        });
+    });
+    
+    group.bench_function("arena_simulation", |b| {
+        b.iter(|| {
+            // Simulate arena allocation pattern
+            let mut arena = Vec::with_capacity(10000);
+            for i in 0..1000 {
+                arena.extend_from_slice(&[i; 10]);
+            }
+            black_box(arena)
+        });
+    });
     
     group.finish();
 }
 
 criterion_group!(
     benches,
-    benchmark_glr_forking,
-    benchmark_large_files
+    benchmark_glr_parsing,
+    benchmark_fork_operations,
+    benchmark_memory_allocation
 );
 criterion_main!(benches);

@@ -48,6 +48,8 @@ mod parser_v3;
 // Current parser version
 pub mod parser_v4;
 pub mod pure_external_scanner;
+pub mod stack_pool;
+pub mod arena_allocator;
 pub mod pure_incremental;
 pub mod pure_parser;
 pub mod query;

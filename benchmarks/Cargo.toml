@@ -11,6 +11,10 @@ harness = false
 name = "glr_performance"
 harness = false
 
+[[bench]]
+name = "optimization_bench"
+harness = false
+
 [dependencies]
 rust-sitter = { path = "../runtime" }
 rust-sitter-example = { path = "../example" }

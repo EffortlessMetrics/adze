@@ -3,6 +3,7 @@
 // representation of ambiguous parse trees.
 
 use crate::parser_v4::ParseNode;
+use crate::stack_pool::StackPool;
 use rust_sitter_ir::{RuleId, SymbolId};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -84,6 +85,8 @@ pub struct GLRParserState {
     pub forest_cache: HashMap<(SymbolId, usize, usize), Rc<ForestNode>>,
     /// Statistics for performance monitoring
     pub stats: GLRStats,
+    /// Stack pool for efficient memory reuse
+    pub stack_pool: Rc<StackPool<usize>>,
 }
 
 impl Default for GLRParserState {
@@ -100,6 +103,7 @@ impl GLRParserState {
             next_gss_id: 0,
             forest_cache: HashMap::new(),
             stats: GLRStats::default(),
+            stack_pool: Rc::new(StackPool::new(64)), // Default pool size
         };
 
         // Create initial GSS node for state 0
