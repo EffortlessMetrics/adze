@@ -441,6 +441,15 @@ impl GSSStateMap {
             .next_back()
             .map(|(_, snapshot)| snapshot)
     }
+    
+    /// Find the best snapshot to resume from for a given token position
+    pub fn find_resume_point_for_token(&self, token_idx: usize) -> Option<&GSSSnapshot> {
+        // Find the latest snapshot at or before this token position
+        self.snapshots
+            .values()
+            .filter(|s| s.token_position <= token_idx)
+            .max_by_key(|s| s.token_position)
+    }
 
     /// Clear snapshots that are invalidated by an edit
     pub fn invalidate_after(&mut self, position: usize) {
@@ -688,6 +697,7 @@ impl IncrementalGLRParser {
             let edit_delta = (edits[0].new_text.len() as isize) - (edits[0].old_range.len() as isize);
             let suffix_len = chunk_id.find_suffix_boundary(&old_tokens, tokens, edit_delta);
             
+            #[cfg(feature = "debug_incremental")]
             println!("DEBUG incremental: Found prefix_len={}, suffix_len={}, total tokens={}", 
                      prefix_len, suffix_len, tokens.len());
             
@@ -698,14 +708,40 @@ impl IncrementalGLRParser {
             self.tokens = tokens.to_vec();
             self.edit_byte_delta = edit_delta;
             
-            // IMPORTANT: We do a full parse of ALL tokens to ensure GLR forking works correctly
-            // The reuse happens AFTER parsing, during forest construction
-            println!("DEBUG incremental: Performing full parse with chunk-based forest reuse");
+            // Try to resume from a GSS snapshot if available
+            let resume_snapshot = if prefix_len > 0 {
+                self.gss_state_map.find_resume_point_for_token(prefix_len)
+            } else {
+                None
+            };
             
-            // Parse all tokens normally (this ensures GLR forking happens correctly)
-            let mut parser = GLRParser::new(self.table.clone(), self.grammar.clone());
+            let (mut parser, start_token_idx) = if let Some(snapshot) = resume_snapshot {
+                #[cfg(feature = "debug_incremental")]
+                println!("DEBUG incremental: Resuming from GSS snapshot at token {}", snapshot.token_position);
+                // Create parser from snapshot (skipping the prefix)
+                let parser = self.create_parser_from_snapshot(snapshot);
+                (parser, snapshot.token_position)
+            } else {
+                #[cfg(feature = "debug_incremental")]
+                println!("DEBUG incremental: No snapshot available, parsing from start");
+                // No snapshot, start from beginning
+                (GLRParser::new(self.table.clone(), self.grammar.clone()), 0)
+            };
             
-            for (idx, token) in tokens.iter().enumerate() {
+            #[cfg(feature = "debug_incremental")]
+            println!("DEBUG incremental: Parsing tokens from {} to {}", start_token_idx, tokens.len());
+            
+            // Parse tokens starting from the resume point
+            for (idx, token) in tokens.iter().enumerate().skip(start_token_idx) {
+                // Capture snapshots periodically (every 100 tokens)
+                if idx > 0 && idx % 100 == 0 {
+                    let byte_pos = token.start_byte;
+                    if let Some(snapshot) = self.capture_parser_snapshot(&parser, idx, byte_pos) {
+                        self.gss_state_map.add_snapshot(snapshot);
+                    }
+                }
+                
+                #[cfg(feature = "debug_incremental")]
                 println!("DEBUG incremental: Token {}: symbol {}, text {:?}, range {:?}", 
                          idx, token.symbol.0, std::str::from_utf8(&token.text), token.start_byte..token.end_byte);
                 parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
@@ -723,6 +759,7 @@ impl IncrementalGLRParser {
                         self.build_forest_from_subtree(trees[0].clone(), 0, tokens)
                     } else {
                         // Multiple parse trees - ambiguous grammar!
+                        #[cfg(feature = "debug_incremental")]
                         println!("DEBUG: Building forest with {} alternatives after incremental reparse", trees.len());
                         let mut alternatives = Vec::new();
                         for (i, tree) in trees.iter().enumerate() {
@@ -769,6 +806,7 @@ impl IncrementalGLRParser {
         parser.set_next_stack_id(snapshot.next_stack_id);
         
         // The parser is now in the exact state it was when the snapshot was taken
+        #[cfg(feature = "debug_incremental")]
         println!("DEBUG: Restored parser from snapshot at byte position {}", snapshot.byte_position);
         
         parser
@@ -911,6 +949,7 @@ impl IncrementalGLRParser {
                         subtree.node.symbol_id,
                         &subtree.node.byte_range
                     ) {
+                        #[cfg(feature = "debug_incremental")]
                         println!("DEBUG reuse: Reusing prefix forest node for symbol {:?} at range {:?}", 
                                  subtree.node.symbol_id, subtree.node.byte_range);
                         SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
@@ -946,6 +985,7 @@ impl IncrementalGLRParser {
                             cached_subtree: Some(subtree.clone()),
                         });
                         
+                        #[cfg(feature = "debug_incremental")]
                         println!("DEBUG reuse: Reusing suffix forest node for symbol {:?} at range {:?} (adjusted from {:?})", 
                                  subtree.node.symbol_id, subtree.node.byte_range, adjusted_range);
                         SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
@@ -1006,6 +1046,7 @@ impl IncrementalGLRParser {
     fn get_edit_byte_delta(&self) -> isize {
         self.edit_byte_delta
     }
+    
     
     /// Find the token range for a byte range
     fn find_token_range(&self, byte_range: &Range<usize>, tokens: &[GLRToken]) -> Range<usize> {

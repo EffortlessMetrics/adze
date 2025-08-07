@@ -75,6 +75,19 @@ use rust_sitter_ir::{RuleId, StateId, SymbolId};
 use std::collections::VecDeque;
 use std::sync::Arc;
 
+// Debug macro for GLR parser
+#[cfg(feature = "debug_glr")]
+macro_rules! debug_glr {
+    ($($arg:tt)*) => {
+        println!($($arg)*);
+    };
+}
+
+#[cfg(not(feature = "debug_glr"))]
+macro_rules! debug_glr {
+    ($($arg:tt)*) => {};
+}
+
 /// A parse stack version (fork) in GLR parsing
 #[derive(Debug, Clone)]
 pub struct ParseStack {
@@ -135,7 +148,7 @@ impl ParseStack {
     /// Print tree structure for debugging
     fn print_tree_structure(node: &Arc<Subtree>, indent: usize) {
         let prefix = "  ".repeat(indent);
-        println!("{}Symbol {}, range {:?}", prefix, node.node.symbol_id.0, node.node.byte_range);
+        debug_glr!("{}Symbol {}, range {:?}", prefix, node.node.symbol_id.0, node.node.byte_range);
         for child in &node.children {
             Self::print_tree_structure(child, indent + 1);
         }
@@ -279,7 +292,7 @@ impl GLRParser {
             let state = stack.current_state();
             
             // Debug: Print current state and token being processed
-            println!("DEBUG: Processing token {} (symbol_idx: {:?}) in state {}", 
+            debug_glr!("DEBUG: Processing token {} (symbol_idx: {:?}) in state {}", 
                      token.0, self.table.symbol_to_index.get(&token), state.0);
 
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
@@ -287,10 +300,10 @@ impl GLRParser {
                 
                 // Debug: Print action cell contents
                 if action_cell.len() > 1 {
-                    println!("DEBUG: Found multi-action cell at state {} for token {}: {} actions", 
+                    debug_glr!("DEBUG: Found multi-action cell at state {} for token {}: {} actions", 
                              state.0, token.0, action_cell.len());
                     for (i, act) in action_cell.iter().enumerate() {
-                        println!("  Action {}: {:?}", i, act);
+                        debug_glr!("  Action {}: {:?}", i, act);
                     }
                 }
                 
@@ -338,7 +351,7 @@ impl GLRParser {
                         {
                             // No resolution - TRUE GLR FORKING!
                             // This is the critical part where we maintain ambiguity by forking stacks
-                            println!("DEBUG: GLR Fork! Creating {} stacks for state {} with token {}", 
+                            debug_glr!("DEBUG: GLR Fork! Creating {} stacks for state {} with token {}", 
                                      actions.len(), state.0, token.0);
                             
                             // Fork the stack for EACH action to explore all parse paths
@@ -360,7 +373,7 @@ impl GLRParser {
                                                 vec![],
                                             )),
                                         );
-                                        println!("  Fork {}: Shift to state {}", i, new_state.0);
+                                        debug_glr!("  Fork {}: Shift to state {}", i, new_state.0);
                                         new_stacks.push(forked);
                                     }
 
@@ -369,13 +382,13 @@ impl GLRParser {
                                         let mut forked = stack.fork(self.next_stack_id);
                                         self.next_stack_id += 1;
                                         self.perform_reduction_on_stack(&mut forked, *rule_id);
-                                        println!("  Fork {}: Reduce by rule {}", i, rule_id.0);
+                                        debug_glr!("  Fork {}: Reduce by rule {}", i, rule_id.0);
                                         new_stacks.push(forked);
                                     }
 
                                     Action::Fork(nested_actions) => {
                                         // Handle nested Fork recursively
-                                        println!("  Fork {}: Nested fork with {} actions", i, nested_actions.len());
+                                        debug_glr!("  Fork {}: Nested fork with {} actions", i, nested_actions.len());
                                         for nested_action in nested_actions {
                                             let mut nested_fork = stack.fork(self.next_stack_id);
                                             self.next_stack_id += 1;
@@ -407,7 +420,7 @@ impl GLRParser {
                                     }
 
                                     _ => {
-                                        println!("  Fork {}: Other action", i);
+                                        debug_glr!("  Fork {}: Other action", i);
                                     }
                                 }
                             }
@@ -543,7 +556,7 @@ impl GLRParser {
         loop {
             iteration += 1;
             if iteration > 10 {
-                println!("WARNING: {} reduction iterations, {} stacks", iteration, stacks.len());
+                debug_glr!("WARNING: {} reduction iterations, {} stacks", iteration, stacks.len());
                 // Let's just break instead of panicking to see what happens
                 break;
             }
@@ -554,7 +567,7 @@ impl GLRParser {
             for stack in stacks {
                 let state = stack.current_state();
                 
-                println!("DEBUG reduce phase: Checking state {} for token {}", state.0, token.0);
+                debug_glr!("DEBUG reduce phase: Checking state {} for token {}", state.0, token.0);
 
                 if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
                     let action_cell =
@@ -607,7 +620,7 @@ impl GLRParser {
                         }
                     } else {
                         // Multiple actions - need to fork
-                        println!("DEBUG reduce: Found {} actions in state {} for token {}", 
+                        debug_glr!("DEBUG reduce: Found {} actions in state {} for token {}", 
                                  action_cell.len(), state.0, token.0);
                         let mut has_reduction = false;
                         let mut has_shift = false;
@@ -620,14 +633,14 @@ impl GLRParser {
                                     any_reduction_performed = true;
                                     let mut forked = stack.fork(self.next_stack_id);
                                     self.next_stack_id += 1;
-                                    println!("  Forking for reduce with rule {}", rule_id.0);
+                                    debug_glr!("  Forking for reduce with rule {}", rule_id.0);
                                     self.perform_reduction_on_stack(&mut forked, *rule_id);
                                     fork_results.push(forked);
                                 }
                                 Action::Shift(_) => {
                                     // Mark that we have a shift action
                                     has_shift = true;
-                                    println!("  Found shift action - will preserve stack for phase 2");
+                                    debug_glr!("  Found shift action - will preserve stack for phase 2");
                                 }
                                 _ => {
                                     // Other non-reduction actions will be handled in phase 2
@@ -638,7 +651,7 @@ impl GLRParser {
                         // CRITICAL: If we have both shift and reduce, we need to keep the original
                         // stack for the shift action that will be processed in phase 2!
                         if has_shift {
-                            println!("  Preserving original stack for shift action");
+                            debug_glr!("  Preserving original stack for shift action");
                             result_stacks.push(stack.clone());
                         }
                         
@@ -661,7 +674,7 @@ impl GLRParser {
             self.merge_stacks(&mut result_stacks);
             
             if result_stacks.len() > 10 {
-                println!("DEBUG reduce: After merging, have {} stacks", result_stacks.len());
+                debug_glr!("DEBUG reduce: After merging, have {} stacks", result_stacks.len());
             }
             
             stacks = result_stacks;
@@ -676,7 +689,7 @@ impl GLRParser {
 
     /// Perform a reduction on a specific stack
     fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
-        println!("DEBUG: Performing reduction with rule {} on stack in state {}", rule_id.0, stack.current_state().0);
+        debug_glr!("DEBUG: Performing reduction with rule {} on stack in state {}", rule_id.0, stack.current_state().0);
         // Perform reduction
         // Find the rule in the grammar
         if let Some(rule) = self
@@ -806,7 +819,7 @@ impl GLRParser {
         }
 
         if merged.len() > 1 && merged.len() != stacks.len() {
-            println!("DEBUG merge_stacks: {} stacks -> {} stacks after conservative merge", 
+            debug_glr!("DEBUG merge_stacks: {} stacks -> {} stacks after conservative merge", 
                      stacks.len(), merged.len());
         }
 
@@ -899,9 +912,9 @@ impl GLRParser {
     
     /// Get all successful parse alternatives (for ambiguous grammars)
     pub fn finish_all_alternatives(&self) -> Result<Vec<Arc<Subtree>>, String> {
-        println!("DEBUG finish_all_alternatives: have {} stacks", self.stacks.len());
+        debug_glr!("DEBUG finish_all_alternatives: have {} stacks", self.stacks.len());
         for (i, stack) in self.stacks.iter().enumerate() {
-            println!("  Stack {}: {} nodes, state {}", i, stack.nodes.len(), stack.current_state().0);
+            debug_glr!("  Stack {}: {} nodes, state {}", i, stack.nodes.len(), stack.current_state().0);
             // Print parse tree structure for debugging
             if stack.nodes.len() == 1 {
                 ParseStack::print_tree_structure(&stack.nodes[0], 0);
@@ -921,7 +934,7 @@ impl GLRParser {
                 if node.node.byte_range.end == self.input_length {
                     alternatives.push(node.clone());
                 } else {
-                    println!("DEBUG: Rejecting incomplete stack - ends at byte {} but input is {} bytes", 
+                    debug_glr!("DEBUG: Rejecting incomplete stack - ends at byte {} but input is {} bytes", 
                              node.node.byte_range.end, self.input_length);
                 }
             }
@@ -943,7 +956,7 @@ impl GLRParser {
                 .collect();
             Err(format!("Parse incomplete. Stack states: {:?}", states))
         } else {
-            println!("DEBUG: Found {} parse alternatives", alternatives.len());
+            debug_glr!("DEBUG: Found {} parse alternatives", alternatives.len());
             Ok(alternatives)
         }
     }
