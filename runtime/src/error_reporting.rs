@@ -150,7 +150,7 @@ impl ErrorReportingExt for GLRParser {
             }
         }
 
-        self.process_eof();
+        self.process_eof(0); // No byte tracking in error reporter
 
         if let Some(tree) = self.get_best_parse() {
             Ok(Arc::try_unwrap(tree).unwrap_or_else(|arc| (*arc).clone()))

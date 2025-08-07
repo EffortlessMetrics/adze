@@ -215,6 +215,9 @@ pub struct GLRParser {
 
     /// Conflict resolver for vec wrapper conflicts
     vec_wrapper_resolver: Option<VecWrapperResolver>,
+    
+    /// Total input length in bytes (set when process_eof is called)
+    input_length: usize,
 }
 
 impl GLRParser {
@@ -234,6 +237,7 @@ impl GLRParser {
             error_recovery: None,
             recovery_state: None,
             vec_wrapper_resolver,
+            input_length: 0,
         }
     }
 
@@ -832,10 +836,11 @@ impl GLRParser {
     }
 
     /// Process EOF to complete parsing
-    pub fn process_eof(&mut self) {
-        // Process EOF token
+    pub fn process_eof(&mut self, total_bytes: usize) {
+        // Store the total input length for validation in finish_all_alternatives
+        self.input_length = total_bytes;
         // Process EOF token (symbol ID 0)
-        self.process_token(SymbolId(0), "", 0);
+        self.process_token(SymbolId(0), "", total_bytes);
     }
 
     /// Get number of active stacks (for debugging)
@@ -911,7 +916,14 @@ impl GLRParser {
                 // Accept if we have exactly one node after EOF processing
                 // This should be the root of the parse tree (the start symbol)
                 let node = &stack.nodes[0];
-                alternatives.push(node.clone());
+                
+                // CRITICAL: Check that the parse consumed all input
+                if node.node.byte_range.end == self.input_length {
+                    alternatives.push(node.clone());
+                } else {
+                    println!("DEBUG: Rejecting incomplete stack - ends at byte {} but input is {} bytes", 
+                             node.node.byte_range.end, self.input_length);
+                }
             }
         }
         

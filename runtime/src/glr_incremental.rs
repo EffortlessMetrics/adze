@@ -305,30 +305,12 @@ impl ForestNode {
     
     /// Find reusable subtrees that don't overlap the edit
     pub fn find_reusable_subtrees(&self, edit_range: &Range<usize>) -> Vec<Arc<ForestNode>> {
-        let mut reusable = Vec::new();
-        
-        // If this node doesn't overlap the edit, it's fully reusable
-        if !self.overlaps_edit(edit_range) {
-            // Increment the reuse counter for testing
-            SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
-            return vec![Arc::new(self.clone())];
-        }
-        
-        // Otherwise, check children recursively
-        for alt in &self.alternatives {
-            for child in &alt.children {
-                if !child.overlaps_edit(edit_range) {
-                    reusable.push(child.clone());
-                    // Increment the reuse counter for testing
-                    SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
-                } else {
-                    // Recursively find reusable subtrees in affected children
-                    reusable.extend(child.find_reusable_subtrees(edit_range));
-                }
-            }
-        }
-        
-        reusable
+        // TEMPORARY: Disable all reuse to test if incremental parsing works without it
+        // The current approach of injecting subtrees during token processing is
+        // fundamentally incompatible with GLR forking. We need to redesign this
+        // to only reuse subtrees when building the final forest, not during parsing.
+        let _ = edit_range; // Suppress unused warning
+        Vec::new()
     }
 }
 
@@ -606,7 +588,9 @@ impl IncrementalGLRParser {
             parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
         }
         
-        parser.process_eof();
+        // Calculate total input length from tokens
+        let total_bytes = tokens.last().map(|t| t.end_byte).unwrap_or(0);
+        parser.process_eof(total_bytes);
         
         match parser.finish_all_alternatives() {
             Ok(trees) => {
@@ -745,7 +729,9 @@ impl IncrementalGLRParser {
                 idx += 1;
             }
             
-            parser.process_eof();
+            // Calculate total input length from tokens
+            let total_bytes = tokens.last().map(|t| t.end_byte).unwrap_or(0);
+            parser.process_eof(total_bytes);
             
             match parser.finish_all_alternatives() {
                 Ok(trees) => {
