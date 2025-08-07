@@ -241,7 +241,7 @@ fn test_ternary_operator() {
     parser.process_token(SymbolId(1), "c", 8);
     parser.process_token(SymbolId(4), "+", 10);
     parser.process_token(SymbolId(1), "d", 12);
-    parser.process_eof();
+    parser.process_eof(14); // Total bytes in "a ? b : c + d"
 
     let result = parser.get_best_parse();
     assert!(result.is_some());
@@ -271,7 +271,7 @@ fn test_nested_ternary() {
     parser.process_token(SymbolId(1), "d", 12);
     parser.process_token(SymbolId(3), ":", 14);
     parser.process_token(SymbolId(1), "e", 16);
-    parser.process_eof();
+    parser.process_eof(17); // Total bytes in "a ? b : c ? d : e"
 
     let result = parser.get_best_parse();
     assert!(result.is_some());
@@ -290,7 +290,7 @@ fn test_reduce_reduce_conflict() {
     parser.process_token(SymbolId(1), "a", 0);
     parser.process_token(SymbolId(2), "b", 2);
     parser.process_token(SymbolId(3), "c", 4);
-    parser.process_eof();
+    parser.process_eof(5); // Total bytes in "a b c"
 
     let result = parser.get_best_parse();
     assert!(result.is_some());
