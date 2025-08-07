@@ -608,10 +608,38 @@ impl IncrementalGLRParser {
         
         parser.process_eof();
         
-        match parser.finish() {
-            Ok(tree) => {
-                // Convert subtree to forest node
-                let forest = self.build_forest_from_subtree(tree, initial_fork, tokens);
+        match parser.finish_all_alternatives() {
+            Ok(trees) => {
+                // Create a forest node with all parse alternatives
+                let forest = if trees.len() == 1 {
+                    // Single parse tree - no ambiguity
+                    self.build_forest_from_subtree(trees[0].clone(), initial_fork, tokens)
+                } else {
+                    // Multiple parse trees - ambiguous grammar!
+                    println!("DEBUG: Building forest with {} alternatives", trees.len());
+                    let mut alternatives = Vec::new();
+                    for (i, tree) in trees.iter().enumerate() {
+                        let fork_id = self.fork_tracker.create_fork(Some(initial_fork));
+                        let forest = self.subtree_to_forest_recursive(tree.clone(), fork_id);
+                        alternatives.push(ForkAlternative {
+                            fork_id,
+                            rule_id: None,
+                            children: vec![forest.clone()],
+                            subtree: tree.clone(),
+                        });
+                    }
+                    
+                    // Create a root forest node with all alternatives
+                    let root = Arc::new(ForestNode {
+                        symbol: trees[0].node.symbol_id,
+                        alternatives,
+                        byte_range: 0..tokens.last().map(|t| t.end_byte).unwrap_or(0),
+                        token_range: 0..tokens.len(),
+                        cached_subtree: None,
+                    });
+                    root
+                };
+                
                 self.forest = Some(forest.clone());
                 self.previous_forest = Some(forest.clone());
                 Ok(forest)
@@ -713,9 +741,38 @@ impl IncrementalGLRParser {
             
             parser.process_eof();
             
-            match parser.finish() {
-                Ok(tree) => {
-                    let forest = self.build_forest_from_subtree(tree, 0, tokens);
+            match parser.finish_all_alternatives() {
+                Ok(trees) => {
+                    // Create a forest node with all parse alternatives
+                    let forest = if trees.len() == 1 {
+                        // Single parse tree - no ambiguity
+                        self.build_forest_from_subtree(trees[0].clone(), 0, tokens)
+                    } else {
+                        // Multiple parse trees - ambiguous grammar!
+                        println!("DEBUG: Building forest with {} alternatives after incremental reparse", trees.len());
+                        let mut alternatives = Vec::new();
+                        for (i, tree) in trees.iter().enumerate() {
+                            let fork_id = self.fork_tracker.create_fork(None);
+                            let forest = self.subtree_to_forest_recursive(tree.clone(), fork_id);
+                            alternatives.push(ForkAlternative {
+                                fork_id,
+                                rule_id: None,
+                                children: vec![forest.clone()],
+                                subtree: tree.clone(),
+                            });
+                        }
+                        
+                        // Create a root forest node with all alternatives
+                        let root = Arc::new(ForestNode {
+                            symbol: trees[0].node.symbol_id,
+                            alternatives,
+                            byte_range: 0..tokens.last().map(|t| t.end_byte).unwrap_or(0),
+                            token_range: 0..tokens.len(),
+                            cached_subtree: None,
+                        });
+                        root
+                    };
+                    
                     self.forest = Some(forest.clone());
                     self.previous_forest = Some(forest.clone());
                     Ok(forest)

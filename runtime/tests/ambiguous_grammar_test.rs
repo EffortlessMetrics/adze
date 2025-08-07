@@ -247,8 +247,24 @@ mod ambiguous_incremental_tests {
     /// Build parse table from grammar
     fn build_parse_table(grammar: &Grammar) -> ParseTable {
         let first_follow = FirstFollowSets::compute(grammar);
-        build_lr1_automaton(grammar, &first_follow)
-            .expect("Failed to build parse table")
+        let table = build_lr1_automaton(grammar, &first_follow)
+            .expect("Failed to build parse table");
+        
+        // Debug: Print action table to see if we have multi-action cells
+        println!("DEBUG: Action table has {} states", table.action_table.len());
+        for (state_idx, state_actions) in table.action_table.iter().enumerate() {
+            for (symbol_idx, action_cell) in state_actions.iter().enumerate() {
+                if !action_cell.is_empty() {
+                    println!("DEBUG: State {} symbol {} has {} action(s):", 
+                             state_idx, symbol_idx, action_cell.len());
+                    for action in action_cell {
+                        println!("  {:?}", action);
+                    }
+                }
+            }
+        }
+        
+        table
     }
     
     /// Convert TokenWithPosition to GLRToken
@@ -316,14 +332,13 @@ mod ambiguous_incremental_tests {
         //     "Ambiguous dangling-else should produce at least 2 parse alternatives, but got {}",
         //     new_forest.alternatives.len());
         
-        if new_forest.alternatives.len() >= 2 {
-            println!("✅ Dangling-else ambiguity preserved: {} alternatives", 
-                new_forest.alternatives.len());
-        } else {
-            println!("⚠️ WARNING: Expected multiple parse alternatives for ambiguous input");
-            println!("Got {} alternative(s). GLR forking may not be fully implemented yet.", 
-                new_forest.alternatives.len());
-        }
+        assert!(
+            new_forest.alternatives.len() >= 2,
+            "Ambiguous dangling-else should produce at least 2 parse alternatives, but got {}",
+            new_forest.alternatives.len()
+        );
+        println!("✅ Dangling-else ambiguity preserved: {} alternatives", 
+            new_forest.alternatives.len());
     }
     
     #[test]
@@ -345,14 +360,13 @@ mod ambiguous_incremental_tests {
         
         // This should have TWO parses: (1-2)-3 and 1-(2-3)
         // For now, we'll be lenient since GLR forking might not be fully implemented
-        if old_forest.alternatives.len() >= 2 {
-            println!("✅ Ambiguous expression has {} parse alternatives", 
-                old_forest.alternatives.len());
-        } else {
-            println!("⚠️ WARNING: Expected multiple parse alternatives for '1-2-3'");
-            println!("Got {} alternative(s). GLR forking may not be fully implemented yet.", 
-                old_forest.alternatives.len());
-        }
+        assert!(
+            old_forest.alternatives.len() >= 2,
+            "Ambiguous expression '1-2-3' should have at least 2 parse alternatives, got {}",
+            old_forest.alternatives.len()
+        );
+        println!("✅ Ambiguous expression has {} parse alternatives", 
+            old_forest.alternatives.len());
         
         // Edit: change middle number from 2 to 5: "1-5-3"
         let new_text = "1-5-3";
@@ -383,10 +397,18 @@ mod ambiguous_incremental_tests {
             println!("⚠️ WARNING: Expected subtree reuse but got 0 reuses");
         }
         
-        if new_forest.alternatives.len() >= 2 && reuse_count > 0 {
-            println!("✅ Ambiguous expression preserved {} alternatives with {} subtrees reused", 
-                new_forest.alternatives.len(), reuse_count);
-        }
+        assert!(
+            new_forest.alternatives.len() >= 2,
+            "Ambiguous expression should maintain at least 2 alternatives after edit, got {}",
+            new_forest.alternatives.len()
+        );
+        assert!(
+            reuse_count > 0,
+            "Should have reused at least some subtrees, but reuse_count = {}",
+            reuse_count
+        );
+        println!("✅ Ambiguous expression preserved {} alternatives with {} subtrees reused", 
+            new_forest.alternatives.len(), reuse_count);
     }
     
     #[test]
