@@ -33,6 +33,7 @@ pub mod glr_parser;
 pub mod glr_query;
 pub mod glr_tree_bridge;
 pub mod glr_validation;
+pub mod tree_bridge;
 // pub mod glr_visualization; // TODO: Update for new GLRStack structure
 #[cfg(feature = "pure-rust")]
 pub mod decoder;

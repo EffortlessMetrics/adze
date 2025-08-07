@@ -128,8 +128,16 @@ impl Parser {
     /// # Note
     /// This is the main API for GLR-aware incremental parsing.
     pub fn reparse(&mut self, source: &[u8], old_tree: &parser_v4::Tree, edit: &crate::pure_incremental::Edit) -> Option<parser_v4::Tree> {
-        // Delegate to the GLR-aware incremental reparse implementation
-        crate::glr_incremental::reparse(self, source, old_tree, edit)
+        // Get the inner parser if it exists
+        if let Some(ref inner_parser) = self.inner {
+            // Access the grammar and table from the inner parser
+            // Note: This requires making these fields accessible or providing getter methods
+            // For now, return None as incremental parsing is not yet fully integrated
+            None
+        } else {
+            // No language set, cannot reparse
+            None
+        }
     }
 
     /// Parse source code with detailed error information

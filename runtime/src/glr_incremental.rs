@@ -30,10 +30,45 @@ use std::sync::Arc;
 
 /// Represents an edit to the input
 /// Public API for incremental parsing (used by unified parser)
-pub fn reparse<P>(_parser: &P, _source: &[u8], _old_tree: &crate::parser_v4::Tree, _edit: &crate::pure_incremental::Edit) -> Option<crate::parser_v4::Tree> {
-    // TODO: Implement proper incremental parsing that integrates with Tree API
-    // For now, return None to indicate incremental parsing is not yet implemented
-    None
+/// 
+/// This function bridges between the public parser_v4 API and the internal
+/// GLR incremental parsing implementation.
+pub fn reparse(
+    grammar: &Grammar,
+    table: &ParseTable,
+    source: &[u8],
+    old_tree: &crate::parser_v4::Tree,
+    edit: &crate::pure_incremental::Edit,
+) -> Option<crate::parser_v4::Tree> {
+    // Only enable incremental parsing if the feature is enabled
+    #[cfg(feature = "incremental_glr")]
+    {
+        use crate::tree_bridge::{v4_tree_to_forest, forest_to_v4_tree};
+        
+        // Create an incremental parser instance
+        let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
+        
+        // Convert the old tree to a forest representation
+        let old_forest = v4_tree_to_forest(old_tree);
+        
+        // Convert the edit to GLR format
+        let glr_edit = GLREdit {
+            old_range: edit.start_byte..edit.old_end_byte,
+            new_text: source[edit.start_byte..edit.new_end_byte].to_vec(),
+        };
+        
+        // Perform the incremental parse
+        let new_forest = parser.parse_incremental(source, old_forest, &glr_edit);
+        
+        // Convert back to v4 tree format
+        new_forest.map(|forest| forest_to_v4_tree(&forest, String::from_utf8_lossy(source).to_string()))
+    }
+    
+    #[cfg(not(feature = "incremental_glr"))]
+    {
+        // Feature not enabled, return None to trigger fresh parse
+        None
+    }
 }
 
 #[derive(Debug, Clone)]

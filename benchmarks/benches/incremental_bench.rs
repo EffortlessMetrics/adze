@@ -3,7 +3,7 @@ use rust_sitter::glr_incremental::{IncrementalGLRParser, GLREdit, GLRToken};
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_ir::{Grammar, SymbolId};
 use rust_sitter_glr_core::ParseTable;
-use rust_sitter_benchmarks::test_grammars::{create_arithmetic_grammar, create_arithmetic_parse_table, tokenize_arithmetic};
+use rust_sitter_benchmarks::test_grammars::{load_arithmetic_grammar, tokenize_arithmetic, TestToken};
 
 /// Common edit patterns in programming
 #[derive(Debug, Clone)]
@@ -160,8 +160,15 @@ fn generate_sample_code(size: usize) -> String {
 
 /// Tokenize source code using real grammar tokenizer
 fn tokenize(text: &str) -> Vec<GLRToken> {
-    // Use the arithmetic tokenizer from test_grammars
-    tokenize_arithmetic(text)
+    // Convert from TestToken to GLRToken
+    tokenize_arithmetic(text).into_iter()
+        .map(|t| GLRToken {
+            symbol: t.symbol,
+            text: t.text,
+            start_byte: t.start_byte,
+            end_byte: t.end_byte,
+        })
+        .collect()
 }
 
 fn benchmark_incremental_parsing(c: &mut Criterion) {
@@ -181,10 +188,8 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
         let code = generate_sample_code(size);
         let tokens = tokenize(&code);
         
-        // Create a dummy grammar and parse table
-        // In real benchmarks, these would be actual grammars
-        let grammar = create_arithmetic_grammar();
-        let table = create_arithmetic_parse_table(&grammar);
+        // Load real grammar and parse table
+        let (grammar, table) = load_arithmetic_grammar();
         
         for pattern in &edit_patterns {
             let bench_name = format!("{:?}_size_{}", pattern, size);
@@ -236,8 +241,7 @@ fn benchmark_fork_preservation(c: &mut Criterion) {
     let ambiguous_code = "1 - 2 * 3 - 4 * 5";
     
     let tokens = tokenize(ambiguous_code);
-    let grammar = create_arithmetic_grammar();
-    let table = create_arithmetic_parse_table(&grammar);
+    let (grammar, table) = load_arithmetic_grammar();
     
     group.bench_function("fork_tracking_overhead", |b| {
         let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
