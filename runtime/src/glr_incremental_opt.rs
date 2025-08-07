@@ -3,8 +3,8 @@
 //! This module provides specialized optimizations for common edit patterns
 //! to minimize reparsing overhead in GLR incremental parsing.
 
-use crate::glr_incremental::{GLREdit, GLRToken, ForestNode, ReuseMap};
-use crate::subtree::{Subtree, SubtreeNode};
+use crate::glr_incremental::{GLREdit, GLRToken, ForestNode};
+use crate::subtree::Subtree;
 use rust_sitter_ir::SymbolId;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;

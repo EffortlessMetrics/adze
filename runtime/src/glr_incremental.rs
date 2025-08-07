@@ -327,52 +327,65 @@ pub struct ForkAlternative {
     pub subtree: Arc<Subtree>,
 }
 
-/// Tracks reusable subtrees across edits
+/// Identifies reusable chunks of the parse forest based on token-level diffs
+/// This replaces the old ReuseMap with a simpler chunk-based approach
 #[derive(Debug)]
-pub struct ReuseMap {
-    /// Maps byte ranges to reusable forest nodes
-    pub nodes: HashMap<Range<usize>, Arc<ForestNode>>,
-    /// Tracks which byte ranges are affected by edits
-    affected_ranges: HashSet<Range<usize>>,
+pub struct ChunkIdentifier {
+    /// The previous forest for potential reuse
+    previous_forest: Option<Arc<ForestNode>>,
+    /// Byte range of the edit
+    edit_range: Range<usize>,
 }
 
-impl ReuseMap {
-    pub fn new() -> Self {
+impl ChunkIdentifier {
+    pub fn new(previous_forest: Option<Arc<ForestNode>>, edit: &GLREdit) -> Self {
+        let edit_range = edit.old_range.clone();
         Self {
-            nodes: HashMap::new(),
-            affected_ranges: HashSet::new(),
+            previous_forest,
+            edit_range,
         }
     }
     
-    /// Build reuse map from old forest
-    pub fn build_from_forest(&mut self, forest: &Arc<ForestNode>, edit_range: &Range<usize>) {
-        // Find all reusable subtrees
-        let reusable = forest.find_reusable_subtrees(edit_range);
+    /// Find the largest unchanged prefix tokens before the edit
+    pub fn find_prefix_boundary(&self, old_tokens: &[GLRToken], new_tokens: &[GLRToken]) -> usize {
+        let mut prefix_len = 0;
+        for (old_tok, new_tok) in old_tokens.iter().zip(new_tokens.iter()) {
+            // Stop at the first token that overlaps or comes after the edit
+            if old_tok.end_byte > self.edit_range.start {
+                break;
+            }
+            // Tokens must match exactly
+            if old_tok.symbol != new_tok.symbol || old_tok.text != new_tok.text {
+                break;
+            }
+            prefix_len += 1;
+        }
+        prefix_len
+    }
+    
+    /// Find the largest unchanged suffix tokens after the edit  
+    pub fn find_suffix_boundary(&self, old_tokens: &[GLRToken], new_tokens: &[GLRToken], edit_delta: isize) -> usize {
+        let mut suffix_len = 0;
+        let old_iter = old_tokens.iter().rev();
+        let new_iter = new_tokens.iter().rev();
         
-        // Add them to the map
-        for node in reusable {
-            self.nodes.insert(node.byte_range.clone(), node);
+        for (old_tok, new_tok) in old_iter.zip(new_iter) {
+            // Stop at the first token that overlaps or comes before the edit
+            if old_tok.start_byte < self.edit_range.end {
+                break;
+            }
+            // Account for byte position shifts due to the edit
+            let adjusted_new_start = (new_tok.start_byte as isize - edit_delta) as usize;
+            if old_tok.start_byte != adjusted_new_start {
+                break;
+            }
+            // Tokens must match exactly
+            if old_tok.symbol != new_tok.symbol || old_tok.text != new_tok.text {
+                break;
+            }
+            suffix_len += 1;
         }
-    }
-
-    /// Mark a range as affected by an edit
-    pub fn mark_affected(&mut self, range: Range<usize>) {
-        self.affected_ranges.insert(range);
-    }
-
-    /// Check if a range is affected by edits
-    pub fn is_affected(&self, range: &Range<usize>) -> bool {
-        self.affected_ranges.iter().any(|affected| {
-            affected.start < range.end && affected.end > range.start
-        })
-    }
-
-    /// Get reusable node for a byte range
-    pub fn get_node(&self, range: &Range<usize>) -> Option<Arc<ForestNode>> {
-        if self.is_affected(range) {
-            return None;
-        }
-        self.nodes.get(range).cloned()
+        suffix_len
     }
 }
 
@@ -444,8 +457,6 @@ pub struct IncrementalGLRParser {
     grammar: Grammar,
     /// Parse table
     table: ParseTable,
-    /// Reuse map for subtree reuse
-    reuse_map: ReuseMap,
     /// Current parse forest
     forest: Option<Arc<ForestNode>>,
     /// Previous parse forest (for incremental parsing)
@@ -454,6 +465,10 @@ pub struct IncrementalGLRParser {
     fork_tracker: ForkTracker,
     /// GSS state snapshots for recovery
     gss_state_map: GSSStateMap,
+    /// Length of unchanged prefix tokens (for chunk-based reuse)
+    chunk_prefix_len: usize,
+    /// Length of unchanged suffix tokens (for chunk-based reuse)
+    chunk_suffix_len: usize,
 }
 
 /// Tracks fork relationships and dependencies
@@ -520,11 +535,12 @@ impl IncrementalGLRParser {
             parser,
             grammar,
             table,
-            reuse_map: ReuseMap::new(),
             forest: None,
             previous_forest: None,
             fork_tracker: ForkTracker::new(),
             gss_state_map: GSSStateMap::new(),
+            chunk_prefix_len: 0,
+            chunk_suffix_len: 0,
         }
     }
     
@@ -540,11 +556,12 @@ impl IncrementalGLRParser {
             parser,
             grammar,
             table,
-            reuse_map: ReuseMap::new(),
             forest: None,
             previous_forest,
             fork_tracker: ForkTracker::new(),
             gss_state_map: GSSStateMap::new(),
+            chunk_prefix_len: 0,
+            chunk_suffix_len: 0,
         }
     }
 
@@ -575,7 +592,6 @@ impl IncrementalGLRParser {
     /// Parse from scratch
     fn parse_fresh(&mut self, tokens: &[GLRToken]) -> Result<Arc<ForestNode>, String> {
         // Reset state
-        self.reuse_map = ReuseMap::new();
         self.fork_tracker = ForkTracker::new();
         
         // Create initial fork
@@ -632,101 +648,57 @@ impl IncrementalGLRParser {
         }
     }
 
-    /// Reparse with edits, reusing unaffected subtrees
+    /// Reparse with edits using chunk-based incremental strategy
     fn reparse_with_edits(
         &mut self,
         tokens: &[GLRToken],
         edits: &[GLREdit],
     ) -> Result<Arc<ForestNode>, String> {
-        // Get the old forest from the first edit or from our stored forest
+        // CHUNK-BASED INCREMENTAL STRATEGY:
+        // 1. Identify the largest unchanged prefix and suffix chunks
+        // 2. Parse the entire token stream (to preserve GLR forking)
+        // 3. During forest building, reuse nodes from unchanged chunks
+        // 4. This ensures GLR ambiguity is preserved while still getting reuse benefit
+        
+        // Get the old forest and old tokens from the first edit
         let old_forest = edits.iter()
             .find_map(|e| e.old_forest.as_ref())
             .cloned()
             .or_else(|| self.previous_forest.clone());
             
-        if let Some(old_forest) = old_forest {
-            // Build reuse map from the old forest
-            for edit in edits {
-                self.reuse_map.build_from_forest(&old_forest, &edit.old_range);
-                self.reuse_map.mark_affected(edit.old_range.clone());
-            }
+        let old_tokens = edits.iter()
+            .find_map(|e| if e.old_tokens.is_empty() { None } else { Some(e.old_tokens.clone()) })
+            .unwrap_or_default();
             
-            // Now we have a map of reusable subtrees!
-            // Implement the REAL incremental algorithm with GSS state recovery
+        if let Some(old_forest) = old_forest.clone() {
+            // Create ChunkIdentifier to find reusable chunks
+            let chunk_id = ChunkIdentifier::new(Some(old_forest.clone()), &edits[0]);
             
-            // 1. Find the best GSS snapshot to resume from
-            let first_edit_start = edits.iter()
-                .map(|e| e.old_range.start)
-                .min()
-                .unwrap_or(0);
+            // Find the prefix and suffix boundaries
+            let prefix_len = chunk_id.find_prefix_boundary(&old_tokens, tokens);
+            // Calculate the byte delta from the edit (new_text.len() - old_range.len())
+            let edit_delta = (edits[0].new_text.len() as isize) - (edits[0].old_range.len() as isize);
+            let suffix_len = chunk_id.find_suffix_boundary(&old_tokens, tokens, edit_delta);
             
-            // Create or resume parser based on available snapshots
-            let mut parser = if let Some(snapshot) = self.gss_state_map.find_resume_point(first_edit_start) {
-                // We have a snapshot! Resume parsing from this state
-                let snapshot_clone = snapshot.clone();
-                println!("DEBUG: Resuming from snapshot at byte {}", snapshot_clone.byte_position);
-                
-                // Invalidate snapshots after the edit
-                self.gss_state_map.invalidate_after(first_edit_start);
-                
-                self.create_parser_from_snapshot(&snapshot_clone)
-            } else {
-                // No snapshot available, parse from the beginning
-                GLRParser::new(self.table.clone(), self.grammar.clone())
-            };
+            println!("DEBUG incremental: Found prefix_len={}, suffix_len={}, total tokens={}", 
+                     prefix_len, suffix_len, tokens.len());
             
-            // Determine starting position based on whether we resumed from a snapshot
-            let start_token_idx = if let Some(snapshot) = self.gss_state_map.find_resume_point(first_edit_start) {
-                tokens.iter()
-                    .position(|t| t.start_byte >= snapshot.byte_position)
-                    .unwrap_or(0)
-            } else {
-                0
-            };
+            // Store the old forest and chunk boundaries for potential reuse during forest building
+            self.previous_forest = Some(old_forest);
+            self.chunk_prefix_len = prefix_len;
+            self.chunk_suffix_len = suffix_len;
             
-            // Process tokens with reuse and snapshot capture
-            let mut idx = start_token_idx;
-            println!("DEBUG incremental: Processing {} tokens starting from index {}", tokens.len(), start_token_idx);
-            while idx < tokens.len() {
-                let token = &tokens[idx];
+            // IMPORTANT: We do a full parse of ALL tokens to ensure GLR forking works correctly
+            // The reuse happens AFTER parsing, during forest construction
+            println!("DEBUG incremental: Performing full parse with chunk-based forest reuse");
+            
+            // Parse all tokens normally (this ensures GLR forking happens correctly)
+            let mut parser = GLRParser::new(self.table.clone(), self.grammar.clone());
+            
+            for (idx, token) in tokens.iter().enumerate() {
                 println!("DEBUG incremental: Token {}: symbol {}, text {:?}, range {:?}", 
                          idx, token.symbol.0, std::str::from_utf8(&token.text), token.start_byte..token.end_byte);
-                
-                // Check if we have a reusable subtree starting at this position
-                // Look for any subtree that starts at the current byte position
-                let mut found_reusable = false;
-                for (range, node) in &self.reuse_map.nodes {
-                    if range.start == token.start_byte {
-                        // We found a reusable subtree!
-                        println!("DEBUG incremental: Found reusable subtree for range {:?}", range);
-                        
-                        // Inject the reusable subtree into the parser
-                        self.inject_subtree_into_parser(&mut parser, node.clone());
-                        
-                        // Skip all tokens covered by this subtree
-                        let skip_start = idx;
-                        while idx < tokens.len() && tokens[idx].end_byte <= range.end {
-                            idx += 1;
-                        }
-                        println!("DEBUG incremental: Skipped tokens {} to {}", skip_start, idx - 1);
-                        found_reusable = true;
-                        break;
-                    }
-                }
-                
-                if found_reusable {
-                    continue;
-                }
-                
-                // Capture snapshots periodically for future incremental parsing
-                if idx % 100 == 0 {  // Every 100 tokens
-                    if let Some(snapshot) = self.capture_parser_snapshot(&parser, idx, token.start_byte) {
-                        self.gss_state_map.add_snapshot(snapshot);
-                    }
-                }
-                
                 parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
-                idx += 1;
             }
             
             // Calculate total input length from tokens
@@ -956,40 +928,36 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_reuse_map() {
-        let mut reuse_map = ReuseMap::new();
+    fn test_chunk_identifier() {
+        // Test the new ChunkIdentifier logic
+        let edit = Edit::new(5, 7, 8); // Edit from byte 5-7 to 5-8
+        let chunk_id = ChunkIdentifier::new(None, &edit);
         
-        // Create a mock forest node
-        let node1 = Arc::new(ForestNode {
-            symbol: SymbolId(1),
-            alternatives: vec![],
-            byte_range: 0..10,
-            token_range: 0..2,
-            cached_subtree: None,
-        });
+        // Create test tokens
+        let old_tokens = vec![
+            GLRToken { symbol: SymbolId(1), text: b"1".to_vec(), start_byte: 0, end_byte: 1 },
+            GLRToken { symbol: SymbolId(2), text: b"+".to_vec(), start_byte: 2, end_byte: 3 },
+            GLRToken { symbol: SymbolId(1), text: b"2".to_vec(), start_byte: 4, end_byte: 5 },
+            GLRToken { symbol: SymbolId(2), text: b"-".to_vec(), start_byte: 6, end_byte: 7 },
+            GLRToken { symbol: SymbolId(1), text: b"3".to_vec(), start_byte: 8, end_byte: 9 },
+        ];
         
-        let node2 = Arc::new(ForestNode {
-            symbol: SymbolId(2),
-            alternatives: vec![],
-            byte_range: 10..20,
-            token_range: 2..4,
-            cached_subtree: None,
-        });
+        let new_tokens = vec![
+            GLRToken { symbol: SymbolId(1), text: b"1".to_vec(), start_byte: 0, end_byte: 1 },
+            GLRToken { symbol: SymbolId(2), text: b"+".to_vec(), start_byte: 2, end_byte: 3 },
+            GLRToken { symbol: SymbolId(1), text: b"2".to_vec(), start_byte: 4, end_byte: 5 },
+            GLRToken { symbol: SymbolId(2), text: b"*".to_vec(), start_byte: 6, end_byte: 7 },
+            GLRToken { symbol: SymbolId(1), text: b"3".to_vec(), start_byte: 8, end_byte: 9 },
+        ];
         
-        // Add nodes to reuse map
-        reuse_map.nodes.insert(0..10, node1.clone());
-        reuse_map.nodes.insert(10..20, node2.clone());
+        // Test prefix boundary detection
+        let prefix_len = chunk_id.find_prefix_boundary(&old_tokens, &new_tokens);
+        assert_eq!(prefix_len, 3); // First 3 tokens are unchanged and before the edit
         
-        // Check unaffected ranges can be reused
-        assert!(reuse_map.get_node(&(0..10)).is_some());
-        assert!(reuse_map.get_node(&(10..20)).is_some());
-        
-        // Mark a range as affected
-        reuse_map.mark_affected(5..15);
-        
-        // Affected ranges should not be reusable
-        assert!(reuse_map.get_node(&(0..10)).is_none());
-        assert!(reuse_map.get_node(&(10..20)).is_none());
+        // Test suffix boundary detection (with proper delta)
+        let edit_delta = (edit.new_end_byte as isize) - (edit.old_end_byte as isize);
+        let suffix_len = chunk_id.find_suffix_boundary(&old_tokens, &new_tokens, edit_delta);
+        assert_eq!(suffix_len, 1); // Last token is unchanged and after the edit
     }
 
     #[test]
