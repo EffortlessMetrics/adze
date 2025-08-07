@@ -1,0 +1,165 @@
+warning: unused import: `StateId`
+  --> runtime/src/glr_incremental.rs:26:39
+   |
+26 | use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+   |                                       ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `RuntimeConflictResolver`
+  --> runtime/src/glr_parser.rs:72:45
+   |
+72 | use rust_sitter_glr_core::{FirstFollowSets, RuntimeConflictResolver, VecWrapperResolver};
+   |                                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused doc comment
+   --> runtime/src/stack_pool.rs:109:1
+    |
+109 | /// Thread-local stack pool for single-threaded parsing
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ rustdoc does not generate documentation for macro invocations
+    |
+    = help: to document an item produced by a macro, the macro must produce the documentation as part of its expansion
+    = note: `#[warn(unused_doc_comments)]` on by default
+
+warning: unused variable: `i`
+   --> runtime/src/glr_incremental.rs:629:26
+    |
+629 |                     for (i, tree) in trees.iter().enumerate() {
+    |                          ^ help: if this is intentional, prefix it with an underscore: `_i`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `i`
+   --> runtime/src/glr_incremental.rs:728:30
+    |
+728 |                         for (i, tree) in trees.iter().enumerate() {
+    |                              ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+warning: unused variable: `tokens`
+   --> runtime/src/glr_incremental.rs:885:9
+    |
+885 |         tokens: &[GLRToken],
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_tokens`
+
+warning: field `previous_forest` is never read
+   --> runtime/src/glr_incremental.rs:335:5
+    |
+333 | pub struct ChunkIdentifier {
+    |            --------------- field in this struct
+334 |     /// The previous forest for potential reuse
+335 |     previous_forest: Option<Arc<ForestNode>>,
+    |     ^^^^^^^^^^^^^^^
+    |
+    = note: `ChunkIdentifier` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` on by default
+
+warning: fields `parser` and `gss_state_map` are never read
+   --> runtime/src/glr_incremental.rs:455:5
+    |
+453 | pub struct IncrementalGLRParser {
+    |            -------------------- fields in this struct
+454 |     /// The underlying GLR parser
+455 |     parser: GLRParser,
+    |     ^^^^^^
+...
+467 |     gss_state_map: GSSStateMap,
+    |     ^^^^^^^^^^^^^
+
+warning: field `fork_merges` is never read
+   --> runtime/src/glr_incremental.rs:484:5
+    |
+480 | struct ForkTracker {
+    |        ----------- field in this struct
+...
+484 |     fork_merges: HashMap<usize, Vec<usize>>,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ForkTracker` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: methods `merge_forks` and `get_affected_forks` are never used
+   --> runtime/src/glr_incremental.rs:515:12
+    |
+491 | impl ForkTracker {
+    | ---------------- methods in this implementation
+...
+515 |     pub fn merge_forks(&mut self, fork1: usize, fork2: usize, merge_point: usize) {
+    |            ^^^^^^^^^^^
+...
+527 |     pub fn get_affected_forks(&self, _edit: &GLREdit) -> HashSet<usize> {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: methods `create_parser_from_snapshot`, `capture_parser_snapshot`, `inject_subtree_into_parser`, `forest_to_subtree_preserving_first_alt`, `forest_to_subtree`, and `find_token_range` are never used
+    --> runtime/src/glr_incremental.rs:763:8
+     |
+533  | impl IncrementalGLRParser {
+     | ------------------------- methods in this implementation
+...
+763  |     fn create_parser_from_snapshot(&self, snapshot: &GSSSnapshot) -> GLRParser {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+778  |     fn capture_parser_snapshot(
+     |        ^^^^^^^^^^^^^^^^^^^^^^^
+...
+798  |     fn inject_subtree_into_parser(&self, parser: &mut GLRParser, node: Arc<ForestNode>) {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+840  |     fn forest_to_subtree_preserving_first_alt(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+861  |     fn forest_to_subtree(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
+     |        ^^^^^^^^^^^^^^^^^
+...
+1011 |     fn find_token_range(&self, byte_range: &Range<usize>, tokens: &[GLRToken]) -> Range<usize> {
+     |        ^^^^^^^^^^^^^^^^
+
+warning: field `vec_wrapper_resolver` is never read
+   --> runtime/src/glr_parser.rs:217:5
+    |
+194 | pub struct GLRParser {
+    |            --------- field in this struct
+...
+217 |     vec_wrapper_resolver: Option<VecWrapperResolver>,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `perform_all_reductions` and `can_reduce` are never used
+    --> runtime/src/glr_parser.rs:982:8
+     |
+223  | impl GLRParser {
+     | -------------- methods in this implementation
+...
+982  |     fn perform_all_reductions(&self, stack: ParseStack) -> Vec<ParseStack> {
+     |        ^^^^^^^^^^^^^^^^^^^^^^
+...
+1083 |     fn can_reduce(&self, stack: &ParseStack, rule: &Rule) -> bool {
+     |        ^^^^^^^^^^
+
+warning: unused comparison that must be used
+   --> runtime/src/pure_parser.rs:432:21
+    |
+432 |                     source.len() < 20;
+    |                     ^^^^^^^^^^^^^^^^^ the comparison produces a value
+    |
+    = note: `#[warn(unused_must_use)]` on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+432 |                     let _ = source.len() < 20;
+    |                     +++++++
+
+warning: `rust-sitter` (lib) generated 14 warnings (run `cargo fix --lib -p rust-sitter` to apply 2 suggestions)
+warning: unused import: `Associativity`
+  --> runtime/tests/ambiguous_grammar_test.rs:13:42
+   |
+13 | ...                   ProductionId, Associativity};
+   |                                     ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: `rust-sitter` (test "ambiguous_grammar_test") generated 1 warning (run `cargo fix --test "ambiguous_grammar_test"` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running tests/ambiguous_grammar_test.rs (target/debug/deps/ambiguous_grammar_test-b673a131e6290865)
+
+running 1 test
+test ambiguous_incremental_tests::test_ambiguous_expression_with_reuse ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+

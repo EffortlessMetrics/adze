@@ -469,6 +469,10 @@ pub struct IncrementalGLRParser {
     chunk_prefix_len: usize,
     /// Length of unchanged suffix tokens (for chunk-based reuse)
     chunk_suffix_len: usize,
+    /// Current tokens being parsed (for forest reuse calculations)
+    tokens: Vec<GLRToken>,
+    /// Edit byte delta (new_text.len() - old_text.len())
+    edit_byte_delta: isize,
 }
 
 /// Tracks fork relationships and dependencies
@@ -541,6 +545,8 @@ impl IncrementalGLRParser {
             gss_state_map: GSSStateMap::new(),
             chunk_prefix_len: 0,
             chunk_suffix_len: 0,
+            tokens: vec![],
+            edit_byte_delta: 0,
         }
     }
     
@@ -562,6 +568,8 @@ impl IncrementalGLRParser {
             gss_state_map: GSSStateMap::new(),
             chunk_prefix_len: 0,
             chunk_suffix_len: 0,
+            tokens: vec![],
+            edit_byte_delta: 0,
         }
     }
 
@@ -687,6 +695,8 @@ impl IncrementalGLRParser {
             self.previous_forest = Some(old_forest);
             self.chunk_prefix_len = prefix_len;
             self.chunk_suffix_len = suffix_len;
+            self.tokens = tokens.to_vec();
+            self.edit_byte_delta = edit_delta;
             
             // IMPORTANT: We do a full parse of ALL tokens to ensure GLR forking works correctly
             // The reuse happens AFTER parsing, during forest construction
@@ -884,6 +894,68 @@ impl IncrementalGLRParser {
         subtree: Arc<Subtree>,
         fork_id: usize,
     ) -> Arc<ForestNode> {
+        // Check if this subtree falls within a reusable chunk
+        if let Some(ref old_forest) = self.previous_forest {
+            // Check if this subtree is in the unchanged prefix chunk
+            if self.chunk_prefix_len > 0 {
+                let prefix_byte_boundary = if self.chunk_prefix_len < self.tokens.len() {
+                    self.tokens[self.chunk_prefix_len].start_byte
+                } else {
+                    usize::MAX
+                };
+                
+                if subtree.node.byte_range.end <= prefix_byte_boundary {
+                    // This subtree is entirely within the prefix chunk - try to reuse it
+                    if let Some(reused_node) = self.find_matching_node_in_forest(
+                        old_forest,
+                        subtree.node.symbol_id,
+                        &subtree.node.byte_range
+                    ) {
+                        println!("DEBUG reuse: Reusing prefix forest node for symbol {:?} at range {:?}", 
+                                 subtree.node.symbol_id, subtree.node.byte_range);
+                        SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
+                        return reused_node;
+                    }
+                }
+            }
+            
+            // Check if this subtree is in the unchanged suffix chunk
+            if self.chunk_suffix_len > 0 && self.tokens.len() > self.chunk_suffix_len {
+                let suffix_byte_boundary = self.tokens[self.tokens.len() - self.chunk_suffix_len].start_byte;
+                
+                if subtree.node.byte_range.start >= suffix_byte_boundary {
+                    // This subtree is entirely within the suffix chunk - try to reuse it
+                    // Note: suffix bytes may have shifted due to the edit
+                    let edit_delta = self.get_edit_byte_delta();
+                    let adjusted_range = Range {
+                        start: (subtree.node.byte_range.start as isize - edit_delta) as usize,
+                        end: (subtree.node.byte_range.end as isize - edit_delta) as usize,
+                    };
+                    
+                    if let Some(reused_node) = self.find_matching_node_in_forest(
+                        old_forest,
+                        subtree.node.symbol_id,
+                        &adjusted_range
+                    ) {
+                        // Clone the node but adjust its byte range for the new position
+                        let adjusted_node = Arc::new(ForestNode {
+                            symbol: reused_node.symbol,
+                            alternatives: reused_node.alternatives.clone(),
+                            byte_range: subtree.node.byte_range.clone(),
+                            token_range: reused_node.token_range.clone(),
+                            cached_subtree: Some(subtree.clone()),
+                        });
+                        
+                        println!("DEBUG reuse: Reusing suffix forest node for symbol {:?} at range {:?} (adjusted from {:?})", 
+                                 subtree.node.symbol_id, subtree.node.byte_range, adjusted_range);
+                        SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
+                        return adjusted_node;
+                    }
+                }
+            }
+        }
+        
+        // If we can't reuse, build a new node
         // Convert children recursively
         let children: Vec<Arc<ForestNode>> = subtree.children.iter()
             .map(|child| self.subtree_to_forest_recursive(child.clone(), fork_id))
@@ -906,6 +978,35 @@ impl IncrementalGLRParser {
         })
     }
 
+    /// Find a matching node in the old forest for reuse
+    fn find_matching_node_in_forest(
+        &self,
+        forest: &Arc<ForestNode>,
+        symbol: SymbolId,
+        byte_range: &Range<usize>,
+    ) -> Option<Arc<ForestNode>> {
+        // Direct match at the root
+        if forest.symbol == symbol && forest.byte_range == *byte_range {
+            return Some(forest.clone());
+        }
+        
+        // Search in alternatives and their children
+        for alt in &forest.alternatives {
+            for child in &alt.children {
+                if let Some(found) = self.find_matching_node_in_forest(child, symbol, byte_range) {
+                    return Some(found);
+                }
+            }
+        }
+        
+        None
+    }
+    
+    /// Get the byte delta from the stored edit
+    fn get_edit_byte_delta(&self) -> isize {
+        self.edit_byte_delta
+    }
+    
     /// Find the token range for a byte range
     fn find_token_range(&self, byte_range: &Range<usize>, tokens: &[GLRToken]) -> Range<usize> {
         let start = tokens

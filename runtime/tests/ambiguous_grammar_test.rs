@@ -391,11 +391,11 @@ mod ambiguous_incremental_tests {
         
         // And we should have reused some subtrees (the "1" and "3")
         let reuse_count = get_reuse_count();
-        if reuse_count > 0 {
-            println!("✅ Reused {} subtrees during incremental parse", reuse_count);
-        } else {
-            println!("⚠️ WARNING: Expected subtree reuse but got 0 reuses");
-        }
+        assert!(
+            reuse_count > 0,
+            "Expected subtree reuse during incremental parse but got 0 reuses"
+        );
+        println!("✅ Reused {} subtrees during incremental parse", reuse_count);
         
         assert!(
             new_forest.alternatives.len() >= 2,
