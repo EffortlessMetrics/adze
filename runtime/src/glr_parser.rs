@@ -131,6 +131,63 @@ impl ParseStack {
             id: new_id,
         }
     }
+
+    /// Print tree structure for debugging
+    fn print_tree_structure(node: &Arc<Subtree>, indent: usize) {
+        let prefix = "  ".repeat(indent);
+        println!("{}Symbol {}, range {:?}", prefix, node.node.symbol_id.0, node.node.byte_range);
+        for child in &node.children {
+            Self::print_tree_structure(child, indent + 1);
+        }
+    }
+
+    /// Check if two stacks have structurally equivalent parse trees
+    fn has_equivalent_parse_tree(&self, other: &ParseStack) -> bool {
+        // First check if they have the same number of nodes
+        if self.nodes.len() != other.nodes.len() {
+            return false;
+        }
+
+        // Check each node for structural equivalence
+        for (node1, node2) in self.nodes.iter().zip(other.nodes.iter()) {
+            if !Self::nodes_structurally_equivalent(node1, node2) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// Check if two subtree nodes are structurally equivalent
+    fn nodes_structurally_equivalent(node1: &Arc<Subtree>, node2: &Arc<Subtree>) -> bool {
+        // Check symbol and span
+        if node1.node.symbol_id != node2.node.symbol_id {
+            return false;
+        }
+        
+        if node1.node.byte_range != node2.node.byte_range {
+            return false;
+        }
+
+        // Check if both are error nodes
+        if node1.node.is_error != node2.node.is_error {
+            return false;
+        }
+
+        // Check children structure
+        if node1.children.len() != node2.children.len() {
+            return false;
+        }
+
+        // Recursively check all children
+        for (child1, child2) in node1.children.iter().zip(node2.children.iter()) {
+            if !Self::nodes_structurally_equivalent(child1, child2) {
+                return false;
+            }
+        }
+
+        true
+    }
 }
 
 /// GLR parser engine
@@ -707,31 +764,46 @@ impl GLRParser {
                 }
 
                 if stacks[j].states == best_stack.states {
-                    // Same parse state - compare versions
-                    match compare_versions(&best_stack.version, &stacks[j].version) {
-                        CompareResult::TakeLeft => {
-                            // Keep best_stack
+                    // NEW: Check if parse trees are structurally equivalent
+                    if stacks[j].has_equivalent_parse_tree(&best_stack) {
+                        // Trees are identical - safe to merge using version comparison
+                        match compare_versions(&best_stack.version, &stacks[j].version) {
+                            CompareResult::TakeLeft => {
+                                // Keep best_stack
+                            }
+                            CompareResult::TakeRight => {
+                                best_stack = stacks[j].clone();
+                            }
+                            CompareResult::PreferLeft => {
+                                // Keep the preferred one
+                            }
+                            CompareResult::PreferRight => {
+                                best_stack = stacks[j].clone();
+                            }
+                            CompareResult::Tie => {
+                                // Keep the first one
+                            }
                         }
-                        CompareResult::TakeRight => {
-                            best_stack = stacks[j].clone();
-                        }
-                        CompareResult::PreferLeft => {
-                            // In full GLR, we might keep both
-                            // For now, keep the preferred one
-                        }
-                        CompareResult::PreferRight => {
-                            best_stack = stacks[j].clone();
-                        }
-                        CompareResult::Tie => {
-                            // Use symbol comparison or keep both
-                            // For now, keep the first one
-                        }
+                        processed[j] = true;
                     }
-                    processed[j] = true;
+                    // If parse trees differ, DON'T merge - keep both stacks!
+                    // This preserves ambiguity in GLR parsing
                 }
             }
 
             merged.push(best_stack);
+        }
+
+        // Add any unprocessed stacks (those with different parse trees)
+        for (i, stack) in stacks.iter().enumerate() {
+            if !processed[i] {
+                merged.push(stack.clone());
+            }
+        }
+
+        if merged.len() > 1 && merged.len() != stacks.len() {
+            println!("DEBUG merge_stacks: {} stacks -> {} stacks after conservative merge", 
+                     stacks.len(), merged.len());
         }
 
         *stacks = merged;
@@ -825,6 +897,10 @@ impl GLRParser {
         println!("DEBUG finish_all_alternatives: have {} stacks", self.stacks.len());
         for (i, stack) in self.stacks.iter().enumerate() {
             println!("  Stack {}: {} nodes, state {}", i, stack.nodes.len(), stack.current_state().0);
+            // Print parse tree structure for debugging
+            if stack.nodes.len() == 1 {
+                ParseStack::print_tree_structure(&stack.nodes[0], 0);
+            }
         }
         
         let mut alternatives = Vec::new();
@@ -1086,7 +1162,7 @@ impl GLRParser {
         
         for subtree in subtrees {
             for stack in &self.stacks {
-                let mut new_stack = stack.clone();
+                let new_stack = stack.clone();
                 
                 // Get the current state
                 let current_state = new_stack.current_state();

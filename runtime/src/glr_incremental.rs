@@ -702,8 +702,11 @@ impl IncrementalGLRParser {
             
             // Process tokens with reuse and snapshot capture
             let mut idx = start_token_idx;
+            println!("DEBUG incremental: Processing {} tokens starting from index {}", tokens.len(), start_token_idx);
             while idx < tokens.len() {
                 let token = &tokens[idx];
+                println!("DEBUG incremental: Token {}: symbol {}, text {:?}, range {:?}", 
+                         idx, token.symbol.0, std::str::from_utf8(&token.text), token.start_byte..token.end_byte);
                 
                 // Check if we have a reusable subtree starting at this position
                 // Look for any subtree that starts at the current byte position
@@ -711,14 +714,17 @@ impl IncrementalGLRParser {
                 for (range, node) in &self.reuse_map.nodes {
                     if range.start == token.start_byte {
                         // We found a reusable subtree!
+                        println!("DEBUG incremental: Found reusable subtree for range {:?}", range);
                         
                         // Inject the reusable subtree into the parser
                         self.inject_subtree_into_parser(&mut parser, node.clone());
                         
                         // Skip all tokens covered by this subtree
+                        let skip_start = idx;
                         while idx < tokens.len() && tokens[idx].end_byte <= range.end {
                             idx += 1;
                         }
+                        println!("DEBUG incremental: Skipped tokens {} to {}", skip_start, idx - 1);
                         found_reusable = true;
                         break;
                     }
