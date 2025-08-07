@@ -383,10 +383,10 @@ pub struct GSSSnapshot {
     pub token_position: usize,
     /// Byte position in the source
     pub byte_position: usize,
-    /// Parser state at this position
-    pub state: StateId,
-    /// Stack of states leading to this position
-    pub state_stack: Vec<StateId>,
+    /// The complete GSS state (all parse stacks)
+    pub gss_stacks: Vec<crate::glr_parser::ParseStack>,
+    /// Next stack ID for fork tracking
+    pub next_stack_id: usize,
     /// Partial parse tree up to this point
     pub partial_tree: Option<Arc<ForestNode>>,
 }
@@ -696,20 +696,16 @@ impl IncrementalGLRParser {
     }
 
     /// Create a parser initialized from a GSS snapshot
-    fn create_parser_from_snapshot(&self, _snapshot: &GSSSnapshot) -> GLRParser {
+    fn create_parser_from_snapshot(&self, snapshot: &GSSSnapshot) -> GLRParser {
         // Create a new parser
-        let parser = GLRParser::new(self.table.clone(), self.grammar.clone());
+        let mut parser = GLRParser::new(self.table.clone(), self.grammar.clone());
         
-        // Initialize the parser's state from the snapshot
-        // This would restore the state stack and partial parse tree
-        // For now, we create a fresh parser but in a real implementation,
-        // we'd restore the exact GSS state
+        // Restore the exact GSS state from the snapshot
+        parser.set_gss_state(snapshot.gss_stacks.clone());
+        parser.set_next_stack_id(snapshot.next_stack_id);
         
-        // TODO: Implement actual state restoration
-        // This would involve:
-        // 1. Restoring the state stack
-        // 2. Restoring the partial parse tree
-        // 3. Setting the current state
+        // The parser is now in the exact state it was when the snapshot was taken
+        println!("DEBUG: Restored parser from snapshot at byte position {}", snapshot.byte_position);
         
         parser
     }
@@ -717,40 +713,73 @@ impl IncrementalGLRParser {
     /// Capture the current parser state as a snapshot
     fn capture_parser_snapshot(
         &self,
-        _parser: &GLRParser,
+        parser: &GLRParser,
         token_position: usize,
         byte_position: usize,
     ) -> Option<GSSSnapshot> {
-        // In a real implementation, this would extract the current
-        // parser state including the state stack and partial tree
+        // Extract the actual GSS state from the parser
+        let gss_stacks = parser.get_gss_state();
+        let next_stack_id = parser.get_next_stack_id();
         
-        // For now, create a basic snapshot
         Some(GSSSnapshot {
             token_position,
             byte_position,
-            state: StateId(0), // Would get actual state from parser
-            state_stack: vec![], // Would get actual stack from parser
+            gss_stacks,
+            next_stack_id,
             partial_tree: self.forest.clone(),
         })
     }
     
     /// Inject a reusable subtree into the parser
-    fn inject_subtree_into_parser(&self, _parser: &mut GLRParser, node: Arc<ForestNode>) {
-        // This would inject the reusable subtree into the parser,
-        // effectively skipping the parsing of that region
+    fn inject_subtree_into_parser(&self, parser: &mut GLRParser, node: Arc<ForestNode>) {
+        // Convert the ForestNode to a Subtree
+        let subtree_node = crate::subtree::SubtreeNode {
+            symbol_id: node.symbol,
+            is_error: false,
+            byte_range: node.byte_range.clone(),
+        };
         
-        // Increment the reuse counter for tracking
-        SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
+        // Create the subtree with its children
+        let children: Vec<Arc<Subtree>> = node.alternatives.iter()
+            .flat_map(|alt| alt.children.iter())
+            .map(|child| self.forest_to_subtree(child))
+            .collect();
         
-        // TODO: Implement actual subtree injection
-        // This would involve:
-        // 1. Creating a Subtree from the ForestNode
-        // 2. Pushing it onto the parser's node stack
-        // 3. Advancing the parser state appropriately
+        let subtree = Arc::new(Subtree::new(subtree_node, children));
         
-        // For now, we just count the reuse
-        println!("DEBUG: Would inject subtree with {} bytes", 
-                 node.byte_range.end - node.byte_range.start);
+        // Inject the subtree into the parser
+        match parser.inject_subtree(subtree) {
+            Ok(_) => {
+                // Successfully injected the subtree
+                SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
+                println!("DEBUG: Injected subtree with {} bytes", 
+                         node.byte_range.end - node.byte_range.start);
+            }
+            Err(e) => {
+                // Failed to inject - parser will re-parse this region
+                println!("DEBUG: Failed to inject subtree: {}", e);
+            }
+        }
+    }
+    
+    /// Helper function to convert ForestNode to Subtree
+    fn forest_to_subtree(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
+        let subtree_node = crate::subtree::SubtreeNode {
+            symbol_id: node.symbol,
+            is_error: false,
+            byte_range: node.byte_range.clone(),
+        };
+        
+        // For simplicity, take the first alternative (could be improved)
+        let children = if let Some(alt) = node.alternatives.first() {
+            alt.children.iter()
+                .map(|child| self.forest_to_subtree(child))
+                .collect()
+        } else {
+            vec![]
+        };
+        
+        Arc::new(Subtree::new(subtree_node, children))
     }
     
     /// Build a forest node from a subtree

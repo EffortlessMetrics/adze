@@ -784,40 +784,6 @@ impl GLRParser {
         symbols
     }
 
-    /// Inject a pre-parsed subtree into the parser
-    pub fn inject_subtree(&mut self, subtree: Arc<Subtree>) {
-        // For each active stack, try to process this subtree
-        let mut new_stacks = Vec::new();
-
-        for stack in &self.stacks {
-            let state = stack.current_state();
-
-            // Check if we can shift this subtree's symbol
-            if let Some(action) = self.get_action(state, subtree.node.symbol_id) {
-                match action {
-                    Action::Shift(next_state) => {
-                        let mut new_stack = stack.clone();
-                        new_stack.push(next_state, subtree.clone());
-
-                        // After shifting the subtree, we need to check for reductions
-                        // This ensures that the subtree is properly integrated into the parse tree
-                        let reduced_stacks = self.perform_all_reductions(new_stack);
-                        new_stacks.extend(reduced_stacks);
-                    }
-                    _ => {
-                        // For reduce/accept actions, keep the original stack
-                        new_stacks.push(stack.clone());
-                    }
-                }
-            } else {
-                // If no action available, keep the original stack
-                new_stacks.push(stack.clone());
-            }
-        }
-
-        self.stacks = new_stacks;
-    }
-
     /// Perform all possible reductions on a stack until no more are possible
     fn perform_all_reductions(&self, stack: ParseStack) -> Vec<ParseStack> {
         let mut result_stacks = vec![];
@@ -969,6 +935,80 @@ impl GLRParser {
         }
 
         None
+    }
+    
+    // Methods for incremental parsing state management
+    
+    /// Get the current GSS (Graph-Structured Stack) state for snapshots
+    pub fn get_gss_state(&self) -> Vec<ParseStack> {
+        self.stacks.clone()
+    }
+    
+    /// Restore the GSS state from a snapshot
+    pub fn set_gss_state(&mut self, stacks: Vec<ParseStack>) {
+        self.stacks = stacks;
+        self.pending_stacks.clear();
+        // Re-populate pending stacks with all current stack indices
+        for i in 0..self.stacks.len() {
+            self.pending_stacks.push_back(i);
+        }
+    }
+    
+    /// Get the next stack ID for restoring fork tracking
+    pub fn get_next_stack_id(&self) -> usize {
+        self.next_stack_id
+    }
+    
+    /// Set the next stack ID for restoring fork tracking
+    pub fn set_next_stack_id(&mut self, id: usize) {
+        self.next_stack_id = id;
+    }
+    
+    /// Inject a pre-parsed subtree at the current position
+    /// This is used for incremental parsing to reuse unchanged portions
+    pub fn inject_subtree(&mut self, subtree: Arc<Subtree>) -> Result<(), String> {
+        if self.stacks.is_empty() {
+            return Err("No active stacks to inject subtree into".to_string());
+        }
+        
+        // For each active stack, inject the subtree
+        let mut new_stacks = Vec::new();
+        for stack in &self.stacks {
+            let mut new_stack = stack.clone();
+            
+            // Get the current state
+            let current_state = new_stack.current_state();
+            
+            // Look up the goto state after shifting this symbol
+            let symbol = subtree.node.symbol_id;
+            if let Some(&symbol_idx) = self.table.symbol_to_index.get(&symbol) {
+                let state_idx = current_state.0 as usize;
+                
+                // First check if there's a shift action for this symbol
+                if state_idx < self.table.action_table.len() 
+                    && symbol_idx < self.table.action_table[state_idx].len() {
+                    
+                    let action_cell = &self.table.action_table[state_idx][symbol_idx];
+                    
+                    // Look for a shift action
+                    for action in action_cell {
+                        if let Action::Shift(next_state) = action {
+                            // Push the subtree and advance to the next state
+                            new_stack.push(*next_state, subtree.clone());
+                            new_stacks.push(new_stack.clone());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if new_stacks.is_empty() {
+            return Err(format!("Cannot inject subtree with symbol {:?} in current state", subtree.node.symbol_id));
+        }
+        
+        self.stacks = new_stacks;
+        Ok(())
     }
 }
 
