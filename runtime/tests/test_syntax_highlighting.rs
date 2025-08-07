@@ -198,8 +198,10 @@ fn test_highlighter_creation() {
     // Create a simple parse tree
     let root = ParseNode {
         symbol: SymbolId(100), // program
+        symbol_id: SymbolId(100), // program
         children: vec![ParseNode {
             symbol: SymbolId(3), // identifier
+            symbol_id: SymbolId(3), // identifier
             children: vec![],
             start_byte: 0,
             end_byte: 3,

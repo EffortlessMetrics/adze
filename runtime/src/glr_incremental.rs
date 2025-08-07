@@ -1141,7 +1141,14 @@ mod tests {
     #[test]
     fn test_chunk_identifier() {
         // Test the new ChunkIdentifier logic
-        let edit = Edit::new(5, 7, 8); // Edit from byte 5-7 to 5-8
+        let edit = GLREdit {
+            old_range: 5..7,
+            new_text: b"xxx".to_vec(),
+            old_token_range: 1..2,
+            new_tokens: vec![],
+            old_tokens: vec![],
+            old_forest: None,
+        };
         let chunk_id = ChunkIdentifier::new(None, &edit);
         
         // Create test tokens
@@ -1166,7 +1173,7 @@ mod tests {
         assert_eq!(prefix_len, 3); // First 3 tokens are unchanged and before the edit
         
         // Test suffix boundary detection (with proper delta)
-        let edit_delta = (edit.new_end_byte as isize) - (edit.old_end_byte as isize);
+        let edit_delta = (edit.new_text.len() as isize) - ((edit.old_range.end - edit.old_range.start) as isize);
         let suffix_len = chunk_id.find_suffix_boundary(&old_tokens, &new_tokens, edit_delta);
         assert_eq!(suffix_len, 1); // Last token is unchanged and after the edit
     }
