@@ -1481,7 +1481,7 @@ pub fn build_lr1_automaton(
     }
 
     // Add non-terminal goto entries to the goto table
-    for ((from_state, symbol), to_state) in &collection.goto_table {
+    for ((from_state, symbol), _to_state) in &collection.goto_table {
         // Check if this symbol is a non-terminal
         let is_terminal = augmented_grammar.tokens.contains_key(symbol)
             || augmented_grammar

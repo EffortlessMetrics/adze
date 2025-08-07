@@ -2,7 +2,7 @@
 use quote::quote;
 use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::{ExternalToken, Grammar, SymbolId};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// Enhanced external scanner generator that computes state-based validity
 pub struct ExternalScannerGenerator {
@@ -10,6 +10,7 @@ pub struct ExternalScannerGenerator {
     grammar: Grammar,
     external_tokens: Vec<ExternalToken>,
     /// Maps symbol IDs to their indices in the external scanner
+    #[allow(dead_code)]
     symbol_map: HashMap<SymbolId, usize>,
     /// Parse table for computing valid external tokens
     parse_table: ParseTable,

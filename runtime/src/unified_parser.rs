@@ -103,7 +103,7 @@ impl Parser {
     /// 
     /// # Note
     /// Currently falls back to full reparse. GLR-aware incremental parsing is being implemented.
-    pub fn parse_with_old_tree(&mut self, source: &[u8], old_tree: Option<&parser_v4::Tree>, edit: Option<&crate::pure_incremental::Edit>) -> Option<parser_v4::Tree> {
+    pub fn parse_with_old_tree(&mut self, source: &[u8], _old_tree: Option<&parser_v4::Tree>, _edit: Option<&crate::pure_incremental::Edit>) -> Option<parser_v4::Tree> {
         if let Some(ref mut parser) = self.inner {
             // TODO: Implement GLR-aware incremental parsing
             // For now, just do a full reparse

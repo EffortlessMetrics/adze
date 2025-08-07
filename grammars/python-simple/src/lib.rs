@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_primary_expression() {
-        use rust_sitter::Extract;
+        // use rust_sitter::Extract;
 
         // First, let's debug what symbols are available
         eprintln!("\n=== Available symbols in language ===");
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_extract_string() {
-        use rust_sitter::Extract;
+        // use rust_sitter::Extract;
 
         // Test parsing "hello" as a string literal
         let input = r#""hello""#;
@@ -210,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_extract_identifier() {
-        use rust_sitter::Extract;
+        // use rust_sitter::Extract;
 
         // Test parsing "x" as an identifier
         let input = "x";

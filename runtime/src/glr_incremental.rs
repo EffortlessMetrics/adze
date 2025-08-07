@@ -332,19 +332,19 @@ impl IncrementalGLRParser {
 pub fn reparse(
     parser: &mut unified_parser::Parser,
     source: &[u8],
-    old_tree: &parser_v4::Tree,
+    _old_tree: &parser_v4::Tree,
     edit: &crate::pure_incremental::Edit,
 ) -> Option<parser_v4::Tree> {
     // For now, we'll do a full reparse but with incremental infrastructure in place
     // This is the Week 2 core implementation task
     
     // Step 1: Identify affected regions
-    let edit_start = edit.start_byte;
+    let _edit_start = edit.start_byte;
     let edit_old_end = edit.old_end_byte;
     let edit_new_end = edit.new_end_byte;
     
     // Step 2: Calculate the byte delta for position adjustments
-    let byte_delta = edit_new_end as isize - edit_old_end as isize;
+    let _byte_delta = edit_new_end as isize - edit_old_end as isize;
     
     // Step 3: For now, do a full reparse with error tracking
     // In a true incremental implementation, we would:
@@ -361,6 +361,7 @@ pub fn reparse(
 
 /// Represents an invalidated region in the tree
 #[derive(Debug)]
+#[allow(dead_code)]
 struct InvalidatedRegion {
     start_byte: usize,
     end_byte: usize,
@@ -370,6 +371,7 @@ struct InvalidatedRegion {
 
 /// Represents a GSS (Graph-Structured Stack) head for reparse
 #[derive(Debug)]
+#[allow(dead_code)]
 struct GSSHead {
     state_id: usize,
     position: usize,
@@ -379,6 +381,7 @@ struct GSSHead {
 
 impl InvalidatedRegion {
     /// Find all GSS heads that can be used to restart parsing
+    #[allow(dead_code)]
     fn find_gss_heads(&self, _old_tree: &parser_v4::Tree) -> Vec<GSSHead> {
         // TODO: Implement actual GSS head discovery
         // This would traverse the old tree and identify valid restart points
@@ -387,6 +390,7 @@ impl InvalidatedRegion {
 }
 
 /// Find regions invalidated by an edit
+#[allow(dead_code)]
 fn find_invalidated_regions(
     _old_tree: &parser_v4::Tree,
     edit: &crate::pure_incremental::Edit,

@@ -462,18 +462,18 @@ fn test_compression_with_fork_actions() {
                     Symbol::External(id) => {
                         print!(" EXT{}", id.0);
                     }
-                    Symbol::Optional(s) => {
+                    Symbol::Optional(_s) => {
                         print!(" (");
                         // Recursively print the optional symbol
                         print!("optional");
                         print!(")");
                     }
-                    Symbol::Repeat(s) => {
+                    Symbol::Repeat(_s) => {
                         print!(" (");
                         print!("repeat");
                         print!(")");
                     }
-                    Symbol::RepeatOne(s) => {
+                    Symbol::RepeatOne(_s) => {
                         print!(" (");
                         print!("repeat1");
                         print!(")");
@@ -710,13 +710,13 @@ fn test_large_grammar_compression() {
 fn test_compression_edge_cases() {
     // Empty table
     let empty_table: Vec<Vec<Vec<Action>>> = vec![];
-    let compressed = compress_action_table(&empty_table);
+    let _compressed = compress_action_table(&empty_table);
     // Cannot access private field unique_rows
     // assert_eq!(compressed.unique_rows.len(), 0);
 
     // Single cell table with empty action cell (equivalent to Error)
     let single_cell = vec![vec![vec![]]];
-    let compressed = compress_action_table(&single_cell);
+    let _compressed = compress_action_table(&single_cell);
     // Cannot access private field unique_rows
     // assert_eq!(compressed.unique_rows.len(), 1);
     assert_eq!(decompress_action(&compressed, 0, 0), Action::Error);
@@ -732,7 +732,7 @@ fn test_compression_edge_cases() {
         vec![vec![], vec![], vec![]], 
         vec![vec![], vec![], vec![]],
     ];
-    let compressed = compress_action_table(&identical_rows);
+    let _compressed = compress_action_table(&identical_rows);
     // Cannot access private field unique_rows
     // assert_eq!(compressed.unique_rows.len(), 1);
 }

@@ -485,6 +485,7 @@ fn is_terminal(metadata: u8, name: &str) -> bool {
 }
 
 /// Check if a symbol is hidden based on metadata
+#[allow(dead_code)]
 fn is_hidden(metadata: u8) -> bool {
     // Bit 0 is typically the visible bit in Tree-sitter
     (metadata & 0x01) == 0

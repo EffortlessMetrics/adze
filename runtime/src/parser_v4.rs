@@ -752,6 +752,7 @@ impl Parser {
     }
 
     /// Get action from parse table
+    #[allow(dead_code)]
     fn get_action(&self, state: StateId, symbol: SymbolId) -> Result<Action> {
         let state_idx = state.0 as usize;
         if state_idx < self.parse_table.action_table.len() {
@@ -822,6 +823,7 @@ impl Parser {
     // GLR-specific methods
 
     /// Get next token (handles external scanner)
+    #[allow(dead_code)]
     fn get_next_token(&mut self, lexer: &mut GrammarLexer) -> Result<LexerToken> {
         // Try external scanner on first active head
         if !self.glr_state.active_heads.is_empty() {
@@ -843,6 +845,7 @@ impl Parser {
     }
 
     /// Handle shift in GLR mode
+    #[allow(dead_code)]
     fn handle_glr_shift(
         &mut self,
         gss_idx: usize,
@@ -876,6 +879,7 @@ impl Parser {
     }
 
     /// Handle reduce in GLR mode
+    #[allow(dead_code)]
     fn handle_glr_reduce(&mut self, gss_idx: usize, rule_id: RuleId) -> Result<Vec<usize>> {
         // Clone the rule data we need to avoid borrow checker issues
         let (rule_lhs, rule_len) = {
@@ -898,6 +902,7 @@ impl Parser {
     }
 
     /// Recursively perform GLR reduction
+    #[allow(dead_code)]
     fn perform_glr_reduce(
         &mut self,
         current_gss: usize,
@@ -973,6 +978,7 @@ impl Parser {
     }
 
     /// Get goto state for a given state and symbol
+    #[allow(dead_code)]
     fn get_goto_for_state(&self, state: usize, symbol: SymbolId) -> Result<usize> {
         if state < self.parse_table.goto_table.len() {
             if let Some(&symbol_idx) = self.parse_table.symbol_to_index.get(&symbol) {
@@ -989,6 +995,7 @@ impl Parser {
     }
 
     /// Build final tree from accepted GSS node
+    #[allow(dead_code)]
     fn build_final_tree(&self, gss_idx: usize) -> Result<ForestNode> {
         // Find the path from this node to the start
         let mut current = gss_idx;

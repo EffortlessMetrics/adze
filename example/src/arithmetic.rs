@@ -4,6 +4,7 @@ pub mod grammar_arithmetic {
 }
 
 // Expose the generated LANGUAGE struct for external use (e.g., benchmarks)
+#[allow(dead_code)]
 pub fn get_language() -> &'static rust_sitter::pure_parser::TSLanguage {
     &grammar_arithmetic::LANGUAGE
 }

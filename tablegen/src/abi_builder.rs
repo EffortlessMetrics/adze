@@ -46,7 +46,7 @@ impl<'a> AbiLanguageBuilder<'a> {
     /// Generate the complete language module
     pub fn generate(&self) -> TokenStream {
         let language_name = &self.grammar.name;
-        let language_fn_ident = quote::format_ident!("tree_sitter_{}", language_name);
+        let _language_fn_ident = quote::format_ident!("tree_sitter_{}", language_name);
 
         eprintln!(
             "DEBUG AbiLanguageBuilder: Generating language for '{}'",
@@ -294,9 +294,16 @@ impl<'a> AbiLanguageBuilder<'a> {
         let lexer_code =
             crate::lexer_gen::generate_lexer(self.grammar, &self.parse_table.symbol_to_index);
 
+        // Only import TSSymbol if we have external scanners
+        let ts_symbol_import = if !self.grammar.externals.is_empty() {
+            quote! { use ::rust_sitter::TSSymbol; }
+        } else {
+            quote! {}
+        };
+        
         quote! {
             use ::rust_sitter::pure_parser::*;
-            use ::rust_sitter::TSSymbol;
+            #ts_symbol_import
 
             // Lexer implementation
             #lexer_code

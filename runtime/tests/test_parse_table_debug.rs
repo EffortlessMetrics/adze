@@ -107,27 +107,35 @@ fn test_parse_table_has_conflicts() {
                 .map(|(sym, _)| sym);
 
             if let Some(symbol) = symbol {
-                let action_str = match action {
-                    Action::Fork(actions) => {
-                        has_fork = true;
-                        conflict_count += 1;
-                        println!(
-                            "  Symbol {} (idx {}): Fork with {} actions:",
-                            symbol.0,
-                            sym_idx,
-                            actions.len()
-                        );
-                        for (i, fork_action) in actions.iter().enumerate() {
-                            println!("    Fork[{}]: {:?}", i, fork_action);
-                        }
-                        continue;
+                // New GLR structure: action is Vec<Action>
+                if action.is_empty() {
+                    continue; // Skip empty action cells
+                }
+                
+                if action.len() > 1 {
+                    // Multiple actions = conflict/fork
+                    has_fork = true;
+                    conflict_count += 1;
+                    println!(
+                        "  Symbol {} (idx {}): Fork with {} actions:",
+                        symbol.0,
+                        sym_idx,
+                        action.len()
+                    );
+                    for (i, fork_action) in action.iter().enumerate() {
+                        println!("    Fork[{}]: {:?}", i, fork_action);
                     }
-                    Action::Error => continue, // Skip errors
-                    Action::Shift(s) => format!("Shift({})", s.0),
-                    Action::Reduce(r) => format!("Reduce({})", r.0),
-                    Action::Accept => "Accept".to_string(),
-                };
-                println!("  Symbol {} (idx {}): {}", symbol.0, sym_idx, action_str);
+                } else if let Some(single_action) = action.first() {
+                    // Single action
+                    let action_str = match single_action {
+                        Action::Error => continue, // Skip errors
+                        Action::Shift(s) => format!("Shift({})", s.0),
+                        Action::Reduce(r) => format!("Reduce({})", r.0),
+                        Action::Accept => "Accept".to_string(),
+                        Action::Fork(_) => unreachable!("Fork should not appear in new GLR structure"),
+                    };
+                    println!("  Symbol {} (idx {}): {}", symbol.0, sym_idx, action_str);
+                }
             }
         }
     }
