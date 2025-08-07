@@ -169,7 +169,8 @@ fn parse_with_recovery(
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
-    parser.process_eof();
+    let total_bytes = tokens.last().map(|t| t.byte_offset + t.text.len()).unwrap_or(0);
+    parser.process_eof(total_bytes);
     let result = parser.finish();
     println!("Parse result: {:?}", result.is_ok());
     result.ok()

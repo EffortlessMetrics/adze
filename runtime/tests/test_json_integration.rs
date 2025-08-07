@@ -75,7 +75,7 @@ fn test_simple_json_grammar() {
 
             // Test parsing a number
             parser.process_token(number_id, "42", 0);
-            parser.process_eof();
+            parser.process_eof(2); // "42" is 2 bytes
 
             assert!(parser.get_best_parse().is_some());
         }
@@ -139,7 +139,7 @@ fn test_json_object_grammar() {
             // Test parsing {}
             parser.process_token(lbrace_id, "{", 0);
             parser.process_token(rbrace_id, "}", 1);
-            parser.process_eof();
+            parser.process_eof(2); // "{}" is 2 bytes
 
             assert!(parser.get_best_parse().is_some());
         }
@@ -270,7 +270,7 @@ fn test_json_array_with_numbers() {
             parser.process_token(comma_id, ",", 5);
             parser.process_token(number_id, "3", 7);
             parser.process_token(rbracket_id, "]", 8);
-            parser.process_eof();
+            parser.process_eof(9); // "[1, 2, 3]" is 9 bytes
 
             assert!(parser.get_best_parse().is_some());
         }

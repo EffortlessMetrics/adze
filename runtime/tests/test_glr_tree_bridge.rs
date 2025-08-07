@@ -249,7 +249,7 @@ fn test_tree_bridge_json_number() {
             while let Some(token) = lexer.next_token() {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            parser.process_eof(input.len());
 
             // Get parse tree
             let subtree = parser.get_best_parse().expect("Failed to parse");
@@ -284,7 +284,7 @@ fn test_tree_bridge_json_object() {
             while let Some(token) = lexer.next_token() {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            parser.process_eof(input.len());
 
             // Get parse tree
             let subtree = parser.get_best_parse().expect("Failed to parse");
@@ -327,7 +327,7 @@ fn test_tree_cursor_navigation() {
             while let Some(token) = lexer.next_token() {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            parser.process_eof(input.len());
 
             // Get parse tree
             let subtree = parser.get_best_parse().expect("Failed to parse");
@@ -370,7 +370,7 @@ fn test_node_equality_and_ids() {
             while let Some(token) = lexer.next_token() {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            parser.process_eof(input.len());
 
             let subtree = parser.get_best_parse().expect("Failed to parse");
             let tree = subtree_to_tree(subtree, input.as_bytes().to_vec(), (*grammar).clone());

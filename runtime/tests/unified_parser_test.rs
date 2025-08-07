@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use rust_sitter::unified_parser::Parser;
-    use rust_sitter::pure_parser::{TSLanguage, TSExternalScanner};
+    use rust_sitter::pure_parser::{TSLanguage, ExternalScanner};
 
     // Mock language for testing
     static TEST_LANGUAGE: TSLanguage = TSLanguage {
@@ -15,6 +15,7 @@ mod tests {
         production_id_count: 0,
         field_count: 0,
         max_alias_sequence_length: 0,
+        production_id_map: std::ptr::null(),
         parse_table: std::ptr::null(),
         small_parse_table: std::ptr::null(),
         small_parse_table_map: std::ptr::null(),
@@ -31,7 +32,7 @@ mod tests {
         lex_fn: None,
         keyword_lex_fn: None,
         keyword_capture_token: 0,
-        external_scanner: TSExternalScanner {
+        external_scanner: ExternalScanner {
             states: std::ptr::null(),
             symbol_map: std::ptr::null(),
             create: None,
