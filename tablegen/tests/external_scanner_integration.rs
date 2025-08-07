@@ -24,9 +24,10 @@ fn test_language_generation_with_external_scanner() {
         state_count: 5,
         symbol_count: 102, // Must include external token IDs
         symbol_to_index: std::collections::BTreeMap::new(),
-        action_table: vec![vec![Action::Error; 102]; 5],
+        action_table: vec![vec![vec![Action::Error]; 102]; 5],
         goto_table: vec![vec![StateId(0); 102]; 5],
         symbol_metadata: vec![],
+        external_scanner_states: vec![],
     };
 
     // Add symbol metadata for all symbols including externals
@@ -103,7 +104,7 @@ fn test_node_types_include_external_tokens() {
         state_count: 1,
         symbol_to_index: std::collections::BTreeMap::new(),
         symbol_count: 52,
-        action_table: vec![vec![Action::Error; 52]; 1],
+        action_table: vec![vec![vec![Action::Error]; 52]; 1],
         goto_table: vec![vec![StateId(0); 52]; 1],
         symbol_metadata: vec![
             SymbolMetadata {
@@ -114,6 +115,7 @@ fn test_node_types_include_external_tokens() {
             };
             52
         ],
+        external_scanner_states: vec![],
     };
     let generator = StaticLanguageGenerator::new(grammar, parse_table);
 

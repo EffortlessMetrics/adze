@@ -546,7 +546,7 @@ impl TableCompressor {
     }
 
     /// Compress action table using Tree-sitter's small table format
-    fn compress_action_table_small(&self, action_table: &[Vec<Action>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
+    fn compress_action_table_small(&self, action_table: &[Vec<Vec<Action>>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
         // Tree-sitter's encoding for small tables:
         // - Actions are encoded as u16 values
         // - Shift: 0x0000 | state_id
@@ -564,18 +564,22 @@ impl TableCompressor {
             index_to_symbol.insert(index, symbol_id);
         }
 
-        for (_state_id, actions) in action_table.iter().enumerate() {
+        for (_state_id, action_cells) in action_table.iter().enumerate() {
             // Find the most common action overall
             let mut action_counts: HashMap<&Action, usize> = HashMap::new();
             let mut has_shift = false;
             let mut has_accept = false;
 
-            for action in actions {
-                *action_counts.entry(action).or_insert(0) += 1;
-                match action {
-                    Action::Shift(_) => has_shift = true,
-                    Action::Accept => has_accept = true,
-                    _ => {}
+            for action_cell in action_cells {
+                // For GLR, take the first action in each cell for compression
+                // (GLR conflict resolution happens at runtime, not in the compressed table)
+                if let Some(action) = action_cell.first() {
+                    *action_counts.entry(action).or_insert(0) += 1;
+                    match action {
+                        Action::Shift(_) => has_shift = true,
+                        Action::Accept => has_accept = true,
+                        _ => {}
+                    }
                 }
             }
 
@@ -597,22 +601,25 @@ impl TableCompressor {
             // Encode non-default actions
             row_offsets.push(entries.len() as u16);
 
-            for (index, action) in actions.iter().enumerate() {
-                // Skip if this is the default action
-                if action == &default_action {
-                    continue;
+            for (index, action_cell) in action_cells.iter().enumerate() {
+                // For GLR, take the first action in each cell for compression
+                if let Some(action) = action_cell.first() {
+                    // Skip if this is the default action
+                    if action == &default_action {
+                        continue;
+                    }
+
+                    // Get the actual symbol ID from the index
+                    let symbol_id = index_to_symbol.get(&index)
+                        .map(|id| id.0)
+                        .unwrap_or(index as u16);
+
+                    let _encoded = self.encode_action_small(action)?;
+                    entries.push(CompressedActionEntry {
+                        symbol: symbol_id,
+                        action: action.clone(),
+                    });
                 }
-
-                // Get the actual symbol ID from the index
-                let symbol_id = index_to_symbol.get(&index)
-                    .map(|id| id.0)
-                    .unwrap_or(index as u16);
-
-                let _encoded = self.encode_action_small(action)?;
-                entries.push(CompressedActionEntry {
-                    symbol: symbol_id,
-                    action: action.clone(),
-                });
             }
         }
 
@@ -627,7 +634,7 @@ impl TableCompressor {
     }
 
     /// Compress action table using large table format
-    fn compress_action_table_large(&self, action_table: &[Vec<Action>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
+    fn compress_action_table_large(&self, action_table: &[Vec<Vec<Action>>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
         // For large tables, use pointer indirection
         // This is a simplified version - real Tree-sitter uses more sophisticated compression
         self.compress_action_table_small(action_table, symbol_to_index)
@@ -767,6 +774,7 @@ mod tests {
             state_count: 0,
             symbol_count: 0,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -854,6 +862,7 @@ mod tests {
             state_count: 0,
             symbol_count: 0,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -879,6 +888,7 @@ mod tests {
             state_count: 0,
             symbol_count: 0,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -897,6 +907,7 @@ mod tests {
             state_count: 0,
             symbol_count: 0,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -913,14 +924,15 @@ mod tests {
         // Create a simple parse table
         let parse_table = ParseTable {
             action_table: vec![
-                vec![Action::Shift(StateId(1)), Action::Error],
-                vec![Action::Reduce(RuleId(0)), Action::Accept],
+                vec![vec![Action::Shift(StateId(1))], vec![Action::Error]],
+                vec![vec![Action::Reduce(RuleId(0))], vec![Action::Accept]],
             ],
             goto_table: vec![vec![StateId(0), StateId(1)], vec![StateId(2), StateId(0)]],
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 2,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let mut generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -939,12 +951,13 @@ mod tests {
 
         // Create a parse table that exceeds small table threshold
         let parse_table = ParseTable {
-            action_table: vec![vec![Action::Error; 10]; 40000],
+            action_table: vec![vec![vec![Action::Error]; 10]; 40000],
             goto_table: vec![vec![StateId(0); 10]; 40000],
             symbol_metadata: vec![],
             state_count: 40000,
             symbol_count: 10,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let compressor = TableCompressor::new();
@@ -962,8 +975,8 @@ mod tests {
     fn test_compressed_action_table_small() {
         let compressor = TableCompressor::new();
         let action_table = vec![
-            vec![Action::Shift(StateId(1)), Action::Error, Action::Error],
-            vec![Action::Error, Action::Reduce(RuleId(0)), Action::Error],
+            vec![vec![Action::Shift(StateId(1))], vec![Action::Error], vec![Action::Error]],
+            vec![vec![Action::Error], vec![Action::Reduce(RuleId(0))], vec![Action::Error]],
         ];
 
         let symbol_to_index = std::collections::BTreeMap::new();
@@ -993,9 +1006,9 @@ mod tests {
 
         // Create a state with only reduce actions (common in LR parsers)
         let action_table = vec![vec![
-            Action::Reduce(RuleId(1)),
-            Action::Reduce(RuleId(1)),
-            Action::Reduce(RuleId(1)),
+            vec![Action::Reduce(RuleId(1))],
+            vec![Action::Reduce(RuleId(1))],
+            vec![Action::Reduce(RuleId(1))],
         ]];
 
         let symbol_to_index = std::collections::BTreeMap::new();
@@ -1099,12 +1112,13 @@ mod tests {
     fn test_language_code_generation() {
         let grammar = Grammar::new("test_lang".to_string());
         let parse_table = ParseTable {
-            action_table: vec![vec![Action::Accept]],
+            action_table: vec![vec![vec![Action::Accept]]],
             goto_table: vec![vec![StateId(0)]],
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 1,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -1122,14 +1136,15 @@ mod tests {
     fn test_compressed_tables_validation() {
         let parse_table = ParseTable {
             action_table: vec![
-                vec![Action::Shift(StateId(1)), Action::Error],
-                vec![Action::Reduce(RuleId(0)), Action::Accept],
+                vec![vec![Action::Shift(StateId(1))], vec![Action::Error]],
+                vec![vec![Action::Reduce(RuleId(0))], vec![Action::Accept]],
             ],
             goto_table: vec![vec![StateId(0), StateId(1)], vec![StateId(2), StateId(0)]],
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 2,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let compressor = TableCompressor::new();
@@ -1186,12 +1201,13 @@ mod tests {
 
         // Simple parse table
         let parse_table = ParseTable {
-            action_table: vec![vec![Action::Shift(StateId(1))], vec![Action::Accept]],
+            action_table: vec![vec![vec![Action::Shift(StateId(1))]], vec![vec![Action::Accept]]],
             goto_table: vec![vec![StateId(1)], vec![StateId(0)]],
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 1,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let mut generator = StaticLanguageGenerator::new(grammar, parse_table);
@@ -1316,7 +1332,7 @@ mod tests {
         assert!(
             parse_table.action_table[0]
                 .iter()
-                .any(|a| !matches!(a, Action::Error)),
+                .any(|action_cell| action_cell.iter().any(|a| !matches!(a, Action::Error))),
             "state-0 has no valid actions"
         );
     }

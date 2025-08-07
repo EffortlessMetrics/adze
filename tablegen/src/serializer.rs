@@ -329,6 +329,7 @@ mod tests {
             state_count: 1,
             symbol_count: 4,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let language = build_serializable_language(&grammar, &parse_table, None);
@@ -356,6 +357,7 @@ mod tests {
             state_count: 1,
             symbol_count: 1,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let language = build_serializable_language(&grammar, &parse_table, None);

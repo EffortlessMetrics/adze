@@ -397,6 +397,7 @@ mod tests {
             symbol_count: 5,
             state_count: 10,
             symbol_to_index: Default::default(),
+            external_scanner_states: vec![],
         };
 
         let compressed = CompressedParseTable::from_parse_table(&parse_table);
@@ -441,7 +442,7 @@ mod tests {
         let compressor = TableCompressor::new();
         let reduce_action = Action::Reduce(RuleId(1));
         let action_table = vec![
-            vec![reduce_action.clone(); 10], // All same reduce action
+            vec![vec![reduce_action.clone()]; 10], // All same reduce action in ActionCells
         ];
 
         let symbol_to_index = std::collections::BTreeMap::new();
@@ -500,6 +501,7 @@ mod tests {
             symbol_count: 0,
             state_count: 0,
             symbol_to_index: Default::default(),
+            external_scanner_states: vec![],
         };
         let result = tables.validate(&parse_table);
         assert!(result.is_ok());

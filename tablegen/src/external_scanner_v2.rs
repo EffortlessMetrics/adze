@@ -172,12 +172,13 @@ mod tests {
 
         // Create a simple parse table
         let mut parse_table = ParseTable {
-            action_table: vec![vec![Action::Error; 2]; 2], // 2 states, 2 symbols
+            action_table: vec![vec![vec![Action::Error]; 2]; 2], // 2 states, 2 symbols
             goto_table: vec![vec![rust_sitter_ir::StateId(0); 2]; 2],
             symbol_metadata: vec![],
             state_count: 2,
             symbol_count: 2,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         // Map external symbols to indices
@@ -185,10 +186,10 @@ mod tests {
         parse_table.symbol_to_index.insert(SymbolId(101), 1); // DEDENT
 
         // State 0: INDENT is valid (shift to state 1)
-        parse_table.action_table[0][0] = Action::Shift(rust_sitter_ir::StateId(1));
+        parse_table.action_table[0][0] = vec![Action::Shift(rust_sitter_ir::StateId(1))];
 
         // State 1: DEDENT is valid (shift to state 2)
-        parse_table.action_table[1][1] = Action::Shift(rust_sitter_ir::StateId(2));
+        parse_table.action_table[1][1] = vec![Action::Shift(rust_sitter_ir::StateId(2))];
 
         let generator = ExternalScannerGenerator::new(grammar, parse_table);
         let validity = generator.compute_state_validity();

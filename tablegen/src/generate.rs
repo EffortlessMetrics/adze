@@ -250,13 +250,14 @@ mod tests {
             symbol_count: 0,
             state_count: 0,
             symbol_to_index: Default::default(),
+            external_scanner_states: vec![],
         };
         table.symbol_count = 2;
         table.state_count = 3;
 
         // Add some basic actions
         // Since we don't have an actions field, just initialize the action table with proper size
-        table.action_table = vec![vec![Action::Error; table.symbol_count]; table.state_count];
+        table.action_table = vec![vec![vec![Action::Error]; table.symbol_count]; table.state_count];
 
         table
     }

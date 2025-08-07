@@ -7,8 +7,8 @@ use std::collections::HashMap;
 pub struct CompressedActionTable {
     // Row compression: map identical rows to a single index
     #[allow(dead_code)]
-    row_map: HashMap<Vec<Action>, usize>,
-    unique_rows: Vec<Vec<Action>>,
+    row_map: HashMap<Vec<Vec<Action>>, usize>,
+    unique_rows: Vec<Vec<Vec<Action>>>,
     state_to_row: Vec<usize>,
 }
 
@@ -23,7 +23,7 @@ pub struct CompressedGotoTable {
 }
 
 /// Compress action table using row deduplication
-pub fn compress_action_table(table: &[Vec<Action>]) -> CompressedActionTable {
+pub fn compress_action_table(table: &[Vec<Vec<Action>>]) -> CompressedActionTable {
     let mut row_map = HashMap::new();
     let mut unique_rows = Vec::new();
     let mut state_to_row = Vec::new();
@@ -48,13 +48,16 @@ pub fn compress_action_table(table: &[Vec<Action>]) -> CompressedActionTable {
 }
 
 /// Decompress a single action from compressed table
+/// For GLR tables with multiple actions per cell, returns the first action
 pub fn decompress_action(
     compressed: &CompressedActionTable,
     state: usize,
     symbol: usize,
 ) -> Action {
     let row_index = compressed.state_to_row[state];
-    compressed.unique_rows[row_index][symbol].clone()
+    let action_cell = &compressed.unique_rows[row_index][symbol];
+    // For GLR, return the first action in the cell, or Error if empty
+    action_cell.first().cloned().unwrap_or(Action::Error)
 }
 
 /// Compress goto table using sparse representation
@@ -210,9 +213,9 @@ mod tests {
     fn test_row_deduplication() {
         // Create a table with duplicate rows
         let table = vec![
-            vec![Action::Error, Action::Shift(StateId(1))],
-            vec![Action::Error, Action::Shift(StateId(1))], // Duplicate
-            vec![Action::Reduce(rust_sitter_ir::RuleId(0)), Action::Error],
+            vec![vec![Action::Error], vec![Action::Shift(StateId(1))]],
+            vec![vec![Action::Error], vec![Action::Shift(StateId(1))]], // Duplicate
+            vec![vec![Action::Reduce(rust_sitter_ir::RuleId(0))], vec![Action::Error]],
         ];
 
         let compressed = compress_action_table(&table);

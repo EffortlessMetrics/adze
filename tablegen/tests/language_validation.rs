@@ -23,12 +23,13 @@ fn test_language_generation_and_validation() {
 
     // Create parse table
     let parse_table = ParseTable {
-        action_table: vec![vec![Action::Shift(StateId(1))], vec![Action::Accept]],
+        action_table: vec![vec![vec![Action::Shift(StateId(1))]], vec![vec![Action::Accept]]],
         goto_table: vec![vec![StateId(0)], vec![StateId(1)]],
         symbol_metadata: vec![],
         state_count: 2,
         symbol_count: 2,
         symbol_to_index: std::collections::BTreeMap::new(),
+        external_scanner_states: vec![],
     };
 
     // Create compressed table before moving parse_table
@@ -141,6 +142,7 @@ fn test_language_validation_field_names_ordering() {
         state_count: 1,
         symbol_to_index: std::collections::BTreeMap::new(),
         symbol_count: 1,
+        external_scanner_states: vec![],
     };
 
     let generator = LanguageBuilder::new(grammar, parse_table);
@@ -186,12 +188,13 @@ fn test_symbol_metadata_validation() {
     );
 
     let parse_table = ParseTable {
-        action_table: vec![vec![Action::Accept]],
+        action_table: vec![vec![vec![Action::Accept]]],
         goto_table: vec![vec![StateId(0)]],
         symbol_metadata: vec![],
         symbol_to_index: std::collections::BTreeMap::new(),
         state_count: 1,
         symbol_count: 4, // EOF + 3 tokens
+        external_scanner_states: vec![],
     };
 
     let generator = LanguageBuilder::new(grammar, parse_table);
@@ -235,6 +238,7 @@ fn test_empty_grammar_validation() {
         symbol_metadata: vec![],
         state_count: 0,
         symbol_count: 0,
+        external_scanner_states: vec![],
     };
 
     let generator = LanguageBuilder::new(grammar, parse_table);

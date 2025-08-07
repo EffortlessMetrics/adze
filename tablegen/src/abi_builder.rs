@@ -1375,6 +1375,7 @@ mod tests {
             state_count: 1,
             symbol_count: 3,
             symbol_to_index: std::collections::BTreeMap::new(),
+            external_scanner_states: vec![],
         };
 
         let builder = AbiLanguageBuilder::new(&grammar, &parse_table);

@@ -68,24 +68,25 @@ fn create_test_parse_table() -> ParseTable {
         state_count: 0,
         symbol_count: 0,
         symbol_to_index: std::collections::BTreeMap::new(),
+        external_scanner_states: vec![],
     };
 
     // Add some basic states
     parse_table
         .action_table
-        .push(vec![Action::Shift(StateId(1)), Action::Error]);
+        .push(vec![vec![Action::Shift(StateId(1))], vec![Action::Error]]);
 
     parse_table
         .action_table
-        .push(vec![Action::Shift(StateId(2)), Action::Error]);
+        .push(vec![vec![Action::Shift(StateId(2))], vec![Action::Error]]);
 
     parse_table
         .action_table
-        .push(vec![Action::Shift(StateId(3)), Action::Error]);
+        .push(vec![vec![Action::Shift(StateId(3))], vec![Action::Error]]);
 
     parse_table
         .action_table
-        .push(vec![Action::Accept, Action::Reduce(RuleId(0))]);
+        .push(vec![vec![Action::Accept], vec![Action::Reduce(RuleId(0))]]);
 
     parse_table.goto_table = vec![
         vec![StateId(0)],

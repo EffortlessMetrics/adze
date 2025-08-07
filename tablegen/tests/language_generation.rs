@@ -27,7 +27,7 @@ fn create_simple_grammar() -> (Grammar, ParseTable) {
 
     // Create a minimal parse table
     let mut parse_table = ParseTable {
-        action_table: vec![vec![Action::Accept; 2]; 2],
+        action_table: vec![vec![vec![Action::Accept]; 2]; 2],
         goto_table: vec![vec![StateId(0); 2]; 2],
         state_count: 2,
         symbol_count: 2,
@@ -41,11 +41,12 @@ fn create_simple_grammar() -> (Grammar, ParseTable) {
             };
             2
         ],
+        external_scanner_states: vec![],
     };
 
     // Set up a simple action table
-    parse_table.action_table[0][0] = Action::Shift(StateId(1));
-    parse_table.action_table[1][0] = Action::Accept;
+    parse_table.action_table[0][0] = vec![Action::Shift(StateId(1))];
+    parse_table.action_table[1][0] = vec![Action::Accept];
 
     (grammar, parse_table)
 }
@@ -94,7 +95,7 @@ fn test_table_compression() {
     // Add more states to test compression
     parse_table.state_count = 10;
     parse_table.symbol_count = 5;
-    parse_table.action_table = vec![vec![Action::Error; 5]; 10];
+    parse_table.action_table = vec![vec![vec![Action::Error]; 5]; 10];
     parse_table.goto_table = vec![vec![StateId(0); 5]; 10];
     parse_table.symbol_metadata = vec![
         SymbolMetadata {
@@ -107,10 +108,10 @@ fn test_table_compression() {
     ];
 
     // Add some real actions
-    parse_table.action_table[0][0] = Action::Shift(StateId(1));
-    parse_table.action_table[1][0] = Action::Shift(StateId(2));
-    parse_table.action_table[2][0] = Action::Reduce(rust_sitter_ir::RuleId(0));
-    parse_table.action_table[9][0] = Action::Accept;
+    parse_table.action_table[0][0] = vec![Action::Shift(StateId(1))];
+    parse_table.action_table[1][0] = vec![Action::Shift(StateId(2))];
+    parse_table.action_table[2][0] = vec![Action::Reduce(rust_sitter_ir::RuleId(0))];
+    parse_table.action_table[9][0] = vec![Action::Accept];
 
     let mut generator = StaticLanguageGenerator::new(grammar, parse_table);
     let compressed = generator.compress_tables();
