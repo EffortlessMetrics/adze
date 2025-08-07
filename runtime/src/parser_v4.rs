@@ -91,6 +91,16 @@ pub struct Parser {
 }
 
 impl Parser {
+    /// Get the grammar used by this parser
+    pub fn grammar(&self) -> &Grammar {
+        &self.grammar
+    }
+
+    /// Get the parse table used by this parser
+    pub fn parse_table(&self) -> &ParseTable {
+        &self.parse_table
+    }
+
     /// Create a new parser with the given grammar and parse table
     pub fn new(grammar: Grammar, parse_table: ParseTable, language: String) -> Self {
         // Check if grammar has external tokens

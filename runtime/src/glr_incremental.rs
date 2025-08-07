@@ -28,6 +28,18 @@ use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
 
+/// Helper function to tokenize source code
+fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
+    // Simple tokenization - in a real implementation this would use the grammar's lexer
+    // For now, just create a single token for the entire source
+    vec![GLRToken {
+        symbol: SymbolId(0), // Root symbol
+        text: source.to_vec(),
+        start_byte: 0,
+        end_byte: source.len(),
+    }]
+}
+
 /// Represents an edit to the input
 /// Public API for incremental parsing (used by unified parser)
 /// 
@@ -48,20 +60,29 @@ pub fn reparse(
         // Create an incremental parser instance
         let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
         
-        // Convert the old tree to a forest representation
-        let old_forest = v4_tree_to_forest(old_tree);
+        // Convert the old tree to a forest representation - but we need the old forest
+        // from the parser's previous state, not from the old tree
+        // For now, we'll do a simplified version
+        
+        // Tokenize the entire source (simplified - real implementation would be incremental)
+        let tokens = tokenize_source(source, grammar);
         
         // Convert the edit to GLR format
         let glr_edit = GLREdit {
             old_range: edit.start_byte..edit.old_end_byte,
             new_text: source[edit.start_byte..edit.new_end_byte].to_vec(),
+            old_token_range: 0..0, // TODO: Calculate actual token ranges
+            new_tokens: vec![], // TODO: Tokenize the new text
         };
         
         // Perform the incremental parse
-        let new_forest = parser.parse_incremental(source, old_forest, &glr_edit);
+        let new_forest = parser.parse_incremental(&tokens, &[glr_edit]);
         
         // Convert back to v4 tree format
-        new_forest.map(|forest| forest_to_v4_tree(&forest, String::from_utf8_lossy(source).to_string()))
+        match new_forest {
+            Ok(forest) => Some(forest_to_v4_tree(&forest, String::from_utf8_lossy(source).to_string())),
+            Err(_) => None,
+        }
     }
     
     #[cfg(not(feature = "incremental_glr"))]

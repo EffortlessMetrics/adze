@@ -130,10 +130,18 @@ impl Parser {
     pub fn reparse(&mut self, source: &[u8], old_tree: &parser_v4::Tree, edit: &crate::pure_incremental::Edit) -> Option<parser_v4::Tree> {
         // Get the inner parser if it exists
         if let Some(ref inner_parser) = self.inner {
-            // Access the grammar and table from the inner parser
-            // Note: This requires making these fields accessible or providing getter methods
-            // For now, return None as incremental parsing is not yet fully integrated
-            None
+            // Now we can access the grammar and table using the new getter methods
+            let grammar = inner_parser.grammar();
+            let parse_table = inner_parser.parse_table();
+            
+            // Delegate to the incremental reparse implementation
+            crate::glr_incremental::reparse(
+                grammar,
+                parse_table,
+                source,
+                old_tree,
+                edit,
+            )
         } else {
             // No language set, cannot reparse
             None
