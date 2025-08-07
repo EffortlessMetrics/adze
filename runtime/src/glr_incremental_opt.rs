@@ -7,7 +7,6 @@ use crate::glr_incremental::{GLREdit, GLRToken, ForestNode, ReuseMap};
 use crate::subtree::Subtree;
 use rust_sitter_ir::SymbolId;
 use std::collections::{HashMap, VecDeque};
-use std::ops::Range;
 use std::sync::Arc;
 
 /// Edit classification for optimization strategies

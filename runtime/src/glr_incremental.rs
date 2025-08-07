@@ -20,15 +20,22 @@
 //! - Fork-specific subtrees are only reused if the fork is preserved
 //! - Shared subtrees (common to all forks) are always reused
 
-use crate::glr_parser::{GLRParser, ParseStack};
-use crate::subtree::{Subtree, SubtreeNode};
+use crate::glr_parser::GLRParser;
+use crate::subtree::Subtree;
 use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use rust_sitter_ir::{Grammar, RuleId, SymbolId};
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
 
 /// Represents an edit to the input
+/// Public API for incremental parsing (used by unified parser)
+pub fn reparse<P>(_parser: &P, _source: &[u8], _old_tree: &crate::parser_v4::Tree, _edit: &crate::pure_incremental::Edit) -> Option<crate::parser_v4::Tree> {
+    // TODO: Implement proper incremental parsing that integrates with Tree API
+    // For now, return None to indicate incremental parsing is not yet implemented
+    None
+}
+
 #[derive(Debug, Clone)]
 pub struct GLREdit {
     /// Byte range in the old input that was replaced
@@ -221,7 +228,7 @@ impl ForkTracker {
 impl IncrementalGLRParser {
     /// Create a new incremental GLR parser
     pub fn new(grammar: Grammar, table: ParseTable) -> Self {
-        let parser = GLRParser::new(grammar.clone(), table.clone());
+        let parser = GLRParser::new(table.clone(), grammar.clone());
         
         Self {
             parser,
@@ -258,10 +265,10 @@ impl IncrementalGLRParser {
         let initial_fork = self.fork_tracker.create_fork(None);
         
         // Parse using the GLR parser
-        let mut parser = GLRParser::new(self.grammar.clone(), self.table.clone());
+        let mut parser = GLRParser::new(self.table.clone(), self.grammar.clone());
         
         for token in tokens {
-            parser.process_token(token.symbol, &token.text, token.start_byte);
+            parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
         }
         
         parser.process_eof();
@@ -295,7 +302,7 @@ impl IncrementalGLRParser {
             .collect();
         
         // Create a new parser with reuse context
-        let mut parser = GLRParser::new(self.grammar.clone(), self.table.clone());
+        let mut parser = GLRParser::new(self.table.clone(), self.grammar.clone());
         
         // Process tokens, attempting to reuse subtrees where possible
         let mut token_idx = 0;
@@ -320,7 +327,7 @@ impl IncrementalGLRParser {
             }
             
             // Process token normally
-            parser.process_token(token.symbol, &token.text, token.start_byte);
+            parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
             token_idx += 1;
         }
         
@@ -344,7 +351,8 @@ impl IncrementalGLRParser {
         fork_id: usize,
         tokens: &[GLRToken],
     ) -> Arc<ForestNode> {
-        let byte_range = subtree.byte_range();
+        // Get byte range from subtree (would need to be implemented)
+        let byte_range = 0..0; // TODO: implement subtree.byte_range()
         let token_range = self.find_token_range(&byte_range, tokens);
         
         // Store in reuse map for future incremental parsing

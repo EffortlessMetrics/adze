@@ -3,6 +3,7 @@ use rust_sitter::glr_incremental::{IncrementalGLRParser, GLREdit, GLRToken};
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_ir::{Grammar, SymbolId};
 use rust_sitter_glr_core::ParseTable;
+use rust_sitter_benchmarks::test_grammars::{create_arithmetic_grammar, create_arithmetic_parse_table, tokenize_arithmetic};
 
 /// Common edit patterns in programming
 #[derive(Debug, Clone)]
@@ -143,51 +144,24 @@ impl EditPattern {
     }
 }
 
-/// Generate sample code for benchmarking
+/// Generate sample arithmetic expressions for benchmarking
 fn generate_sample_code(size: usize) -> String {
-    let mut code = String::new();
-    
-    // Generate a simple program structure
-    code.push_str("function main() {\n");
-    
+    // Generate arithmetic expressions with the given number of operations
+    let mut expr = String::from("1");
     for i in 0..size {
-        code.push_str(&format!("    let var_{} = {};\n", i, i * 2));
-        if i % 3 == 0 {
-            code.push_str(&format!("    if (var_{} > 10) {{\n", i));
-            code.push_str(&format!("        console.log('Value: ' + var_{});\n", i));
-            code.push_str("    }\n");
-        }
-        if i % 5 == 0 {
-            code.push_str(&format!("    // Comment for line {}\n", i));
+        if i % 2 == 0 {
+            expr.push_str(&format!(" - {}", i + 2));
+        } else {
+            expr.push_str(&format!(" * {}", i + 2));
         }
     }
-    
-    code.push_str("    return 0;\n");
-    code.push_str("}\n");
-    
-    code
+    expr
 }
 
-/// Tokenize source code (simplified for benchmarking)
+/// Tokenize source code using real grammar tokenizer
 fn tokenize(text: &str) -> Vec<GLRToken> {
-    let mut tokens = Vec::new();
-    let mut byte_offset = 0;
-    
-    for word in text.split_whitespace() {
-        let start = byte_offset;
-        let end = start + word.len();
-        
-        tokens.push(GLRToken {
-            symbol: SymbolId(1), // Simplified - would use real lexer
-            text: word.as_bytes().to_vec(),
-            start_byte: start,
-            end_byte: end,
-        });
-        
-        byte_offset = end + 1; // Account for whitespace
-    }
-    
-    tokens
+    // Use the arithmetic tokenizer from test_grammars
+    tokenize_arithmetic(text)
 }
 
 fn benchmark_incremental_parsing(c: &mut Criterion) {
@@ -209,8 +183,8 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
         
         // Create a dummy grammar and parse table
         // In real benchmarks, these would be actual grammars
-        let grammar = Grammar::default();
-        let table = ParseTable::new(vec![], vec![], 0);
+        let grammar = create_arithmetic_grammar();
+        let table = create_arithmetic_parse_table(&grammar);
         
         for pattern in &edit_patterns {
             let bench_name = format!("{:?}_size_{}", pattern, size);
@@ -258,16 +232,12 @@ fn benchmark_fork_preservation(c: &mut Criterion) {
     let mut group = c.benchmark_group("fork_preservation");
     
     // Test how well we preserve forks across edits
-    let ambiguous_code = r#"
-        // Ambiguous grammar example
-        x + y * z
-        a - b / c + d
-        p * q + r - s / t
-    "#;
+    // Arithmetic expression that could have multiple parse trees
+    let ambiguous_code = "1 - 2 * 3 - 4 * 5";
     
     let tokens = tokenize(ambiguous_code);
-    let grammar = Grammar::default();
-    let table = ParseTable::new(vec![], vec![], 0);
+    let grammar = create_arithmetic_grammar();
+    let table = create_arithmetic_parse_table(&grammar);
     
     group.bench_function("fork_tracking_overhead", |b| {
         let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
@@ -298,8 +268,8 @@ fn benchmark_reuse_efficiency(c: &mut Criterion) {
     for size in code_sizes {
         let code = generate_sample_code(size);
         let tokens = tokenize(&code);
-        let grammar = Grammar::default();
-        let table = ParseTable::new(vec![], vec![], 0);
+        let grammar = create_arithmetic_grammar();
+        let table = create_arithmetic_parse_table(&grammar);
         
         group.bench_function(
             BenchmarkId::new("reuse_ratio", size),
