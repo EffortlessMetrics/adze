@@ -4,7 +4,6 @@ use crate::glr_incremental::{ForkAlternative, ForestNode};
 use crate::parser_v4::Tree as V4Tree;
 use crate::subtree::{Subtree, SubtreeNode};
 use rust_sitter_ir::SymbolId;
-use std::ops::Range;
 use std::sync::Arc;
 
 /// Convert a simple parser_v4::Tree to a ForestNode for incremental parsing
@@ -29,10 +28,11 @@ pub fn v4_tree_to_forest(tree: &V4Tree) -> Arc<ForestNode> {
             fork_id: 0,
             rule_id: None,
             children: vec![], // Would be populated from tree structure
-            subtree,
+            subtree: subtree.clone(),
         }],
         byte_range: 0..tree.source.len(),
         token_range: 0..0, // Would need proper token counting
+        cached_subtree: Some(subtree),
     })
 }
 
@@ -99,16 +99,18 @@ mod tests {
             byte_range: 0..11,
         };
         
+        let subtree = Arc::new(Subtree::new(subtree_node, vec![]));
         let forest = ForestNode {
             symbol: SymbolId(42),
             alternatives: vec![ForkAlternative {
                 fork_id: 0,
                 rule_id: None,
                 children: vec![],
-                subtree: Arc::new(Subtree::new(subtree_node, vec![])),
+                subtree: subtree.clone(),
             }],
             byte_range: 0..11,
             token_range: 0..1,
+            cached_subtree: Some(subtree),
         };
         
         let v4_tree = forest_to_v4_tree(&forest, "let x = 42;".to_string());

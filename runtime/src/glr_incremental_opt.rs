@@ -4,7 +4,7 @@
 //! to minimize reparsing overhead in GLR incremental parsing.
 
 use crate::glr_incremental::{GLREdit, GLRToken, ForestNode, ReuseMap};
-use crate::subtree::Subtree;
+use crate::subtree::{Subtree, SubtreeNode};
 use rust_sitter_ir::SymbolId;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -195,7 +195,7 @@ impl OptimizedReparser {
             .iter()
             .position(|t| t.start_byte <= edit.old_range.start && t.end_byte > edit.old_range.start)?;
         
-        let affected_token = &tokens[affected_token_idx];
+        let _affected_token = &tokens[affected_token_idx];
         
         // Try to use cached result for similar token
         let token_symbols: Vec<SymbolId> = tokens.iter().map(|t| t.symbol).collect();
@@ -330,6 +330,7 @@ impl OptimizedReparser {
             alternatives: vec![],
             byte_range: 0..0,
             token_range: 0..0,
+            cached_subtree: None,
         })
     }
     
@@ -497,6 +498,8 @@ mod tests {
             new_text: b"x".to_vec(),
             old_token_range: 0..0,
             new_tokens: vec![],
+            old_tokens: vec![],
+            old_forest: None,
         };
         assert_eq!(EditClass::classify(&edit), EditClass::SingleCharInsertion);
         
@@ -506,6 +509,8 @@ mod tests {
             new_text: vec![],
             old_token_range: 0..0,
             new_tokens: vec![],
+            old_tokens: vec![],
+            old_forest: None,
         };
         assert_eq!(EditClass::classify(&edit), EditClass::SingleCharDeletion);
         
@@ -515,6 +520,8 @@ mod tests {
             new_text: b"  \n\t ".to_vec(),
             old_token_range: 0..0,
             new_tokens: vec![],
+            old_tokens: vec![],
+            old_forest: None,
         };
         assert_eq!(EditClass::classify(&edit), EditClass::WhitespaceOnly);
         
@@ -524,6 +531,8 @@ mod tests {
             new_text: b"// comment".to_vec(),
             old_token_range: 0..0,
             new_tokens: vec![],
+            old_tokens: vec![],
+            old_forest: None,
         };
         assert_eq!(EditClass::classify(&edit), EditClass::CommentOnly);
     }
@@ -536,9 +545,24 @@ mod tests {
         let tokens2 = vec![SymbolId(3), SymbolId(4)];
         let tokens3 = vec![SymbolId(5), SymbolId(6)];
         
-        let subtree1 = Arc::new(Subtree::new(SymbolId(1), 0, 10));
-        let subtree2 = Arc::new(Subtree::new(SymbolId(2), 10, 20));
-        let subtree3 = Arc::new(Subtree::new(SymbolId(3), 20, 30));
+        let node1 = SubtreeNode {
+            symbol_id: SymbolId(1),
+            is_error: false,
+            byte_range: 0..10,
+        };
+        let node2 = SubtreeNode {
+            symbol_id: SymbolId(2),
+            is_error: false,
+            byte_range: 10..20,
+        };
+        let node3 = SubtreeNode {
+            symbol_id: SymbolId(3),
+            is_error: false,
+            byte_range: 20..30,
+        };
+        let subtree1 = Arc::new(Subtree::new(node1, vec![]));
+        let subtree2 = Arc::new(Subtree::new(node2, vec![]));
+        let subtree3 = Arc::new(Subtree::new(node3, vec![]));
         
         // Insert first two
         cache.insert(tokens1.clone(), subtree1.clone());
@@ -592,6 +616,8 @@ mod tests {
             new_text: b"y".to_vec(),
             old_token_range: 2..3,
             new_tokens: vec![],
+            old_tokens: vec![],
+            old_forest: None,
         };
         
         let (start, end) = detector.find_boundaries(&edit, &tokens);
