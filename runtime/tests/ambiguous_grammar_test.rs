@@ -315,7 +315,7 @@ mod ambiguous_incremental_tests {
             old_range: 10..15, // Byte position of "other" in original
             new_text: b"if b then c else d".to_vec(),
             old_token_range: 4..5,  // Token position of "other"
-            new_tokens: new_glr_tokens[4..10].to_vec(), // "if b then c else d" tokens
+            new_tokens: new_glr_tokens[4..new_glr_tokens.len()].to_vec(), // "if b then c else d" tokens
             old_tokens: old_glr_tokens.clone(),
             old_forest: Some(old_forest.clone()),
         };
@@ -438,7 +438,11 @@ mod ambiguous_incremental_tests {
             old_range: 10..29, // Byte range of "if b then c else d"
             new_text: b"other".to_vec(),
             old_token_range: 4..10,  // Tokens for "if b then c else d"
-            new_tokens: vec![new_glr_tokens[4].clone()], // Just "other" token
+            new_tokens: if new_glr_tokens.len() > 4 {
+                vec![new_glr_tokens[4].clone()] // Just "other" token  
+            } else {
+                vec![new_glr_tokens[new_glr_tokens.len()-1].clone()]
+            },
             old_tokens: old_glr_tokens.clone(),
             old_forest: Some(old_forest.clone()),
         };
