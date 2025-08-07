@@ -85,7 +85,7 @@ fn generate_external_golden(sh: &Shell, grammar: &Grammar, output_dir: &Path) ->
         sh.change_dir(&temp_dir);
         cmd!(sh, "git pull").run()?;
     } else {
-        fs::create_dir_all(&temp_dir.parent().unwrap())?;
+        fs::create_dir_all(temp_dir.parent().unwrap())?;
         sh.change_dir(temp_dir.parent().unwrap());
         let grammar_name = grammar.name();
         cmd!(sh, "git clone {repo_url} {grammar_name}").run()?;

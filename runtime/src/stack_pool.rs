@@ -108,7 +108,7 @@ impl<T: Clone> StackPool<T> {
 
 /// Thread-local stack pool for single-threaded parsing
 thread_local! {
-    static STACK_POOL: RefCell<Option<Rc<StackPool<u32>>>> = RefCell::new(None);
+    static STACK_POOL: RefCell<Option<Rc<StackPool<u32>>>> = const { RefCell::new(None) };
 }
 
 /// Initialize the thread-local stack pool

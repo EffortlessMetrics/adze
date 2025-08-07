@@ -23,8 +23,8 @@
 use crate::glr_parser::GLRParser;
 use crate::subtree::Subtree;
 use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use rust_sitter_ir::{Grammar, RuleId, SymbolId};
+use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -389,74 +389,10 @@ impl ChunkIdentifier {
     }
 }
 
-/// Represents a snapshot of the GSS state at a specific position
-#[derive(Debug, Clone)]
-pub struct GSSSnapshot {
-    /// Position in the token stream where this snapshot was taken
-    pub token_position: usize,
-    /// Byte position in the source
-    pub byte_position: usize,
-    /// The complete GSS state (all parse stacks)
-    pub gss_stacks: Vec<crate::glr_parser::ParseStack>,
-    /// Next stack ID for fork tracking
-    pub next_stack_id: usize,
-    /// Partial parse tree up to this point
-    pub partial_tree: Option<Arc<ForestNode>>,
-}
-
-/// Maps byte positions to GSS snapshots for state recovery
-#[derive(Debug)]
-pub struct GSSStateMap {
-    /// Snapshots indexed by byte position
-    snapshots: BTreeMap<usize, GSSSnapshot>,
-    /// Maximum number of snapshots to keep (for memory management)
-    max_snapshots: usize,
-}
-
-impl GSSStateMap {
-    pub fn new() -> Self {
-        Self {
-            snapshots: BTreeMap::new(),
-            max_snapshots: 1000, // Configurable limit
-        }
-    }
-
-    /// Add a snapshot at a position
-    pub fn add_snapshot(&mut self, snapshot: GSSSnapshot) {
-        // If we're at capacity, remove oldest snapshots
-        if self.snapshots.len() >= self.max_snapshots {
-            if let Some(first_key) = self.snapshots.keys().next().cloned() {
-                self.snapshots.remove(&first_key);
-            }
-        }
-        
-        self.snapshots.insert(snapshot.byte_position, snapshot);
-    }
-
-    /// Find the best snapshot to resume from for a given edit position
-    pub fn find_resume_point(&self, edit_start: usize) -> Option<&GSSSnapshot> {
-        // Find the latest snapshot before the edit
-        self.snapshots
-            .range(..edit_start)
-            .next_back()
-            .map(|(_, snapshot)| snapshot)
-    }
-    
-    /// Find the best snapshot to resume from for a given token position
-    pub fn find_resume_point_for_token(&self, token_idx: usize) -> Option<&GSSSnapshot> {
-        // Find the latest snapshot at or before this token position
-        self.snapshots
-            .values()
-            .filter(|s| s.token_position <= token_idx)
-            .max_by_key(|s| s.token_position)
-    }
-
-    /// Clear snapshots that are invalidated by an edit
-    pub fn invalidate_after(&mut self, position: usize) {
-        self.snapshots = self.snapshots.split_off(&position);
-        self.snapshots.clear();
-    }
-}
+// ARCHITECTURE NOTE: GSS snapshot-based recovery has been removed.
+// The old approach had fundamental performance issues (3-4x slower than full reparse).
+// We now use direct forest splicing: parse only the edited middle segment and
+// directly splice the new subtree with preserved prefix/suffix nodes.
 
 /// GLR-aware incremental parser
 pub struct IncrementalGLRParser {
@@ -472,8 +408,6 @@ pub struct IncrementalGLRParser {
     previous_forest: Option<Arc<ForestNode>>,
     /// Fork tracking information
     fork_tracker: ForkTracker,
-    /// GSS state snapshots for recovery
-    gss_state_map: GSSStateMap,
     /// Length of unchanged prefix tokens (for chunk-based reuse)
     chunk_prefix_len: usize,
     /// Length of unchanged suffix tokens (for chunk-based reuse)
@@ -524,11 +458,11 @@ impl ForkTracker {
     pub fn merge_forks(&mut self, fork1: usize, fork2: usize, merge_point: usize) {
         self.fork_merges
             .entry(fork1)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(merge_point);
         self.fork_merges
             .entry(fork2)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(merge_point);
     }
 
@@ -551,7 +485,6 @@ impl IncrementalGLRParser {
             forest: None,
             previous_forest: None,
             fork_tracker: ForkTracker::new(),
-            gss_state_map: GSSStateMap::new(),
             chunk_prefix_len: 0,
             chunk_suffix_len: 0,
             tokens: vec![],
@@ -574,7 +507,6 @@ impl IncrementalGLRParser {
             forest: None,
             previous_forest,
             fork_tracker: ForkTracker::new(),
-            gss_state_map: GSSStateMap::new(),
             chunk_prefix_len: 0,
             chunk_suffix_len: 0,
             tokens: vec![],
@@ -610,7 +542,7 @@ impl IncrementalGLRParser {
     fn parse_fresh(&mut self, tokens: &[GLRToken]) -> Result<Arc<ForestNode>, String> {
         // Reset state
         self.fork_tracker = ForkTracker::new();
-        self.gss_state_map.snapshots.clear(); // Clear any old snapshots
+        // GSS snapshots removed - using direct forest splicing instead
         
         // Create initial fork
         let initial_fork = self.fork_tracker.create_fork(None);
@@ -618,20 +550,9 @@ impl IncrementalGLRParser {
         // Parse using the GLR parser
         let mut parser = GLRParser::new(self.table.clone(), self.grammar.clone());
         
-        // CRITICAL: Capture snapshots during initial parse so incremental parsing can use them
-        for (idx, token) in tokens.iter().enumerate() {
+        // Parse all tokens
+        for token in tokens.iter() {
             parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
-            
-            // Capture snapshots periodically (every 100 tokens)
-            if idx > 0 && idx % 100 == 0 {
-                let byte_pos = token.start_byte;
-                if let Some(snapshot) = self.capture_parser_snapshot(&parser, idx, byte_pos) {
-                    self.gss_state_map.snapshots.insert(byte_pos, snapshot);
-                    
-                    #[cfg(feature = "debug_incremental")]
-                    println!("DEBUG: Captured snapshot during initial parse at token {} (byte {})", idx, byte_pos);
-                }
-            }
         }
         
         // Calculate total input length from tokens
@@ -646,7 +567,6 @@ impl IncrementalGLRParser {
                     self.build_forest_from_subtree(trees[0].clone(), initial_fork, tokens)
                 } else {
                     // Multiple parse trees - ambiguous grammar!
-                    println!("DEBUG: Building forest with {} alternatives", trees.len());
                     let mut alternatives = Vec::new();
                     for (i, tree) in trees.iter().enumerate() {
                         let fork_id = self.fork_tracker.create_fork(Some(initial_fork));
@@ -660,14 +580,14 @@ impl IncrementalGLRParser {
                     }
                     
                     // Create a root forest node with all alternatives
-                    let root = Arc::new(ForestNode {
+                    
+                    Arc::new(ForestNode {
                         symbol: trees[0].node.symbol_id,
                         alternatives,
                         byte_range: 0..tokens.last().map(|t| t.end_byte).unwrap_or(0),
                         token_range: 0..tokens.len(),
                         cached_subtree: None,
-                    });
-                    root
+                    })
                 };
                 
                 self.forest = Some(forest.clone());
@@ -684,11 +604,10 @@ impl IncrementalGLRParser {
         tokens: &[GLRToken],
         edits: &[GLREdit],
     ) -> Result<Arc<ForestNode>, String> {
-        // CHUNK-BASED INCREMENTAL STRATEGY:
-        // 1. Identify the largest unchanged prefix and suffix chunks
-        // 2. Parse the entire token stream (to preserve GLR forking)
-        // 3. During forest building, reuse nodes from unchanged chunks
-        // 4. This ensures GLR ambiguity is preserved while still getting reuse benefit
+        // DIRECT FOREST SPLICING STRATEGY:
+        // Instead of GSS snapshots, we parse only the edited middle segment
+        // and directly splice it with preserved prefix/suffix forest nodes.
+        // This avoids the 3-4x performance penalty of GSS restoration.
         
         // Get the old forest and old tokens from the first edit
         let old_forest = edits.iter()
@@ -706,123 +625,127 @@ impl IncrementalGLRParser {
             
             // Find the prefix and suffix boundaries
             let prefix_len = chunk_id.find_prefix_boundary(&old_tokens, tokens);
-            // Calculate the byte delta from the edit (new_text.len() - old_range.len())
             let edit_delta = (edits[0].new_text.len() as isize) - (edits[0].old_range.len() as isize);
             let suffix_len = chunk_id.find_suffix_boundary(&old_tokens, tokens, edit_delta);
             
-            #[cfg(feature = "debug_incremental")]
-            println!("DEBUG incremental: Found prefix_len={}, suffix_len={}, total tokens={}", 
-                     prefix_len, suffix_len, tokens.len());
             
-            // Store the old forest and chunk boundaries for potential reuse during forest building
-            self.previous_forest = Some(old_forest);
-            self.chunk_prefix_len = prefix_len;
-            self.chunk_suffix_len = suffix_len;
-            self.tokens = tokens.to_vec();
-            self.edit_byte_delta = edit_delta;
+            // Determine if we should use forest splicing or fall back to full parse
+            // Forest splicing is beneficial when we have significant unchanged regions
+            let middle_len = tokens.len().saturating_sub(prefix_len).saturating_sub(suffix_len);
+            let should_splice = prefix_len > 0 || suffix_len > 0;
             
-            // Try to resume from a GSS snapshot if available
-            let resume_snapshot = if prefix_len > 0 {
-                self.gss_state_map.find_resume_point_for_token(prefix_len)
-            } else {
-                None
-            };
-            
-            // ADAPTIVE FALLBACK: Decide whether incremental parsing is worth it
-            // If we'd have to process too many tokens, just do a full reparse
-            let should_use_incremental = if let Some(snapshot) = &resume_snapshot {
-                let tokens_to_process = tokens.len() - snapshot.token_position;
-                let incremental_ratio = tokens_to_process as f64 / tokens.len() as f64;
+            if should_splice && middle_len < tokens.len() {
                 
-                // Use incremental only if we're processing very few tokens
-                // Based on benchmarks, incremental is currently 3-4x slower per token
-                // So only use it when processing less than 20% of tokens
-                let use_incremental = incremental_ratio < 0.2;
+                // STEP 1: Parse ONLY the middle segment
+                let middle_start = prefix_len;
+                let middle_end = tokens.len() - suffix_len;
+                let middle_tokens = &tokens[middle_start..middle_end];
                 
-                #[cfg(feature = "debug_incremental")]
-                println!("DEBUG adaptive: Would process {} of {} tokens (ratio: {:.2}). Using incremental: {}", 
-                         tokens_to_process, tokens.len(), incremental_ratio, use_incremental);
-                
-                use_incremental
-            } else {
-                false
-            };
-            
-            let (mut parser, start_token_idx) = if should_use_incremental && resume_snapshot.is_some() {
-                let snapshot = resume_snapshot.unwrap();
-                #[cfg(feature = "debug_incremental")]
-                println!("DEBUG incremental: Resuming from GSS snapshot at token {}", snapshot.token_position);
-                // Create parser from snapshot (skipping the prefix)
-                let parser = self.create_parser_from_snapshot(snapshot);
-                (parser, snapshot.token_position)
-            } else {
-                #[cfg(feature = "debug_incremental")]
-                println!("DEBUG incremental: Falling back to full reparse (no good snapshot or would be slower)");
-                // Full reparse is more efficient in this case
-                (GLRParser::new(self.table.clone(), self.grammar.clone()), 0)
-            };
-            
-            #[cfg(feature = "debug_incremental")]
-            println!("DEBUG incremental: Parsing tokens from {} to {}", start_token_idx, tokens.len());
-            
-            // Parse tokens starting from the resume point
-            // IMPORTANT: We need the actual token index, not the enumeration after skip
-            for (offset, token) in tokens[start_token_idx..].iter().enumerate() {
-                let idx = start_token_idx + offset;  // This is the actual token position
-                
-                // Capture snapshots periodically (every 100 tokens)
-                if idx > 0 && idx % 100 == 0 {
-                    let byte_pos = token.start_byte;
-                    if let Some(snapshot) = self.capture_parser_snapshot(&parser, idx, byte_pos) {
-                        self.gss_state_map.add_snapshot(snapshot);
-                    }
-                }
-                
-                parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
-            }
-            
-            // Calculate total input length from tokens
-            let total_bytes = tokens.last().map(|t| t.end_byte).unwrap_or(0);
-            parser.process_eof(total_bytes);
-            
-            match parser.finish_all_alternatives() {
-                Ok(trees) => {
-                    // Create a forest node with all parse alternatives
-                    let forest = if trees.len() == 1 {
-                        // Single parse tree - no ambiguity
-                        self.build_forest_from_subtree(trees[0].clone(), 0, tokens)
-                    } else {
-                        // Multiple parse trees - ambiguous grammar!
-                        #[cfg(feature = "debug_incremental")]
-                        println!("DEBUG: Building forest with {} alternatives after incremental reparse", trees.len());
-                        let mut alternatives = Vec::new();
-                        for (i, tree) in trees.iter().enumerate() {
-                            let fork_id = self.fork_tracker.create_fork(None);
-                            let forest = self.subtree_to_forest_recursive(tree.clone(), fork_id);
-                            alternatives.push(ForkAlternative {
-                                fork_id,
-                                rule_id: None,
-                                children: vec![forest.clone()],
-                                subtree: tree.clone(),
-                            });
-                        }
-                        
-                        // Create a root forest node with all alternatives
-                        let root = Arc::new(ForestNode {
-                            symbol: trees[0].node.symbol_id,
-                            alternatives,
-                            byte_range: 0..tokens.last().map(|t| t.end_byte).unwrap_or(0),
-                            token_range: 0..tokens.len(),
-                            cached_subtree: None,
-                        });
-                        root
-                    };
+                // For empty middle segment, create a placeholder or reuse from old forest
+                let middle_forest = if middle_tokens.is_empty() {
                     
-                    self.forest = Some(forest.clone());
-                    self.previous_forest = Some(forest.clone());
-                    Ok(forest)
+                    // Extract the middle portion from the old forest that's between prefix and suffix
+                    // For an empty edit, this represents the exact same content as before
+                    if prefix_len == tokens.len() {
+                        // All tokens are in prefix, return the old forest directly
+                        old_forest.clone()
+                    } else if suffix_len == tokens.len() {
+                        // All tokens are in suffix, return the old forest directly
+                        old_forest.clone()
+                    } else {
+                        // Create an empty forest node
+                        let byte_pos = tokens.get(middle_start).map(|t| t.start_byte)
+                            .or_else(|| tokens.last().map(|t| t.end_byte))
+                            .unwrap_or(0);
+                        Arc::new(ForestNode {
+                            symbol: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
+                            alternatives: vec![],
+                            byte_range: byte_pos..byte_pos,
+                            token_range: middle_start..middle_end,
+                            cached_subtree: None,
+                        })
+                    }
+                } else {
+                    // Parse the middle segment
+                    let mut middle_parser = GLRParser::new(self.table.clone(), self.grammar.clone());
+                    
+                    for token in middle_tokens {
+                        middle_parser.process_token(
+                            token.symbol, 
+                            std::str::from_utf8(&token.text).unwrap_or(""), 
+                            token.start_byte
+                        );
+                    }
+                    
+                    // Process EOF for the middle segment
+                    let middle_end_byte = middle_tokens.last().map(|t| t.end_byte).unwrap_or(0);
+                    middle_parser.process_eof(middle_end_byte);
+                    
+                    // Get the parse result for the middle
+                    match middle_parser.finish_all_alternatives() {
+                        Ok(trees) if !trees.is_empty() => {
+                            if trees.len() == 1 {
+                                self.build_forest_from_subtree(trees[0].clone(), middle_start, middle_tokens)
+                            } else {
+                                // Handle ambiguity in the middle segment
+                                let mut alternatives = Vec::new();
+                                for tree in trees.iter() {
+                                    let fork_id = self.fork_tracker.create_fork(None);
+                                    let forest = self.subtree_to_forest_recursive(tree.clone(), fork_id);
+                                    alternatives.push(ForkAlternative {
+                                        fork_id,
+                                        rule_id: None,
+                                        children: vec![forest.clone()],
+                                        subtree: tree.clone(),
+                                    });
+                                }
+                                Arc::new(ForestNode {
+                                    symbol: trees[0].node.symbol_id,
+                                    alternatives,
+                                    byte_range: middle_tokens.first().map(|t| t.start_byte).unwrap_or(0)..
+                                               middle_tokens.last().map(|t| t.end_byte).unwrap_or(0),
+                                    token_range: middle_start..middle_end,
+                                    cached_subtree: None,
+                                })
+                            }
+                        }
+                        _ => {
+                            // Middle segment failed to parse - fall back to full parse
+                            return self.parse_fresh(tokens);
+                        }
+                    }
+                };
+                
+                // STEP 2: Extract prefix and suffix nodes from old forest
+                let (prefix_nodes, suffix_nodes) = self.extract_reusable_nodes(
+                    &old_forest,
+                    prefix_len,
+                    suffix_len,
+                    &old_tokens,
+                    edit_delta
+                );
+                
+                // STEP 3: Splice the forests together
+                let spliced_forest = self.splice_forests(
+                    prefix_nodes.clone(),
+                    middle_forest,
+                    suffix_nodes.clone(),
+                    tokens
+                );
+                
+                // Update reuse counter with actual node count, not token count
+                let reuse_count = prefix_nodes.len() + suffix_nodes.len();
+                if reuse_count > 0 {
+                    SUBTREE_REUSE_COUNT.fetch_add(reuse_count, Ordering::SeqCst);
                 }
-                Err(e) => Err(format!("Reparse error: {}", e)),
+                
+                
+                self.forest = Some(spliced_forest.clone());
+                self.previous_forest = Some(spliced_forest.clone());
+                Ok(spliced_forest)
+            } else {
+                // No benefit from splicing - do a full parse
+                self.parse_fresh(tokens)
             }
         } else {
             // No old forest, do fresh parse
@@ -831,39 +754,156 @@ impl IncrementalGLRParser {
     }
 
     /// Create a parser initialized from a GSS snapshot
-    fn create_parser_from_snapshot(&self, snapshot: &GSSSnapshot) -> GLRParser {
-        // Create a new parser
-        let mut parser = GLRParser::new(self.table.clone(), self.grammar.clone());
+    // GSS snapshot methods removed - replaced with direct forest splicing
+    
+    /// Extract reusable prefix and suffix nodes from the old forest
+    fn extract_reusable_nodes(
+        &self,
+        old_forest: &Arc<ForestNode>,
+        prefix_len: usize,
+        suffix_len: usize,
+        old_tokens: &[GLRToken],
+        edit_delta: isize,
+    ) -> (Vec<Arc<ForestNode>>, Vec<Arc<ForestNode>>) {
+        // Traverse the old forest to find actual nodes that are fully contained
+        // within the unchanged prefix and suffix regions
         
-        // Use selective GSS restoration for better performance
-        // This only restores the most promising stacks instead of all of them
-        parser.set_gss_state_selective(snapshot.gss_stacks.clone());
-        parser.set_next_stack_id(snapshot.next_stack_id);
+        let mut prefix_nodes = Vec::new();
+        let mut suffix_nodes = Vec::new();
         
-        // The parser is now in a lean state ready to continue parsing
-        #[cfg(feature = "debug_incremental")]
-        println!("DEBUG: Restored parser from snapshot at byte position {} with selective GSS restoration", snapshot.byte_position);
+        // Helper function to recursively extract nodes within token ranges
+        // We want to extract the deepest possible nodes that are fully contained
+        fn collect_nodes_in_range(
+            node: &Arc<ForestNode>,
+            target_range: std::ops::Range<usize>,
+            byte_offset: isize,
+            collected: &mut Vec<Arc<ForestNode>>,
+            depth: usize,
+        ) {
+            // Check if this node is fully within the target range
+            if node.token_range.start >= target_range.start && 
+               node.token_range.end <= target_range.end {
+                // This node is fully contained
+                // Try to go deeper first to get smaller nodes
+                let mut found_children = false;
+                
+                // Look at first alternative only to avoid duplicates
+                if !node.alternatives.is_empty() {
+                    for child in &node.alternatives[0].children {
+                        // Check if this child is also within range
+                        if child.token_range.start >= target_range.start && 
+                           child.token_range.end <= target_range.end {
+                            collect_nodes_in_range(child, target_range.clone(), byte_offset, collected, depth + 1);
+                            found_children = true;
+                        }
+                    }
+                }
+                
+                // If we didn't find any children to extract, extract this node
+                if !found_children {
+                    let mut cloned = (**node).clone();
+                    if byte_offset != 0 {
+                        cloned.byte_range = ((cloned.byte_range.start as isize + byte_offset) as usize)..
+                                           ((cloned.byte_range.end as isize + byte_offset) as usize);
+                    }
+                    collected.push(Arc::new(cloned));
+                }
+            } else if node.token_range.start < target_range.end && 
+                      node.token_range.end > target_range.start {
+                // This node spans the boundary - look at children
+                if !node.alternatives.is_empty() {
+                    for child in &node.alternatives[0].children {
+                        collect_nodes_in_range(child, target_range.clone(), byte_offset, collected, depth + 1);
+                    }
+                }
+            }
+        }
         
-        parser
+        // Extract prefix nodes (unchanged, so no byte offset)
+        if prefix_len > 0 {
+            collect_nodes_in_range(old_forest, 0..prefix_len, 0, &mut prefix_nodes, 0);
+        }
+        
+        // Extract suffix nodes (with byte offset due to edit)
+        if suffix_len > 0 && old_tokens.len() > suffix_len {
+            let suffix_start = old_tokens.len() - suffix_len;
+            collect_nodes_in_range(
+                old_forest,
+                suffix_start..old_tokens.len(),
+                edit_delta,
+                &mut suffix_nodes,
+                0
+            );
+        }
+        
+        (prefix_nodes, suffix_nodes)
     }
     
-    /// Capture the current parser state as a snapshot
-    fn capture_parser_snapshot(
-        &self,
-        parser: &GLRParser,
-        token_position: usize,
-        byte_position: usize,
-    ) -> Option<GSSSnapshot> {
-        // Extract the actual GSS state from the parser
-        let gss_stacks = parser.get_gss_state();
-        let next_stack_id = parser.get_next_stack_id();
+    /// Splice prefix, middle, and suffix forests into a single forest
+    fn splice_forests(
+        &mut self,
+        prefix_nodes: Vec<Arc<ForestNode>>,
+        middle_forest: Arc<ForestNode>,
+        suffix_nodes: Vec<Arc<ForestNode>>,
+        tokens: &[GLRToken],
+    ) -> Arc<ForestNode> {
+        // Combine all nodes into a single forest
+        let mut all_children = Vec::new();
         
-        Some(GSSSnapshot {
-            token_position,
-            byte_position,
-            gss_stacks,
-            next_stack_id,
-            partial_tree: self.forest.clone(),
+        // Sort and add nodes in token order (prefix, middle, suffix)
+        all_children.extend(prefix_nodes);
+        all_children.push(middle_forest.clone());
+        all_children.extend(suffix_nodes);
+        
+        // If we have no children, return an empty forest
+        if all_children.is_empty() {
+            return middle_forest;
+        }
+        
+        // If we have only one child, return it directly
+        if all_children.len() == 1 {
+            return all_children[0].clone();
+        }
+        
+        // For multiple children, we need to find or create a parent node
+        // that can contain all of them. In a full implementation, this would
+        // look up the grammar to find a matching production rule.
+        // For now, we create a synthetic parent node.
+        
+        // Calculate the combined byte and token ranges
+        let byte_start = all_children.first()
+            .map(|n| n.byte_range.start)
+            .unwrap_or(0);
+        let byte_end = all_children.last()
+            .map(|n| n.byte_range.end)
+            .unwrap_or_else(|| tokens.last().map(|t| t.end_byte).unwrap_or(0));
+        
+        let token_start = all_children.first()
+            .map(|n| n.token_range.start)
+            .unwrap_or(0);
+        let token_end = all_children.last()
+            .map(|n| n.token_range.end)
+            .unwrap_or(tokens.len());
+        
+        // Create the spliced forest node
+        Arc::new(ForestNode {
+            symbol: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
+            alternatives: vec![ForkAlternative {
+                fork_id: self.fork_tracker.create_fork(None),
+                rule_id: None, // In a full implementation, find the matching rule
+                children: all_children,
+                subtree: Arc::new(crate::subtree::Subtree::new(
+                    crate::subtree::SubtreeNode {
+                        symbol_id: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
+                        is_error: false,
+                        byte_range: byte_start..byte_end,
+                    },
+                    vec![]
+                )),
+            }],
+            byte_range: byte_start..byte_end,
+            token_range: token_start..token_end,
+            cached_subtree: None,
         })
     }
     
@@ -984,9 +1024,6 @@ impl IncrementalGLRParser {
                         subtree.node.symbol_id,
                         &subtree.node.byte_range
                     ) {
-                        #[cfg(feature = "debug_incremental")]
-                        println!("DEBUG reuse: Reusing prefix forest node for symbol {:?} at range {:?}", 
-                                 subtree.node.symbol_id, subtree.node.byte_range);
                         SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
                         return reused_node;
                     }
@@ -1020,9 +1057,6 @@ impl IncrementalGLRParser {
                             cached_subtree: Some(subtree.clone()),
                         });
                         
-                        #[cfg(feature = "debug_incremental")]
-                        println!("DEBUG reuse: Reusing suffix forest node for symbol {:?} at range {:?} (adjusted from {:?})", 
-                                 subtree.node.symbol_id, subtree.node.byte_range, adjusted_range);
                         SUBTREE_REUSE_COUNT.fetch_add(1, Ordering::SeqCst);
                         return adjusted_node;
                     }

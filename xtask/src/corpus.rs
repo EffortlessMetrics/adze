@@ -205,7 +205,7 @@ impl CorpusRunner {
         let mut summary = String::new();
 
         summary.push_str(&format!("Corpus Test Results - {}\n", results.timestamp));
-        summary.push_str(&format!("=====================================\n\n"));
+        summary.push_str(&"=====================================\n\n".to_string());
 
         summary.push_str(&format!("Total Grammars: {}\n", results.total_grammars));
         summary.push_str(&format!(

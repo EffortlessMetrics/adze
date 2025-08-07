@@ -338,7 +338,7 @@ impl SimdLexer {
             let mut all_digits = true;
             for j in 0..4 {
                 let byte = input[i + j];
-                if !(b'0'..=b'9').contains(&byte) {
+                if !byte.is_ascii_digit() {
                     all_digits = false;
                     break;
                 }
@@ -354,7 +354,7 @@ impl SimdLexer {
 
         // Handle remaining bytes
         for &byte in &input[i..] {
-            if (b'0'..=b'9').contains(&byte) {
+            if byte.is_ascii_digit() {
                 len += 1;
             } else {
                 break;
@@ -373,7 +373,7 @@ impl SimdLexer {
 
         // First character must be letter or underscore
         let first = input[0];
-        if !((b'a'..=b'z').contains(&first) || (b'A'..=b'Z').contains(&first) || first == b'_')
+        if !(first.is_ascii_lowercase() || first.is_ascii_uppercase() || first == b'_')
         {
             return None;
         }
@@ -382,9 +382,9 @@ impl SimdLexer {
 
         // Match remaining characters
         for &byte in &input[1..] {
-            if (b'a'..=b'z').contains(&byte)
-                || (b'A'..=b'Z').contains(&byte)
-                || (b'0'..=b'9').contains(&byte)
+            if byte.is_ascii_lowercase()
+                || byte.is_ascii_uppercase()
+                || byte.is_ascii_digit()
                 || byte == b'_'
             {
                 len += 1;

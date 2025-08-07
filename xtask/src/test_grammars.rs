@@ -205,7 +205,7 @@ pub fn download_grammar(test: &GrammarTest, target_dir: &Path) -> Result<PathBuf
     println!("  Downloading {} from {}", test.name, test.repo_url);
 
     let output = Command::new("git")
-        .args(&[
+        .args([
             "clone",
             "--depth",
             "1",

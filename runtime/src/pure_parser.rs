@@ -429,7 +429,7 @@ impl Parser {
             }
             match action {
                 Action::Shift(next_state) => {
-                    source.len() < 20;
+                    source.len();20;
                     // Create leaf node
                     let end_point =
                         advance_point(point, &source[position..position + token.length]);

@@ -69,7 +69,7 @@
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
 use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
-use rust_sitter_glr_core::{FirstFollowSets, RuntimeConflictResolver, VecWrapperResolver};
+use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
 use std::collections::VecDeque;
@@ -1178,9 +1178,6 @@ impl GLRParser {
             .into_iter()
             .max_by_key(|s| s.states.len())
             .unwrap();
-        
-        #[cfg(feature = "debug_incremental")]
-        println!("DEBUG: Selective GSS restore - keeping only 1 best stack (depth: {})", best_stack.states.len());
         
         self.stacks = vec![best_stack];
         self.pending_stacks.clear();

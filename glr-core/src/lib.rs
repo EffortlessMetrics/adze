@@ -1731,7 +1731,7 @@ mod tests {
         grammar
             .rules
             .entry(SymbolId(0))
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(rule);
 
         // Add the terminal token
@@ -1770,7 +1770,7 @@ mod tests {
         grammar
             .rules
             .entry(SymbolId(0))
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(rule);
 
         let first_follow = FirstFollowSets::compute(&grammar);
@@ -1946,7 +1946,7 @@ mod tests {
         grammar
             .rules
             .entry(SymbolId(0))
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(rule);
 
         // Item at position 0: S -> • a b
@@ -1978,7 +1978,7 @@ mod tests {
         grammar
             .rules
             .entry(SymbolId(0))
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(rule);
 
         // Item at position 0: S -> • a b

@@ -103,10 +103,10 @@ mod tests {
 
             // Note: In real implementation, we'd run tree-sitter here
             // For now, we just save what rust-sitter produces
-            fs::write(&test.expected_sexp_path(), &sexp)?;
+            fs::write(test.expected_sexp_path(), &sexp)?;
 
             let hash = compute_hash(&sexp);
-            fs::write(&test.expected_hash_path(), &hash)?;
+            fs::write(test.expected_hash_path(), &hash)?;
 
             return Ok(());
         }
@@ -114,7 +114,7 @@ mod tests {
         // Normal mode: compare against reference
         if test.expected_hash_path().exists() {
             // Hash-based comparison (more efficient)
-            let expected_hash = fs::read_to_string(&test.expected_hash_path())
+            let expected_hash = fs::read_to_string(test.expected_hash_path())
                 .with_context(|| "Failed to read expected hash")?
                 .trim()
                 .to_string();
@@ -124,7 +124,7 @@ mod tests {
             if actual_hash != expected_hash {
                 // On hash mismatch, show more detailed error
                 if test.expected_sexp_path().exists() {
-                    let _expected_sexp = fs::read_to_string(&test.expected_sexp_path())
+                    let _expected_sexp = fs::read_to_string(test.expected_sexp_path())
                         .with_context(|| "Failed to read expected S-expression")?;
 
                     // Save actual output for debugging
