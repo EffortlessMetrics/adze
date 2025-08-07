@@ -27,6 +27,7 @@ pub mod error_reporting;
 pub mod glr; // Legacy GLR module that depends on parser_v3
 pub mod glr_forest;
 pub mod glr_incremental;
+pub mod glr_incremental_opt;
 pub mod glr_lexer;
 pub mod glr_parser;
 pub mod glr_query;

@@ -1,0 +1,334 @@
+use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
+use rust_sitter::glr_incremental::{IncrementalGLRParser, GLREdit, GLRToken};
+use rust_sitter::glr_parser::GLRParser;
+use rust_sitter_ir::{Grammar, SymbolId};
+use rust_sitter_glr_core::ParseTable;
+
+/// Common edit patterns in programming
+#[derive(Debug, Clone)]
+enum EditPattern {
+    /// Single character insertion (e.g., typing)
+    CharacterInsertion,
+    /// Word replacement (e.g., renaming a variable)
+    WordReplacement,
+    /// Line insertion (e.g., adding a new statement)
+    LineInsertion,
+    /// Block deletion (e.g., removing a function)
+    BlockDeletion,
+    /// Multiple scattered edits (e.g., refactoring)
+    MultipleEdits,
+}
+
+impl EditPattern {
+    fn apply(&self, text: &str) -> (String, Vec<GLREdit>) {
+        match self {
+            EditPattern::CharacterInsertion => {
+                // Insert a character in the middle
+                let pos = text.len() / 2;
+                let mut new_text = text.to_string();
+                new_text.insert(pos, 'x');
+                
+                let edit = GLREdit {
+                    old_range: pos..pos,
+                    new_text: b"x".to_vec(),
+                    old_token_range: 0..0, // Would be computed from lexer
+                    new_tokens: vec![],
+                };
+                
+                (new_text, vec![edit])
+            }
+            
+            EditPattern::WordReplacement => {
+                // Replace a word (simulate variable rename)
+                let words: Vec<&str> = text.split_whitespace().collect();
+                if words.len() > 2 {
+                    let target = words[1];
+                    let start = text.find(target).unwrap_or(0);
+                    let end = start + target.len();
+                    
+                    let new_word = "renamed_var";
+                    let mut new_text = text.to_string();
+                    new_text.replace_range(start..end, new_word);
+                    
+                    let edit = GLREdit {
+                        old_range: start..end,
+                        new_text: new_word.as_bytes().to_vec(),
+                        old_token_range: 1..2,
+                        new_tokens: vec![],
+                    };
+                    
+                    (new_text, vec![edit])
+                } else {
+                    (text.to_string(), vec![])
+                }
+            }
+            
+            EditPattern::LineInsertion => {
+                // Insert a new line
+                let lines: Vec<&str> = text.lines().collect();
+                let insert_pos = lines.len() / 2;
+                
+                let mut new_lines = lines.clone();
+                new_lines.insert(insert_pos, "    // New comment line");
+                let new_text = new_lines.join("\n");
+                
+                let line_start: usize = lines[..insert_pos].iter().map(|l| l.len() + 1).sum();
+                let edit = GLREdit {
+                    old_range: line_start..line_start,
+                    new_text: b"    // New comment line\n".to_vec(),
+                    old_token_range: 0..0,
+                    new_tokens: vec![],
+                };
+                
+                (new_text, vec![edit])
+            }
+            
+            EditPattern::BlockDeletion => {
+                // Delete a block of text
+                let block_size = text.len() / 4;
+                let start = text.len() / 3;
+                let end = (start + block_size).min(text.len());
+                
+                let mut new_text = text.to_string();
+                new_text.drain(start..end);
+                
+                let edit = GLREdit {
+                    old_range: start..end,
+                    new_text: vec![],
+                    old_token_range: 0..0,
+                    new_tokens: vec![],
+                };
+                
+                (new_text, vec![edit])
+            }
+            
+            EditPattern::MultipleEdits => {
+                // Apply multiple scattered edits
+                let mut edits = vec![];
+                let mut new_text = text.to_string();
+                
+                // Edit 1: Insert at 25%
+                let pos1 = text.len() / 4;
+                new_text.insert_str(pos1, "/* edit1 */");
+                edits.push(GLREdit {
+                    old_range: pos1..pos1,
+                    new_text: b"/* edit1 */".to_vec(),
+                    old_token_range: 0..0,
+                    new_tokens: vec![],
+                });
+                
+                // Edit 2: Delete at 50%
+                let pos2 = text.len() / 2;
+                let delete_len = 10.min(text.len() - pos2);
+                edits.push(GLREdit {
+                    old_range: pos2..pos2 + delete_len,
+                    new_text: vec![],
+                    old_token_range: 0..0,
+                    new_tokens: vec![],
+                });
+                
+                // Edit 3: Replace at 75%
+                let pos3 = (text.len() * 3) / 4;
+                let replace_len = 5.min(text.len() - pos3);
+                edits.push(GLREdit {
+                    old_range: pos3..pos3 + replace_len,
+                    new_text: b"REPLACED".to_vec(),
+                    old_token_range: 0..0,
+                    new_tokens: vec![],
+                });
+                
+                (new_text, edits)
+            }
+        }
+    }
+}
+
+/// Generate sample code for benchmarking
+fn generate_sample_code(size: usize) -> String {
+    let mut code = String::new();
+    
+    // Generate a simple program structure
+    code.push_str("function main() {\n");
+    
+    for i in 0..size {
+        code.push_str(&format!("    let var_{} = {};\n", i, i * 2));
+        if i % 3 == 0 {
+            code.push_str(&format!("    if (var_{} > 10) {{\n", i));
+            code.push_str(&format!("        console.log('Value: ' + var_{});\n", i));
+            code.push_str("    }\n");
+        }
+        if i % 5 == 0 {
+            code.push_str(&format!("    // Comment for line {}\n", i));
+        }
+    }
+    
+    code.push_str("    return 0;\n");
+    code.push_str("}\n");
+    
+    code
+}
+
+/// Tokenize source code (simplified for benchmarking)
+fn tokenize(text: &str) -> Vec<GLRToken> {
+    let mut tokens = Vec::new();
+    let mut byte_offset = 0;
+    
+    for word in text.split_whitespace() {
+        let start = byte_offset;
+        let end = start + word.len();
+        
+        tokens.push(GLRToken {
+            symbol: SymbolId(1), // Simplified - would use real lexer
+            text: word.as_bytes().to_vec(),
+            start_byte: start,
+            end_byte: end,
+        });
+        
+        byte_offset = end + 1; // Account for whitespace
+    }
+    
+    tokens
+}
+
+fn benchmark_incremental_parsing(c: &mut Criterion) {
+    let mut group = c.benchmark_group("incremental_parsing");
+    
+    // Test different file sizes
+    let file_sizes = vec![100, 500, 1000];
+    let edit_patterns = vec![
+        EditPattern::CharacterInsertion,
+        EditPattern::WordReplacement,
+        EditPattern::LineInsertion,
+        EditPattern::BlockDeletion,
+        EditPattern::MultipleEdits,
+    ];
+    
+    for size in file_sizes {
+        let code = generate_sample_code(size);
+        let tokens = tokenize(&code);
+        
+        // Create a dummy grammar and parse table
+        // In real benchmarks, these would be actual grammars
+        let grammar = Grammar::default();
+        let table = ParseTable::new(vec![], vec![], 0);
+        
+        for pattern in &edit_patterns {
+            let bench_name = format!("{:?}_size_{}", pattern, size);
+            
+            group.bench_function(
+                BenchmarkId::new("full_reparse", &bench_name),
+                |b| {
+                    b.iter(|| {
+                        let (new_code, _edits) = pattern.apply(&code);
+                        let new_tokens = tokenize(&new_code);
+                        
+                        // Full reparse
+                        let mut parser = GLRParser::new(table.clone(), grammar.clone());
+                        for token in &new_tokens {
+                            parser.process_token(token.symbol, &token.text, token.start_byte);
+                        }
+                        parser.process_eof();
+                        parser.finish()
+                    });
+                },
+            );
+            
+            group.bench_function(
+                BenchmarkId::new("incremental", &bench_name),
+                |b| {
+                    // Initial parse
+                    let mut inc_parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
+                    let _ = inc_parser.parse_incremental(&tokens, &[]);
+                    
+                    b.iter(|| {
+                        let (_new_code, edits) = pattern.apply(&code);
+                        
+                        // Incremental reparse
+                        inc_parser.parse_incremental(&tokens, &edits)
+                    });
+                },
+            );
+        }
+    }
+    
+    group.finish();
+}
+
+fn benchmark_fork_preservation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("fork_preservation");
+    
+    // Test how well we preserve forks across edits
+    let ambiguous_code = r#"
+        // Ambiguous grammar example
+        x + y * z
+        a - b / c + d
+        p * q + r - s / t
+    "#;
+    
+    let tokens = tokenize(ambiguous_code);
+    let grammar = Grammar::default();
+    let table = ParseTable::new(vec![], vec![], 0);
+    
+    group.bench_function("fork_tracking_overhead", |b| {
+        let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
+        let _ = parser.parse_incremental(&tokens, &[]);
+        
+        b.iter(|| {
+            // Small edit that shouldn't affect most forks
+            let edit = GLREdit {
+                old_range: 10..11,
+                new_text: b"X".to_vec(),
+                old_token_range: 2..3,
+                new_tokens: vec![],
+            };
+            
+            parser.parse_incremental(&tokens, &[edit])
+        });
+    });
+    
+    group.finish();
+}
+
+fn benchmark_reuse_efficiency(c: &mut Criterion) {
+    let mut group = c.benchmark_group("subtree_reuse");
+    
+    // Test subtree reuse efficiency
+    let code_sizes = vec![1000, 5000, 10000];
+    
+    for size in code_sizes {
+        let code = generate_sample_code(size);
+        let tokens = tokenize(&code);
+        let grammar = Grammar::default();
+        let table = ParseTable::new(vec![], vec![], 0);
+        
+        group.bench_function(
+            BenchmarkId::new("reuse_ratio", size),
+            |b| {
+                let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
+                let _ = parser.parse_incremental(&tokens, &[]);
+                
+                b.iter(|| {
+                    // Small localized edit
+                    let edit = GLREdit {
+                        old_range: size / 2..size / 2 + 10,
+                        new_text: b"EDITED".to_vec(),
+                        old_token_range: 0..0,
+                        new_tokens: vec![],
+                    };
+                    
+                    parser.parse_incremental(&tokens, &[edit])
+                });
+            },
+        );
+    }
+    
+    group.finish();
+}
+
+criterion_group!(
+    benches,
+    benchmark_incremental_parsing,
+    benchmark_fork_preservation,
+    benchmark_reuse_efficiency
+);
+criterion_main!(benches);
