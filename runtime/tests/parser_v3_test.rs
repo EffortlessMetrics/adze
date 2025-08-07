@@ -1,4 +1,6 @@
-//! Tests for the improved parser implementation
+//! Tests for the parser v3 implementation (legacy, deprecated)
+//! These tests are preserved for historical reference but are ignored
+//! as the codebase has moved to parser v4 with GLR support.
 
 use rust_sitter::parser::Parser;
 use rust_sitter_glr_core::{Action, ParseTable};

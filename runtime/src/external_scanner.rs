@@ -409,8 +409,7 @@ mod tests {
         );
     }
 
-    // #[test]
-    #[allow(dead_code)]
+    #[test]
     fn test_string_scanner_escapes() {
         let mut scanner = StringScanner::new();
         scanner.in_string = true;
@@ -419,9 +418,38 @@ mod tests {
         let input = b"hello\\\"world";
         let valid = vec![false, true, false];
 
-        // TODO: Fix for new scanner API
-        // let result = scanner.scan(&valid, input, 0);
-        let result = None::<ScanResult>;
+        // Create test lexer
+        struct TestLexer {
+            input: &'static [u8],
+            position: usize,
+        }
+        
+        impl Lexer for TestLexer {
+            fn advance(&mut self, n: usize) {
+                self.position += n;
+            }
+            
+            fn lookahead(&self) -> Option<u8> {
+                if self.position < self.input.len() {
+                    Some(self.input[self.position])
+                } else {
+                    None
+                }
+            }
+            
+            fn mark_end(&mut self) {}
+            
+            fn column(&self) -> usize {
+                self.position
+            }
+            
+            fn is_eof(&self) -> bool {
+                self.position >= self.input.len()
+            }
+        }
+        
+        let mut lexer = TestLexer { input, position: 0 };
+        let result = scanner.scan(&mut lexer, &valid);
         assert_eq!(
             result,
             Some(ScanResult {
@@ -431,8 +459,7 @@ mod tests {
         );
     }
 
-    // #[test]
-    #[allow(dead_code)]
+    #[test]
     fn test_comment_scanner() {
         let mut scanner = CommentScanner::new();
 
@@ -440,9 +467,38 @@ mod tests {
         let input = b"/* hello /* nested */ world */";
         let valid = vec![true, true, true];
 
-        // TODO: Fix for new scanner API  
-        // let result = scanner.scan(&valid, input, 0);
-        let result = None::<ScanResult>;
+        // Create test lexer
+        struct TestLexer {
+            input: &'static [u8],
+            position: usize,
+        }
+        
+        impl Lexer for TestLexer {
+            fn advance(&mut self, n: usize) {
+                self.position += n;
+            }
+            
+            fn lookahead(&self) -> Option<u8> {
+                if self.position < self.input.len() {
+                    Some(self.input[self.position])
+                } else {
+                    None
+                }
+            }
+            
+            fn mark_end(&mut self) {}
+            
+            fn column(&self) -> usize {
+                self.position
+            }
+            
+            fn is_eof(&self) -> bool {
+                self.position >= self.input.len()
+            }
+        }
+        
+        let mut lexer = TestLexer { input, position: 0 };
+        let result = scanner.scan(&mut lexer, &valid);
         assert_eq!(
             result,
             Some(ScanResult {
@@ -453,9 +509,8 @@ mod tests {
         assert_eq!(scanner.depth, 1);
 
         // Test nested comment
-        // TODO: Fix for new scanner API
-        // let result = scanner.scan(&valid, input, 9);
-        let result = None::<ScanResult>;
+        let mut lexer = TestLexer { input, position: 9 };
+        let result = scanner.scan(&mut lexer, &valid);
         assert_eq!(
             result,
             Some(ScanResult {
@@ -466,8 +521,7 @@ mod tests {
         assert_eq!(scanner.depth, 2);
     }
 
-    // #[test]
-    #[allow(dead_code)]
+    #[test]
     fn test_scanner_state_serialization() {
         let mut scanner = StringScanner::new();
         scanner.in_string = true;

@@ -179,7 +179,10 @@ mod tests {
             state_count: 2,
             symbol_count: 2,
             symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
+            external_scanner_states: vec![
+                vec![true, false],  // State 0: INDENT is valid
+                vec![false, true],  // State 1: DEDENT is valid
+            ],
         };
 
         // Map external symbols to indices

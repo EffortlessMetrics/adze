@@ -219,7 +219,7 @@ mod tests {
             language: None,
         };
 
-        let language = unsafe {
+        let language = {
             &crate::pure_parser::TSLanguage {
                 version: 15,
                 symbol_count: 10,

@@ -3,6 +3,7 @@
 mod tests {
     use anyhow::Result;
     use rust_sitter_ir::Grammar;
+    #[cfg(feature = "optimize")]
     use rust_sitter_ir::optimizer::GrammarOptimizer;
 
     #[test]

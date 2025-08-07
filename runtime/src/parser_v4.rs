@@ -1141,7 +1141,7 @@ mod tests {
         };
 
         // Create parser
-        let parser = Parser::new(grammar, parse_table, "test_python".to_string());
+        let _parser = Parser::new(grammar, parse_table, "test_python".to_string());
 
         // TODO: Fix external scanner loading in tests
         // assert!(parser.external_scanner.is_some());

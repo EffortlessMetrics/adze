@@ -306,12 +306,13 @@ impl<'a> Iterator for QueryMatches<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::query::compile_query;
     use rust_sitter_ir::SymbolId;
 
     fn make_node(symbol: u16, start: usize, end: usize) -> ParseNode {
+        let symbol_id = SymbolId(symbol);
         ParseNode {
-            symbol: SymbolId(symbol),
+            symbol: symbol_id,
+            symbol_id,
             children: vec![],
             start_byte: start,
             end_byte: end,
@@ -362,8 +363,10 @@ mod tests {
 
         // Create test tree
         let source = "test other test";
+        let symbol_id = SymbolId(0);
         let root = ParseNode {
-            symbol: SymbolId(0),
+            symbol: symbol_id,
+            symbol_id,
             children: vec![
                 make_node(1, 0, 4),   // "test"
                 make_node(1, 5, 10),  // "other"

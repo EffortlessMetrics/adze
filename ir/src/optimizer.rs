@@ -987,7 +987,8 @@ mod tests {
         let eliminated = optimizer.eliminate_unit_rules(&mut grammar);
 
         // The test grammar may not have unit rules, which is fine
-        assert!(eliminated >= 0);
+        // eliminated is usize, always >= 0
+        assert!(true); // Keep assertion for documentation purposes
     }
 
     #[test]

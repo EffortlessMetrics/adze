@@ -139,8 +139,10 @@ mod tests {
     use rust_sitter_ir::SymbolId;
 
     fn make_node(start: usize, end: usize) -> ParseNode {
+        let symbol_id = SymbolId(0);
         ParseNode {
-            symbol: SymbolId(0),
+            symbol: symbol_id,
+            symbol_id,
             children: vec![],
             start_byte: start,
             end_byte: end,
@@ -151,7 +153,7 @@ mod tests {
     #[test]
     fn test_eq_captures() {
         let source = "hello world hello";
-        let mut ctx = PredicateContext::new(source);
+        let ctx = PredicateContext::new(source);
 
         let mut captures = HashMap::new();
         captures.insert(0, make_node(0, 5)); // "hello"
@@ -178,7 +180,7 @@ mod tests {
     #[test]
     fn test_eq_value() {
         let source = "hello world";
-        let mut ctx = PredicateContext::new(source);
+        let ctx = PredicateContext::new(source);
 
         let mut captures = HashMap::new();
         captures.insert(0, make_node(0, 5)); // "hello"
@@ -203,7 +205,7 @@ mod tests {
     #[test]
     fn test_match_regex() {
         let source = "variable_123";
-        let mut ctx = PredicateContext::new(source);
+        let ctx = PredicateContext::new(source);
 
         let mut captures = HashMap::new();
         captures.insert(0, make_node(0, 12)); // "variable_123"
@@ -226,7 +228,7 @@ mod tests {
     #[test]
     fn test_any_of() {
         let source = "public";
-        let mut ctx = PredicateContext::new(source);
+        let ctx = PredicateContext::new(source);
 
         let mut captures = HashMap::new();
         captures.insert(0, make_node(0, 6)); // "public"
