@@ -5,7 +5,7 @@ use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, Token
 // Import internal modules for testing
 #[path = "../src/glr_lexer.rs"]
 mod glr_lexer;
-#[path = "../src/glr_parser_no_error_recovery.rs"]
+#[path = "../src/glr_parser.rs"]
 mod glr_parser;
 #[path = "../src/subtree.rs"]
 mod subtree;
@@ -94,7 +94,7 @@ fn test_very_deep_parentheses() {
     let grammar = create_simple_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
-    let mut parser = GLRParser::new(parse_table, grammar.clone());
+    let mut parser = GLRParser::new(parse_table.clone(), grammar.clone());
 
     // Test various depths
     let depths = vec![1, 5, 10, 20, 50, 100, 200, 500];
@@ -120,7 +120,8 @@ fn test_very_deep_parentheses() {
             }
         );
 
-        parser.reset();
+        // Reset parser for new parse
+        parser = GLRParser::new(parse_table.clone(), grammar.clone());
         let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
         let tokens = lexer.tokenize_all();
 
@@ -131,9 +132,10 @@ fn test_very_deep_parentheses() {
             parser.process_token(token.symbol_id, &token.text, token.byte_offset);
         }
 
-        parser.process_eof();
+        parser.process_eof(input.len());
 
-        match parser.finish() {
+        let result = parser.finish();
+        match result {
             Ok(tree) => {
                 // Count actual depth
                 let mut max_depth = 0;

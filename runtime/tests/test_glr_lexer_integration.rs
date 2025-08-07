@@ -185,7 +185,7 @@ fn test_arithmetic_with_lexer() {
             });
 
             assert!(result.is_ok());
-            parser.process_eof();
+            parser.process_eof(input.len());
 
             let tree = parser.get_best_parse();
             assert!(tree.is_some());
@@ -291,7 +291,7 @@ fn test_json_with_lexer() {
             while let Some(token) = lexer.next_token() {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            parser.process_eof(2); // "42" is 2 bytes
 
             assert!(parser.get_best_parse().is_some());
 
@@ -302,7 +302,7 @@ fn test_json_with_lexer() {
             while let Some(token) = lexer.next_token() {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            parser.process_eof(3); // "{ }" is 3 bytes
 
             assert!(parser.get_best_parse().is_some());
         }
