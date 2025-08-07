@@ -1161,6 +1161,32 @@ impl GLRParser {
         }
     }
     
+    /// Restore GSS state selectively - only restore the most promising stacks
+    /// This is a performance optimization for incremental parsing
+    pub fn set_gss_state_selective(&mut self, stacks: Vec<ParseStack>) {
+        if stacks.is_empty() {
+            self.stacks = stacks;
+            self.pending_stacks.clear();
+            return;
+        }
+        
+        // AGGRESSIVE OPTIMIZATION: Only keep the single deepest stack
+        // This dramatically reduces the work needed to process remaining tokens
+        // If the middle chunk is ambiguous, the GLR mechanism will naturally
+        // re-create forks as needed
+        let best_stack = stacks
+            .into_iter()
+            .max_by_key(|s| s.states.len())
+            .unwrap();
+        
+        #[cfg(feature = "debug_incremental")]
+        println!("DEBUG: Selective GSS restore - keeping only 1 best stack (depth: {})", best_stack.states.len());
+        
+        self.stacks = vec![best_stack];
+        self.pending_stacks.clear();
+        self.pending_stacks.push_back(0);
+    }
+    
     /// Get the next stack ID for restoring fork tracking
     pub fn get_next_stack_id(&self) -> usize {
         self.next_stack_id

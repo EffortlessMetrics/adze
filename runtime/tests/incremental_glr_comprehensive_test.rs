@@ -412,13 +412,21 @@ mod comprehensive_incremental_tests {
         println!("  Speedup: {:.2}x", speedup);
         println!("  Subtrees reused: {}", reuse_count);
         
-        // Incremental should be faster OR at least have significant reuse
-        if incremental_parse_time >= initial_parse_time {
-            println!("⚠️ Incremental not faster, but reused {} subtrees", reuse_count);
-            assert!(reuse_count > 10, "Should have significant subtree reuse even if not faster");
-        } else {
-            println!("✅ Incremental is {:.2}x faster", speedup);
-        }
+        // PERFORMANCE GATE: Incremental parsing MUST be faster than full reparse
+        // This is the entire point of incremental parsing - if it's slower, the feature is broken
+        assert!(
+            incremental_parse_time < initial_parse_time,
+            "🚨 PERFORMANCE REGRESSION: Incremental parsing is SLOWER than full reparse!\n\
+             Incremental took {:?} vs. full reparse {:?} (slowdown: {:.2}x)\n\
+             This defeats the entire purpose of incremental parsing.\n\
+             The GSS restoration strategy needs fundamental redesign.",
+            incremental_parse_time,
+            initial_parse_time,
+            incremental_parse_time.as_nanos() as f64 / initial_parse_time.as_nanos().max(1) as f64
+        );
+        
+        // Also verify we're getting meaningful reuse
+        assert!(reuse_count > 10, "Should have significant subtree reuse: only {} subtrees reused", reuse_count);
     }
     
     // Test 6: Insert new content

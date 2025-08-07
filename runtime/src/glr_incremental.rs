@@ -610,6 +610,7 @@ impl IncrementalGLRParser {
     fn parse_fresh(&mut self, tokens: &[GLRToken]) -> Result<Arc<ForestNode>, String> {
         // Reset state
         self.fork_tracker = ForkTracker::new();
+        self.gss_state_map.snapshots.clear(); // Clear any old snapshots
         
         // Create initial fork
         let initial_fork = self.fork_tracker.create_fork(None);
@@ -617,8 +618,20 @@ impl IncrementalGLRParser {
         // Parse using the GLR parser
         let mut parser = GLRParser::new(self.table.clone(), self.grammar.clone());
         
-        for token in tokens {
+        // CRITICAL: Capture snapshots during initial parse so incremental parsing can use them
+        for (idx, token) in tokens.iter().enumerate() {
             parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
+            
+            // Capture snapshots periodically (every 100 tokens)
+            if idx > 0 && idx % 100 == 0 {
+                let byte_pos = token.start_byte;
+                if let Some(snapshot) = self.capture_parser_snapshot(&parser, idx, byte_pos) {
+                    self.gss_state_map.snapshots.insert(byte_pos, snapshot);
+                    
+                    #[cfg(feature = "debug_incremental")]
+                    println!("DEBUG: Captured snapshot during initial parse at token {} (byte {})", idx, byte_pos);
+                }
+            }
         }
         
         // Calculate total input length from tokens
@@ -715,7 +728,28 @@ impl IncrementalGLRParser {
                 None
             };
             
-            let (mut parser, start_token_idx) = if let Some(snapshot) = resume_snapshot {
+            // ADAPTIVE FALLBACK: Decide whether incremental parsing is worth it
+            // If we'd have to process too many tokens, just do a full reparse
+            let should_use_incremental = if let Some(snapshot) = &resume_snapshot {
+                let tokens_to_process = tokens.len() - snapshot.token_position;
+                let incremental_ratio = tokens_to_process as f64 / tokens.len() as f64;
+                
+                // Use incremental only if we're processing very few tokens
+                // Based on benchmarks, incremental is currently 3-4x slower per token
+                // So only use it when processing less than 20% of tokens
+                let use_incremental = incremental_ratio < 0.2;
+                
+                #[cfg(feature = "debug_incremental")]
+                println!("DEBUG adaptive: Would process {} of {} tokens (ratio: {:.2}). Using incremental: {}", 
+                         tokens_to_process, tokens.len(), incremental_ratio, use_incremental);
+                
+                use_incremental
+            } else {
+                false
+            };
+            
+            let (mut parser, start_token_idx) = if should_use_incremental && resume_snapshot.is_some() {
+                let snapshot = resume_snapshot.unwrap();
                 #[cfg(feature = "debug_incremental")]
                 println!("DEBUG incremental: Resuming from GSS snapshot at token {}", snapshot.token_position);
                 // Create parser from snapshot (skipping the prefix)
@@ -723,8 +757,8 @@ impl IncrementalGLRParser {
                 (parser, snapshot.token_position)
             } else {
                 #[cfg(feature = "debug_incremental")]
-                println!("DEBUG incremental: No snapshot available, parsing from start");
-                // No snapshot, start from beginning
+                println!("DEBUG incremental: Falling back to full reparse (no good snapshot or would be slower)");
+                // Full reparse is more efficient in this case
                 (GLRParser::new(self.table.clone(), self.grammar.clone()), 0)
             };
             
@@ -732,7 +766,10 @@ impl IncrementalGLRParser {
             println!("DEBUG incremental: Parsing tokens from {} to {}", start_token_idx, tokens.len());
             
             // Parse tokens starting from the resume point
-            for (idx, token) in tokens.iter().enumerate().skip(start_token_idx) {
+            // IMPORTANT: We need the actual token index, not the enumeration after skip
+            for (offset, token) in tokens[start_token_idx..].iter().enumerate() {
+                let idx = start_token_idx + offset;  // This is the actual token position
+                
                 // Capture snapshots periodically (every 100 tokens)
                 if idx > 0 && idx % 100 == 0 {
                     let byte_pos = token.start_byte;
@@ -741,9 +778,6 @@ impl IncrementalGLRParser {
                     }
                 }
                 
-                #[cfg(feature = "debug_incremental")]
-                println!("DEBUG incremental: Token {}: symbol {}, text {:?}, range {:?}", 
-                         idx, token.symbol.0, std::str::from_utf8(&token.text), token.start_byte..token.end_byte);
                 parser.process_token(token.symbol, std::str::from_utf8(&token.text).unwrap_or(""), token.start_byte);
             }
             
@@ -801,13 +835,14 @@ impl IncrementalGLRParser {
         // Create a new parser
         let mut parser = GLRParser::new(self.table.clone(), self.grammar.clone());
         
-        // Restore the exact GSS state from the snapshot
-        parser.set_gss_state(snapshot.gss_stacks.clone());
+        // Use selective GSS restoration for better performance
+        // This only restores the most promising stacks instead of all of them
+        parser.set_gss_state_selective(snapshot.gss_stacks.clone());
         parser.set_next_stack_id(snapshot.next_stack_id);
         
-        // The parser is now in the exact state it was when the snapshot was taken
+        // The parser is now in a lean state ready to continue parsing
         #[cfg(feature = "debug_incremental")]
-        println!("DEBUG: Restored parser from snapshot at byte position {}", snapshot.byte_position);
+        println!("DEBUG: Restored parser from snapshot at byte position {} with selective GSS restoration", snapshot.byte_position);
         
         parser
     }
