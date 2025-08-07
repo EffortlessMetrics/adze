@@ -29,6 +29,24 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+/// Simple edit descriptor for byte-based edits
+#[derive(Debug, Clone)]
+pub struct Edit {
+    pub start_byte: usize,
+    pub old_end_byte: usize,
+    pub new_end_byte: usize,
+}
+
+impl Edit {
+    pub fn new(start_byte: usize, old_end_byte: usize, new_end_byte: usize) -> Self {
+        Edit {
+            start_byte,
+            old_end_byte,
+            new_end_byte,
+        }
+    }
+}
+
 /// Global counter for tracking subtree reuses (for testing)
 pub static SUBTREE_REUSE_COUNT: AtomicUsize = AtomicUsize::new(0);
 
