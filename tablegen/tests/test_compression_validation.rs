@@ -716,7 +716,7 @@ fn test_compression_edge_cases() {
 
     // Single cell table with empty action cell (equivalent to Error)
     let single_cell = vec![vec![vec![]]];
-    let _compressed = compress_action_table(&single_cell);
+    let compressed = compress_action_table(&single_cell);
     // Cannot access private field unique_rows
     // assert_eq!(compressed.unique_rows.len(), 1);
     assert_eq!(decompress_action(&compressed, 0, 0), Action::Error);
