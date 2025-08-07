@@ -117,6 +117,12 @@ pub struct ExternalScannerRegistry {
     scanners: HashMap<String, Box<dyn ExternalScanner>>,
 }
 
+impl Default for ExternalScannerRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExternalScannerRegistry {
     /// Create a new registry
     pub fn new() -> Self {
@@ -223,6 +229,12 @@ pub struct StringScanner {
     delimiter: Option<String>,
 }
 
+impl Default for StringScanner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StringScanner {
     pub fn new() -> Self {
         StringScanner { delimiter: None }
@@ -276,21 +288,19 @@ impl ExternalScanner for StringScanner {
             }
         }
 
-        if valid_symbols.get(STRING_CONTENT).copied().unwrap_or(false) {
-            if self.delimiter.is_some() {
-                // Consume content until delimiter
-                while !lexer.eof() {
-                    if lexer.lookahead() == Some(b'"') {
-                        // Might be end delimiter
-                        break;
-                    }
-                    lexer.advance(false);
+        if valid_symbols.get(STRING_CONTENT).copied().unwrap_or(false) && self.delimiter.is_some() {
+            // Consume content until delimiter
+            while !lexer.eof() {
+                if lexer.lookahead() == Some(b'"') {
+                    // Might be end delimiter
+                    break;
                 }
+                lexer.advance(false);
+            }
 
-                if lexer.token_length() > 0 {
-                    lexer.result(STRING_CONTENT as u16);
-                    return true;
-                }
+            if lexer.token_length() > 0 {
+                lexer.result(STRING_CONTENT as u16);
+                return true;
             }
         }
 

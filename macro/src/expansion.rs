@@ -107,7 +107,7 @@ fn gen_struct_or_variant(
                         non_leaf.insert("Box");
                         non_leaf.insert("Option");
                         non_leaf.insert("Vec");
-                        let wrapped_leaf_type = wrap_leaf_type(&leaf_type, &non_leaf);
+                        let wrapped_leaf_type = wrap_leaf_type(leaf_type, &non_leaf);
                         (wrapped_leaf_type, syn::parse_quote!(Some(&#closure)))
                     }
                     None => (leaf_type.clone(), syn::parse_quote!(None)),

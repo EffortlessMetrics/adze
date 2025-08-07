@@ -186,6 +186,12 @@ pub struct ArenaGSSManager {
     arena: Arena<ArenaStackNode<'static>>,
 }
 
+impl Default for ArenaGSSManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ArenaGSSManager {
     pub fn new() -> Self {
         Self {

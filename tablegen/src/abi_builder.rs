@@ -1157,7 +1157,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let mut index_to_id_entries = vec![quote! { 0 }; symbol_count];
 
         for (symbol_id, &index) in &self.parse_table.symbol_to_index {
-            let symbol_id_val = symbol_id.0 as u16;
+            let symbol_id_val = symbol_id.0;
             index_to_id_entries[index] = quote! { #symbol_id_val };
         }
 

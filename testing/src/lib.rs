@@ -298,7 +298,7 @@ impl CompatibilityReport {
     pub fn save_markdown(&self, path: &Path) -> Result<()> {
         let mut md = String::new();
 
-        md.push_str(&format!("# Rust Sitter Compatibility Report\n\n"));
+        md.push_str(&"# Rust Sitter Compatibility Report\n\n".to_string());
         md.push_str(&format!("**Version**: {}\n", self.version));
         md.push_str(&format!("**Date**: {}\n", self.date));
         md.push_str(&format!(
@@ -343,6 +343,12 @@ impl CompatibilityReport {
 /// Grammar test suite runner
 pub struct TestSuite {
     grammars: Vec<(String, TestConfig)>,
+}
+
+impl Default for TestSuite {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TestSuite {

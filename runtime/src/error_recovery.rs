@@ -358,6 +358,12 @@ pub struct ErrorRecoveryConfigBuilder {
     config: ErrorRecoveryConfig,
 }
 
+impl Default for ErrorRecoveryConfigBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ErrorRecoveryConfigBuilder {
     pub fn new() -> Self {
         Self {

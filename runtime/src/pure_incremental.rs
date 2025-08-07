@@ -107,6 +107,12 @@ pub struct IncrementalParser {
     previous_tree: Option<Tree>,
 }
 
+impl Default for IncrementalParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IncrementalParser {
     /// Create a new incremental parser
     pub fn new() -> Self {

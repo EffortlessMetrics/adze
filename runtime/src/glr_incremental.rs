@@ -99,14 +99,14 @@ impl SubtreePool {
         // Index by hash
         self.subtrees_by_hash
             .entry(hash)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(subtree.clone());
 
         // Index by range
         let range = (subtree.node.byte_range.start, subtree.node.byte_range.end);
         self.subtrees_by_range
             .entry(range)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(subtree.clone());
 
         // Recursively add children

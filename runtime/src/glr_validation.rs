@@ -107,6 +107,12 @@ pub struct GrammarStats {
     pub requires_glr: bool,
 }
 
+impl Default for GLRGrammarValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GLRGrammarValidator {
     pub fn new() -> Self {
         Self {

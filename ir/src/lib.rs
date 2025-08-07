@@ -40,7 +40,7 @@ impl Grammar {
     pub fn add_rule(&mut self, rule: Rule) {
         self.rules
             .entry(rule.lhs)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(rule);
     }
 
@@ -155,7 +155,7 @@ impl Grammar {
             let metadata = SymbolMetadata {
                 visible: !token.name.starts_with('_'),
                 named: false,
-                hidden: self.extras.contains(&symbol_id),
+                hidden: self.extras.contains(symbol_id),
                 terminal: true,
             };
             registry.register(&token.name, metadata);

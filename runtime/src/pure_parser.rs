@@ -429,7 +429,7 @@ impl Parser {
             }
             match action {
                 Action::Shift(next_state) => {
-                    if source.len() < 20 {}
+                    source.len() < 20;
                     // Create leaf node
                     let end_point =
                         advance_point(point, &source[position..position + token.length]);
@@ -734,12 +734,12 @@ impl Parser {
 
                 let metadata = *metadata_ptr.add(symbol as usize);
                 // Check if HIDDEN flag is set (0x04)
-                let is_hidden = (metadata & 0x04) != 0;
+                
                 ////eprintln!($
                 //"DEBUG is_extra_symbol: symbol={}, metadata_ptr={:p}, offset={}, metadata={:#x}, is_hidden={}",
                 //symbol, metadata_ptr, symbol as usize, metadata, is_hidden
                 //);
-                is_hidden
+                (metadata & 0x04) != 0
             } else {
                 false
             }
@@ -779,16 +779,16 @@ impl Parser {
 
             // The parse table stores entries as pairs: (symbol, action)
             // state_offset and next_offset are indices into the parse_table array
-            let mut offset = state_offset as usize;
-            let end_offset = next_offset as usize;
+            let mut offset = state_offset;
+            let end_offset = next_offset;
 
             // Debug: print all entries for this state
             ////eprintln!("DEBUG get_action: All entries for state {}:", state);
-            let mut debug_offset = state_offset as usize;
+            let mut debug_offset = state_offset;
             let mut _entry_num = 0;
             while debug_offset + 1 < end_offset {
-                let _debug_symbol = *language.parse_table.add(debug_offset) as u16;
-                let _debug_action = *language.parse_table.add(debug_offset + 1) as u16;
+                let _debug_symbol = { *language.parse_table.add(debug_offset) };
+                let _debug_action = { *language.parse_table.add(debug_offset + 1) };
                 //eprintln!(
                 //    "  Entry {}: offset={}, symbol={:#x}, action={:#x}",
                 //    _entry_num, debug_offset, _debug_symbol, _debug_action
@@ -798,8 +798,8 @@ impl Parser {
             }
 
             while offset + 1 < end_offset {
-                let entry_symbol = *language.parse_table.add(offset) as u16;
-                let action_value = *language.parse_table.add(offset + 1) as u16;
+                let entry_symbol = { *language.parse_table.add(offset) };
+                let action_value = { *language.parse_table.add(offset + 1) };
 
                 // Debug output to understand why lookups fail
                 ////eprintln!($

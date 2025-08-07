@@ -115,7 +115,7 @@ fn is_left_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
         Symbol::NonTerminal(name) => name == rule_symbol,
         Symbol::Sequence(seq) => seq
             .first()
-            .map_or(false, |s| is_left_recursive(rule_symbol, s)),
+            .is_some_and(|s| is_left_recursive(rule_symbol, s)),
         Symbol::Choice(choices) => choices.iter().any(|s| is_left_recursive(rule_symbol, s)),
         Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
             is_left_recursive(rule_symbol, inner)
@@ -129,7 +129,7 @@ fn is_right_recursive(rule_symbol: &SymbolId, symbol: &Symbol) -> bool {
         Symbol::NonTerminal(name) => name == rule_symbol,
         Symbol::Sequence(seq) => seq
             .last()
-            .map_or(false, |s| is_right_recursive(rule_symbol, s)),
+            .is_some_and(|s| is_right_recursive(rule_symbol, s)),
         Symbol::Choice(choices) => choices.iter().any(|s| is_right_recursive(rule_symbol, s)),
         Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
             is_right_recursive(rule_symbol, inner)

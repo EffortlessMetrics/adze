@@ -488,7 +488,7 @@ impl GrammarJsConverter {
                                     .unwrap(),
                             );
                             grammar.production_ids.insert(rule_id, rule.production_id);
-                            grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
+                            grammar.rules.entry(lhs).or_default().push(rule);
                         } else if let Some(symbol) = self.rule_to_symbol(grammar, member) {
                             eprintln!(
                                 "Debug: Adding rule with symbol {:?} and field {}",
@@ -516,7 +516,7 @@ impl GrammarJsConverter {
                                     .unwrap(),
                             );
                             grammar.production_ids.insert(rule_id, rule.production_id);
-                            grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
+                            grammar.rules.entry(lhs).or_default().push(rule);
                         }
                     }
                 } else if let Some(symbol) = self.rule_to_symbol(grammar, content) {
@@ -533,7 +533,7 @@ impl GrammarJsConverter {
 
                     let rule_id = RuleId(grammar.rules.len().try_into().unwrap());
                     grammar.production_ids.insert(rule_id, rule.production_id);
-                    grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
+                    grammar.rules.entry(lhs).or_default().push(rule);
                 }
             }
 
@@ -741,7 +741,7 @@ impl GrammarJsConverter {
         eprintln!("Debug: Adding rule for SymbolId({}) -> {:?}", lhs.0, rhs);
 
         // Check if an identical rule already exists
-        let duplicate_exists = grammar.rules.get(&lhs).map_or(false, |existing_rules| {
+        let duplicate_exists = grammar.rules.get(&lhs).is_some_and(|existing_rules| {
             existing_rules.iter().any(|r| {
                 r.rhs == rhs && r.precedence == precedence && r.associativity == associativity
             })
@@ -775,7 +775,7 @@ impl GrammarJsConverter {
         grammar.production_ids.insert(rule_id, rule.production_id);
 
         // Now add the rule
-        grammar.rules.entry(lhs).or_insert_with(Vec::new).push(rule);
+        grammar.rules.entry(lhs).or_default().push(rule);
     }
 
     fn add_repeat_rule(

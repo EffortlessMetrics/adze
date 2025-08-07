@@ -198,8 +198,7 @@ pub fn generate_corpus(examples_dir: &Path, output_dir: &Path, language: &str) -
         let relative_path = example_file.strip_prefix(examples_dir)?;
         let test_name = relative_path
             .to_string_lossy()
-            .replace('/', "_")
-            .replace('.', "_");
+            .replace(['/', '.'], "_");
         let test_file = output_dir.join(format!("{}.txt", test_name));
 
         let source = fs::read_to_string(&example_file)?;

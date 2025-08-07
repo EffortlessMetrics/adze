@@ -294,7 +294,7 @@ mod tests {
         let builder = LanguageBuilder::new(grammar, parse_table);
 
         let names = builder.build_symbol_names();
-        assert!(names.len() > 0);
+        assert!(!names.is_empty());
         // Should have at least the token name
         assert!(
             names.iter().any(|&name| unsafe {
@@ -324,7 +324,7 @@ mod tests {
         let builder = LanguageBuilder::new(grammar, parse_table);
 
         let metadata = builder.build_symbol_metadata();
-        assert!(metadata.len() > 0);
+        assert!(!metadata.is_empty());
     }
 
     #[test]

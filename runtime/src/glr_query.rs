@@ -478,6 +478,12 @@ pub struct QueryCursor {
     max_depth: Option<usize>,
 }
 
+impl Default for QueryCursor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QueryCursor {
     pub fn new() -> Self {
         Self { max_depth: None }

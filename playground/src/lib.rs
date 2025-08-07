@@ -241,6 +241,12 @@ pub enum PlaygroundFeature {
     TestRunner,
 }
 
+impl Default for PlaygroundBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PlaygroundBuilder {
     pub fn new() -> Self {
         Self {

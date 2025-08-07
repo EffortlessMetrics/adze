@@ -650,7 +650,7 @@ impl ItemSetCollection {
 
             // Add items for ALL rules with the start symbol as LHS
             if let Some(start_rules) = grammar.get_rules_for_symbol(start_symbol) {
-                for (_idx, rule) in start_rules.iter().enumerate() {
+                for rule in start_rules.iter() {
                     // Debug: idx, rule.lhs, rule.rhs, rule.production_id.0
                     let start_item = LRItem::new(
                         RuleId(rule.production_id.0),
@@ -660,8 +660,7 @@ impl ItemSetCollection {
                     initial_set.add_item(start_item);
                     // Debug: rule.production_id.0
                 }
-            } else {
-            }
+            } 
 
             // Compute closure
             initial_set.closure(grammar, first_follow);
@@ -1193,14 +1192,11 @@ pub fn build_lr1_automaton(
     // Also collect terminals from rule RHS that might not be in grammar.tokens
     for rule in augmented_grammar.all_rules() {
         for symbol in &rule.rhs {
-            match symbol {
-                Symbol::Terminal(id) => {
-                    if !token_symbols.contains(id) {
-                        token_symbols.push(*id);
-                        max_symbol_id = max_symbol_id.max(id.0);
-                    }
+            if let Symbol::Terminal(id) = symbol {
+                if !token_symbols.contains(id) {
+                    token_symbols.push(*id);
+                    max_symbol_id = max_symbol_id.max(id.0);
                 }
-                _ => {}
             }
         }
     }
@@ -1300,10 +1296,8 @@ pub fn build_lr1_automaton(
                         symbol_idx,
                         new_action,
                     );
-                } else {
-                }
-            } else {
-            }
+                } 
+            } 
         } else {
             _non_terminal_count += 1;
         }
@@ -1367,8 +1361,7 @@ pub fn build_lr1_automaton(
                                     follow_set.ones().map(|idx| SymbolId(idx as u16)).collect();
                                 for sym in &symbols {
                                     if symbol_to_index.contains_key(sym) {
-                                    } else {
-                                    }
+                                    } 
                                 }
                                 symbols
                             } else {

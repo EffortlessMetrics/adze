@@ -171,7 +171,7 @@ pub fn extract_field<LT: Extract<T>, T>(
 
         *last_idx = n.end_byte;
 
-        return out;
+        out
     } else {
         // eprintln!("DEBUG extract_field: No cursor for field '{}'", _field_name);
         LT::extract(None, source, *last_idx, closure_ref)

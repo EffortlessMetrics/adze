@@ -109,6 +109,12 @@ pub struct ScannerRegistry {
     scanners: HashMap<String, ScannerFactory>,
 }
 
+impl Default for ScannerRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ScannerRegistry {
     /// Create a new scanner registry
     pub fn new() -> Self {

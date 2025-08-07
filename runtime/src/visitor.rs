@@ -122,17 +122,17 @@ impl<'a> TreeWalker<'a> {
     fn walk_node<V: Visitor>(&self, node: &Node, visitor: &mut V) {
         // Handle special node types
         if node.is_error() {
-            visitor.visit_error(&node);
+            visitor.visit_error(node);
             return;
         }
 
         // Enter the node
-        let action = visitor.enter_node(&node);
+        let action = visitor.enter_node(node);
 
         match action {
             VisitorAction::Stop => return,
             VisitorAction::SkipChildren => {
-                visitor.leave_node(&node);
+                visitor.leave_node(node);
                 return;
             }
             VisitorAction::Continue => {}
@@ -141,7 +141,7 @@ impl<'a> TreeWalker<'a> {
         // Process children or leaf content
         if node.child_count() == 0 {
             let text = self.get_node_text(node);
-            visitor.visit_leaf(&node, &text);
+            visitor.visit_leaf(node, &text);
         } else {
             for child in node.children() {
                 self.walk_node(child, visitor);
@@ -149,7 +149,7 @@ impl<'a> TreeWalker<'a> {
         }
 
         // Leave the node
-        visitor.leave_node(&node);
+        visitor.leave_node(node);
     }
 }
 
@@ -213,12 +213,12 @@ impl<'a> BreadthFirstWalker<'a> {
         while let Some(node) = queue.pop_front() {
             // Handle special node types
             if node.is_error() {
-                visitor.visit_error(&node);
+                visitor.visit_error(node);
                 continue;
             }
 
             // Visit the node
-            let action = visitor.enter_node(&node);
+            let action = visitor.enter_node(node);
 
             match action {
                 VisitorAction::Stop => return,
@@ -230,7 +230,7 @@ impl<'a> BreadthFirstWalker<'a> {
             if node.child_count() == 0 {
                 let text = &self.source[node.start_byte()..node.end_byte()];
                 if let Ok(text_str) = std::str::from_utf8(text) {
-                    visitor.visit_leaf(&node, text_str);
+                    visitor.visit_leaf(node, text_str);
                 }
             } else {
                 for child in node.children() {
@@ -312,6 +312,12 @@ where
 pub struct PrettyPrintVisitor {
     indent: usize,
     output: String,
+}
+
+impl Default for PrettyPrintVisitor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PrettyPrintVisitor {
@@ -428,13 +434,13 @@ impl<'a> TransformWalker<'a> {
     #[cfg(feature = "pure-rust")]
     fn transform_node<T: TransformVisitor>(&self, node: &Node, visitor: &mut T) -> T::Output {
         if node.is_error() {
-            return visitor.transform_error(&node);
+            return visitor.transform_error(node);
         }
 
         if node.child_count() == 0 {
             let text = &self.source[node.start_byte()..node.end_byte()];
             let text_str = std::str::from_utf8(text).unwrap_or("");
-            return visitor.transform_leaf(&node, text_str);
+            return visitor.transform_leaf(node, text_str);
         }
 
         let mut children = Vec::new();
@@ -442,7 +448,7 @@ impl<'a> TransformWalker<'a> {
             children.push(self.transform_node(child, visitor));
         }
 
-        visitor.transform_node(&node, children)
+        visitor.transform_node(node, children)
     }
 }
 

@@ -19,6 +19,12 @@ pub struct GrammarOptimizer {
     source_file_id: Option<SymbolId>,
 }
 
+impl Default for GrammarOptimizer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GrammarOptimizer {
     pub fn new() -> Self {
         GrammarOptimizer {
@@ -256,7 +262,7 @@ impl GrammarOptimizer {
         }
 
         // Remove inlined rules
-        for (id, _) in &replacements {
+        for id in replacements.keys() {
             grammar.rules.shift_remove(id);
             grammar.inline_rules.push(*id);
         }
@@ -300,7 +306,7 @@ impl GrammarOptimizer {
         }
 
         // Remove duplicate tokens
-        for (old_id, _) in &replacements {
+        for old_id in replacements.keys() {
             grammar.tokens.shift_remove(old_id);
         }
 
@@ -711,24 +717,24 @@ impl GrammarOptimizer {
         eprintln!("  Externals: {:?}", external_vec);
 
         for old_id in token_vec {
-            if !old_to_new.contains_key(&old_id) {
-                old_to_new.insert(old_id, SymbolId(next_id));
+            if let std::collections::hash_map::Entry::Vacant(e) = old_to_new.entry(old_id) {
+                e.insert(SymbolId(next_id));
                 eprintln!("  Token {:?} -> {:?}", old_id, SymbolId(next_id));
                 next_id += 1;
             }
         }
 
         for old_id in non_terminal_vec {
-            if !old_to_new.contains_key(&old_id) {
-                old_to_new.insert(old_id, SymbolId(next_id));
+            if let std::collections::hash_map::Entry::Vacant(e) = old_to_new.entry(old_id) {
+                e.insert(SymbolId(next_id));
                 eprintln!("  Non-terminal {:?} -> {:?}", old_id, SymbolId(next_id));
                 next_id += 1;
             }
         }
 
         for old_id in external_vec {
-            if !old_to_new.contains_key(&old_id) {
-                old_to_new.insert(old_id, SymbolId(next_id));
+            if let std::collections::hash_map::Entry::Vacant(e) = old_to_new.entry(old_id) {
+                e.insert(SymbolId(next_id));
                 eprintln!("  External {:?} -> {:?}", old_id, SymbolId(next_id));
                 next_id += 1;
             }
@@ -984,11 +990,9 @@ mod tests {
         let mut optimizer = GrammarOptimizer::new();
 
         optimizer.analyze_grammar(&grammar);
-        let eliminated = optimizer.eliminate_unit_rules(&mut grammar);
+        let _eliminated = optimizer.eliminate_unit_rules(&mut grammar);
 
         // The test grammar may not have unit rules, which is fine
-        // eliminated is usize, always >= 0
-        assert!(true); // Keep assertion for documentation purposes
     }
 
     #[test]

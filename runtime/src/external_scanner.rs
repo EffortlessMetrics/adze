@@ -18,6 +18,12 @@ pub struct ExternalScannerState {
     pub data: Vec<u8>,
 }
 
+impl Default for ExternalScannerState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExternalScannerState {
     pub fn new() -> Self {
         ExternalScannerState { data: Vec::new() }
@@ -153,15 +159,13 @@ impl ExternalScanner for StringScanner {
 
         if !self.in_string {
             // Look for string start
-            if valid_symbols.get(STRING_START) == Some(&true) {
-                if current == b'"' || current == b'\'' {
-                    self.in_string = true;
-                    self.quote_char = Some(current);
-                    return Some(ScanResult {
-                        symbol: STRING_START as u16,
-                        length: 1,
-                    });
-                }
+            if valid_symbols.get(STRING_START) == Some(&true) && (current == b'"' || current == b'\'') {
+                self.in_string = true;
+                self.quote_char = Some(current);
+                return Some(ScanResult {
+                    symbol: STRING_START as u16,
+                    length: 1,
+                });
             }
         } else {
             // Inside string - look for content or end
@@ -233,6 +237,12 @@ pub struct CommentScanner {
     depth: u32,
 }
 
+impl Default for CommentScanner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CommentScanner {
     pub fn new() -> Self {
         CommentScanner { depth: 0 }
@@ -257,14 +267,12 @@ impl ExternalScanner for CommentScanner {
 
         if self.depth == 0 {
             // Look for comment start
-            if valid_symbols.get(COMMENT_START) == Some(&true) {
-                if current == b'/' && next == b'*' {
-                    self.depth = 1;
-                    return Some(ScanResult {
-                        symbol: COMMENT_START as u16,
-                        length: 2,
-                    });
-                }
+            if valid_symbols.get(COMMENT_START) == Some(&true) && current == b'/' && next == b'*' {
+                self.depth = 1;
+                return Some(ScanResult {
+                    symbol: COMMENT_START as u16,
+                    length: 2,
+                });
             }
         } else {
             // Inside comment

@@ -30,13 +30,10 @@ impl CompletionProvider {
 
         // Extract keywords from tokens
         for (_id, token) in &grammar.tokens {
-            match &token.pattern {
-                TokenPattern::String(value) => {
-                    if value.chars().all(|c| c.is_alphabetic() || c == '_') {
-                        keywords.push(value.clone());
-                    }
+            if let TokenPattern::String(value) = &token.pattern {
+                if value.chars().all(|c| c.is_alphabetic() || c == '_') {
+                    keywords.push(value.clone());
                 }
-                _ => {}
             }
         }
 

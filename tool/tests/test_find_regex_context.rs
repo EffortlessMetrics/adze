@@ -9,7 +9,7 @@ fn test_find_regex_context() {
     let grammar_path = temp_dir.path().join("javascript.grammar.js");
 
     std::process::Command::new("curl")
-        .args(&[
+        .args([
             "-s", 
             "-o", 
             grammar_path.to_str().unwrap(),

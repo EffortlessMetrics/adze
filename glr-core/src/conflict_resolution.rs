@@ -72,7 +72,7 @@ impl VecWrapperResolver {
 
         // Look through the action table for reduce actions in this state
         if let Some(state_actions) = table.action_table.get(state.0 as usize) {
-            for (_symbol_idx, action_cell) in state_actions.iter().enumerate() {
+            for action_cell in state_actions.iter() {
                 // Each cell now contains a Vec<Action>
                 for action in action_cell {
                     match action {

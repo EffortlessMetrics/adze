@@ -772,7 +772,7 @@ impl GLRParser {
             let state = stack.current_state();
 
             // Check all possible actions from this state
-            for (symbol, _symbol_idx) in &self.table.symbol_to_index {
+            for symbol in self.table.symbol_to_index.keys() {
                 if let Some(_action) = self.get_action(state, *symbol) {
                     if !symbols.contains(symbol) {
                         symbols.push(*symbol);

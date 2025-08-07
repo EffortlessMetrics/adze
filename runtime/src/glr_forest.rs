@@ -86,6 +86,12 @@ pub struct GLRParserState {
     pub stats: GLRStats,
 }
 
+impl Default for GLRParserState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GLRParserState {
     pub fn new() -> Self {
         let mut state = Self {

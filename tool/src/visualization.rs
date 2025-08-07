@@ -344,14 +344,11 @@ impl GrammarVisualizer {
 
         // Build dependency map
         for (lhs, rules) in &self.grammar.rules {
-            let deps = dependencies.entry(*lhs).or_insert_with(HashSet::new);
+            let deps = dependencies.entry(*lhs).or_default();
             for rule in rules {
                 for symbol in &rule.rhs {
-                    match symbol {
-                        Symbol::NonTerminal(id) => {
-                            deps.insert(*id);
-                        }
-                        _ => {}
+                    if let Symbol::NonTerminal(id) = symbol {
+                        deps.insert(*id);
                     }
                 }
             }

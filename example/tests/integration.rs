@@ -23,7 +23,7 @@ fn test_optional_grammar() {
 #[test]
 fn test_repetition_grammar() {
     // Test repetition patterns
-    let input = vec!["item1", "item2", "item3"];
+    let input = ["item1", "item2", "item3"];
 
     // Validate we can handle multiple items
     assert_eq!(input.len(), 3);

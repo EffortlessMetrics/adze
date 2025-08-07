@@ -265,7 +265,7 @@ impl SimdLexer {
 
         // Compare remaining bytes
         let remainder_start = chunks * 8;
-        &a[remainder_start..] == &b[remainder_start..]
+        a[remainder_start..] == b[remainder_start..]
     }
 
     /// Match a pattern type against input
@@ -338,7 +338,7 @@ impl SimdLexer {
             let mut all_digits = true;
             for j in 0..4 {
                 let byte = input[i + j];
-                if byte < b'0' || byte > b'9' {
+                if !(b'0'..=b'9').contains(&byte) {
                     all_digits = false;
                     break;
                 }
@@ -354,7 +354,7 @@ impl SimdLexer {
 
         // Handle remaining bytes
         for &byte in &input[i..] {
-            if byte >= b'0' && byte <= b'9' {
+            if (b'0'..=b'9').contains(&byte) {
                 len += 1;
             } else {
                 break;
@@ -373,7 +373,7 @@ impl SimdLexer {
 
         // First character must be letter or underscore
         let first = input[0];
-        if !((first >= b'a' && first <= b'z') || (first >= b'A' && first <= b'Z') || first == b'_')
+        if !((b'a'..=b'z').contains(&first) || (b'A'..=b'Z').contains(&first) || first == b'_')
         {
             return None;
         }
@@ -382,9 +382,9 @@ impl SimdLexer {
 
         // Match remaining characters
         for &byte in &input[1..] {
-            if (byte >= b'a' && byte <= b'z')
-                || (byte >= b'A' && byte <= b'Z')
-                || (byte >= b'0' && byte <= b'9')
+            if (b'a'..=b'z').contains(&byte)
+                || (b'A'..=b'Z').contains(&byte)
+                || (b'0'..=b'9').contains(&byte)
                 || byte == b'_'
             {
                 len += 1;

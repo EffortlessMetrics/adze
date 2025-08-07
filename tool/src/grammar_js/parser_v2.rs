@@ -556,11 +556,7 @@ impl ImprovedGrammarJsParser {
                 }
                 '\'' | '"' => {
                     current.push(ch);
-                    if !in_string {
-                        in_string = true;
-                    } else {
-                        in_string = false;
-                    }
+                    in_string = !in_string;
                 }
                 '(' | '[' | '{' if !in_string => {
                     current.push(ch);

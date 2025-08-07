@@ -10,6 +10,12 @@ pub struct PerfStats {
     pub cache_misses: AtomicU64,
 }
 
+impl Default for PerfStats {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerfStats {
     pub fn new() -> Self {
         Self {

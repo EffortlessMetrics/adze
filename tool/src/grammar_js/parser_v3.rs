@@ -441,10 +441,8 @@ impl GrammarJsParserV3 {
                     continue;
                 }
 
-                if !in_regex {
-                    if ch == '"' || ch == '\'' {
-                        in_string = !in_string;
-                    }
+                if !in_regex && (ch == '"' || ch == '\'') {
+                    in_string = !in_string;
                 }
 
                 if !in_string && ch == '/' {
@@ -502,7 +500,7 @@ impl GrammarJsParserV3 {
         for arg in args {
             let trimmed = arg.trim();
             if !trimmed.is_empty() {
-                rules.push(self.parse_arg(&trimmed)?);
+                rules.push(self.parse_arg(trimmed)?);
             }
         }
 
@@ -736,7 +734,7 @@ impl GrammarJsParserV3 {
             parts[2].trim() == "true"
         } else {
             // Default to true if the alias starts with a letter
-            value.chars().next().map_or(false, |c| c.is_alphabetic())
+            value.chars().next().is_some_and(|c| c.is_alphabetic())
         };
 
         Ok(Rule::Alias {
@@ -1072,10 +1070,8 @@ impl GrammarJsParserV3 {
                 continue;
             }
 
-            if !in_regex {
-                if ch == '"' || ch == '\'' {
-                    in_string = !in_string;
-                }
+            if !in_regex && (ch == '"' || ch == '\'') {
+                in_string = !in_string;
             }
 
             if !in_string && ch == '/' {

@@ -475,7 +475,7 @@ impl<'a> QueryParser<'a> {
         self.capture_names
             .get(&name)
             .copied()
-            .ok_or_else(|| QueryError::InvalidCapture(name))
+            .ok_or(QueryError::InvalidCapture(name))
     }
 
     fn get_or_create_capture(&mut self, name: &str) -> u32 {

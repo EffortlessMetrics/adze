@@ -210,6 +210,12 @@ pub struct ValidationStats {
     pub avg_rule_length: f64,
 }
 
+impl Default for GrammarValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GrammarValidator {
     pub fn new() -> Self {
         Self {
@@ -605,7 +611,7 @@ impl GrammarValidator {
                 symbol_precedences
                     .entry(*symbol)
                     .or_default()
-                    .push(prec.level as i16);
+                    .push(prec.level);
             }
         }
 
@@ -641,12 +647,10 @@ impl GrammarValidator {
         let mut path = Vec::new();
 
         for symbol in grammar.rules.keys() {
-            if !visited.contains(symbol) {
-                if self.has_cycle(*symbol, grammar, &mut visited, &mut rec_stack, &mut path) {
-                    self.errors.push(ValidationError::CyclicRule {
-                        symbols: path.clone(),
-                    });
-                }
+            if !visited.contains(symbol) && self.has_cycle(*symbol, grammar, &mut visited, &mut rec_stack, &mut path) {
+                self.errors.push(ValidationError::CyclicRule {
+                    symbols: path.clone(),
+                });
             }
         }
     }

@@ -53,7 +53,7 @@ impl GrammarConverter {
         grammar
             .rules
             .entry(expr_symbol)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(Rule {
                 lhs: expr_symbol,
                 rhs: vec![Symbol::Terminal(id_symbol)],
@@ -67,7 +67,7 @@ impl GrammarConverter {
         grammar
             .rules
             .entry(expr_symbol)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(Rule {
                 lhs: expr_symbol,
                 rhs: vec![Symbol::Terminal(num_symbol)],
@@ -81,7 +81,7 @@ impl GrammarConverter {
         grammar
             .rules
             .entry(expr_symbol)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(Rule {
                 lhs: expr_symbol,
                 rhs: vec![

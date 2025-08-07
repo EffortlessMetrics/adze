@@ -16,7 +16,7 @@ fn test_javascript_grammar_parsing() {
     // Download the grammar file
     println!("Downloading JavaScript grammar from tree-sitter repository...");
     let output = Command::new("curl")
-        .args(&["-s", "-o", grammar_path.to_str().unwrap(), grammar_url])
+        .args(["-s", "-o", grammar_path.to_str().unwrap(), grammar_url])
         .output()
         .expect("Failed to download grammar");
 

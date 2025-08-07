@@ -262,7 +262,7 @@ pub fn run_info(path: &PathBuf, node_types: bool, rules: bool) -> Result<()> {
     use crate::grammar_js::parse_grammar_js_v2;
     use std::fs;
 
-    if path.extension().map_or(false, |ext| ext == "js") {
+    if path.extension().is_some_and(|ext| ext == "js") {
         // Parse grammar.js
         let content = fs::read_to_string(path)?;
         let grammar = parse_grammar_js_v2(&content)?;
@@ -272,7 +272,7 @@ pub fn run_info(path: &PathBuf, node_types: bool, rules: bool) -> Result<()> {
 
         if rules {
             println!("\nRules:");
-            for (name, _rule) in &grammar.rules {
+            for name in grammar.rules.keys() {
                 println!("  - {}", name);
             }
         }

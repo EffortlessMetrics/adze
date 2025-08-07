@@ -80,7 +80,7 @@ pub fn generate_lexer(
     for (symbol_index, keyword) in keywords {
         let bytes = keyword.as_bytes();
         let len = bytes.len();
-        let byte_values = bytes.iter().copied().collect::<Vec<_>>();
+        let byte_values = bytes.to_vec();
         token_matches.push(quote! {
             if position + #len <= input.len() &&
                &input[position..position + #len] == &[#(#byte_values),*] &&
@@ -107,7 +107,7 @@ pub fn generate_lexer(
         } else {
             let bytes = s.as_bytes();
             let len = bytes.len();
-            let byte_values = bytes.iter().copied().collect::<Vec<_>>();
+            let byte_values = bytes.to_vec();
             token_matches.push(quote! {
                 if position + #len <= input.len() && &input[position..position + #len] == &[#(#byte_values),*] {
                     state.result_symbol = #symbol_index;
