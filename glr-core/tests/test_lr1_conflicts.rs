@@ -61,22 +61,24 @@ fn test_lr1_conflict_detection() {
 
         // Check each symbol for multiple actions
         for sym_idx in 0..parse_table.symbol_count {
-            let action = &parse_table.action_table[state_idx][sym_idx];
-            match action {
-                rust_sitter_glr_core::Action::Fork(actions) => {
-                    has_conflict = true;
-                    println!("  Symbol {}: Fork with {} actions", sym_idx, actions.len());
+            let actions = &parse_table.action_table[state_idx][sym_idx];
+            // Now action_table[state][symbol] is Vec<Action>
+            if actions.len() > 1 {
+                has_conflict = true;
+                println!("  Symbol {}: {} actions", sym_idx, actions.len());
+                for action in actions {
+                    println!("    - {:?}", action);
                 }
-                rust_sitter_glr_core::Action::Error => {}
-                _ => {
-                    // Find symbol for this index
-                    let symbol = parse_table
-                        .symbol_to_index
-                        .iter()
-                        .find(|(_, idx)| **idx == sym_idx)
-                        .map(|(sym, _)| sym);
-                    if let Some(sym) = symbol {
-                        println!("  Symbol {} (idx {}): {:?}", sym.0, sym_idx, action);
+            } else if !actions.is_empty() {
+                // Find symbol for this index
+                let symbol = parse_table
+                    .symbol_to_index
+                    .iter()
+                    .find(|(_, idx)| **idx == sym_idx)
+                    .map(|(sym, _)| sym);
+                if let Some(sym) = symbol {
+                    if !matches!(actions[0], rust_sitter_glr_core::Action::Error) {
+                        println!("  Symbol {} (idx {}): {:?}", sym.0, sym_idx, actions[0]);
                     }
                 }
             }
@@ -87,13 +89,10 @@ fn test_lr1_conflict_detection() {
         }
     }
 
-    // Check if any Fork actions were generated
+    // Check if any states have multiple actions (conflicts)
     let has_forks = (0..parse_table.state_count).any(|state| {
         (0..parse_table.symbol_count).any(|sym| {
-            matches!(
-                &parse_table.action_table[state][sym],
-                rust_sitter_glr_core::Action::Fork(_)
-            )
+            parse_table.action_table[state][sym].len() > 1
         })
     });
 

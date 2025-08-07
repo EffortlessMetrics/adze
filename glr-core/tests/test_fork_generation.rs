@@ -58,11 +58,12 @@ fn test_fork_action_generation() {
 
     let mut has_fork = false;
     for (state_idx, state_actions) in parse_table.action_table.iter().enumerate() {
-        for (sym_idx, action) in state_actions.iter().enumerate() {
-            if let Action::Fork(actions) = action {
+        for (sym_idx, actions) in state_actions.iter().enumerate() {
+            // Now action_table[state][symbol] is Vec<Action>
+            if actions.len() > 1 {
                 has_fork = true;
                 println!(
-                    "State {}, Symbol {}: Fork with {} actions",
+                    "State {}, Symbol {}: Multiple actions ({})",
                     state_idx,
                     sym_idx,
                     actions.len()

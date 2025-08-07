@@ -118,14 +118,15 @@ fn test_classic_shift_reduce_conflict() {
     println!("  S → if expr then S else S");
     println!("  S → stmt");
 
-    // Look for Fork actions
+    // Look for conflicts (multiple actions)
     let mut fork_count = 0;
     for state in 0..parse_table.state_count {
         for sym in 0..parse_table.symbol_count {
-            if let Action::Fork(actions) = &parse_table.action_table[state][sym] {
+            let actions = &parse_table.action_table[state][sym];
+            if actions.len() > 1 {
                 fork_count += 1;
                 println!(
-                    "\nFound Fork in state {}, symbol {}: {} actions",
+                    "\nFound conflict in state {}, symbol {}: {} actions",
                     state,
                     sym,
                     actions.len()
@@ -241,11 +242,11 @@ fn test_expression_ambiguity() {
     println!("  E → E * E");
     println!("  E → num");
 
-    // Count Fork actions
+    // Count conflicts (multiple actions)
     let mut fork_count = 0;
     for state in 0..parse_table.state_count {
         for sym in 0..parse_table.symbol_count {
-            if let Action::Fork(_) = &parse_table.action_table[state][sym] {
+            if parse_table.action_table[state][sym].len() > 1 {
                 fork_count += 1;
             }
         }
