@@ -28,16 +28,93 @@ use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
 
-/// Helper function to tokenize source code
+/// Helper function to tokenize source code for arithmetic grammar
 fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
-    // Simple tokenization - in a real implementation this would use the grammar's lexer
-    // For now, just create a single token for the entire source
-    vec![GLRToken {
-        symbol: SymbolId(0), // Root symbol
-        text: source.to_vec(),
-        start_byte: 0,
-        end_byte: source.len(),
-    }]
+    // Basic tokenization for arithmetic expressions
+    let mut tokens = Vec::new();
+    let mut position = 0;
+    
+    while position < source.len() {
+        // Skip whitespace
+        while position < source.len() && source[position].is_ascii_whitespace() {
+            position += 1;
+        }
+        
+        if position >= source.len() {
+            break;
+        }
+        
+        let start = position;
+        
+        // Number
+        if source[position].is_ascii_digit() {
+            while position < source.len() && source[position].is_ascii_digit() {
+                position += 1;
+            }
+            tokens.push(GLRToken {
+                symbol: SymbolId(1), // number
+                text: source[start..position].to_vec(),
+                start_byte: start,
+                end_byte: position,
+            });
+        }
+        // Plus
+        else if source[position] == b'+' {
+            position += 1;
+            tokens.push(GLRToken {
+                symbol: SymbolId(2), // plus
+                text: vec![b'+'],
+                start_byte: start,
+                end_byte: position,
+            });
+        }
+        // Mult
+        else if source[position] == b'*' {
+            position += 1;
+            tokens.push(GLRToken {
+                symbol: SymbolId(3), // mult
+                text: vec![b'*'],
+                start_byte: start,
+                end_byte: position,
+            });
+        }
+        // Minus
+        else if source[position] == b'-' {
+            position += 1;
+            tokens.push(GLRToken {
+                symbol: SymbolId(2), // treating as plus for simplicity
+                text: vec![b'-'],
+                start_byte: start,
+                end_byte: position,
+            });
+        }
+        // Left paren
+        else if source[position] == b'(' {
+            position += 1;
+            tokens.push(GLRToken {
+                symbol: SymbolId(4), // lparen
+                text: vec![b'('],
+                start_byte: start,
+                end_byte: position,
+            });
+        }
+        // Right paren
+        else if source[position] == b')' {
+            position += 1;
+            tokens.push(GLRToken {
+                symbol: SymbolId(5), // rparen
+                text: vec![b')'],
+                start_byte: start,
+                end_byte: position,
+            });
+        }
+        // Unknown - skip
+        else {
+            position += 1;
+        }
+    }
+    
+    tokens
 }
 
 /// Represents an edit to the input
@@ -49,7 +126,7 @@ pub fn reparse(
     grammar: &Grammar,
     table: &ParseTable,
     source: &[u8],
-    old_tree: &crate::parser_v4::Tree,
+    _old_tree: &crate::parser_v4::Tree,
     edit: &crate::pure_incremental::Edit,
 ) -> Option<crate::parser_v4::Tree> {
     // Only enable incremental parsing if the feature is enabled
@@ -60,19 +137,31 @@ pub fn reparse(
         // Create an incremental parser instance
         let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
         
-        // Convert the old tree to a forest representation - but we need the old forest
-        // from the parser's previous state, not from the old tree
-        // For now, we'll do a simplified version
-        
-        // Tokenize the entire source (simplified - real implementation would be incremental)
+        // Tokenize the entire source
         let tokens = tokenize_source(source, grammar);
+        
+        // Find which tokens are affected by the edit
+        let mut old_token_start = 0;
+        let mut old_token_end = 0;
+        for (i, token) in tokens.iter().enumerate() {
+            if token.start_byte <= edit.start_byte {
+                old_token_start = i;
+            }
+            if token.end_byte <= edit.old_end_byte {
+                old_token_end = i + 1;
+            }
+        }
+        
+        // Tokenize just the new text for the edit
+        let new_text = &source[edit.start_byte..edit.new_end_byte];
+        let new_tokens = tokenize_source(new_text, grammar);
         
         // Convert the edit to GLR format
         let glr_edit = GLREdit {
             old_range: edit.start_byte..edit.old_end_byte,
-            new_text: source[edit.start_byte..edit.new_end_byte].to_vec(),
-            old_token_range: 0..0, // TODO: Calculate actual token ranges
-            new_tokens: vec![], // TODO: Tokenize the new text
+            new_text: new_text.to_vec(),
+            old_token_range: old_token_start..old_token_end,
+            new_tokens,
         };
         
         // Perform the incremental parse

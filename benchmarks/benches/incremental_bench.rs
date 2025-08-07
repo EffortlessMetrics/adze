@@ -1,9 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use rust_sitter::glr_incremental::{IncrementalGLRParser, GLREdit, GLRToken};
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_ir::{Grammar, SymbolId};
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_benchmarks::test_grammars::{load_arithmetic_grammar, tokenize_arithmetic, TestToken};
+use rust_sitter_benchmarks::test_grammars::{load_arithmetic_grammar, tokenize_arithmetic};
 
 /// Common edit patterns in programming
 #[derive(Debug, Clone)]
@@ -204,7 +202,8 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
                         // Full reparse
                         let mut parser = GLRParser::new(table.clone(), grammar.clone());
                         for token in &new_tokens {
-                            parser.process_token(token.symbol, &token.text, token.start_byte);
+                            let text_str = String::from_utf8_lossy(&token.text);
+                            parser.process_token(token.symbol, &text_str, token.start_byte);
                         }
                         parser.process_eof();
                         parser.finish()
@@ -272,8 +271,7 @@ fn benchmark_reuse_efficiency(c: &mut Criterion) {
     for size in code_sizes {
         let code = generate_sample_code(size);
         let tokens = tokenize(&code);
-        let grammar = create_arithmetic_grammar();
-        let table = create_arithmetic_parse_table(&grammar);
+        let (grammar, table) = load_arithmetic_grammar();
         
         group.bench_function(
             BenchmarkId::new("reuse_ratio", size),

@@ -27,5 +27,6 @@ rust-sitter-ir = { path = "../ir" }
 rust-sitter-glr-core = { path = "../glr-core" }
 tree-sitter = "0.20"
 criterion = "0.5"
+indexmap = "2.0"
 
 [dev-dependencies]

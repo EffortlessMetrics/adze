@@ -1837,6 +1837,7 @@ name = "rust-sitter-benchmarks"
 version = "0.1.0"
 dependencies = [
  "criterion 0.5.1",
+ "indexmap",
  "rust-sitter",
  "rust-sitter-example",
  "rust-sitter-glr-core",
