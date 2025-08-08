@@ -3,6 +3,7 @@
 
 use rust_sitter::parser_v4::{Parser, Tree};
 use rust_sitter::pure_incremental::Edit;
+use rust_sitter::tree_sitter::Point;
 use rust_sitter_ir::Grammar;
 use rust_sitter_glr_core::ParseTable;
 
@@ -65,9 +66,9 @@ fn test_fresh_parse_equals_incremental() {
         start_byte: 3,
         old_end_byte: 3,
         new_end_byte: 6,
-        start_point: rust_sitter::pure_incremental::Point { row: 0, column: 3 },
-        old_end_point: rust_sitter::pure_incremental::Point { row: 0, column: 3 },
-        new_end_point: rust_sitter::pure_incremental::Point { row: 0, column: 6 },
+        start_point: Point { row: 0, column: 3 },
+        old_end_point: Point { row: 0, column: 3 },
+        new_end_point: Point { row: 0, column: 6 },
     };
     
     // Try incremental parse
@@ -102,9 +103,9 @@ fn test_simple_insertion() {
         start_byte: 5,
         old_end_byte: 5,
         new_end_byte: 11,
-        start_point: rust_sitter::pure_incremental::Point { row: 0, column: 5 },
-        old_end_point: rust_sitter::pure_incremental::Point { row: 0, column: 5 },
-        new_end_point: rust_sitter::pure_incremental::Point { row: 0, column: 11 },
+        start_point: Point { row: 0, column: 5 },
+        old_end_point: Point { row: 0, column: 5 },
+        new_end_point: Point { row: 0, column: 11 },
     };
     
     // Attempt incremental parse
@@ -133,9 +134,9 @@ fn test_deletion() {
         start_byte: 4,
         old_end_byte: 8,
         new_end_byte: 4,
-        start_point: rust_sitter::pure_incremental::Point { row: 0, column: 4 },
-        old_end_point: rust_sitter::pure_incremental::Point { row: 0, column: 8 },
-        new_end_point: rust_sitter::pure_incremental::Point { row: 0, column: 4 },
+        start_point: Point { row: 0, column: 4 },
+        old_end_point: Point { row: 0, column: 8 },
+        new_end_point: Point { row: 0, column: 4 },
     };
     
     // Attempt incremental parse
@@ -163,7 +164,7 @@ fn test_replacement() {
         start_byte: 8,
         old_end_byte: 9,
         new_end_byte: 10,
-        start_point: rust_sitter::pure_incremental::Point { row: 0, column: 8 },
+        start_point: Point { row: 0, column: 8 },
         old_end_point: rust_sitter::pure_incremental::Point { row: 0, column: 9 },
         new_end_point: rust_sitter::pure_incremental::Point { row: 0, column: 10 },
     };

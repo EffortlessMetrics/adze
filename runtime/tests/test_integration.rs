@@ -3,10 +3,11 @@
 
 use anyhow::Result;
 use indexmap::IndexMap;
-use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
-use rust_sitter::external_scanner::ExternalScanner;
-use rust_sitter::incremental_v3::{Edit, IncrementalParser, Position};
-use rust_sitter::parser::{ParseNode, Parser};
+use rust_sitter::error_recovery::ErrorRecoveryConfigBuilder;
+// use rust_sitter::external_scanner::ExternalScanner; // Unused
+// use rust_sitter::incremental_v3::{Edit, IncrementalParser, Position}; // Feature-gated
+use rust_sitter::unified_parser::Parser;
+use rust_sitter::tree_sitter::Point as Position;
 use rust_sitter::query::{QueryCursor, compile_query};
 use rust_sitter::scanner_registry::ExternalScannerBuilder;
 use rust_sitter::scanners::IndentationScanner;
@@ -155,12 +156,13 @@ fn create_python_like_grammar() -> Grammar {
 fn create_test_parse_table() -> ParseTable {
     // In a real implementation, this would be generated
     ParseTable {
-        action_table: vec![vec![Action::Error; 10]; 20],
+        action_table: vec![vec![vec![Action::Error]; 10]; 20],
         goto_table: vec![vec![StateId(0); 5]; 20],
         symbol_metadata: vec![],
         state_count: 20,
         symbol_count: 10,
         symbol_to_index: BTreeMap::new(),
+        external_scanner_states: vec![],
     }
 }
 
@@ -184,7 +186,7 @@ fn test_full_parsing_pipeline() {
         .enable_scope_recovery(true)
         .build();
 
-    let mut parser = Parser::new(grammar.clone(), parse_table).with_error_recovery(error_recovery);
+    let mut parser = Parser::new(grammar.clone(), parse_table, "test".to_string()).with_error_recovery(error_recovery);
 
     // 5. Parse some Python-like code
     let input = r#"

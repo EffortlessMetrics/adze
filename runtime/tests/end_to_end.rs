@@ -164,44 +164,45 @@ fn create_arithmetic_parse_table() -> ParseTable {
     let mut table = ParseTable {
         state_count: 10,
         symbol_count: 13, // 0-6 terminals, 7-9 skip, 10-12 non-terminals
-        action_table: vec![vec![Action::Error; 13]; 10],
+        action_table: vec![vec![vec![Action::Error]; 13]; 10],
         goto_table: vec![vec![StateId(0); 13]; 10],
         symbol_metadata: vec![],
         symbol_to_index: std::collections::BTreeMap::new(),
+        external_scanner_states: vec![],
     };
 
     // State 0: Initial state
     // Can shift number or (
-    table.action_table[0][1] = Action::Shift(StateId(1)); // number
-    table.action_table[0][5] = Action::Shift(StateId(2)); // (
+    table.action_table[0][1] = vec![Action::Shift(StateId(1))]; // number
+    table.action_table[0][5] = vec![Action::Shift(StateId(2))]; // (
 
     // State 1: After number
     // Reduce to factor
-    table.action_table[1][0] = Action::Reduce(RuleId(121)); // EOF
-    table.action_table[1][2] = Action::Reduce(RuleId(121)); // +
-    table.action_table[1][3] = Action::Reduce(RuleId(121)); // -
-    table.action_table[1][4] = Action::Reduce(RuleId(121)); // *
-    table.action_table[1][6] = Action::Reduce(RuleId(121)); // )
+    table.action_table[1][0] = vec![Action::Reduce(RuleId(121))]; // EOF
+    table.action_table[1][2] = vec![Action::Reduce(RuleId(121))]; // +
+    table.action_table[1][3] = vec![Action::Reduce(RuleId(121))]; // -
+    table.action_table[1][4] = vec![Action::Reduce(RuleId(121))]; // *
+    table.action_table[1][6] = vec![Action::Reduce(RuleId(121))]; // )
 
     // State 3: After factor
     // Reduce to term
-    table.action_table[3][0] = Action::Reduce(RuleId(111)); // EOF
-    table.action_table[3][2] = Action::Reduce(RuleId(111)); // +
-    table.action_table[3][3] = Action::Reduce(RuleId(111)); // -
-    table.action_table[3][4] = Action::Shift(StateId(4)); // * (shift for term * factor)
-    table.action_table[3][6] = Action::Reduce(RuleId(111)); // )
+    table.action_table[3][0] = vec![Action::Reduce(RuleId(111))]; // EOF
+    table.action_table[3][2] = vec![Action::Reduce(RuleId(111))]; // +
+    table.action_table[3][3] = vec![Action::Reduce(RuleId(111))]; // -
+    table.action_table[3][4] = vec![Action::Shift(StateId(4))]; // * (shift for term * factor)
+    table.action_table[3][6] = vec![Action::Reduce(RuleId(111))]; // )
 
     // State 5: After term
     // Reduce to expression
-    table.action_table[5][0] = Action::Reduce(RuleId(102)); // EOF
-    table.action_table[5][2] = Action::Shift(StateId(6)); // + (shift for expr + term)
-    table.action_table[5][3] = Action::Shift(StateId(7)); // - (shift for expr - term)
-    table.action_table[5][6] = Action::Reduce(RuleId(102)); // )
+    table.action_table[5][0] = vec![Action::Reduce(RuleId(102))]; // EOF
+    table.action_table[5][2] = vec![Action::Shift(StateId(6))]; // + (shift for expr + term)
+    table.action_table[5][3] = vec![Action::Shift(StateId(7))]; // - (shift for expr - term)
+    table.action_table[5][6] = vec![Action::Reduce(RuleId(102))]; // )
 
     // State 8: After expression (goal state)
-    table.action_table[8][0] = Action::Accept; // EOF - accept!
-    table.action_table[8][2] = Action::Shift(StateId(6)); // +
-    table.action_table[8][3] = Action::Shift(StateId(7)); // -
+    table.action_table[8][0] = vec![Action::Accept]; // EOF - accept!
+    table.action_table[8][2] = vec![Action::Shift(StateId(6))]; // +
+    table.action_table[8][3] = vec![Action::Shift(StateId(7))]; // -
 
     // Goto table
     table.goto_table[0][10] = StateId(8); // expression
@@ -265,7 +266,7 @@ fn test_lexer() {
 fn test_simple_parse() {
     let grammar = create_arithmetic_grammar();
     let parse_table = create_arithmetic_parse_table();
-    let mut parser = Parser::new(grammar, parse_table);
+    let mut parser = Parser::new(grammar, parse_table, "test".to_string());
 
     // Parse the string "123"
     let input = "123";
@@ -276,7 +277,7 @@ fn test_simple_parse() {
     match result {
         Ok(node) => {
             println!("Unexpectedly parsed successfully!");
-            println!("Root node: symbol={:?}", node.symbol);
+            println!("Root node: symbol={:?}", node.root_kind);
         }
         Err(e) => {
             println!("Parse error (expected): {:?}", e);

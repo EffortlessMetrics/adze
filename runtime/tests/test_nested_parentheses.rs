@@ -122,11 +122,13 @@ fn create_expression_grammar() -> Grammar {
 fn parse_tokens(parser: &mut GLRParser, tokens: &[TokenWithPosition]) -> Option<Arc<Subtree>> {
     parser.reset();
 
+    let mut total_bytes = 0;
     for token in tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+        total_bytes = token.byte_offset + token.text.len();
     }
 
-    parser.process_eof();
+    parser.process_eof(total_bytes);
     parser.finish().ok()
 }
 

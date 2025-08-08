@@ -6,7 +6,7 @@ use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, Token
 // Import internal modules for testing
 #[path = "../src/glr_lexer.rs"]
 mod glr_lexer;
-#[path = "../src/glr_parser_no_error_recovery.rs"]
+#[path = "../src/glr_parser.rs"]
 mod glr_parser;
 #[path = "../src/subtree.rs"]
 mod subtree;
@@ -126,7 +126,7 @@ fn test_paren_debug() {
     for (input, desc) in test_cases {
         println!("\n\n=== Testing: {} ({}) ===", input, desc);
 
-        parser.reset();
+        // parser.reset(); // Not available in current API
         let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
         let tokens = lexer.tokenize_all();
 
@@ -138,6 +138,9 @@ fn test_paren_debug() {
                 .collect::<Vec<_>>()
         );
 
+        // Calculate total bytes
+        let total_bytes = tokens.last().map(|t| t.byte_offset + t.text.len()).unwrap_or(0);
+        
         // Process tokens with debug output
         for (i, token) in tokens.iter().enumerate() {
             println!(
@@ -152,7 +155,7 @@ fn test_paren_debug() {
         }
 
         println!("\n--- Processing EOF ---");
-        parser.process_eof();
+        parser.process_eof(total_bytes);
 
         match parser.finish() {
             Ok(tree) => {

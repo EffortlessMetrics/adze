@@ -6,7 +6,7 @@ use std::sync::Arc;
 // Import internal modules for testing
 #[path = "../src/glr_lexer.rs"]
 mod glr_lexer;
-#[path = "../src/glr_parser_no_error_recovery.rs"]
+#[path = "../src/glr_parser.rs"]
 mod glr_parser;
 #[path = "../src/subtree.rs"]
 mod subtree;
@@ -181,7 +181,7 @@ fn test_simple_fork_merge() {
         println!("After token '{}': {} active stacks", token.text, count);
     }
 
-    parser.process_eof();
+    parser.process_eof(input.len());
     println!("After EOF: {} active stacks", parser.stack_count());
 
     let result = parser.finish();
@@ -219,7 +219,7 @@ fn test_complex_ambiguity() {
         println!("After token '{}': {} active stacks", token.text, count);
     }
 
-    parser.process_eof();
+    parser.process_eof(input.len());
     let final_count = parser.stack_count();
     println!("After EOF: {} active stacks", final_count);
     println!("Maximum stacks during parsing: {}", max_stacks);
@@ -266,7 +266,7 @@ fn test_precedence_disambiguation() {
         );
     }
 
-    parser.process_eof();
+    parser.process_eof(input.len());
 
     let result = parser.finish();
     assert!(result.is_ok(), "Parser should handle arithmetic expression");
@@ -317,7 +317,7 @@ fn test_merge_identical_stacks() {
         println!("After token '{}': {} active stacks", token.text, count);
     }
 
-    parser.process_eof();
+    parser.process_eof(input.len());
     let final_count = parser.stack_count();
     stack_history.push(final_count);
     println!("After EOF: {} active stacks", final_count);
