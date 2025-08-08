@@ -108,7 +108,7 @@ fn test_forest_splicing_simple_edit() {
     // Initial parse: "1 + 2 + 3"
     let initial_tokens = tokenize("1 + 2 + 3");
     let mut parser = IncrementalGLRParser::new((*grammar).clone(), (*table).clone());
-    let initial_forest = parser.parse(&initial_tokens).unwrap();
+    let initial_forest = parser.parse_incremental(&initial_tokens, &[]).unwrap();
     
     // Edit: "1 + 2 + 3" -> "1 + 5 + 3" (change middle number)
     let new_tokens = tokenize("1 + 5 + 3");
@@ -146,7 +146,7 @@ fn test_forest_splicing_prefix_reuse() {
     // Initial parse: "1 + 2 + 3 + 4"
     let initial_tokens = tokenize("1 + 2 + 3 + 4");
     let mut parser = IncrementalGLRParser::new((*grammar).clone(), (*table).clone());
-    let initial_forest = parser.parse(&initial_tokens).unwrap();
+    let initial_forest = parser.parse_incremental(&initial_tokens, &[]).unwrap();
     
     // Edit at the end: "1 + 2 + 3 + 4" -> "1 + 2 + 3 + 9"
     let new_tokens = tokenize("1 + 2 + 3 + 9");
@@ -181,7 +181,7 @@ fn test_forest_splicing_suffix_reuse() {
     // Initial parse: "1 + 2 + 3 + 4"
     let initial_tokens = tokenize("1 + 2 + 3 + 4");
     let mut parser = IncrementalGLRParser::new((*grammar).clone(), (*table).clone());
-    let initial_forest = parser.parse(&initial_tokens).unwrap();
+    let initial_forest = parser.parse_incremental(&initial_tokens, &[]).unwrap();
     
     // Edit at the beginning: "1 + 2 + 3 + 4" -> "9 + 2 + 3 + 4"
     let new_tokens = tokenize("9 + 2 + 3 + 4");
