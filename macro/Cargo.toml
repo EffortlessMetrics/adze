@@ -26,3 +26,4 @@ rust-sitter-common = { version = "0.6.0", path = "../common" }
 [dev-dependencies]
 insta = "1.39"
 tempfile = "3"
+trybuild = "1.0"

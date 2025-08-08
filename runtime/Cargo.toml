@@ -51,6 +51,8 @@ tempfile = "3.20.0"
 criterion = { version = "0.7.0", features = ["html_reports"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.142"
+proptest = "1.4"
+hex = "0.4"
 
 [[bench]]
 name = "simple_bench"

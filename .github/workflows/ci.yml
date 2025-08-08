@@ -2,218 +2,180 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 env:
+  RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-and-test:
-    name: Build and Test
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
       
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          
-      - name: Cache cargo registry
-        uses: actions/cache@v3
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          
-      - name: Cache cargo index
-        uses: actions/cache@v3
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-          
-      - name: Cache cargo build
-        uses: actions/cache@v3
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-          
-      - name: Build
-        run: cargo build --workspace --all-features
-        
-      - name: Run tests
-        run: cargo test --workspace --all-features
-        
-      - name: Run doctests
-        run: cargo test -p rust-sitter --doc
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: clippy
-          
-      - name: Run clippy
-        run: |
-          # Exclude vendored/generated code if in separate crate
-          cargo clippy --workspace --all-targets -- -D warnings
-
-  fmt:
-    name: Format
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt
-          
       - name: Check formatting
         run: cargo fmt --all -- --check
+      
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-  loc-tracking:
-    name: LOC Tracking
+  test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       
-      - name: Install tokei
-        run: |
-          wget https://github.com/XAMPPRocky/tokei/releases/latest/download/tokei-x86_64-unknown-linux-gnu.tar.gz
-          tar xf tokei-x86_64-unknown-linux-gnu.tar.gz
-          chmod +x tokei
-          
-      - name: Count LOC
-        run: |
-          # Count only authored Rust code, excluding vendored/generated
-          ./tokei --exclude '**/vendor/**' --exclude '**/generated/**' --exclude '**/target/**' --type Rust
-          
-      - name: Store LOC metrics
-        run: |
-          ./tokei --exclude '**/vendor/**' --exclude '**/generated/**' --exclude '**/target/**' --type Rust --output json > loc-metrics.json
-          
-      - name: Upload LOC metrics
-        uses: actions/upload-artifact@v3
+      - name: Install nextest
+        uses: taiki-e/install-action@v2
         with:
-          name: loc-metrics
-          path: loc-metrics.json
+          tool: cargo-nextest
+      
+      - name: Run tests with nextest
+        run: cargo nextest run --workspace --all-features
+      
+      - name: Run doctests
+        run: cargo test --doc --workspace --all-features
 
-  # Performance benchmark job - runs on main branch only
-  perf-bench:
-    name: Performance Benchmark
+  feature-matrix:
+    name: Feature Matrix
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@v2
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          
-      - name: Run benchmarks
+          tool: cargo-hack
+      
+      - name: Test feature powerset (rust-sitter)
         run: |
-          cargo bench --bench incremental -- --output-format bencher | tee bench-output.txt
-          
-      - name: Store benchmark results
-        run: |
-          mkdir -p bench-results
-          cp bench-output.txt bench-results/
-          echo "Commit: ${{ github.sha }}" >> bench-results/metadata.txt
-          echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> bench-results/metadata.txt
-          
-      - name: Upload benchmark artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: benchmark-results-${{ github.sha }}
-          path: bench-results/
+          cargo hack test -p rust-sitter --feature-powerset \
+            --exclude-features default \
+            --skip tree-sitter-standard \
+            --lib --tests
+      
+      - name: Test incremental_glr feature
+        run: cargo test --workspace --features incremental_glr
 
-  # Nightly performance regression check
-  perf-regression:
-    name: Performance Regression Check
+  msrv:
+    name: MSRV (1.75.0)
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.75.0
+      - uses: Swatinem/rust-cache@v2
       
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Build on MSRV
+        run: cargo build --workspace --all-features
+
+  api-stability:
+    name: API Stability
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          
-      - name: Download baseline
-        uses: actions/download-artifact@v3
-        with:
-          name: baseline-benchmark
-          path: baseline/
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Install API tools
+        run: |
+          cargo install cargo-public-api --locked
+          cargo install cargo-semver-checks --locked
+      
+      - name: Public API diff (rust-sitter)
         continue-on-error: true
-        
-      - name: Run benchmarks
-        run: cargo bench --bench incremental -- --output-format bencher | tee current-bench.txt
-        
-      - name: Check for regression
         run: |
-          if [ -f baseline/bench-output.txt ]; then
-            # Parse and compare benchmark results
-            # Alert if performance regressed by more than 10%
-            python3 -c "
-          import re
-          
-          def parse_bench(file):
-              with open(file) as f:
-                  text = f.read()
-                  # Extract ns/iter values
-                  matches = re.findall(r'test (\S+)\s+\.\.\.\s+bench:\s+([0-9,]+)\s+ns/iter', text)
-                  return {name: int(time.replace(',', '')) for name, time in matches}
-          
-          baseline = parse_bench('baseline/bench-output.txt')
-          current = parse_bench('current-bench.txt')
-          
-          regressions = []
-          for test in baseline:
-              if test in current:
-                  ratio = current[test] / baseline[test]
-                  if ratio > 1.10:  # 10% regression threshold
-                      regressions.append(f'{test}: {ratio:.2f}x slower')
-          
-          if regressions:
-              print('Performance regressions detected:')
-              for r in regressions:
-                  print(f'  - {r}')
-              exit(1)
-          else:
-              print('No performance regressions detected')
-            "
-          fi
-          
-      - name: Update baseline
-        if: success() && github.ref == 'refs/heads/main'
+          git fetch origin ${{ github.base_ref }}
+          cargo public-api --diff-git-checks origin/${{ github.base_ref }}...HEAD \
+            -p rust-sitter --deny-changes
+      
+      - name: SemVer checks (public crates)
+        continue-on-error: true
         run: |
-          mkdir -p new-baseline
-          cp current-bench.txt new-baseline/bench-output.txt
-          
-      - name: Upload new baseline
-        if: success() && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v3
+          cargo semver-checks check-release -p rust-sitter || true
+          cargo semver-checks check-release -p rust-sitter-ir || true
+          cargo semver-checks check-release -p rust-sitter-glr-core || true
+
+  security:
+    name: Security & Supply Chain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
         with:
-          name: baseline-benchmark
-          path: new-baseline/
+          tool: cargo-deny
+      
+      - name: Check advisories, licenses, and bans
+        run: cargo deny check
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Build docs (deny warnings)
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps --all-features
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      
+      - name: Generate coverage
+        run: cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+      
+      - name: Upload to codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
+
+  unsafe-audit:
+    name: Unsafe Code Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Install cargo-geiger
+        run: cargo install cargo-geiger --locked
+      
+      - name: Audit unsafe code usage
+        run: |
+          echo "## Unsafe Code Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cargo geiger --workspace >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
