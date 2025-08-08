@@ -1,6 +1,5 @@
 [workspace]
 resolver = "2"
-rust-version = "1.75.0"
 members = [
   "macro",
   "runtime",
@@ -26,3 +25,11 @@ members = [
   "wasm-demo",
 ]
 exclude = ["runtime/fuzz"]
+
+[workspace.package]
+rust-version = "1.75"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+unused_must_use = "deny"
+missing_docs = "warn"

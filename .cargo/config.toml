@@ -1,8 +1,7 @@
 # Cargo configuration for rust-sitter
 
 [build]
-# Number of parallel jobs, defaults to # of CPUs
-jobs = 0
+# Number of parallel jobs, defaults to # of CPUs (0 is invalid, remove to use default)
 
 [profile.dev]
 # Faster compilation at the cost of runtime performance
