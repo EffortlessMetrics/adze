@@ -124,14 +124,14 @@ impl<'a> AbiLanguageBuilder<'a> {
             );
 
             let scanner_functions = quote! {
-                #[cfg(feature = "scanner-ffi")]
+                // External scanner FFI functions
                 mod external_scanner_ffi {
                     use ::rust_sitter::ffi::{TSLexer, TSSymbol};
-                    use ::rust_sitter::external_scanner::{DynExternalScanner, ScanResult};
+                    use ::rust_sitter::external_scanner::DynExternalScanner;
                     use ::std::ffi::c_void;
 
                     #[no_mangle]
-                    pub unsafe extern "C" fn #scanner_create_fn() -> *mut c_void {
+                    pub extern "C" fn #scanner_create_fn() -> *mut c_void {
                         // Get scanner from registry or create directly
                         // For now, create a Python scanner directly
                         // TODO: Make this configurable based on language
@@ -140,75 +140,83 @@ impl<'a> AbiLanguageBuilder<'a> {
                     }
 
                     #[no_mangle]
-                    pub unsafe extern "C" fn #scanner_destroy_fn(scanner: *mut c_void) {
-                        if !scanner.is_null() {
-                            let _ = Box::from_raw(scanner as *mut Box<DynExternalScanner>);
+                    pub extern "C" fn #scanner_destroy_fn(scanner: *mut c_void) {
+                        unsafe {
+                            if !scanner.is_null() {
+                                let _ = Box::from_raw(scanner as *mut Box<DynExternalScanner>);
+                            }
                         }
                     }
 
                     #[no_mangle]
-                    pub unsafe extern "C" fn #scanner_scan_fn(
+                    pub extern "C" fn #scanner_scan_fn(
                         scanner: *mut c_void,
                         lexer: *mut c_void,
                         valid_symbols: *const bool,
                     ) -> bool {
-                        if scanner.is_null() || lexer.is_null() || valid_symbols.is_null() {
-                            return false;
+                        unsafe {
+                            if scanner.is_null() || lexer.is_null() || valid_symbols.is_null() {
+                                return false;
+                            }
+
+                            // Cast pointers to their correct types
+                            let parser = &mut *(lexer as *mut ::rust_sitter::parser_v4::Parser);
+                            let scanner = &mut *(scanner as *mut Box<DynExternalScanner>);
+                            let valid = std::slice::from_raw_parts(valid_symbols, #num_external_tokens);
+
+                            // Get parser's live input and position
+                            let lexer = parser.borrow_lexer();
+
+                            // Call the scanner
+                            if let Some(result) = scanner.scan(lexer, valid) {
+                                // Update the TSLexer result
+                                let ts_lexer = lexer as *mut _ as *mut TSLexer;
+                                (*ts_lexer).result_symbol = result.symbol as TSSymbol;
+
+                                // Advance the parser by the scanned length
+                                parser.advance_from_scanner(result.length);
+                                return true;
+                            }
+
+                            false
                         }
-
-                        // Cast pointers to their correct types
-                        let parser = &mut *(lexer as *mut ::rust_sitter::parser_v4::Parser);
-                        let scanner = &mut *(scanner as *mut Box<DynExternalScanner>);
-                        let valid = std::slice::from_raw_parts(valid_symbols, #num_external_tokens);
-
-                        // Get parser's live input and position
-                        let lexer = parser.borrow_lexer();
-
-                        // Call the scanner
-                        if let Some(result) = scanner.scan(lexer, valid) {
-                            // Update the TSLexer result
-                            let ts_lexer = lexer as *mut _ as *mut TSLexer;
-                            (*ts_lexer).result_symbol = result.symbol as TSSymbol;
-
-                            // Advance the parser by the scanned length
-                            parser.advance_from_scanner(result.length);
-                            return true;
-                        }
-
-                        false
                     }
 
                     #[no_mangle]
-                    pub unsafe extern "C" fn #scanner_serialize_fn(
+                    pub extern "C" fn #scanner_serialize_fn(
                         scanner: *mut c_void,
                         buffer: *mut u8,
                     ) -> u32 {
-                        if scanner.is_null() || buffer.is_null() {
-                            return 0;
+                        unsafe {
+                            if scanner.is_null() || buffer.is_null() {
+                                return 0;
+                            }
+
+                            let scanner = &*(scanner as *mut Box<DynExternalScanner>);
+                            let mut vec = Vec::new();
+                            scanner.serialize(&mut vec);
+
+                            let len = vec.len().min(1024) as u32; // Limit to 1KB
+                            std::ptr::copy_nonoverlapping(vec.as_ptr(), buffer, len as usize);
+                            len
                         }
-
-                        let scanner = &*(scanner as *mut Box<DynExternalScanner>);
-                        let mut vec = Vec::new();
-                        scanner.serialize(&mut vec);
-
-                        let len = vec.len().min(1024) as u32; // Limit to 1KB
-                        std::ptr::copy_nonoverlapping(vec.as_ptr(), buffer, len as usize);
-                        len
                     }
 
                     #[no_mangle]
-                    pub unsafe extern "C" fn #scanner_deserialize_fn(
+                    pub extern "C" fn #scanner_deserialize_fn(
                         scanner: *mut c_void,
                         buffer: *const u8,
                         length: u32,
                     ) {
-                        if scanner.is_null() || buffer.is_null() {
-                            return;
-                        }
+                        unsafe {
+                            if scanner.is_null() || buffer.is_null() {
+                                return;
+                            }
 
-                        let scanner = &mut *(scanner as *mut Box<DynExternalScanner>);
-                        let slice = std::slice::from_raw_parts(buffer, length as usize);
-                        scanner.deserialize(slice);
+                            let scanner = &mut *(scanner as *mut Box<DynExternalScanner>);
+                            let slice = std::slice::from_raw_parts(buffer, length as usize);
+                            scanner.deserialize(slice);
+                        }
                     }
                 }
             };
@@ -217,26 +225,11 @@ impl<'a> AbiLanguageBuilder<'a> {
                 ExternalScanner {
                     states: EXTERNAL_SCANNER_STATES.as_ptr() as *const u8,
                     symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr() as *const TSSymbol,
-                    #[cfg(feature = "scanner-ffi")]
                     create: Some(external_scanner_ffi::#scanner_create_fn),
-                    #[cfg(feature = "scanner-ffi")]
                     destroy: Some(external_scanner_ffi::#scanner_destroy_fn),
-                    #[cfg(feature = "scanner-ffi")]
                     scan: Some(external_scanner_ffi::#scanner_scan_fn),
-                    #[cfg(feature = "scanner-ffi")]
                     serialize: Some(external_scanner_ffi::#scanner_serialize_fn),
-                    #[cfg(feature = "scanner-ffi")]
                     deserialize: Some(external_scanner_ffi::#scanner_deserialize_fn),
-                    #[cfg(not(feature = "scanner-ffi"))]
-                    create: None,
-                    #[cfg(not(feature = "scanner-ffi"))]
-                    destroy: None,
-                    #[cfg(not(feature = "scanner-ffi"))]
-                    scan: None,
-                    #[cfg(not(feature = "scanner-ffi"))]
-                    serialize: None,
-                    #[cfg(not(feature = "scanner-ffi"))]
-                    deserialize: None,
                 }
             };
 
@@ -396,11 +389,8 @@ impl<'a> AbiLanguageBuilder<'a> {
             };
 
             // Get the Tree-sitter Language for this grammar
-            #[cfg(feature = "scanner-ffi")]
-            #[no_mangle]
-            pub unsafe extern "C" fn tree_sitter_python() -> *const TSLanguage {
-                &LANGUAGE as *const TSLanguage
-            }
+            // Note: This is a generated example function, not actually named tree_sitter_python
+            // The actual function name is generated based on the grammar name
         }
     }
 

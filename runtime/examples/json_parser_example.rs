@@ -2,7 +2,7 @@
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{
-    Associativity, FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+    FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
 use std::sync::Arc;
 
@@ -169,36 +169,28 @@ fn build_json_grammar() -> Grammar {
     // Define rules
     // value → string | number | true | false | null | object | array
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        value_id,
-        Rule {
-            lhs: value_id,
-            rhs: vec![Symbol::Terminal(string_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: prod_id,
-        },
-    );
-    grammar.production_ids.insert(prod_id.into(), prod_id);
+    grammar.add_rule(Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::Terminal(string_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: prod_id,
+    });
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
-        Rule {
-            lhs: value_id,
-            rhs: vec![Symbol::Terminal(number_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: prod_id,
-        },
-    );
+    grammar.add_rule(Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: prod_id,
+    });
     next_symbol_id += 1;
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
+    grammar.add_rule(
         Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(true_id)],
@@ -211,8 +203,7 @@ fn build_json_grammar() -> Grammar {
     next_symbol_id += 1;
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
+    grammar.add_rule(
         Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(false_id)],
@@ -225,8 +216,7 @@ fn build_json_grammar() -> Grammar {
     next_symbol_id += 1;
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
+    grammar.add_rule(
         Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(null_id)],
@@ -239,8 +229,7 @@ fn build_json_grammar() -> Grammar {
     next_symbol_id += 1;
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
+    grammar.add_rule(
         Rule {
             lhs: value_id,
             rhs: vec![Symbol::NonTerminal(object_id)],
@@ -253,8 +242,7 @@ fn build_json_grammar() -> Grammar {
     next_symbol_id += 1;
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
+    grammar.add_rule(
         Rule {
             lhs: value_id,
             rhs: vec![Symbol::NonTerminal(array_id)],
@@ -268,7 +256,7 @@ fn build_json_grammar() -> Grammar {
 
     // object → { } | { members }
     let prod_id = alloc_production();
-    grammar.rules.insert(
+    grammar.add_rule(
         object_id,
         Rule {
             lhs: object_id,
@@ -281,8 +269,7 @@ fn build_json_grammar() -> Grammar {
     );
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
+    grammar.add_rule(
         Rule {
             lhs: object_id,
             rhs: vec![
@@ -300,7 +287,7 @@ fn build_json_grammar() -> Grammar {
 
     // members → member | member , members
     let prod_id = alloc_production();
-    grammar.rules.insert(
+    grammar.add_rule(
         members_id,
         Rule {
             lhs: members_id,
@@ -313,8 +300,7 @@ fn build_json_grammar() -> Grammar {
     );
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
+    grammar.add_rule(
         Rule {
             lhs: members_id,
             rhs: vec![
@@ -332,7 +318,7 @@ fn build_json_grammar() -> Grammar {
 
     // member → string : value (with field names)
     let prod_id = alloc_production();
-    grammar.rules.insert(
+    grammar.add_rule(
         member_id,
         Rule {
             lhs: member_id,
@@ -350,7 +336,7 @@ fn build_json_grammar() -> Grammar {
 
     // array → [ ] | [ elements ]
     let prod_id = alloc_production();
-    grammar.rules.insert(
+    grammar.add_rule(
         array_id,
         Rule {
             lhs: array_id,
@@ -363,8 +349,7 @@ fn build_json_grammar() -> Grammar {
     );
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
+    grammar.add_rule(
         Rule {
             lhs: array_id,
             rhs: vec![
@@ -382,7 +367,7 @@ fn build_json_grammar() -> Grammar {
 
     // elements → value | value , elements
     let prod_id = alloc_production();
-    grammar.rules.insert(
+    grammar.add_rule(
         elements_id,
         Rule {
             lhs: elements_id,
@@ -395,8 +380,7 @@ fn build_json_grammar() -> Grammar {
     );
 
     let prod_id = alloc_production();
-    grammar.rules.insert(
-        SymbolId(next_symbol_id),
+    grammar.add_rule(
         Rule {
             lhs: elements_id,
             rhs: vec![
@@ -438,16 +422,16 @@ fn main() {
             println!("- {} symbols", parse_table.symbol_count);
 
             // Create GLR parser
-            let states = Vec::new(); // In real implementation, this comes from automaton
-            let mut parser = GLRParser::new(grammar.clone(), states, parse_table);
+            let mut parser = GLRParser::new(parse_table, grammar.clone());
 
             // Example: Parse a simple JSON value
-            println!("\nParsing: \"hello\"");
+            let input = "\"hello\"";
+            println!("\nParsing: {}", input);
 
             // In a real implementation, we'd have a lexer that produces these tokens
             // For now, we'll manually provide the tokens
-            parser.process_token(SymbolId(1), "\"hello\"", 0); // string token
-            parser.process_eof();
+            parser.process_token(SymbolId(1), input, 0); // string token
+            parser.process_eof(input.len());
 
             if let Some(tree) = parser.get_best_parse() {
                 println!("Parse successful!");

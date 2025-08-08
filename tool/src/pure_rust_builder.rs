@@ -322,10 +322,20 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     writeln!(parser_file, "#[allow(non_snake_case)]")?;
     writeln!(parser_file, "#[allow(non_camel_case_types)]")?;
     writeln!(parser_file, "#[allow(unused_unsafe)]")?;
+    writeln!(parser_file, "#[allow(unused_variables)]")?;
+    writeln!(parser_file, "#[allow(unexpected_cfgs)]")?;
+    writeln!(parser_file, "#[allow(unsafe_op_in_unsafe_fn)]")?;
+    writeln!(parser_file, "#[allow(unused_imports)]")?;
     writeln!(parser_file)?;
 
     // Write the generated code
-    writeln!(parser_file, "{}", language_code)?;
+    // Fix Rust 2024 compatibility: remove unsafe from extern functions with #[no_mangle]
+    let language_code_str = language_code.to_string();
+    // Handle both compressed and uncompressed spaces around [no_mangle]
+    let fixed_code = language_code_str
+        .replace("# [no_mangle] pub unsafe extern", "# [no_mangle] pub extern")
+        .replace("#[no_mangle] pub unsafe extern", "#[no_mangle] pub extern");
+    writeln!(parser_file, "{}", fixed_code)?;
 
     Ok(BuildResult {
         grammar_name,

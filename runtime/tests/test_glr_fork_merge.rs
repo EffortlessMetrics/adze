@@ -4,12 +4,14 @@ use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, Token
 use std::sync::Arc;
 
 // Import internal modules for testing
+#[path = "../src/error_recovery.rs"]
+mod error_recovery;
+#[path = "../src/subtree.rs"]
+mod subtree;
 #[path = "../src/glr_lexer.rs"]
 mod glr_lexer;
 #[path = "../src/glr_parser.rs"]
 mod glr_parser;
-#[path = "../src/subtree.rs"]
-mod subtree;
 
 use glr_lexer::GLRLexer;
 use glr_parser::GLRParser;
