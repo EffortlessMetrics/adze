@@ -12,6 +12,86 @@ Rust Sitter provides state-of-the-art performance through:
 - Compile-time optimizations
 - Profile-guided optimization
 
+## Performance Features
+
+Rust Sitter includes several performance optimizations that make it competitive with or faster than the C-based Tree-sitter implementation:
+
+- **SIMD-Accelerated Lexing** - Up to 3x faster token scanning
+- **Parallel Parsing** - Multi-threaded parsing for large files
+- **Zero-Copy Parsing** - Minimal memory allocations
+- **Incremental Parsing** - O(log n) complexity for edits
+
+### SIMD Lexer
+
+The SIMD lexer (`simd_lexer` module) provides accelerated token scanning using:
+
+#### Optimizations
+
+1. **Vectorized String Comparison**
+   - Compares 8 bytes at a time using u64 operations
+   - Optimized for common literal tokens
+
+2. **Fast Pattern Matching**
+   - Specialized matchers for common patterns:
+     - Whitespace: `\s+`
+     - Digits: `\d+`
+     - Identifiers: `[a-zA-Z_][a-zA-Z0-9_]*`
+   - Bitmap-based character class matching
+
+3. **Loop Unrolling**
+   - Processes multiple bytes per iteration
+   - Reduces branch mispredictions
+
+### Parallel Parser
+
+The parallel parser (`parallel_parser` module) enables multi-threaded parsing:
+
+#### Features
+
+1. **Automatic Chunking**
+   - Splits large files at statement boundaries
+   - Maintains parsing context across chunks
+
+2. **Thread Pool Management**
+   - Uses rayon for work-stealing parallelism
+   - Configurable thread count
+
+3. **Smart Thresholds**
+   - Only activates for files > 100KB
+   - Optimal chunk size: 50KB
+
+### Memory Efficiency
+
+#### Zero-Copy Design
+
+1. **Slice References**
+   - Tokens reference input buffer directly
+   - No string duplication during lexing
+
+2. **Arena Allocation**
+   - Parse nodes allocated in contiguous memory
+   - Improved cache locality
+
+3. **Incremental Reuse**
+   - Subtrees shared between parse iterations
+   - Copy-on-write semantics
+
+### Incremental Parsing
+
+#### Algorithm
+
+1. **Edit Tracking**
+   - Precise byte-level edit positions
+   - Minimal subtree invalidation
+
+2. **Subtree Reuse**
+   - Hash-based subtree identification
+   - O(log n) reparse complexity
+
+3. **Cache Management**
+   - LRU cache for common subtrees
+   - Configurable cache size
+
 ## Performance Metrics
 
 ### Baseline Performance

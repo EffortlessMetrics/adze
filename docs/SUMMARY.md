@@ -7,8 +7,9 @@
 
 -   **Guides**
     -   [Usage Examples](./USAGE_EXAMPLES.md)
-    -   [Migration Guide](./MIGRATION_GUIDE.md)
-    -   [Performance Guide](./PERFORMANCE_GUIDE.md)
+    -   [Migrating from Tree-sitter](./MIGRATING_FROM_TREE_SITTER.md)
+    -   [Migrating to the GLR Architecture](./MIGRATING_TO_GLR.md)
+    -   [Performance](./PERFORMANCE_GUIDE.md)
     -   [Testing Framework](./TESTING_FRAMEWORK.md)
     -   [LSP Generator](./LSP_GENERATOR.md)
     -   [Playground](./PLAYGROUND.md)
