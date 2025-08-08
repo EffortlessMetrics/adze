@@ -1,6 +1,6 @@
 # Rust Sitter API Documentation
 
-Complete API reference for rust-sitter v1.0 - the production-ready pure-Rust parser generator.
+Complete API reference for rust-sitter v0.5.0-beta. While the project is in beta, the API is stable and feature-complete.
 
 ## Table of Contents
 
