@@ -326,7 +326,7 @@ fn test_deeply_nested_ambiguous_expression() {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
 
-    parser.process_eof();
+    parser.process_eof(input.len());
 
     let result = parser.finish();
     assert!(
@@ -371,7 +371,7 @@ fn test_extremely_ambiguous_parsing() {
         );
     }
 
-    parser.process_eof();
+    parser.process_eof(input.len());
 
     let result = parser.finish();
     assert!(
@@ -412,7 +412,7 @@ fn test_long_ambiguous_chain() {
         );
     }
 
-    parser.process_eof();
+    parser.process_eof(input.len());
 
     let result = parser.finish();
     assert!(
@@ -470,7 +470,7 @@ fn test_stress_deeply_nested_parentheses() {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
 
-    parser.process_eof();
+    parser.process_eof(input.len());
 
     let result = parser.finish();
     assert!(

@@ -24,7 +24,14 @@ fn parse_tokens(parser: &mut GLRParser, tokens: &[TokenWithPosition]) -> Option<
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
 
-    parser.process_eof();
+    // Calculate total bytes from the last token
+    let total_bytes = if let Some(last_token) = tokens.last() {
+        last_token.byte_offset + last_token.text.len()
+    } else {
+        0
+    };
+
+    parser.process_eof(total_bytes);
     parser.finish().ok()
 }
 

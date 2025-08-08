@@ -141,12 +141,13 @@ fn create_python_grammar() -> Grammar {
 fn create_parse_table() -> ParseTable {
     // This is a simplified parse table - in reality it would be generated
     ParseTable {
-        action_table: vec![vec![Action::Error; 10]; 10],
+        action_table: vec![vec![vec![Action::Error]; 10]; 10],
         goto_table: vec![vec![rust_sitter_ir::StateId(0); 10]; 10],
         symbol_metadata: vec![],
         state_count: 10,
         symbol_count: 10,
         symbol_to_index: BTreeMap::new(),
+        external_scanner_states: vec![],
     }
 }
 
@@ -189,8 +190,47 @@ fn test_scanner_state_serialization() {
     let input = b"    hello\n        world\n";
     let valid_symbols = vec![true, true, true]; // newline, indent, dedent all valid
 
+    // Create a mock lexer
+    struct MockLexer<'a> {
+        input: &'a [u8],
+        position: usize,
+        marked_end: usize,
+    }
+    
+    impl<'a> rust_sitter::external_scanner::Lexer for MockLexer<'a> {
+        fn lookahead(&self) -> Option<u8> {
+            self.input.get(self.position).copied()
+        }
+        
+        fn advance(&mut self, n: usize) {
+            self.position = (self.position + n).min(self.input.len());
+        }
+        
+        fn mark_end(&mut self) {
+            self.marked_end = self.position;
+        }
+        
+        fn column(&self) -> usize {
+            // Simplified - count from last newline
+            let mut col = 0;
+            for i in (0..self.position).rev() {
+                if self.input[i] == b'\n' {
+                    break;
+                }
+                col += 1;
+            }
+            col
+        }
+        
+        fn is_eof(&self) -> bool {
+            self.position >= self.input.len()
+        }
+    }
+    
+    let mut lexer = MockLexer { input, position: 0, marked_end: 0 };
+    
     // Scan first line (4 spaces)
-    let result = scanner.scan(&valid_symbols, input, 0);
+    let result = scanner.scan(&mut lexer, &valid_symbols);
     assert!(result.is_some());
 
     // Serialize state
@@ -216,13 +256,55 @@ fn test_multiple_dedents() {
     let input = b"def foo():\n    if True:\n        pass\n";
     let valid_symbols = vec![true, true, true];
 
+    // Create a mock lexer
+    struct MockLexer<'a> {
+        input: &'a [u8],
+        position: usize,
+        marked_end: usize,
+    }
+    
+    impl<'a> rust_sitter::external_scanner::Lexer for MockLexer<'a> {
+        fn lookahead(&self) -> Option<u8> {
+            self.input.get(self.position).copied()
+        }
+        
+        fn advance(&mut self, n: usize) {
+            self.position = (self.position + n).min(self.input.len());
+        }
+        
+        fn mark_end(&mut self) {
+            self.marked_end = self.position;
+        }
+        
+        fn column(&self) -> usize {
+            // Simplified - count from last newline
+            let mut col = 0;
+            for i in (0..self.position).rev() {
+                if self.input[i] == b'\n' {
+                    break;
+                }
+                col += 1;
+            }
+            col
+        }
+        
+        fn is_eof(&self) -> bool {
+            self.position >= self.input.len()
+        }
+    }
+    
+    let mut lexer = MockLexer { input, position: 10, marked_end: 0 };
+    
     // Scan "def foo():\n" - should get newline
-    let result = scanner.scan(&valid_symbols, input, 10); // After "def foo():"
-    assert_eq!(result.unwrap().symbol, SymbolId(0)); // NEWLINE
+    let result = scanner.scan(&mut lexer, &valid_symbols);
+    assert_eq!(result.unwrap().symbol, 0); // NEWLINE
 
+    // Reset lexer to position 11 for next scan
+    let mut lexer = MockLexer { input, position: 11, marked_end: 0 };
+    
     // Scan "    if True:\n" - should get indent
-    let result = scanner.scan(&valid_symbols, input, 11); // At start of "    if True:"
-    assert_eq!(result.unwrap().symbol, SymbolId(1)); // INDENT
+    let result = scanner.scan(&mut lexer, &valid_symbols);
+    assert_eq!(result.unwrap().symbol, 1); // INDENT
 }
 
 #[test]
