@@ -1,5 +1,9 @@
-// GLR parser generation algorithms for pure-Rust Tree-sitter
-// This module implements the core GLR state machine generation and conflict resolution
+// GLR core may need unsafe for performance-critical parser algorithms
+#![deny(unsafe_op_in_unsafe_fn)]
+#![warn(missing_docs)]
+
+//! GLR parser generation algorithms for pure-Rust Tree-sitter
+//! This module implements the core GLR state machine generation and conflict resolution
 
 use fixedbitset::FixedBitSet;
 use indexmap::IndexMap;

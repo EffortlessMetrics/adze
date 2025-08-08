@@ -1,3 +1,9 @@
+// Runtime crate needs unsafe for FFI bindings and performance-critical operations
+#![deny(unsafe_op_in_unsafe_fn)]
+#![warn(missing_docs)]
+
+//! rust-sitter runtime library for Tree-sitter parsing
+
 pub mod __private;
 pub mod external_scanner;
 pub mod external_scanner_ffi;

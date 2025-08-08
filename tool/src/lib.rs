@@ -1,3 +1,9 @@
+// Tool crate is mostly safe, with minimal unsafe for optimizations
+#![deny(unsafe_op_in_unsafe_fn)]
+#![warn(missing_docs)]
+
+//! Build tool for rust-sitter parser generation
+
 use serde_json::Value;
 use syn::{Item, parse_quote};
 

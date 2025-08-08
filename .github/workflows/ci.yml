@@ -5,10 +5,14 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  schedule:
+    # Run nightly at 2 AM UTC for scheduled jobs (fuzzing, etc)
+    - cron: '0 2 * * *'
 
 env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
+  COVERAGE_THRESHOLD: 80
 
 jobs:
   lint:
@@ -28,8 +32,11 @@ jobs:
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -45,6 +52,87 @@ jobs:
       
       - name: Run doctests
         run: cargo test --doc --workspace --all-features
+
+  miri:
+    name: Miri (UB Detection)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Setup Miri
+        run: cargo miri setup
+      
+      - name: Run Miri tests
+        env:
+          MIRIFLAGS: "-Zmiri-strict-provenance -Zmiri-symbolic-alignment-check"
+        run: |
+          cargo miri test -p rust-sitter --lib
+          cargo miri test -p rust-sitter-glr-core --lib
+          cargo miri test -p rust-sitter-tablegen --lib
+
+  sanitizers:
+    name: Sanitizers (ASAN/UBSAN)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Run with Address Sanitizer
+        env:
+          RUSTFLAGS: "-Zsanitizer=address"
+          RUSTDOCFLAGS: "-Zsanitizer=address"
+        run: |
+          cargo test -Zbuild-std --target x86_64-unknown-linux-gnu \
+            -p rust-sitter --lib --tests
+      
+      - name: Run with Undefined Behavior Sanitizer
+        env:
+          RUSTFLAGS: "-Zsanitizer=undefined"
+          RUSTDOCFLAGS: "-Zsanitizer=undefined"
+        run: |
+          cargo test -Zbuild-std --target x86_64-unknown-linux-gnu \
+            -p rust-sitter --lib --tests
+
+  minimal-versions:
+    name: Minimal Versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Update to minimal versions
+        run: cargo update -Z minimal-versions
+      
+      - name: Build with minimal versions
+        run: cargo build --workspace --all-features -Z minimal-versions
+
+  deterministic-codegen:
+    name: Deterministic Codegen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Check codegen determinism
+        run: |
+          # Build twice and compare outputs
+          cargo build -p rust-sitter-example --release
+          cp -r target/release target/release1
+          cargo clean
+          cargo build -p rust-sitter-example --release
+          
+          # Compare generated artifacts
+          if ! diff -r target/release1 target/release > /dev/null 2>&1; then
+            echo "::error::Non-deterministic build detected!"
+            exit 1
+          fi
 
   feature-matrix:
     name: Feature Matrix
@@ -142,7 +230,6 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -156,11 +243,37 @@ jobs:
       - name: Generate coverage
         run: cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
       
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(cargo llvm-cov --workspace --all-features --print-summary | grep TOTAL | awk '{print $NF}' | sed 's/%//')
+          echo "Coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < $COVERAGE_THRESHOLD" | bc -l) )); then
+            echo "::error::Coverage $COVERAGE% is below threshold $COVERAGE_THRESHOLD%"
+            exit 1
+          fi
+      
       - name: Upload to codecov
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: codecov/codecov-action@v3
         with:
           files: lcov.info
           fail_ci_if_error: false
+      
+      - name: Post coverage comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage = fs.readFileSync('lcov.info', 'utf8');
+            // Parse and format coverage report
+            const body = `## Coverage Report\n\n${coverage.substring(0, 500)}...`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
 
   unsafe-audit:
     name: Unsafe Code Audit
@@ -179,3 +292,56 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           cargo geiger --workspace >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+  fuzz:
+    name: Fuzz Testing
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+      
+      - name: Fuzz lexer (20k iterations)
+        run: |
+          cd fuzz
+          cargo fuzz run fuzz_lexer -- -runs=20000 -max_len=1024
+      
+      - name: Fuzz parser (20k iterations)
+        run: |
+          cd fuzz
+          cargo fuzz run fuzz_parser -- -runs=20000 -max_len=2048
+      
+      - name: Fuzz external scanner (10k iterations)
+        run: |
+          cd fuzz
+          cargo fuzz run fuzz_external_scanner -- -runs=10000 -max_len=512
+      
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: fuzz-crashes
+          path: fuzz/artifacts/
+
+  publish-dry-run:
+    name: Publish Dry Run
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Verify publishability
+        run: |
+          cargo publish -p rust-sitter-common --dry-run
+          cargo publish -p rust-sitter-ir --dry-run
+          cargo publish -p rust-sitter-glr-core --dry-run
+          cargo publish -p rust-sitter-tablegen --dry-run
+          cargo publish -p rust-sitter --dry-run
+          cargo publish -p rust-sitter-macro --dry-run
+          cargo publish -p rust-sitter-tool --dry-run

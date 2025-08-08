@@ -1,5 +1,9 @@
-// Grammar Intermediate Representation for pure-Rust Tree-sitter
-// This module provides GLR-aware data structures for representing Tree-sitter grammars
+// IR crate should be safe - no unsafe needed for grammar representation
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
+
+//! Grammar Intermediate Representation for pure-Rust Tree-sitter
+//! This module provides GLR-aware data structures for representing Tree-sitter grammars
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};

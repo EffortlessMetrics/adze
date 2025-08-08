@@ -1,3 +1,9 @@
+// Proc-macro crate is safe code only
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
+
+//! Procedural macros for rust-sitter grammar definition
+
 use quote::ToTokens;
 use syn::{ItemMod, parse_macro_input};
 

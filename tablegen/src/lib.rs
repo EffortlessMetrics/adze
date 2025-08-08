@@ -1,5 +1,9 @@
-// Static table generation and compression for pure-Rust Tree-sitter
-// This module implements Tree-sitter's exact table compression algorithms
+// Table generation requires unsafe for FFI-compatible Language struct generation
+#![deny(unsafe_op_in_unsafe_fn)]
+#![warn(missing_docs)]
+
+//! Static table generation and compression for pure-Rust Tree-sitter
+//! This module implements Tree-sitter's exact table compression algorithms
 
 pub mod abi;
 pub mod abi_builder;

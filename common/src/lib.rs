@@ -1,3 +1,9 @@
+// Common crate is pure-Rust - no unsafe needed
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
+
+//! Shared utilities for rust-sitter macro and tool crates
+
 use std::collections::HashSet;
 
 use syn::{

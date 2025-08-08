@@ -1,179 +1,272 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.2.3)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run (no actual publish)'
+        required: false
+        type: boolean
+        default: true
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  create-release:
-    name: Create Release
+  validate:
+    name: Validate Release
     runs-on: ubuntu-latest
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      current_version: ${{ steps.current.outputs.version }}
+      new_version: ${{ inputs.version }}
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body_path: RELEASE_NOTES.md
-        draft: true
-        prerelease: false
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Get current version
+        id: current
+        run: |
+          VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "rust-sitter") | .version')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+      
+      - name: Validate version bump
+        run: |
+          if ! cargo install cargo-semver-checks --locked; then
+            echo "::warning::Could not install cargo-semver-checks"
+          else
+            # Check if this is a valid semver bump
+            cargo semver-checks check-release --baseline-version ${{ steps.current.outputs.version }}
+          fi
+      
+      - name: Check CHANGELOG.md
+        run: |
+          if ! grep -q "## \[${{ inputs.version }}\]" CHANGELOG.md; then
+            echo "::error::Version ${{ inputs.version }} not found in CHANGELOG.md"
+            exit 1
+          fi
 
-  publish-crates:
-    name: Publish to crates.io
-    runs-on: ubuntu-latest
-    needs: create-release
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    
-    - name: Publish rust-sitter-ir
-      run: |
-        cd ir
-        cargo publish --token ${{ secrets.CRATES_TOKEN }}
-      continue-on-error: true
-    
-    - name: Wait for crates.io to update
-      run: sleep 30
-    
-    - name: Publish rust-sitter-glr-core
-      run: |
-        cd glr-core
-        cargo publish --token ${{ secrets.CRATES_TOKEN }}
-      continue-on-error: true
-    
-    - name: Wait for crates.io to update
-      run: sleep 30
-    
-    - name: Publish rust-sitter-tablegen
-      run: |
-        cd tablegen
-        cargo publish --token ${{ secrets.CRATES_TOKEN }}
-      continue-on-error: true
-    
-    - name: Wait for crates.io to update
-      run: sleep 30
-    
-    - name: Publish rust-sitter-common
-      run: |
-        cd common
-        cargo publish --token ${{ secrets.CRATES_TOKEN }}
-      continue-on-error: true
-    
-    - name: Wait for crates.io to update
-      run: sleep 30
-    
-    - name: Publish rust-sitter-macro
-      run: |
-        cd macro
-        cargo publish --token ${{ secrets.CRATES_TOKEN }}
-      continue-on-error: true
-    
-    - name: Wait for crates.io to update
-      run: sleep 30
-    
-    - name: Publish rust-sitter
-      run: |
-        cd runtime
-        cargo publish --token ${{ secrets.CRATES_TOKEN }}
-      continue-on-error: true
-    
-    - name: Wait for crates.io to update
-      run: sleep 30
-    
-    - name: Publish rust-sitter-tool
-      run: |
-        cd tool
-        cargo publish --token ${{ secrets.CRATES_TOKEN }}
-      continue-on-error: true
-
-  build-binaries:
-    name: Build Binaries
+  test-suite:
+    name: Full Test Suite
+    needs: validate
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable, beta]
     runs-on: ${{ matrix.os }}
-    needs: create-release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Run complete test suite
+        run: |
+          cargo test --workspace --all-features
+          cargo test --workspace --no-default-features
+
+  build-artifacts:
+    name: Build Release Artifacts
+    needs: test-suite
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: rust-sitter-linux-amd64
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact_name: rust-sitter-linux-arm64
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: rust-sitter-macos-amd64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: rust-sitter-macos-arm64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: rust-sitter-windows-amd64.exe
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: ${{ matrix.target }}
-    
-    - name: Install cross-compilation tools
-      if: matrix.target == 'aarch64-unknown-linux-gnu'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu
-    
-    - name: Build
-      run: cargo build --release --target ${{ matrix.target }} --package rust-sitter-tool
-    
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./target/${{ matrix.target }}/release/rust-sitter-tool${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
-        asset_name: ${{ matrix.artifact_name }}
-        asset_content_type: application/octet-stream
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+      
+      - name: Package artifacts
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            7z a artifacts/rust-sitter-${{ inputs.version }}-${{ matrix.target }}.zip \
+              target/${{ matrix.target }}/release/*.exe
+          else
+            tar czf artifacts/rust-sitter-${{ inputs.version }}-${{ matrix.target }}.tar.gz \
+              -C target/${{ matrix.target }}/release .
+          fi
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-artifacts
+          path: artifacts/
 
-  generate-docs:
-    name: Generate Documentation
+  update-versions:
+    name: Update Versions
+    needs: validate
     runs-on: ubuntu-latest
-    needs: create-release
+    if: inputs.dry_run == false
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    
-    - name: Generate docs
-      run: |
-        cargo doc --workspace --no-deps --all-features
-        echo '<meta http-equiv="refresh" content="0; url=rust_sitter/index.html">' > target/doc/index.html
-    
-    - name: Create docs archive
-      run: |
-        cd target/doc
-        tar czf ../../rust-sitter-docs.tar.gz *
-    
-    - name: Upload docs
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./rust-sitter-docs.tar.gz
-        asset_name: rust-sitter-docs.tar.gz
-        asset_content_type: application/gzip
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-edit
+        run: cargo install cargo-edit
+      
+      - name: Update workspace versions
+        run: |
+          # Update all workspace members to new version
+          cargo set-version -p rust-sitter ${{ inputs.version }}
+          cargo set-version -p rust-sitter-macro ${{ inputs.version }}
+          cargo set-version -p rust-sitter-tool ${{ inputs.version }}
+          cargo set-version -p rust-sitter-common ${{ inputs.version }}
+          cargo set-version -p rust-sitter-ir ${{ inputs.version }}
+          cargo set-version -p rust-sitter-glr-core ${{ inputs.version }}
+          cargo set-version -p rust-sitter-tablegen ${{ inputs.version }}
+          
+          # Update internal dependencies
+          cargo update -p rust-sitter -p rust-sitter-macro -p rust-sitter-tool
+      
+      - name: Commit version updates
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: bump version to ${{ inputs.version }}"
+          git push
+
+  publish:
+    name: Publish to crates.io
+    needs: [test-suite, build-artifacts, update-versions]
+    runs-on: ubuntu-latest
+    if: inputs.dry_run == false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main  # Use updated versions from previous job
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Login to crates.io
+        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      
+      - name: Publish crates in dependency order
+        run: |
+          # Publish in dependency order
+          cargo publish -p rust-sitter-common
+          sleep 30  # Wait for crates.io to index
+          
+          cargo publish -p rust-sitter-ir
+          sleep 30
+          
+          cargo publish -p rust-sitter-glr-core
+          sleep 30
+          
+          cargo publish -p rust-sitter-tablegen
+          sleep 30
+          
+          cargo publish -p rust-sitter
+          sleep 30
+          
+          cargo publish -p rust-sitter-macro
+          sleep 30
+          
+          cargo publish -p rust-sitter-tool
+
+  create-release:
+    name: Create GitHub Release
+    needs: [publish, build-artifacts]
+    runs-on: ubuntu-latest
+    if: inputs.dry_run == false
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: release-artifacts
+          path: artifacts/
+      
+      - name: Extract changelog
+        id: changelog
+        run: |
+          # Extract the changelog for this version
+          awk '/## \[${{ inputs.version }}\]/,/## \[/' CHANGELOG.md | head -n -1 > release_notes.md
+      
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(inputs.version, '-') }}
+          files: artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  announce:
+    name: Post-Release Tasks
+    needs: create-release
+    runs-on: ubuntu-latest
+    if: inputs.dry_run == false
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Update documentation
+        run: |
+          echo "## Latest Release: v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Published Crates:" >> $GITHUB_STEP_SUMMARY
+          echo "- rust-sitter: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- rust-sitter-macro: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- rust-sitter-tool: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Trigger docs.rs build
+        run: |
+          # Trigger docs.rs to build the new version
+          curl -X POST https://docs.rs/api/crate/rust-sitter/${{ inputs.version }}/build
+
+  dry-run-summary:
+    name: Dry Run Summary
+    needs: [validate, test-suite, build-artifacts]
+    runs-on: ubuntu-latest
+    if: inputs.dry_run == true
+    steps:
+      - name: Summary
+        run: |
+          echo "## 🎯 Dry Run Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release Details:" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Previous: ${{ needs.validate.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Checks Passed:" >> $GITHUB_STEP_SUMMARY
+          echo "- Version validation" >> $GITHUB_STEP_SUMMARY
+          echo "- CHANGELOG entry found" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests passed on all platforms" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifacts built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Would Publish:" >> $GITHUB_STEP_SUMMARY
+          echo "1. rust-sitter-common" >> $GITHUB_STEP_SUMMARY
+          echo "2. rust-sitter-ir" >> $GITHUB_STEP_SUMMARY
+          echo "3. rust-sitter-glr-core" >> $GITHUB_STEP_SUMMARY
+          echo "4. rust-sitter-tablegen" >> $GITHUB_STEP_SUMMARY
+          echo "5. rust-sitter" >> $GITHUB_STEP_SUMMARY
+          echo "6. rust-sitter-macro" >> $GITHUB_STEP_SUMMARY
+          echo "7. rust-sitter-tool" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**To perform actual release, run workflow again with dry_run=false**" >> $GITHUB_STEP_SUMMARY
