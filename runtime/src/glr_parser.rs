@@ -227,13 +227,28 @@ pub struct GLRParser {
     recovery_state: Option<ErrorRecoveryState>,
 
     /// Conflict resolver for vec wrapper conflicts
-    _vec_wrapper_resolver: Option<VecWrapperResolver>,
+    #[allow(dead_code)]
+    vec_wrapper_resolver: Option<VecWrapperResolver>,
     
     /// Total input length in bytes (set when process_eof is called)
     input_length: usize,
 }
 
 impl GLRParser {
+    /// Get a rule by its ID
+    fn get_rule(&self, rule_id: RuleId) -> Option<&Rule> {
+        let mut rule_counter = 0;
+        for rules in self.grammar.rules.values() {
+            for rule in rules {
+                if rule_counter == rule_id.0 as usize {
+                    return Some(rule);
+                }
+                rule_counter += 1;
+            }
+        }
+        None
+    }
+    
     pub fn new(table: ParseTable, grammar: Grammar) -> Self {
         let initial_stack = ParseStack::new(StateId(0), 0);
 
@@ -249,7 +264,7 @@ impl GLRParser {
             pending_stacks: VecDeque::from([0]),
             error_recovery: None,
             recovery_state: None,
-            _vec_wrapper_resolver: vec_wrapper_resolver,
+            vec_wrapper_resolver,
             input_length: 0,
         }
     }
@@ -552,9 +567,11 @@ impl GLRParser {
         mut stacks: Vec<ParseStack>,
         token: SymbolId,
     ) -> Vec<ParseStack> {
-        // Track which reductions have been applied to each stack to prevent infinite loops
-        // This is crucial for epsilon rules which can be applied infinitely
-        let mut applied_reductions: std::collections::HashSet<(usize, StateId, RuleId)> = 
+        // Track which reductions have been applied to prevent infinite loops on epsilon rules
+        // Key: (stack_id, top_state, rule_id, pop_length, predecessor_state)
+        // This allows legitimate reductions from different predecessor paths while preventing
+        // the same reduction from being applied infinitely
+        let mut applied_reductions: std::collections::HashSet<(usize, StateId, RuleId, usize, StateId)> = 
             std::collections::HashSet::new();
         
         let mut iteration = 0;
@@ -588,8 +605,22 @@ impl GLRParser {
                         // Single action
                         match &action_cell[0] {
                             Action::Reduce(rule_id) => {
+                                // Get rule to determine pop length
+                                let pop_len = if let Some(rule) = self.get_rule(*rule_id) {
+                                    rule.rhs.len()
+                                } else {
+                                    0
+                                };
+                                
+                                // Get predecessor state (state after popping)
+                                let pred_state = if stack.states.len() > pop_len {
+                                    stack.states[stack.states.len() - pop_len - 1]
+                                } else {
+                                    StateId(0)
+                                };
+                                
                                 // Check if we've already applied this reduction to avoid infinite loops
-                                let reduction_key = (stack.id, state, *rule_id);
+                                let reduction_key = (stack.id, state, *rule_id, pop_len, pred_state);
                                 if !applied_reductions.contains(&reduction_key) {
                                     applied_reductions.insert(reduction_key);
                                     any_reduction_performed = true;
@@ -609,7 +640,18 @@ impl GLRParser {
                                 for fork_action in actions {
                                     match fork_action {
                                         Action::Reduce(rule_id) => {
-                                            let reduction_key = (stack.id, state, *rule_id);
+                                            let pop_len = if let Some(rule) = self.get_rule(*rule_id) {
+                                                rule.rhs.len()
+                                            } else {
+                                                0
+                                            };
+                                            let pred_state = if stack.states.len() > pop_len {
+                                                stack.states[stack.states.len() - pop_len - 1]
+                                            } else {
+                                                StateId(0)
+                                            };
+                                            
+                                            let reduction_key = (stack.id, state, *rule_id, pop_len, pred_state);
                                             if !applied_reductions.contains(&reduction_key) {
                                                 applied_reductions.insert(reduction_key);
                                                 has_reduction = true;
@@ -648,7 +690,18 @@ impl GLRParser {
                         for action in &action_cell {
                             match action {
                                 Action::Reduce(rule_id) => {
-                                    let reduction_key = (stack.id, state, *rule_id);
+                                    let pop_len = if let Some(rule) = self.get_rule(*rule_id) {
+                                        rule.rhs.len()
+                                    } else {
+                                        0
+                                    };
+                                    let pred_state = if stack.states.len() > pop_len {
+                                        stack.states[stack.states.len() - pop_len - 1]
+                                    } else {
+                                        StateId(0)
+                                    };
+                                    
+                                    let reduction_key = (stack.id, state, *rule_id, pop_len, pred_state);
                                     if !applied_reductions.contains(&reduction_key) {
                                         applied_reductions.insert(reduction_key);
                                         has_reduction = true;
@@ -1015,7 +1068,8 @@ impl GLRParser {
     }
 
     /// Perform all possible reductions on a stack until no more are possible
-    fn _perform_all_reductions(&self, stack: ParseStack) -> Vec<ParseStack> {
+    #[allow(dead_code)]
+    fn perform_all_reductions(&self, stack: ParseStack) -> Vec<ParseStack> {
         let mut result_stacks = vec![];
         let mut work_list = vec![stack];
 
@@ -1027,7 +1081,7 @@ impl GLRParser {
             for (_symbol_id, rules) in &self.grammar.rules {
                 for rule in rules {
                     // Check if we can reduce by this rule
-                    if self._can_reduce(&current_stack, rule) {
+                    if self.can_reduce(&current_stack, rule) {
                         // After reduction, we need to find the goto state
                         // First get the state we'll be in after popping the RHS symbols
                         let base_state_idx = if current_stack.states.len() > rule.rhs.len() {
@@ -1116,7 +1170,8 @@ impl GLRParser {
     }
 
     /// Check if we can reduce by a rule
-    fn _can_reduce(&self, stack: &ParseStack, rule: &Rule) -> bool {
+    #[allow(dead_code)]
+    fn can_reduce(&self, stack: &ParseStack, rule: &Rule) -> bool {
         if stack.nodes.len() < rule.rhs.len() {
             return false;
         }

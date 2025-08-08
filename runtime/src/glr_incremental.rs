@@ -154,11 +154,11 @@ fn _tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
 /// This function bridges between the public parser_v4 API and the internal
 /// GLR incremental parsing implementation.
 pub fn reparse(
-    _grammar: &Grammar,
-    _table: &ParseTable,
-    _source: &[u8],
-    _old_tree: &crate::parser_v4::Tree,
-    _edit: &crate::pure_incremental::Edit,
+    grammar: &Grammar,
+    table: &ParseTable,
+    source: &[u8],
+    old_tree: &crate::parser_v4::Tree,
+    edit: &crate::pure_incremental::Edit,
 ) -> Option<crate::parser_v4::Tree> {
     // Only enable incremental parsing if the feature is enabled
     #[cfg(feature = "incremental_glr")]
@@ -185,7 +185,7 @@ pub fn reparse(
                       vec![0u8; edit.old_end_byte - edit.start_byte]);
             old
         };
-        let old_tokens = tokenize_source(&old_source, grammar);
+        let old_tokens = tokenize_source(&old_source, &grammar);
         
         // Find which old tokens are affected by the edit
         let mut affected_start_idx = 0;
@@ -211,7 +211,7 @@ pub fn reparse(
         
         // 2. Tokenize only the new edited text
         let new_text = &source[edit.start_byte..edit.new_end_byte];
-        let mut edited_tokens = tokenize_source(new_text, grammar);
+        let mut edited_tokens = tokenize_source(new_text, &grammar);
         
         // Adjust byte positions for the edited tokens
         for token in &mut edited_tokens {
@@ -332,7 +332,8 @@ pub struct ForkAlternative {
 #[derive(Debug)]
 pub struct ChunkIdentifier {
     /// The previous forest for potential reuse
-    _previous_forest: Option<Arc<ForestNode>>,
+    #[allow(dead_code)]
+    previous_forest: Option<Arc<ForestNode>>,
     /// Byte range of the edit
     edit_range: Range<usize>,
 }
@@ -341,7 +342,7 @@ impl ChunkIdentifier {
     pub fn new(previous_forest: Option<Arc<ForestNode>>, edit: &GLREdit) -> Self {
         let edit_range = edit.old_range.clone();
         Self {
-            _previous_forest: previous_forest,
+            previous_forest,
             edit_range,
         }
     }
@@ -397,7 +398,8 @@ impl ChunkIdentifier {
 /// GLR-aware incremental parser
 pub struct IncrementalGLRParser {
     /// The underlying GLR parser
-    _parser: GLRParser,
+    #[allow(dead_code)]
+    parser: GLRParser,
     /// Grammar for the language
     grammar: Grammar,
     /// Parse table
@@ -424,7 +426,8 @@ struct ForkTracker {
     /// Maps fork IDs to their parent forks
     fork_parents: HashMap<usize, usize>,
     /// Maps fork IDs to their merge points
-    _fork_merges: HashMap<usize, Vec<usize>>,
+    #[allow(dead_code)]
+    fork_merges: HashMap<usize, Vec<usize>>,
     /// Active fork IDs
     active_forks: HashSet<usize>,
     /// Next fork ID to assign
@@ -435,7 +438,7 @@ impl ForkTracker {
     pub fn new() -> Self {
         Self {
             fork_parents: HashMap::new(),
-            _fork_merges: HashMap::new(),
+            fork_merges: HashMap::new(),
             active_forks: HashSet::new(),
             next_fork_id: 0,
         }
@@ -455,19 +458,21 @@ impl ForkTracker {
     }
 
     /// Record a fork merge
-    pub fn _merge_forks(&mut self, fork1: usize, fork2: usize, merge_point: usize) {
-        self._fork_merges
+    #[allow(dead_code)]
+    pub fn merge_forks(&mut self, fork1: usize, fork2: usize, merge_point: usize) {
+        self.fork_merges
             .entry(fork1)
             .or_default()
             .push(merge_point);
-        self._fork_merges
+        self.fork_merges
             .entry(fork2)
             .or_default()
             .push(merge_point);
     }
 
     /// Get all forks affected by an edit
-    pub fn _get_affected_forks(&self, _edit: &GLREdit) -> HashSet<usize> {
+    #[allow(dead_code)]
+    pub fn get_affected_forks(&self, _edit: &GLREdit) -> HashSet<usize> {
         // For now, conservatively mark all active forks as potentially affected
         self.active_forks.clone()
     }
@@ -479,7 +484,7 @@ impl IncrementalGLRParser {
         let parser = GLRParser::new(table.clone(), grammar.clone());
         
         Self {
-            _parser: parser,
+            parser,
             grammar,
             table,
             forest: None,
@@ -501,7 +506,7 @@ impl IncrementalGLRParser {
         let parser = GLRParser::new(table.clone(), grammar.clone());
         
         Self {
-            _parser: parser,
+            parser,
             grammar,
             table,
             forest: None,
@@ -929,7 +934,7 @@ impl IncrementalGLRParser {
                 
                 // Recursively convert children for this alternative
                 let children: Vec<Arc<Subtree>> = alt.children.iter()
-                    .map(|child| self._forest_to_subtree_preserving_first_alt(child))
+                    .map(|child| self.forest_to_subtree_preserving_first_alt(child))
                     .collect();
                 
                 Arc::new(Subtree::new(subtree_node, children))
@@ -950,7 +955,8 @@ impl IncrementalGLRParser {
     
     /// Helper function that creates a single subtree from a forest node
     /// Used when we need a single subtree for children but still want to be consistent
-    fn _forest_to_subtree_preserving_first_alt(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
+    #[allow(dead_code)]
+    fn forest_to_subtree_preserving_first_alt(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
         let subtree_node = crate::subtree::SubtreeNode {
             symbol_id: node.symbol,
             is_error: false,
@@ -961,7 +967,7 @@ impl IncrementalGLRParser {
         // But at least at the top level we preserve all alternatives
         let children = if let Some(alt) = node.alternatives.first() {
             alt.children.iter()
-                .map(|child| self._forest_to_subtree_preserving_first_alt(child))
+                .map(|child| self.forest_to_subtree_preserving_first_alt(child))
                 .collect()
         } else {
             vec![]
@@ -971,7 +977,8 @@ impl IncrementalGLRParser {
     }
     
     /// Helper function to convert ForestNode to Subtree (legacy, only uses first alternative)
-    fn _forest_to_subtree(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
+    #[allow(dead_code)]
+    fn forest_to_subtree(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
         let subtree_node = crate::subtree::SubtreeNode {
             symbol_id: node.symbol,
             is_error: false,
@@ -981,7 +988,7 @@ impl IncrementalGLRParser {
         // For simplicity, take the first alternative (could be improved)
         let children = if let Some(alt) = node.alternatives.first() {
             alt.children.iter()
-                .map(|child| self._forest_to_subtree(child))
+                .map(|child| self.forest_to_subtree(child))
                 .collect()
         } else {
             vec![]
@@ -1118,7 +1125,8 @@ impl IncrementalGLRParser {
     
     
     /// Find the token range for a byte range
-    fn _find_token_range(&self, byte_range: &Range<usize>, tokens: &[GLRToken]) -> Range<usize> {
+    #[allow(dead_code)]
+    fn find_token_range(&self, byte_range: &Range<usize>, tokens: &[GLRToken]) -> Range<usize> {
         let start = tokens
             .iter()
             .position(|t| t.start_byte >= byte_range.start)
