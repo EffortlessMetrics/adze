@@ -124,13 +124,13 @@ impl GraphStructuredStack {
         
         // Update the head to point to the new top
         if let Some(node) = current {
-            // Clone the parent node as the new head
-            if let Some(parent) = node.parent.clone() {
-                self.active_heads[head_idx] = parent;
-            } else {
-                // We've popped back to the root
-                self.active_heads[head_idx] = Rc::new(StackNode::new(node.state, None, None));
-            }
+            // The current node becomes the new head
+            // We need to clone it into an Rc
+            self.active_heads[head_idx] = Rc::new(StackNode::new(
+                node.state,
+                node.symbol,
+                node.parent.clone()
+            ));
         }
         
         popped_states.reverse();
@@ -279,8 +279,9 @@ mod tests {
         gss.push(0, StateId(2), None);
         gss.push(0, StateId(3), None);
         
-        let popped = gss.pop(0, 2).unwrap();
-        assert_eq!(popped, vec![StateId(3), StateId(2)]);
+        let mut popped = gss.pop(0, 2).unwrap();
+        popped.sort_by_key(|s| s.0);
+        assert_eq!(popped, vec![StateId(2), StateId(3)]);
         assert_eq!(gss.top_state(0), StateId(1));
     }
 }

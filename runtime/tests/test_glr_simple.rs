@@ -113,7 +113,7 @@ fn test_simple_number_parsing() {
         for token in &tokens {
             parser.process_token(token.symbol_id, &token.text, token.byte_offset);
         }
-        parser.process_eof();
+        parser.process_eof(input.len());
 
         let result = parser.finish();
         assert!(result.is_ok(), "Failed to parse single number");
@@ -139,7 +139,7 @@ fn test_simple_number_parsing() {
         for token in &tokens {
             parser.process_token(token.symbol_id, &token.text, token.byte_offset);
         }
-        parser.process_eof();
+        parser.process_eof(input.len());
 
         let result = parser.finish();
         match &result {
@@ -169,7 +169,7 @@ fn test_simple_number_parsing() {
         for token in &tokens {
             parser.process_token(token.symbol_id, &token.text, token.byte_offset);
         }
-        parser.process_eof();
+        parser.process_eof(input.len());
 
         let result = parser.finish();
         match &result {
@@ -256,7 +256,7 @@ fn test_glr_ambiguity() {
             parser.stack_count()
         );
     }
-    parser.process_eof();
+    parser.process_eof(input.len());
 
     let result = parser.finish();
     assert!(result.is_ok(), "GLR parser should handle ambiguous grammar");
@@ -291,7 +291,7 @@ fn test_glr_error_handling() {
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
-    parser.process_eof();
+    parser.process_eof(input.len());
 
     let result = parser.finish();
 

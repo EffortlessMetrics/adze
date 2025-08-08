@@ -18,53 +18,54 @@ mod grammar {
             _leaf_fn: Option<&Self::LeafFn>,
         ) -> Self {
             let node = node.unwrap();
-            let mut cursor = node.walk();
-            assert!(
-                cursor.goto_first_child(),
-                "Could not find a child corresponding to any enum branch"
-            );
-            loop {
-                let node = cursor.node();
-                match node.kind() {
-                    "Expr_Number" => {
-                        return ::rust_sitter::__private::extract_struct_or_variant(
-                            node,
-                            move |cursor, last_idx| {
-                                Expr::Number({
-                                    ::rust_sitter::__private::extract_field::<
-                                        rust_sitter::WithLeaf<u32>,
-                                        _,
-                                    >(
-                                        cursor, source, last_idx, "0", Some(&|v| v.parse().unwrap())
-                                    )
-                                })
-                            },
-                        )
-                    }
-                    "Expr_Neg" => {
-                        return ::rust_sitter::__private::extract_struct_or_variant(
-                            node,
-                            move |cursor, last_idx| Expr::Neg {
-                                _bang: {
-                                    ::rust_sitter::__private::extract_field::<(), _>(
-                                        cursor, source, last_idx, "_bang", None,
-                                    )
-                                },
-                                value: {
-                                    ::rust_sitter::__private::extract_field::<Box<Expr>, _>(
-                                        cursor, source, last_idx, "value", None,
-                                    )
-                                },
-                            },
-                        )
-                    }
-                    _ => {
-                        if !cursor.goto_next_sibling() {
-                            panic!("Could not find a child corresponding to any enum branch")
-                        }
+            fn unwrap_hidden_rules(
+                node: ::rust_sitter::tree_sitter::Node,
+            ) -> ::rust_sitter::tree_sitter::Node {
+                if (node.kind().starts_with('_') || node.child_count() == 1)
+                    && node.child_count() > 0
+                {
+                    if let Some(child) = node.child(0) {
+                        return unwrap_hidden_rules(child);
                     }
                 }
+                node
             }
+            let unwrapped_node = unwrap_hidden_rules(node);
+            if unwrapped_node.kind() == stringify!(Expr) && unwrapped_node.child_count() == 1 {
+                let child = unwrapped_node.child(0);
+                return Self::extract(child, source, _last_idx, _leaf_fn);
+            }
+            let child_node = unwrapped_node;
+            if child_node.kind() == "Expr_Number" {
+                return ::rust_sitter::__private::extract_struct_or_variant(
+                    node,
+                    move |cursor, last_idx| {
+                        Expr::Number({
+                            ::rust_sitter::__private::extract_field::<u32, _>(
+                                cursor, source, last_idx, "0", None,
+                            )
+                        })
+                    },
+                );
+            }
+            if child_node.kind() == "Expr_Neg" {
+                return ::rust_sitter::__private::extract_struct_or_variant(
+                    node,
+                    move |cursor, last_idx| Expr::Neg {
+                        _bang: {
+                            ::rust_sitter::__private::extract_field::<(), _>(
+                                cursor, source, last_idx, "_bang", None,
+                            )
+                        },
+                        value: {
+                            ::rust_sitter::__private::extract_field::<Box<Expr>, _>(
+                                cursor, source, last_idx, "value", None,
+                            )
+                        },
+                    },
+                );
+            }
+            panic ! ("Could not determine enum variant from tree structure: node kind='{}', child_count={}" , unwrapped_node . kind () , unwrapped_node . child_count ())
         }
         #[allow(non_snake_case)]
         #[cfg(feature = "pure-rust")]
@@ -75,64 +76,99 @@ mod grammar {
             _leaf_fn: Option<&Self::LeafFn>,
         ) -> Self {
             let node = node.unwrap();
-            let mut cursor = ::rust_sitter::__private::TreeCursor::new(node);
-            assert!(
-                cursor.goto_first_child(),
-                "Could not find a child corresponding to any enum branch"
-            );
-            loop {
-                let node = cursor.node();
-                match node.kind() {
-                    "Expr_Number" => {
-                        return ::rust_sitter::__private::extract_struct_or_variant(
-                            node,
-                            move |cursor, last_idx| {
-                                Expr::Number({
-                                    ::rust_sitter::__private::extract_field::<
-                                        rust_sitter::WithLeaf<u32>,
-                                        _,
-                                    >(
-                                        cursor, source, last_idx, "0", Some(&|v| v.parse().unwrap())
-                                    )
-                                })
-                            },
-                        )
-                    }
-                    "Expr_Neg" => {
-                        return ::rust_sitter::__private::extract_struct_or_variant(
-                            node,
-                            move |cursor, last_idx| Expr::Neg {
-                                _bang: {
-                                    ::rust_sitter::__private::extract_field::<(), _>(
-                                        cursor, source, last_idx, "_bang", None,
-                                    )
-                                },
-                                value: {
-                                    ::rust_sitter::__private::extract_field::<Box<Expr>, _>(
-                                        cursor, source, last_idx, "value", None,
-                                    )
-                                },
-                            },
-                        )
-                    }
-                    _ => {
-                        if !cursor.goto_next_sibling() {
-                            panic!("Could not find a child corresponding to any enum branch")
-                        }
-                    }
+            fn unwrap_hidden_rules<'a>(
+                node: &'a ::rust_sitter::pure_parser::ParsedNode,
+            ) -> &'a ::rust_sitter::pure_parser::ParsedNode {
+                if (node.kind().starts_with('_') || node.children.len() == 1)
+                    && node.children.len() > 0
+                {
+                    return unwrap_hidden_rules(&node.children[0]);
                 }
+                node
             }
+            let unwrapped_node = unwrap_hidden_rules(node);
+            if unwrapped_node.kind() == stringify!(Expr) && unwrapped_node.children.len() == 1 {
+                let child_node = &unwrapped_node.children[0];
+                return Self::extract(Some(child_node), source, _last_idx, _leaf_fn);
+            }
+            let node = unwrapped_node;
+            if node.kind() == "Expr_Number" {
+                return {
+                    let value = <rust_sitter::WithLeaf<u32> as ::rust_sitter::Extract<_>>::extract(
+                        Some(node),
+                        source,
+                        0,
+                        Some(&|v| v.parse().unwrap()),
+                    );
+                    Expr::Number(value)
+                };
+            }
+            if node.kind() == "Expr_Neg" {
+                return ::rust_sitter::__private::extract_struct_or_variant(
+                    node,
+                    move |cursor, last_idx| Expr::Neg {
+                        _bang: {
+                            ::rust_sitter::__private::extract_field::<(), _>(
+                                cursor, source, last_idx, "_bang", None,
+                            )
+                        },
+                        value: {
+                            ::rust_sitter::__private::extract_field::<Box<Expr>, _>(
+                                cursor, source, last_idx, "value", None,
+                            )
+                        },
+                    },
+                );
+            }
+            if unwrapped_node.children.is_empty() {
+                let node = unwrapped_node;
+                return {
+                    let value = <rust_sitter::WithLeaf<u32> as ::rust_sitter::Extract<_>>::extract(
+                        Some(node),
+                        source,
+                        0,
+                        Some(&|v| v.parse().unwrap()),
+                    );
+                    Expr::Number(value)
+                };
+            }
+            panic ! ("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}" , unwrapped_node . kind () , unwrapped_node . symbol , unwrapped_node . children . len ())
         }
     }
+    #[cfg(not(feature = "pure-rust"))]
     unsafe extern "C" {
         fn tree_sitter_test() -> ::rust_sitter::tree_sitter::Language;
     }
+    #[cfg(not(feature = "pure-rust"))]
     pub fn language() -> ::rust_sitter::tree_sitter::Language {
         unsafe { tree_sitter_test() }
+    }
+    #[cfg(feature = "pure-rust")]
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_",
+        "test",
+        "/parser_",
+        "test",
+        ".rs"
+    ));
+    #[cfg(feature = "pure-rust")]
+    pub fn language() -> &'static ::rust_sitter::pure_parser::TSLanguage {
+        unsafe { &LANGUAGE }
     }
     #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
     #[doc = "[`Expr`]"]
     #[doc = r" instance containing the parsed structured data."]
+    #[cfg(not(feature = "pure-rust"))]
+    pub fn parse(
+        input: &str,
+    ) -> core::result::Result<Expr, Vec<::rust_sitter::errors::ParseError>> {
+        ::rust_sitter::__private::parse::<Expr>(input, language)
+    }
+    #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
+    #[doc = "[`Expr`]"]
+    #[doc = r" instance containing the parsed structured data."]
+    #[cfg(feature = "pure-rust")]
     pub fn parse(
         input: &str,
     ) -> core::result::Result<Expr, Vec<::rust_sitter::errors::ParseError>> {

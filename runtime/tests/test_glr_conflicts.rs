@@ -346,7 +346,7 @@ fn test_arithmetic_precedence() {
     parser.process_token(SymbolId(1), "3", 4);
     parser.process_token(SymbolId(4), "*", 6);
     parser.process_token(SymbolId(1), "4", 8);
-    parser.process_eof();
+    parser.process_eof(10);
 
     let result = parser.get_best_parse();
     assert!(result.is_some());
@@ -373,7 +373,7 @@ fn test_dangling_else() {
     parser.process_token(SymbolId(5), "s", 20);
     parser.process_token(SymbolId(3), "else", 22);
     parser.process_token(SymbolId(5), "s", 27);
-    parser.process_eof();
+    parser.process_eof(10);
 
     let result = parser.get_best_parse();
     assert!(result.is_some());
@@ -389,7 +389,7 @@ fn test_dynamic_precedence() {
 
     // Both 'a' and 'b' are valid, but 'b' has higher dynamic precedence
     parser.process_token(SymbolId(2), "b", 0);
-    parser.process_eof();
+    parser.process_eof(10);
 
     let result = parser.get_best_parse();
     assert!(result.is_some());

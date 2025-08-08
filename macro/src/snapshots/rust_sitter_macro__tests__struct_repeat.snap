@@ -151,15 +151,40 @@ mod grammar {
             })
         }
     }
+    #[cfg(not(feature = "pure-rust"))]
     unsafe extern "C" {
         fn tree_sitter_test() -> ::rust_sitter::tree_sitter::Language;
     }
+    #[cfg(not(feature = "pure-rust"))]
     pub fn language() -> ::rust_sitter::tree_sitter::Language {
         unsafe { tree_sitter_test() }
+    }
+    #[cfg(feature = "pure-rust")]
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_",
+        "test",
+        "/parser_",
+        "test",
+        ".rs"
+    ));
+    #[cfg(feature = "pure-rust")]
+    pub fn language() -> &'static ::rust_sitter::pure_parser::TSLanguage {
+        unsafe { &LANGUAGE }
     }
     #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
     #[doc = "[`NumberList`]"]
     #[doc = r" instance containing the parsed structured data."]
+    #[cfg(not(feature = "pure-rust"))]
+    pub fn parse(
+        input: &str,
+    ) -> core::result::Result<NumberList, Vec<::rust_sitter::errors::ParseError>> {
+        ::rust_sitter::__private::parse::<NumberList>(input, language)
+    }
+    #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
+    #[doc = "[`NumberList`]"]
+    #[doc = r" instance containing the parsed structured data."]
+    #[cfg(feature = "pure-rust")]
     pub fn parse(
         input: &str,
     ) -> core::result::Result<NumberList, Vec<::rust_sitter::errors::ParseError>> {

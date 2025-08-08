@@ -92,7 +92,7 @@ fn test_basic_parsing_without_errors() {
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
-    parser.process_eof();
+    parser.process_eof(10);
     let result = parser.finish();
 
     assert!(result.is_ok(), "Failed to parse valid input '1 + 2'");
@@ -130,7 +130,7 @@ fn test_error_recovery_double_operator() {
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
-    parser.process_eof();
+    parser.process_eof(10);
     let result = parser.finish();
 
     println!("Parse result: {:?}", result.is_ok());
