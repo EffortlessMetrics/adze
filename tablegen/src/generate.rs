@@ -310,9 +310,16 @@ mod tests {
         let builder = LanguageBuilder::new(grammar, parse_table);
 
         let names = builder.build_field_names();
-        assert_eq!(names.len(), 1);
+        // GLR adds an extra null field at index 0
+        assert_eq!(names.len(), 2);
+        // First field should be null (empty string)
         assert_eq!(
             unsafe { std::ffi::CStr::from_ptr(names[0]).to_str().unwrap() },
+            ""
+        );
+        // Second field should be "value"
+        assert_eq!(
+            unsafe { std::ffi::CStr::from_ptr(names[1]).to_str().unwrap() },
             "value"
         );
     }

@@ -247,7 +247,7 @@ pub fn generate_lexer(
     }
 
     quote! {
-        unsafe extern "C" fn lexer_fn(state_ptr: *mut ::std::ffi::c_void, _lex_mode: TSLexState) -> bool {
+        extern "C" fn lexer_fn(state_ptr: *mut ::std::ffi::c_void, _lex_mode: TSLexState) -> bool {
             // SAFETY: state_ptr is guaranteed to be a valid pointer to LexerState by the Tree-sitter runtime
             let state = unsafe { &mut *(state_ptr as *mut LexerState) };
             // SAFETY: input pointer and length are provided by Tree-sitter runtime and guaranteed to be valid

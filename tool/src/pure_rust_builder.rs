@@ -329,13 +329,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     writeln!(parser_file)?;
 
     // Write the generated code
-    // Fix Rust 2024 compatibility: remove unsafe from extern functions with #[no_mangle]
-    let language_code_str = language_code.to_string();
-    // Handle both compressed and uncompressed spaces around [no_mangle]
-    let fixed_code = language_code_str
-        .replace("# [no_mangle] pub unsafe extern", "# [no_mangle] pub extern")
-        .replace("#[no_mangle] pub unsafe extern", "#[no_mangle] pub extern");
-    writeln!(parser_file, "{}", fixed_code)?;
+    writeln!(parser_file, "{}", language_code)?;
 
     Ok(BuildResult {
         grammar_name,

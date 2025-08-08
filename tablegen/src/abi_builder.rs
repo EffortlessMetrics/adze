@@ -1365,13 +1365,18 @@ mod tests {
             },
         );
 
+        let mut symbol_to_index = std::collections::BTreeMap::new();
+        symbol_to_index.insert(SymbolId(0), 0); // EOF
+        symbol_to_index.insert(SymbolId(1), 1); // token1
+        symbol_to_index.insert(SymbolId(5), 2); // token5
+        
         let parse_table = ParseTable {
             action_table: vec![],
             goto_table: vec![],
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 3,
-            symbol_to_index: std::collections::BTreeMap::new(),
+            symbol_to_index,
             external_scanner_states: vec![],
         };
 
@@ -1383,10 +1388,15 @@ mod tests {
 
         // Check that tokens are sorted by ID
         let code = quote! { #(#names)* }.to_string();
-        assert!(code.contains("token1"));
-        assert!(code.contains("token5"));
-        let token1_pos = code.find("token1").unwrap();
-        let token5_pos = code.find("token5").unwrap();
+        
+        // The token names are encoded as u8 byte arrays
+        // "token1" = [116u8, 111u8, 107u8, 101u8, 110u8, 49u8, 0u8]
+        // "token5" = [116u8, 111u8, 107u8, 101u8, 110u8, 53u8, 0u8]
+        // We check for the distinguishing bytes: 49u8 for '1' and 53u8 for '5'
+        assert!(code.contains("49u8")); // '1' in token1
+        assert!(code.contains("53u8")); // '5' in token5
+        let token1_pos = code.find("49u8").unwrap();
+        let token5_pos = code.find("53u8").unwrap();
         assert!(token1_pos < token5_pos);
     }
 }
