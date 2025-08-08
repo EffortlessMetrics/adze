@@ -50,7 +50,9 @@ impl<T: Clone> Arena<T> {
             
             let mut stats = self.stats.borrow_mut();
             stats.total_chunks += 1;
-            stats.bytes_wasted += (self.chunk_size - pos) * mem::size_of::<T>();
+            if pos < self.chunk_size {
+                stats.bytes_wasted += (self.chunk_size - pos) * mem::size_of::<T>();
+            }
         }
         
         chunk.push(value.clone());

@@ -434,7 +434,7 @@ mod tests {
         
         impl Lexer for TestLexer {
             fn advance(&mut self, n: usize) {
-                self.position += n;
+                self.position = self.position.saturating_add(n);
             }
             
             fn lookahead(&self) -> Option<u8> {
@@ -483,7 +483,7 @@ mod tests {
         
         impl Lexer for TestLexer {
             fn advance(&mut self, n: usize) {
-                self.position += n;
+                self.position = self.position.saturating_add(n);
             }
             
             fn lookahead(&self) -> Option<u8> {
