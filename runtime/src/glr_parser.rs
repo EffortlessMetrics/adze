@@ -552,12 +552,19 @@ impl GLRParser {
         mut stacks: Vec<ParseStack>,
         token: SymbolId,
     ) -> Vec<ParseStack> {
+        // Track which reductions have been applied to each stack to prevent infinite loops
+        // This is crucial for epsilon rules which can be applied infinitely
+        let mut applied_reductions: std::collections::HashSet<(usize, StateId, RuleId)> = 
+            std::collections::HashSet::new();
+        
         let mut iteration = 0;
+        const MAX_ITERATIONS: usize = 100;
+        
         loop {
             iteration += 1;
-            if iteration > 10 {
-                debug_glr!("WARNING: {} reduction iterations, {} stacks", iteration, stacks.len());
-                // Let's just break instead of panicking to see what happens
+            if iteration > MAX_ITERATIONS {
+                debug_glr!("ERROR: Exceeded {} reduction iterations with {} stacks - breaking to prevent infinite loop", 
+                         MAX_ITERATIONS, stacks.len());
                 break;
             }
 
@@ -581,10 +588,18 @@ impl GLRParser {
                         // Single action
                         match &action_cell[0] {
                             Action::Reduce(rule_id) => {
-                                any_reduction_performed = true;
-                                let mut reduced_stack = stack.clone();
-                                self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
-                                result_stacks.push(reduced_stack);
+                                // Check if we've already applied this reduction to avoid infinite loops
+                                let reduction_key = (stack.id, state, *rule_id);
+                                if !applied_reductions.contains(&reduction_key) {
+                                    applied_reductions.insert(reduction_key);
+                                    any_reduction_performed = true;
+                                    let mut reduced_stack = stack.clone();
+                                    self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
+                                    result_stacks.push(reduced_stack);
+                                } else {
+                                    // Already applied this reduction, skip to prevent infinite loop
+                                    result_stacks.push(stack);
+                                }
                             }
                             Action::Fork(actions) => {
                                 // Handle fork action
@@ -594,12 +609,16 @@ impl GLRParser {
                                 for fork_action in actions {
                                     match fork_action {
                                         Action::Reduce(rule_id) => {
-                                            has_reduction = true;
-                                            any_reduction_performed = true;
-                                            let mut forked = stack.fork(self.next_stack_id);
-                                            self.next_stack_id += 1;
-                                            self.perform_reduction_on_stack(&mut forked, *rule_id);
-                                            fork_results.push(forked);
+                                            let reduction_key = (stack.id, state, *rule_id);
+                                            if !applied_reductions.contains(&reduction_key) {
+                                                applied_reductions.insert(reduction_key);
+                                                has_reduction = true;
+                                                any_reduction_performed = true;
+                                                let mut forked = stack.fork(self.next_stack_id);
+                                                self.next_stack_id += 1;
+                                                self.perform_reduction_on_stack(&mut forked, *rule_id);
+                                                fork_results.push(forked);
+                                            }
                                         }
                                         _ => {
                                             // Non-reduction fork branches will be handled in phase 2
@@ -629,13 +648,17 @@ impl GLRParser {
                         for action in &action_cell {
                             match action {
                                 Action::Reduce(rule_id) => {
-                                    has_reduction = true;
-                                    any_reduction_performed = true;
-                                    let mut forked = stack.fork(self.next_stack_id);
-                                    self.next_stack_id += 1;
-                                    debug_glr!("  Forking for reduce with rule {}", rule_id.0);
-                                    self.perform_reduction_on_stack(&mut forked, *rule_id);
-                                    fork_results.push(forked);
+                                    let reduction_key = (stack.id, state, *rule_id);
+                                    if !applied_reductions.contains(&reduction_key) {
+                                        applied_reductions.insert(reduction_key);
+                                        has_reduction = true;
+                                        any_reduction_performed = true;
+                                        let mut forked = stack.fork(self.next_stack_id);
+                                        self.next_stack_id += 1;
+                                        debug_glr!("  Forking for reduce with rule {}", rule_id.0);
+                                        self.perform_reduction_on_stack(&mut forked, *rule_id);
+                                        fork_results.push(forked);
+                                    }
                                 }
                                 Action::Shift(_) => {
                                     // Mark that we have a shift action
