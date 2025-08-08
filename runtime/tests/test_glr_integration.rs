@@ -328,9 +328,6 @@ fn test_full_glr_pipeline() {
     let initial_tree = incremental.parse_incremental(&glr_tokens, &[]).unwrap();
     println!("✓ Initial incremental parse succeeded");
     
-    // Store the tree for reuse
-    incremental.previous_forest = Some(initial_tree.clone());
-
     // Edit: "1 + 2 * 3" → "1 + 5 * 3"
     use std::ops::Range;
     let edit = GLREdit {
@@ -338,12 +335,13 @@ fn test_full_glr_pipeline() {
         new_text: b"5".to_vec(),
         old_token_range: Range { start: 2, end: 3 }, // The "2" token
         new_tokens: vec![GLRToken {
-            symbol: SymbolId(5), // NUMBER token
+            symbol: SymbolId(1), // NUMBER token - should match number_id
             text: b"5".to_vec(),
             start_byte: 4,
             end_byte: 5,
         }],
         old_tokens: glr_tokens.clone(),
+        old_forest: Some(initial_tree.clone()),
     };
     let new_input = "1 + 5 * 3";
     let mut new_lexer = GLRLexer::new(&grammar, new_input.to_string()).unwrap();
