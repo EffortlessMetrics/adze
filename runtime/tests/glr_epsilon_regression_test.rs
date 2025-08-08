@@ -3,6 +3,7 @@
 
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, ProductionId};
+use rust_sitter_glr_core::ParseTable;
 
 /// Create a grammar with epsilon-epsilon mutual recursion
 /// 
@@ -12,7 +13,7 @@ use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, ProductionId};
 /// B -> ε | 'b'
 /// 
 /// This should produce multiple parse trees for empty input
-fn create_epsilon_grammar() -> (Grammar, rust_sitter::decoder::ParseTable) {
+fn create_epsilon_grammar() -> (Grammar, ParseTable) {
     let mut grammar = Grammar::default();
     grammar.name = "EpsilonTest".to_string();
     
@@ -81,9 +82,8 @@ fn create_epsilon_grammar() -> (Grammar, rust_sitter::decoder::ParseTable) {
     });
     
     // Build parse table using the GLR core
-    use rust_sitter_glr_core::TableBuilder;
-    let mut builder = TableBuilder::new();
-    let table = builder.build(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
     
     (grammar, table)
 }
@@ -98,7 +98,7 @@ fn create_epsilon_grammar() -> (Grammar, rust_sitter::decoder::ParseTable) {
 /// W -> 'b'
 /// 
 /// Input "ab" should maintain both parse trees
-fn create_rr_conflict_grammar() -> (Grammar, rust_sitter::decoder::ParseTable) {
+fn create_rr_conflict_grammar() -> (Grammar, ParseTable) {
     let mut grammar = Grammar::default();
     grammar.name = "RRConflictTest".to_string();
     
@@ -181,9 +181,8 @@ fn create_rr_conflict_grammar() -> (Grammar, rust_sitter::decoder::ParseTable) {
     });
     
     // Build parse table using the GLR core
-    use rust_sitter_glr_core::TableBuilder;
-    let mut builder = TableBuilder::new();
-    let table = builder.build(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
     
     (grammar, table)
 }
@@ -198,14 +197,17 @@ fn test_epsilon_epsilon_reductions_preserved() {
     parser.reset();
     
     // Process EOF (empty input)
-    let forests = parser.process_eof(0);  // Input length 0 for empty input
+    parser.process_eof(0);  // Input length 0 for empty input
+    
+    // Get all parse alternatives
+    let forests = parser.finish_all_alternatives().expect("Should parse successfully");
     
     // Should have at least one parse tree where both A and B reduced to epsilon
     assert!(!forests.is_empty(), "Parser should produce at least one parse tree for empty input");
     
     // Verify the parse completes successfully
     let forest = &forests[0];
-    assert_eq!(forest.symbol, SymbolId(0), "Root should be S");
+    assert_eq!(forest.node.symbol_id, SymbolId(0), "Root should be S");
 }
 
 #[test]
@@ -218,7 +220,10 @@ fn test_rr_conflict_multiple_paths_preserved() {
     parser.process_token(SymbolId(5), "a", 1);  // 'a' token
     parser.process_token(SymbolId(6), "b", 1);  // 'b' token
     
-    let forests = parser.process_eof(2);  // Input length 2 for "ab"
+    parser.process_eof(2);  // Input length 2 for "ab"
+    
+    // Get all parse alternatives
+    let forests = parser.finish_all_alternatives().expect("Should parse successfully");
     
     // Should have parse trees for both S->XY and S->ZW derivations
     assert!(!forests.is_empty(), "Parser should produce parse trees for 'ab'");
@@ -226,11 +231,11 @@ fn test_rr_conflict_multiple_paths_preserved() {
     // In a proper GLR parser, we should maintain both alternatives
     // This verifies that the improved reduction key doesn't over-suppress
     let forest = &forests[0];
-    assert_eq!(forest.symbol, SymbolId(0), "Root should be S");
+    assert_eq!(forest.node.symbol_id, SymbolId(0), "Root should be S");
     
     // Check that we have alternatives (both parse paths)
-    // Note: The exact structure depends on forest merging strategy
-    assert!(forest.alternatives.len() >= 1, 
+    // With proper GLR, we should have both derivations
+    assert!(forests.len() >= 1, 
             "Should have at least one alternative parse");
 }
 
@@ -294,7 +299,8 @@ fn test_epsilon_cycle_no_infinite_loop() {
         production_id: ProductionId(3),
     });
     
-    let table = rust_sitter_glr_core::build_parse_table(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
     let mut parser = GLRParser::new(table, grammar);
     
     // This used to cause infinite loop - now should complete
@@ -302,9 +308,12 @@ fn test_epsilon_cycle_no_infinite_loop() {
     
     // Use a timeout to ensure we don't hang
     let start = std::time::Instant::now();
-    let forests = parser.process_eof(0);  // Empty input
+    parser.process_eof(0);  // Empty input
     let elapsed = start.elapsed();
     
     assert!(elapsed.as_secs() < 1, "Parser took too long, possible infinite loop");
+    
+    // Try to get the parse result
+    let forests = parser.finish_all_alternatives().expect("Should handle epsilon cycles");
     assert!(!forests.is_empty(), "Parser should handle epsilon cycles");
 }

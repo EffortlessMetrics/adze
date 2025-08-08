@@ -55,8 +55,8 @@ pub mod arena_allocator;
 pub mod pure_incremental;
 pub mod pure_parser;
 pub mod query;
-#[cfg(feature = "serialization")]
-pub mod serialization;
+// #[cfg(feature = "serialization")]
+// pub mod serialization; // TODO: Fix API mismatches between pure-rust and non-pure-rust modes
 pub mod subtree;
 pub mod unified_parser;
 pub mod visitor;

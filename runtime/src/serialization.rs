@@ -115,10 +115,8 @@ impl<'a> TreeSerializer<'a> {
         }
 
         // Serialize children
-        if self.include_children {
-            for child in &node.children {
-                serialized.children.push(self.serialize_node(child));
-            }
+        for child in &node.children {
+            serialized.children.push(self.serialize_node(child));
         }
 
         serialized

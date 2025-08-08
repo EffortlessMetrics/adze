@@ -61,7 +61,7 @@ pub fn get_reuse_count() -> usize {
 }
 
 /// Helper function to tokenize source code for arithmetic grammar
-fn _tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
+fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
     // Basic tokenization for arithmetic expressions
     let mut tokens = Vec::new();
     let mut position = 0;

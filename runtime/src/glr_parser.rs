@@ -370,7 +370,7 @@ impl GLRParser {
                                      actions.len(), state.0, token.0);
                             
                             // Fork the stack for EACH action to explore all parse paths
-                            for (_i, fork_action) in actions.iter().enumerate() {
+                            for (i, fork_action) in actions.iter().enumerate() {
                                 match fork_action {
                                     Action::Shift(new_state) => {
                                         let mut forked = stack.fork(self.next_stack_id);

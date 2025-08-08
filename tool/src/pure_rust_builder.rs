@@ -72,7 +72,7 @@ pub fn build_parser_from_grammar_js(
 
     // Convert to IR
     let converter = GrammarJsConverter::new(grammar_js);
-    let grammar = converter
+    let mut grammar = converter
         .convert()
         .context("Failed to convert grammar.js to IR")?;
 

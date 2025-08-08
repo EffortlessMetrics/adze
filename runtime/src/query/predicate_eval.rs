@@ -108,7 +108,8 @@ impl<'a> PredicateContext<'a> {
                     Err(e) => {
                         eprintln!("Invalid regex '{}': {}", regex_str, e);
                         // Return a regex that never matches
-                        Regex::new("(?!)").unwrap()
+                        // Using a character class that can never match
+                        Regex::new(r"^\b$").unwrap()
                     }
                 }
             });
