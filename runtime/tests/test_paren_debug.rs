@@ -4,6 +4,8 @@ use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // Import internal modules for testing
+#[path = "../src/error_recovery.rs"]
+mod error_recovery;
 #[path = "../src/glr_lexer.rs"]
 mod glr_lexer;
 #[path = "../src/glr_parser.rs"]
