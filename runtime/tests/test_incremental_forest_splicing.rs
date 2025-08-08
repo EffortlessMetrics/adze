@@ -1,7 +1,6 @@
 //! Test for the new forest splicing incremental parsing approach
 
 use rust_sitter::glr_incremental::{IncrementalGLRParser, GLREdit, GLRToken};
-use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
 use rust_sitter_ir::{Grammar, SymbolId, Symbol, Token, TokenPattern, Rule, ProductionId};
 use std::sync::Arc;
@@ -104,12 +103,11 @@ fn tokenize(input: &str) -> Vec<GLRToken> {
 fn test_forest_splicing_simple_edit() {
     let grammar = Arc::new(create_test_grammar());
     let first_follow = FirstFollowSets::compute(&grammar);
-    let automaton = build_lr1_automaton(&grammar, &first_follow);
-    let table = Arc::new(ParseTable::from_automaton(&automaton, &grammar));
+    let table = Arc::new(build_lr1_automaton(&grammar, &first_follow).unwrap());
     
     // Initial parse: "1 + 2 + 3"
     let initial_tokens = tokenize("1 + 2 + 3");
-    let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
+    let mut parser = IncrementalGLRParser::new((*grammar).clone(), (*table).clone());
     let initial_forest = parser.parse(&initial_tokens).unwrap();
     
     // Edit: "1 + 2 + 3" -> "1 + 5 + 3" (change middle number)
@@ -117,8 +115,15 @@ fn test_forest_splicing_simple_edit() {
     let edit = GLREdit {
         old_range: 4..5, // Position of "2"
         new_text: b"5".to_vec(),
-        old_forest: initial_forest.clone(),
+        old_token_range: 2..3, // Token index of "2" in the token stream
+        new_tokens: vec![GLRToken {
+            symbol: SymbolId(1), // NUM
+            text: b"5".to_vec(),
+            start_byte: 4,
+            end_byte: 5,
+        }],
         old_tokens: initial_tokens.clone(),
+        old_forest: Some(initial_forest.clone()),
     };
     
     // Incremental parse with forest splicing
@@ -136,12 +141,11 @@ fn test_forest_splicing_simple_edit() {
 fn test_forest_splicing_prefix_reuse() {
     let grammar = Arc::new(create_test_grammar());
     let first_follow = FirstFollowSets::compute(&grammar);
-    let automaton = build_lr1_automaton(&grammar, &first_follow);
-    let table = Arc::new(ParseTable::from_automaton(&automaton, &grammar));
+    let table = Arc::new(build_lr1_automaton(&grammar, &first_follow).unwrap());
     
     // Initial parse: "1 + 2 + 3 + 4"
     let initial_tokens = tokenize("1 + 2 + 3 + 4");
-    let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
+    let mut parser = IncrementalGLRParser::new((*grammar).clone(), (*table).clone());
     let initial_forest = parser.parse(&initial_tokens).unwrap();
     
     // Edit at the end: "1 + 2 + 3 + 4" -> "1 + 2 + 3 + 9"
@@ -149,8 +153,15 @@ fn test_forest_splicing_prefix_reuse() {
     let edit = GLREdit {
         old_range: 12..13, // Position of "4"
         new_text: b"9".to_vec(),
-        old_forest: initial_forest.clone(),
+        old_token_range: 6..7, // Token index of "4" in the token stream
+        new_tokens: vec![GLRToken {
+            symbol: SymbolId(1), // NUM
+            text: b"9".to_vec(),
+            start_byte: 12,
+            end_byte: 13,
+        }],
         old_tokens: initial_tokens.clone(),
+        old_forest: Some(initial_forest.clone()),
     };
     
     // Incremental parse should reuse the prefix "1 + 2 + 3"
@@ -165,12 +176,11 @@ fn test_forest_splicing_prefix_reuse() {
 fn test_forest_splicing_suffix_reuse() {
     let grammar = Arc::new(create_test_grammar());
     let first_follow = FirstFollowSets::compute(&grammar);
-    let automaton = build_lr1_automaton(&grammar, &first_follow);
-    let table = Arc::new(ParseTable::from_automaton(&automaton, &grammar));
+    let table = Arc::new(build_lr1_automaton(&grammar, &first_follow).unwrap());
     
     // Initial parse: "1 + 2 + 3 + 4"
     let initial_tokens = tokenize("1 + 2 + 3 + 4");
-    let mut parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
+    let mut parser = IncrementalGLRParser::new((*grammar).clone(), (*table).clone());
     let initial_forest = parser.parse(&initial_tokens).unwrap();
     
     // Edit at the beginning: "1 + 2 + 3 + 4" -> "9 + 2 + 3 + 4"
@@ -178,8 +188,15 @@ fn test_forest_splicing_suffix_reuse() {
     let edit = GLREdit {
         old_range: 0..1, // Position of "1"
         new_text: b"9".to_vec(),
-        old_forest: initial_forest.clone(),
+        old_token_range: 0..1, // Token index of "1" in the token stream
+        new_tokens: vec![GLRToken {
+            symbol: SymbolId(1), // NUM
+            text: b"9".to_vec(),
+            start_byte: 0,
+            end_byte: 1,
+        }],
         old_tokens: initial_tokens.clone(),
+        old_forest: Some(initial_forest.clone()),
     };
     
     // Incremental parse should reuse the suffix "2 + 3 + 4"
