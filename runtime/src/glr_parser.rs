@@ -147,8 +147,8 @@ impl ParseStack {
 
     /// Print tree structure for debugging
     fn print_tree_structure(node: &Arc<Subtree>, indent: usize) {
-        let prefix = "  ".repeat(indent);
-        debug_glr!("{}Symbol {}, range {:?}", prefix, node.node.symbol_id.0, node.node.byte_range);
+        let _prefix = "  ".repeat(indent);
+        debug_glr!("{}Symbol {}, range {:?}", _prefix, node.node.symbol_id.0, node.node.byte_range);
         for child in &node.children {
             Self::print_tree_structure(child, indent + 1);
         }
@@ -227,7 +227,7 @@ pub struct GLRParser {
     recovery_state: Option<ErrorRecoveryState>,
 
     /// Conflict resolver for vec wrapper conflicts
-    vec_wrapper_resolver: Option<VecWrapperResolver>,
+    _vec_wrapper_resolver: Option<VecWrapperResolver>,
     
     /// Total input length in bytes (set when process_eof is called)
     input_length: usize,
@@ -249,7 +249,7 @@ impl GLRParser {
             pending_stacks: VecDeque::from([0]),
             error_recovery: None,
             recovery_state: None,
-            vec_wrapper_resolver,
+            _vec_wrapper_resolver: vec_wrapper_resolver,
             input_length: 0,
         }
     }
@@ -302,8 +302,8 @@ impl GLRParser {
                 if action_cell.len() > 1 {
                     debug_glr!("DEBUG: Found multi-action cell at state {} for token {}: {} actions", 
                              state.0, token.0, action_cell.len());
-                    for (i, act) in action_cell.iter().enumerate() {
-                        debug_glr!("  Action {}: {:?}", i, act);
+                    for (_i, _act) in action_cell.iter().enumerate() {
+                        debug_glr!("  Action {}: {:?}", _i, _act);
                     }
                 }
                 
@@ -355,7 +355,7 @@ impl GLRParser {
                                      actions.len(), state.0, token.0);
                             
                             // Fork the stack for EACH action to explore all parse paths
-                            for (i, fork_action) in actions.iter().enumerate() {
+                            for (_i, fork_action) in actions.iter().enumerate() {
                                 match fork_action {
                                     Action::Shift(new_state) => {
                                         let mut forked = stack.fork(self.next_stack_id);
@@ -936,8 +936,8 @@ impl GLRParser {
     /// Get all successful parse alternatives (for ambiguous grammars)
     pub fn finish_all_alternatives(&self) -> Result<Vec<Arc<Subtree>>, String> {
         debug_glr!("DEBUG finish_all_alternatives: have {} stacks", self.stacks.len());
-        for (i, stack) in self.stacks.iter().enumerate() {
-            debug_glr!("  Stack {}: {} nodes, state {}", i, stack.nodes.len(), stack.current_state().0);
+        for (_i, stack) in self.stacks.iter().enumerate() {
+            debug_glr!("  Stack {}: {} nodes, state {}", _i, stack.nodes.len(), stack.current_state().0);
             // Print parse tree structure for debugging
             if stack.nodes.len() == 1 {
                 ParseStack::print_tree_structure(&stack.nodes[0], 0);
@@ -1015,7 +1015,7 @@ impl GLRParser {
     }
 
     /// Perform all possible reductions on a stack until no more are possible
-    fn perform_all_reductions(&self, stack: ParseStack) -> Vec<ParseStack> {
+    fn _perform_all_reductions(&self, stack: ParseStack) -> Vec<ParseStack> {
         let mut result_stacks = vec![];
         let mut work_list = vec![stack];
 
@@ -1027,7 +1027,7 @@ impl GLRParser {
             for (_symbol_id, rules) in &self.grammar.rules {
                 for rule in rules {
                     // Check if we can reduce by this rule
-                    if self.can_reduce(&current_stack, rule) {
+                    if self._can_reduce(&current_stack, rule) {
                         // After reduction, we need to find the goto state
                         // First get the state we'll be in after popping the RHS symbols
                         let base_state_idx = if current_stack.states.len() > rule.rhs.len() {
@@ -1116,7 +1116,7 @@ impl GLRParser {
     }
 
     /// Check if we can reduce by a rule
-    fn can_reduce(&self, stack: &ParseStack, rule: &Rule) -> bool {
+    fn _can_reduce(&self, stack: &ParseStack, rule: &Rule) -> bool {
         if stack.nodes.len() < rule.rhs.len() {
             return false;
         }
