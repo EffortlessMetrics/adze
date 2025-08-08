@@ -104,12 +104,7 @@ Rust Sitter uses procedural macros to extract a grammar definition from your Rus
 
 ## Documentation
 
-For more detailed information, please refer to our documentation in the `docs/` directory:
-
-*   [API Documentation](./docs/API_DOCUMENTATION.md)
-*   [Usage Examples](./docs/USAGE_EXAMPLES.md)
-*   [Migration Guide](./docs/MIGRATION_GUIDE.md)
-*   [Performance Guide](./docs/PERFORMANCE_GUIDE.md)
+For more detailed information, please refer to our documentation. A good place to start is the [documentation index](./docs/README.md).
 
 ## Contributing
 
