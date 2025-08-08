@@ -1,10 +1,10 @@
 //! Demonstrates incremental parsing with rust-sitter GLR parser
 
 use rust_sitter::{
-    glr_incremental::{Edit, IncrementalGLRParser, Position},
-    glr_lexer::TokenWithPosition,
+    glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser, ForestNode},
     glr_parser::GLRParser,
 };
+use std::ops::Range;
 use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 use std::sync::Arc;
@@ -26,11 +26,8 @@ fn main() {
         }
     };
 
-    // Create GLR parser - need to pass grammar too
-    let glr_parser = GLRParser::new(parse_table, (*grammar).clone());
-
-    // Create incremental parser
-    let mut incremental_parser = IncrementalGLRParser::new(glr_parser, grammar.clone());
+    // Create incremental parser directly with grammar and table
+    let mut incremental_parser = IncrementalGLRParser::new((*grammar).clone(), parse_table);
 
     // Test 1: Initial parse
     println!("Test 1: Initial parse");
@@ -38,12 +35,12 @@ fn main() {
     let tokens1 = tokenize(input1);
     println!("Input: '{}'", input1);
 
-    let result1 = incremental_parser.parse_incremental(&tokens1, &[], None);
+    let result1 = incremental_parser.parse_incremental(&tokens1, &[]);
     match result1 {
         Ok(tree) => {
             println!("✓ Parse successful!");
-            let stats = incremental_parser.stats();
-            print_stats(&stats);
+            // Store the tree for reuse
+            incremental_parser.previous_forest = Some(tree.clone());
 
             // Test 2: Small edit in the middle
             println!("\n\nTest 2: Edit in the middle");
@@ -51,23 +48,27 @@ fn main() {
             let tokens2 = tokenize(input2);
             println!("Input: '{}' (changed 'b' to 'x' at position 2)", input2);
 
-            let edit = Edit {
-                start_byte: 2,
-                old_end_byte: 3,
-                new_end_byte: 3,
-                start_position: Position { line: 0, column: 2 },
-                old_end_position: Position { line: 0, column: 3 },
-                new_end_position: Position { line: 0, column: 3 },
+            // Create edit for changing 'b' to 'x' at position 2
+            let edit = GLREdit {
+                old_range: Range { start: 2, end: 3 },
+                new_text: b"x".to_vec(),
+                old_token_range: Range { start: 1, end: 2 }, // Second token
+                new_tokens: vec![GLRToken {
+                    symbol: SymbolId(1),
+                    text: b"x".to_vec(),
+                    start_byte: 2,
+                    end_byte: 3,
+                }],
+                old_tokens: tokens1.clone(),
             };
 
-            let result2 =
-                incremental_parser.parse_incremental(&tokens2, &[edit], Some(tree.clone()));
+            let result2 = incremental_parser.parse_incremental(&tokens2, &[edit]);
             match result2 {
                 Ok(_tree2) => {
                     println!("✓ Incremental parse successful!");
-                    let stats = incremental_parser.stats();
-                    print_stats(&stats);
                     println!("Note: Some subtrees were reused from the previous parse!");
+                    // Update for next parse
+                    incremental_parser.previous_forest = Some(tree2);
                 }
                 Err(e) => println!("✗ Incremental parse failed: {}", e),
             }
@@ -78,21 +79,24 @@ fn main() {
             let tokens3 = tokenize(input3);
             println!("Input: '{}' (appended ' d')", input3);
 
-            let edit = Edit {
-                start_byte: 5,
-                old_end_byte: 5,
-                new_end_byte: 7,
-                start_position: Position { line: 0, column: 5 },
-                old_end_position: Position { line: 0, column: 5 },
-                new_end_position: Position { line: 0, column: 7 },
+            // Create edit for appending ' d' at the end
+            let edit = GLREdit {
+                old_range: Range { start: 5, end: 5 },
+                new_text: b" d".to_vec(),
+                old_token_range: Range { start: 3, end: 3 }, // After last token
+                new_tokens: vec![GLRToken {
+                    symbol: SymbolId(1),
+                    text: b"d".to_vec(),
+                    start_byte: 6,
+                    end_byte: 7,
+                }],
+                old_tokens: tokens2.clone(),
             };
 
-            let result3 = incremental_parser.parse_incremental(&tokens3, &[edit], Some(tree));
+            let result3 = incremental_parser.parse_incremental(&tokens3, &[edit]);
             match result3 {
                 Ok(_tree3) => {
                     println!("✓ Incremental parse successful!");
-                    let stats = incremental_parser.stats();
-                    print_stats(&stats);
                     println!("Note: The beginning of the tree was reused!");
                 }
                 Err(e) => println!("✗ Incremental parse failed: {}", e),
@@ -142,7 +146,7 @@ fn create_simple_grammar() -> Grammar {
 }
 
 /// Simple tokenizer for demo
-fn tokenize(input: &str) -> Vec<TokenWithPosition> {
+fn tokenize(input: &str) -> Vec<GLRToken> {
     let mut tokens = Vec::new();
     let mut pos = 0;
 
@@ -150,11 +154,11 @@ fn tokenize(input: &str) -> Vec<TokenWithPosition> {
         if ch.is_alphabetic() {
             let text = ch.to_string();
             let len = text.len();
-            tokens.push(TokenWithPosition {
-                symbol_id: SymbolId(1), // All letters map to terminal A
-                text,
-                byte_offset: pos,
-                byte_length: len,
+            tokens.push(GLRToken {
+                symbol: SymbolId(1), // All letters map to terminal A
+                text: ch.to_string().into_bytes(),
+                start_byte: pos,
+                end_byte: pos + len,
             });
             pos += len;
         } else if ch == ' ' {
@@ -165,17 +169,3 @@ fn tokenize(input: &str) -> Vec<TokenWithPosition> {
     tokens
 }
 
-/// Print reuse statistics
-fn print_stats(stats: &rust_sitter::glr_incremental::ReuseStats) {
-    println!("  Subtrees reused: {}", stats.subtrees_reused);
-    println!(
-        "  Bytes reused: {} / {} ({:.1}%)",
-        stats.bytes_reused,
-        stats.total_bytes,
-        if stats.total_bytes > 0 {
-            (stats.bytes_reused as f64 / stats.total_bytes as f64) * 100.0
-        } else {
-            0.0
-        }
-    );
-}

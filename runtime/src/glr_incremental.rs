@@ -61,6 +61,7 @@ pub fn get_reuse_count() -> usize {
 }
 
 /// Helper function to tokenize source code for arithmetic grammar
+#[allow(dead_code)]
 fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
     // Basic tokenization for arithmetic expressions
     let mut tokens = Vec::new();
@@ -154,11 +155,11 @@ fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
 /// This function bridges between the public parser_v4 API and the internal
 /// GLR incremental parsing implementation.
 pub fn reparse(
-    grammar: &Grammar,
-    table: &ParseTable,
-    source: &[u8],
-    old_tree: &crate::parser_v4::Tree,
-    edit: &crate::pure_incremental::Edit,
+    _grammar: &Grammar,
+    _table: &ParseTable,
+    _source: &[u8],
+    _old_tree: &crate::parser_v4::Tree,
+    _edit: &crate::pure_incremental::Edit,
 ) -> Option<crate::parser_v4::Tree> {
     // Only enable incremental parsing if the feature is enabled
     #[cfg(feature = "incremental_glr")]

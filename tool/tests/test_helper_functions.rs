@@ -22,7 +22,7 @@ module.exports = grammar({
     let grammar_js = parser.parse().expect("Failed to parse grammar");
 
     // Convert to IR
-    let mut converter = GrammarJsConverter::new(grammar_js);
+    let converter = GrammarJsConverter::new(grammar_js);
     let ir_grammar = converter.convert().expect("Failed to convert to IR");
 
     // Check that the list rule was properly expanded
@@ -52,7 +52,7 @@ module.exports = grammar({
     let grammar_js = parser.parse().expect("Failed to parse grammar");
 
     // Convert to IR
-    let mut converter = GrammarJsConverter::new(grammar_js);
+    let converter = GrammarJsConverter::new(grammar_js);
     let ir_grammar = converter.convert().expect("Failed to convert to IR");
 
     println!("Rules converted: {:?}", ir_grammar.rules.len());
@@ -89,7 +89,7 @@ module.exports = grammar({
     }
 
     // Convert to IR
-    let mut converter = GrammarJsConverter::new(grammar_js);
+    let converter = GrammarJsConverter::new(grammar_js);
     let ir_grammar = converter.convert().expect("Failed to convert to IR");
 
     println!(
@@ -123,7 +123,7 @@ module.exports = grammar({
     let grammar_js = parser.parse().expect("Failed to parse grammar");
 
     // Convert to IR
-    let mut converter = GrammarJsConverter::new(grammar_js);
+    let converter = GrammarJsConverter::new(grammar_js);
     let ir_grammar = converter.convert().expect("Failed to convert to IR");
 
     println!("Grammar converted with {} rules", ir_grammar.rules.len());

@@ -58,7 +58,8 @@ fn convert_forest_to_query_subtree(forest: &Arc<ForestNode>) -> rust_sitter::glr
     rust_sitter::glr_query::Subtree {
         symbol: rust_sitter_ir::SymbolId(0), // placeholder
         children: vec![],
-        text: None,
+        start_byte: 0,
+        end_byte: 0,
     }
 }
 
@@ -157,12 +158,12 @@ fn create_expression_grammar() -> Grammar {
     grammar.rule_names.insert(expr_id, "expression".to_string());
 
     // Rule IDs for different production rules
-    let add_rule_id = SymbolId(20);
-    let sub_rule_id = SymbolId(21);
-    let mul_rule_id = SymbolId(22);
-    let div_rule_id = SymbolId(23);
-    let paren_rule_id = SymbolId(24);
-    let number_rule_id = SymbolId(25);
+    let _add_rule_id = SymbolId(20);
+    let _sub_rule_id = SymbolId(21);
+    let _mul_rule_id = SymbolId(22);
+    let _div_rule_id = SymbolId(23);
+    let _paren_rule_id = SymbolId(24);
+    let _number_rule_id = SymbolId(25);
 
     // Add a simple rule for expression that doesn't reference itself
     // expression → number_expression | add_expression | ... (handled via multiple rules with same LHS)
@@ -319,13 +320,31 @@ fn test_full_glr_pipeline() {
     }
 
     // Step 5: Test incremental parsing
-    let mut incremental = IncrementalGLRParser::new(parser, Arc::new(grammar.clone()));
+    // Re-create parser with proper types
+    let first_follow = FirstFollowSets::compute(&grammar);
+    let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
+    let mut incremental = IncrementalGLRParser::new(grammar.clone(), parse_table);
     let glr_tokens = tokens_to_glr(&tokens);
     let initial_tree = incremental.parse_incremental(&glr_tokens, &[]).unwrap();
     println!("✓ Initial incremental parse succeeded");
+    
+    // Store the tree for reuse
+    incremental.previous_forest = Some(initial_tree.clone());
 
     // Edit: "1 + 2 * 3" → "1 + 5 * 3"
-    let edit = GLREdit::new(4, 5, 5);
+    use std::ops::Range;
+    let edit = GLREdit {
+        old_range: Range { start: 4, end: 5 },
+        new_text: b"5".to_vec(),
+        old_token_range: Range { start: 2, end: 3 }, // The "2" token
+        new_tokens: vec![GLRToken {
+            symbol: SymbolId(5), // NUMBER token
+            text: b"5".to_vec(),
+            start_byte: 4,
+            end_byte: 5,
+        }],
+        old_tokens: glr_tokens.clone(),
+    };
     let new_input = "1 + 5 * 3";
     let mut new_lexer = GLRLexer::new(&grammar, new_input.to_string()).unwrap();
     let new_tokens = new_lexer.tokenize_all();
@@ -377,8 +396,8 @@ fn test_glr_with_ambiguous_grammar() {
     );
 
     let e_id = SymbolId(10);
-    let concat_id = SymbolId(11);
-    let terminal_id = SymbolId(12);
+    let _concat_id = SymbolId(11);
+    let _terminal_id = SymbolId(12);
 
     grammar.rule_names.insert(e_id, "E".to_string());
 

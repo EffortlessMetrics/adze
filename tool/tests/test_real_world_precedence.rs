@@ -72,7 +72,7 @@ module.exports = grammar({
             println!("  Rules: {:?}", grammar_js.rules.keys().collect::<Vec<_>>());
 
             // Try to convert to IR
-            let mut converter = GrammarJsConverter::new(grammar_js.clone());
+            let converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
                 Ok(ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
@@ -206,7 +206,7 @@ module.exports = grammar({
             println!("  Rules: {} total", grammar_js.rules.len());
 
             // Try to convert to IR
-            let mut converter = GrammarJsConverter::new(grammar_js.clone());
+            let converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
                 Ok(ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
