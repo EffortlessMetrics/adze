@@ -51,6 +51,7 @@ impl<'a> LanguageGenerator<'a> {
             use rust_sitter::tree_sitter as ts;
             use crate::abi::{TSLanguage, TSSymbol, TSStateId, TSLexState, TSParseAction, ExternalScanner};
             const TREE_SITTER_LANGUAGE_VERSION: u32 = 15;
+            const EXTERNAL_TOKEN_COUNT: u32 = #external_token_count;
 
             // Symbol names array
             static SYMBOL_NAMES: &[&str] = &[#(#symbol_names),*];
@@ -64,7 +65,7 @@ impl<'a> LanguageGenerator<'a> {
                 #(FIELD_NAMES[#field_name_indices].as_ptr()),*
             ];
 
-            // Symbol metadata
+            // Symbol metadata - each byte contains bits for: visible, named, hidden, supertype
             static SYMBOL_METADATA: &[u8] = &[#(#symbol_metadata),*];
 
             // Parse actions
@@ -91,13 +92,16 @@ impl<'a> LanguageGenerator<'a> {
                 #(TSStateId(#symbol_name_indices as u16)),*
             ];
 
+            // External scanner (if any)
+            static EXTERNAL_SCANNER: ExternalScanner = ExternalScanner::default();
+
             // The language structure
             static LANGUAGE: TSLanguage = TSLanguage {
                 version: #TREE_SITTER_LANGUAGE_VERSION,
                 symbol_count: #symbol_count,
                 alias_count: 0, // TODO: Implement aliases
                 token_count: #token_count,
-                external_token_count: #external_token_count,
+                external_token_count: EXTERNAL_TOKEN_COUNT,
                 state_count: #state_count,
                 large_state_count: #large_state_count,
                 production_id_count: #production_id_count,
@@ -119,7 +123,7 @@ impl<'a> LanguageGenerator<'a> {
                 lex_fn: None, // TODO: Implement custom lexer
                 keyword_lex_fn: None,
                 keyword_capture_token: TSSymbol(0),
-                external_scanner: ExternalScanner::default(),
+                external_scanner: EXTERNAL_SCANNER,
                 primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
             };
 
@@ -132,7 +136,7 @@ impl<'a> LanguageGenerator<'a> {
 
             /// Export for C FFI
             #[no_mangle]
-            pub extern "C" fn #language_fn_ident() -> ts::Language {
+            pub unsafe extern "C" fn #language_fn_ident() -> ts::Language {
                 language()
             }
         }

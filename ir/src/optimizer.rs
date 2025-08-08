@@ -26,6 +26,7 @@ impl Default for GrammarOptimizer {
 }
 
 impl GrammarOptimizer {
+    /// Create a new optimizer
     pub fn new() -> Self {
         GrammarOptimizer {
             used_symbols: HashSet::new(),
@@ -848,10 +849,15 @@ impl GrammarOptimizer {
 /// Statistics about optimizations performed
 #[derive(Debug, Default)]
 pub struct OptimizationStats {
+    /// Number of unused symbols removed
     pub removed_unused_symbols: usize,
+    /// Number of rules inlined
     pub inlined_rules: usize,
+    /// Number of tokens merged
     pub merged_tokens: usize,
+    /// Number of left-recursive rules optimized
     pub optimized_left_recursion: usize,
+    /// Number of unit rules eliminated
     pub eliminated_unit_rules: usize,
 }
 

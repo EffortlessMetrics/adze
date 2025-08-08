@@ -9,34 +9,53 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// Grammar optimization utilities
 pub mod optimizer;
 pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
 
+/// Grammar validation utilities
 pub mod validation;
 pub use validation::{GrammarValidator, ValidationError, ValidationResult, ValidationWarning};
 
+/// Debug macros for development
 pub mod debug_macros;
+/// Symbol registry for managing grammar symbols
 pub mod symbol_registry;
 pub use symbol_registry::{SymbolInfo, SymbolRegistry};
 
 /// Core grammar representation supporting all Tree-sitter features including GLR
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Grammar {
+    /// Grammar name
     pub name: String,
+    /// Production rules indexed by left-hand side symbol
     pub rules: IndexMap<SymbolId, Vec<Rule>>,
+    /// Token definitions
     pub tokens: IndexMap<SymbolId, Token>,
+    /// Precedence declarations
     pub precedences: Vec<Precedence>,
+    /// Conflict resolution declarations
     pub conflicts: Vec<ConflictDeclaration>,
+    /// External scanner tokens
     pub externals: Vec<ExternalToken>,
-    pub extras: Vec<SymbolId>, // Extra tokens (e.g., whitespace, comments)
-    pub fields: IndexMap<FieldId, String>, // Maintained in lexicographic order
+    /// Extra tokens (e.g., whitespace, comments)
+    pub extras: Vec<SymbolId>,
+    /// Field names maintained in lexicographic order
+    pub fields: IndexMap<FieldId, String>,
+    /// Supertype symbols
     pub supertypes: Vec<SymbolId>,
+    /// Rules to inline during generation
     pub inline_rules: Vec<SymbolId>,
+    /// Alias sequences for productions
     pub alias_sequences: IndexMap<ProductionId, AliasSequence>,
+    /// Maps rule IDs to production IDs
     pub production_ids: IndexMap<RuleId, ProductionId>,
+    /// Maximum alias sequence length
     pub max_alias_sequence_length: usize,
-    pub rule_names: IndexMap<SymbolId, String>, // Maps symbol IDs to rule names
-    pub symbol_registry: Option<SymbolRegistry>, // Centralized symbol registry
+    /// Maps symbol IDs to rule names
+    pub rule_names: IndexMap<SymbolId, String>,
+    /// Centralized symbol registry
+    pub symbol_registry: Option<SymbolRegistry>,
 }
 
 impl Grammar {
@@ -200,107 +219,148 @@ impl Grammar {
 /// Grammar rule supporting GLR multiple actions per state
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Rule {
+    /// Left-hand side symbol
     pub lhs: SymbolId,
+    /// Right-hand side symbols
     pub rhs: Vec<Symbol>,
+    /// Precedence if specified
     pub precedence: Option<PrecedenceKind>,
+    /// Associativity if specified
     pub associativity: Option<Associativity>,
-    pub fields: Vec<(FieldId, usize)>, // field -> position mapping
+    /// Field to position mapping
+    pub fields: Vec<(FieldId, usize)>,
+    /// Production ID
     pub production_id: ProductionId,
 }
 
 /// Precedence supporting both static and dynamic precedence (PREC_DYNAMIC)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PrecedenceKind {
+    /// Static precedence
     Static(i16),
+    /// Dynamic precedence
     Dynamic(i16),
 }
 
 /// Token with fragile flag for lexical vs parse conflicts
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Token {
+    /// Token name
     pub name: String,
+    /// Token pattern (string or regex)
     pub pattern: TokenPattern,
-    pub fragile: bool, // TSFragile flag for lexical vs parse conflicts
+    /// TSFragile flag for lexical vs parse conflicts
+    pub fragile: bool,
 }
 
 /// Token pattern representation
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TokenPattern {
+    /// String literal pattern
     String(String),
+    /// Regular expression pattern
     Regex(String),
 }
 
 /// Grammar symbol types
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Symbol {
+    /// Terminal symbol
     Terminal(SymbolId),
+    /// Non-terminal symbol
     NonTerminal(SymbolId),
+    /// External scanner symbol
     External(SymbolId),
+    /// Optional symbol (zero or one)
     Optional(Box<Symbol>),
+    /// Zero or more repetitions
     Repeat(Box<Symbol>),
-    RepeatOne(Box<Symbol>), // One or more repetitions
+    /// One or more repetitions
+    RepeatOne(Box<Symbol>),
+    /// Choice between symbols
     Choice(Vec<Symbol>),
+    /// Sequence of symbols
     Sequence(Vec<Symbol>),
-    Epsilon, // Empty production
+    /// Empty production
+    Epsilon,
 }
 
 /// Alias sequence for node renaming
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AliasSequence {
+    /// Aliases for each position
     pub aliases: Vec<Option<String>>,
 }
 
 /// Precedence declaration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Precedence {
+    /// Precedence level
     pub level: i16,
+    /// Associativity for this level
     pub associativity: Associativity,
+    /// Symbols at this precedence level
     pub symbols: Vec<SymbolId>,
 }
 
 /// Associativity for conflict resolution
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Associativity {
+    /// Left associative
     Left,
+    /// Right associative
     Right,
+    /// Non-associative
     None,
 }
 
 /// Conflict declaration for GLR handling
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConflictDeclaration {
+    /// Conflicting symbols
     pub symbols: Vec<SymbolId>,
+    /// Conflict resolution strategy
     pub resolution: ConflictResolution,
 }
 
 /// How to resolve conflicts
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConflictResolution {
+    /// Resolve by precedence
     Precedence(PrecedenceKind),
+    /// Resolve by associativity
     Associativity(Associativity),
-    GLR, // Allow GLR fork/merge
+    /// Allow GLR fork/merge
+    GLR,
 }
 
 /// External token declaration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExternalToken {
+    /// External token name
     pub name: String,
+    /// Symbol ID for the external token
     pub symbol_id: SymbolId,
 }
 
 // Type-safe IDs
+/// Symbol identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SymbolId(pub u16);
 
+/// Rule identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct RuleId(pub u16);
 
+/// State identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct StateId(pub u16);
 
+/// Field identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FieldId(pub u16);
 
+/// Production identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ProductionId(pub u16);
 
@@ -338,9 +398,13 @@ impl fmt::Display for ProductionId {
 /// Metadata for a symbol in the language
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SymbolMetadata {
+    /// Whether the symbol is visible
     pub visible: bool,
+    /// Whether the symbol is named
     pub named: bool,
+    /// Whether the symbol is hidden
     pub hidden: bool,
+    /// Whether the symbol is a terminal
     pub terminal: bool,
 }
 
@@ -573,21 +637,27 @@ impl Grammar {
 /// Grammar processing errors
 #[derive(Debug, thiserror::Error)]
 pub enum GrammarError {
+    /// Failed to parse grammar
     #[error("Failed to parse grammar: {0}")]
     ParseError(#[from] serde_json::Error),
 
+    /// Invalid field ordering
     #[error("Invalid field ordering - fields must be in lexicographic order")]
     InvalidFieldOrdering,
 
+    /// Unresolved symbol reference
     #[error("Unresolved symbol reference: {0}")]
     UnresolvedSymbol(SymbolId),
 
+    /// Unresolved external symbol reference
     #[error("Unresolved external symbol reference: {0}")]
     UnresolvedExternalSymbol(SymbolId),
 
+    /// Conflict in grammar
     #[error("Conflict in grammar: {0}")]
     ConflictError(String),
 
+    /// Invalid precedence declaration
     #[error("Invalid precedence declaration: {0}")]
     InvalidPrecedence(String),
 }

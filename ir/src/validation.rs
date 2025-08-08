@@ -9,21 +9,43 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidationError {
     /// Undefined symbol referenced
-    UndefinedSymbol { symbol: SymbolId, location: String },
+    UndefinedSymbol {
+        /// The undefined symbol
+        symbol: SymbolId,
+        /// Where it was referenced
+        location: String,
+    },
     /// Unreachable symbol (not reachable from start)
-    UnreachableSymbol { symbol: SymbolId, name: String },
+    UnreachableSymbol {
+        /// The unreachable symbol
+        symbol: SymbolId,
+        /// Symbol name
+        name: String,
+    },
     /// Non-productive symbol (can't derive terminal strings)
-    NonProductiveSymbol { symbol: SymbolId, name: String },
+    NonProductiveSymbol {
+        /// The non-productive symbol
+        symbol: SymbolId,
+        /// Symbol name
+        name: String,
+    },
     /// Cyclic rule without base case
-    CyclicRule { symbols: Vec<SymbolId> },
+    CyclicRule {
+        /// Symbols involved in the cycle
+        symbols: Vec<SymbolId>,
+    },
     /// Duplicate rule definition
     DuplicateRule {
+        /// Symbol with duplicate rules
         symbol: SymbolId,
+        /// Number of existing definitions
         existing_count: usize,
     },
     /// Invalid field mapping
     InvalidField {
+        /// Invalid field ID
         field_id: FieldId,
+        /// Symbol containing the invalid field
         rule_symbol: SymbolId,
     },
     /// Empty grammar
@@ -32,17 +54,27 @@ pub enum ValidationError {
     NoExplicitStartRule,
     /// Conflicting precedence declarations
     ConflictingPrecedence {
+        /// Symbol with conflicting precedences
         symbol: SymbolId,
+        /// Conflicting precedence values
         precedences: Vec<i16>,
     },
     /// Invalid regex pattern
     InvalidRegex {
+        /// Token with invalid regex
         token: SymbolId,
+        /// The invalid pattern
         pattern: String,
+        /// Error message
         error: String,
     },
     /// External token conflict
-    ExternalTokenConflict { token1: String, token2: String },
+    ExternalTokenConflict {
+        /// First conflicting token
+        token1: String,
+        /// Second conflicting token
+        token2: String,
+    },
 }
 
 impl fmt::Display for ValidationError {
@@ -139,19 +171,34 @@ pub struct GrammarValidator {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidationWarning {
     /// Unused token
-    UnusedToken { token: SymbolId, name: String },
+    UnusedToken {
+        /// The unused token
+        token: SymbolId,
+        /// Token name
+        name: String,
+    },
     /// Duplicate token pattern
     DuplicateTokenPattern {
+        /// Tokens with duplicate pattern
         tokens: Vec<SymbolId>,
+        /// The duplicate pattern
         pattern: String,
     },
     /// Ambiguous grammar (may need GLR)
-    AmbiguousGrammar { message: String },
+    AmbiguousGrammar {
+        /// Ambiguity description
+        message: String,
+    },
     /// Missing field names
-    MissingFieldNames { rule_symbol: SymbolId },
+    MissingFieldNames {
+        /// Symbol missing field names
+        rule_symbol: SymbolId,
+    },
     /// Inefficient rule structure
     InefficientRule {
+        /// Symbol with inefficient rule
         symbol: SymbolId,
+        /// Optimization suggestion
         suggestion: String,
     },
 }
@@ -192,21 +239,32 @@ impl fmt::Display for ValidationWarning {
 
 /// Validation result
 pub struct ValidationResult {
+    /// Validation errors found
     pub errors: Vec<ValidationError>,
+    /// Validation warnings found
     pub warnings: Vec<ValidationWarning>,
+    /// Validation statistics
     pub stats: ValidationStats,
 }
 
 /// Statistics gathered during validation
 #[derive(Debug, Clone, Default)]
 pub struct ValidationStats {
+    /// Total number of symbols
     pub total_symbols: usize,
+    /// Total number of tokens
     pub total_tokens: usize,
+    /// Total number of rules
     pub total_rules: usize,
+    /// Number of reachable symbols
     pub reachable_symbols: usize,
+    /// Number of productive symbols
     pub productive_symbols: usize,
+    /// Number of external tokens
     pub external_tokens: usize,
+    /// Maximum rule length
     pub max_rule_length: usize,
+    /// Average rule length
     pub avg_rule_length: f64,
 }
 
@@ -217,6 +275,7 @@ impl Default for GrammarValidator {
 }
 
 impl GrammarValidator {
+    /// Create a new validator
     pub fn new() -> Self {
         Self {
             errors: Vec::new(),

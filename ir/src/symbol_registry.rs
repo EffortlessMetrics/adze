@@ -20,7 +20,9 @@ pub struct SymbolRegistry {
 /// Metadata about a symbol
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SymbolInfo {
+    /// Symbol ID
     pub id: SymbolId,
+    /// Symbol metadata
     pub metadata: SymbolMetadata,
 }
 
