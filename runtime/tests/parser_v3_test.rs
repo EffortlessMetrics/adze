@@ -160,6 +160,7 @@ fn create_simple_parse_table() -> ParseTable {
         state_count: 6,
         symbol_count: 4,
         symbol_to_index: symbol_to_index.into_iter().collect(),
+        external_scanner_states: Vec::new(),
     }
 }
 
@@ -169,7 +170,7 @@ fn test_parse_number() {
     let grammar = create_simple_arithmetic_grammar();
     let parse_table = create_simple_parse_table();
 
-    let mut parser = Parser::new(grammar, parse_table);
+    let mut parser = Parser::new(grammar, parse_table, "test".to_string());
 
     match parser.parse("42") {
         Ok(tree) => {
@@ -188,7 +189,7 @@ fn test_parse_addition() {
     let grammar = create_simple_arithmetic_grammar();
     let parse_table = create_simple_parse_table();
 
-    let mut parser = Parser::new(grammar, parse_table);
+    let mut parser = Parser::new(grammar, parse_table, "test".to_string());
 
     match parser.parse("1+2") {
         Ok(tree) => {
@@ -208,7 +209,7 @@ fn test_parse_with_whitespace() {
     let grammar = create_simple_arithmetic_grammar();
     let parse_table = create_simple_parse_table();
 
-    let mut parser = Parser::new(grammar, parse_table);
+    let mut parser = Parser::new(grammar, parse_table, "test".to_string());
 
     // The lexer should skip whitespace
     match parser.parse("1 + 2") {

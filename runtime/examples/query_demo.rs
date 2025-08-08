@@ -141,124 +141,124 @@ fn create_json_grammar() -> Grammar {
     // value → object
     grammar.rules.insert(
         SymbolId(30),
-        Rule {
+        vec![Rule {
             lhs: value_id,
             rhs: vec![Symbol::NonTerminal(object_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(0),
             fields: vec![],
-        },
+        }],
     );
 
     // value → array
     grammar.rules.insert(
         SymbolId(31),
-        Rule {
+        vec![Rule {
             lhs: value_id,
             rhs: vec![Symbol::NonTerminal(array_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(1),
             fields: vec![],
-        },
+        }],
     );
 
     // value → string
     grammar.rules.insert(
         SymbolId(32),
-        Rule {
+        vec![Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(string_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(2),
             fields: vec![],
-        },
+        }],
     );
 
     // value → number
     grammar.rules.insert(
         SymbolId(33),
-        Rule {
+        vec![Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(number_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(3),
             fields: vec![],
-        },
+        }],
     );
 
     // value → true
     grammar.rules.insert(
         SymbolId(34),
-        Rule {
+        vec![Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(true_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(4),
             fields: vec![],
-        },
+        }],
     );
 
     // value → false
     grammar.rules.insert(
         SymbolId(35),
-        Rule {
+        vec![Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(false_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(5),
             fields: vec![],
-        },
+        }],
     );
 
     // value → null
     grammar.rules.insert(
         SymbolId(36),
-        Rule {
+        vec![Rule {
             lhs: value_id,
             rhs: vec![Symbol::Terminal(null_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(6),
             fields: vec![],
-        },
+        }],
     );
 
     // object → { }
     grammar.rules.insert(
         object_id,
-        Rule {
+        vec![Rule {
             lhs: object_id,
             rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(7),
             fields: vec![],
-        },
+        }],
     );
 
     // array → [ ]
     grammar.rules.insert(
         array_id,
-        Rule {
+        vec![Rule {
             lhs: array_id,
             rhs: vec![Symbol::Terminal(lbracket_id), Symbol::Terminal(rbracket_id)],
             precedence: None,
             associativity: None,
             production_id: ProductionId(8),
             fields: vec![],
-        },
+        }],
     );
 
     // pair → string : value
     grammar.rules.insert(
         pair_id,
-        Rule {
+        vec![Rule {
             lhs: pair_id,
             rhs: vec![
                 Symbol::Terminal(string_id),
@@ -269,7 +269,7 @@ fn create_json_grammar() -> Grammar {
             associativity: None,
             production_id: ProductionId(9),
             fields: vec![],
-        },
+        }],
     );
 
     // The parser will determine the starting symbol

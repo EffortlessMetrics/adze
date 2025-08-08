@@ -78,7 +78,7 @@ fn validate_grammar_with_typos() {
 
     grammar.rules.insert(
         expr_id,
-        Rule {
+        vec![Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::Terminal(numbr_typo), // typo!
@@ -89,7 +89,7 @@ fn validate_grammar_with_typos() {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
+        }],
     );
     grammar.rule_names.insert(expr_id, "expr".to_string());
     grammar.rule_names.insert(numbr_typo, "numbr".to_string());
@@ -149,7 +149,7 @@ fn validate_left_recursive_grammar() {
     // expr → expr + term (left recursive!)
     grammar.rules.insert(
         expr_id,
-        Rule {
+        vec![Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::NonTerminal(expr_id),
@@ -160,21 +160,21 @@ fn validate_left_recursive_grammar() {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
+        }],
     );
     grammar.rule_names.insert(expr_id, "expr".to_string());
 
     // term → number
     grammar.rules.insert(
         term_id,
-        Rule {
+        vec![Rule {
             lhs: term_id,
             rhs: vec![Symbol::Terminal(number_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(1),
-        },
+        }],
     );
     grammar.rule_names.insert(term_id, "term".to_string());
 
@@ -216,40 +216,40 @@ fn validate_non_productive_grammar() {
 
     grammar.rules.insert(
         a_id,
-        Rule {
+        vec![Rule {
             lhs: a_id,
             rhs: vec![Symbol::NonTerminal(b_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
+        }],
     );
     grammar.rule_names.insert(a_id, "A".to_string());
 
     grammar.rules.insert(
         b_id,
-        Rule {
+        vec![Rule {
             lhs: b_id,
             rhs: vec![Symbol::NonTerminal(c_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(1),
-        },
+        }],
     );
     grammar.rule_names.insert(b_id, "B".to_string());
 
     grammar.rules.insert(
         c_id,
-        Rule {
+        vec![Rule {
             lhs: c_id,
             rhs: vec![Symbol::NonTerminal(a_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(2),
-        },
+        }],
     );
     grammar.rule_names.insert(c_id, "C".to_string());
 
@@ -308,7 +308,7 @@ fn validate_ambiguous_grammar() {
     // expr → expr + expr (ambiguous!)
     grammar.rules.insert(
         expr_id,
-        Rule {
+        vec![Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::NonTerminal(expr_id),
@@ -319,14 +319,14 @@ fn validate_ambiguous_grammar() {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
-        },
+        }],
     );
 
     // Also: expr → expr * expr (more ambiguity!)
     let expr_times_id = SymbolId(11);
     grammar.rules.insert(
         expr_times_id,
-        Rule {
+        vec![Rule {
             lhs: expr_id,
             rhs: vec![
                 Symbol::NonTerminal(expr_id),
@@ -337,21 +337,21 @@ fn validate_ambiguous_grammar() {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(1),
-        },
+        }],
     );
 
     // expr → number
     let expr_num_id = SymbolId(12);
     grammar.rules.insert(
         expr_num_id,
-        Rule {
+        vec![Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(number_id)],
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(2),
-        },
+        }],
     );
 
     grammar.rule_names.insert(expr_id, "expr".to_string());
