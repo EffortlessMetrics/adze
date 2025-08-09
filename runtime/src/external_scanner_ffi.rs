@@ -38,6 +38,8 @@ pub struct TSLexer {
     pub is_at_included_range_start: extern "C" fn(*const TSLexer) -> bool,
     /// EOF flag
     pub eof: extern "C" fn(*const TSLexer) -> bool,
+    /// Context pointer for storing adapter
+    pub context: *mut c_void,
     /// Result symbol to set
     pub result_symbol: u16,
 }
@@ -154,39 +156,50 @@ pub struct RustLexerAdapter<'a> {
     position: usize,
     token_end: usize,
     result_symbol: u16,
-    line: usize,
-    column: usize,
+    line: u32,
+    line_start: usize,  // byte offset of beginning of current line
 }
 
 impl<'a> RustLexerAdapter<'a> {
     pub fn new(input: &'a [u8], position: usize) -> Self {
-        // Calculate initial line and column from position
-        let (line, column) = Self::calculate_line_column(input, position);
+        // Calculate initial line and line_start from position
+        let (line, line_start) = Self::calculate_line_info(input, position);
         RustLexerAdapter {
             input,
             position,
             token_end: position,
             result_symbol: 0,
             line,
-            column,
+            line_start,
         }
     }
     
-    /// Calculate line and column from byte position
-    fn calculate_line_column(input: &[u8], position: usize) -> (usize, usize) {
-        let mut line = 0;
-        let mut column = 0;
+    /// Calculate line number and line start offset from byte position
+    fn calculate_line_info(input: &[u8], position: usize) -> (u32, usize) {
+        let mut line = 0u32;
+        let mut line_start = 0usize;
         
         for i in 0..position.min(input.len()) {
             if input[i] == b'\n' {
                 line += 1;
-                column = 0;
-            } else {
-                column += 1;
+                line_start = i + 1;
+            } else if input[i] == b'\r' {
+                // Handle CR and CRLF
+                if i + 1 < input.len() && input[i + 1] == b'\n' {
+                    // CRLF - skip the LF part later
+                    continue;
+                }
+                line += 1;
+                line_start = i + 1;
             }
         }
         
-        (line, column)
+        (line, line_start)
+    }
+    
+    /// Get current column (byte offset from line start)
+    pub fn get_column(&self) -> u32 {
+        (self.position.saturating_sub(self.line_start)) as u32
     }
 
     /// Create a C-compatible TSLexer
@@ -198,6 +211,7 @@ impl<'a> RustLexerAdapter<'a> {
             get_column: rust_lexer_get_column,
             is_at_included_range_start: rust_lexer_is_at_included_range_start,
             eof: rust_lexer_eof,
+            context: (self as *mut RustLexerAdapter).cast(),
             result_symbol: self.result_symbol,
         }
     }
@@ -208,11 +222,16 @@ impl<'a> RustLexerAdapter<'a> {
     }
 }
 
+/// Helper to safely get adapter from TSLexer context
+#[inline]
+unsafe fn adapter<'a>(lexer: *mut TSLexer) -> &'a mut RustLexerAdapter<'a> {
+    unsafe { &mut *((*lexer).context as *mut RustLexerAdapter) }
+}
+
 // C-compatible callback functions
 extern "C" fn rust_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
     unsafe {
-        let adapter = lexer as *mut RustLexerAdapter;
-        let adapter = &*adapter;
+        let adapter = adapter(lexer);
 
         if adapter.position < adapter.input.len() {
             adapter.input[adapter.position] as u32
@@ -222,21 +241,28 @@ extern "C" fn rust_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
     }
 }
 
-extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
+extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, skip: bool) {
     unsafe {
-        let adapter = lexer as *mut RustLexerAdapter;
-        let adapter = &mut *adapter;
+        let adapter = adapter(lexer);
 
         if adapter.position < adapter.input.len() {
-            // Check if we're advancing past a newline
-            if adapter.input[adapter.position] == b'\n' {
-                adapter.line += 1;
-                adapter.column = 0;
-            } else {
-                adapter.column += 1;
-            }
+            let byte = adapter.input[adapter.position];
             adapter.position += 1;
-            if adapter.token_end < adapter.position {
+
+            // Handle newlines (CR, LF, CRLF)
+            if byte == b'\n' {
+                adapter.line += 1;
+                adapter.line_start = adapter.position;
+            } else if byte == b'\r' {
+                // Handle CR and CRLF
+                if adapter.position < adapter.input.len() && adapter.input[adapter.position] == b'\n' {
+                    adapter.position += 1;  // Skip the LF in CRLF
+                }
+                adapter.line += 1;
+                adapter.line_start = adapter.position;
+            }
+
+            if !skip && adapter.token_end < adapter.position {
                 adapter.token_end = adapter.position;
             }
         }
@@ -245,17 +271,15 @@ extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
 
 extern "C" fn rust_lexer_mark_end(lexer: *mut TSLexer) {
     unsafe {
-        let adapter = lexer as *mut RustLexerAdapter;
-        let adapter = &mut *adapter;
+        let adapter = adapter(lexer);
         adapter.token_end = adapter.position;
     }
 }
 
 extern "C" fn rust_lexer_get_column(lexer: *mut TSLexer) -> u32 {
     unsafe {
-        let adapter = lexer as *const RustLexerAdapter;
-        let adapter = &*adapter;
-        adapter.column as u32
+        let adapter = adapter(lexer);
+        adapter.get_column()
     }
 }
 
@@ -265,8 +289,7 @@ extern "C" fn rust_lexer_is_at_included_range_start(_lexer: *const TSLexer) -> b
 
 extern "C" fn rust_lexer_eof(lexer: *const TSLexer) -> bool {
     unsafe {
-        let adapter = lexer as *const RustLexerAdapter;
-        let adapter = &*adapter;
+        let adapter = &*((*lexer).context as *const RustLexerAdapter);
         adapter.position >= adapter.input.len()
     }
 }

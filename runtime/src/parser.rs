@@ -611,15 +611,54 @@ struct ExternalLexer<'a> {
     input: &'a [u8],
     position: usize,
     result_symbol: u16,
-    line: usize,
-    column: usize,
+    line: u32,
+    line_start: usize,  // byte offset of beginning of current line
+    token_end: usize,
+}
+
+impl<'a> ExternalLexer<'a> {
+    fn new(input: &'a [u8], position: usize) -> Self {
+        let (line, line_start) = Self::calculate_line_info(input, position);
+        ExternalLexer {
+            input,
+            position,
+            result_symbol: 0,
+            line,
+            line_start,
+            token_end: position,
+        }
+    }
+    
+    fn calculate_line_info(input: &[u8], position: usize) -> (u32, usize) {
+        let mut line = 0u32;
+        let mut line_start = 0usize;
+        
+        for i in 0..position.min(input.len()) {
+            if input[i] == b'\n' {
+                line += 1;
+                line_start = i + 1;
+            } else if input[i] == b'\r' {
+                if i + 1 < input.len() && input[i + 1] == b'\n' {
+                    continue;  // CRLF
+                }
+                line += 1;
+                line_start = i + 1;
+            }
+        }
+        
+        (line, line_start)
+    }
+    
+    fn get_column(&self) -> u32 {
+        (self.position.saturating_sub(self.line_start)) as u32
+    }
 }
 
 /// Create a TSLexer interface for the external scanner
 unsafe fn create_ts_lexer(lexer: &mut ExternalLexer) -> TSLexer {
     extern "C" fn lookahead(lexer_ptr: *mut TSLexer) -> u32 {
         unsafe {
-            let lexer = &mut *(lexer_ptr as *mut ExternalLexer);
+            let lexer = &*((*lexer_ptr).context as *const ExternalLexer);
             if lexer.position < lexer.input.len() {
                 lexer.input[lexer.position] as u32
             } else {
@@ -630,29 +669,42 @@ unsafe fn create_ts_lexer(lexer: &mut ExternalLexer) -> TSLexer {
     
     extern "C" fn advance(lexer_ptr: *mut TSLexer, skip: bool) {
         unsafe {
-            let lexer = &mut *(lexer_ptr as *mut ExternalLexer);
+            let lexer = &mut *((*lexer_ptr).context as *mut ExternalLexer);
             if lexer.position < lexer.input.len() {
-                // Check if we're advancing past a newline
-                if lexer.input[lexer.position] == b'\n' {
-                    lexer.line += 1;
-                    lexer.column = 0;
-                } else {
-                    lexer.column += 1;
-                }
+                let byte = lexer.input[lexer.position];
                 lexer.position += 1;
+                
+                // Handle newlines (CR, LF, CRLF)
+                if byte == b'\n' {
+                    lexer.line += 1;
+                    lexer.line_start = lexer.position;
+                } else if byte == b'\r' {
+                    // Handle CR and CRLF
+                    if lexer.position < lexer.input.len() && lexer.input[lexer.position] == b'\n' {
+                        lexer.position += 1;  // Skip the LF in CRLF
+                    }
+                    lexer.line += 1;
+                    lexer.line_start = lexer.position;
+                }
+                
+                if !skip && lexer.token_end < lexer.position {
+                    lexer.token_end = lexer.position;
+                }
             }
         }
     }
     
     extern "C" fn mark_end(lexer_ptr: *mut TSLexer) {
-        // For simple implementation, marking end is a no-op
-        // since we track position directly
+        unsafe {
+            let lexer = &mut *((*lexer_ptr).context as *mut ExternalLexer);
+            lexer.token_end = lexer.position;
+        }
     }
     
     extern "C" fn get_column(lexer_ptr: *mut TSLexer) -> u32 {
         unsafe {
-            let lexer = &*(lexer_ptr as *const ExternalLexer);
-            lexer.column as u32
+            let lexer = &*((*lexer_ptr).context as *const ExternalLexer);
+            lexer.get_column()
         }
     }
     
@@ -662,7 +714,7 @@ unsafe fn create_ts_lexer(lexer: &mut ExternalLexer) -> TSLexer {
     
     extern "C" fn eof(lexer_ptr: *const TSLexer) -> bool {
         unsafe {
-            let lexer = &*(lexer_ptr as *const ExternalLexer);
+            let lexer = &*((*lexer_ptr).context as *const ExternalLexer);
             lexer.position >= lexer.input.len()
         }
     }
@@ -674,6 +726,7 @@ unsafe fn create_ts_lexer(lexer: &mut ExternalLexer) -> TSLexer {
         get_column,
         is_at_included_range_start,
         eof,
+        context: (lexer as *mut ExternalLexer).cast(),
         result_symbol: 0,
     }
 }
