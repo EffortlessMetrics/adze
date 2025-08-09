@@ -45,6 +45,25 @@ pub struct TSLexer {
     pub result_symbol: u16,
 }
 
+// Compile-time assertions for FFI struct layout
+// These ensure our struct matches the expected C ABI
+const _: () = {
+    use core::mem::{align_of, size_of};
+    
+    // Expected sizes for 64-bit systems (adjust for 32-bit if needed)
+    #[cfg(target_pointer_width = "64")]
+    const EXPECTED_LEXER_SIZE: usize = 8 * 8 + 2; // 6 fn ptrs (8 bytes each) + 1 ptr + 1 u16
+    
+    #[cfg(target_pointer_width = "32")]
+    const EXPECTED_LEXER_SIZE: usize = 8 * 4 + 2; // 6 fn ptrs (4 bytes each) + 1 ptr + 1 u16
+    
+    // Note: Actual size may vary due to padding. This is a minimum check.
+    const MIN_LEXER_SIZE: usize = if cfg!(target_pointer_width = "64") { 66 } else { 34 };
+    
+    assert!(size_of::<TSLexer>() >= MIN_LEXER_SIZE, "TSLexer size mismatch");
+    assert!(align_of::<TSLexer>() >= align_of::<*mut c_void>(), "TSLexer alignment mismatch");
+};
+
 /// External scanner data structure for FFI
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -57,6 +76,21 @@ pub struct TSExternalScannerData {
     pub serialize: Option<SerializeFn>,
     pub deserialize: Option<DeserializeFn>,
 }
+
+// Compile-time assertions for TSExternalScannerData
+const _: () = {
+    use core::mem::{align_of, size_of};
+    
+    // TSExternalScannerData should contain 2 pointers + 5 Option<fn> pointers
+    #[cfg(target_pointer_width = "64")]
+    const MIN_SCANNER_DATA_SIZE: usize = 8 * 7; // 7 pointers
+    
+    #[cfg(target_pointer_width = "32")]
+    const MIN_SCANNER_DATA_SIZE: usize = 4 * 7; // 7 pointers
+    
+    assert!(size_of::<TSExternalScannerData>() >= MIN_SCANNER_DATA_SIZE, "TSExternalScannerData size mismatch");
+    assert!(align_of::<TSExternalScannerData>() >= align_of::<*const u8>(), "TSExternalScannerData alignment mismatch");
+};
 
 // Safety: TSExternalScannerData contains pointers to static data and function pointers.
 // The static data is expected to be immutable and the functions are expected to be thread-safe.

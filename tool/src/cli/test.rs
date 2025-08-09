@@ -20,17 +20,89 @@ pub fn run_tests(
     parser_path: Option<&Path>,
     filter: Option<&str>,
     _update: bool,
-    show_stats: bool,
+    _show_stats: bool,
 ) -> Result<()> {
-    // Default corpus path
+    // Check if corpus exists
     let corpus = corpus_path.unwrap_or(Path::new("corpus"));
-
-    if !corpus.exists() {
-        bail!("Corpus directory not found: {:?}", corpus);
+    
+    if parser_path.is_some() {
+        eprintln!("rust-sitter CLI v0.6.0 - Test Command");
+        eprintln!("=====================================");
+        eprintln!();
+        eprintln!("STATUS: Corpus testing with external parsers is not yet implemented.");
+        eprintln!();
+        eprintln!("CURRENT LIMITATIONS:");
+        eprintln!("  - Cannot run corpus tests with dynamically loaded parsers");
+        eprintln!("  - Test runner cannot compile and execute parser crates");
+        eprintln!("  - Corpus validation requires integrated parsers");
+        eprintln!();
+        eprintln!("HOW TO TEST PARSERS TODAY:");
+        eprintln!();
+        eprintln!("1. Write integration tests in your parser crate:");
+        eprintln!("   ```rust");
+        eprintln!("   #[test]");
+        eprintln!("   fn test_parsing() {{");
+        eprintln!("       let tree = parse(\"let x = 42\");");
+        eprintln!("       assert!(tree.is_ok());");
+        eprintln!("   }}");
+        eprintln!("   ```");
+        eprintln!();
+        eprintln!("2. Use the insta crate for snapshot testing:");
+        eprintln!("   ```rust");
+        eprintln!("   use insta::assert_snapshot;");
+        eprintln!("   assert_snapshot!(format!(\"{{:#?}}\", tree));");
+        eprintln!("   ```");
+        eprintln!();
+        eprintln!("3. Run tests with cargo:");
+        eprintln!("   ```bash");
+        eprintln!("   cargo test");
+        eprintln!("   cargo insta review  # to update snapshots");
+        eprintln!("   ```");
+        eprintln!();
+        eprintln!("COMING SOON (v0.6.x):");
+        eprintln!("  - Tree-sitter compatible corpus testing");
+        eprintln!("  - Automatic test generation from corpus files");
+        eprintln!();
+        eprintln!("For updates, see: https://github.com/hydro-project/rust-sitter");
+        
+        std::process::exit(64); // EX_USAGE
     }
 
-    println!("Running tests in corpus: {:?}", corpus);
+    if !corpus.exists() {
+        eprintln!("rust-sitter test - Corpus directory not found");
+        eprintln!("=============================================");
+        eprintln!();
+        eprintln!("Looking for corpus at: {:?}", corpus);
+        eprintln!();
+        eprintln!("The corpus directory should contain test files in Tree-sitter format:");
+        eprintln!();
+        eprintln!("corpus/");
+        eprintln!("  expressions.txt");
+        eprintln!("  statements.txt");
+        eprintln!("  ...");
+        eprintln!();
+        eprintln!("Test file format:");
+        eprintln!("==================");
+        eprintln!("=== Test name");
+        eprintln!("source code here");
+        eprintln!("---");
+        eprintln!("(expected");
+        eprintln!("  (parse");
+        eprintln!("    (tree)))");
+        eprintln!();
+        eprintln!("Note: Full corpus testing is not yet implemented.");
+        eprintln!("      Currently, only test file validation is performed.");
+        
+        std::process::exit(1);
+    }
 
+    // Basic corpus validation only (no actual parsing)
+    println!("rust-sitter test - Validating corpus format");
+    println!("===========================================");
+    println!();
+    println!("Checking corpus at: {:?}", corpus);
+    println!();
+    
     // Find test files
     let pattern = corpus.join("**/*.txt");
     let test_files: Vec<_> = glob(pattern.to_str().unwrap())?
@@ -44,60 +116,41 @@ pub fn run_tests(
         })
         .collect();
 
+    if test_files.is_empty() {
+        println!("No test files found in corpus.");
+        println!();
+        println!("Expected .txt files with Tree-sitter test format.");
+        return Ok(());
+    }
+
     println!("Found {} test files", test_files.len());
+    println!();
 
-    let mut results = Vec::new();
-    let mut passed = 0;
-    let mut failed = 0;
-
+    // Validate test format only
+    let mut valid = 0;
+    let mut invalid = 0;
+    
     for test_file in &test_files {
-        let result = run_single_test(test_file, parser_path)?;
-
-        if result.passed {
-            passed += 1;
-            print!(".");
+        let content = fs::read_to_string(test_file)?;
+        let test_cases = parse_test_format(&content)?;
+        
+        if test_cases.is_empty() {
+            println!("  ✗ {} - no test cases found", test_file.display());
+            invalid += 1;
         } else {
-            failed += 1;
-            print!("F");
-        }
-
-        results.push(result);
-    }
-
-    println!("\n\nTest Results:");
-    println!("  Passed: {}", passed);
-    println!("  Failed: {}", failed);
-    println!("  Total:  {}", test_files.len());
-
-    // Show failures
-    if failed > 0 {
-        println!("\nFailures:");
-        for result in &results {
-            if !result.passed {
-                println!(
-                    "  {} - {}",
-                    result.file,
-                    result
-                        .error
-                        .as_ref()
-                        .unwrap_or(&"Unknown error".to_string())
-                );
-            }
+            println!("  ✓ {} - {} test cases", test_file.display(), test_cases.len());
+            valid += 1;
         }
     }
-
-    if show_stats {
-        let total_parse_time: f64 = results.iter().map(|r| r.parse_time_ms).sum();
-        let avg_parse_time = total_parse_time / results.len() as f64;
-
-        println!("\nStatistics:");
-        println!("  Total parse time: {:.2}ms", total_parse_time);
-        println!("  Average parse time: {:.2}ms", avg_parse_time);
-    }
-
-    if failed > 0 {
-        bail!("{} tests failed", failed);
-    }
+    
+    println!();
+    println!("Validation Results:");
+    println!("  Valid files:   {}", valid);
+    println!("  Invalid files: {}", invalid);
+    println!();
+    println!("Note: This only validates the test file format.");
+    println!("      Actual parsing tests are not yet implemented.");
+    println!("      Use integration tests in your parser crate instead.");
 
     Ok(())
 }

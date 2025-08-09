@@ -16,11 +16,13 @@ fn test_parse_without_parser() {
         .output()
         .expect("Failed to run CLI");
     
-    assert!(!output.status.success(), "Should fail without parser");
+    // Should exit with code 64 (EX_USAGE)
+    assert_eq!(output.status.code(), Some(64), "Should exit with usage error code");
     
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("No parser specified"), "Should mention missing parser");
     assert!(stderr.contains("--parser"), "Should mention --parser flag");
+    assert!(stderr.contains("rust-sitter parse"), "Should show command context");
 }
 
 /// Test that the CLI help command works
@@ -70,21 +72,51 @@ fn test_parse_nonexistent_file() {
             "Should report file reading error");
 }
 
-/// Test the test command placeholder behavior
+/// Test the parse command with parser specified shows honest limitations
 #[test]
-fn test_test_command_placeholder() {
+fn test_parse_with_parser_shows_limitations() {
     let temp_dir = TempDir::new().unwrap();
+    let test_file = temp_dir.path().join("test.js");
+    fs::write(&test_file, "const x = 42;").unwrap();
     
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "rust-sitter-cli", "--", "test", 
-               "--corpus", temp_dir.path().to_str().unwrap()])
+        .args(&["run", "--bin", "rust-sitter-cli", "--", "parse", 
+                "--parser", "some-parser-crate",
+                test_file.to_str().unwrap()])
         .output()
         .expect("Failed to run CLI");
     
-    // The test command is currently a placeholder
+    // Should exit with code 64 (EX_USAGE)
+    assert_eq!(output.status.code(), Some(64), "Should exit with usage error code");
+    
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("not yet implemented") || stderr.contains("placeholder"), 
-            "Should indicate test command is not implemented");
+    assert!(stderr.contains("not yet implemented") || stderr.contains("CURRENT LIMITATIONS"), 
+            "Should mention current limitations");
+    assert!(stderr.contains("v0.6"), "Should mention version");
+    assert!(stderr.contains("dynamic"), "Should mention dynamic loading limitation");
+}
+
+/// Test the test command shows honest limitations
+#[test]
+fn test_test_command_shows_limitations() {
+    let temp_dir = TempDir::new().unwrap();
+    // Create a basic corpus directory
+    fs::create_dir_all(temp_dir.path().join("corpus")).unwrap();
+    
+    let output = Command::new("cargo")
+        .args(&["run", "--bin", "rust-sitter-cli", "--", "test", 
+               temp_dir.path().join("corpus").to_str().unwrap()])
+        .output()
+        .expect("Failed to run CLI");
+    
+    // The test command should work for validation but note limitations
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let combined = format!("{}{}", stdout, stderr);
+    
+    assert!(combined.contains("Validating corpus format") || 
+            combined.contains("No test files found"), 
+            "Should validate corpus or report no files");
 }
 
 /// Test the generate command exists

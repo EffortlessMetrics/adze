@@ -13,14 +13,14 @@ pub enum OutputFormat {
 
 /// Parse a file using the specified parser
 ///
-/// This is an MVP implementation that runs a parser crate to parse the file.
+/// This is an MVP implementation that provides clear error messages.
 /// Future versions will support dynamic loading of compiled parsers.
 pub fn parse_file(
     file_path: &Path,
     parser_path: Option<&Path>,
     format: OutputFormat,
-    show_fields: bool,
-    show_stats: bool,
+    _show_fields: bool,
+    _show_stats: bool,
 ) -> Result<()> {
     // Read the source file
     let source = fs::read_to_string(file_path)
@@ -28,73 +28,79 @@ pub fn parse_file(
 
     // Check if a crate path was provided
     if let Some(crate_path) = parser_path {
-        // MVP: Run the parser crate with cargo
-        eprintln!("Parsing file using crate at: {:?}", crate_path);
-        
-        // Create a simple runner script that parses the file
-        let runner_code = format!(
-            r#"
-fn main() {{
-    let source = r###"{}"###;
-    match parse(source) {{
-        Ok(tree) => {{
-            // Output the tree in the requested format
-            println!("{{:#?}}", tree);
-        }}
-        Err(e) => {{
-            eprintln!("Parse error: {{:?}}", e);
-            std::process::exit(1);
-        }}
-    }}
-}}
-"#,
-            source.replace("###", "####")
+        // MVP: Provide honest feedback about the current limitations
+        eprintln!("rust-sitter CLI v0.6.0 - Parse Command");
+        eprintln!("========================================");
+        eprintln!();
+        eprintln!("STATUS: The dynamic parser loading feature is not yet implemented.");
+        eprintln!();
+        eprintln!("You specified: --parser {:?}", crate_path);
+        eprintln!("File to parse: {:?} ({} bytes)", file_path, source.len());
+        eprintln!();
+        eprintln!("CURRENT LIMITATIONS:");
+        eprintln!("  - Cannot dynamically load compiled parser libraries (.so/.dll)");
+        eprintln!("  - Cannot invoke external parser crates directly");
+        eprintln!("  - Parser must be integrated at compile time");
+        eprintln!();
+        eprintln!("HOW TO USE RUST-SITTER TODAY:");
+        eprintln!();
+        eprintln!("1. Define your grammar in Rust:");
+        eprintln!("   ```rust");
+        eprintln!("   #[rust_sitter::grammar(\"my_language\")]");
+        eprintln!("   pub mod grammar {{");
+        eprintln!("       #[rust_sitter::language]");
+        eprintln!("       pub struct MyLanguage;");
+        eprintln!("   }}");
+        eprintln!("   ```");
+        eprintln!();
+        eprintln!("2. Build your parser:");
+        eprintln!("   ```bash");
+        eprintln!("   cargo build");
+        eprintln!("   ```");
+        eprintln!();
+        eprintln!("3. Use it in your Rust code:");
+        eprintln!("   ```rust");
+        eprintln!("   use my_grammar::parse;");
+        eprintln!("   let tree = parse(\"{}\");", 
+            source.chars().take(30).collect::<String>().replace('\n', "\\n")
         );
+        eprintln!("   ```");
+        eprintln!();
+        eprintln!("COMING SOON (v0.6.x):");
+        eprintln!("  - Dynamic parser loading via --parser flag");
+        eprintln!("  - Tree-sitter compatible CLI functionality");
+        eprintln!();
+        eprintln!("For updates, see: https://github.com/hydro-project/rust-sitter");
         
-        // Run the crate with the runner code
-        let output = std::process::Command::new("cargo")
-            .arg("run")
-            .arg("-q")
-            .arg("-p")
-            .arg(crate_path)
-            .arg("--")
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .output()
-            .context("Failed to run parser crate")?;
-        
-        if output.status.success() {
-            println!("{}", String::from_utf8_lossy(&output.stdout));
-        } else {
-            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-            anyhow::bail!("Parser failed");
-        }
-        
-        return Ok(());
+        // Return an honest error code
+        std::process::exit(64); // EX_USAGE - command line usage error
     }
 
     // No parser specified - provide helpful message
+    eprintln!("rust-sitter parse - No parser specified");
+    eprintln!("========================================");
+    eprintln!();
     eprintln!("To parse files with rust-sitter:");
     eprintln!();
-    eprintln!("Option 1: Use a parser crate (MVP)");
-    eprintln!("  rust-sitter parse --parser ./my-parser-crate {}", file_path.display());
+    eprintln!("Option 1: Use a parser crate (not yet implemented)");
+    eprintln!("  rust-sitter parse --parser <parser-crate> {}", file_path.display());
     eprintln!();
-    eprintln!("Option 2: Build and use in Rust code");
+    eprintln!("Option 2: Integrate directly in Rust code (working today)");
     eprintln!("  1. Define your grammar using #[rust_sitter::grammar]");
     eprintln!("  2. Build it with `cargo build`");
     eprintln!("  3. Use the generated parse() function in your code");
     eprintln!();
     eprintln!("Example:");
+    eprintln!("  ```rust");
     eprintln!("  use my_grammar::parse;");
     eprintln!("  let result = parse(\"input text\");");
+    eprintln!("  ```");
     eprintln!();
-    eprintln!("Note: Dynamic library loading (.so/.dll) support coming in v0.6.x");
+    eprintln!("Note: Full CLI functionality including dynamic parser loading");
+    eprintln!("      is planned for v0.6.x releases.");
 
     // Return error to indicate no parser was specified
-    anyhow::bail!(
-        "No parser specified. Use --parser <crate-path> to specify a parser crate."
-    )
+    std::process::exit(64) // EX_USAGE - command line usage error
 }
 
 /// Auto-detect parser based on file extension
