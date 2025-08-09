@@ -40,7 +40,7 @@ fn create_test_grammar() -> (Grammar, ParseTable) {
     
     // Build parse table
     let table = common::build_table(&grammar);
-    (grammar, *table)
+    (grammar, table)
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn test_fresh_parse_equals_incremental() {
 }
 
 #[test]
-#[ignore = "Incremental parsing not yet fully implemented"]
+#[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
 fn test_simple_insertion() {
     let (grammar, table) = create_test_grammar();
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
@@ -123,7 +123,7 @@ fn test_simple_insertion() {
 }
 
 #[test]
-#[ignore = "Incremental parsing not yet fully implemented"]
+#[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
 fn test_deletion() {
     let (grammar, table) = create_test_grammar();
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
@@ -159,7 +159,7 @@ fn test_deletion() {
 }
 
 #[test]
-#[ignore = "Incremental parsing not yet fully implemented"]
+#[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
 fn test_replacement() {
     let (grammar, table) = create_test_grammar();
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());

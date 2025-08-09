@@ -78,3 +78,35 @@ harness = false
 [[bench]]
 name = "incremental_simple"
 harness = false
+
+[[example]]
+name = "external_scanner_demo"
+required-features = ["experimental_examples"]
+
+[[example]]
+name = "glr_incremental_demo"
+required-features = ["experimental_examples", "incremental_glr"]
+
+[[example]]
+name = "glr_incremental_simple"
+required-features = ["experimental_examples", "incremental_glr"]
+
+[[example]]
+name = "incremental_demo"
+required-features = ["experimental_examples"]
+
+[[example]]
+name = "json_parser_example"
+required-features = ["experimental_examples"]
+
+[[example]]
+name = "predicate_demo"
+required-features = ["experimental_examples"]
+
+[[example]]
+name = "pure_parser_demo"
+required-features = ["experimental_examples", "pure-rust"]
+
+[[example]]
+name = "validation_demo"
+required-features = ["experimental_examples"]
