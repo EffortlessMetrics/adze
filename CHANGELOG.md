@@ -2,13 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.6.0] - 2025-01-07
+## [0.6.0] - 2025-01-09
 
-### 🚀 Major Release: Direct Forest Splicing - 16x Faster Incremental GLR Parsing
+### 🚀 Major Release: Production-Ready GLR with Safety Hardening
 
-This release introduces the **Direct Forest Splicing** algorithm for incremental GLR parsing, delivering unprecedented performance while correctly preserving parse ambiguity.
+This release delivers a production-ready GLR parser with comprehensive safety improvements, honest CLI feedback, and the **Direct Forest Splicing** algorithm for 16x faster incremental parsing.
 
 ### ✨ Added
+
+- **FFI Safety Hardening**
+  - Compile-time ABI validation with `const` assertions
+  - Proper `#[repr(C)]` on all FFI structs
+  - Size and alignment checks for `TSLexer` and `TSExternalScannerData`
+  - `destroy_lexer()` function for proper resource cleanup
 
 - **Direct Forest Splicing Algorithm**
   - Revolutionary approach replacing GSS snapshot/restore
@@ -23,11 +29,17 @@ This release introduces the **Direct Forest Splicing** algorithm for incremental
   - Full Python grammar support (273 symbols, 57 fields)
   - External scanner integration with indentation tracking
 
+- **CLI Transparency**
+  - Honest error messages for unimplemented features
+  - Unix-standard exit codes (64 for usage errors)
+  - Clear roadmap communication in error output
+  - Updated test command with corpus validation
+
 - **Comprehensive Test Suite**
   - `incremental_glr_comprehensive_test.rs`: Full coverage of edit scenarios
-  - Deep splicing tests for nested structures
-  - Ambiguous grammar preservation verification
-  - Multi-token edit resilience tests
+  - CLI integration tests with exit code validation
+  - External scanner black-box tests
+  - Line/column tracking edge case tests
 
 ### 🔧 Changed
 
@@ -44,6 +56,12 @@ This release introduces the **Direct Forest Splicing** algorithm for incremental
   - Optimized token range calculations
 
 ### 🐛 Fixed
+
+- **Safety Issues**
+  - Fixed misleading lifetimes in external scanner adapter
+  - Replaced adapter() with as_adapter() to avoid name shadowing
+  - Fixed get_goto_state stub to panic with clear message
+  - Unified CRLF handling across line/column tracking
 
 - **Workspace Stabilization**: Fixed compilation errors in 8 test files
 - **Integration Tests**: Complete refactor to modern parser API

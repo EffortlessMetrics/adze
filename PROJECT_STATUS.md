@@ -1,8 +1,8 @@
 # Rust Sitter Project Status
 
-## 🎉 Production Ready!
+## 🎉 v0.6.0 - Production-Ready Core with Advanced Features in Progress
 
-Rust Sitter v0.5.0-beta is feature-complete and production-ready. All planned features have been implemented and thoroughly tested. The project is approaching the v1.0 stable release.
+Rust Sitter v0.6.0 delivers a production-ready GLR parser core with ongoing development of advanced features. The parser successfully handles complex grammars like Python while maintaining a clear roadmap for remaining features.
 
 ## ✅ Completed Features
 
@@ -50,21 +50,43 @@ Rust Sitter v0.5.0-beta is feature-complete and production-ready. All planned fe
 | WASM Bundle Size | 2.5MB | 1.8MB | 28% smaller |
 | Startup Time | 50ms | 10ms | 80% faster |
 
-## 🎯 Recent Milestones (August 2025)
+## 🎯 Recent Improvements (January 2025)
 
-- **Python Grammar Compilation**: Successfully compiled one of Tree-sitter's most complex grammars
-- **External Scanner Support**: Full integration with indentation-based scanners
-- **Type System Unification**: Resolved critical `SymbolId` type mismatches across crates
-- **FFI Code Generation**: Fixed attribute syntax and function signatures for C compatibility
+### Major Achievements
+- **GLR Parser Completion**: Full GLR implementation with multi-action cells for ambiguous grammars
+- **Python Grammar Success**: Compiles and parses Python's 273 symbols with external scanner
+- **FFI Safety Hardening**: Added compile-time ABI validation and proper cleanup functions
+- **CLI Transparency**: Honest error messages clearly communicate current capabilities
+
+### Technical Hardening
+- **External Scanner FFI**: Proper `#[repr(C)]` structs with size assertions
+- **Memory Safety**: Added `destroy_lexer()` for proper resource cleanup
+- **Error Handling**: Replaced silent stubs with explicit panic messages
+- **Line/Column Tracking**: Unified CRLF handling across the codebase
+- **Documentation**: Comprehensive "Known Limitations" section in README
+
+## 🚧 Features in Active Development
+
+### High Priority (v0.6.x)
+- **Dynamic Parser Loading**: CLI ability to load compiled parsers at runtime
+- **Corpus Testing**: Full Tree-sitter compatible test runner
+- **Query System Completion**: Predicates, alternations, and anchors
+- **Table Compression**: Large-table optimization for memory efficiency
+
+### Medium Priority (v0.7.0)
+- **Incremental Parsing Stabilization**: Public API for GLR incremental updates
+- **Error Recovery Enhancement**: Cost-based recovery with diagnostics
+- **External Scanner Integration**: Automatic C scanner linking
+- **Serialization API**: Stable tree serialization to JSON/S-exp
 
 ## 🏢 Production Usage
 
-Rust Sitter is currently used in production by:
-- 50+ companies for code analysis
-- 10+ VS Code extensions
-- 5+ major IDEs
-- Multiple cloud-based services
-- Over 100,000 downloads on crates.io
+The core parsing functionality is production-ready and being used for:
+- Grammar development and testing
+- Static analysis tools
+- Code generation projects
+- Research applications
+- WASM-based browser tools
 
 ## 🔄 Migration from Previous Versions
 

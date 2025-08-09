@@ -3,7 +3,7 @@
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
-> **v0.6.0 Status**: The project features a **full GLR (Generalized LR) parser implementation** enabling parsing of inherently ambiguous grammars without manual conflict resolution. **Major Achievement**: The pure-Rust implementation successfully compiles and parses the Python grammar (273 symbols, 57 fields) with full external scanner support, demonstrating production-ready capabilities for complex real-world languages.
+> **v0.6.0 Status (January 2025)**: The project features a **production-ready GLR (Generalized LR) parser** with full support for ambiguous grammars. **Major Achievement**: Successfully compiles and parses the Python grammar (273 symbols, 57 fields) with external scanner support. Recent hardening includes improved FFI safety, honest CLI error messages, and comprehensive documentation of current capabilities and limitations.
 
 ## Documentation
 
@@ -25,15 +25,19 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 
 ## Key Features (v0.6.0)
 
-- **✅ GLR Parsing (Completed Jan 2025)**: True GLR parser with multi-action cells for ambiguous grammars
-- **🚀 High-Performance Incremental GLR**: Direct Forest Splicing delivers **16× faster** incremental parsing
-- **Pure-Rust Option**: Generate static parsers at compile-time without C dependencies  
-- **Enhanced Error Recovery**: Sophisticated error recovery strategies for robust parsing
-- **Multi-Path Parsing**: Maintains all valid parse paths simultaneously via runtime forking
+### ✅ Production-Ready
+- **GLR Parsing**: True GLR parser with multi-action cells for ambiguous grammars
 - **Python Grammar Support**: Successfully parses Python with 273 symbols and external scanner
+- **Pure-Rust Implementation**: Generate static parsers at compile-time without C dependencies
 - **WASM Support**: Full WebAssembly compatibility with the pure-Rust backend
-- **Performance Optimizations**: SIMD lexing and memory pooling for efficient parsing
-- **Conflict Preservation**: Keeps all shift/reduce and reduce/reduce conflicts for runtime resolution
+- **FFI Safety**: Hardened external scanner interface with compile-time ABI validation
+
+### 🚧 Advanced Features (In Progress)
+- **Incremental Parsing**: GLR incremental algorithm implemented (feature-gated for testing)
+- **Query System**: Pattern matching on syntax trees (experimental, feature-gated)
+- **Error Recovery**: Sophisticated strategies for robust parsing (partially implemented)
+- **Table Compression**: Memory optimization for large grammars (small-table only currently)
+- **Performance Optimizations**: SIMD lexing and memory pooling foundations in place
 
 ## Quick Start
 
@@ -60,37 +64,46 @@ fn main() {
 }
 ```
 
-## Known Limitations (v0.6.0)
+## Current Limitations & Roadmap
 
-While rust-sitter v0.6.0 includes a production-ready GLR parser, some features are still under development:
+### What Works Today ✅
+- **Core GLR parsing** with full ambiguity support
+- **Grammar definition** via Rust macros
+- **Pure-Rust code generation** at build time
+- **Basic external scanner** infrastructure
+- **WASM compilation** and browser support
 
-### Features in Progress
-- **Query System**: Pattern matching on syntax trees is experimental (feature-gated)
-- **Incremental Parsing**: GLR incremental parsing algorithm implemented but feature-gated pending stability testing
-- **Table Compression**: Large-table compression partially implemented; currently uses small-table algorithm for all grammars
-- **External Scanners**: Infrastructure present but requires manual integration; no automatic C scanner linking yet
-- **Serialization**: Tree serialization to JSON/S-exp implemented but feature-gated
+### CLI Status 🔧
+The CLI provides honest feedback about current capabilities:
+- `rust-sitter parse`: Shows clear message about dynamic loading not yet implemented
+- `rust-sitter test`: Validates corpus format but doesn't run parsing tests yet
+- `rust-sitter generate`: Works for grammar.js → Rust conversion
+- Exit codes follow Unix conventions (64 for usage errors)
 
-### CLI Limitations
-- **Dynamic Loading**: The CLI cannot yet load compiled parser libraries (.so/.dll)
-- **Parser Invocation**: Use `--parser <crate-path>` for MVP functionality; full dynamic loading coming in v0.6.x
-- **Test Command**: Corpus testing functionality not yet implemented
-
-### API Stability
-- The GLR parser API is stable for basic parsing
-- Incremental parsing API may change before v1.0
-- Query API is subject to change
-
-For the most reliable experience, use the core parsing functionality with the pure-Rust backend. Check the [issue tracker](https://github.com/hydro-project/rust-sitter/issues) for updates on these features.
-
-## Installation
-First, add Rust/Tree Sitter to your `Cargo.toml`:
+### Feature Flags 🏴
+Optional features available for testing:
 ```toml
 [dependencies]
-rust-sitter = "0.5.0-beta"
+rust-sitter = { version = "0.6", features = ["incremental_glr", "queries", "serialization"] }
+```
+
+### Coming in v0.6.x 🚀
+- Dynamic parser loading in CLI
+- Complete corpus testing
+- Stable incremental parsing API
+- Full query system with predicates
+- Large-table compression
+
+For the most reliable experience, use the core parsing functionality with the pure-Rust backend. Track progress on the [issue tracker](https://github.com/hydro-project/rust-sitter/issues).
+
+## Installation
+Add rust-sitter to your `Cargo.toml`:
+```toml
+[dependencies]
+rust-sitter = "0.6.0"
 
 [build-dependencies]
-rust-sitter-tool = "0.5.0-beta"
+rust-sitter-tool = "0.6.0"
 ```
 
 Choose your backend via features:

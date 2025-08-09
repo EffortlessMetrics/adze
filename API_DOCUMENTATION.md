@@ -1,6 +1,8 @@
 # Rust Sitter API Documentation
 
-Complete API reference for rust-sitter v1.0 - the production-ready pure-Rust parser generator.
+Complete API reference for rust-sitter v0.6.0 - the production-ready pure-Rust parser generator with GLR support.
+
+> **Note**: This document covers the stable API. Some advanced features (queries, incremental parsing, serialization) are available under feature flags and their APIs may change before v1.0.
 
 ## Table of Contents
 
@@ -164,6 +166,8 @@ pub enum ParseResult {
 ```
 
 ## External Scanners
+
+> **Safety Note**: External scanner FFI interface includes compile-time ABI validation and proper resource cleanup via `destroy_lexer()`. All FFI structs use `#[repr(C)]` with size assertions.
 
 ### `ExternalScanner` Trait
 ```rust
