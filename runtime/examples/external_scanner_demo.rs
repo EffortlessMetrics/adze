@@ -21,7 +21,7 @@ impl PythonStringScanner {
 impl ExternalScanner for PythonStringScanner {
     fn scan(
         &mut self,
-        _lexer: &mut dyn rust_sitter::pure_external_scanner::Lexer,
+        _lexer: &mut rust_sitter::pure_external_scanner::Lexer,
         valid_symbols: &[bool],
     ) -> bool {
         // Check if we should look for string tokens

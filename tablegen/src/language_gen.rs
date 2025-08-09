@@ -135,9 +135,11 @@ impl<'a> LanguageGenerator<'a> {
             }
 
             /// Export for C FFI
-            #[no_mangle]
-            pub unsafe extern "C" fn #language_fn_ident() -> ts::Language {
-                language()
+            /// SAFETY: This function is required for Tree-sitter C ABI compatibility
+            #[unsafe(no_mangle)]
+            pub extern "C" fn #language_fn_ident() -> ts::Language {
+                // SAFETY: language() returns a valid Language struct
+                unsafe { language() }
             }
         }
     }

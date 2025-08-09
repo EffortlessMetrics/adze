@@ -25,6 +25,7 @@ legacy-parsers = [] # Enable to access deprecated parser_v2 and parser_v3 module
 incremental_glr = [] # Enable GLR incremental parsing support
 debug_glr = [] # Enable debug output for GLR parser
 debug_incremental = [] # Enable debug output for incremental parsing
+experimental_examples = [] # Enable experimental examples that use internal APIs
 
 [dependencies]
 tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
