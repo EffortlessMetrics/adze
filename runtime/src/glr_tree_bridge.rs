@@ -59,8 +59,8 @@ impl GLRTree {
             self.node_map.insert(ptr, self.next_node_id);
             self.next_node_id += 1;
 
-            for child in &subtree.children {
-                self.build_node_map(child);
+            for edge in &subtree.children {
+                self.build_node_map(&edge.subtree);
             }
         }
     }
@@ -139,9 +139,9 @@ impl<'tree> GLRNode<'tree> {
             return true;
         }
 
-        self.subtree.children.iter().any(|child| {
+        self.subtree.children.iter().any(|edge| {
             GLRNode {
-                subtree: child.clone(),
+                subtree: edge.subtree.clone(),
                 tree: self.tree,
             }
             .has_error()
@@ -155,19 +155,104 @@ impl<'tree> GLRNode<'tree> {
 
     /// Get child at index
     pub fn child(&self, index: usize) -> Option<GLRNode<'tree>> {
-        self.subtree.children.get(index).map(|child| GLRNode {
-            subtree: child.clone(),
+        self.subtree.children.get(index).map(|edge| GLRNode {
+            subtree: edge.subtree.clone(),
             tree: self.tree,
         })
+    }
+    
+    /// Get child at index with field ID
+    pub fn child_with_field(&self, index: usize) -> Option<(GLRNode<'tree>, u16)> {
+        self.subtree.children.get(index).map(|edge| (
+            GLRNode {
+                subtree: edge.subtree.clone(),
+                tree: self.tree,
+            },
+            edge.field_id,
+        ))
     }
 
     /// Get all children
     pub fn children(&self) -> impl Iterator<Item = GLRNode<'tree>> {
         let tree = self.tree;
-        self.subtree.children.iter().map(move |child| GLRNode {
-            subtree: child.clone(),
+        self.subtree.children.iter().map(move |edge| GLRNode {
+            subtree: edge.subtree.clone(),
             tree,
         })
+    }
+    
+    /// Get the field name for this node
+    pub fn field_name(&self) -> Option<&str> {
+        // Would need parent tracking to determine field name
+        None
+    }
+    
+    /// Convert node to S-expression format
+    pub fn to_sexp(&self) -> String {
+        self.to_sexp_internal(0)
+    }
+    
+    fn to_sexp_internal(&self, depth: usize) -> String {
+        let indent = "  ".repeat(depth);
+        
+        if self.child_count() == 0 {
+            // Leaf node
+            format!("{}{}", indent, self.kind())
+        } else {
+            // Non-leaf node
+            let mut result = format!("{}({}", indent, self.kind());
+            
+            for (i, edge) in self.subtree.children.iter().enumerate() {
+                result.push('\n');
+                
+                // Add field name if present
+                if edge.field_id != crate::subtree::FIELD_NONE {
+                    if let Some((field_id, field_name)) = self.tree.grammar.fields
+                        .iter()
+                        .find(|(id, _)| id.0 == edge.field_id) {
+                        result.push_str(&format!("{}  {}: ", indent, field_name));
+                        let child_sexp = GLRNode {
+                            subtree: edge.subtree.clone(),
+                            tree: self.tree,
+                        }.to_sexp_internal(0);
+                        result.push_str(&child_sexp.trim_start());
+                    } else {
+                        let child_sexp = GLRNode {
+                            subtree: edge.subtree.clone(),
+                            tree: self.tree,
+                        }.to_sexp_internal(depth + 1);
+                        result.push_str(&child_sexp);
+                    }
+                } else {
+                    let child_sexp = GLRNode {
+                        subtree: edge.subtree.clone(),
+                        tree: self.tree,
+                    }.to_sexp_internal(depth + 1);
+                    result.push_str(&child_sexp);
+                }
+            }
+            
+            result.push_str(&format!("\n{})", indent));
+            result
+        }
+    }
+    
+    /// Get child by field name
+    pub fn child_by_field_name(&self, field_name: &str) -> Option<GLRNode<'tree>> {
+        // Find the field ID for this name
+        let field_id = self.tree.grammar.fields
+            .iter()
+            .find(|(_, name)| name.as_str() == field_name)
+            .map(|(id, _)| id.0)?;
+        
+        // Find child with this field ID
+        self.subtree.children
+            .iter()
+            .find(|edge| edge.field_id == field_id)
+            .map(|edge| GLRNode {
+                subtree: edge.subtree.clone(),
+                tree: self.tree,
+            })
     }
 
     /// Get text for this node
@@ -310,29 +395,35 @@ mod tests {
     #[test]
     fn test_glr_node_api() {
         // Create a simple subtree
-        let root = Arc::new(Subtree::new(
+        let root = Arc::new(Subtree::new_with_fields(
             SubtreeNode {
                 symbol_id: SymbolId(1),
                 is_error: false,
                 byte_range: 0..10,
             },
             vec![
-                Arc::new(Subtree::new(
-                    SubtreeNode {
-                        symbol_id: SymbolId(2),
-                        is_error: false,
-                        byte_range: 0..5,
-                    },
-                    vec![],
-                )),
-                Arc::new(Subtree::new(
-                    SubtreeNode {
-                        symbol_id: SymbolId(3),
-                        is_error: false,
-                        byte_range: 5..10,
-                    },
-                    vec![],
-                )),
+                crate::subtree::ChildEdge {
+                    subtree: Arc::new(Subtree::new(
+                        SubtreeNode {
+                            symbol_id: SymbolId(2),
+                            is_error: false,
+                            byte_range: 0..5,
+                        },
+                        vec![],
+                    )),
+                    field_id: 0, // Field "left"
+                },
+                crate::subtree::ChildEdge {
+                    subtree: Arc::new(Subtree::new(
+                        SubtreeNode {
+                            symbol_id: SymbolId(3),
+                            is_error: false,
+                            byte_range: 5..10,
+                        },
+                        vec![],
+                    )),
+                    field_id: 1, // Field "right"
+                },
             ],
         ));
 
@@ -341,6 +432,10 @@ mod tests {
         grammar.rule_names.insert(SymbolId(1), "root".to_string());
         grammar.rule_names.insert(SymbolId(2), "left".to_string());
         grammar.rule_names.insert(SymbolId(3), "right".to_string());
+        
+        // Add field names
+        grammar.fields.insert(rust_sitter_ir::FieldId(0), "left".to_string());
+        grammar.fields.insert(rust_sitter_ir::FieldId(1), "right".to_string());
 
         let tree = GLRTree::new(root, source, grammar);
         let root_node = tree.root_node();
@@ -361,8 +456,29 @@ mod tests {
         let child2 = root_node.child(1).unwrap();
         assert_eq!(child2.kind(), "right");
         assert_eq!(child2.byte_range(), 5..10);
+        
+        // Test field access
+        let left_child = root_node.child_by_field_name("left").unwrap();
+        assert_eq!(left_child.kind(), "left");
+        
+        let right_child = root_node.child_by_field_name("right").unwrap();
+        assert_eq!(right_child.kind(), "right");
     }
 
+    #[test]
+    fn test_child_edge_size() {
+        // Ensure ChildEdge doesn't bloat the tree structure too much
+        // On 64-bit: Arc<Subtree> is 8 bytes, field_id is 2 bytes, total should be <= 16 with padding
+        let expected_max_size = if cfg!(target_pointer_width = "64") { 16 } else { 8 };
+        let actual_size = std::mem::size_of::<crate::subtree::ChildEdge>();
+        assert!(
+            actual_size <= expected_max_size, 
+            "ChildEdge size {} exceeds expected maximum {}", 
+            actual_size, 
+            expected_max_size
+        );
+    }
+    
     #[test]
     fn test_tree_cursor() {
         let root = Arc::new(Subtree::new(

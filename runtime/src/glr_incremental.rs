@@ -1075,7 +1075,7 @@ impl IncrementalGLRParser {
         // If we can't reuse, build a new node
         // Convert children recursively
         let children: Vec<Arc<ForestNode>> = subtree.children.iter()
-            .map(|child| self.subtree_to_forest_recursive(child.clone(), fork_id))
+            .map(|edge| self.subtree_to_forest_recursive(edge.subtree.clone(), fork_id))
             .collect();
         
         // Create forest node with proper children

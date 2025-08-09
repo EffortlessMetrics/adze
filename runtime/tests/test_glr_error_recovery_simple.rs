@@ -148,5 +148,5 @@ fn has_error_nodes(tree: &Subtree) -> bool {
     if tree.node.is_error {
         return true;
     }
-    tree.children.iter().any(|child| has_error_nodes(child))
+    tree.children.iter().any(|edge| has_error_nodes(&edge.subtree))
 }

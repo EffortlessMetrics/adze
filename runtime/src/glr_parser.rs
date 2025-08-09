@@ -149,8 +149,8 @@ impl ParseStack {
     fn print_tree_structure(node: &Arc<Subtree>, indent: usize) {
         let _prefix = "  ".repeat(indent);
         debug_glr!("{}Symbol {}, range {:?}", _prefix, node.node.symbol_id.0, node.node.byte_range);
-        for child in &node.children {
-            Self::print_tree_structure(child, indent + 1);
+        for edge in &node.children {
+            Self::print_tree_structure(&edge.subtree, indent + 1);
         }
     }
 
@@ -193,8 +193,13 @@ impl ParseStack {
         }
 
         // Recursively check all children
-        for (child1, child2) in node1.children.iter().zip(node2.children.iter()) {
-            if !Self::nodes_structurally_equivalent(child1, child2) {
+        for (edge1, edge2) in node1.children.iter().zip(node2.children.iter()) {
+            // Check field IDs match
+            if edge1.field_id != edge2.field_id {
+                return false;
+            }
+            // Check subtrees match
+            if !Self::nodes_structurally_equivalent(&edge1.subtree, &edge2.subtree) {
                 return false;
             }
         }
@@ -473,15 +478,14 @@ impl GLRParser {
                                             if let Some(Action::Shift(new_state)) = shift_action {
                                                 let mut recovery_stack = stack.clone();
                                                 // Create dummy node for inserted token
-                                                let error_node = Arc::new(Subtree {
-                                                    node: SubtreeNode {
+                                                let error_node = Arc::new(Subtree::new(
+                                                    SubtreeNode {
                                                         symbol_id: missing_token,
                                                         is_error: true,
                                                         byte_range: byte_offset..byte_offset,
                                                     },
-                                                    dynamic_prec: 0,
-                                                    children: vec![],
-                                                });
+                                                    vec![], // Empty children for error node
+                                                ));
                                                 recovery_stack.push(*new_state, error_node);
                                                 recovery_stack.version.enter_error();
                                                 // Re-queue the current token
@@ -788,6 +792,36 @@ impl GLRParser {
                 },
             };
 
+            // Apply field mappings to children
+            let children_with_fields = if rule.fields.is_empty() {
+                // No fields, use FIELD_NONE for all children
+                children
+                    .into_iter()
+                    .map(|subtree| crate::subtree::ChildEdge {
+                        subtree,
+                        field_id: crate::subtree::FIELD_NONE,
+                    })
+                    .collect()
+            } else {
+                // Apply field mappings based on rule.fields
+                let mut result = Vec::with_capacity(children.len());
+                for (idx, child) in children.into_iter().enumerate() {
+                    // Find field ID for this child position
+                    let field_id = rule
+                        .fields
+                        .iter()
+                        .find(|(_, pos)| *pos == idx)
+                        .map(|(field_id, _)| field_id.0)
+                        .unwrap_or(crate::subtree::FIELD_NONE);
+                    
+                    result.push(crate::subtree::ChildEdge {
+                        subtree: child,
+                        field_id,
+                    });
+                }
+                result
+            };
+
             // Check if this rule has dynamic precedence
             let dynamic_prec =
                 if let Some(rust_sitter_ir::PrecedenceKind::Dynamic(prec)) = &rule.precedence {
@@ -796,7 +830,11 @@ impl GLRParser {
                     0
                 };
 
-            let subtree = Arc::new(Subtree::with_dynamic_prec(node, children, dynamic_prec));
+            let subtree = Arc::new(Subtree::with_dynamic_prec_and_fields(
+                node,
+                children_with_fields,
+                dynamic_prec,
+            ));
 
             // Look up goto state from the unified action table
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&rule.lhs) {
@@ -1124,29 +1162,33 @@ impl GLRParser {
                                             ..children.last().unwrap().node.byte_range.end
                                     };
 
-                                    let parent = Arc::new(Subtree {
-                                        node: SubtreeNode {
-                                            symbol_id: rule.lhs,
-                                            is_error: false,
-                                            byte_range,
-                                        },
-                                        dynamic_prec: rule
-                                            .precedence
-                                            .map(|p| match p {
-                                                PrecedenceKind::Static(prec) => prec as i32,
-                                                PrecedenceKind::Dynamic(idx) => {
-                                                    // For dynamic precedence, use child's precedence
-                                                    let idx_usize = idx as usize;
-                                                    if idx_usize < children.len() {
-                                                        children[idx_usize].dynamic_prec
-                                                    } else {
-                                                        0
-                                                    }
+                                    let node = SubtreeNode {
+                                        symbol_id: rule.lhs,
+                                        is_error: false,
+                                        byte_range,
+                                    };
+                                    
+                                    let dynamic_prec = rule
+                                        .precedence
+                                        .map(|p| match p {
+                                            PrecedenceKind::Static(prec) => prec as i32,
+                                            PrecedenceKind::Dynamic(idx) => {
+                                                // For dynamic precedence, use child's precedence
+                                                let idx_usize = idx as usize;
+                                                if idx_usize < children.len() {
+                                                    children[idx_usize].dynamic_prec
+                                                } else {
+                                                    0
                                                 }
-                                            })
-                                            .unwrap_or(0),
+                                            }
+                                        })
+                                        .unwrap_or(0);
+                                    
+                                    let parent = Arc::new(Subtree::with_dynamic_prec(
+                                        node,
                                         children,
-                                    });
+                                        dynamic_prec,
+                                    ));
 
                                     // Push the new subtree
                                     reduced_stack.push(goto_state, parent);

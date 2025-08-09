@@ -139,8 +139,8 @@ fn print_tree(tree: &Arc<Subtree>, indent: usize) -> String {
         "{}Symbol: {:?}, Range: {:?}\n",
         spaces, tree.node.symbol_id, tree.node.byte_range
     ));
-    for child in &tree.children {
-        result.push_str(&print_tree(child, indent + 2));
+    for edge in &tree.children {
+        result.push_str(&print_tree(&edge.subtree, indent + 2));
     }
     result
 }
@@ -326,7 +326,7 @@ fn count_depth(tree: &Arc<Subtree>, current_depth: usize, max_depth: &mut usize)
     if current_depth > *max_depth {
         *max_depth = current_depth;
     }
-    for child in &tree.children {
-        count_depth(child, current_depth + 1, max_depth);
+    for edge in &tree.children {
+        count_depth(&edge.subtree, current_depth + 1, max_depth);
     }
 }

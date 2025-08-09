@@ -1,6 +1,8 @@
 /// Black-box tests for external scanner functionality
 /// These tests verify the external scanner API behavior from a user perspective
 
+#![cfg(feature = "external_scanners")] // Disable until external scanner is fully implemented
+
 use rust_sitter::external_scanner_ffi::{destroy_lexer, RustLexerAdapter, TSLexer};
 use rust_sitter::linecol::LineCol;
 

@@ -280,7 +280,7 @@ fn test_precedence_disambiguation() {
     fn find_operator(tree: &Arc<subtree::Subtree>) -> Option<SymbolId> {
         if tree.children.len() == 3 {
             // Middle child should be operator
-            Some(tree.children[1].node.symbol_id)
+            Some(tree.children[1].subtree.node.symbol_id)
         } else {
             None
         }
