@@ -386,6 +386,103 @@ jobs:
           name: fuzz-crashes
           path: fuzz/artifacts/
 
+  test-connectivity:
+    name: Test Connectivity (Tripwires)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ["", "--features external_scanners", "--features incremental_glr", "--all-features"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # 1) Block silently disabled tests (files renamed to .disabled)
+      - name: Fail on disabled test files
+        run: |
+          if git ls-files '*tests/*.rs.disabled' | grep -q .; then
+            echo "::error::Found disabled test files (*.rs.disabled):"
+            git ls-files '*tests/*.rs.disabled'
+            exit 1
+          fi
+
+      # 2) List discovered tests for the current feature set
+      - name: Install nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: List discovered tests (${{ matrix.features || 'default-features' }})
+        run: |
+          set -e
+          cargo nextest list --workspace ${{ matrix.features }} > .nextest-list.txt
+          echo "### Discovered tests for feature set: ${{ matrix.features || 'default' }}"
+          head -200 .nextest-list.txt || true
+          COUNT=$(grep -E '^\s+(test|bench|example)' .nextest-list.txt | wc -l | tr -d ' ')
+          echo "TOTAL_DISCOVERED_TESTS=$COUNT" >> $GITHUB_ENV
+          echo "Total discovered: $COUNT tests"
+
+      # 3) Fail if discovery unexpectedly returns zero tests
+      - name: Enforce nonzero discovery
+        run: |
+          if [ "${{ env.TOTAL_DISCOVERED_TESTS }}" -eq 0 ]; then
+            echo "::error::No tests discovered with feature set: '${{ matrix.features }}'"
+            echo "This indicates a test harness disconnection or build issue."
+            exit 1
+          fi
+          echo "✓ Found ${{ env.TOTAL_DISCOVERED_TESTS }} tests"
+
+      # 4) Surface ignored/filtered tests (useful signal, non-fatal)
+      - name: Surface #[ignore] tests
+        run: |
+          echo "### Checking for ignored tests..."
+          IGNORED=$(rg -n --hidden --glob '!target' '^\s*#\s*\[\s*ignore' || echo "None found")
+          if [ "$IGNORED" != "None found" ]; then
+            echo "Found ignored tests (non-fatal):"
+            echo "$IGNORED"
+          else
+            echo "✓ No ignored tests found"
+          fi
+
+      # 5) Per-crate discovery counts for quick diffing in PRs
+      - name: Per-crate discovery counts
+        run: |
+          echo "### Per-crate test discovery:"
+          echo '```'
+          cargo metadata --no-deps --format-version=1 | jq -r '.packages[].name' \
+          | while read CRATE; do
+              COUNT=$(cargo nextest list -p "$CRATE" ${{ matrix.features }} 2>/dev/null | grep -E '^\s+(test|bench)' | wc -l | tr -d ' ')
+              printf "%-35s %6d tests\n" "$CRATE" "$COUNT"
+            done | sort -k2 -nr
+          echo '```'
+
+      # 6) Check for orphaned test files not in modules
+      - name: Check for orphaned test files
+        run: |
+          echo "### Checking for orphaned test files..."
+          for f in $(find . -path ./target -prune -o -path './xtask/fixtures' -prune -o -name '*.rs' -path '*/tests/*' -print); do
+            if ! grep -q "^mod " "$f" 2>/dev/null && ! grep -q "^fn " "$f" 2>/dev/null; then
+              echo "Warning: Possible orphaned test file: $f"
+            fi
+          done || echo "✓ No orphaned test files detected"
+
+      # 7) Store test counts for PR comparison
+      - name: Generate test count summary
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "## Test Discovery Report (${{ matrix.features || 'default' }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total tests discovered:** ${{ env.TOTAL_DISCOVERED_TESTS }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Per-crate breakdown:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cargo metadata --no-deps --format-version=1 | jq -r '.packages[].name' \
+          | while read CRATE; do
+              COUNT=$(cargo nextest list -p "$CRATE" ${{ matrix.features }} 2>/dev/null | grep -E '^\s+(test|bench)' | wc -l | tr -d ' ')
+              [ "$COUNT" -gt 0 ] && printf "%-35s %6d tests\n" "$CRATE" "$COUNT"
+            done | sort -k2 -nr >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
   publish-dry-run:
     name: Publish Dry Run
     runs-on: ubuntu-latest
