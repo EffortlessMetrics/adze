@@ -473,15 +473,14 @@ impl GLRParser {
                                             if let Some(Action::Shift(new_state)) = shift_action {
                                                 let mut recovery_stack = stack.clone();
                                                 // Create dummy node for inserted token
-                                                let error_node = Arc::new(Subtree {
-                                                    node: SubtreeNode {
+                                                let error_node = Arc::new(Subtree::new(
+                                                    SubtreeNode {
                                                         symbol_id: missing_token,
                                                         is_error: true,
                                                         byte_range: byte_offset..byte_offset,
                                                     },
-                                                    dynamic_prec: 0,
-                                                    children: vec![],
-                                                });
+                                                    vec![], // Empty children for error node
+                                                ));
                                                 recovery_stack.push(*new_state, error_node);
                                                 recovery_stack.version.enter_error();
                                                 // Re-queue the current token
@@ -788,6 +787,36 @@ impl GLRParser {
                 },
             };
 
+            // Apply field mappings to children
+            let children_with_fields = if rule.fields.is_empty() {
+                // No fields, use FIELD_NONE for all children
+                children
+                    .into_iter()
+                    .map(|subtree| crate::subtree::ChildEdge {
+                        subtree,
+                        field_id: crate::subtree::FIELD_NONE,
+                    })
+                    .collect()
+            } else {
+                // Apply field mappings based on rule.fields
+                let mut result = Vec::with_capacity(children.len());
+                for (idx, child) in children.into_iter().enumerate() {
+                    // Find field ID for this child position
+                    let field_id = rule
+                        .fields
+                        .iter()
+                        .find(|(_, pos)| *pos == idx)
+                        .map(|(field_id, _)| field_id.0)
+                        .unwrap_or(crate::subtree::FIELD_NONE);
+                    
+                    result.push(crate::subtree::ChildEdge {
+                        subtree: child,
+                        field_id,
+                    });
+                }
+                result
+            };
+
             // Check if this rule has dynamic precedence
             let dynamic_prec =
                 if let Some(rust_sitter_ir::PrecedenceKind::Dynamic(prec)) = &rule.precedence {
@@ -796,7 +825,11 @@ impl GLRParser {
                     0
                 };
 
-            let subtree = Arc::new(Subtree::with_dynamic_prec(node, children, dynamic_prec));
+            let subtree = Arc::new(Subtree::with_dynamic_prec_and_fields(
+                node,
+                children_with_fields,
+                dynamic_prec,
+            ));
 
             // Look up goto state from the unified action table
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&rule.lhs) {
