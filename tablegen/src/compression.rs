@@ -215,7 +215,10 @@ mod tests {
         let table = vec![
             vec![vec![Action::Error], vec![Action::Shift(StateId(1))]],
             vec![vec![Action::Error], vec![Action::Shift(StateId(1))]], // Duplicate
-            vec![vec![Action::Reduce(rust_sitter_ir::RuleId(0))], vec![Action::Error]],
+            vec![
+                vec![Action::Reduce(rust_sitter_ir::RuleId(0))],
+                vec![Action::Error],
+            ],
         ];
 
         let compressed = compress_action_table(&table);

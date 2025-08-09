@@ -141,8 +141,11 @@ fn test_paren_debug() {
         );
 
         // Calculate total bytes
-        let total_bytes = tokens.last().map(|t| t.byte_offset + t.text.len()).unwrap_or(0);
-        
+        let total_bytes = tokens
+            .last()
+            .map(|t| t.byte_offset + t.text.len())
+            .unwrap_or(0);
+
         // Process tokens with debug output
         for (i, token) in tokens.iter().enumerate() {
             println!(

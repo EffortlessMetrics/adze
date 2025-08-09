@@ -1,6 +1,6 @@
 // Integration tests for the pure-Rust Tree-sitter implementation
-use rust_sitter::unified_parser::Parser;
 use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use rust_sitter::unified_parser::Parser;
 
 #[test]
 fn test_complete_workflow() {
@@ -20,28 +20,32 @@ fn test_complete_workflow() {
     let source = "function hello() { return 42; }";
     let tree = parser.parse(source, None);
 
-    assert!(
-        tree.is_some(),
-        "Failed to parse initial source"
-    );
-    
+    assert!(tree.is_some(), "Failed to parse initial source");
+
     let tree = tree.unwrap();
-    assert_eq!(tree.error_count(), 0, "Initial parse had {} errors", tree.error_count());
+    assert_eq!(
+        tree.error_count(),
+        0,
+        "Initial parse had {} errors",
+        tree.error_count()
+    );
 
     // 4. Make an edit and reparse (incremental parsing not yet implemented)
     let edited_source = "function hello() { return 43; }";
-    
+
     // 5. Parse the edited source (full reparse for now)
     let edited_tree = parser.parse(edited_source, None);
-    
-    assert!(
-        edited_tree.is_some(),
-        "Failed to parse edited source"
-    );
-    
+
+    assert!(edited_tree.is_some(), "Failed to parse edited source");
+
     let edited_tree = edited_tree.unwrap();
-    assert_eq!(edited_tree.error_count(), 0, "Edited parse had {} errors", edited_tree.error_count());
-    
+    assert_eq!(
+        edited_tree.error_count(),
+        0,
+        "Edited parse had {} errors",
+        edited_tree.error_count()
+    );
+
     // 6. Verify the edit was applied by checking the source
     assert!(
         edited_tree.source.contains("43"),
@@ -63,7 +67,7 @@ fn test_error_recovery() {
 
     // Should still produce a tree, even with errors
     assert!(tree.is_some(), "No tree produced for error case");
-    
+
     let tree = tree.unwrap();
     // The parser should report errors for invalid syntax
     assert!(
@@ -127,7 +131,10 @@ fn test_timeout() {
     // Note: timeout support is not yet implemented in parser_v4
     if let Some(tree) = tree {
         // If parsing completed despite timeout, that's acceptable for now
-        assert!(tree.error_count() >= 0, "Parse completed despite timeout setting");
+        assert!(
+            tree.error_count() >= 0,
+            "Parse completed despite timeout setting"
+        );
     }
 }
 
@@ -243,7 +250,7 @@ fn test_table_compression() {
     // Test that table compression is properly implemented
     // The compression happens at build time in tablegen
     // This test verifies the runtime can handle compressed tables
-    
+
     let mut parser = Parser::new();
     // Compression is handled transparently by the runtime
     parser.set_timeout_micros(0);
@@ -255,42 +262,42 @@ fn test_table_compression() {
 #[cfg(feature = "serialization")]
 fn test_serialization_feature() {
     use rust_sitter::serialization::*;
-    
+
     let source = b"test source code";
-    
+
     // Test TreeSerializer
     let tree_serializer = TreeSerializer::new(source);
     assert!(!tree_serializer.include_unnamed);
-    
+
     // Test with unnamed nodes
     let with_unnamed = TreeSerializer::new(source).with_unnamed_nodes();
     assert!(with_unnamed.include_unnamed);
-    
+
     // Test with max text length
     let with_max = TreeSerializer::new(source).with_max_text_length(Some(10));
     assert_eq!(with_max.max_text_length, Some(10));
 }
 
-#[test] 
+#[test]
 fn test_external_scanner_column_tracking() {
     // External scanner column tracking is tested in external_scanner_column_test.rs
     // This test just verifies the basic API works
     use rust_sitter::external_scanner_ffi::RustLexerAdapter;
-    
+
     // Test initial position
     let input = b"hello world";
     let adapter = RustLexerAdapter::new(input, 0);
     assert_eq!(adapter.get_column(), 0);
-    
+
     // Test position after some characters
     let adapter_mid = RustLexerAdapter::new(input, 6);
     assert_eq!(adapter_mid.get_column(), 6);
-    
+
     // Test position after newline
     let input_multiline = b"hello\nworld";
     let adapter_newline = RustLexerAdapter::new(input_multiline, 6);
     assert_eq!(adapter_newline.get_column(), 0);
-    
+
     // Test position in middle of second line
     let adapter_second_line = RustLexerAdapter::new(input_multiline, 8);
     assert_eq!(adapter_second_line.get_column(), 2);
@@ -302,9 +309,9 @@ fn test_field_names_infrastructure() {
     // The ParsedNode structure has a field_name field
     // The extract_field_name function exists as a placeholder
     // Full implementation requires tracking child indices
-    
+
     use rust_sitter::pure_parser::ParsedNode;
-    
+
     // Verify the field exists in the structure
     // This is a compile-time test - if it compiles, the field exists
     let _field_name: Option<String> = None;

@@ -266,9 +266,10 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         // Compress the parse tables
         use rust_sitter_tablegen::compress::TableCompressor;
         let compressor = TableCompressor::new();
-        let compressed_tables = compressor.compress(&parse_table)
+        let compressed_tables = compressor
+            .compress(&parse_table)
             .map_err(|e| anyhow::anyhow!("Failed to compress tables: {}", e))?;
-        
+
         // Generate code with compressed tables
         let abi_builder = AbiLanguageBuilder::new(&grammar, &parse_table)
             .with_compressed_tables(&compressed_tables);

@@ -111,7 +111,7 @@ fn test_parse_table_has_conflicts() {
                 if action.is_empty() {
                     continue; // Skip empty action cells
                 }
-                
+
                 if action.len() > 1 {
                     // Multiple actions = conflict/fork
                     has_fork = true;
@@ -132,7 +132,9 @@ fn test_parse_table_has_conflicts() {
                         Action::Shift(s) => format!("Shift({})", s.0),
                         Action::Reduce(r) => format!("Reduce({})", r.0),
                         Action::Accept => "Accept".to_string(),
-                        Action::Fork(_) => unreachable!("Fork should not appear in new GLR structure"),
+                        Action::Fork(_) => {
+                            unreachable!("Fork should not appear in new GLR structure")
+                        }
                     };
                     println!("  Symbol {} (idx {}): {}", symbol.0, sym_idx, action_str);
                 }

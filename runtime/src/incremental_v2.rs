@@ -226,7 +226,8 @@ impl<'a> IncrementalParserState<'a> {
                         &Action::Error
                     } else {
                         // Prefer shift actions over reduce actions for better parsing behavior
-                        action_cell.iter()
+                        action_cell
+                            .iter()
                             .find(|a| matches!(a, Action::Shift(_)))
                             .unwrap_or(&action_cell[0])
                     };

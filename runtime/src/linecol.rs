@@ -4,22 +4,22 @@
 #[derive(Debug, Clone, Copy)]
 pub struct LineCol {
     pub line: usize,
-    pub line_start: usize,  // Byte offset of the start of the current line
+    pub line_start: usize, // Byte offset of the start of the current line
 }
 
 impl LineCol {
     /// Create a new LineCol tracker starting at line 0
     pub fn new() -> Self {
-        Self { 
-            line: 0, 
-            line_start: 0 
+        Self {
+            line: 0,
+            line_start: 0,
         }
     }
-    
+
     /// Calculate line and line_start for a given position in input
     pub fn at_position(input: &[u8], position: usize) -> Self {
         let mut tracker = Self::new();
-        
+
         for i in 0..position.min(input.len()) {
             if input[i] == b'\n' {
                 tracker.advance_line(i + 1);
@@ -32,7 +32,7 @@ impl LineCol {
                 tracker.advance_line(i + 1);
             }
         }
-        
+
         tracker
     }
 
@@ -59,7 +59,7 @@ impl LineCol {
                     false
                 }
             }
-            _ => false
+            _ => false,
         }
     }
 
@@ -108,21 +108,21 @@ mod tests {
     #[test]
     fn test_process_byte() {
         let mut tracker = LineCol::new();
-        
+
         // Regular character
         assert!(!tracker.process_byte(b'a', None, 0));
         assert_eq!(tracker.line, 0);
-        
+
         // LF
         assert!(tracker.process_byte(b'\n', None, 5));
         assert_eq!(tracker.line, 1);
         assert_eq!(tracker.line_start, 6);
-        
+
         // CR not followed by LF
         assert!(tracker.process_byte(b'\r', Some(b'x'), 10));
         assert_eq!(tracker.line, 2);
         assert_eq!(tracker.line_start, 11);
-        
+
         // CR followed by LF (CRLF)
         assert!(!tracker.process_byte(b'\r', Some(b'\n'), 15));
         assert_eq!(tracker.line, 2); // No advance for CR in CRLF

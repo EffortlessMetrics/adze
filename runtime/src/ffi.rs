@@ -83,7 +83,7 @@ pub unsafe fn create_lexer_adapter(
         get_column: ts_lexer_get_column,
         is_at_included_range_start: ts_lexer_is_at_included_range_start,
         eof: ts_lexer_eof,
-        context: state_ptr.cast(),  // Store the lexer state as context
+        context: state_ptr.cast(), // Store the lexer state as context
         result_symbol: 0,
     });
     let lexer_ptr = Box::into_raw(lexer);

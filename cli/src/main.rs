@@ -360,7 +360,7 @@ fn watch_and_build(path: &Path) -> Result<()> {
 
 fn parse_file(grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> {
     println!("{} Parsing file: {}", "📄".blue(), input.display());
-    
+
     // Convert clap OutputFormat to our parse module's format
     let parse_format = match format {
         OutputFormat::Tree => parse::OutputFormat::Tree,
@@ -368,7 +368,7 @@ fn parse_file(grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> 
         OutputFormat::Sexp => parse::OutputFormat::Sexp,
         OutputFormat::Dot => parse::OutputFormat::Dot,
     };
-    
+
     // Try to parse with the generated parser
     match parse::parse_file_with_generated_parser(grammar, input, parse_format) {
         Ok(()) => Ok(()),
@@ -379,9 +379,7 @@ fn parse_file(grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> 
             eprintln!("1. Ensure your grammar file is valid");
             eprintln!("2. Build your grammar with `rust-sitter build`");
             eprintln!("3. Use the generated parse() function in your Rust code:");
-            eprintln!(
-                "\n   use my_grammar::parse;\n   let result = parse(\"input text\");\n"
-            );
+            eprintln!("\n   use my_grammar::parse;\n   let result = parse(\"input text\");\n");
             Err(e)
         }
     }

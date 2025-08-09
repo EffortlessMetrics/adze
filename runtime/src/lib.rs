@@ -56,13 +56,13 @@ mod parser_v2;
 mod parser_v3;
 
 // Current parser version
+pub mod arena_allocator;
 pub mod parser_v4;
 pub mod pure_external_scanner;
-pub mod stack_pool;
-pub mod arena_allocator;
 pub mod pure_incremental;
 pub mod pure_parser;
 pub mod query;
+pub mod stack_pool;
 // #[cfg(feature = "serialization")]
 #[cfg(feature = "serialization")]
 pub mod serialization;

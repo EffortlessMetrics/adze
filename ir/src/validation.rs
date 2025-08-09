@@ -706,7 +706,9 @@ impl GrammarValidator {
         let mut path = Vec::new();
 
         for symbol in grammar.rules.keys() {
-            if !visited.contains(symbol) && self.has_cycle(*symbol, grammar, &mut visited, &mut rec_stack, &mut path) {
+            if !visited.contains(symbol)
+                && self.has_cycle(*symbol, grammar, &mut visited, &mut rec_stack, &mut path)
+            {
                 self.errors.push(ValidationError::CyclicRule {
                     symbols: path.clone(),
                 });

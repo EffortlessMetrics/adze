@@ -24,7 +24,7 @@ pub fn run_tests(
 ) -> Result<()> {
     // Check if corpus exists
     let corpus = corpus_path.unwrap_or(Path::new("corpus"));
-    
+
     if parser_path.is_some() {
         eprintln!("rust-sitter CLI v0.6.0 - Test Command");
         eprintln!("=====================================");
@@ -64,7 +64,7 @@ pub fn run_tests(
         eprintln!("  - Automatic test generation from corpus files");
         eprintln!();
         eprintln!("For updates, see: https://github.com/hydro-project/rust-sitter");
-        
+
         std::process::exit(64); // EX_USAGE
     }
 
@@ -92,7 +92,7 @@ pub fn run_tests(
         eprintln!();
         eprintln!("Note: Full corpus testing is not yet implemented.");
         eprintln!("      Currently, only test file validation is performed.");
-        
+
         std::process::exit(1);
     }
 
@@ -102,7 +102,7 @@ pub fn run_tests(
     println!();
     println!("Checking corpus at: {:?}", corpus);
     println!();
-    
+
     // Find test files
     let pattern = corpus.join("**/*.txt");
     let test_files: Vec<_> = glob(pattern.to_str().unwrap())?
@@ -129,20 +129,24 @@ pub fn run_tests(
     // Validate test format only
     let mut valid = 0;
     let mut invalid = 0;
-    
+
     for test_file in &test_files {
         let content = fs::read_to_string(test_file)?;
         let test_cases = parse_test_format(&content)?;
-        
+
         if test_cases.is_empty() {
             println!("  ✗ {} - no test cases found", test_file.display());
             invalid += 1;
         } else {
-            println!("  ✓ {} - {} test cases", test_file.display(), test_cases.len());
+            println!(
+                "  ✓ {} - {} test cases",
+                test_file.display(),
+                test_cases.len()
+            );
             valid += 1;
         }
     }
-    
+
     println!();
     println!("Validation Results:");
     println!("  Valid files:   {}", valid);
@@ -171,7 +175,7 @@ fn run_single_test(test_file: &Path, _parser_path: Option<&Path>) -> Result<Test
     // Real implementation would need to compile and run the parser
     let mut passed = true;
     let mut error_msg = None;
-    
+
     for test_case in &test_cases {
         // Basic validation
         if test_case.source.is_empty() {
@@ -181,11 +185,14 @@ fn run_single_test(test_file: &Path, _parser_path: Option<&Path>) -> Result<Test
         }
         if test_case.expected.is_empty() {
             passed = false;
-            error_msg = Some(format!("Test '{}' has empty expected output", test_case.name));
+            error_msg = Some(format!(
+                "Test '{}' has empty expected output",
+                test_case.name
+            ));
             break;
         }
     }
-    
+
     let parse_time_ms = start.elapsed().as_secs_f64() * 1000.0;
 
     Ok(TestResult {
@@ -239,4 +246,3 @@ struct TestCase {
     source: String,
     expected: String,
 }
-

@@ -148,7 +148,12 @@ impl ParseStack {
     /// Print tree structure for debugging
     fn print_tree_structure(node: &Arc<Subtree>, indent: usize) {
         let _prefix = "  ".repeat(indent);
-        debug_glr!("{}Symbol {}, range {:?}", _prefix, node.node.symbol_id.0, node.node.byte_range);
+        debug_glr!(
+            "{}Symbol {}, range {:?}",
+            _prefix,
+            node.node.symbol_id.0,
+            node.node.byte_range
+        );
         for edge in &node.children {
             Self::print_tree_structure(&edge.subtree, indent + 1);
         }
@@ -177,7 +182,7 @@ impl ParseStack {
         if node1.node.symbol_id != node2.node.symbol_id {
             return false;
         }
-        
+
         if node1.node.byte_range != node2.node.byte_range {
             return false;
         }
@@ -234,7 +239,7 @@ pub struct GLRParser {
     /// Conflict resolver for vec wrapper conflicts
     #[allow(dead_code)]
     vec_wrapper_resolver: Option<VecWrapperResolver>,
-    
+
     /// Total input length in bytes (set when process_eof is called)
     input_length: usize,
 }
@@ -253,7 +258,7 @@ impl GLRParser {
         }
         None
     }
-    
+
     pub fn new(table: ParseTable, grammar: Grammar) -> Self {
         let initial_stack = ParseStack::new(StateId(0), 0);
 
@@ -310,23 +315,31 @@ impl GLRParser {
 
         for stack in stacks_to_process {
             let state = stack.current_state();
-            
+
             // Debug: Print current state and token being processed
-            debug_glr!("DEBUG: Processing token {} (symbol_idx: {:?}) in state {}", 
-                     token.0, self.table.symbol_to_index.get(&token), state.0);
+            debug_glr!(
+                "DEBUG: Processing token {} (symbol_idx: {:?}) in state {}",
+                token.0,
+                self.table.symbol_to_index.get(&token),
+                state.0
+            );
 
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
                 let action_cell = &self.table.action_table[state.0 as usize][*symbol_idx];
-                
+
                 // Debug: Print action cell contents
                 if action_cell.len() > 1 {
-                    debug_glr!("DEBUG: Found multi-action cell at state {} for token {}: {} actions", 
-                             state.0, token.0, action_cell.len());
+                    debug_glr!(
+                        "DEBUG: Found multi-action cell at state {} for token {}: {} actions",
+                        state.0,
+                        token.0,
+                        action_cell.len()
+                    );
                     for (_i, _act) in action_cell.iter().enumerate() {
                         debug_glr!("  Action {}: {:?}", _i, _act);
                     }
                 }
-                
+
                 // Check action for token
 
                 // Convert ActionCell to single action or Fork
@@ -371,9 +384,13 @@ impl GLRParser {
                         {
                             // No resolution - TRUE GLR FORKING!
                             // This is the critical part where we maintain ambiguity by forking stacks
-                            debug_glr!("DEBUG: GLR Fork! Creating {} stacks for state {} with token {}", 
-                                     actions.len(), state.0, token.0);
-                            
+                            debug_glr!(
+                                "DEBUG: GLR Fork! Creating {} stacks for state {} with token {}",
+                                actions.len(),
+                                state.0,
+                                token.0
+                            );
+
                             // Fork the stack for EACH action to explore all parse paths
                             for (_i, fork_action) in actions.iter().enumerate() {
                                 match fork_action {
@@ -408,11 +425,15 @@ impl GLRParser {
 
                                     Action::Fork(nested_actions) => {
                                         // Handle nested Fork recursively
-                                        debug_glr!("  Fork {}: Nested fork with {} actions", i, nested_actions.len());
+                                        debug_glr!(
+                                            "  Fork {}: Nested fork with {} actions",
+                                            i,
+                                            nested_actions.len()
+                                        );
                                         for nested_action in nested_actions {
                                             let mut nested_fork = stack.fork(self.next_stack_id);
                                             self.next_stack_id += 1;
-                                            
+
                                             match nested_action {
                                                 Action::Shift(new_state) => {
                                                     nested_fork.push(
@@ -421,7 +442,8 @@ impl GLRParser {
                                                             SubtreeNode {
                                                                 symbol_id: token,
                                                                 is_error: false,
-                                                                byte_range: byte_offset..byte_offset + text.len(),
+                                                                byte_range: byte_offset
+                                                                    ..byte_offset + text.len(),
                                                             },
                                                             vec![],
                                                         )),
@@ -429,7 +451,10 @@ impl GLRParser {
                                                     new_stacks.push(nested_fork);
                                                 }
                                                 Action::Reduce(rule_id) => {
-                                                    self.perform_reduction_on_stack(&mut nested_fork, *rule_id);
+                                                    self.perform_reduction_on_stack(
+                                                        &mut nested_fork,
+                                                        *rule_id,
+                                                    );
                                                     new_stacks.push(nested_fork);
                                                 }
                                                 _ => {
@@ -444,7 +469,7 @@ impl GLRParser {
                                     }
                                 }
                             }
-                            
+
                             // If no valid forks were created, keep the original stack
                             if new_stacks.is_empty() {
                                 new_stacks.push(stack);
@@ -575,17 +600,25 @@ impl GLRParser {
         // Key: (stack_id, top_state, rule_id, pop_length, predecessor_state)
         // This allows legitimate reductions from different predecessor paths while preventing
         // the same reduction from being applied infinitely
-        let mut applied_reductions: std::collections::HashSet<(usize, StateId, RuleId, usize, StateId)> = 
-            std::collections::HashSet::new();
-        
+        let mut applied_reductions: std::collections::HashSet<(
+            usize,
+            StateId,
+            RuleId,
+            usize,
+            StateId,
+        )> = std::collections::HashSet::new();
+
         let mut iteration = 0;
         const MAX_ITERATIONS: usize = 100;
-        
+
         loop {
             iteration += 1;
             if iteration > MAX_ITERATIONS {
-                debug_glr!("ERROR: Exceeded {} reduction iterations with {} stacks - breaking to prevent infinite loop", 
-                         MAX_ITERATIONS, stacks.len());
+                debug_glr!(
+                    "ERROR: Exceeded {} reduction iterations with {} stacks - breaking to prevent infinite loop",
+                    MAX_ITERATIONS,
+                    stacks.len()
+                );
                 break;
             }
 
@@ -594,8 +627,12 @@ impl GLRParser {
 
             for stack in stacks {
                 let state = stack.current_state();
-                
-                debug_glr!("DEBUG reduce phase: Checking state {} for token {}", state.0, token.0);
+
+                debug_glr!(
+                    "DEBUG reduce phase: Checking state {} for token {}",
+                    state.0,
+                    token.0
+                );
 
                 if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
                     let action_cell =
@@ -615,16 +652,17 @@ impl GLRParser {
                                 } else {
                                     0
                                 };
-                                
+
                                 // Get predecessor state (state after popping)
                                 let pred_state = if stack.states.len() > pop_len {
                                     stack.states[stack.states.len() - pop_len - 1]
                                 } else {
                                     StateId(0)
                                 };
-                                
+
                                 // Check if we've already applied this reduction to avoid infinite loops
-                                let reduction_key = (stack.id, state, *rule_id, pop_len, pred_state);
+                                let reduction_key =
+                                    (stack.id, state, *rule_id, pop_len, pred_state);
                                 if !applied_reductions.contains(&reduction_key) {
                                     applied_reductions.insert(reduction_key);
                                     any_reduction_performed = true;
@@ -644,25 +682,30 @@ impl GLRParser {
                                 for fork_action in actions {
                                     match fork_action {
                                         Action::Reduce(rule_id) => {
-                                            let pop_len = if let Some(rule) = self.get_rule(*rule_id) {
-                                                rule.rhs.len()
-                                            } else {
-                                                0
-                                            };
+                                            let pop_len =
+                                                if let Some(rule) = self.get_rule(*rule_id) {
+                                                    rule.rhs.len()
+                                                } else {
+                                                    0
+                                                };
                                             let pred_state = if stack.states.len() > pop_len {
                                                 stack.states[stack.states.len() - pop_len - 1]
                                             } else {
                                                 StateId(0)
                                             };
-                                            
-                                            let reduction_key = (stack.id, state, *rule_id, pop_len, pred_state);
+
+                                            let reduction_key =
+                                                (stack.id, state, *rule_id, pop_len, pred_state);
                                             if !applied_reductions.contains(&reduction_key) {
                                                 applied_reductions.insert(reduction_key);
                                                 has_reduction = true;
                                                 any_reduction_performed = true;
                                                 let mut forked = stack.fork(self.next_stack_id);
                                                 self.next_stack_id += 1;
-                                                self.perform_reduction_on_stack(&mut forked, *rule_id);
+                                                self.perform_reduction_on_stack(
+                                                    &mut forked,
+                                                    *rule_id,
+                                                );
                                                 fork_results.push(forked);
                                             }
                                         }
@@ -685,8 +728,12 @@ impl GLRParser {
                         }
                     } else {
                         // Multiple actions - need to fork
-                        debug_glr!("DEBUG reduce: Found {} actions in state {} for token {}", 
-                                 action_cell.len(), state.0, token.0);
+                        debug_glr!(
+                            "DEBUG reduce: Found {} actions in state {} for token {}",
+                            action_cell.len(),
+                            state.0,
+                            token.0
+                        );
                         let mut has_reduction = false;
                         let mut has_shift = false;
                         let mut fork_results = Vec::new();
@@ -704,8 +751,9 @@ impl GLRParser {
                                     } else {
                                         StateId(0)
                                     };
-                                    
-                                    let reduction_key = (stack.id, state, *rule_id, pop_len, pred_state);
+
+                                    let reduction_key =
+                                        (stack.id, state, *rule_id, pop_len, pred_state);
                                     if !applied_reductions.contains(&reduction_key) {
                                         applied_reductions.insert(reduction_key);
                                         has_reduction = true;
@@ -720,7 +768,9 @@ impl GLRParser {
                                 Action::Shift(_) => {
                                     // Mark that we have a shift action
                                     has_shift = true;
-                                    debug_glr!("  Found shift action - will preserve stack for phase 2");
+                                    debug_glr!(
+                                        "  Found shift action - will preserve stack for phase 2"
+                                    );
                                 }
                                 _ => {
                                     // Other non-reduction actions will be handled in phase 2
@@ -734,11 +784,11 @@ impl GLRParser {
                             debug_glr!("  Preserving original stack for shift action");
                             result_stacks.push(stack.clone());
                         }
-                        
+
                         if has_reduction {
                             result_stacks.extend(fork_results);
                         }
-                        
+
                         // If we have neither shift nor reduce, keep the original stack
                         if !has_shift && !has_reduction {
                             result_stacks.push(stack);
@@ -752,11 +802,14 @@ impl GLRParser {
 
             // CRITICAL: Merge stacks with the same state to prevent exponential explosion
             self.merge_stacks(&mut result_stacks);
-            
+
             if result_stacks.len() > 10 {
-                debug_glr!("DEBUG reduce: After merging, have {} stacks", result_stacks.len());
+                debug_glr!(
+                    "DEBUG reduce: After merging, have {} stacks",
+                    result_stacks.len()
+                );
             }
-            
+
             stacks = result_stacks;
 
             if !any_reduction_performed {
@@ -769,7 +822,11 @@ impl GLRParser {
 
     /// Perform a reduction on a specific stack
     fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
-        debug_glr!("DEBUG: Performing reduction with rule {} on stack in state {}", rule_id.0, stack.current_state().0);
+        debug_glr!(
+            "DEBUG: Performing reduction with rule {} on stack in state {}",
+            rule_id.0,
+            stack.current_state().0
+        );
         // Perform reduction
         // Find the rule in the grammar
         if let Some(rule) = self
@@ -813,7 +870,7 @@ impl GLRParser {
                         .find(|(_, pos)| *pos == idx)
                         .map(|(field_id, _)| field_id.0)
                         .unwrap_or(crate::subtree::FIELD_NONE);
-                    
+
                     result.push(crate::subtree::ChildEdge {
                         subtree: child,
                         field_id,
@@ -933,8 +990,11 @@ impl GLRParser {
         }
 
         if merged.len() > 1 && merged.len() != stacks.len() {
-            debug_glr!("DEBUG merge_stacks: {} stacks -> {} stacks after conservative merge", 
-                     stacks.len(), merged.len());
+            debug_glr!(
+                "DEBUG merge_stacks: {} stacks -> {} stacks after conservative merge",
+                stacks.len(),
+                merged.len()
+            );
         }
 
         *stacks = merged;
@@ -1023,37 +1083,48 @@ impl GLRParser {
             .collect();
         Err(format!("Parse incomplete. Stack states: {:?}", states))
     }
-    
+
     /// Get all successful parse alternatives (for ambiguous grammars)
     pub fn finish_all_alternatives(&self) -> Result<Vec<Arc<Subtree>>, String> {
-        debug_glr!("DEBUG finish_all_alternatives: have {} stacks", self.stacks.len());
+        debug_glr!(
+            "DEBUG finish_all_alternatives: have {} stacks",
+            self.stacks.len()
+        );
         for (_i, stack) in self.stacks.iter().enumerate() {
-            debug_glr!("  Stack {}: {} nodes, state {}", _i, stack.nodes.len(), stack.current_state().0);
+            debug_glr!(
+                "  Stack {}: {} nodes, state {}",
+                _i,
+                stack.nodes.len(),
+                stack.current_state().0
+            );
             // Print parse tree structure for debugging
             if stack.nodes.len() == 1 {
                 ParseStack::print_tree_structure(&stack.nodes[0], 0);
             }
         }
-        
+
         let mut alternatives = Vec::new();
-        
+
         // Collect all successfully parsed stacks
         for stack in &self.stacks {
             if stack.nodes.len() == 1 {
                 // Accept if we have exactly one node after EOF processing
                 // This should be the root of the parse tree (the start symbol)
                 let node = &stack.nodes[0];
-                
+
                 // CRITICAL: Check that the parse consumed all input
                 if node.node.byte_range.end == self.input_length {
                     alternatives.push(node.clone());
                 } else {
-                    debug_glr!("DEBUG: Rejecting incomplete stack - ends at byte {} but input is {} bytes", 
-                             node.node.byte_range.end, self.input_length);
+                    debug_glr!(
+                        "DEBUG: Rejecting incomplete stack - ends at byte {} but input is {} bytes",
+                        node.node.byte_range.end,
+                        self.input_length
+                    );
                 }
             }
         }
-        
+
         if alternatives.is_empty() {
             // If no accepted stack, return error with debugging info
             let states: Vec<_> = self
@@ -1167,7 +1238,7 @@ impl GLRParser {
                                         is_error: false,
                                         byte_range,
                                     };
-                                    
+
                                     let dynamic_prec = rule
                                         .precedence
                                         .map(|p| match p {
@@ -1183,7 +1254,7 @@ impl GLRParser {
                                             }
                                         })
                                         .unwrap_or(0);
-                                    
+
                                     let parent = Arc::new(Subtree::with_dynamic_prec(
                                         node,
                                         children,
@@ -1263,14 +1334,14 @@ impl GLRParser {
 
         None
     }
-    
+
     // Methods for incremental parsing state management
-    
+
     /// Get the current GSS (Graph-Structured Stack) state for snapshots
     pub fn get_gss_state(&self) -> Vec<ParseStack> {
         self.stacks.clone()
     }
-    
+
     /// Restore the GSS state from a snapshot
     pub fn set_gss_state(&mut self, stacks: Vec<ParseStack>) {
         self.stacks = stacks;
@@ -1280,7 +1351,7 @@ impl GLRParser {
             self.pending_stacks.push_back(i);
         }
     }
-    
+
     /// Restore GSS state selectively - only restore the most promising stacks
     /// This is a performance optimization for incremental parsing
     pub fn set_gss_state_selective(&mut self, stacks: Vec<ParseStack>) {
@@ -1289,63 +1360,60 @@ impl GLRParser {
             self.pending_stacks.clear();
             return;
         }
-        
+
         // AGGRESSIVE OPTIMIZATION: Only keep the single deepest stack
         // This dramatically reduces the work needed to process remaining tokens
         // If the middle chunk is ambiguous, the GLR mechanism will naturally
         // re-create forks as needed
-        let best_stack = stacks
-            .into_iter()
-            .max_by_key(|s| s.states.len())
-            .unwrap();
-        
+        let best_stack = stacks.into_iter().max_by_key(|s| s.states.len()).unwrap();
+
         self.stacks = vec![best_stack];
         self.pending_stacks.clear();
         self.pending_stacks.push_back(0);
     }
-    
+
     /// Get the next stack ID for restoring fork tracking
     pub fn get_next_stack_id(&self) -> usize {
         self.next_stack_id
     }
-    
+
     /// Set the next stack ID for restoring fork tracking
     pub fn set_next_stack_id(&mut self, id: usize) {
         self.next_stack_id = id;
     }
-    
+
     /// Inject multiple alternative subtrees (for ambiguous parses)
     /// This is used for incremental GLR parsing to preserve ambiguity
     pub fn inject_ambiguous_subtrees(&mut self, subtrees: Vec<Arc<Subtree>>) -> Result<(), String> {
         if self.stacks.is_empty() {
             return Err("No active stacks to inject subtrees into".to_string());
         }
-        
+
         if subtrees.is_empty() {
             return Err("No subtrees to inject".to_string());
         }
-        
+
         // For each subtree alternative, create potential parse stacks
         let mut new_stacks = Vec::new();
-        
+
         for subtree in subtrees {
             for stack in &self.stacks {
                 let new_stack = stack.clone();
-                
+
                 // Get the current state
                 let current_state = new_stack.current_state();
-                
+
                 // Look up the goto state after shifting this symbol
                 let symbol = subtree.node.symbol_id;
                 if let Some(&symbol_idx) = self.table.symbol_to_index.get(&symbol) {
                     let state_idx = current_state.0 as usize;
-                    
+
                     // Check if there's a shift action for this symbol
-                    if state_idx < self.table.action_table.len() 
-                        && symbol_idx < self.table.action_table[state_idx].len() {
-                        
+                    if state_idx < self.table.action_table.len()
+                        && symbol_idx < self.table.action_table[state_idx].len()
+                    {
                         let action_cell = &self.table.action_table[state_idx][symbol_idx];
-                        
+
                         // Look for shift actions
                         for action in action_cell {
                             if let Action::Shift(next_state) = action {
@@ -1359,41 +1427,41 @@ impl GLRParser {
                 }
             }
         }
-        
+
         if new_stacks.is_empty() {
             return Err("Cannot inject any subtrees in current state".to_string());
         }
-        
+
         self.stacks = new_stacks;
         Ok(())
     }
-    
+
     /// Inject a pre-parsed subtree at the current position
     /// This is used for incremental parsing to reuse unchanged portions
     pub fn inject_subtree(&mut self, subtree: Arc<Subtree>) -> Result<(), String> {
         if self.stacks.is_empty() {
             return Err("No active stacks to inject subtree into".to_string());
         }
-        
+
         // For each active stack, inject the subtree
         let mut new_stacks = Vec::new();
         for stack in &self.stacks {
             let mut new_stack = stack.clone();
-            
+
             // Get the current state
             let current_state = new_stack.current_state();
-            
+
             // Look up the goto state after shifting this symbol
             let symbol = subtree.node.symbol_id;
             if let Some(&symbol_idx) = self.table.symbol_to_index.get(&symbol) {
                 let state_idx = current_state.0 as usize;
-                
+
                 // First check if there's a shift action for this symbol
-                if state_idx < self.table.action_table.len() 
-                    && symbol_idx < self.table.action_table[state_idx].len() {
-                    
+                if state_idx < self.table.action_table.len()
+                    && symbol_idx < self.table.action_table[state_idx].len()
+                {
                     let action_cell = &self.table.action_table[state_idx][symbol_idx];
-                    
+
                     // Look for a shift action
                     for action in action_cell {
                         if let Action::Shift(next_state) = action {
@@ -1406,11 +1474,14 @@ impl GLRParser {
                 }
             }
         }
-        
+
         if new_stacks.is_empty() {
-            return Err(format!("Cannot inject subtree with symbol {:?} in current state", subtree.node.symbol_id));
+            return Err(format!(
+                "Cannot inject subtree with symbol {:?} in current state",
+                subtree.node.symbol_id
+            ));
         }
-        
+
         self.stacks = new_stacks;
         Ok(())
     }

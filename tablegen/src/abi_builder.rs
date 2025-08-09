@@ -179,7 +179,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         } else {
             quote! {}
         };
-        
+
         quote! {
             use ::rust_sitter::pure_parser::*;
             #ts_symbol_import
@@ -1257,7 +1257,7 @@ mod tests {
         symbol_to_index.insert(SymbolId(0), 0); // EOF
         symbol_to_index.insert(SymbolId(1), 1); // token1
         symbol_to_index.insert(SymbolId(5), 2); // token5
-        
+
         let parse_table = ParseTable {
             action_table: vec![],
             goto_table: vec![],
@@ -1276,7 +1276,7 @@ mod tests {
 
         // Check that tokens are sorted by ID
         let code = quote! { #(#names)* }.to_string();
-        
+
         // The token names are encoded as u8 byte arrays
         // "token1" = [116u8, 111u8, 107u8, 101u8, 110u8, 49u8, 0u8]
         // "token5" = [116u8, 111u8, 107u8, 101u8, 110u8, 53u8, 0u8]

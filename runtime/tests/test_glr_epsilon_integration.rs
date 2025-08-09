@@ -107,7 +107,12 @@ fn parse_with_grammar(grammar: &Grammar, input: &str) -> Option<Arc<Subtree>> {
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
-    parser.process_eof(tokens.last().map(|t| t.byte_offset + t.text.len()).unwrap_or(0));
+    parser.process_eof(
+        tokens
+            .last()
+            .map(|t| t.byte_offset + t.text.len())
+            .unwrap_or(0),
+    );
     parser.finish().ok()
 }
 

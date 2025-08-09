@@ -980,8 +980,16 @@ mod tests {
     fn test_compressed_action_table_small() {
         let compressor = TableCompressor::new();
         let action_table = vec![
-            vec![vec![Action::Shift(StateId(1))], vec![Action::Error], vec![Action::Error]],
-            vec![vec![Action::Error], vec![Action::Reduce(RuleId(0))], vec![Action::Error]],
+            vec![
+                vec![Action::Shift(StateId(1))],
+                vec![Action::Error],
+                vec![Action::Error],
+            ],
+            vec![
+                vec![Action::Error],
+                vec![Action::Reduce(RuleId(0))],
+                vec![Action::Error],
+            ],
         ];
 
         let symbol_to_index = std::collections::BTreeMap::new();
@@ -1206,7 +1214,10 @@ mod tests {
 
         // Simple parse table
         let parse_table = ParseTable {
-            action_table: vec![vec![vec![Action::Shift(StateId(1))]], vec![vec![Action::Accept]]],
+            action_table: vec![
+                vec![vec![Action::Shift(StateId(1))]],
+                vec![vec![Action::Accept]],
+            ],
             goto_table: vec![vec![StateId(1)], vec![StateId(0)]],
             symbol_metadata: vec![],
             state_count: 2,

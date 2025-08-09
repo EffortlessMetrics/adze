@@ -1,6 +1,9 @@
 // Include the generated parser
 pub mod grammar_arithmetic {
-    include!(concat!(env!("OUT_DIR"), "/grammar_arithmetic/parser_arithmetic.rs"));
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_arithmetic/parser_arithmetic.rs"
+    ));
 }
 
 // Expose the generated LANGUAGE struct for external use (e.g., benchmarks)

@@ -1,6 +1,5 @@
 /// Field-aware tree structures where field names are stored as edge properties
 /// This design correctly models that field-ness is a property of parent→child relationships
-
 use crate::ffi::TSSymbol;
 use std::sync::Arc;
 
@@ -47,47 +46,47 @@ impl ParsedNode {
     pub fn child_by_field_name<'a>(&'a self, name: &str) -> Option<&'a ParsedNode> {
         let language = self.language.as_ref()?;
         let field_id = language.field_id_for_name(name)?;
-        
+
         self.children
             .iter()
             .find(|c| c.field_id == Some(field_id))
             .map(|c| &c.node)
     }
-    
+
     /// Get all children with a specific field name
     pub fn children_by_field_name<'a>(&'a self, name: &str) -> Vec<&'a ParsedNode> {
         let language = match self.language.as_ref() {
             Some(l) => l,
             None => return Vec::new(),
         };
-        
+
         let field_id = match language.field_id_for_name(name) {
             Some(id) => id,
             None => return Vec::new(),
         };
-        
+
         self.children
             .iter()
             .filter(|c| c.field_id == Some(field_id))
             .map(|c| &c.node)
             .collect()
     }
-    
+
     /// Get the node's kind/type name
     pub fn kind<'a>(&self, language: &'a TSLanguage) -> &'a str {
         language.symbol_name(self.symbol)
     }
-    
+
     /// Iterate over all named children (skip anonymous/extra nodes)
     pub fn named_children(&self) -> impl Iterator<Item = &ParsedChild> {
         self.children.iter().filter(|c| c.node.is_named)
     }
-    
+
     /// Get the Nth child (if it exists)
     pub fn child(&self, index: usize) -> Option<&ParsedNode> {
         self.children.get(index).map(|c| &c.node)
     }
-    
+
     /// Get the number of children
     pub fn child_count(&self) -> usize {
         self.children.len()
@@ -144,12 +143,12 @@ impl TSLanguage {
             .ok()
             .map(|idx| idx as u16)
     }
-    
+
     /// Get field name by ID
     pub fn field_name(&self, id: u16) -> Option<&'static str> {
         self.field_names.get(id as usize).copied()
     }
-    
+
     /// Get symbol name by ID
     pub fn symbol_name(&self, symbol: TSSymbol) -> &'static str {
         self.symbol_names
@@ -157,7 +156,7 @@ impl TSLanguage {
             .copied()
             .unwrap_or("ERROR")
     }
-    
+
     /// Get field mappings for a production
     pub fn production_fields(&self, production_id: u16) -> &[Option<u16>] {
         self.production_field_map
@@ -178,7 +177,7 @@ impl ParsedNode {
     ) -> Self {
         // Get field mappings for this production
         let field_map = language.production_fields(production_id);
-        
+
         // Build children with field IDs
         let parsed_children: Vec<ParsedChild> = children
             .into_iter()
@@ -188,7 +187,7 @@ impl ParsedNode {
                 field_id: field_map.get(i).and_then(|&f| f),
             })
             .collect();
-        
+
         // Compute byte ranges from children
         let (start_byte, end_byte) = if parsed_children.is_empty() {
             (0, 0)
@@ -197,7 +196,7 @@ impl ParsedNode {
             let end = parsed_children.last().unwrap().node.end_byte;
             (start, end)
         };
-        
+
         // Compute point ranges from children
         let (start_point, end_point) = if parsed_children.is_empty() {
             (Point::new(0, 0), Point::new(0, 0))
@@ -206,7 +205,7 @@ impl ParsedNode {
             let end = parsed_children.last().unwrap().node.end_point;
             (start, end)
         };
-        
+
         ParsedNode {
             symbol,
             children: parsed_children,

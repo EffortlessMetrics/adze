@@ -35,10 +35,16 @@ jobs:
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
   test:
-    name: Test (${{ matrix.os }})
+    name: Test (${{ matrix.os }} / ${{ matrix.features }})
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        features:
+          - ""  # default features
+          - "--features external_scanners"
+          - "--features incremental_glr"
+          - "--all-features"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -51,10 +57,10 @@ jobs:
           tool: cargo-nextest
       
       - name: Run tests with nextest
-        run: cargo nextest run --workspace --all-features
+        run: cargo nextest run --workspace ${{ matrix.features }}
       
       - name: Run doctests
-        run: cargo test --doc --workspace --all-features
+        run: cargo test --doc --workspace ${{ matrix.features }}
 
   miri:
     name: Miri (UB Detection)
@@ -76,6 +82,12 @@ jobs:
           cargo miri test -p rust-sitter --lib
           cargo miri test -p rust-sitter-glr-core --lib
           cargo miri test -p rust-sitter-tablegen --lib
+      
+      - name: Run Miri on external scanner tests
+        env:
+          MIRIFLAGS: "-Zmiri-strict-provenance"
+        run: |
+          cargo miri test -p rust-sitter --features external_scanners external_scanner_ || true
 
   sanitizers:
     name: Sanitizers (ASAN/UBSAN)
@@ -233,6 +245,46 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --workspace --no-deps --all-features
+
+  cross-compile:
+    name: Cross Compilation (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - i686-unknown-linux-gnu      # 32-bit x86
+          - aarch64-unknown-linux-gnu   # ARM64
+          - wasm32-unknown-unknown      # WebAssembly
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Install cross-compilation tools
+        if: matrix.target != 'wasm32-unknown-unknown'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib g++-multilib
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          fi
+      
+      - name: Build for ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.target }}" = "wasm32-unknown-unknown" ]; then
+            cargo build --target ${{ matrix.target }} --package rust-sitter --no-default-features
+          else
+            cargo build --target ${{ matrix.target }} --package rust-sitter
+          fi
+      
+      - name: Check ChildEdge size on 32-bit
+        if: matrix.target == 'i686-unknown-linux-gnu'
+        run: |
+          # Ensure ChildEdge maintains expected size on 32-bit platforms
+          cargo test --target ${{ matrix.target }} --package rust-sitter --lib -- --nocapture child_edge_size || true
 
   coverage:
     name: Code Coverage

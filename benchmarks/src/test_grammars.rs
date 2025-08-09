@@ -1,7 +1,10 @@
-/// Test grammars for benchmarking incremental parsing
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, Token, TokenPattern, ProductionId, PrecedenceKind, Associativity, StateId, RuleId};
-use rust_sitter_glr_core::{ParseTable, Action, SymbolMetadata};
 use indexmap::IndexMap;
+use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
+/// Test grammars for benchmarking incremental parsing
+use rust_sitter_ir::{
+    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
+    Token, TokenPattern,
+};
 use std::collections::BTreeMap;
 
 /// Test token structure
@@ -17,13 +20,13 @@ pub struct TestToken {
 /// Creates a minimal but functional grammar that can parse expressions like "1 + 2 * 3"
 pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
     // Create symbol IDs
-    let expr_symbol = SymbolId(0);     // Non-terminal: expression
-    let number_token = SymbolId(1);    // Terminal: number
-    let plus_token = SymbolId(2);      // Terminal: +
-    let mult_token = SymbolId(3);      // Terminal: *
-    let lparen_token = SymbolId(4);    // Terminal: (
-    let rparen_token = SymbolId(5);    // Terminal: )
-    
+    let expr_symbol = SymbolId(0); // Non-terminal: expression
+    let number_token = SymbolId(1); // Terminal: number
+    let plus_token = SymbolId(2); // Terminal: +
+    let mult_token = SymbolId(3); // Terminal: *
+    let lparen_token = SymbolId(4); // Terminal: (
+    let rparen_token = SymbolId(5); // Terminal: )
+
     // Create a simple arithmetic grammar
     let mut grammar = Grammar {
         name: "arithmetic".to_string(),
@@ -42,44 +45,59 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         rule_names: IndexMap::new(),
         symbol_registry: None,
     };
-    
+
     // Add tokens
-    grammar.tokens.insert(number_token, Token {
-        name: "number".to_string(),
-        pattern: TokenPattern::Regex("[0-9]+".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(plus_token, Token {
-        name: "plus".to_string(),
-        pattern: TokenPattern::String("+".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(mult_token, Token {
-        name: "mult".to_string(),
-        pattern: TokenPattern::String("*".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(lparen_token, Token {
-        name: "lparen".to_string(),
-        pattern: TokenPattern::String("(".to_string()),
-        fragile: false,
-    });
-    
-    grammar.tokens.insert(rparen_token, Token {
-        name: "rparen".to_string(),
-        pattern: TokenPattern::String(")".to_string()),
-        fragile: false,
-    });
-    
+    grammar.tokens.insert(
+        number_token,
+        Token {
+            name: "number".to_string(),
+            pattern: TokenPattern::Regex("[0-9]+".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        plus_token,
+        Token {
+            name: "plus".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        mult_token,
+        Token {
+            name: "mult".to_string(),
+            pattern: TokenPattern::String("*".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        lparen_token,
+        Token {
+            name: "lparen".to_string(),
+            pattern: TokenPattern::String("(".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.tokens.insert(
+        rparen_token,
+        Token {
+            name: "rparen".to_string(),
+            pattern: TokenPattern::String(")".to_string()),
+            fragile: false,
+        },
+    );
+
     // Add rules
     // Rule 0: expression -> number
     // Rule 1: expression -> expression '+' expression (left associative, precedence 1)
     // Rule 2: expression -> expression '*' expression (left associative, precedence 2)
     // Rule 3: expression -> '(' expression ')'
-    
+
     let rules = vec![
         Rule {
             lhs: expr_symbol,
@@ -126,23 +144,31 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
             production_id: ProductionId(3),
         },
     ];
-    
+
     grammar.rules.insert(expr_symbol, rules);
-    
+
     // Add rule names
-    grammar.rule_names.insert(expr_symbol, "expression".to_string());
-    grammar.rule_names.insert(number_token, "number".to_string());
+    grammar
+        .rule_names
+        .insert(expr_symbol, "expression".to_string());
+    grammar
+        .rule_names
+        .insert(number_token, "number".to_string());
     grammar.rule_names.insert(plus_token, "plus".to_string());
     grammar.rule_names.insert(mult_token, "mult".to_string());
-    grammar.rule_names.insert(lparen_token, "lparen".to_string());
-    grammar.rule_names.insert(rparen_token, "rparen".to_string());
-    
+    grammar
+        .rule_names
+        .insert(lparen_token, "lparen".to_string());
+    grammar
+        .rule_names
+        .insert(rparen_token, "rparen".to_string());
+
     // Create a minimal parse table
     // This is a simplified table - in reality, it would be generated by LR table construction
     // We'll create a table with 10 states and 6 symbols
     let state_count = 10;
     let symbol_count = 6;
-    
+
     // Initialize action table (states x symbols)
     let mut action_table = vec![vec![]; state_count];
     for state in 0..state_count {
@@ -150,25 +176,25 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
             action_table[state].push(vec![]); // ActionCell is Vec<Action>
         }
     }
-    
+
     // Initialize goto table
     let goto_table = vec![vec![StateId(0); symbol_count]; state_count];
-    
+
     // Add some basic actions for a minimal working parser
     // State 0: Initial state - can shift a number or lparen
     action_table[0][1] = vec![Action::Shift(StateId(1))]; // Shift number
     action_table[0][4] = vec![Action::Shift(StateId(2))]; // Shift lparen
-    
+
     // State 1: After number - reduce to expression
     action_table[1][0] = vec![Action::Reduce(RuleId(0))]; // Reduce by rule 0 (expr -> number)
     action_table[1][2] = vec![Action::Reduce(RuleId(0))]; // Can also see plus next
     action_table[1][3] = vec![Action::Reduce(RuleId(0))]; // Can also see mult next
     action_table[1][5] = vec![Action::Reduce(RuleId(0))]; // Can also see rparen next
-    
+
     // State 2: After lparen - can shift number or another lparen
     action_table[2][1] = vec![Action::Shift(StateId(1))]; // Shift number
     action_table[2][4] = vec![Action::Shift(StateId(2))]; // Shift lparen (nested)
-    
+
     // Create symbol metadata
     let symbol_metadata = vec![
         SymbolMetadata {
@@ -208,13 +234,13 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
             supertype: false,
         },
     ];
-    
+
     // Create symbol to index mapping
     let mut symbol_to_index = BTreeMap::new();
     for i in 0..symbol_count {
         symbol_to_index.insert(SymbolId(i as u16), i);
     }
-    
+
     let table = ParseTable {
         action_table,
         goto_table,
@@ -224,7 +250,7 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         symbol_to_index,
         external_scanner_states: vec![vec![false; 0]; state_count], // No external scanner
     };
-    
+
     (grammar, table)
 }
 
@@ -233,19 +259,19 @@ pub fn tokenize_arithmetic(input: &str) -> Vec<TestToken> {
     let mut tokens = Vec::new();
     let mut position = 0;
     let bytes = input.as_bytes();
-    
+
     while position < bytes.len() {
         // Skip whitespace
         while position < bytes.len() && bytes[position].is_ascii_whitespace() {
             position += 1;
         }
-        
+
         if position >= bytes.len() {
             break;
         }
-        
+
         let start = position;
-        
+
         // Number
         if bytes[position].is_ascii_digit() {
             while position < bytes.len() && bytes[position].is_ascii_digit() {
@@ -303,31 +329,31 @@ pub fn tokenize_arithmetic(input: &str) -> Vec<TestToken> {
             position += 1;
         }
     }
-    
+
     tokens
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_load_grammar() {
         let (grammar, table) = load_arithmetic_grammar();
-        
+
         // Check grammar has rules
         assert!(grammar.rules.contains_key(&SymbolId(0)));
         assert_eq!(grammar.rules.get(&SymbolId(0)).unwrap().len(), 4); // 4 rules for expression
-        
+
         // Check table dimensions
         assert_eq!(table.state_count, 10);
         assert_eq!(table.symbol_count, 6);
     }
-    
+
     #[test]
     fn test_tokenize() {
         let tokens = tokenize_arithmetic("1 + 2 * 3");
-        
+
         assert_eq!(tokens.len(), 5);
         assert_eq!(tokens[0].symbol, SymbolId(1)); // Number
         assert_eq!(tokens[1].symbol, SymbolId(2)); // Plus
@@ -335,11 +361,11 @@ mod tests {
         assert_eq!(tokens[3].symbol, SymbolId(3)); // Mult
         assert_eq!(tokens[4].symbol, SymbolId(1)); // Number
     }
-    
+
     #[test]
     fn test_tokenize_with_parens() {
         let tokens = tokenize_arithmetic("(1 + 2) * 3");
-        
+
         assert_eq!(tokens.len(), 7);
         assert_eq!(tokens[0].symbol, SymbolId(4)); // LParen
         assert_eq!(tokens[1].symbol, SymbolId(1)); // Number

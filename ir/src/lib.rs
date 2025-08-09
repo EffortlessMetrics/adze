@@ -61,10 +61,7 @@ pub struct Grammar {
 impl Grammar {
     /// Add a rule to the grammar
     pub fn add_rule(&mut self, rule: Rule) {
-        self.rules
-            .entry(rule.lhs)
-            .or_default()
-            .push(rule);
+        self.rules.entry(rule.lhs).or_default().push(rule);
     }
 
     /// Get all rules for a given LHS symbol

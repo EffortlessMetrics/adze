@@ -1,4 +1,4 @@
-use rust_sitter::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser, ForestNode};
+use rust_sitter::glr_incremental::{ForestNode, GLREdit, GLRToken, IncrementalGLRParser};
 use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::glr_query::{QueryCursor, QueryParser};
@@ -44,12 +44,15 @@ fn create_parser(grammar: &Grammar) -> GLRParser {
 
 // Helper function to convert TokenWithPosition to GLRToken
 fn tokens_to_glr(tokens: &[TokenWithPosition]) -> Vec<GLRToken> {
-    tokens.iter().map(|t| GLRToken {
-        symbol: t.symbol_id,
-        text: t.text.as_bytes().to_vec(),
-        start_byte: t.byte_offset,
-        end_byte: t.byte_offset + t.byte_length,
-    }).collect()
+    tokens
+        .iter()
+        .map(|t| GLRToken {
+            symbol: t.symbol_id,
+            text: t.text.as_bytes().to_vec(),
+            start_byte: t.byte_offset,
+            end_byte: t.byte_offset + t.byte_length,
+        })
+        .collect()
 }
 
 // Helper function to convert ForestNode to query Subtree
@@ -327,7 +330,7 @@ fn test_full_glr_pipeline() {
     let glr_tokens = tokens_to_glr(&tokens);
     let initial_tree = incremental.parse_incremental(&glr_tokens, &[]).unwrap();
     println!("✓ Initial incremental parse succeeded");
-    
+
     // Edit: "1 + 2 * 3" → "1 + 5 * 3"
     use std::ops::Range;
     let edit = GLREdit {

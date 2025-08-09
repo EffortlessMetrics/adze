@@ -1,12 +1,12 @@
 //! External Scanner Tests
-//! 
+//!
 //! Tests for external scanner integration including Python-style indentation,
 //! nested comments, and stateful scanning.
 
 #![cfg(test)]
 
-use rust_sitter::unified_parser::Parser;
 use rust_sitter::external_scanner::{ExternalScanner, Lexer as TSLexer};
+use rust_sitter::unified_parser::Parser;
 use std::sync::Arc;
 
 /// Python-style indentation scanner
@@ -20,36 +20,36 @@ impl ExternalScanner for IndentationScanner {
         const INDENT: usize = 0;
         const DEDENT: usize = 1;
         const NEWLINE: usize = 2;
-        
+
         // Skip whitespace except newlines
         while lexer.lookahead() == ' ' || lexer.lookahead() == '\t' {
             lexer.advance(true);
         }
-        
+
         if lexer.lookahead() == '\n' {
             if valid_symbols[NEWLINE] {
                 lexer.advance(false);
                 lexer.mark_end();
                 return true;
             }
-            
+
             lexer.advance(true);
-            
+
             // Count indentation
             let mut indent = 0;
             while lexer.lookahead() == ' ' {
                 indent += 1;
                 lexer.advance(true);
             }
-            
+
             let current_indent = *self.indent_stack.last().unwrap_or(&0);
-            
+
             if indent > current_indent && valid_symbols[INDENT] {
                 self.indent_stack.push(indent);
                 lexer.mark_end();
                 return true;
             }
-            
+
             if indent < current_indent && valid_symbols[DEDENT] {
                 while let Some(&level) = self.indent_stack.last() {
                     if level <= indent {
@@ -61,21 +61,21 @@ impl ExternalScanner for IndentationScanner {
                 return true;
             }
         }
-        
+
         false
     }
-    
+
     fn serialize(&self, buffer: &mut Vec<u8>) -> usize {
         for &indent in &self.indent_stack {
             buffer.extend_from_slice(&indent.to_le_bytes());
         }
         self.indent_stack.len() * 4
     }
-    
+
     fn deserialize(&mut self, buffer: &[u8]) -> usize {
         self.indent_stack.clear();
         let mut consumed = 0;
-        
+
         while consumed + 4 <= buffer.len() {
             let bytes = [
                 buffer[consumed],
@@ -86,7 +86,7 @@ impl ExternalScanner for IndentationScanner {
             self.indent_stack.push(u32::from_le_bytes(bytes));
             consumed += 4;
         }
-        
+
         consumed
     }
 }
@@ -100,11 +100,11 @@ struct NestedCommentScanner {
 impl ExternalScanner for NestedCommentScanner {
     fn scan(&mut self, lexer: &mut dyn TSLexer, valid_symbols: &[bool]) -> bool {
         const COMMENT: usize = 0;
-        
+
         if !valid_symbols[COMMENT] {
             return false;
         }
-        
+
         // Look for (* to start
         if self.depth == 0 {
             if lexer.lookahead() == '(' {
@@ -115,7 +115,7 @@ impl ExternalScanner for NestedCommentScanner {
                 }
             }
         }
-        
+
         // Scan until we find matching *)
         while self.depth > 0 {
             match lexer.lookahead() {
@@ -141,15 +141,15 @@ impl ExternalScanner for NestedCommentScanner {
                 _ => lexer.advance(false),
             }
         }
-        
+
         false
     }
-    
+
     fn serialize(&self, buffer: &mut Vec<u8>) -> usize {
         buffer.extend_from_slice(&self.depth.to_le_bytes());
         4
     }
-    
+
     fn deserialize(&mut self, buffer: &[u8]) -> usize {
         if buffer.len() >= 4 {
             let bytes = [buffer[0], buffer[1], buffer[2], buffer[3]];
@@ -167,7 +167,7 @@ fn test_python_indentation_scanner() {
     let mut parser = Parser::new();
     // TODO: Set language with external scanner
     // parser.set_external_scanner(scanner);
-    
+
     let source = r#"
 def foo():
     x = 1
@@ -180,9 +180,11 @@ def foo():
 def bar():
     pass
 "#;
-    
-    let tree = parser.parse(source.as_bytes(), None).expect("Failed to parse");
-    
+
+    let tree = parser
+        .parse(source.as_bytes(), None)
+        .expect("Failed to parse");
+
     // Verify INDENT tokens after colons
     // Verify DEDENT tokens at dedentation points
     // TODO: Add assertions once parser integration complete
@@ -193,13 +195,15 @@ fn test_nested_comments() {
     let scanner = Arc::new(NestedCommentScanner::default());
     let mut parser = Parser::new();
     // TODO: Set language with external scanner
-    
+
     let source = r#"
 let x = 42 (* this is a (* nested *) comment *) in x + 1
 "#;
-    
-    let tree = parser.parse(source.as_bytes(), None).expect("Failed to parse");
-    
+
+    let tree = parser
+        .parse(source.as_bytes(), None)
+        .expect("Failed to parse");
+
     // Verify comment is parsed as single token
     // TODO: Add assertions
 }
@@ -208,11 +212,11 @@ let x = 42 (* this is a (* nested *) comment *) in x + 1
 fn test_scanner_state_persistence() {
     let mut scanner = IndentationScanner::default();
     scanner.indent_stack = vec![0, 4, 8];
-    
+
     let mut buffer = Vec::new();
     let serialized_len = scanner.serialize(&mut buffer);
     assert_eq!(serialized_len, 12); // 3 * 4 bytes
-    
+
     let mut scanner2 = IndentationScanner::default();
     let deserialized_len = scanner2.deserialize(&buffer);
     assert_eq!(deserialized_len, 12);

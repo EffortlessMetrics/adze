@@ -1,12 +1,12 @@
 //! Demonstrates incremental parsing with rust-sitter GLR parser
 
 use rust_sitter::{
-    glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser, ForestNode},
+    glr_incremental::{ForestNode, GLREdit, GLRToken, IncrementalGLRParser},
     glr_parser::GLRParser,
 };
-use std::ops::Range;
 use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
+use std::ops::Range;
 use std::sync::Arc;
 
 fn main() {
@@ -168,4 +168,3 @@ fn tokenize(input: &str) -> Vec<GLRToken> {
 
     tokens
 }
-

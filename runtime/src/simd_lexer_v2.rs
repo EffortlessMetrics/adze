@@ -373,8 +373,7 @@ impl SimdLexer {
 
         // First character must be letter or underscore
         let first = input[0];
-        if !(first.is_ascii_lowercase() || first.is_ascii_uppercase() || first == b'_')
-        {
+        if !(first.is_ascii_lowercase() || first.is_ascii_uppercase() || first == b'_') {
             return None;
         }
 

@@ -24,41 +24,45 @@ impl Parser {
     }
 
     /// Set the language for parsing
-    /// 
+    ///
     /// # Arguments
     /// * `language` - The Tree-sitter language definition
-    /// 
+    ///
     /// # Returns
     /// * `Ok(())` on success
     /// * `Err` if the language cannot be loaded or decoded
     pub fn set_language(&mut self, language: &'static TSLanguage) -> Result<()> {
         self.set_language_with_name(language, "unknown")
     }
-    
+
     /// Set the language for parsing with a specific language name
-    /// 
+    ///
     /// # Arguments
     /// * `language` - The Tree-sitter language definition
     /// * `name` - The name of the language (used for scanner registry lookup)
-    /// 
+    ///
     /// # Returns
     /// * `Ok(())` on success
     /// * `Err` if the language cannot be loaded or decoded
-    pub fn set_language_with_name(&mut self, language: &'static TSLanguage, name: &str) -> Result<()> {
+    pub fn set_language_with_name(
+        &mut self,
+        language: &'static TSLanguage,
+        name: &str,
+    ) -> Result<()> {
         let language_name = name.to_string();
 
         // Create a V4 (GLR) parser for this language
         let v4_parser = parser_v4::Parser::from_language(language, language_name.clone());
-        
+
         // Apply any previously set timeout
         if let Some(_timeout) = self.timeout_micros {
             // TODO: Add timeout support to parser_v4
             // v4_parser.set_timeout(timeout);
         }
-        
+
         self.inner = Some(v4_parser);
         self.language_name = Some(language_name);
-        
+
         Ok(())
     }
 
@@ -73,15 +77,19 @@ impl Parser {
     }
 
     /// Parse source code into a syntax tree
-    /// 
+    ///
     /// # Arguments
     /// * `source` - The source code to parse
     /// * `old_tree` - Optional previous tree for incremental parsing (not yet supported)
-    /// 
+    ///
     /// # Returns
     /// * `Some(Tree)` on successful parse
     /// * `None` if parsing fails or no language is set
-    pub fn parse(&mut self, source: &str, _old_tree: Option<&parser_v4::Tree>) -> Option<parser_v4::Tree> {
+    pub fn parse(
+        &mut self,
+        source: &str,
+        _old_tree: Option<&parser_v4::Tree>,
+    ) -> Option<parser_v4::Tree> {
         if let Some(ref mut parser) = self.inner {
             // For now, ignore old_tree (incremental parsing to be added)
             parser.parse(source).ok()
@@ -89,21 +97,26 @@ impl Parser {
             None
         }
     }
-    
+
     /// Parse source code with incremental parsing support
-    /// 
+    ///
     /// # Arguments
     /// * `source` - The source code to parse
     /// * `old_tree` - Previous tree for incremental parsing
     /// * `edit` - The edit that was applied to transform the old source to the new source
-    /// 
+    ///
     /// # Returns
     /// * `Some(Tree)` on successful parse
     /// * `None` if parsing fails or no language is set
-    /// 
+    ///
     /// # Note
     /// Currently falls back to full reparse. GLR-aware incremental parsing is being implemented.
-    pub fn parse_with_old_tree(&mut self, source: &[u8], _old_tree: Option<&parser_v4::Tree>, _edit: Option<&crate::pure_incremental::Edit>) -> Option<parser_v4::Tree> {
+    pub fn parse_with_old_tree(
+        &mut self,
+        source: &[u8],
+        _old_tree: Option<&parser_v4::Tree>,
+        _edit: Option<&crate::pure_incremental::Edit>,
+    ) -> Option<parser_v4::Tree> {
         if let Some(ref mut parser) = self.inner {
             // TODO: Implement GLR-aware incremental parsing
             // For now, just do a full reparse
@@ -113,35 +126,34 @@ impl Parser {
             None
         }
     }
-    
+
     /// Reparse source code incrementally after an edit
-    /// 
+    ///
     /// # Arguments
     /// * `source` - The new source code after the edit
     /// * `old_tree` - The previous parse tree
     /// * `edit` - The edit that was applied to transform the old source to the new source
-    /// 
+    ///
     /// # Returns
     /// * `Some(Tree)` on successful reparse
     /// * `None` if reparsing fails or no language is set
-    /// 
+    ///
     /// # Note
     /// This is the main API for GLR-aware incremental parsing.
-    pub fn reparse(&mut self, source: &[u8], old_tree: &parser_v4::Tree, edit: &crate::pure_incremental::Edit) -> Option<parser_v4::Tree> {
+    pub fn reparse(
+        &mut self,
+        source: &[u8],
+        old_tree: &parser_v4::Tree,
+        edit: &crate::pure_incremental::Edit,
+    ) -> Option<parser_v4::Tree> {
         // Get the inner parser if it exists
         if let Some(ref inner_parser) = self.inner {
             // Now we can access the grammar and table using the new getter methods
             let grammar = inner_parser.grammar();
             let parse_table = inner_parser.parse_table();
-            
+
             // Delegate to the incremental reparse implementation
-            crate::glr_incremental::reparse(
-                grammar,
-                parse_table,
-                source,
-                old_tree,
-                edit,
-            )
+            crate::glr_incremental::reparse(grammar, parse_table, source, old_tree, edit)
         } else {
             // No language set, cannot reparse
             None
@@ -149,10 +161,10 @@ impl Parser {
     }
 
     /// Parse source code with detailed error information
-    /// 
+    ///
     /// # Arguments
     /// * `source` - The source code to parse
-    /// 
+    ///
     /// # Returns
     /// * `Ok(Tree)` on successful parse
     /// * `Err` with details about what went wrong
@@ -165,7 +177,7 @@ impl Parser {
     }
 
     /// Set a timeout for parsing operations
-    /// 
+    ///
     /// # Arguments
     /// * `timeout_micros` - Timeout in microseconds (0 = no timeout)
     pub fn set_timeout_micros(&mut self, timeout_micros: u64) {
@@ -177,16 +189,16 @@ impl Parser {
     }
 
     /// Reset the parser state
-    /// 
+    ///
     /// This clears any internal state and prepares the parser for a fresh parse
     pub fn reset(&mut self) {
         if let Some(ref mut parser) = self.inner {
             parser.reset();
         }
     }
-    
+
     /// Get GLR parser statistics
-    /// 
+    ///
     /// Returns performance statistics about the GLR parsing process,
     /// including fork/merge counts and memory usage metrics.
     /// Returns None if no language is set.

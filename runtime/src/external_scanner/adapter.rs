@@ -1,6 +1,5 @@
 /// External scanner adapter that bridges between Rust parsers and external scanners
 /// Provides the TSLexer interface expected by Tree-sitter external scanners
-
 use std::ops::Range;
 
 /// Adapter that implements the Lexer trait for external scanners
@@ -41,7 +40,7 @@ impl<'a> TSLexerAdapter<'a> {
     ) -> Self {
         // Calculate initial row/col from cursor position
         let (row, col) = position_to_line_col(src, cursor, line_starts);
-        
+
         // Find which range contains the cursor
         let mut next = 0;
         for (i, range) in ranges.iter().enumerate() {
@@ -50,7 +49,7 @@ impl<'a> TSLexerAdapter<'a> {
                 break;
             }
         }
-        
+
         Self {
             src,
             cursor,
@@ -64,12 +63,12 @@ impl<'a> TSLexerAdapter<'a> {
             },
         }
     }
-    
+
     /// Get the current range being processed
     fn current_range(&self) -> Option<&Range<usize>> {
         self.ranges.spans.get(self.ranges.next)
     }
-    
+
     /// Update line/column position after advancing
     fn update_position(&mut self, byte: u8) {
         match byte {
@@ -101,11 +100,11 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
         } else {
             return None; // No more ranges
         }
-        
+
         // Return current byte or None for EOF
         self.src.get(self.cursor).copied()
     }
-    
+
     fn advance(&mut self, n: usize) {
         for _ in 0..n {
             // Check if we can advance within current range
@@ -116,7 +115,7 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
             } else {
                 return; // No more ranges
             }
-            
+
             // Get current byte before advancing
             if let Some(&byte) = self.src.get(self.cursor) {
                 // Handle CRLF sequences
@@ -136,7 +135,7 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
                     self.cursor += 1;
                     self.update_position(byte);
                 }
-                
+
                 // Check if we need to move to next range
                 if let Some(range) = self.current_range() {
                     if self.cursor >= range.end && self.ranges.next + 1 < self.ranges.spans.len() {
@@ -145,7 +144,8 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
                         if let Some(next_range) = self.ranges.spans.get(self.ranges.next) {
                             self.cursor = next_range.start;
                             // Recalculate position for new range
-                            let (row, col) = position_to_line_col(self.src, self.cursor, self.line_starts);
+                            let (row, col) =
+                                position_to_line_col(self.src, self.cursor, self.line_starts);
                             self.row = row;
                             self.col = col;
                         }
@@ -156,15 +156,15 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
             }
         }
     }
-    
+
     fn mark_end(&mut self) {
         self.mark_end = self.cursor;
     }
-    
+
     fn column(&self) -> usize {
         self.col as usize
     }
-    
+
     fn is_eof(&self) -> bool {
         if let Some(range) = self.current_range() {
             self.cursor >= range.end && self.ranges.next + 1 >= self.ranges.spans.len()
@@ -178,23 +178,28 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
 impl<'a> TSLexerAdapter<'a> {
     /// Check if at start of an included range (for multi-file support)
     pub fn is_at_included_range_start(&self) -> bool {
-        self.ranges.spans.get(self.ranges.next)
+        self.ranges
+            .spans
+            .get(self.ranges.next)
             .map(|r| r.start == self.cursor)
             .unwrap_or(false)
     }
-    
+
     /// Get marked token length
     pub fn get_marked_length(&self) -> usize {
-        self.mark_end.saturating_sub(self.cursor.saturating_sub(self.mark_end))
+        self.mark_end
+            .saturating_sub(self.cursor.saturating_sub(self.mark_end))
     }
 }
 
 /// Convert byte position to line/column
 fn position_to_line_col(src: &[u8], pos: usize, line_starts: &[usize]) -> (u32, u32) {
     // Binary search for line containing position
-    let line = line_starts.binary_search(&pos).unwrap_or_else(|i| i.saturating_sub(1));
+    let line = line_starts
+        .binary_search(&pos)
+        .unwrap_or_else(|i| i.saturating_sub(1));
     let line_start = line_starts.get(line).copied().unwrap_or(0);
-    
+
     // Count codepoints from line start to position for column
     let mut col = 0u32;
     for i in line_start..pos.min(src.len()) {
@@ -205,7 +210,7 @@ fn position_to_line_col(src: &[u8], pos: usize, line_starts: &[usize]) -> (u32, 
             }
         }
     }
-    
+
     (line as u32, col)
 }
 
@@ -219,50 +224,50 @@ mod tests {
         let line_starts = vec![0, 7]; // "hello\r\n" is 7 bytes
         let ranges = vec![0..input.len()];
         let mut adapter = TSLexerAdapter::new(input, 0, &line_starts, ranges);
-        
+
         // Advance through "hello"
         for _ in 0..5 {
             assert!(adapter.advance(false));
         }
         assert_eq!(adapter.row, 0);
         assert_eq!(adapter.col, 5);
-        
+
         // Advance through CRLF
         assert!(adapter.advance(false)); // Should consume both \r\n
         assert_eq!(adapter.row, 1);
         assert_eq!(adapter.col, 0);
-        
+
         // Verify we're at 'w'
         assert_eq!(adapter.lookahead(), b'w' as i32);
     }
-    
+
     #[test]
     fn test_range_boundaries() {
         let input = b"hello world";
         let line_starts = vec![0];
         let ranges = vec![0..5, 6..11]; // Split at space
         let mut adapter = TSLexerAdapter::new(input, 0, &line_starts, ranges);
-        
+
         // Advance to end of first range
         for _ in 0..5 {
             assert!(adapter.advance(false));
         }
-        
+
         // At end of first range
         assert_eq!(adapter.cursor, 5);
         assert!(!adapter.advance(false)); // Can't advance past range
         assert_eq!(adapter.lookahead(), 0); // EOF for this range
     }
-    
+
     #[test]
     fn test_is_at_included_range_start() {
         let input = b"hello world";
         let line_starts = vec![0];
         let ranges = vec![0..5, 6..11];
         let adapter = TSLexerAdapter::new(input, 0, &line_starts, ranges);
-        
+
         assert!(adapter.is_at_included_range_start()); // At start of first range
-        
+
         let adapter2 = TSLexerAdapter::new(input, 6, &line_starts, vec![0..5, 6..11]);
         assert!(adapter2.is_at_included_range_start()); // At start of second range
     }

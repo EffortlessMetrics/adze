@@ -733,7 +733,7 @@ impl Parser {
 
                 let metadata = *metadata_ptr.add(symbol as usize);
                 // Check if HIDDEN flag is set (0x04)
-                
+
                 ////eprintln!($
                 //"DEBUG is_extra_symbol: symbol={}, metadata_ptr={:p}, offset={}, metadata={:#x}, is_hidden={}",
                 //symbol, metadata_ptr, symbol as usize, metadata, is_hidden
@@ -1092,11 +1092,11 @@ impl Parser {
     }
 
     /// Get goto state after reduction
-    /// 
+    ///
     /// NOTE: This function is not used in the pure-Rust parser implementation.
     /// The GLR parser (parser_v4) determines goto states directly during parsing.
     /// This function exists for API compatibility but is never invoked.
-    /// 
+    ///
     /// If this function were to be called, it would panic to catch any misuse.
     #[allow(dead_code)]
     fn get_goto_state(
@@ -1232,7 +1232,7 @@ fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> Par
 
     // Extract field name before moving children
     let field_name = extract_field_name(&subtree, language);
-    
+
     ParsedNode {
         symbol: subtree.symbol,
         children: subtree

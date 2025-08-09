@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use rust_sitter::pure_parser::{ExternalScanner, TSLanguage};
     use rust_sitter::unified_parser::Parser;
-    use rust_sitter::pure_parser::{TSLanguage, ExternalScanner};
 
     // Mock language for testing
     static TEST_LANGUAGE: TSLanguage = TSLanguage {
@@ -54,14 +54,14 @@ mod tests {
     fn test_parser_reset() {
         let mut parser = Parser::new();
         parser.set_language(&TEST_LANGUAGE).unwrap();
-        
+
         // Parse some input
         let input = "test input";
         let _result = parser.parse(input, None);
-        
+
         // Reset should clear state
         parser.reset();
-        
+
         // Should be able to parse again
         let _result2 = parser.parse(input, None);
     }
@@ -70,10 +70,10 @@ mod tests {
     fn test_parser_with_timeout() {
         let mut parser = Parser::new();
         parser.set_language(&TEST_LANGUAGE).unwrap();
-        
+
         // Set a timeout
         parser.set_timeout_micros(100_000);
-        
+
         let input = "test";
         let _result = parser.parse(input, None);
     }

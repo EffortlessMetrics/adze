@@ -61,8 +61,13 @@ pub fn parse_file(
         eprintln!("3. Use it in your Rust code:");
         eprintln!("   ```rust");
         eprintln!("   use my_grammar::parse;");
-        eprintln!("   let tree = parse(\"{}\");", 
-            source.chars().take(30).collect::<String>().replace('\n', "\\n")
+        eprintln!(
+            "   let tree = parse(\"{}\");",
+            source
+                .chars()
+                .take(30)
+                .collect::<String>()
+                .replace('\n', "\\n")
         );
         eprintln!("   ```");
         eprintln!();
@@ -71,7 +76,7 @@ pub fn parse_file(
         eprintln!("  - Tree-sitter compatible CLI functionality");
         eprintln!();
         eprintln!("For updates, see: https://github.com/hydro-project/rust-sitter");
-        
+
         // Return an honest error code
         std::process::exit(64); // EX_USAGE - command line usage error
     }
@@ -83,7 +88,10 @@ pub fn parse_file(
     eprintln!("To parse files with rust-sitter:");
     eprintln!();
     eprintln!("Option 1: Use a parser crate (not yet implemented)");
-    eprintln!("  rust-sitter parse --parser <parser-crate> {}", file_path.display());
+    eprintln!(
+        "  rust-sitter parse --parser <parser-crate> {}",
+        file_path.display()
+    );
     eprintln!();
     eprintln!("Option 2: Integrate directly in Rust code (working today)");
     eprintln!("  1. Define your grammar using #[rust_sitter::grammar]");

@@ -50,50 +50,38 @@ impl GrammarConverter {
 
         // Add rules
         // expr -> identifier
-        grammar
-            .rules
-            .entry(expr_symbol)
-            .or_default()
-            .push(Rule {
-                lhs: expr_symbol,
-                rhs: vec![Symbol::Terminal(id_symbol)],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(0),
-            });
+        grammar.rules.entry(expr_symbol).or_default().push(Rule {
+            lhs: expr_symbol,
+            rhs: vec![Symbol::Terminal(id_symbol)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
 
         // expr -> number
-        grammar
-            .rules
-            .entry(expr_symbol)
-            .or_default()
-            .push(Rule {
-                lhs: expr_symbol,
-                rhs: vec![Symbol::Terminal(num_symbol)],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(1),
-            });
+        grammar.rules.entry(expr_symbol).or_default().push(Rule {
+            lhs: expr_symbol,
+            rhs: vec![Symbol::Terminal(num_symbol)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        });
 
         // expr -> expr + expr
-        grammar
-            .rules
-            .entry(expr_symbol)
-            .or_default()
-            .push(Rule {
-                lhs: expr_symbol,
-                rhs: vec![
-                    Symbol::NonTerminal(expr_symbol),
-                    Symbol::Terminal(plus_symbol),
-                    Symbol::NonTerminal(expr_symbol),
-                ],
-                precedence: Some(PrecedenceKind::Static(1)),
-                associativity: Some(Associativity::Left),
-                fields: vec![(FieldId(1), 0), (FieldId(2), 2)], // left, right
-                production_id: ProductionId(2),
-            });
+        grammar.rules.entry(expr_symbol).or_default().push(Rule {
+            lhs: expr_symbol,
+            rhs: vec![
+                Symbol::NonTerminal(expr_symbol),
+                Symbol::Terminal(plus_symbol),
+                Symbol::NonTerminal(expr_symbol),
+            ],
+            precedence: Some(PrecedenceKind::Static(1)),
+            associativity: Some(Associativity::Left),
+            fields: vec![(FieldId(1), 0), (FieldId(2), 2)], // left, right
+            production_id: ProductionId(2),
+        });
 
         // Add field names
         grammar.fields.insert(FieldId(1), "left".to_string());

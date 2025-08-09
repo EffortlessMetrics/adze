@@ -30,12 +30,12 @@ impl StackNode {
     pub fn get_states(&self) -> Vec<StateId> {
         let mut states = Vec::with_capacity(self.depth + 1);
         let mut current = Some(self);
-        
+
         while let Some(node) = current {
             states.push(node.state);
             current = node.parent.as_deref();
         }
-        
+
         states.reverse();
         states
     }
@@ -74,7 +74,7 @@ impl GraphStructuredStack {
     /// Create a new GSS with initial state
     pub fn new(initial_state: StateId) -> Self {
         let initial_node = Rc::new(StackNode::new(initial_state, None, None));
-        
+
         Self {
             active_heads: vec![initial_node],
             completed_heads: Vec::new(),
@@ -90,10 +90,10 @@ impl GraphStructuredStack {
     pub fn fork_head(&mut self, head_idx: usize) -> usize {
         let head = self.active_heads[head_idx].clone();
         self.active_heads.push(head);
-        
+
         self.stats.total_forks += 1;
         self.stats.max_active_heads = self.stats.max_active_heads.max(self.active_heads.len());
-        
+
         self.active_heads.len() - 1
     }
 
@@ -101,7 +101,7 @@ impl GraphStructuredStack {
     pub fn push(&mut self, head_idx: usize, state: StateId, symbol: Option<SymbolId>) {
         let parent = Some(self.active_heads[head_idx].clone());
         let new_node = Rc::new(StackNode::new(state, symbol, parent));
-        
+
         self.active_heads[head_idx] = new_node;
         self.stats.total_nodes_created += 1;
     }
@@ -110,7 +110,7 @@ impl GraphStructuredStack {
     pub fn pop(&mut self, head_idx: usize, count: usize) -> Option<Vec<StateId>> {
         let mut current = Some(self.active_heads[head_idx].as_ref());
         let mut popped_states = Vec::with_capacity(count);
-        
+
         // Collect the states being popped
         for _ in 0..count {
             match current {
@@ -121,18 +121,15 @@ impl GraphStructuredStack {
                 None => return None, // Not enough states to pop
             }
         }
-        
+
         // Update the head to point to the new top
         if let Some(node) = current {
             // The current node becomes the new head
             // We need to clone it into an Rc
-            self.active_heads[head_idx] = Rc::new(StackNode::new(
-                node.state,
-                node.symbol,
-                node.parent.clone()
-            ));
+            self.active_heads[head_idx] =
+                Rc::new(StackNode::new(node.state, node.symbol, node.parent.clone()));
         }
-        
+
         popped_states.reverse();
         Some(popped_states)
     }
@@ -147,10 +144,10 @@ impl GraphStructuredStack {
         if idx1 == idx2 {
             return false;
         }
-        
+
         let head1 = &self.active_heads[idx1];
         let head2 = &self.active_heads[idx2];
-        
+
         head1.state == head2.state && head1.shares_prefix_with(head2)
     }
 
@@ -160,7 +157,7 @@ impl GraphStructuredStack {
             // Remove the duplicate head
             self.active_heads.remove(remove_idx);
             self.stats.total_merges += 1;
-            
+
             // Count shared segments
             let head = &self.active_heads[keep_idx.min(self.active_heads.len() - 1)];
             if head.parent.is_some() {
@@ -205,24 +202,24 @@ mod tests {
     #[test]
     fn test_gss_basic_operations() {
         let mut gss = GraphStructuredStack::new(StateId(0));
-        
+
         // Push some states
         gss.push(0, StateId(1), Some(SymbolId(10)));
         gss.push(0, StateId(2), Some(SymbolId(20)));
-        
+
         assert_eq!(gss.top_state(0), StateId(2));
-        
+
         // Fork the stack
         let fork_idx = gss.fork_head(0);
         assert_eq!(gss.active_heads.len(), 2);
-        
+
         // Both heads should have the same state initially
         assert_eq!(gss.top_state(0), gss.top_state(fork_idx));
-        
+
         // Push different states to each fork
         gss.push(0, StateId(3), Some(SymbolId(30)));
         gss.push(fork_idx, StateId(4), Some(SymbolId(40)));
-        
+
         // Now they should have different top states
         assert_ne!(gss.top_state(0), gss.top_state(fork_idx));
     }
@@ -230,19 +227,19 @@ mod tests {
     #[test]
     fn test_gss_shared_segments() {
         let mut gss = GraphStructuredStack::new(StateId(0));
-        
+
         // Build up a stack
         gss.push(0, StateId(1), None);
         gss.push(0, StateId(2), None);
-        
+
         // Fork it
         let fork1 = gss.fork_head(0);
         let fork2 = gss.fork_head(0);
-        
+
         // All three heads share the same parent chain
         assert!(gss.active_heads[0].shares_prefix_with(&gss.active_heads[fork1]));
         assert!(gss.active_heads[0].shares_prefix_with(&gss.active_heads[fork2]));
-        
+
         // Verify shared memory - parent pointers should be identical
         assert!(Rc::ptr_eq(
             gss.active_heads[0].parent.as_ref().unwrap(),
@@ -253,18 +250,18 @@ mod tests {
     #[test]
     fn test_gss_merge() {
         let mut gss = GraphStructuredStack::new(StateId(0));
-        
+
         // Create two forks that end up in the same state
         gss.push(0, StateId(1), None);
         let fork = gss.fork_head(0);
-        
+
         // Both push to the same state
         gss.push(0, StateId(2), None);
         gss.push(fork, StateId(2), None);
-        
+
         // They should be mergeable
         assert!(gss.can_merge(0, fork));
-        
+
         // Merge them
         gss.deduplicate();
         assert_eq!(gss.active_heads.len(), 1);
@@ -274,11 +271,11 @@ mod tests {
     #[test]
     fn test_gss_pop() {
         let mut gss = GraphStructuredStack::new(StateId(0));
-        
+
         gss.push(0, StateId(1), None);
         gss.push(0, StateId(2), None);
         gss.push(0, StateId(3), None);
-        
+
         let mut popped = gss.pop(0, 2).unwrap();
         popped.sort_by_key(|s| s.0);
         assert_eq!(popped, vec![StateId(2), StateId(3)]);

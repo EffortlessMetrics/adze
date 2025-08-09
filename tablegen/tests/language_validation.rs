@@ -23,7 +23,10 @@ fn test_language_generation_and_validation() {
 
     // Create parse table
     let parse_table = ParseTable {
-        action_table: vec![vec![vec![Action::Shift(StateId(1))]], vec![vec![Action::Accept]]],
+        action_table: vec![
+            vec![vec![Action::Shift(StateId(1))]],
+            vec![vec![Action::Accept]],
+        ],
         goto_table: vec![vec![StateId(0)], vec![StateId(1)]],
         symbol_metadata: vec![],
         state_count: 2,

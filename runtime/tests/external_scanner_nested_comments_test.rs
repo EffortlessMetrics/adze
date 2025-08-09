@@ -1,6 +1,6 @@
-/// Test for OCaml-style nested comments external scanner
 #![cfg(all(test, feature = "external_scanners"))]
 
+/// Test for OCaml-style nested comments external scanner
 use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 /// Token type for nested comments
@@ -24,16 +24,16 @@ impl ExternalScanner for NestedCommentScanner {
         if valid_symbols.get(COMMENT as usize) != Some(&true) {
             return None;
         }
-        
+
         let mut consumed = 0;
         let mut depth = 0;
         let mut in_comment = false;
-        
+
         // Check for comment start
         if lexer.lookahead() == Some(b'(') {
             lexer.advance(1);
             consumed += 1;
-            
+
             if lexer.lookahead() == Some(b'*') {
                 lexer.advance(1);
                 consumed += 1;
@@ -46,7 +46,7 @@ impl ExternalScanner for NestedCommentScanner {
         } else {
             return None;
         }
-        
+
         // Scan through comment body, handling nesting
         while in_comment && !lexer.is_eof() {
             match lexer.lookahead() {
@@ -83,16 +83,16 @@ impl ExternalScanner for NestedCommentScanner {
                 None => break,
             }
         }
-        
+
         // Unclosed comment
         None
     }
-    
+
     fn serialize(&self, buffer: &mut Vec<u8>) -> usize {
         buffer.extend_from_slice(&(self.depth as u32).to_le_bytes());
         4
     }
-    
+
     fn deserialize(&mut self, buffer: &[u8]) {
         if buffer.len() >= 4 {
             let bytes: [u8; 4] = buffer[0..4].try_into().unwrap();
@@ -105,45 +105,51 @@ impl ExternalScanner for NestedCommentScanner {
 fn test_simple_comment() {
     let input = b"(* simple comment *)";
     let mut scanner = NestedCommentScanner::new();
-    
+
     struct TestLexer<'a> {
         input: &'a [u8],
         position: usize,
         mark: usize,
     }
-    
+
     impl<'a> Lexer for TestLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
-        
+
         fn advance(&mut self, n: usize) {
             self.position = (self.position + n).min(self.input.len());
         }
-        
+
         fn mark_end(&mut self) {
             self.mark = self.position;
         }
-        
+
         fn column(&self) -> usize {
             0 // Not needed for this test
         }
-        
+
         fn is_eof(&self) -> bool {
             self.position >= self.input.len()
         }
     }
-    
+
     let mut lexer = TestLexer {
         input,
         position: 0,
         mark: 0,
     };
-    
+
     let valid_symbols = vec![true; 3000];
-    
+
     let result = scanner.scan(&mut lexer, &valid_symbols);
-    assert_eq!(result, Some(ScanResult { symbol: COMMENT, length: 20 }));
+    assert_eq!(
+        result,
+        Some(ScanResult {
+            symbol: COMMENT,
+            length: 20
+        })
+    );
     assert_eq!(lexer.mark, 20);
 }
 
@@ -151,45 +157,51 @@ fn test_simple_comment() {
 fn test_nested_comments() {
     let input = b"(* outer (* inner *) still outer *)";
     let mut scanner = NestedCommentScanner::new();
-    
+
     struct TestLexer<'a> {
         input: &'a [u8],
         position: usize,
         mark: usize,
     }
-    
+
     impl<'a> Lexer for TestLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
-        
+
         fn advance(&mut self, n: usize) {
             self.position = (self.position + n).min(self.input.len());
         }
-        
+
         fn mark_end(&mut self) {
             self.mark = self.position;
         }
-        
+
         fn column(&self) -> usize {
             0
         }
-        
+
         fn is_eof(&self) -> bool {
             self.position >= self.input.len()
         }
     }
-    
+
     let mut lexer = TestLexer {
         input,
         position: 0,
         mark: 0,
     };
-    
+
     let valid_symbols = vec![true; 3000];
-    
+
     let result = scanner.scan(&mut lexer, &valid_symbols);
-    assert_eq!(result, Some(ScanResult { symbol: COMMENT, length: 36 }));
+    assert_eq!(
+        result,
+        Some(ScanResult {
+            symbol: COMMENT,
+            length: 36
+        })
+    );
     assert_eq!(lexer.position, 36);
 }
 
@@ -197,46 +209,52 @@ fn test_nested_comments() {
 fn test_deeply_nested_comments() {
     let input = b"(* a (* b (* c *) b *) a *)";
     let mut scanner = NestedCommentScanner::new();
-    
+
     struct TestLexer<'a> {
         input: &'a [u8],
         position: usize,
         mark: usize,
     }
-    
+
     impl<'a> Lexer for TestLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
-        
+
         fn advance(&mut self, n: usize) {
             self.position = (self.position + n).min(self.input.len());
         }
-        
+
         fn mark_end(&mut self) {
             self.mark = self.position;
         }
-        
+
         fn column(&self) -> usize {
             0
         }
-        
+
         fn is_eof(&self) -> bool {
             self.position >= self.input.len()
         }
     }
-    
+
     let mut lexer = TestLexer {
         input,
         position: 0,
         mark: 0,
     };
-    
+
     let valid_symbols = vec![true; 3000];
-    
+
     let result = scanner.scan(&mut lexer, &valid_symbols);
-    assert_eq!(result, Some(ScanResult { symbol: COMMENT, length: 28 }));
-    
+    assert_eq!(
+        result,
+        Some(ScanResult {
+            symbol: COMMENT,
+            length: 28
+        })
+    );
+
     // Verify depth handling during scan
     let _test_scanner = NestedCommentScanner::new();
     let mut test_lexer = TestLexer {
@@ -244,21 +262,21 @@ fn test_deeply_nested_comments() {
         position: 0,
         mark: 0,
     };
-    
+
     // Manually trace through to verify depth tracking
     assert_eq!(test_lexer.lookahead(), Some(b'('));
     test_lexer.advance(1);
     assert_eq!(test_lexer.lookahead(), Some(b'*'));
     test_lexer.advance(1);
     // depth = 1
-    
+
     test_lexer.advance(3); // " a "
     assert_eq!(test_lexer.lookahead(), Some(b'('));
     test_lexer.advance(1);
     assert_eq!(test_lexer.lookahead(), Some(b'*'));
     test_lexer.advance(1);
     // depth = 2
-    
+
     test_lexer.advance(3); // " b "
     assert_eq!(test_lexer.lookahead(), Some(b'('));
     test_lexer.advance(1);
@@ -271,43 +289,43 @@ fn test_deeply_nested_comments() {
 fn test_unclosed_comment() {
     let input = b"(* unclosed comment";
     let mut scanner = NestedCommentScanner::new();
-    
+
     struct TestLexer<'a> {
         input: &'a [u8],
         position: usize,
         mark: usize,
     }
-    
+
     impl<'a> Lexer for TestLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
-        
+
         fn advance(&mut self, n: usize) {
             self.position = (self.position + n).min(self.input.len());
         }
-        
+
         fn mark_end(&mut self) {
             self.mark = self.position;
         }
-        
+
         fn column(&self) -> usize {
             0
         }
-        
+
         fn is_eof(&self) -> bool {
             self.position >= self.input.len()
         }
     }
-    
+
     let mut lexer = TestLexer {
         input,
         position: 0,
         mark: 0,
     };
-    
+
     let valid_symbols = vec![true; 3000];
-    
+
     let result = scanner.scan(&mut lexer, &valid_symbols);
     assert_eq!(result, None); // Should return None for unclosed comment
 }
@@ -316,43 +334,43 @@ fn test_unclosed_comment() {
 fn test_not_a_comment() {
     let input = b"(not * a comment)";
     let mut scanner = NestedCommentScanner::new();
-    
+
     struct TestLexer<'a> {
         input: &'a [u8],
         position: usize,
         mark: usize,
     }
-    
+
     impl<'a> Lexer for TestLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
-        
+
         fn advance(&mut self, n: usize) {
             self.position = (self.position + n).min(self.input.len());
         }
-        
+
         fn mark_end(&mut self) {
             self.mark = self.position;
         }
-        
+
         fn column(&self) -> usize {
             0
         }
-        
+
         fn is_eof(&self) -> bool {
             self.position >= self.input.len()
         }
     }
-    
+
     let mut lexer = TestLexer {
         input,
         position: 0,
         mark: 0,
     };
-    
+
     let valid_symbols = vec![true; 3000];
-    
+
     let result = scanner.scan(&mut lexer, &valid_symbols);
     assert_eq!(result, None); // Should return None, not a comment start
 }

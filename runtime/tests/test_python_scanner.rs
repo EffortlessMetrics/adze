@@ -196,20 +196,20 @@ fn test_scanner_state_serialization() {
         position: usize,
         marked_end: usize,
     }
-    
+
     impl<'a> rust_sitter::external_scanner::Lexer for MockLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
-        
+
         fn advance(&mut self, n: usize) {
             self.position = (self.position + n).min(self.input.len());
         }
-        
+
         fn mark_end(&mut self) {
             self.marked_end = self.position;
         }
-        
+
         fn column(&self) -> usize {
             // Simplified - count from last newline
             let mut col = 0;
@@ -221,14 +221,18 @@ fn test_scanner_state_serialization() {
             }
             col
         }
-        
+
         fn is_eof(&self) -> bool {
             self.position >= self.input.len()
         }
     }
-    
-    let mut lexer = MockLexer { input, position: 0, marked_end: 0 };
-    
+
+    let mut lexer = MockLexer {
+        input,
+        position: 0,
+        marked_end: 0,
+    };
+
     // Scan first line (4 spaces)
     let result = scanner.scan(&mut lexer, &valid_symbols);
     assert!(result.is_some());
@@ -262,20 +266,20 @@ fn test_multiple_dedents() {
         position: usize,
         marked_end: usize,
     }
-    
+
     impl<'a> rust_sitter::external_scanner::Lexer for MockLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
-        
+
         fn advance(&mut self, n: usize) {
             self.position = (self.position + n).min(self.input.len());
         }
-        
+
         fn mark_end(&mut self) {
             self.marked_end = self.position;
         }
-        
+
         fn column(&self) -> usize {
             // Simplified - count from last newline
             let mut col = 0;
@@ -287,21 +291,29 @@ fn test_multiple_dedents() {
             }
             col
         }
-        
+
         fn is_eof(&self) -> bool {
             self.position >= self.input.len()
         }
     }
-    
-    let mut lexer = MockLexer { input, position: 10, marked_end: 0 };
-    
+
+    let mut lexer = MockLexer {
+        input,
+        position: 10,
+        marked_end: 0,
+    };
+
     // Scan "def foo():\n" - should get newline
     let result = scanner.scan(&mut lexer, &valid_symbols);
     assert_eq!(result.unwrap().symbol, 0); // NEWLINE
 
     // Reset lexer to position 11 for next scan
-    let mut lexer = MockLexer { input, position: 11, marked_end: 0 };
-    
+    let mut lexer = MockLexer {
+        input,
+        position: 11,
+        marked_end: 0,
+    };
+
     // Scan "    if True:\n" - should get indent
     let result = scanner.scan(&mut lexer, &valid_symbols);
     assert_eq!(result.unwrap().symbol, 1); // INDENT

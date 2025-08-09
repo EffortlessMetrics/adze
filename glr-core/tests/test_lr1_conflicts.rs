@@ -91,9 +91,7 @@ fn test_lr1_conflict_detection() {
 
     // Check if any states have multiple actions (conflicts)
     let has_forks = (0..parse_table.state_count).any(|state| {
-        (0..parse_table.symbol_count).any(|sym| {
-            parse_table.action_table[state][sym].len() > 1
-        })
+        (0..parse_table.symbol_count).any(|sym| parse_table.action_table[state][sym].len() > 1)
     });
 
     assert!(

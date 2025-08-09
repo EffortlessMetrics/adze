@@ -18,10 +18,11 @@ pub struct SubtreeNode {
 
 /// A child edge with optional field information
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct ChildEdge {
     /// The child subtree
     pub subtree: Arc<Subtree>,
-    
+
     /// Field ID for this child (u16::MAX means no field)
     pub field_id: u16,
 }
@@ -54,7 +55,7 @@ impl Subtree {
                 field_id: FIELD_NONE,
             })
             .collect::<Vec<_>>();
-        
+
         // Propagate dynamic precedence upward (max of children)
         let max_child_prec = children_with_fields
             .iter()
@@ -68,7 +69,7 @@ impl Subtree {
             children: children_with_fields,
         }
     }
-    
+
     /// Create a new subtree with field information for children
     pub fn new_with_fields(node: SubtreeNode, children: Vec<ChildEdge>) -> Self {
         // Propagate dynamic precedence upward (max of children)
@@ -99,7 +100,7 @@ impl Subtree {
                 field_id: FIELD_NONE,
             })
             .collect::<Vec<_>>();
-        
+
         // Take max of explicit precedence and children's precedence
         let max_child_prec = children_with_fields
             .iter()
@@ -113,7 +114,7 @@ impl Subtree {
             children: children_with_fields,
         }
     }
-    
+
     /// Create a new subtree with explicit dynamic precedence and field info
     pub fn with_dynamic_prec_and_fields(
         node: SubtreeNode,

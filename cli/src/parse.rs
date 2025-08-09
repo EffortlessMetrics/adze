@@ -22,8 +22,7 @@ pub fn parse_file_with_generated_parser(
     format: OutputFormat,
 ) -> Result<()> {
     // Read the input file
-    let input_content = fs::read_to_string(input_path)
-        .context("Failed to read input file")?;
+    let input_content = fs::read_to_string(input_path).context("Failed to read input file")?;
 
     // Create a temporary directory for the parsing project
     let temp_dir = TempDir::new()?;
@@ -103,7 +102,7 @@ fn main() {
 /// Generate the main.rs file content based on output format
 fn generate_parser_main(input_content: &str, format: OutputFormat) -> Result<String> {
     let input_escaped = input_content.replace('\\', "\\\\").replace('"', "\\\"");
-    
+
     let format_code = match format {
         OutputFormat::Json => {
             r#"

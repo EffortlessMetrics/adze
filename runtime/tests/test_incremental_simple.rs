@@ -38,7 +38,10 @@ fn create_simple_grammar() -> Grammar {
 }
 
 #[test]
-#[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
+#[cfg_attr(
+    not(feature = "incremental_glr"),
+    ignore = "incremental parsing not enabled"
+)]
 fn test_incremental_basic() {
     let grammar = create_simple_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);

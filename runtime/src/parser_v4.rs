@@ -1051,7 +1051,7 @@ impl Parser {
     }
 
     /// Reset the parser state
-    /// 
+    ///
     /// This clears any internal state and prepares the parser for a fresh parse
     pub fn reset(&mut self) {
         self.glr_state = GLRParserState::new();
@@ -1067,7 +1067,7 @@ impl Parser {
             }
         }
     }
-    
+
     /// Get the GLR parser statistics
     pub fn get_glr_stats(&self) -> &crate::glr_forest::GLRStats {
         self.glr_state.get_stats()

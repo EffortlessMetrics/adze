@@ -142,7 +142,7 @@ impl GLRParserState {
         let new_idx = self.gss_nodes.len();
         self.gss_nodes.push(new_node);
         self.active_heads.push(new_idx);
-        
+
         // Update statistics
         self.stats.total_nodes_created += 1;
         self.stats.total_forks += 1;
@@ -210,7 +210,7 @@ impl GLRParserState {
             node
         }
     }
-    
+
     /// Get a reference to the parser statistics
     pub fn get_stats(&self) -> &GLRStats {
         &self.stats

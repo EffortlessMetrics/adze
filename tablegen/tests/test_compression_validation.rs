@@ -99,11 +99,11 @@ fn test_action_table_compression_round_trip() {
             let expected_action = if original_actions.len() == 1 {
                 &original_actions[0]
             } else if original_actions.is_empty() {
-                &Action::Error  // Empty cell defaults to Error
+                &Action::Error // Empty cell defaults to Error
             } else {
                 // For multiple actions, we expect the decompressed to be a Fork
                 // containing all the actions. This test assumes single actions for now.
-                &original_actions[0]  // Take first for compatibility
+                &original_actions[0] // Take first for compatibility
             };
 
             assert_eq!(
@@ -187,7 +187,7 @@ fn test_goto_table_compression_round_trip() {
                 for action in actions {
                     if let Action::Shift(target) = action {
                         goto_table[state][index] = Some(*target);
-                        break;  // Take the first shift action
+                        break; // Take the first shift action
                     }
                 }
             }
@@ -348,7 +348,13 @@ fn test_compression_with_fork_actions() {
                 if actions.len() == 1 {
                     println!("  Symbol {} ({}): {:?}", symbol, symbol_name, &actions[0]);
                 } else {
-                    println!("  Symbol {} ({}): {} actions: {:?}", symbol, symbol_name, actions.len(), actions);
+                    println!(
+                        "  Symbol {} ({}): {} actions: {:?}",
+                        symbol,
+                        symbol_name,
+                        actions.len(),
+                        actions
+                    );
                 }
 
                 // Count action types for each action in the cell
@@ -378,7 +384,7 @@ fn test_compression_with_fork_actions() {
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let actions = &parse_table.action_table[state][symbol];
-            
+
             // Skip if no actions (equivalent to Error)
             if actions.is_empty() {
                 continue;
@@ -404,7 +410,7 @@ fn test_compression_with_fork_actions() {
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let actions = &parse_table.action_table[state][symbol];
-            
+
             // Check for Fork actions within the cell
             for action in actions {
                 if matches!(action, Action::Fork(_)) {
@@ -417,12 +423,16 @@ fn test_compression_with_fork_actions() {
                     }
                 }
             }
-            
+
             // Count cells with multiple actions (GLR conflicts)
             if actions.len() > 1 {
                 multi_action_count += 1;
-                println!("\nMulti-action cell at state {}, symbol {}: {} actions", 
-                        state, symbol, actions.len());
+                println!(
+                    "\nMulti-action cell at state {}, symbol {}: {} actions",
+                    state,
+                    symbol,
+                    actions.len()
+                );
                 for (i, action) in actions.iter().enumerate() {
                     println!("  Action {}: {:?}", i, action);
                 }
@@ -505,8 +515,10 @@ fn test_compression_with_fork_actions() {
     println!("=== Multi-Action Cell Count: {} ===", multi_action_count);
 
     // In GLR, we expect either Fork actions OR multi-action cells (conflicts)
-    assert!(fork_count > 0 || multi_action_count > 0, 
-            "Expected Fork actions or multi-action cells in ambiguous grammar");
+    assert!(
+        fork_count > 0 || multi_action_count > 0,
+        "Expected Fork actions or multi-action cells in ambiguous grammar"
+    );
 
     // Compress and decompress
     let compressed = compress_action_table(&parse_table.action_table);
@@ -520,13 +532,17 @@ fn test_compression_with_fork_actions() {
             // Handle different cases based on the original action cell content
             if original_actions.is_empty() {
                 // Empty cell should decompress to Error
-                assert_eq!(decompressed, Action::Error, 
-                          "Empty cell should decompress to Error at state {}, symbol {}", 
-                          state, symbol);
+                assert_eq!(
+                    decompressed,
+                    Action::Error,
+                    "Empty cell should decompress to Error at state {}, symbol {}",
+                    state,
+                    symbol
+                );
             } else if original_actions.len() == 1 {
                 // Single action cell
                 let original = &original_actions[0];
-                
+
                 // Special check for Fork actions
                 if let Action::Fork(original_fork_actions) = original {
                     if let Action::Fork(decompressed_fork_actions) = &decompressed {
@@ -556,9 +572,11 @@ fn test_compression_with_fork_actions() {
                         );
                     }
                 } else {
-                    assert_eq!(original, &decompressed, 
-                              "Single action mismatch at state {}, symbol {}", 
-                              state, symbol);
+                    assert_eq!(
+                        original, &decompressed,
+                        "Single action mismatch at state {}, symbol {}",
+                        state, symbol
+                    );
                 }
             } else {
                 // Multi-action cell - the compression should represent this as a Fork
@@ -571,18 +589,25 @@ fn test_compression_with_fork_actions() {
                         state,
                         symbol
                     );
-                    
+
                     // Verify each action is preserved
-                    for (orig, decomp) in original_actions.iter().zip(decompressed_fork_actions.iter()) {
-                        assert_eq!(orig, decomp,
-                                  "Multi-action mismatch at state {}, symbol {}",
-                                  state, symbol);
+                    for (orig, decomp) in original_actions
+                        .iter()
+                        .zip(decompressed_fork_actions.iter())
+                    {
+                        assert_eq!(
+                            orig, decomp,
+                            "Multi-action mismatch at state {}, symbol {}",
+                            state, symbol
+                        );
                     }
                 } else {
                     // If not a Fork, it should be the first action for backward compatibility
-                    assert_eq!(&original_actions[0], &decompressed, 
-                              "Multi-action cell fallback mismatch at state {}, symbol {}", 
-                              state, symbol);
+                    assert_eq!(
+                        &original_actions[0], &decompressed,
+                        "Multi-action cell fallback mismatch at state {}, symbol {}",
+                        state, symbol
+                    );
                 }
             }
         }
@@ -598,21 +623,26 @@ fn test_bit_packed_round_trip() {
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Convert GLR action table to legacy format for BitPackedActionTable
-    let legacy_action_table: Vec<Vec<Action>> = parse_table.action_table.iter()
+    let legacy_action_table: Vec<Vec<Action>> = parse_table
+        .action_table
+        .iter()
         .map(|row| {
-            row.iter().map(|action_cell| {
-                // Convert ActionCell (Vec<Action>) to single Action
-                if action_cell.is_empty() {
-                    Action::Error
-                } else if action_cell.len() == 1 {
-                    action_cell[0].clone()
-                } else {
-                    // Multi-action cell - create Fork action
-                    Action::Fork(action_cell.clone())
-                }
-            }).collect()
-        }).collect();
-    
+            row.iter()
+                .map(|action_cell| {
+                    // Convert ActionCell (Vec<Action>) to single Action
+                    if action_cell.is_empty() {
+                        Action::Error
+                    } else if action_cell.len() == 1 {
+                        action_cell[0].clone()
+                    } else {
+                        // Multi-action cell - create Fork action
+                        Action::Fork(action_cell.clone())
+                    }
+                })
+                .collect()
+        })
+        .collect();
+
     // Create bit-packed representation
     let bit_packed = BitPackedActionTable::from_table(&legacy_action_table);
 
@@ -686,7 +716,7 @@ fn test_large_grammar_compression() {
         for symbol in 0..parse_table.symbol_count {
             let original_actions = &parse_table.action_table[state][symbol];
             let decompressed = decompress_action(&compressed, state, symbol);
-            
+
             // Handle GLR action cells
             let expected = if original_actions.is_empty() {
                 Action::Error
@@ -697,10 +727,12 @@ fn test_large_grammar_compression() {
                 // For now, just take the first action for compatibility
                 original_actions[0].clone()
             };
-            
-            assert_eq!(expected, decompressed,
-                      "Large grammar compression mismatch at state {}, symbol {}",
-                      state, symbol);
+
+            assert_eq!(
+                expected, decompressed,
+                "Large grammar compression mismatch at state {}, symbol {}",
+                state, symbol
+            );
         }
     }
 }
@@ -729,7 +761,7 @@ fn test_compression_edge_cases() {
     // All identical rows with empty cells
     let identical_rows = vec![
         vec![vec![], vec![], vec![]], // Empty action cells
-        vec![vec![], vec![], vec![]], 
+        vec![vec![], vec![], vec![]],
         vec![vec![], vec![], vec![]],
     ];
     let _compressed = compress_action_table(&identical_rows);

@@ -28,7 +28,7 @@ pub use advanced_conflict::{
 };
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
 pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
-pub use gss::{GraphStructuredStack, GSSStats, StackNode};
+pub use gss::{GSSStats, GraphStructuredStack, StackNode};
 pub use parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree};
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
 pub use precedence_compare::{
@@ -664,7 +664,7 @@ impl ItemSetCollection {
                     initial_set.add_item(start_item);
                     // Debug: rule.production_id.0
                 }
-            } 
+            }
 
             // Compute closure
             initial_set.closure(grammar, first_follow);
@@ -1300,8 +1300,8 @@ pub fn build_lr1_automaton(
                         symbol_idx,
                         new_action,
                     );
-                } 
-            } 
+                }
+            }
         } else {
             _non_terminal_count += 1;
         }
@@ -1364,8 +1364,7 @@ pub fn build_lr1_automaton(
                                 let symbols: Vec<_> =
                                     follow_set.ones().map(|idx| SymbolId(idx as u16)).collect();
                                 for sym in &symbols {
-                                    if symbol_to_index.contains_key(sym) {
-                                    } 
+                                    if symbol_to_index.contains_key(sym) {}
                                 }
                                 symbols
                             } else {
@@ -1732,11 +1731,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar
-            .rules
-            .entry(SymbolId(0))
-            .or_default()
-            .push(rule);
+        grammar.rules.entry(SymbolId(0)).or_default().push(rule);
 
         // Add the terminal token
         let token = Token {
@@ -1771,11 +1766,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar
-            .rules
-            .entry(SymbolId(0))
-            .or_default()
-            .push(rule);
+        grammar.rules.entry(SymbolId(0)).or_default().push(rule);
 
         let first_follow = FirstFollowSets::compute(&grammar);
 
@@ -1947,11 +1938,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar
-            .rules
-            .entry(SymbolId(0))
-            .or_default()
-            .push(rule);
+        grammar.rules.entry(SymbolId(0)).or_default().push(rule);
 
         // Item at position 0: S -> • a b
         let item1 = LRItem::new(RuleId(0), 0, SymbolId(0));
@@ -1979,11 +1966,7 @@ mod tests {
             fields: vec![],
             production_id: ProductionId(0),
         };
-        grammar
-            .rules
-            .entry(SymbolId(0))
-            .or_default()
-            .push(rule);
+        grammar.rules.entry(SymbolId(0)).or_default().push(rule);
 
         // Item at position 0: S -> • a b
         let item1 = LRItem::new(RuleId(0), 0, SymbolId(0));

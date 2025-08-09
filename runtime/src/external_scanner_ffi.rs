@@ -1,9 +1,9 @@
 // FFI bridge for Tree-sitter C external scanners
 // This module provides the C ABI-compatible interface for external scanners
 
+use crate::linecol::LineCol;
 use std::ffi::c_void;
 use std::os::raw::{c_char, c_uint};
-use crate::linecol::LineCol;
 
 /// Tree-sitter external scanner function signatures
 /// These match the C API defined in tree-sitter/parser.h
@@ -49,15 +49,22 @@ pub struct TSLexer {
 // These ensure our struct matches the expected C ABI
 const _: () = {
     use core::mem::{align_of, size_of};
-    
+
     // Expected sizes for 64-bit systems (adjust for 32-bit if needed)
     // Minimum portable size: alignment + 6 pointers + 2 u32s (for eof and current columns)
     const MIN_POINTERS: usize = 6;
     const MIN_U32S: usize = 2;
-    const MIN_LEXER_SIZE: usize = MIN_POINTERS * size_of::<*mut c_void>() + MIN_U32S * size_of::<u32>();
-    
-    assert!(size_of::<TSLexer>() >= MIN_LEXER_SIZE, "TSLexer size too small for required fields");
-    assert!(align_of::<TSLexer>() >= align_of::<*mut c_void>(), "TSLexer alignment mismatch");
+    const MIN_LEXER_SIZE: usize =
+        MIN_POINTERS * size_of::<*mut c_void>() + MIN_U32S * size_of::<u32>();
+
+    assert!(
+        size_of::<TSLexer>() >= MIN_LEXER_SIZE,
+        "TSLexer size too small for required fields"
+    );
+    assert!(
+        align_of::<TSLexer>() >= align_of::<*mut c_void>(),
+        "TSLexer alignment mismatch"
+    );
 };
 
 /// External scanner data structure for FFI
@@ -76,16 +83,22 @@ pub struct TSExternalScannerData {
 // Compile-time assertions for TSExternalScannerData
 const _: () = {
     use core::mem::{align_of, size_of};
-    
+
     // TSExternalScannerData should contain 2 pointers + 5 Option<fn> pointers
     #[cfg(target_pointer_width = "64")]
     const MIN_SCANNER_DATA_SIZE: usize = 8 * 7; // 7 pointers
-    
+
     #[cfg(target_pointer_width = "32")]
     const MIN_SCANNER_DATA_SIZE: usize = 4 * 7; // 7 pointers
-    
-    assert!(size_of::<TSExternalScannerData>() >= MIN_SCANNER_DATA_SIZE, "TSExternalScannerData size mismatch");
-    assert!(align_of::<TSExternalScannerData>() >= align_of::<*const u8>(), "TSExternalScannerData alignment mismatch");
+
+    assert!(
+        size_of::<TSExternalScannerData>() >= MIN_SCANNER_DATA_SIZE,
+        "TSExternalScannerData size mismatch"
+    );
+    assert!(
+        align_of::<TSExternalScannerData>() >= align_of::<*const u8>(),
+        "TSExternalScannerData alignment mismatch"
+    );
 };
 
 // Safety: TSExternalScannerData contains pointers to static data and function pointers.
@@ -188,7 +201,7 @@ pub struct RustLexerAdapter<'a> {
     token_end: usize,
     result_symbol: u16,
     line: u32,
-    line_start: usize,  // byte offset of beginning of current line
+    line_start: usize, // byte offset of beginning of current line
 }
 
 impl<'a> RustLexerAdapter<'a> {
@@ -204,13 +217,13 @@ impl<'a> RustLexerAdapter<'a> {
             line_start,
         }
     }
-    
+
     /// Calculate line number and line start offset from byte position
     fn calculate_line_info(input: &[u8], position: usize) -> (u32, usize) {
         let tracker = LineCol::at_position(input, position);
         (tracker.line as u32, tracker.line_start)
     }
-    
+
     /// Get current column (byte offset from line start)
     pub fn get_column(&self) -> u32 {
         (self.position.saturating_sub(self.line_start)) as u32
@@ -269,14 +282,14 @@ extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, skip: bool) {
             } else {
                 None
             };
-            
+
             if byte == b'\n' {
                 adapter.line += 1;
                 adapter.line_start = adapter.position;
             } else if byte == b'\r' {
                 // Handle CR and CRLF
                 if next_byte == Some(b'\n') {
-                    adapter.position += 1;  // Skip the LF in CRLF
+                    adapter.position += 1; // Skip the LF in CRLF
                 }
                 adapter.line += 1;
                 adapter.line_start = adapter.position;
@@ -315,7 +328,7 @@ extern "C" fn rust_lexer_eof(lexer: *const TSLexer) -> bool {
 }
 
 /// Properly destroy a boxed TSLexer and its associated adapter
-/// 
+///
 /// # Safety
 /// The caller must ensure that:
 /// - lexer was created via Box::into_raw

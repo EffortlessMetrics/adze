@@ -169,7 +169,10 @@ fn parse_with_recovery(
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
-    let total_bytes = tokens.last().map(|t| t.byte_offset + t.text.len()).unwrap_or(0);
+    let total_bytes = tokens
+        .last()
+        .map(|t| t.byte_offset + t.text.len())
+        .unwrap_or(0);
     parser.process_eof(total_bytes);
     let result = parser.finish();
     println!("Parse result: {:?}", result.is_ok());
@@ -180,7 +183,9 @@ fn has_error_nodes(tree: &Subtree) -> bool {
     if tree.node.is_error {
         return true;
     }
-    tree.children.iter().any(|edge| has_error_nodes(&edge.subtree))
+    tree.children
+        .iter()
+        .any(|edge| has_error_nodes(&edge.subtree))
 }
 
 #[test]

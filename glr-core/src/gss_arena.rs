@@ -18,12 +18,12 @@ impl<'a> ArenaStackNode<'a> {
     pub fn get_states(&self) -> Vec<StateId> {
         let mut states = Vec::with_capacity(self.depth + 1);
         let mut current = Some(self);
-        
+
         while let Some(node) = current {
             states.push(node.state);
             current = node.parent;
         }
-        
+
         states.reverse();
         states
     }
@@ -69,7 +69,7 @@ impl<'a> ArenaGSS<'a> {
             parent: None,
             depth: 0,
         });
-        
+
         Self {
             arena,
             active_heads: vec![initial_node],
@@ -86,10 +86,10 @@ impl<'a> ArenaGSS<'a> {
     pub fn fork_head(&mut self, head_idx: usize) -> usize {
         let head = self.active_heads[head_idx];
         self.active_heads.push(head);
-        
+
         self.stats.total_forks += 1;
         self.stats.max_active_heads = self.stats.max_active_heads.max(self.active_heads.len());
-        
+
         self.active_heads.len() - 1
     }
 
@@ -97,14 +97,14 @@ impl<'a> ArenaGSS<'a> {
     pub fn push(&mut self, head_idx: usize, state: StateId, symbol: Option<SymbolId>) {
         let parent = Some(self.active_heads[head_idx]);
         let depth = parent.map_or(0, |p| p.depth + 1);
-        
+
         let new_node = self.arena.alloc(ArenaStackNode {
             state,
             symbol,
             parent,
             depth,
         });
-        
+
         self.active_heads[head_idx] = new_node;
         self.stats.total_nodes_created += 1;
     }
@@ -113,7 +113,7 @@ impl<'a> ArenaGSS<'a> {
     pub fn pop(&mut self, head_idx: usize, count: usize) -> Option<Vec<StateId>> {
         let mut current = Some(self.active_heads[head_idx]);
         let mut popped_states = Vec::with_capacity(count);
-        
+
         // Collect the states being popped
         for _ in 0..count {
             match current {
@@ -124,12 +124,12 @@ impl<'a> ArenaGSS<'a> {
                 None => return None,
             }
         }
-        
+
         // Update the head
         if let Some(node) = current {
             self.active_heads[head_idx] = node;
         }
-        
+
         popped_states.reverse();
         Some(popped_states)
     }
@@ -144,10 +144,10 @@ impl<'a> ArenaGSS<'a> {
         if idx1 == idx2 {
             return false;
         }
-        
+
         let head1 = self.active_heads[idx1];
         let head2 = self.active_heads[idx2];
-        
+
         head1.state == head2.state && head1.shares_prefix_with(head2)
     }
 
@@ -174,7 +174,7 @@ impl<'a> ArenaGSS<'a> {
             i += 1;
         }
     }
-    
+
     /// Get a reference to the GSS statistics
     pub fn get_stats(&self) -> &ArenaGSSStats {
         &self.stats
@@ -208,7 +208,7 @@ impl ArenaGSSManager {
             let arena_ref = &*(&self.arena as *const Arena<ArenaStackNode<'static>>);
             let arena_transmuted = std::mem::transmute::<
                 &Arena<ArenaStackNode<'static>>,
-                &'a Arena<ArenaStackNode<'a>>
+                &'a Arena<ArenaStackNode<'a>>,
             >(arena_ref);
             ArenaGSS::new(arena_transmuted, initial_state)
         }
@@ -229,18 +229,18 @@ mod tests {
     fn test_arena_gss_basic() {
         let arena = Arena::new();
         let mut gss = ArenaGSS::new(&arena, StateId(0));
-        
+
         gss.push(0, StateId(1), Some(SymbolId(10)));
         gss.push(0, StateId(2), Some(SymbolId(20)));
-        
+
         assert_eq!(gss.top_state(0), StateId(2));
-        
+
         let fork_idx = gss.fork_head(0);
         assert_eq!(gss.active_heads.len(), 2);
-        
+
         gss.push(0, StateId(3), None);
         gss.push(fork_idx, StateId(4), None);
-        
+
         assert_ne!(gss.top_state(0), gss.top_state(fork_idx));
     }
 
@@ -248,17 +248,17 @@ mod tests {
     fn test_arena_gss_shared_memory() {
         let arena = Arena::new();
         let mut gss = ArenaGSS::new(&arena, StateId(0));
-        
+
         gss.push(0, StateId(1), None);
         gss.push(0, StateId(2), None);
-        
+
         let fork1 = gss.fork_head(0);
         let fork2 = gss.fork_head(0);
-        
+
         // All heads should share the same parent
         assert!(gss.active_heads[0].shares_prefix_with(gss.active_heads[fork1]));
         assert!(gss.active_heads[0].shares_prefix_with(gss.active_heads[fork2]));
-        
+
         // Parent pointers should be identical (same memory location)
         assert!(std::ptr::eq(
             gss.active_heads[0].parent.unwrap(),
@@ -269,16 +269,16 @@ mod tests {
     #[test]
     fn test_arena_manager() {
         let manager = ArenaGSSManager::new();
-        
+
         {
             let mut gss = manager.new_session(StateId(0));
             gss.push(0, StateId(1), None);
             gss.push(0, StateId(2), None);
-            
+
             assert_eq!(gss.top_state(0), StateId(2));
             assert_eq!(gss.stats.total_nodes_created, 3);
         }
-        
+
         // Session ends, but arena memory is still allocated
         // In production, we'd clear the arena between parsing sessions
     }

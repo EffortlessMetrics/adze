@@ -197,10 +197,10 @@ fn test_highlighter_creation() {
 
     // Create a simple parse tree
     let root = ParseNode {
-        symbol: SymbolId(100), // program
+        symbol: SymbolId(100),    // program
         symbol_id: SymbolId(100), // program
         children: vec![ParseNode {
-            symbol: SymbolId(3), // identifier
+            symbol: SymbolId(3),    // identifier
             symbol_id: SymbolId(3), // identifier
             children: vec![],
             start_byte: 0,
@@ -252,10 +252,10 @@ fn test_highlight_overlap_removal() {
 
     // Create a parse tree with nested nodes
     let root = ParseNode {
-        symbol: SymbolId(103), // expression
+        symbol: SymbolId(103),    // expression
         symbol_id: SymbolId(103), // expression
         children: vec![ParseNode {
-            symbol: SymbolId(3), // identifier
+            symbol: SymbolId(3),    // identifier
             symbol_id: SymbolId(3), // identifier
             children: vec![],
             start_byte: 0,
