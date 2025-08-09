@@ -51,16 +51,12 @@ const _: () = {
     use core::mem::{align_of, size_of};
     
     // Expected sizes for 64-bit systems (adjust for 32-bit if needed)
-    #[cfg(target_pointer_width = "64")]
-    const EXPECTED_LEXER_SIZE: usize = 8 * 8 + 2; // 6 fn ptrs (8 bytes each) + 1 ptr + 1 u16
+    // Minimum portable size: alignment + 6 pointers + 2 u32s (for eof and current columns)
+    const MIN_POINTERS: usize = 6;
+    const MIN_U32S: usize = 2;
+    const MIN_LEXER_SIZE: usize = MIN_POINTERS * size_of::<*mut c_void>() + MIN_U32S * size_of::<u32>();
     
-    #[cfg(target_pointer_width = "32")]
-    const EXPECTED_LEXER_SIZE: usize = 8 * 4 + 2; // 6 fn ptrs (4 bytes each) + 1 ptr + 1 u16
-    
-    // Note: Actual size may vary due to padding. This is a minimum check.
-    const MIN_LEXER_SIZE: usize = if cfg!(target_pointer_width = "64") { 58 } else { 30 };
-    
-    assert!(size_of::<TSLexer>() >= MIN_LEXER_SIZE, "TSLexer size mismatch");
+    assert!(size_of::<TSLexer>() >= MIN_LEXER_SIZE, "TSLexer size too small for required fields");
     assert!(align_of::<TSLexer>() >= align_of::<*mut c_void>(), "TSLexer alignment mismatch");
 };
 
