@@ -40,7 +40,8 @@ pub enum Commands {
         /// Path to file to parse
         file: PathBuf,
 
-        /// Path to compiled parser library
+        /// Path to parser crate (MVP) or compiled library (future)
+        /// Example: --parser ./my-parser-crate
         #[arg(short, long)]
         parser: Option<PathBuf>,
 

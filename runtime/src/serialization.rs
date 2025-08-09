@@ -15,6 +15,9 @@ use tree_sitter_runtime_c2rust::TreeCursor;
 #[cfg(all(feature = "tree-sitter-standard", not(feature = "pure-rust")))]
 use tree_sitter_runtime_standard::TreeCursor;
 
+#[cfg(feature = "serialization")]
+use serde_json::{json, Value};
+
 /// Serializable representation of a parse tree node
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedNode {
@@ -419,6 +422,60 @@ impl BinarySerializer {
                 }
             }
         }
+    }
+}
+
+/// Simple JSON serialization for parse trees
+/// 
+/// This provides a minimal JSON representation suitable for debugging and testing.
+/// For more complex serialization needs, use the TreeSerializer above.
+#[cfg(feature = "serialization")]
+pub fn node_to_json(node: &crate::pure_parser::ParsedNode, src: &[u8], lang: &crate::pure_parser::TSLanguage) -> Value {
+    let children: Vec<Value> = node.children
+        .iter()
+        .map(|child| node_to_json(child, src, lang))
+        .collect();
+    
+    // Get symbol name from language
+    let kind = get_symbol_name(lang, node.symbol);
+    
+    json!({
+        "kind": kind,
+        "start_byte": node.start_byte,
+        "end_byte": node.end_byte,
+        "children": children,
+    })
+}
+
+/// Convert a tree to JSON (convenience wrapper)
+#[cfg(feature = "serialization")]
+pub fn tree_to_json(root: &crate::pure_parser::ParsedNode, src: &[u8], lang: &crate::pure_parser::TSLanguage) -> Value {
+    node_to_json(root, src, lang)
+}
+
+/// Get symbol name from language tables
+#[cfg(feature = "serialization")]
+fn get_symbol_name(lang: &crate::pure_parser::TSLanguage, symbol: u16) -> String {
+    // Safety: We trust the language tables are valid
+    unsafe {
+        if lang.symbol_names.is_null() || symbol as u32 >= lang.symbol_count {
+            return format!("UNKNOWN_{}", symbol);
+        }
+        
+        let symbol_names = std::slice::from_raw_parts(
+            lang.symbol_names,
+            lang.symbol_count as usize
+        );
+        
+        let name_ptr = symbol_names[symbol as usize];
+        if name_ptr.is_null() {
+            return format!("NULL_{}", symbol);
+        }
+        
+        // Convert C string to Rust string
+        std::ffi::CStr::from_ptr(name_ptr as *const i8)
+            .to_string_lossy()
+            .into_owned()
     }
 }
 

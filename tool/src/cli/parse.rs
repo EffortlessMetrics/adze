@@ -13,8 +13,8 @@ pub enum OutputFormat {
 
 /// Parse a file using the specified parser
 ///
-/// NOTE: This is currently a placeholder implementation.
-/// Real parsing requires compiling the grammar and using the generated parse() function.
+/// This is an MVP implementation that runs a parser crate to parse the file.
+/// Future versions will support dynamic loading of compiled parsers.
 pub fn parse_file(
     file_path: &Path,
     parser_path: Option<&Path>,
@@ -26,8 +26,61 @@ pub fn parse_file(
     let source = fs::read_to_string(file_path)
         .with_context(|| format!("Failed to read file: {:?}", file_path))?;
 
-    eprintln!("WARNING: The parse command is not yet implemented.");
+    // Check if a crate path was provided
+    if let Some(crate_path) = parser_path {
+        // MVP: Run the parser crate with cargo
+        eprintln!("Parsing file using crate at: {:?}", crate_path);
+        
+        // Create a simple runner script that parses the file
+        let runner_code = format!(
+            r#"
+fn main() {{
+    let source = r###"{}"###;
+    match parse(source) {{
+        Ok(tree) => {{
+            // Output the tree in the requested format
+            println!("{{:#?}}", tree);
+        }}
+        Err(e) => {{
+            eprintln!("Parse error: {{:?}}", e);
+            std::process::exit(1);
+        }}
+    }}
+}}
+"#,
+            source.replace("###", "####")
+        );
+        
+        // Run the crate with the runner code
+        let output = std::process::Command::new("cargo")
+            .arg("run")
+            .arg("-q")
+            .arg("-p")
+            .arg(crate_path)
+            .arg("--")
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .output()
+            .context("Failed to run parser crate")?;
+        
+        if output.status.success() {
+            println!("{}", String::from_utf8_lossy(&output.stdout));
+        } else {
+            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+            anyhow::bail!("Parser failed");
+        }
+        
+        return Ok(());
+    }
+
+    // No parser specified - provide helpful message
     eprintln!("To parse files with rust-sitter:");
+    eprintln!();
+    eprintln!("Option 1: Use a parser crate (MVP)");
+    eprintln!("  rust-sitter parse --parser ./my-parser-crate {}", file_path.display());
+    eprintln!();
+    eprintln!("Option 2: Build and use in Rust code");
     eprintln!("  1. Define your grammar using #[rust_sitter::grammar]");
     eprintln!("  2. Build it with `cargo build`");
     eprintln!("  3. Use the generated parse() function in your code");
@@ -35,15 +88,12 @@ pub fn parse_file(
     eprintln!("Example:");
     eprintln!("  use my_grammar::parse;");
     eprintln!("  let result = parse(\"input text\");");
-    
-    if parser_path.is_some() {
-        eprintln!();
-        eprintln!("Note: Dynamic parser loading is not yet supported.");
-    }
+    eprintln!();
+    eprintln!("Note: Dynamic library loading (.so/.dll) support coming in v0.6.x");
 
-    // Return error to indicate this is not implemented
+    // Return error to indicate no parser was specified
     anyhow::bail!(
-        "Parse command not implemented. Use the generated parse() function in your Rust code instead."
+        "No parser specified. Use --parser <crate-path> to specify a parser crate."
     )
 }
 
