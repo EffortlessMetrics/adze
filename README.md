@@ -60,6 +60,29 @@ fn main() {
 }
 ```
 
+## Known Limitations (v0.6.0)
+
+While rust-sitter v0.6.0 includes a production-ready GLR parser, some features are still under development:
+
+### Features in Progress
+- **Query System**: Pattern matching on syntax trees is experimental (feature-gated)
+- **Incremental Parsing**: GLR incremental parsing algorithm implemented but feature-gated pending stability testing
+- **Table Compression**: Large-table compression partially implemented; currently uses small-table algorithm for all grammars
+- **External Scanners**: Infrastructure present but requires manual integration; no automatic C scanner linking yet
+- **Serialization**: Tree serialization to JSON/S-exp implemented but feature-gated
+
+### CLI Limitations
+- **Dynamic Loading**: The CLI cannot yet load compiled parser libraries (.so/.dll)
+- **Parser Invocation**: Use `--parser <crate-path>` for MVP functionality; full dynamic loading coming in v0.6.x
+- **Test Command**: Corpus testing functionality not yet implemented
+
+### API Stability
+- The GLR parser API is stable for basic parsing
+- Incremental parsing API may change before v1.0
+- Query API is subject to change
+
+For the most reliable experience, use the core parsing functionality with the pure-Rust backend. Check the [issue tracker](https://github.com/hydro-project/rust-sitter/issues) for updates on these features.
+
 ## Installation
 First, add Rust/Tree Sitter to your `Cargo.toml`:
 ```toml

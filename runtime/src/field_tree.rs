@@ -21,7 +21,7 @@ impl ParsedChild {
 }
 
 /// A parsed node in the syntax tree
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ParsedNode {
     /// Symbol/kind ID for this node
     pub symbol: TSSymbol,
@@ -91,6 +91,24 @@ impl ParsedNode {
     /// Get the number of children
     pub fn child_count(&self) -> usize {
         self.children.len()
+    }
+}
+
+impl std::fmt::Debug for ParsedNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ParsedNode")
+            .field("symbol", &self.symbol)
+            .field("children", &self.children)
+            .field("start_byte", &self.start_byte)
+            .field("end_byte", &self.end_byte)
+            .field("start_point", &self.start_point)
+            .field("end_point", &self.end_point)
+            .field("is_extra", &self.is_extra)
+            .field("is_error", &self.is_error)
+            .field("is_missing", &self.is_missing)
+            .field("is_named", &self.is_named)
+            .field("has_language", &self.language.is_some())
+            .finish()
     }
 }
 

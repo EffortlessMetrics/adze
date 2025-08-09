@@ -1093,27 +1093,24 @@ impl Parser {
 
     /// Get goto state after reduction
     /// 
-    /// NOTE: This function is not currently used in the pure-Rust parser implementation.
-    /// The goto state is determined directly in the parsing logic.
+    /// NOTE: This function is not used in the pure-Rust parser implementation.
+    /// The GLR parser (parser_v4) determines goto states directly during parsing.
+    /// This function exists for API compatibility but is never invoked.
+    /// 
+    /// If this function were to be called, it would panic to catch any misuse.
     #[allow(dead_code)]
     fn get_goto_state(
         &self,
-        language: &TSLanguage,
-        state: TSStateId,
-        symbol: TSSymbol,
+        _language: &TSLanguage,
+        _state: TSStateId,
+        _symbol: TSSymbol,
     ) -> TSStateId {
-        // In Tree-sitter, goto states are stored in the parse table
-        // For non-terminals after a reduce, we need to find the next state
-        // This would typically be done via a goto table lookup
-        
-        // For now, return state 0 as a placeholder since this isn't called
-        // A real implementation would need to:
-        // 1. Look up the goto entry for (state, symbol) in the parse table
-        // 2. Return the target state
-        
-        // Since this function is not called in the current implementation,
-        // we can safely return a default value
-        0
+        // This function should never be called in the pure-Rust implementation
+        // The GLR parser (parser_v4) handles goto states internally
+        panic!(
+            "get_goto_state called on pure_parser::Parser - this is a bug! \
+             The GLR parser should handle goto states internally."
+        );
     }
 
     /// Get expected symbols for error reporting
