@@ -6,7 +6,7 @@
 #![cfg(test)]
 
 use rust_sitter::unified_parser::Parser;
-use rust_sitter::external_scanner::{ExternalScanner, TSLexer};
+use rust_sitter::external_scanner::{ExternalScanner, Lexer as TSLexer};
 use std::sync::Arc;
 
 /// Python-style indentation scanner

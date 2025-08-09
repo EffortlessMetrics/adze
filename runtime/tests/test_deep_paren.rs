@@ -159,7 +159,7 @@ fn count_depth(tree: &Arc<subtree::Subtree>, current: usize, max: &mut usize) {
     if current > *max {
         *max = current;
     }
-    for child in &tree.children {
-        count_depth(child, current + 1, max);
+    for edge in &tree.children {
+        count_depth(&edge.subtree, current + 1, max);
     }
 }

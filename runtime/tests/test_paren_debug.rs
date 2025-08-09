@@ -174,7 +174,7 @@ fn test_paren_debug() {
 fn print_tree(tree: &Arc<Subtree>, indent: usize) {
     let spaces = " ".repeat(indent);
     println!("{}Symbol {}", spaces, tree.node.symbol_id.0);
-    for child in &tree.children {
-        print_tree(child, indent + 2);
+    for edge in &tree.children {
+        print_tree(&edge.subtree, indent + 2);
     }
 }

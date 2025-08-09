@@ -70,7 +70,7 @@ fn convert_to_query_subtree(subtree: &Arc<Subtree>) -> rust_sitter::glr_query::S
         children: subtree
             .children
             .iter()
-            .map(|child| convert_to_query_subtree(child))
+            .map(|edge| convert_to_query_subtree(&edge.subtree))
             .collect(),
         start_byte: subtree.node.byte_range.start,
         end_byte: subtree.node.byte_range.end,
