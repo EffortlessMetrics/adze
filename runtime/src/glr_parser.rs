@@ -149,8 +149,8 @@ impl ParseStack {
     fn print_tree_structure(node: &Arc<Subtree>, indent: usize) {
         let _prefix = "  ".repeat(indent);
         debug_glr!("{}Symbol {}, range {:?}", _prefix, node.node.symbol_id.0, node.node.byte_range);
-        for child in &node.children {
-            Self::print_tree_structure(child, indent + 1);
+        for edge in &node.children {
+            Self::print_tree_structure(&edge.subtree, indent + 1);
         }
     }
 
@@ -193,8 +193,13 @@ impl ParseStack {
         }
 
         // Recursively check all children
-        for (child1, child2) in node1.children.iter().zip(node2.children.iter()) {
-            if !Self::nodes_structurally_equivalent(child1, child2) {
+        for (edge1, edge2) in node1.children.iter().zip(node2.children.iter()) {
+            // Check field IDs match
+            if edge1.field_id != edge2.field_id {
+                return false;
+            }
+            // Check subtrees match
+            if !Self::nodes_structurally_equivalent(&edge1.subtree, &edge2.subtree) {
                 return false;
             }
         }
@@ -1157,29 +1162,33 @@ impl GLRParser {
                                             ..children.last().unwrap().node.byte_range.end
                                     };
 
-                                    let parent = Arc::new(Subtree {
-                                        node: SubtreeNode {
-                                            symbol_id: rule.lhs,
-                                            is_error: false,
-                                            byte_range,
-                                        },
-                                        dynamic_prec: rule
-                                            .precedence
-                                            .map(|p| match p {
-                                                PrecedenceKind::Static(prec) => prec as i32,
-                                                PrecedenceKind::Dynamic(idx) => {
-                                                    // For dynamic precedence, use child's precedence
-                                                    let idx_usize = idx as usize;
-                                                    if idx_usize < children.len() {
-                                                        children[idx_usize].dynamic_prec
-                                                    } else {
-                                                        0
-                                                    }
+                                    let node = SubtreeNode {
+                                        symbol_id: rule.lhs,
+                                        is_error: false,
+                                        byte_range,
+                                    };
+                                    
+                                    let dynamic_prec = rule
+                                        .precedence
+                                        .map(|p| match p {
+                                            PrecedenceKind::Static(prec) => prec as i32,
+                                            PrecedenceKind::Dynamic(idx) => {
+                                                // For dynamic precedence, use child's precedence
+                                                let idx_usize = idx as usize;
+                                                if idx_usize < children.len() {
+                                                    children[idx_usize].dynamic_prec
+                                                } else {
+                                                    0
                                                 }
-                                            })
-                                            .unwrap_or(0),
+                                            }
+                                        })
+                                        .unwrap_or(0);
+                                    
+                                    let parent = Arc::new(Subtree::with_dynamic_prec(
+                                        node,
                                         children,
-                                    });
+                                        dynamic_prec,
+                                    ));
 
                                     // Push the new subtree
                                     reduced_stack.push(goto_state, parent);

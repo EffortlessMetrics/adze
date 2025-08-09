@@ -58,7 +58,7 @@ const _: () = {
     const EXPECTED_LEXER_SIZE: usize = 8 * 4 + 2; // 6 fn ptrs (4 bytes each) + 1 ptr + 1 u16
     
     // Note: Actual size may vary due to padding. This is a minimum check.
-    const MIN_LEXER_SIZE: usize = if cfg!(target_pointer_width = "64") { 66 } else { 34 };
+    const MIN_LEXER_SIZE: usize = if cfg!(target_pointer_width = "64") { 58 } else { 30 };
     
     assert!(size_of::<TSLexer>() >= MIN_LEXER_SIZE, "TSLexer size mismatch");
     assert!(align_of::<TSLexer>() >= align_of::<*mut c_void>(), "TSLexer alignment mismatch");

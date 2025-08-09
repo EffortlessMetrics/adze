@@ -187,6 +187,56 @@ impl<'tree> GLRNode<'tree> {
         None
     }
     
+    /// Convert node to S-expression format
+    pub fn to_sexp(&self) -> String {
+        self.to_sexp_internal(0)
+    }
+    
+    fn to_sexp_internal(&self, depth: usize) -> String {
+        let indent = "  ".repeat(depth);
+        
+        if self.child_count() == 0 {
+            // Leaf node
+            format!("{}{}", indent, self.kind())
+        } else {
+            // Non-leaf node
+            let mut result = format!("{}({}", indent, self.kind());
+            
+            for (i, edge) in self.subtree.children.iter().enumerate() {
+                result.push('\n');
+                
+                // Add field name if present
+                if edge.field_id != crate::subtree::FIELD_NONE {
+                    if let Some((field_id, field_name)) = self.tree.grammar.fields
+                        .iter()
+                        .find(|(id, _)| id.0 == edge.field_id) {
+                        result.push_str(&format!("{}  {}: ", indent, field_name));
+                        let child_sexp = GLRNode {
+                            subtree: edge.subtree.clone(),
+                            tree: self.tree,
+                        }.to_sexp_internal(0);
+                        result.push_str(&child_sexp.trim_start());
+                    } else {
+                        let child_sexp = GLRNode {
+                            subtree: edge.subtree.clone(),
+                            tree: self.tree,
+                        }.to_sexp_internal(depth + 1);
+                        result.push_str(&child_sexp);
+                    }
+                } else {
+                    let child_sexp = GLRNode {
+                        subtree: edge.subtree.clone(),
+                        tree: self.tree,
+                    }.to_sexp_internal(depth + 1);
+                    result.push_str(&child_sexp);
+                }
+            }
+            
+            result.push_str(&format!("\n{})", indent));
+            result
+        }
+    }
+    
     /// Get child by field name
     pub fn child_by_field_name(&self, field_name: &str) -> Option<GLRNode<'tree>> {
         // Find the field ID for this name
@@ -415,6 +465,20 @@ mod tests {
         assert_eq!(right_child.kind(), "right");
     }
 
+    #[test]
+    fn test_child_edge_size() {
+        // Ensure ChildEdge doesn't bloat the tree structure too much
+        // On 64-bit: Arc<Subtree> is 8 bytes, field_id is 2 bytes, total should be <= 16 with padding
+        let expected_max_size = if cfg!(target_pointer_width = "64") { 16 } else { 8 };
+        let actual_size = std::mem::size_of::<crate::subtree::ChildEdge>();
+        assert!(
+            actual_size <= expected_max_size, 
+            "ChildEdge size {} exceeds expected maximum {}", 
+            actual_size, 
+            expected_max_size
+        );
+    }
+    
     #[test]
     fn test_tree_cursor() {
         let root = Arc::new(Subtree::new(
