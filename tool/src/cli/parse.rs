@@ -79,25 +79,8 @@ pub fn parse_file(
     Ok(())
 }
 
-/// Parse using a compiled Rust parser
-#[allow(dead_code)]
-pub fn parse_with_rust_parser(
-    file_path: &Path,
-    grammar_name: &str,
-    format: OutputFormat,
-    show_fields: bool,
-    show_stats: bool,
-) -> Result<()> {
-    // This would integrate with the generated Rust parsers
-    // For now, just a placeholder
-
-    println!("Parsing {:?} as {} grammar", file_path, grammar_name);
-    parse_file(file_path, None, format, show_fields, show_stats)
-}
-
 /// Auto-detect parser based on file extension
-#[allow(dead_code)]
-pub fn auto_detect_parser(file_path: &Path) -> Option<String> {
+fn _auto_detect_parser(file_path: &Path) -> Option<String> {
     let ext = file_path.extension()?.to_str()?;
 
     match ext {

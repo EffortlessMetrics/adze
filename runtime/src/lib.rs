@@ -98,7 +98,7 @@ pub mod tree_sitter {
     pub use crate::pure_parser::{Parser, TSLanguage as Language};
 
     // Re-export constants
-    pub const LANGUAGE_VERSION: u32 = 14;
+    pub const LANGUAGE_VERSION: u32 = 15;
     pub const MIN_COMPATIBLE_LANGUAGE_VERSION: u32 = 13;
 }
 

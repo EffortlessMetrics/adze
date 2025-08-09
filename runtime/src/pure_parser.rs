@@ -1081,7 +1081,6 @@ impl Parser {
     }
 
     /// Get production ID for field mappings
-    #[allow(dead_code)]
     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
         unsafe {
             if action_index < language.production_id_count as u16 {
@@ -1093,20 +1092,15 @@ impl Parser {
     }
 
     /// Get goto state after reduction
-    #[allow(dead_code)]
     fn get_goto_state(
         &self,
         _language: &TSLanguage,
         _state: TSStateId,
         _symbol: TSSymbol,
     ) -> TSStateId {
-        // Get goto state
-
-        // For the pure-Rust implementation, we need to implement proper goto lookup
-        // For now, return state 0 to allow testing to continue
-        // TODO: Implement proper goto table lookup
-
-        0
+        // This function is not yet implemented for pure-Rust parser
+        // It should perform goto table lookup but is not called in current implementation
+        unimplemented!("get_goto_state not implemented for pure-Rust parser")
     }
 
     /// Get expected symbols for error reporting

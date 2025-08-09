@@ -3,7 +3,7 @@
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
-> **v0.5.0-beta Status**: The project has undergone major architectural improvements with **full GLR (Generalized LR) parser implementation completed (January 2025)**. This enables parsing of inherently ambiguous grammars without manual conflict resolution. **Major Milestone**: The pure-Rust implementation successfully compiles and parses the Python grammar (273 symbols, 57 fields) with full external scanner support, demonstrating production-ready capabilities for complex real-world languages.
+> **v0.6.0 Status**: The project features a **full GLR (Generalized LR) parser implementation** enabling parsing of inherently ambiguous grammars without manual conflict resolution. **Major Achievement**: The pure-Rust implementation successfully compiles and parses the Python grammar (273 symbols, 57 fields) with full external scanner support, demonstrating production-ready capabilities for complex real-world languages.
 
 ## Documentation
 
@@ -14,7 +14,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [Project Status](./PROJECT_STATUS.md) - Current status and feature overview
 - [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference
 - [Migration Guide](./MIGRATION_GUIDE.md) - Migrating from Tree-sitter
-- [v0.5 Migration](./docs/migration-to-v0.5.md) - Upgrading from v0.4 to v0.5
+- [v0.6 Migration](./docs/migration-to-v0.6.md) - Upgrading from v0.5 to v0.6
 - [Optimizer Usage](./docs/optimizer-usage.md) - Using the grammar optimizer for better performance
 - [Roadmap](./ROADMAP.md) - Project roadmap and future plans
 - [Testing Framework](./TESTING_FRAMEWORK.md) - Comprehensive testing guide
@@ -23,7 +23,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [LSP Generator](./LSP_GENERATOR.md) - Generate language servers
 - [Playground](./PLAYGROUND.md) - Interactive grammar development
 
-## Key Features (v0.5.0-beta)
+## Key Features (v0.6.0)
 
 - **✅ GLR Parsing (Completed Jan 2025)**: True GLR parser with multi-action cells for ambiguous grammars
 - **🚀 High-Performance Incremental GLR**: Direct Forest Splicing delivers **16× faster** incremental parsing
@@ -32,7 +32,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - **Multi-Path Parsing**: Maintains all valid parse paths simultaneously via runtime forking
 - **Python Grammar Support**: Successfully parses Python with 273 symbols and external scanner
 - **WASM Support**: Full WebAssembly compatibility with the pure-Rust backend
-- **Performance Optimizations**: SIMD lexing, parallel parsing, and memory pooling
+- **Performance Optimizations**: SIMD lexing and memory pooling for efficient parsing
 - **Conflict Preservation**: Keeps all shift/reduce and reduce/reduce conflicts for runtime resolution
 
 ## Quick Start
