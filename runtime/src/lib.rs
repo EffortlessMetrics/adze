@@ -8,6 +8,8 @@ pub mod __private;
 pub mod external_scanner;
 pub mod external_scanner_ffi;
 pub mod ffi;
+pub mod field_tree;
+pub mod linecol;
 
 // Re-export commonly used types
 pub use ffi::TSSymbol;

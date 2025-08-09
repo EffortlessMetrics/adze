@@ -3,6 +3,7 @@
 
 use std::ffi::c_void;
 use std::os::raw::{c_char, c_uint};
+use crate::linecol::LineCol;
 
 /// Tree-sitter external scanner function signatures
 /// These match the C API defined in tree-sitter/parser.h
@@ -176,25 +177,8 @@ impl<'a> RustLexerAdapter<'a> {
     
     /// Calculate line number and line start offset from byte position
     fn calculate_line_info(input: &[u8], position: usize) -> (u32, usize) {
-        let mut line = 0u32;
-        let mut line_start = 0usize;
-        
-        for i in 0..position.min(input.len()) {
-            if input[i] == b'\n' {
-                line += 1;
-                line_start = i + 1;
-            } else if input[i] == b'\r' {
-                // Handle CR and CRLF
-                if i + 1 < input.len() && input[i + 1] == b'\n' {
-                    // CRLF - skip the LF part later
-                    continue;
-                }
-                line += 1;
-                line_start = i + 1;
-            }
-        }
-        
-        (line, line_start)
+        let tracker = LineCol::at_position(input, position);
+        (tracker.line as u32, tracker.line_start)
     }
     
     /// Get current column (byte offset from line start)
@@ -224,14 +208,14 @@ impl<'a> RustLexerAdapter<'a> {
 
 /// Helper to safely get adapter from TSLexer context
 #[inline]
-unsafe fn adapter<'a>(lexer: *mut TSLexer) -> &'a mut RustLexerAdapter<'a> {
-    unsafe { &mut *((*lexer).context as *mut RustLexerAdapter) }
+unsafe fn as_adapter(lexer: *mut TSLexer) -> *mut RustLexerAdapter<'static> {
+    unsafe { (*lexer).context as *mut RustLexerAdapter<'static> }
 }
 
 // C-compatible callback functions
 extern "C" fn rust_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
     unsafe {
-        let adapter = adapter(lexer);
+        let adapter = &mut *as_adapter(lexer);
 
         if adapter.position < adapter.input.len() {
             adapter.input[adapter.position] as u32
@@ -243,19 +227,25 @@ extern "C" fn rust_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
 
 extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, skip: bool) {
     unsafe {
-        let adapter = adapter(lexer);
+        let adapter = &mut *as_adapter(lexer);
 
         if adapter.position < adapter.input.len() {
             let byte = adapter.input[adapter.position];
             adapter.position += 1;
 
-            // Handle newlines (CR, LF, CRLF)
+            // Handle newlines using shared utility
+            let next_byte = if adapter.position < adapter.input.len() {
+                Some(adapter.input[adapter.position])
+            } else {
+                None
+            };
+            
             if byte == b'\n' {
                 adapter.line += 1;
                 adapter.line_start = adapter.position;
             } else if byte == b'\r' {
                 // Handle CR and CRLF
-                if adapter.position < adapter.input.len() && adapter.input[adapter.position] == b'\n' {
+                if next_byte == Some(b'\n') {
                     adapter.position += 1;  // Skip the LF in CRLF
                 }
                 adapter.line += 1;
@@ -271,14 +261,14 @@ extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, skip: bool) {
 
 extern "C" fn rust_lexer_mark_end(lexer: *mut TSLexer) {
     unsafe {
-        let adapter = adapter(lexer);
+        let adapter = &mut *as_adapter(lexer);
         adapter.token_end = adapter.position;
     }
 }
 
 extern "C" fn rust_lexer_get_column(lexer: *mut TSLexer) -> u32 {
     unsafe {
-        let adapter = adapter(lexer);
+        let adapter = &mut *as_adapter(lexer);
         adapter.get_column()
     }
 }
@@ -289,8 +279,26 @@ extern "C" fn rust_lexer_is_at_included_range_start(_lexer: *const TSLexer) -> b
 
 extern "C" fn rust_lexer_eof(lexer: *const TSLexer) -> bool {
     unsafe {
-        let adapter = &*((*lexer).context as *const RustLexerAdapter);
+        let adapter = &*((*lexer).context as *const RustLexerAdapter<'static>);
         adapter.position >= adapter.input.len()
+    }
+}
+
+/// Properly destroy a boxed TSLexer and its associated adapter
+/// 
+/// # Safety
+/// The caller must ensure that:
+/// - lexer was created via Box::into_raw
+/// - lexer is not null
+/// - lexer is not used after this call
+pub unsafe fn destroy_lexer(lexer: *mut TSLexer) {
+    unsafe {
+        if !lexer.is_null() {
+            // The adapter was created separately and stored in context
+            // It will be dropped when it goes out of scope
+            // We just need to free the boxed TSLexer itself
+            let _ = Box::from_raw(lexer);
+        }
     }
 }
 
