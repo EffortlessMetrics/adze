@@ -109,6 +109,7 @@ mod incremental_reuse_tests {
     }
     
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_simple_edit_reuses_subtrees() {
         let grammar = create_test_grammar();
         let table = build_parse_table(&grammar);
@@ -182,6 +183,7 @@ mod incremental_reuse_tests {
     }
     
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_multiple_edits_reuse() {
         let grammar = create_test_grammar();
         let table = build_parse_table(&grammar);

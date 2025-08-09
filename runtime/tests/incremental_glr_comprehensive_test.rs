@@ -201,6 +201,7 @@ mod comprehensive_incremental_tests {
     
     // Test 1: Empty edit (no change)
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_empty_edit() {
         let grammar = create_arithmetic_grammar();
         let table = build_parse_table(&grammar);
@@ -233,6 +234,7 @@ mod comprehensive_incremental_tests {
     
     // Test 2: Multiple non-overlapping edits
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_multiple_edits() {
         let grammar = create_arithmetic_grammar();
         let table = build_parse_table(&grammar);
@@ -285,6 +287,7 @@ mod comprehensive_incremental_tests {
     
     // Test 3: Edit at beginning of file
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_edit_at_beginning() {
         let grammar = create_arithmetic_grammar();
         let table = build_parse_table(&grammar);
@@ -320,6 +323,7 @@ mod comprehensive_incremental_tests {
     
     // Test 4: Edit at end of file
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_edit_at_end() {
         let grammar = create_arithmetic_grammar();
         let table = build_parse_table(&grammar);
@@ -355,6 +359,7 @@ mod comprehensive_incremental_tests {
     
     // Test 5: Large file incremental performance
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_large_file_performance() {
         let grammar = create_arithmetic_grammar();
         let table = build_parse_table(&grammar);
@@ -431,6 +436,7 @@ mod comprehensive_incremental_tests {
     
     // Test 6: Insert new content
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_insertion() {
         let grammar = create_arithmetic_grammar();
         let table = build_parse_table(&grammar);
@@ -464,6 +470,7 @@ mod comprehensive_incremental_tests {
     
     // Test 7: Delete content
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_deletion() {
         let grammar = create_arithmetic_grammar();
         let table = build_parse_table(&grammar);
@@ -497,6 +504,7 @@ mod comprehensive_incremental_tests {
     
     // Test 8: Replace with longer content
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_expansion() {
         let grammar = create_arithmetic_grammar();
         let table = build_parse_table(&grammar);
@@ -530,6 +538,7 @@ mod comprehensive_incremental_tests {
     
     // Test 9: GSS snapshot functionality
     #[test]
+    #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
     fn test_gss_snapshots() {
         let grammar = create_arithmetic_grammar();
         let table = build_parse_table(&grammar);
