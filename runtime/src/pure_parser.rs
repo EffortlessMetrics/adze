@@ -1196,6 +1196,15 @@ fn advance_point(mut point: Point, text: &[u8]) -> Point {
     point
 }
 
+/// Extract field name for a subtree based on its production ID
+fn extract_field_name(_subtree: &Subtree, _language: Option<*const TSLanguage>) -> Option<String> {
+    // Field names are mapped via production IDs
+    // For now, we return None as implementing full field extraction
+    // requires tracking the child index within the parent
+    // This would need more context about the node's position in its parent
+    None
+}
+
 /// Convert internal subtree to public node
 fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> ParsedNode {
     ////eprintln!($
@@ -1224,6 +1233,9 @@ fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> Par
 
     //eprintln!("  Symbol {} is_named: {}", subtree.symbol, is_named);
 
+    // Extract field name before moving children
+    let field_name = extract_field_name(&subtree, language);
+    
     ParsedNode {
         symbol: subtree.symbol,
         children: subtree
@@ -1239,7 +1251,7 @@ fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> Par
         is_error: subtree.is_error,
         is_missing: subtree.is_missing,
         is_named,
-        field_name: None, // TODO: Extract field names from production ID
+        field_name,
         language,
     }
 }

@@ -154,16 +154,39 @@ pub struct RustLexerAdapter<'a> {
     position: usize,
     token_end: usize,
     result_symbol: u16,
+    line: usize,
+    column: usize,
 }
 
 impl<'a> RustLexerAdapter<'a> {
     pub fn new(input: &'a [u8], position: usize) -> Self {
+        // Calculate initial line and column from position
+        let (line, column) = Self::calculate_line_column(input, position);
         RustLexerAdapter {
             input,
             position,
             token_end: position,
             result_symbol: 0,
+            line,
+            column,
         }
+    }
+    
+    /// Calculate line and column from byte position
+    fn calculate_line_column(input: &[u8], position: usize) -> (usize, usize) {
+        let mut line = 0;
+        let mut column = 0;
+        
+        for i in 0..position.min(input.len()) {
+            if input[i] == b'\n' {
+                line += 1;
+                column = 0;
+            } else {
+                column += 1;
+            }
+        }
+        
+        (line, column)
     }
 
     /// Create a C-compatible TSLexer
@@ -205,6 +228,13 @@ extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
         let adapter = &mut *adapter;
 
         if adapter.position < adapter.input.len() {
+            // Check if we're advancing past a newline
+            if adapter.input[adapter.position] == b'\n' {
+                adapter.line += 1;
+                adapter.column = 0;
+            } else {
+                adapter.column += 1;
+            }
             adapter.position += 1;
             if adapter.token_end < adapter.position {
                 adapter.token_end = adapter.position;
@@ -221,9 +251,12 @@ extern "C" fn rust_lexer_mark_end(lexer: *mut TSLexer) {
     }
 }
 
-extern "C" fn rust_lexer_get_column(_lexer: *mut TSLexer) -> u32 {
-    // TODO: Implement column tracking
-    0
+extern "C" fn rust_lexer_get_column(lexer: *mut TSLexer) -> u32 {
+    unsafe {
+        let adapter = lexer as *const RustLexerAdapter;
+        let adapter = &*adapter;
+        adapter.column as u32
+    }
 }
 
 extern "C" fn rust_lexer_is_at_included_range_start(_lexer: *const TSLexer) -> bool {

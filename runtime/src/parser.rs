@@ -355,6 +355,8 @@ impl Parser {
                 input,
                 position: 0,
                 result_symbol: 0,
+                line: 0,
+                column: 0,
             };
             
             // Build valid symbols array based on external lex state
@@ -609,6 +611,8 @@ struct ExternalLexer<'a> {
     input: &'a [u8],
     position: usize,
     result_symbol: u16,
+    line: usize,
+    column: usize,
 }
 
 /// Create a TSLexer interface for the external scanner
@@ -628,6 +632,13 @@ unsafe fn create_ts_lexer(lexer: &mut ExternalLexer) -> TSLexer {
         unsafe {
             let lexer = &mut *(lexer_ptr as *mut ExternalLexer);
             if lexer.position < lexer.input.len() {
+                // Check if we're advancing past a newline
+                if lexer.input[lexer.position] == b'\n' {
+                    lexer.line += 1;
+                    lexer.column = 0;
+                } else {
+                    lexer.column += 1;
+                }
                 lexer.position += 1;
             }
         }
@@ -639,8 +650,10 @@ unsafe fn create_ts_lexer(lexer: &mut ExternalLexer) -> TSLexer {
     }
     
     extern "C" fn get_column(lexer_ptr: *mut TSLexer) -> u32 {
-        // TODO: Implement column tracking
-        0
+        unsafe {
+            let lexer = &*(lexer_ptr as *const ExternalLexer);
+            lexer.column as u32
+        }
     }
     
     extern "C" fn is_at_included_range_start(lexer_ptr: *const TSLexer) -> bool {
