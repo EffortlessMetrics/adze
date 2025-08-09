@@ -108,7 +108,7 @@ mod incremental_properties {
     proptest! {
         /// Property: Fresh parse and incremental parse should produce equivalent trees
         #[test]
-        #[ignore = "Incremental parsing not yet fully implemented"]
+        #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
         fn fresh_vs_incremental_equivalent(
             original in source_strategy(),
             (edit_pos, del_len, insert) in edit_strategy()
@@ -145,7 +145,7 @@ mod incremental_properties {
         
         /// Property: Multiple sequential edits should produce the same result regardless of path
         #[test]
-        #[ignore = "Incremental parsing not yet fully implemented"]
+        #[cfg_attr(not(feature = "incremental_glr"), ignore = "incremental parsing not enabled")]
         fn sequential_edits_consistent(
             original in source_strategy(),
             edits in prop::collection::vec(edit_strategy(), 1..5)

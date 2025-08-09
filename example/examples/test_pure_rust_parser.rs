@@ -3,9 +3,8 @@
 fn main() {
     println!("Testing pure-Rust arithmetic parser...");
 
-    // Get the language function from generated code
-    let language_fn = unsafe { tree_sitter_arithmetic };
-    let language = unsafe { &*language_fn() };
+    // Get the language from generated code
+    let language = unsafe { &LANGUAGE };
 
     println!(
         "Language: symbol_count={}, state_count={}",

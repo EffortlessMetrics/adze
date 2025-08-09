@@ -25,6 +25,9 @@ jobs:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
       
+      - name: Check for bare #[no_mangle]
+        run: scripts/check-no-mangle.sh
+      
       - name: Check formatting
         run: cargo fmt --all -- --check
       
@@ -156,6 +159,10 @@ jobs:
       
       - name: Test incremental_glr feature
         run: cargo test --workspace --features incremental_glr
+      
+      - name: Test experimental examples (opt-in)
+        if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[test-examples]') }}
+        run: cargo test -p rust-sitter --examples --features experimental_examples
 
   msrv:
     name: MSRV (1.75.0)
