@@ -1,7 +1,6 @@
 /// External scanner adapter that bridges between Rust parsers and external scanners
 /// Provides the TSLexer interface expected by Tree-sitter external scanners
 
-use crate::external_scanner::Lexer;
 use std::ops::Range;
 
 /// Adapter that implements the Lexer trait for external scanners

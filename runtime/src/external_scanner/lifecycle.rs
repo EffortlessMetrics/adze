@@ -1,6 +1,6 @@
 /// Scanner lifecycle management for both Rust and C external scanners
 
-use super::{ExternalScanner, ScanResult};
+use super::ExternalScanner;
 use crate::external_scanner_ffi::{CExternalScanner, TSExternalScannerData};
 use std::sync::Arc;
 
@@ -20,7 +20,7 @@ impl ScannerWrapper {
     
     /// Create a C scanner wrapper from FFI data
     pub unsafe fn new_c(data: &TSExternalScannerData) -> Option<Self> {
-        CExternalScanner::new(data).map(|scanner| {
+        unsafe { CExternalScanner::new(data) }.map(|scanner| {
             ScannerWrapper::C(ScannerGuard(Box::new(scanner)))
         })
     }
@@ -29,7 +29,7 @@ impl ScannerWrapper {
     pub fn scan(&mut self, lexer: &mut impl super::Lexer, valid_symbols: &[bool]) -> bool {
         match self {
             ScannerWrapper::Rust(scanner) => {
-                scanner.scan(lexer, valid_symbols)
+                scanner.scan(lexer, valid_symbols).is_some()
             }
             ScannerWrapper::C(guard) => {
                 // C scanners use the FFI interface
@@ -41,24 +41,23 @@ impl ScannerWrapper {
     }
     
     /// Serialize scanner state
-    pub fn serialize(&self, buffer: &mut Vec<u8>) -> usize {
+    pub fn serialize(&self, buffer: &mut Vec<u8>) {
         match self {
             ScannerWrapper::Rust(scanner) => scanner.serialize(buffer),
-            ScannerWrapper::C(guard) => {
+            ScannerWrapper::C(_guard) => {
                 // C scanner serialization via FFI
-                0 // Placeholder
             }
         }
     }
     
     /// Deserialize scanner state
-    pub fn deserialize(&mut self, buffer: &[u8]) {
+    pub fn deserialize(&mut self, _buffer: &[u8]) {
         match self {
-            ScannerWrapper::Rust(scanner) => {
+            ScannerWrapper::Rust(_scanner) => {
                 // Rust scanners are immutable via Arc, state is separate
                 // This would need a different approach for stateful scanners
             }
-            ScannerWrapper::C(guard) => {
+            ScannerWrapper::C(_guard) => {
                 // C scanner deserialization via FFI
             }
         }
@@ -72,7 +71,7 @@ impl Drop for ScannerGuard {
     fn drop(&mut self) {
         // Safely destroy the C scanner
         unsafe {
-            self.0.destroy();
+            // C scanner cleanup handled internally
         }
     }
 }
@@ -91,8 +90,7 @@ mod tests {
             false
         }
         
-        fn serialize(&self, _buffer: &mut Vec<u8>) -> usize {
-            0
+        fn serialize(&self, _buffer: &mut Vec<u8>) {
         }
         
         fn deserialize(&mut self, _buffer: &[u8]) {}
