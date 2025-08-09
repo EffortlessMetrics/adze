@@ -1,6 +1,12 @@
 // External scanner runtime for the pure-Rust Tree-sitter implementation
 // This module provides the runtime support for custom lexing logic
 
+#[cfg(feature = "external_scanners")]
+pub mod adapter;
+
+#[cfg(feature = "external_scanners")]
+pub mod lifecycle;
+
 use crate::SymbolId;
 use std::collections::HashSet;
 
@@ -63,7 +69,7 @@ pub trait Lexer {
 /// Trait for implementing external scanners (object-safe)
 pub trait ExternalScanner: Send + Sync {
     /// Scan for external tokens
-    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult>;
+    fn scan(&self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult>;
 
     /// Serialize scanner state
     fn serialize(&self, buffer: &mut Vec<u8>);
