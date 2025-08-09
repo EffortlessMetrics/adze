@@ -6,6 +6,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
+mod parse;
+
 /// Rust-sitter CLI - Tools for grammar development
 #[derive(Parser)]
 #[command(name = "rust-sitter")]
@@ -358,63 +360,31 @@ fn watch_and_build(path: &Path) -> Result<()> {
 
 fn parse_file(grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> {
     println!("{} Parsing file: {}", "📄".blue(), input.display());
-
-    // Read the input file
-    let input_content = fs::read_to_string(input).context("Failed to read input file")?;
-
-    // For now, we need to compile the grammar and link it statically
-    // In a real implementation, we'd dynamically load the generated parser
-    // or use the rust-sitter runtime directly
     
-    // Check if this is a built-in grammar we can handle
-    let grammar_name = grammar
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("unknown");
-
-    // Since we can't dynamically load parsers yet, we'll provide a helpful message
-    eprintln!(
-        "{} Parser loading not yet implemented", 
-        "⚠️".yellow()
-    );
-    eprintln!(
-        "To parse files, you need to:"
-    );
-    eprintln!("1. Build your grammar with `rust-sitter build`");
-    eprintln!("2. Use the generated parse() function in your Rust code");
-    eprintln!(
-        "\nExample usage in your code:\n\n\
-        use my_grammar::parse;\n\
-        let result = parse(\"input text\");\n"
-    );
-
-    // Show a mock parse tree for demonstration
-    match format {
-        OutputFormat::Tree => {
-            println!("\n{} Mock parse tree (real parsing not yet available):", "🌳".green());
-            println!("  (source_file");
-            println!("    ; content: {} bytes", input_content.len());
-            println!("  )");
-        }
-        OutputFormat::Json => {
-            let json = serde_json::json!({
-                "type": "source_file",
-                "note": "Mock output - real parsing not yet available",
-                "content_length": input_content.len()
-            });
-            println!("{}", serde_json::to_string_pretty(&json)?);
-        }
-        OutputFormat::Sexp => {
-            println!("(source_file ; {} bytes)", input_content.len());
-        }
-        OutputFormat::Dot => {
-            println!("digraph ParseTree {{");
-            println!("  source_file [label=\"source_file\\n{} bytes\"];", input_content.len());
-            println!("}}");
+    // Convert clap OutputFormat to our parse module's format
+    let parse_format = match format {
+        OutputFormat::Tree => parse::OutputFormat::Tree,
+        OutputFormat::Json => parse::OutputFormat::Json,
+        OutputFormat::Sexp => parse::OutputFormat::Sexp,
+        OutputFormat::Dot => parse::OutputFormat::Dot,
+    };
+    
+    // Try to parse with the generated parser
+    match parse::parse_file_with_generated_parser(grammar, input, parse_format) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            // If parsing fails, provide helpful guidance
+            eprintln!("{} Failed to parse: {}", "❌".red(), e);
+            eprintln!("\n{} Alternative approaches:", "💡".yellow());
+            eprintln!("1. Ensure your grammar file is valid");
+            eprintln!("2. Build your grammar with `rust-sitter build`");
+            eprintln!("3. Use the generated parse() function in your Rust code:");
+            eprintln!(
+                "\n   use my_grammar::parse;\n   let result = parse(\"input text\");\n"
+            );
+            Err(e)
         }
     }
-
-    Ok(())
 }
 
 fn test_grammar(_path: &Path, update: bool) -> Result<()> {

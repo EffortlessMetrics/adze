@@ -20,6 +20,7 @@ tree-sitter-c2rust = ["tree-sitter-runtime-c2rust"]
 tree-sitter-standard = ["tree-sitter-runtime-standard"]
 wasm = ["wasm-bindgen", "pure-rust"]
 simd = ["pure-rust"]
+serialization = ["serde", "serde_json"] # Enable tree serialization
 legacy-parsers = [] # Enable to access deprecated parser_v2 and parser_v3 modules
 incremental_glr = [] # Enable GLR incremental parsing support
 debug_glr = [] # Enable debug output for GLR parser

@@ -46,7 +46,7 @@ impl<'a> AbiLanguageBuilder<'a> {
     /// Generate the complete language module
     pub fn generate(&self) -> TokenStream {
         let language_name = &self.grammar.name;
-        let _language_fn_ident = quote::format_ident!("tree_sitter_{}", language_name);
+        let language_fn_ident = quote::format_ident!("tree_sitter_{}", language_name);
 
         eprintln!(
             "DEBUG AbiLanguageBuilder: Generating language for '{}'",
@@ -274,9 +274,11 @@ impl<'a> AbiLanguageBuilder<'a> {
                 primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
             };
 
-            // Get the Tree-sitter Language for this grammar
-            // Note: This is a generated example function, not actually named tree_sitter_python
-            // The actual function name is generated based on the grammar name
+            // Export the language function for FFI
+            #[no_mangle]
+            pub unsafe extern "C" fn #language_fn_ident() -> *const TSLanguage {
+                &LANGUAGE as *const TSLanguage
+            }
         }
     }
 

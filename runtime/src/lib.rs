@@ -62,7 +62,8 @@ pub mod pure_incremental;
 pub mod pure_parser;
 pub mod query;
 // #[cfg(feature = "serialization")]
-// pub mod serialization; // TODO: Fix API mismatches between pure-rust and non-pure-rust modes
+#[cfg(feature = "serialization")]
+pub mod serialization;
 pub mod subtree;
 pub mod unified_parser;
 pub mod visitor;

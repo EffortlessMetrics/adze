@@ -263,9 +263,15 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
 
     // Step 3: Generate static language code using ABI builder
     let language_code = if options.compress_tables {
-        // TODO: Fix table compression - currently disabled due to bug
-        // Compression results in nearly empty parse tables
-        let abi_builder = AbiLanguageBuilder::new(&grammar, &parse_table);
+        // Compress the parse tables
+        use rust_sitter_tablegen::compress::TableCompressor;
+        let compressor = TableCompressor::new();
+        let compressed_tables = compressor.compress(&parse_table)
+            .map_err(|e| anyhow::anyhow!("Failed to compress tables: {}", e))?;
+        
+        // Generate code with compressed tables
+        let abi_builder = AbiLanguageBuilder::new(&grammar, &parse_table)
+            .with_compressed_tables(&compressed_tables);
         abi_builder.generate()
     } else {
         let abi_builder = AbiLanguageBuilder::new(&grammar, &parse_table);
