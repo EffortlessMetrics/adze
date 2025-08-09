@@ -12,71 +12,39 @@ pub enum OutputFormat {
 }
 
 /// Parse a file using the specified parser
+///
+/// NOTE: This is currently a placeholder implementation.
+/// Real parsing requires compiling the grammar and using the generated parse() function.
 pub fn parse_file(
     file_path: &Path,
-    _parser_path: Option<&Path>,
+    parser_path: Option<&Path>,
     format: OutputFormat,
-    _show_fields: bool,
+    show_fields: bool,
     show_stats: bool,
 ) -> Result<()> {
     // Read the source file
     let source = fs::read_to_string(file_path)
         .with_context(|| format!("Failed to read file: {:?}", file_path))?;
 
-    // For now, we'll use a mock implementation
-    // In a full implementation, we would:
-    // 1. Load the parser library (either from parser_path or auto-detect)
-    // 2. Create a parser instance
-    // 3. Parse the source code
-    // 4. Format and output the parse tree
-
-    println!("Parsing file: {:?}", file_path);
-    println!("Source length: {} bytes", source.len());
-
-    match format {
-        OutputFormat::Sexp => {
-            // Mock S-expression output
-            println!("(source_file");
-            println!("  (comment \"Mock parse tree\")");
-            println!("  (identifier \"example\"))");
-        }
-        OutputFormat::Json => {
-            // Mock JSON output
-            let output = json!({
-                "type": "source_file",
-                "children": [
-                    {
-                        "type": "comment",
-                        "text": "Mock parse tree"
-                    },
-                    {
-                        "type": "identifier",
-                        "text": "example"
-                    }
-                ]
-            });
-            println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Dot => {
-            // Mock DOT output
-            println!("digraph ParseTree {{");
-            println!("  node [shape=box];");
-            println!("  0 [label=\"source_file\"];");
-            println!("  1 [label=\"comment\"];");
-            println!("  2 [label=\"identifier\"];");
-            println!("  0 -> 1;");
-            println!("  0 -> 2;");
-            println!("}}");
-        }
+    eprintln!("WARNING: The parse command is not yet implemented.");
+    eprintln!("To parse files with rust-sitter:");
+    eprintln!("  1. Define your grammar using #[rust_sitter::grammar]");
+    eprintln!("  2. Build it with `cargo build`");
+    eprintln!("  3. Use the generated parse() function in your code");
+    eprintln!();
+    eprintln!("Example:");
+    eprintln!("  use my_grammar::parse;");
+    eprintln!("  let result = parse(\"input text\");");
+    
+    if parser_path.is_some() {
+        eprintln!();
+        eprintln!("Note: Dynamic parser loading is not yet supported.");
     }
 
-    if show_stats {
-        println!("\nStatistics:");
-        println!("  Parse time: 0.001s");
-        println!("  Node count: 3");
-    }
-
-    Ok(())
+    // Return error to indicate this is not implemented
+    anyhow::bail!(
+        "Parse command not implemented. Use the generated parse() function in your Rust code instead."
+    )
 }
 
 /// Auto-detect parser based on file extension

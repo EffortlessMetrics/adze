@@ -39,7 +39,13 @@ impl CompressedParseTable {
 
 impl From<CompressedParseTable> for CompressedTables {
     fn from(_compressed_parse_table: CompressedParseTable) -> Self {
-        // Create dummy compressed tables for now
+        // TODO: Table compression not implemented
+        // This returns dummy empty tables which causes parsing to fail
+        // Real implementation would need to:
+        // 1. Analyze the parse table for common patterns
+        // 2. Apply Tree-sitter's compression algorithm
+        // 3. Generate compressed action and goto tables
+        // For now, compression is disabled in pure_rust_builder.rs
         CompressedTables {
             action_table: CompressedActionTable {
                 data: Vec::new(),

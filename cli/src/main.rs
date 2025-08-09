@@ -356,31 +356,60 @@ fn watch_and_build(path: &Path) -> Result<()> {
     }
 }
 
-fn parse_file(_grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> {
+fn parse_file(grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> {
     println!("{} Parsing file: {}", "📄".blue(), input.display());
 
-    // TODO: Implement actual parsing once runtime is complete
+    // Read the input file
     let input_content = fs::read_to_string(input).context("Failed to read input file")?;
 
+    // For now, we need to compile the grammar and link it statically
+    // In a real implementation, we'd dynamically load the generated parser
+    // or use the rust-sitter runtime directly
+    
+    // Check if this is a built-in grammar we can handle
+    let grammar_name = grammar
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown");
+
+    // Since we can't dynamically load parsers yet, we'll provide a helpful message
+    eprintln!(
+        "{} Parser loading not yet implemented", 
+        "⚠️".yellow()
+    );
+    eprintln!(
+        "To parse files, you need to:"
+    );
+    eprintln!("1. Build your grammar with `rust-sitter build`");
+    eprintln!("2. Use the generated parse() function in your Rust code");
+    eprintln!(
+        "\nExample usage in your code:\n\n\
+        use my_grammar::parse;\n\
+        let result = parse(\"input text\");\n"
+    );
+
+    // Show a mock parse tree for demonstration
     match format {
         OutputFormat::Tree => {
-            println!("Parse tree:");
-            println!("  Program");
-            println!("    └─ (content: {:?})", input_content.trim());
+            println!("\n{} Mock parse tree (real parsing not yet available):", "🌳".green());
+            println!("  (source_file");
+            println!("    ; content: {} bytes", input_content.len());
+            println!("  )");
         }
         OutputFormat::Json => {
             let json = serde_json::json!({
-                "type": "Program",
-                "content": input_content.trim()
+                "type": "source_file",
+                "note": "Mock output - real parsing not yet available",
+                "content_length": input_content.len()
             });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
         OutputFormat::Sexp => {
-            println!("(Program \"{}\")", input_content.trim());
+            println!("(source_file ; {} bytes)", input_content.len());
         }
         OutputFormat::Dot => {
             println!("digraph ParseTree {{");
-            println!("  Program [label=\"Program\"];");
+            println!("  source_file [label=\"source_file\\n{} bytes\"];", input_content.len());
             println!("}}");
         }
     }

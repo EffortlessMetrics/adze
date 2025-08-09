@@ -103,7 +103,10 @@ pub fn run_tests(
 }
 
 /// Run a single test file
-fn run_single_test(test_file: &Path, _parser_path: Option<&Path>) -> Result<TestResult> {
+/// 
+/// NOTE: This is currently a placeholder that always returns success.
+/// Real test execution requires the compiled parser.
+fn run_single_test(test_file: &Path, parser_path: Option<&Path>) -> Result<TestResult> {
     let file_name = test_file.to_string_lossy().to_string();
     let start = Instant::now();
 
@@ -112,22 +115,26 @@ fn run_single_test(test_file: &Path, _parser_path: Option<&Path>) -> Result<Test
         .with_context(|| format!("Failed to read test file: {:?}", test_file))?;
 
     // Parse test format
-    let _test_cases = parse_test_format(&content)?;
+    let test_cases = parse_test_format(&content)?;
 
-    // For now, mock the test execution
-    // In a full implementation, we would:
-    // 1. Parse each test case with the parser
-    // 2. Compare the result with the expected output
-    // 3. Handle error cases
+    if parser_path.is_some() {
+        eprintln!("Warning: Dynamic parser loading not yet supported");
+    }
 
+    // This is a placeholder - real implementation would:
+    // 1. Load the compiled parser
+    // 2. Parse each test case
+    // 3. Compare with expected output
+    // For now, return an error to be honest about the limitation
+    
     let parse_time_ms = start.elapsed().as_secs_f64() * 1000.0;
 
-    // Mock result - always pass for now
+    // Return failure with helpful message
     Ok(TestResult {
         file: file_name,
-        passed: true,
+        passed: false,
         parse_time_ms,
-        error: None,
+        error: Some("Test execution not implemented. Use cargo test with your generated parser instead.".to_string()),
     })
 }
 
