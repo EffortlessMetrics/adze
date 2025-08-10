@@ -27,7 +27,9 @@ pub use pure_rust_builder::{
 pub mod cli;
 pub mod scanner_build;
 
-const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 2));
+// Use tree-sitter-generate's version for compatibility
+// Version 0.25.1 is what we depend on in Cargo.toml
+const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 1));
 
 /// Generates JSON strings defining Tree Sitter grammars for every Rust Sitter
 /// grammar found in the given module and recursive submodules.
@@ -136,6 +138,14 @@ pub fn build_parsers(root_file: &Path) {
             );
         }
         
+        // Dump grammar JSON for debugging C-backend failures
+        let dump_path = env::var("OUT_DIR")
+            .ok()
+            .map(|p| std::path::PathBuf::from(p).join("last_grammar.json"));
+        if let Some(p) = &dump_path {
+            let _ = std::fs::write(p, &grammar_str);
+        }
+        
         // Better error handling for C generation
         let (grammar_name, grammar_c) = match generate_parser_for_grammar(&grammar_str, GENERATED_SEMANTIC_VERSION) {
             Ok(result) => result,
@@ -146,6 +156,9 @@ pub fn build_parsers(root_file: &Path) {
                 eprintln!("  Hint: Check that the grammar JSON is valid");
                 if emit_artifacts {
                     eprintln!("  Debug: See generated grammar JSON above");
+                }
+                if let Some(p) = &dump_path {
+                    eprintln!("  Debug: Wrote grammar JSON to {}", p.display());
                 }
                 panic!("C backend parser generation failed: {}", e);
             }
@@ -232,6 +245,19 @@ pub fn build_parsers(root_file: &Path) {
             .flag_if_supported("-Wno-trigraphs")
             .flag_if_supported("-Wno-everything");
         c_config.file(dir.join("parser.c"));
+        
+        // Check for optional scanner.c file and compile if present
+        let scanner_c = dir.join("scanner.c");
+        let scanner_cc = dir.join("scanner.cc");
+        let scanner_cpp = dir.join("scanner.cpp");
+        
+        if scanner_c.exists() {
+            c_config.file(scanner_c);
+        } else if scanner_cc.exists() {
+            c_config.cpp(true).file(scanner_cc);
+        } else if scanner_cpp.exists() {
+            c_config.cpp(true).file(scanner_cpp);
+        }
 
         c_config.compile(&grammar_name);
     });

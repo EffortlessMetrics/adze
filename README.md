@@ -149,6 +149,8 @@ c-backend = [
 
 **Note**: The backends are mutually exclusive. Attempting to enable both will result in a compile-time error.
 
+**Debugging C Backend Failures**: If C backend generation fails, a debug JSON file will be written to `${OUT_DIR}/last_grammar.json` containing the exact grammar that failed to generate. This can help diagnose issues with grammar syntax or structure.
+
 The first step is to configure your `build.rs` to compile and link the generated Tree Sitter parser:
 
 ```rust

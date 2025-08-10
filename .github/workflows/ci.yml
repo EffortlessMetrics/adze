@@ -84,6 +84,12 @@ jobs:
           npm install -g tree-sitter-cli@^0.22
           tree-sitter --version
       
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      
+      - name: Run clippy on ${{ matrix.backend.name }}
+        run: cargo clippy -p rust-sitter-example ${{ matrix.backend.flags }} -- -D warnings
+      
       - name: Build example with ${{ matrix.backend.name }}
         run: cargo build -p rust-sitter-example ${{ matrix.backend.flags }}
       
