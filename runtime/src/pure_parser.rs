@@ -307,9 +307,14 @@ impl Parser {
             position: 0,
         });
 
-        // Initialize lexer
+        // Initialize lexer with sentinel byte to prevent OOB reads
+        let mut input_with_sentinel = source.to_vec();
+        // Add a null byte sentinel if not already present
+        if input_with_sentinel.last().copied() != Some(0) {
+            input_with_sentinel.push(0);
+        }
         self.lexer = Some(Lexer {
-            input: source.to_vec(),
+            input: input_with_sentinel,
             position: 0,
             external_scanner: None,
         });
@@ -581,7 +586,8 @@ impl Parser {
             }
         };
 
-        if position >= lexer.input.len() {
+        // Check for EOF (accounting for sentinel byte)
+        if position >= lexer.input.len() - 1 {
             return Token {
                 symbol: 0,
                 length: 0,
@@ -611,7 +617,7 @@ impl Parser {
             unsafe {
                 let mut lex_state = LexerState {
                     input: lexer.input.as_ptr(),
-                    input_len: lexer.input.len(),
+                    input_len: lexer.input.len() - 1,  // Exclude sentinel byte
                     position,
                     point_row: point.row,
                     point_column: point.column,
@@ -665,13 +671,22 @@ impl Parser {
         }
 
         // Fallback: simple character-by-character lexing
+        // Safe access with bounds check (accounting for sentinel)
+        if position >= lexer.input.len() - 1 {
+            return Token {
+                symbol: 0,
+                length: 0,
+                is_extra: false,
+            }; // EOF
+        }
+        
         let ch = lexer.input[position];
         //eprintln!("DEBUG lex_token: Fallback lexing at position={}, ch={:?} ({})", position, ch as char, ch);
 
         // Skip whitespace as extras
         if ch.is_ascii_whitespace() {
             let mut len = 1;
-            while position + len < lexer.input.len()
+            while position + len < lexer.input.len() - 1  // Account for sentinel
                 && lexer.input[position + len].is_ascii_whitespace()
             {
                 len += 1;
@@ -786,8 +801,8 @@ impl Parser {
             let mut debug_offset = state_offset;
             let mut _entry_num = 0;
             while debug_offset + 1 < end_offset {
-                let _debug_symbol = { *language.parse_table.add(debug_offset) };
-                let _debug_action = { *language.parse_table.add(debug_offset + 1) };
+                let _debug_symbol = { *language.small_parse_table.add(debug_offset) };
+                let _debug_action = { *language.small_parse_table.add(debug_offset + 1) };
                 //eprintln!(
                 //    "  Entry {}: offset={}, symbol={:#x}, action={:#x}",
                 //    _entry_num, debug_offset, _debug_symbol, _debug_action
@@ -797,8 +812,8 @@ impl Parser {
             }
 
             while offset + 1 < end_offset {
-                let entry_symbol = { *language.parse_table.add(offset) };
-                let action_value = { *language.parse_table.add(offset + 1) };
+                let entry_symbol = { *language.small_parse_table.add(offset) };
+                let action_value = { *language.small_parse_table.add(offset + 1) };
 
                 // Debug output to understand why lookups fail
                 ////eprintln!($

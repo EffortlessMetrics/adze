@@ -1,5 +1,7 @@
 //! Smoke tests to ensure both pure-rust and c-backend work correctly
 
+// Pure-Rust backend tests
+#[cfg(feature = "pure-rust")]
 #[test]
 fn test_basic_parsing() {
     // Basic smoke test - parse a simple arithmetic expression
@@ -16,8 +18,9 @@ fn test_basic_parsing() {
     assert!(matches!(expr, grammar::Expression::Sub(_, _, _) | grammar::Expression::Mul(_, _, _) | grammar::Expression::Number(_)));
 }
 
-#[test]
+// C backend tests
 #[cfg(feature = "c-backend")]
+#[test]
 fn test_c_backend_language_function() {
     // Ensure the C backend's tree_sitter_* function is available and non-null
     unsafe {
@@ -30,8 +33,8 @@ fn test_c_backend_language_function() {
     }
 }
 
-#[test]
 #[cfg(feature = "pure-rust")]
+#[test]
 fn test_pure_rust_no_c_symbols() {
     // This test just needs to compile and run - it verifies we're not
     // accidentally pulling in C symbols in pure-rust mode
@@ -48,6 +51,7 @@ fn test_pure_rust_no_c_symbols() {
     }
 }
 
+#[cfg(feature = "pure-rust")]
 #[test]
 fn test_multiple_grammars_available() {
     // Verify that multiple grammars are available
@@ -76,6 +80,7 @@ fn test_multiple_grammars_available() {
     }
 }
 
+#[cfg(feature = "pure-rust")]
 #[test]
 fn test_error_recovery() {
     // Basic test that parsing continues even with errors
@@ -90,4 +95,21 @@ fn test_error_recovery() {
     // Invalid tokens
     let result = grammar::parse("1 @ 2");
     let _ = result; // Just ensure it doesn't panic
+}
+
+// C backend multi-grammar test
+#[cfg(feature = "c-backend")]
+#[test]
+fn test_c_backend_multiple_grammars() {
+    // Test that multiple grammar language functions are available
+    unsafe {
+        let arith_lang = rust_sitter_example::arithmetic::tree_sitter_arithmetic();
+        assert!(!arith_lang.is_null());
+        
+        let words_lang = rust_sitter_example::words::tree_sitter_words();
+        assert!(!words_lang.is_null());
+        
+        let reps_lang = rust_sitter_example::repetitions::tree_sitter_repetitions();
+        assert!(!reps_lang.is_null());
+    }
 }
