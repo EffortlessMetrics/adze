@@ -27,6 +27,7 @@ debug_glr = [] # Enable debug output for GLR parser
 debug_incremental = [] # Enable debug output for incremental parsing
 experimental_examples = [] # Enable experimental examples that use internal APIs
 external_scanners = [] # Enable external scanner support (feature-gated)
+query = [] # Enable query predicates support
 
 [dependencies]
 tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
