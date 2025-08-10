@@ -151,7 +151,7 @@ impl StringScanner {
 }
 
 impl ExternalScanner for StringScanner {
-    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
+    fn scan(&self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
         // Check for string start/content/end tokens
         const STRING_START: usize = 0;
         const STRING_CONTENT: usize = 1;
@@ -258,7 +258,7 @@ impl CommentScanner {
 }
 
 impl ExternalScanner for CommentScanner {
-    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
+    fn scan(&self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
         const COMMENT_START: usize = 0;
         const COMMENT_CONTENT: usize = 1;
         const COMMENT_END: usize = 2;

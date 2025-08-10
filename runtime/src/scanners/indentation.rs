@@ -20,7 +20,7 @@ impl IndentationScanner {
 }
 
 impl ExternalScanner for IndentationScanner {
-    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
+    fn scan(&self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
         const NEWLINE: usize = 0;
         const INDENT: usize = 1;
         const DEDENT: usize = 2;

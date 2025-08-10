@@ -18,7 +18,7 @@ impl HeredocScanner {
 }
 
 impl ExternalScanner for HeredocScanner {
-    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
+    fn scan(&self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
         const HEREDOC_START: usize = 0;
         const HEREDOC_BODY: usize = 1;
         const HEREDOC_END: usize = 2;
