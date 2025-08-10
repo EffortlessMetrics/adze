@@ -295,14 +295,13 @@ fn test_glr_error_recovery() {
     // Enable error recovery with correct field names
     let recovery_config = ErrorRecoveryConfig {
         max_panic_skip: 3,
-        sync_tokens: vec![],
-        insertable_tokens: vec![],
-        deletable_tokens: vec![],
+        sync_tokens: std::collections::HashSet::new(),
+        insertable_tokens: std::collections::HashSet::new(),
+        deletable_tokens: std::collections::HashSet::new()
         max_consecutive_errors: 2,
         enable_phrase_recovery: true,
         enable_scope_recovery: false,
-        enable_statement_recovery: false,
-        enable_expression_recovery: false,
+        enable_indentation_recovery: false,
     };
     parser.enable_error_recovery(recovery_config);
     
