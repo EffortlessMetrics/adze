@@ -34,6 +34,7 @@ pub mod error_recovery;
 pub mod error_reporting;
 #[cfg(feature = "legacy-parsers")]
 pub mod glr; // Legacy GLR module that depends on parser_v3
+#[cfg(feature = "pure-rust")]
 pub mod glr_forest;
 #[cfg(feature = "pure-rust")]
 pub mod glr_incremental;
@@ -65,12 +66,14 @@ pub mod parser_v4;
 pub mod pure_external_scanner;
 pub mod pure_incremental;
 pub mod pure_parser;
+#[cfg(feature = "pure-rust")]
 pub mod query;
 pub mod stack_pool;
 // #[cfg(feature = "serialization")]
 #[cfg(feature = "serialization")]
 pub mod serialization;
 pub mod subtree;
+#[cfg(feature = "pure-rust")]
 pub mod unified_parser;
 pub mod visitor;
 pub mod simd_lexer {
@@ -90,7 +93,7 @@ use std::ops::Deref;
 
 pub use rust_sitter_macro::*;
 
-#[cfg(all(feature = "tree-sitter-standard", not(feature = "pure-rust")))]
+#[cfg(all(feature = "tree-sitter-standard", not(feature = "tree-sitter-c2rust"), not(feature = "pure-rust")))]
 pub use tree_sitter_runtime_standard as tree_sitter;
 
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
@@ -426,7 +429,7 @@ impl Extract<String> for String {
 }
 
 pub mod errors {
-    #[cfg(all(feature = "tree-sitter-standard", not(feature = "pure-rust")))]
+    #[cfg(all(feature = "tree-sitter-standard", not(feature = "tree-sitter-c2rust"), not(feature = "pure-rust")))]
     use tree_sitter_runtime_standard as tree_sitter;
 
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
