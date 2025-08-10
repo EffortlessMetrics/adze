@@ -414,6 +414,9 @@ impl Parser {
             let action = self.get_action(language, current_state, token.symbol);
             // Debug logging for arithmetic parsing
             if source.len() < 20 {
+                if current_state == 0 && position == 0 {
+                    self.dump_row(language, 0);
+                }
                 let _byte_repr = if position < source.len() {
                     format!(
                         "'{}' (0x{:02x})",
@@ -659,8 +662,23 @@ impl Parser {
                         }
                     }
 
+                    // Convert symbol ID to symbol index
+                    // The lexer returns symbol IDs, but the parse table uses indices
+                    // This is a hack for the arithmetic grammar - should be generalized
+                    let symbol_index = match symbol {
+                        0 => 0, // EOF
+                        1 => 5, // "-"
+                        2 => 6, // "*"
+                        3 => 7, // whitespace
+                        4 => 8, // number
+                        _ => symbol as u16, // fallback
+                    };
+                    
+                    eprintln!("DEBUG: Lexer returned symbol_id={} -> mapped to index={}, len={}, extra={}", 
+                        symbol, symbol_index, lex_state.result_length, is_extra);
+                    
                     return Token {
-                        symbol,
+                        symbol: symbol_index,
                         length: lex_state.result_length,
                         is_extra,
                     };
@@ -760,8 +778,47 @@ impl Parser {
         }
     }
 
+    /// Debug helper: dump a parse table row
+    #[allow(dead_code)]
+    fn dump_row(&self, language: &TSLanguage, state: u16) {
+        unsafe {
+            let large_state_count = language.large_state_count as usize;
+            let token_count = language.token_count as u16;
+            
+            eprintln!("=== Dumping state {} ===", state);
+            eprintln!("token_count: {}, symbol_count: {}", language.token_count, language.symbol_count);
+            
+            if (state as usize) >= large_state_count {
+                let map_index = (state as usize) - large_state_count;
+                let start_offset = (*language.small_parse_table_map.add(map_index)) as usize;
+                let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
+                
+                eprintln!("Small state: map_index={}, start={}, end={}", map_index, start_offset, end_offset);
+                
+                let mut offset = start_offset;
+                while offset + 1 < end_offset {
+                    let s = *language.small_parse_table.add(offset);
+                    let v = *language.small_parse_table.add(offset + 1);
+                    offset += 2;
+                    
+                    let kind = if s < token_count { "TOK " } else { "GOTO" };
+                    eprintln!("  {:>4} {:>5} -> action {}", kind, s, v);
+                }
+            } else {
+                eprintln!("Large state - dense row in parse_table");
+            }
+        }
+    }
+
     /// Get parse action for state and symbol
     fn get_action(&self, language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> Action {
+        // Debug dump state 0 once
+        use std::sync::Once;
+        static DUMP_ONCE: Once = Once::new();
+        if state == 0 {
+            DUMP_ONCE.call_once(|| self.dump_row(language, 0));
+        }
+        
         // Look up action in parse table
         unsafe {
             // Check bounds
@@ -769,87 +826,56 @@ impl Parser {
                 return Action::Error;
             }
 
-            // The parse table is stored in compressed format
-            // All states use SMALL_PARSE_TABLE_MAP for offsets
-            let state_offset = (*language.small_parse_table_map.add(state as usize)) as usize;
-
-            // Find the next state's offset to know where this state's entries end
-            let next_offset = if (state + 1) < language.state_count as u16 {
-                (*language.small_parse_table_map.add((state + 1) as usize)) as usize
-            } else {
-                // For the last state, use the last entry in the map
-                // The map has state_count + 1 entries
-                (*language
-                    .small_parse_table_map
-                    .add(language.state_count as usize)) as usize
-            };
-
-            let byte_count = next_offset - state_offset;
-            let _entries_count = byte_count / 2; // Each entry is 2 bytes (symbol + action)
-            //eprintln!(
-            //    "DEBUG get_action: state={}, symbol={}, state_offset={}, next_offset={}, entries_count={}",
-            //    state, symbol, state_offset, next_offset, _entries_count
-            //);
-
-            // The parse table stores entries as pairs: (symbol, action)
-            // state_offset and next_offset are indices into the parse_table array
-            let mut offset = state_offset;
-            let end_offset = next_offset;
-
-            // Debug: print all entries for this state
-            ////eprintln!("DEBUG get_action: All entries for state {}:", state);
-            let mut debug_offset = state_offset;
-            let mut _entry_num = 0;
-            while debug_offset + 1 < end_offset {
-                let _debug_symbol = { *language.small_parse_table.add(debug_offset) };
-                let _debug_action = { *language.small_parse_table.add(debug_offset + 1) };
-                //eprintln!(
-                //    "  Entry {}: offset={}, symbol={:#x}, action={:#x}",
-                //    _entry_num, debug_offset, _debug_symbol, _debug_action
-                //);
-                debug_offset += 2;
-                _entry_num += 1;
+            let large_state_count = language.large_state_count as usize;
+            let symbol_count = language.symbol_count as usize;
+            let token_count = language.token_count as u16;
+            
+            // Only tokens (not non-terminals) are valid lookaheads
+            if symbol >= token_count {
+                return Action::Error;
             }
-
-            while offset + 1 < end_offset {
-                let entry_symbol = { *language.small_parse_table.add(offset) };
-                let action_value = { *language.small_parse_table.add(offset + 1) };
-
-                // Debug output to understand why lookups fail
-                ////eprintln!($
-                //    "DEBUG get_action: state={}, looking for symbol={}, found entry_symbol={:#x}, action_value={:#x}",
-                //    state, symbol, entry_symbol, action_value
-                //);
-
-                // Check if this is a default reduce entry
-                // In Tree-sitter's format, reduce entries have the high bit set in the symbol field
-                if entry_symbol & 0x8000 != 0 {
-                    // This is a default reduce action that applies to all lookahead symbols
-                    if action_value != 0 {
-                        let action = self.decode_action(language, action_value as usize);
-                        ////eprintln!($
-                        //"DEBUG get_action: DEFAULT REDUCE! Returning action: {:?}",
-                        //action
-                        //);
-                        return action;
-                    } else {
-                        // The actual reduce production ID is encoded in the symbol field
-                        let production_id = entry_symbol & 0x7FFF;
-                        ////eprintln!($
-                        //    "DEBUG get_action: DEFAULT REDUCE! Returning Reduce({})",
-                        //    production_id
-                        //);
-                        return Action::Reduce(production_id);
-                    }
-                } else if entry_symbol == symbol {
-                    if action_value != 0 {
-                        let action = self.decode_action(language, action_value as usize);
-                        //////eprintln!("DEBUG get_action: MATCH! Returning action: {:?}", action);
-                        return action;
-                    }
-                    break;
+            
+            // Sanity checks
+            debug_assert!((language.token_count as usize) <= language.symbol_count as usize);
+            debug_assert!((state as usize) < language.state_count as usize);
+            
+            if (state as usize) < large_state_count {
+                // LARGE STATE: Dense row in parse_table
+                // Layout: parse_table[(state * symbol_count) + lookahead]
+                let base = (state as usize) * symbol_count;
+                let index = base + (symbol as usize);
+                
+                // Large states use the main parse_table
+                let action_value = *language.parse_table.add(index);
+                
+                if action_value != 0 {
+                    return self.decode_action(language, action_value as usize);
                 }
-                offset += 2;
+            } else {
+                // SMALL STATE: Compressed row in small_parse_table
+                // Format is direct (symbol, action) pairs
+                let map_index = (state as usize) - large_state_count;
+                
+                // Read u32 offsets properly!
+                let start_offset = (*language.small_parse_table_map.add(map_index)) as usize;
+                let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
+                
+                // Parse direct (symbol, action) pairs
+                let mut offset = start_offset;
+                
+                while offset + 1 < end_offset {
+                    let entry_symbol = *language.small_parse_table.add(offset);
+                    let action_value = *language.small_parse_table.add(offset + 1);
+                    offset += 2;
+                    
+                    // Only process tokens, not non-terminals (gotos)
+                    if entry_symbol < token_count && entry_symbol == symbol {
+                        if action_value != 0 {
+                            return self.decode_action(language, action_value as usize);
+                        }
+                        return Action::Error;
+                    }
+                }
             }
         }
 

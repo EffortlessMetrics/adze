@@ -1262,7 +1262,8 @@ pub fn build_lr1_automaton(
     let mut conflicts_by_state: BTreeMap<(usize, usize), Vec<Action>> = BTreeMap::new();
 
     // Debug: Print goto table entries
-    // println!("DEBUG: Collection goto table has {} entries", collection.goto_table.len());
+    eprintln!("DEBUG: Collection goto table has {} entries", collection.goto_table.len());
+    eprintln!("DEBUG: Augmented grammar has {} tokens", augmented_grammar.tokens.len());
 
     // First, add shift actions from goto table for terminals
     // This must be done BEFORE reduce actions to enable shift/reduce conflict detection

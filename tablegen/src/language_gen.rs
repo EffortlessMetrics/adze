@@ -252,10 +252,10 @@ impl<'a> LanguageGenerator<'a> {
                 }
             }
 
-            // First entry is the count of actions
-            small_table_data.push(non_error_actions.len() as u16);
+            // Direct pairs format (no count prefix)
+            // small_table_data.push(non_error_actions.len() as u16);
 
-            // Then pairs of (symbol, encoded_action)
+            // Pairs of (symbol, encoded_action)
             for (symbol, action) in non_error_actions {
                 small_table_data.push(symbol as u16);
                 small_table_data.push(self.encode_action(action));
