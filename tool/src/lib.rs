@@ -105,6 +105,7 @@ pub fn build_parsers(root_file: &Path) {
                 panic!("FATAL: Pure-Rust parser generation failed: {:#}", e);
             }
         }
+        return; // Critical: don't fall through to C generation
     }
     
     // If we get here, use C-based generation exclusively
