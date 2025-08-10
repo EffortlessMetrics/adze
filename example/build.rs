@@ -1,20 +1,30 @@
-use std::path::PathBuf;
+use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=src");
 
     // Use pure-Rust parser generation if the feature is enabled
     // Note: build scripts can't directly check features, so we use an env var set by Cargo
-    if std::env::var("CARGO_FEATURE_PURE_RUST").is_ok() {
+    if env::var("CARGO_FEATURE_PURE_RUST").is_ok() {
         // SAFETY: This is safe in a build script as it runs in a single-threaded context
         unsafe {
-            std::env::set_var("RUST_SITTER_USE_PURE_RUST", "1");
+            env::set_var("RUST_SITTER_USE_PURE_RUST", "1");
         }
     }
     
     // Edition-aware attribute toggle for generated code
-    // This allows generated code to compile on both 2021 and 2024 editions
-    if std::env::var("CARGO_PKG_RUST_EDITION").as_deref() == Ok("2024") {
+    // Use proper TOML parsing for robust edition detection
+    let manifest_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("Cargo.toml");
+    let manifest_str = fs::read_to_string(&manifest_path).unwrap();
+    let manifest: toml::Value = toml::from_str(&manifest_str)
+        .expect("Failed to parse Cargo.toml");
+    
+    let edition = manifest
+        .get("package")
+        .and_then(|p| p.get("edition"))
+        .and_then(|e| e.as_str());
+    
+    if edition == Some("2024") {
         println!("cargo:rustc-cfg=rust_sitter_unsafe_attrs");
         println!("cargo:rustc-check-cfg=cfg(rust_sitter_unsafe_attrs)");
     }

@@ -87,7 +87,13 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
       
-      - name: Run clippy on ${{ matrix.backend.name }}
+      - name: Check workspace compilation
+        run: cargo check --workspace ${{ matrix.backend.flags }}
+      
+      - name: Run clippy on runtime with ${{ matrix.backend.name }}
+        run: cargo clippy -p rust-sitter ${{ matrix.backend.flags }} -- -D warnings
+      
+      - name: Run clippy on example with ${{ matrix.backend.name }}
         run: cargo clippy -p rust-sitter-example ${{ matrix.backend.flags }} -- -D warnings
       
       - name: Build example with ${{ matrix.backend.name }}

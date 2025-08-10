@@ -107,7 +107,6 @@ pub fn build_parsers(root_file: &Path) {
                 panic!("FATAL: Pure-Rust parser generation failed: {:#}", e);
             }
         }
-        return; // Critical: don't fall through to C generation
     }
     
     // If we get here, use C-based generation exclusively
@@ -117,16 +116,17 @@ pub fn build_parsers(root_file: &Path) {
         .map(|s| s.parse().unwrap_or(false))
         .unwrap_or(false);
     
-    // Check Tree-sitter CLI availability if using external CLI
-    if let Err(e) = std::process::Command::new("tree-sitter")
-        .arg("--version")
-        .output() 
-    {
-        eprintln!("ERROR: Tree-sitter CLI not found or not executable");
-        eprintln!("  Details: {}", e);
-        eprintln!("  Hint: Install tree-sitter CLI >= 0.22 with: npm install -g tree-sitter-cli");
-        eprintln!("  Then verify with: tree-sitter --version");
-        panic!("C backend generation requires tree-sitter CLI");
+    // Only check CLI if explicitly requested (for debugging)
+    if std::env::var("RUST_SITTER_REQUIRE_TS_CLI").is_ok() {
+        if let Err(e) = std::process::Command::new("tree-sitter")
+            .arg("--version")
+            .output() 
+        {
+            eprintln!("Warning: tree-sitter CLI not found or not executable");
+            eprintln!("  Details: {}", e);
+            eprintln!("  Hint: Install tree-sitter CLI >= 0.22 with: npm install -g tree-sitter-cli");
+            eprintln!("  Then verify with: tree-sitter --version");
+        }
     }
     
     generate_grammars(root_file).iter().for_each(|grammar| {
@@ -148,7 +148,14 @@ pub fn build_parsers(root_file: &Path) {
         
         // Better error handling for C generation
         let (grammar_name, grammar_c) = match generate_parser_for_grammar(&grammar_str, GENERATED_SEMANTIC_VERSION) {
-            Ok(result) => result,
+            Ok(result) => {
+                // Also save a per-grammar copy for easier debugging
+                if let Some(base_path) = &dump_path {
+                    let named_path = base_path.with_file_name(format!("grammar_{}.json", result.0));
+                    let _ = std::fs::write(named_path, &grammar_str);
+                }
+                result
+            },
             Err(e) => {
                 eprintln!("ERROR: Tree-sitter C generation failed for grammar");
                 eprintln!("  Error: {}", e);
@@ -238,28 +245,69 @@ pub fn build_parsers(root_file: &Path) {
 
         let mut c_config = cc::Build::new();
         c_config.std("c11").include(&dir).include(&sysroot_dir);
-        c_config
-            .flag_if_supported("-Wno-unused-label")
-            .flag_if_supported("-Wno-unused-parameter")
-            .flag_if_supported("-Wno-unused-but-set-variable")
-            .flag_if_supported("-Wno-trigraphs")
-            .flag_if_supported("-Wno-everything");
+        
+        // Cross-platform warning suppression
+        c_config.warnings(false); // Portable way to disable warnings
+        
+        // Platform-specific optimizations
+        if cfg!(target_env = "msvc") {
+            c_config.flag_if_supported("/EHsc"); // Enable C++ exceptions for MSVC
+        } else {
+            c_config.flag_if_supported("-fno-exceptions"); // Disable exceptions for GCC/Clang
+        }
+        
         c_config.file(dir.join("parser.c"));
         
-        // Check for optional scanner.c file and compile if present
-        let scanner_c = dir.join("scanner.c");
-        let scanner_cc = dir.join("scanner.cc");
-        let scanner_cpp = dir.join("scanner.cpp");
+        // Check for optional scanner files in both generated dir and source root
+        // Try generated dir first (tree-sitter CLI output)
+        let scanner_paths = [
+            (dir.join("scanner.c"), false),
+            (dir.join("scanner.cc"), true),
+            (dir.join("scanner.cpp"), true),
+        ];
         
-        if scanner_c.exists() {
-            c_config.file(scanner_c);
-        } else if scanner_cc.exists() {
-            c_config.cpp(true).file(scanner_cc);
-        } else if scanner_cpp.exists() {
-            c_config.cpp(true).file(scanner_cpp);
+        // Also check source root and src/scanner subdir for manually written scanners
+        if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
+            let src_dir = Path::new(&manifest_dir).join("src");
+            let scanner_subdir = src_dir.join("scanner");
+            let additional_paths = [
+                (src_dir.join("scanner.c"), false),
+                (src_dir.join("scanner.cc"), true),
+                (src_dir.join("scanner.cpp"), true),
+                (scanner_subdir.join("scanner.c"), false),
+                (scanner_subdir.join("scanner.cc"), true),
+                (scanner_subdir.join("scanner.cpp"), true),
+            ];
+            
+            // Check all paths, preferring generated over source
+            for (path, is_cpp) in scanner_paths.iter().chain(additional_paths.iter()) {
+                if path.exists() {
+                    if *is_cpp {
+                        c_config.cpp(true);
+                    }
+                    c_config.file(path);
+                    break; // Use first scanner found
+                }
+            }
+        } else {
+            // No manifest dir, just check generated paths
+            for (path, is_cpp) in scanner_paths.iter() {
+                if path.exists() {
+                    if *is_cpp {
+                        c_config.cpp(true);
+                    }
+                    c_config.file(path);
+                    break;
+                }
+            }
         }
 
-        c_config.compile(&grammar_name);
+        // Sanitize grammar name for library archive name
+        let lib_name: String = grammar_name
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+            .collect();
+        c_config.compile(&lib_name);
     });
 }
 
