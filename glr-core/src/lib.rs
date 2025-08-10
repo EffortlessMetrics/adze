@@ -508,9 +508,23 @@ impl ItemSetCollection {
                 .all_rules()
                 .find(|r| r.production_id.0 == item.rule_id.0)
             {
+                let mut rhs_str = String::new();
+                for (idx, sym) in rule.rhs.iter().enumerate() {
+                    if idx == item.position {
+                        rhs_str.push_str(" • ");
+                    }
+                    match sym {
+                        Symbol::Terminal(id) => rhs_str.push_str(&format!("T({}) ", id.0)),
+                        Symbol::NonTerminal(id) => rhs_str.push_str(&format!("NT({}) ", id.0)),
+                        _ => rhs_str.push_str("? "),
+                    }
+                }
+                if item.position == rule.rhs.len() {
+                    rhs_str.push_str(" • ");
+                }
                 eprintln!(
-                    "  Item: {:?} -> {:?}, pos={}, lookahead={}",
-                    rule.lhs, rule.rhs, item.position, item.lookahead.0
+                    "  Item: NT({}) -> {}, lookahead={}",
+                    rule.lhs.0, rhs_str, item.lookahead.0
                 );
             }
         }
@@ -1293,7 +1307,10 @@ pub fn build_lr1_automaton(
                 if state_idx < action_table.len() && symbol_idx < action_table[state_idx].len() {
                     // Add as a shift action
                     let new_action = Action::Shift(*to_state);
-                    // "DEBUG: Adding shift action: state {} symbol {} (id={}) -> state {}"
+                    if state_idx == 0 {
+                        eprintln!("DEBUG: Adding shift action to state 0: symbol {} (idx={}) -> state {}", 
+                                 symbol.0, symbol_idx, to_state.0);
+                    }
                     add_action_with_conflict(
                         &mut action_table,
                         &mut conflicts_by_state,
@@ -1301,7 +1318,13 @@ pub fn build_lr1_automaton(
                         symbol_idx,
                         new_action,
                     );
+                } else if state_idx == 0 {
+                    eprintln!("DEBUG: SKIPPING shift for state 0: bounds check failed - state_idx={}, symbol_idx={}, action_table.len={}, inner_len={}", 
+                             state_idx, symbol_idx, action_table.len(), 
+                             if state_idx < action_table.len() { action_table[state_idx].len() } else { 0 });
                 }
+            } else if from_state.0 == 0 {
+                eprintln!("DEBUG: Terminal {} not in symbol_to_index for state 0", symbol.0);
             }
         } else {
             _non_terminal_count += 1;
