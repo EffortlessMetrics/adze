@@ -275,8 +275,11 @@ impl<'a> AbiLanguageBuilder<'a> {
             };
 
             // Export the language function for FFI
-            // For Rust 2024 edition, #[no_mangle] requires unsafe
+            // Edition-aware attribute toggle (2021 vs 2024)
+            #[cfg(rust_sitter_unsafe_attrs)]
             #[unsafe(no_mangle)]
+            #[cfg(not(rust_sitter_unsafe_attrs))]
+            #[no_mangle]
             pub unsafe extern "C" fn #language_fn_ident() -> *const TSLanguage {
                 &LANGUAGE as *const TSLanguage
             }

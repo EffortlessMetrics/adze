@@ -62,6 +62,34 @@ jobs:
       - name: Run doctests
         run: cargo test --doc --workspace ${{ matrix.features }}
 
+  backend-matrix:
+    name: Backend Build Matrix (${{ matrix.backend }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        backend:
+          - name: pure-rust
+            flags: ""
+          - name: c-backend
+            flags: "--no-default-features --features c-backend"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Install tree-sitter CLI (for C backend)
+        if: matrix.backend.name == 'c-backend'
+        run: |
+          npm install -g tree-sitter-cli@^0.22
+          tree-sitter --version
+      
+      - name: Build example with ${{ matrix.backend.name }}
+        run: cargo build -p rust-sitter-example ${{ matrix.backend.flags }}
+      
+      - name: Test runtime with ${{ matrix.backend.name }}
+        run: cargo test -p rust-sitter ${{ matrix.backend.flags }}
+
   miri:
     name: Miri (UB Detection)
     runs-on: ubuntu-latest

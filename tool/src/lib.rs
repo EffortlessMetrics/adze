@@ -114,6 +114,19 @@ pub fn build_parsers(root_file: &Path) {
     let emit_artifacts: bool = env::var("RUST_SITTER_EMIT_ARTIFACTS")
         .map(|s| s.parse().unwrap_or(false))
         .unwrap_or(false);
+    
+    // Check Tree-sitter CLI availability if using external CLI
+    if let Err(e) = std::process::Command::new("tree-sitter")
+        .arg("--version")
+        .output() 
+    {
+        eprintln!("ERROR: Tree-sitter CLI not found or not executable");
+        eprintln!("  Details: {}", e);
+        eprintln!("  Hint: Install tree-sitter CLI >= 0.22 with: npm install -g tree-sitter-cli");
+        eprintln!("  Then verify with: tree-sitter --version");
+        panic!("C backend generation requires tree-sitter CLI");
+    }
+    
     generate_grammars(root_file).iter().for_each(|grammar| {
         let grammar_str = grammar.to_string();
         if emit_artifacts {
@@ -122,8 +135,21 @@ pub fn build_parsers(root_file: &Path) {
                 serde_json::to_string_pretty(&grammar).unwrap()
             );
         }
-        let (grammar_name, grammar_c) =
-            generate_parser_for_grammar(&grammar_str, GENERATED_SEMANTIC_VERSION).unwrap();
+        
+        // Better error handling for C generation
+        let (grammar_name, grammar_c) = match generate_parser_for_grammar(&grammar_str, GENERATED_SEMANTIC_VERSION) {
+            Ok(result) => result,
+            Err(e) => {
+                eprintln!("ERROR: Tree-sitter C generation failed for grammar");
+                eprintln!("  Error: {}", e);
+                eprintln!("  Hint: Ensure tree-sitter CLI >= 0.22 is on PATH (run `tree-sitter --version`)");
+                eprintln!("  Hint: Check that the grammar JSON is valid");
+                if emit_artifacts {
+                    eprintln!("  Debug: See generated grammar JSON above");
+                }
+                panic!("C backend parser generation failed: {}", e);
+            }
+        };
         let tempfile = tempfile::Builder::new()
             .prefix("grammar")
             .tempdir()

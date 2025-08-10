@@ -111,6 +111,44 @@ Choose your backend via features:
 - `tree-sitter-c2rust`: Legacy C2Rust transpiled backend
 - `tree-sitter-standard`: Standard Tree-sitter C runtime
 
+### Building with Different Backends
+
+Rust Sitter supports multiple backend configurations:
+
+#### Pure-Rust Backend (Default, Recommended)
+The pure-Rust backend generates parsers entirely at compile-time without C dependencies:
+```bash
+# Build with default pure-Rust backend
+cargo build -p rust-sitter-example
+
+# Or explicitly specify pure-rust feature
+cargo build -p rust-sitter-example --features pure-rust
+```
+
+#### C Backend (Legacy Tree-sitter)
+For compatibility with existing Tree-sitter grammars:
+```bash
+# Requires tree-sitter CLI >= 0.22
+npm install -g tree-sitter-cli
+tree-sitter --version
+
+# Build with C backend
+cargo build -p rust-sitter-example --no-default-features --features c-backend
+```
+
+#### Configuration in Cargo.toml
+```toml
+[features]
+default = ["pure-rust"]
+pure-rust = ["rust-sitter/pure-rust"]
+c-backend = [
+    "rust-sitter/tree-sitter-c2rust",
+    "rust-sitter/tree-sitter-standard"
+]
+```
+
+**Note**: The backends are mutually exclusive. Attempting to enable both will result in a compile-time error.
+
 The first step is to configure your `build.rs` to compile and link the generated Tree Sitter parser:
 
 ```rust
