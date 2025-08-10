@@ -1,4 +1,6 @@
 // Demonstration of GLR query support
+#![allow(unused_imports, dead_code)]
+
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // Import internal modules (in real usage, these would be exported)

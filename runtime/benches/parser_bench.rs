@@ -1,5 +1,6 @@
 // Benchmarks for the pure-Rust Tree-sitter parser
 // This measures performance of various parsing operations
+#![allow(unused_imports, dead_code)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rust_sitter::lexer::{GrammarLexer, ErrorRecoveringLexer, ErrorRecoveryMode};
