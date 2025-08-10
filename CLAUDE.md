@@ -171,6 +171,53 @@ When working on the pure-Rust implementation:
 3. **FFI Tests**: Ensure generated Language structs match C ABI requirements
 4. **Integration Tests**: Test with real Tree-sitter grammars for validation
 
+### Test Connectivity Safeguards
+
+The project includes multiple layers of protection to prevent tests from being silently disconnected or disabled:
+
+#### 1. CI Test Connectivity Job
+The `.github/workflows/ci.yml` includes a `test-connectivity` job that:
+- **Blocks commits** containing `.rs.disabled` files (hard failure)
+- **Enforces non-zero test counts** for all crates across all feature combinations
+- **Reports per-crate test counts** in PR summaries for easy comparison
+- **Detects orphaned test files** that might not be connected to the test harness
+- **Surfaces `#[ignore]` tests** for visibility
+- Runs for all feature combinations: `default`, `external_scanners`, `incremental_glr`, and `all-features`
+
+#### 2. Pre-commit Hook
+Located at `.git/hooks/pre-commit`, this hook:
+- Prevents accidentally committing `.rs.disabled` files
+- Warns about existing disabled files in the repository
+- Suggests using `#[ignore]` attribute instead of file renaming
+
+#### 3. Local Verification Script
+The `scripts/check-test-connectivity.sh` script allows developers to:
+- Check for disabled test files
+- Count tests per feature set
+- Report per-crate test discovery
+- Find `#[ignore]` tests
+- Detect potentially orphaned test modules
+- Get actionable recommendations for test health
+
+#### Currently Disabled Tests
+The following test files are currently disabled and need attention:
+- `runtime/tests/golden_tests.rs.disabled`
+- `runtime/tests/test_complete_example.rs.disabled`
+- `runtime/tests/test_glr_parsing.rs.disabled`
+- `runtime/tests/test_pure_rust_e2e.rs.disabled`
+- `runtime/tests/test_pure_rust_real_grammar.rs.disabled`
+- `runtime/tests/test_query_predicates.rs.disabled`
+
+**Action Required**: These files should either be:
+1. Re-enabled by removing the `.disabled` suffix and fixing any issues
+2. Marked with `#[ignore]` if they need to remain disabled temporarily
+3. Removed if they are no longer relevant
+
+To check test connectivity locally, run:
+```bash
+./scripts/check-test-connectivity.sh
+```
+
 ### Recent Achievements (January 2025)
 
 #### **GLR Parser Implementation Completed** ✅

@@ -332,6 +332,37 @@ pub struct CommaSeparatedExprs {
 ### `Box<T>`
 Boxes are automatically constructed around the inner type when parsing, but Rust Sitter doesn't do anything extra beyond that.
 
+## Testing & Quality Assurance
+
+### Test Connectivity Safeguards
+The project includes comprehensive protection against tests being silently disconnected or disabled:
+
+#### CI Test Connectivity
+The CI pipeline includes a dedicated `test-connectivity` job that:
+- **Blocks commits** containing `.rs.disabled` files
+- **Enforces non-zero test counts** across all feature combinations
+- **Reports per-crate test counts** in PR summaries
+- **Detects orphaned test files** not connected to the test harness
+- **Surfaces `#[ignore]` tests** for visibility
+
+#### Local Development Tools
+- **Pre-commit hook**: Prevents committing `.rs.disabled` files
+- **Verification script**: Run `./scripts/check-test-connectivity.sh` to check test health locally
+- **Test discovery**: Validates tests are properly connected across all crates
+
+### Running Tests
+```bash
+# Run all tests
+cargo test
+
+# Run with specific features
+cargo test --features incremental_glr
+cargo test --all-features
+
+# Check test connectivity
+./scripts/check-test-connectivity.sh
+```
+
 ## Debugging
 
 To view the generated grammar, you can set the `RUST_SITTER_EMIT_ARTIFACTS` environment variable to `true`. This will cause the generated grammar to be written to wherever cargo sets `OUT_DIR` (usually `target/debug/build/<crate>-<hash>/out`).
