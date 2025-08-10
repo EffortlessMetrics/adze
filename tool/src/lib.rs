@@ -67,8 +67,12 @@ use tree_sitter_generate::generate_parser_for_grammar;
 /// for every Rust Sitter grammar found in the given module and recursive
 /// submodules.
 pub fn build_parsers(root_file: &Path) {
-    // Check if we should use the new pure-Rust builder
-    if std::env::var("RUST_SITTER_USE_PURE_RUST").is_ok() {
+    // Determine which builder to use - check both env vars for compatibility
+    let use_pure_rust = std::env::var("CARGO_FEATURE_PURE_RUST").is_ok() 
+        || std::env::var("RUST_SITTER_USE_PURE_RUST").is_ok();
+    
+    if use_pure_rust {
+        // Use pure-Rust builder exclusively
         use pure_rust_builder::{BuildOptions, build_parser_for_crate};
         let options = BuildOptions::default();
         match build_parser_for_crate(root_file, options) {
@@ -91,6 +95,8 @@ pub fn build_parsers(root_file: &Path) {
             }
         }
     }
+    
+    // If we get here, use C-based generation exclusively
     use std::env;
     let out_dir = env::var("OUT_DIR").unwrap();
     let emit_artifacts: bool = env::var("RUST_SITTER_EMIT_ARTIFACTS")

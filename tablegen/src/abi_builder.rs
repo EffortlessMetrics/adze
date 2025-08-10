@@ -275,6 +275,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             };
 
             // Export the language function for FFI
+            // For Rust 2024 edition, #[no_mangle] requires unsafe
             #[unsafe(no_mangle)]
             pub unsafe extern "C" fn #language_fn_ident() -> *const TSLanguage {
                 &LANGUAGE as *const TSLanguage

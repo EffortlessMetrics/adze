@@ -1,4 +1,5 @@
-// Include the generated parser
+// Pure-Rust path: include the generated Rust parser (defines tree_sitter_* symbol)
+#[cfg(feature = "pure-rust")]
 pub mod grammar_arithmetic {
     include!(concat!(
         env!("OUT_DIR"),
@@ -6,10 +7,23 @@ pub mod grammar_arithmetic {
     ));
 }
 
-// Expose the generated LANGUAGE struct for external use (e.g., benchmarks)
+// C path: declare the C export and link the object produced by build.rs
+#[cfg(not(feature = "pure-rust"))]
+extern "C" {
+    pub fn tree_sitter_arithmetic() -> *const tree_sitter_c2rust::TSLanguage;
+}
+
+// Expose the language function for external use (e.g., benchmarks)
+#[cfg(feature = "pure-rust")]
 #[allow(dead_code)]
 pub fn get_language() -> &'static rust_sitter::pure_parser::TSLanguage {
     &grammar_arithmetic::LANGUAGE
+}
+
+#[cfg(not(feature = "pure-rust"))]
+#[allow(dead_code)]
+pub fn get_language() -> *const tree_sitter_c2rust::TSLanguage {
+    unsafe { tree_sitter_arithmetic() }
 }
 
 #[rust_sitter::grammar("arithmetic")]
