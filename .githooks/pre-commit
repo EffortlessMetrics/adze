@@ -1,0 +1,25 @@
+#!/bin/bash
+# Pre-commit hook to prevent committing disabled test files
+
+# Check for .rs.disabled files
+disabled_files=$(git ls-files '*.rs.disabled' 2>/dev/null)
+staged_disabled=$(git diff --cached --name-only | grep '\.rs\.disabled$' || true)
+
+if [ -n "$staged_disabled" ]; then
+    echo "❌ ERROR: Attempting to commit disabled test files:"
+    echo "$staged_disabled" | sed 's/^/   - /'
+    echo ""
+    echo "Please re-enable these files or use #[ignore] instead of disabling files."
+    echo "To re-enable: git mv file.rs.disabled file.rs"
+    echo "Then add #[ignore = \"reason\"] to test functions that should be skipped."
+    exit 1
+fi
+
+if [ -n "$disabled_files" ]; then
+    echo "⚠️  WARNING: Repository contains disabled test files:"
+    echo "$disabled_files" | sed 's/^/   - /'
+    echo ""
+    echo "Consider re-enabling these files with proper #[ignore] attributes."
+fi
+
+exit 0
