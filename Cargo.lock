@@ -1892,6 +1892,7 @@ dependencies = [
  "insta",
  "rust-sitter",
  "rust-sitter-tool",
+ "tree-sitter-c2rust",
  "wasm-bindgen-test",
 ]
 

@@ -1,3 +1,7 @@
+// Ensure only one backend is enabled
+#[cfg(all(feature = "pure-rust", feature = "c-backend"))]
+compile_error!("Enable exactly one backend: 'pure-rust' OR 'c-backend'.");
+
 // Re-export modules that contain grammars
 pub mod arithmetic;
 pub mod external_word_example;

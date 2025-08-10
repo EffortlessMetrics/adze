@@ -26,6 +26,7 @@ pub mod lexer;
 pub mod scanner_registry;
 pub mod scanners;
 // Use parser_v4 (GLR) as the main parser implementation
+#[cfg(feature = "pure-rust")]
 pub mod parser {
     pub use super::parser_v4::*;
 }
@@ -34,6 +35,7 @@ pub mod error_reporting;
 #[cfg(feature = "legacy-parsers")]
 pub mod glr; // Legacy GLR module that depends on parser_v3
 pub mod glr_forest;
+#[cfg(feature = "pure-rust")]
 pub mod glr_incremental;
 // pub mod glr_incremental_opt; // Temporarily disabled during chunk-based refactor
 pub mod glr_lexer;
@@ -41,6 +43,7 @@ pub mod glr_parser;
 pub mod glr_query;
 pub mod glr_tree_bridge;
 pub mod glr_validation;
+#[cfg(feature = "pure-rust")]
 pub mod tree_bridge;
 // pub mod glr_visualization; // TODO: Update for new GLRStack structure
 #[cfg(feature = "pure-rust")]
@@ -57,6 +60,7 @@ mod parser_v3;
 
 // Current parser version
 pub mod arena_allocator;
+#[cfg(feature = "pure-rust")]
 pub mod parser_v4;
 pub mod pure_external_scanner;
 pub mod pure_incremental;

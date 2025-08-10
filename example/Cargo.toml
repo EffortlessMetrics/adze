@@ -8,13 +8,15 @@ publish = false
 [features]
 default = ["pure-rust"]
 pure-rust = ["rust-sitter/pure-rust"]
-tree-sitter-c2rust = ["rust-sitter/tree-sitter-c2rust"]
+c-backend = ["rust-sitter/tree-sitter-c2rust", "dep:tree-sitter-c2rust"]
 tree-sitter-standard = ["rust-sitter/tree-sitter-standard"]
 
 [dependencies]
 rust-sitter = { path = "../runtime", default-features = false }
 codemap = "0.1.3"
 codemap-diagnostic = "0.1.1"
+# Only needed in C path
+tree-sitter-c2rust = { version = "0.25.2", optional = true }
 
 [build-dependencies]
 rust-sitter-tool = { path = "../tool" }
