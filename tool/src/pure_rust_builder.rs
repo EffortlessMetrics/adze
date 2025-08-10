@@ -4,7 +4,7 @@
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 use anyhow::{Context, Result};
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::Grammar;
+use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
 use serde_json::Value;
 use std::fs;
@@ -45,6 +45,97 @@ pub struct BuildResult {
     pub parser_code: String,
     /// Generated NODE_TYPES.json content
     pub node_types_json: String,
+}
+
+/// Desugar pattern wrappers into unit productions
+/// For any non-terminal N whose only production is a pattern/token T,
+/// ensure we have an explicit unit rule N -> T
+fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
+    let mut new_rules = Vec::new();
+    let mut next_symbol_id = SymbolId(1000); // Start with a high ID to avoid conflicts
+    
+    // Find the maximum existing symbol ID
+    for id in grammar.rules.keys() {
+        if id.0 >= next_symbol_id.0 {
+            next_symbol_id = SymbolId(id.0 + 1);
+        }
+    }
+    for id in grammar.tokens.keys() {
+        if id.0 >= next_symbol_id.0 {
+            next_symbol_id = SymbolId(id.0 + 1);
+        }
+    }
+    
+    eprintln!("Desugaring: Checking for pattern wrappers to desugar...");
+    eprintln!("Desugaring: Current tokens in grammar:");
+    for (token_id, token) in &grammar.tokens {
+        eprintln!("  Token {}: {} = {:?}", token_id.0, token.name, token.pattern);
+    }
+    
+    // Check each non-terminal to see if it needs desugaring
+    for (nt_id, existing_rules) in grammar.rules.clone() {
+        // Look for non-terminals that represent enum variants with patterns
+        if let Some(nt_name) = grammar.rule_names.get(&nt_id) {
+            eprintln!("Desugaring: Checking non-terminal '{}' (id={})", nt_name, nt_id.0);
+            
+            // Check if this is a wrapper non-terminal (like Expression_Number)
+            // that should directly produce a token but has no rules yet
+            if (nt_name.contains("_Number") || nt_name.contains("Number")) && existing_rules.is_empty() {
+                eprintln!("  Found pattern wrapper '{}' with no rules", nt_name);
+                
+                // Find the corresponding token
+                // First look for a token with ID matching the pattern (e.g., _2 for number token)
+                let mut token_id = None;
+                
+                // Look for token by pattern - number tokens contain \d
+                for (tid, token) in &grammar.tokens {
+                    if matches!(&token.pattern, TokenPattern::Regex(r) if r.contains(r"\d")) {
+                        eprintln!("  Found number token: {} (id={})", token.name, tid.0);
+                        token_id = Some(*tid);
+                        break;
+                    }
+                }
+                
+                // Also check for tokens named like "_2" which might be the number token
+                if token_id.is_none() {
+                    for (tid, token) in &grammar.tokens {
+                        if token.name.starts_with("_") {
+                            // Check if this is a number-like token
+                            eprintln!("  Checking token '{}' (id={})", token.name, tid.0);
+                            token_id = Some(*tid);
+                            break;
+                        }
+                    }
+                }
+                
+                if let Some(tid) = token_id {
+                    // Add unit production: Expression_Number -> number_token
+                    let unit_rule = Rule {
+                        lhs: nt_id,
+                        rhs: vec![Symbol::Terminal(tid)],
+                        precedence: None,
+                        associativity: None,
+                        fields: vec![],
+                        production_id: rust_sitter_ir::ProductionId((nt_id.0.saturating_mul(1000)).saturating_add(new_rules.len() as u16)),
+                    };
+                    
+                    eprintln!("  Adding unit rule: {} -> Terminal({})", nt_id.0, tid.0);
+                    new_rules.push(unit_rule);
+                } else {
+                    eprintln!("  WARNING: Could not find token for pattern wrapper '{}'", nt_name);
+                }
+            }
+        }
+    }
+    
+    eprintln!("Desugaring: Adding {} new unit rules", new_rules.len());
+    
+    // Add the new rules to the grammar
+    for rule in new_rules {
+        grammar.add_rule(rule);
+    }
+    
+    Ok(())
 }
 
 /// Build a parser from a grammar.js file
@@ -165,6 +256,9 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     // Ensure the grammar has a symbol registry
     let _ = grammar.get_or_build_registry();
 
+    // Step 0: Desugar pattern wrappers into unit productions
+    desugar_pattern_wrappers(&mut grammar)?;
+    
     // Step 1: Compute FIRST/FOLLOW sets
     let first_follow = FirstFollowSets::compute(&grammar);
 
