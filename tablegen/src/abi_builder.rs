@@ -275,7 +275,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             };
 
             // Export the language function for FFI
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             pub unsafe extern "C" fn #language_fn_ident() -> *const TSLanguage {
                 &LANGUAGE as *const TSLanguage
             }
