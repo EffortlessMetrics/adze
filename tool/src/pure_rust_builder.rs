@@ -97,6 +97,14 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
 
     // Find all grammar definitions
     let grammars = crate::generate_grammars(root_file);
+    
+    // Debug: write to file
+    {
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::File::create("/tmp/rust_sitter_grammars.txt") {
+            writeln!(f, "Found {} grammars from {}", grammars.len(), root_file.display()).ok();
+        }
+    }
 
     for grammar_json in grammars {
         // Convert serde_json::Value to string

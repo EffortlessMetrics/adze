@@ -71,6 +71,17 @@ pub fn build_parsers(root_file: &Path) {
     let use_pure_rust = std::env::var("CARGO_FEATURE_PURE_RUST").is_ok() 
         || std::env::var("RUST_SITTER_USE_PURE_RUST").is_ok();
     
+    // Debug to file to bypass any stderr capture issues
+    {
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::File::create("/tmp/rust_sitter_debug.txt") {
+            writeln!(f, "build_parsers called for: {}", root_file.display()).ok();
+            writeln!(f, "CARGO_FEATURE_PURE_RUST={:?}", std::env::var("CARGO_FEATURE_PURE_RUST")).ok();
+            writeln!(f, "RUST_SITTER_USE_PURE_RUST={:?}", std::env::var("RUST_SITTER_USE_PURE_RUST")).ok();
+            writeln!(f, "use_pure_rust={}", use_pure_rust).ok();
+        }
+    }
+    
     if use_pure_rust {
         // Use pure-Rust builder exclusively
         use pure_rust_builder::{BuildOptions, build_parser_for_crate};

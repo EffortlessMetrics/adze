@@ -12,5 +12,6 @@ fn main() {
         }
     }
 
-    rust_sitter_tool::build_parsers(&PathBuf::from("src/main.rs"));
+    // Use lib.rs as the root since that's where the grammar modules are defined
+    rust_sitter_tool::build_parsers(&PathBuf::from("src/lib.rs"));
 }

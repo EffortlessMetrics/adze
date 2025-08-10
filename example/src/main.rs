@@ -4,18 +4,11 @@ use codemap::CodeMap;
 use codemap_diagnostic::{ColorConfig, Diagnostic, Emitter, Level, SpanLabel, SpanStyle};
 use rust_sitter::errors::{ParseError, ParseErrorReason};
 
-mod arithmetic;
-mod external_word_example;
-mod optionals;
-mod repetitions;
-mod words;
-// mod json;
-// mod c_like;
-mod performance_test;
-mod test_precedence;
-mod test_whitespace;
-// mod field_test;
-mod ambiguous;
+// Import modules from the lib instead of compiling them locally
+use rust_sitter_example::{
+    arithmetic, external_word_example, optionals, repetitions, words,
+    performance_test, test_precedence, test_whitespace, ambiguous
+};
 
 fn convert_parse_error_to_diagnostics(
     file_span: &codemap::Span,
