@@ -6,6 +6,9 @@ use std::sync::{Arc, Mutex};
 /// Wrapper for external scanners with automatic cleanup
 pub enum ScannerWrapper {
     /// Rust scanner (Arc+Mutex for thread-safety and mutable access)
+    /// We need interior mutability because ExternalScanner::scan takes &mut self,
+    /// but parsers may share scanners across components. Arc<Mutex<..>> keeps the
+    /// API stateful without forcing global &mut borrows.
     Rust(Arc<Mutex<dyn ExternalScanner + Send + Sync>>),
     /// C scanner with automatic cleanup via Drop
     C(ScannerGuard),
@@ -85,8 +88,8 @@ mod tests {
     }
 
     impl ExternalScanner for TestScanner {
-        fn scan(&self, _lexer: &mut dyn super::Lexer, _valid_symbols: &[bool]) -> bool {
-            false
+        fn scan(&self, _lexer: &mut dyn crate::external_scanner::Lexer, _valid_symbols: &[bool]) -> Option<usize> {
+            None
         }
 
         fn serialize(&self, _buffer: &mut Vec<u8>) {}

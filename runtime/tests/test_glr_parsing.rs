@@ -338,6 +338,7 @@ fn test_glr_expected_symbols() {
     parser.process_token(SYM_NUMBER, "1", 0);
     parser.process_token(SYM_PLUS, "+", 2);
     
+    // This section uses optional incremental-GLR APIs; keep it discoverable but gated.
     #[cfg(feature = "incremental_glr")]
     {
         let expected = parser.expected_symbols();
@@ -357,6 +358,7 @@ fn test_glr_state_management() {
     parser1.process_token(SYM_NUMBER, "1", 0);
     parser1.process_token(SYM_PLUS, "+", 2);
     
+    // This section uses optional incremental-GLR APIs; keep it discoverable but gated.
     #[cfg(feature = "incremental_glr")]
     {
         // Save state
