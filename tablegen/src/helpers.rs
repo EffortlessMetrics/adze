@@ -19,13 +19,14 @@ use rust_sitter_ir::{Grammar, SymbolId};
 /// use rust_sitter_ir::Grammar;
 /// use rust_sitter_glr_core::ParseTable;
 /// use rust_sitter_tablegen::collect_token_indices;
-/// 
+///
 /// let grammar = Grammar::new("my_grammar".to_string());
 /// // assume parse_table is built from grammar processing
 /// let token_indices = collect_token_indices(&grammar, &parse_table);
 /// // token_indices will include the EOF column and all grammar tokens
 /// // EOF column is always included (but not necessarily at index 0)
 /// ```
+#[must_use]
 pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec<usize> {
     let mut token_indices = Vec::new();
 
@@ -69,13 +70,14 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
 /// ```ignore
 /// use rust_sitter_glr_core::ParseTable;
 /// use rust_sitter_tablegen::eof_accepts_or_reduces;
-/// 
+///
 /// // assume parse_table is built from grammar processing
 /// let start_can_be_empty = eof_accepts_or_reduces(&parse_table);
 /// if start_can_be_empty {
 ///     println!("Grammar has a nullable start symbol");
 /// }
 /// ```
+#[must_use]
 pub fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
     // Get EOF column index
     let eof_idx = match parse_table.symbol_to_index.get(&SymbolId(0)) {

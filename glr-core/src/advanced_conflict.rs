@@ -1,5 +1,8 @@
-// Advanced conflict resolution strategies for GLR parsing
-// This module provides additional conflict resolution capabilities beyond the basic resolver
+//! Advanced conflict resolution strategies for GLR parsing
+//!
+//! This module provides additional conflict resolution capabilities beyond the basic resolver,
+//! including precedence and associativity-based conflict resolution, and detailed conflict
+//! analysis statistics.
 
 use crate::{Action, ParseTable};
 use rust_sitter_ir::{Associativity, Grammar, PrecedenceKind, SymbolId};

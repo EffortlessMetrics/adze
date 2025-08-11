@@ -8,6 +8,13 @@ license = "MIT"
 repository = "https://github.com/hydro-project/rust-sitter"
 homepage = "https://github.com/hydro-project/rust-sitter"
 documentation = "https://docs.rs/rust-sitter-tablegen"
+include = [
+    "Cargo.toml",
+    "LICENSE*",
+    "README*",
+    "src/**",
+    "MIGRATING.md"
+]
 
 [dependencies]
 rust-sitter-ir = { version = "0.6.0", path = "../ir" }
