@@ -17,28 +17,32 @@ echo "✅ Format check passed"
 echo
 
 # Clippy lints
-echo "→ Running clippy on tablegen..."
-cargo clippy -p rust-sitter-tablegen || {
+echo "→ Running clippy on tablegen (strict)..."
+cargo clippy -p rust-sitter-tablegen -- -D warnings || {
     echo "❌ Clippy found issues. Fix the warnings above."
     exit 1
 }
-echo "✅ Clippy passed for tablegen"
+echo "✅ Clippy passed for tablegen (strict mode)"
 echo
 
-echo "→ Running clippy on ir..."
-cargo clippy -p rust-sitter-ir || {
-    echo "❌ Clippy found issues. Fix the warnings above."
+echo "→ Running clippy on ir (permissive)..."
+cargo clippy -p rust-sitter-ir 2>&1 | tee /tmp/clippy-ir.log
+if grep -q "error:" /tmp/clippy-ir.log; then
+    echo "❌ Clippy found errors in ir. Fix these before release."
     exit 1
-}
-echo "✅ Clippy passed for ir"
+else
+    echo "✅ Clippy check complete for ir (warnings allowed)"
+fi
 echo
 
-echo "→ Running clippy on glr-core..."
-cargo clippy -p rust-sitter-glr-core || {
-    echo "❌ Clippy found issues. Fix the warnings above."
+echo "→ Running clippy on glr-core (permissive)..."
+cargo clippy -p rust-sitter-glr-core 2>&1 | tee /tmp/clippy-glr.log
+if grep -q "error:" /tmp/clippy-glr.log; then
+    echo "❌ Clippy found errors in glr-core. Fix these before release."
     exit 1
-}
-echo "✅ Clippy passed for glr-core"
+else
+    echo "✅ Clippy check complete for glr-core (warnings allowed)"
+fi
 echo
 
 # Tests

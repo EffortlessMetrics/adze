@@ -8,12 +8,16 @@ license = "MIT"
 repository = "https://github.com/hydro-project/rust-sitter"
 homepage = "https://github.com/hydro-project/rust-sitter"
 documentation = "https://docs.rs/rust-sitter-ir"
+readme = "README.md"
 include = [
     "Cargo.toml",
     "LICENSE*",
     "README*",
     "src/**"
 ]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [dependencies]
 indexmap = { version = "2.0", features = ["serde"] }
