@@ -23,8 +23,8 @@ use rust_sitter_ir::{Grammar, SymbolId};
 /// let grammar = Grammar::new("my_grammar".to_string());
 /// // assume parse_table is built from grammar processing
 /// let token_indices = collect_token_indices(&grammar, &parse_table);
-/// // token_indices will include EOF (symbol 0) and all grammar tokens
-/// assert!(token_indices.contains(&0)); // EOF is always included
+/// // token_indices will include the EOF column and all grammar tokens
+/// // EOF column is always included (but not necessarily at index 0)
 /// ```
 pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec<usize> {
     let mut token_indices = Vec::new();
