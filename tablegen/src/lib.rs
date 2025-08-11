@@ -28,6 +28,9 @@ pub mod parser;
 pub mod serializer;
 pub mod validation;
 
+// Re-export commonly used helpers at crate root for ergonomics
+pub use helpers::{collect_token_indices, eof_accepts_or_reduces};
+
 // Re-export key types
 pub use abi_builder::AbiLanguageBuilder;
 pub use compress::{

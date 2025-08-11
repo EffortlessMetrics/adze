@@ -12,6 +12,20 @@ use rust_sitter_ir::{Grammar, SymbolId};
 ///
 /// # Returns
 /// A sorted vector of column indices for all tokens, including EOF
+///
+/// # Examples
+///
+/// ```ignore
+/// use rust_sitter_ir::Grammar;
+/// use rust_sitter_glr_core::ParseTable;
+/// use rust_sitter_tablegen::collect_token_indices;
+/// 
+/// let grammar = Grammar::new("my_grammar".to_string());
+/// // assume parse_table is built from grammar processing
+/// let token_indices = collect_token_indices(&grammar, &parse_table);
+/// // token_indices will include EOF (symbol 0) and all grammar tokens
+/// assert!(token_indices.contains(&0)); // EOF is always included
+/// ```
 pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec<usize> {
     let mut token_indices = Vec::new();
 
@@ -49,6 +63,19 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
 /// This is used to detect nullable start symbols in GLR grammars.
 /// Returns true if state 0 can accept or reduce on EOF, indicating
 /// that the start symbol can be empty (nullable).
+///
+/// # Examples
+///
+/// ```ignore
+/// use rust_sitter_glr_core::ParseTable;
+/// use rust_sitter_tablegen::eof_accepts_or_reduces;
+/// 
+/// // assume parse_table is built from grammar processing
+/// let start_can_be_empty = eof_accepts_or_reduces(&parse_table);
+/// if start_can_be_empty {
+///     println!("Grammar has a nullable start symbol");
+/// }
+/// ```
 pub fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
     // Get EOF column index
     let eof_idx = match parse_table.symbol_to_index.get(&SymbolId(0)) {
