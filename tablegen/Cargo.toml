@@ -26,6 +26,7 @@ tree-sitter-c2rust = { version = "0.25.2", optional = true }
 [dev-dependencies]
 proptest = "1.5"
 insta = "1.40"
+rustc-hash = "2.1"
 
 [features]
 default = ["tree-sitter-c2rust"]

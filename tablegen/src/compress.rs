@@ -468,7 +468,7 @@ impl TableCompressor {
     /// This method is deprecated. Please use the new `compress()` method with explicit
     /// `token_indices` and `start_can_be_empty` parameters. See MIGRATING.md for details.
     #[deprecated(
-        since = "0.1.0",
+        since = "0.7.0",
         note = "Use compress() with token_indices and start_can_be_empty parameters. \
                 See tablegen/MIGRATING.md for migration guide."
     )]

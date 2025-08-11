@@ -2,7 +2,16 @@ use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::{Grammar, SymbolId};
 
 /// Collect all token column indices from a parse table
-/// Returns a sorted, deduplicated list of column indices for all tokens (including EOF)
+/// 
+/// Returns a sorted, deduplicated list of column indices for all tokens.
+/// **Note:** This function ALWAYS includes the EOF token (symbol 0) in the returned indices.
+/// 
+/// # Parameters
+/// - `grammar`: The grammar containing token definitions
+/// - `parse_table`: The parse table with symbol-to-index mappings
+/// 
+/// # Returns
+/// A sorted vector of column indices for all tokens, including EOF
 pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec<usize> {
     let mut token_indices = Vec::new();
     

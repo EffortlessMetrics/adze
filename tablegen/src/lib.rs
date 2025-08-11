@@ -3,7 +3,15 @@
 #![warn(missing_docs)]
 
 //! Static table generation and compression for pure-Rust Tree-sitter
-//! This module implements Tree-sitter's exact table compression algorithms
+//! 
+//! This module implements Tree-sitter's exact table compression algorithms.
+//! 
+//! ## Important Notes
+//! 
+//! - The `helpers::collect_token_indices()` function ALWAYS includes the EOF token (symbol 0)
+//!   in its output. This is essential for proper table compression.
+//! - When using `TableCompressor::compress()`, ensure you provide correct `token_indices` 
+//!   and `start_can_be_empty` parameters. See MIGRATING.md for migration guidance.
 
 pub mod abi;
 pub mod abi_builder;
