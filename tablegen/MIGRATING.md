@@ -20,12 +20,15 @@ use rust_sitter_glr_core::Action;
 let token_indices = collect_token_indices(&grammar, &parse_table);
 
 // Step 2: Determine if start symbol can be empty
-// Check EOF cell in state 0 for Accept/Reduce actions
-let eof_idx = *parse_table.symbol_to_index.get(&SymbolId(0)).unwrap();
-let state0 = &parse_table.action_table[0];
-let start_can_be_empty = state0[eof_idx].iter().any(|a| 
-    matches!(a, Action::Accept | Action::Reduce(_))
-);
+// Using the helper function (recommended):
+let start_can_be_empty = rust_sitter_tablegen::helpers::eof_accepts_or_reduces(&parse_table);
+
+// Or manually check EOF cell in state 0 for Accept/Reduce actions:
+// let eof_idx = *parse_table.symbol_to_index.get(&SymbolId(0)).unwrap();
+// let state0 = &parse_table.action_table[0];
+// let start_can_be_empty = state0[eof_idx].iter().any(|a| 
+//     matches!(a, Action::Accept | Action::Reduce(_))
+// );
 
 // Step 3: Call compress with new parameters
 let compressor = TableCompressor::new();

@@ -179,6 +179,23 @@ impl TableCompressor {
     ) -> Result<CompressedTables, TableGenError> {
         // Convert token_indices to FxHashSet for O(1) membership checks with better performance
         use rustc_hash::FxHashSet;
+
+        // Debug assertions to verify invariants (zero cost in release builds)
+        debug_assert!(
+            token_indices.windows(2).all(|w| w[0] < w[1]),
+            "token_indices must be strictly increasing (sorted and deduped)"
+        );
+
+        // Only assert EOF presence if the parse table actually exposes an EOF mapping
+        // Don't assume EOF is at column 0 - derive it from symbol_to_index
+        use rust_sitter_ir::SymbolId;
+        if let Some(&eof_idx) = parse_table.symbol_to_index.get(&SymbolId(0)) {
+            debug_assert!(
+                token_indices.contains(&eof_idx),
+                "token_indices must contain EOF column (derived from symbol_to_index)"
+            );
+        }
+
         let token_set: FxHashSet<usize> = token_indices.iter().copied().collect();
 
         // Fetch EOF column index once and reuse it everywhere

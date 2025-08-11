@@ -958,7 +958,7 @@ mod tests {
         let grammar = Grammar::new("test".to_string());
 
         // Create a simple parse table
-        let parse_table = ParseTable {
+        let mut parse_table = ParseTable {
             action_table: vec![
                 vec![vec![Action::Shift(StateId(1))], vec![Action::Error]],
                 vec![vec![Action::Reduce(RuleId(0))], vec![Action::Accept]],
@@ -970,6 +970,9 @@ mod tests {
             symbol_to_index: std::collections::BTreeMap::new(),
             external_scanner_states: vec![],
         };
+
+        // Add EOF to symbol_to_index (required invariant)
+        parse_table.symbol_to_index.insert(SymbolId(0), 0);
 
         let mut generator = StaticLanguageGenerator::new(grammar, parse_table);
 
@@ -986,7 +989,8 @@ mod tests {
         let _grammar = Grammar::new("large_test".to_string());
 
         // Create a parse table that exceeds small table threshold
-        let parse_table = ParseTable {
+        let mut parse_table = ParseTable {
+            // Make most cells Error, but let state 0 / EOF accept so compression can succeed
             action_table: vec![vec![vec![Action::Error]; 10]; 40000],
             goto_table: vec![vec![StateId(0); 10]; 40000],
             symbol_metadata: vec![],
@@ -996,16 +1000,21 @@ mod tests {
             external_scanner_states: vec![],
         };
 
+        // EOF mapping (column 0)
+        parse_table.symbol_to_index.insert(SymbolId(0), 0);
+
+        // Give state 0 / EOF an Accept so the compressor has a valid path
+        parse_table.action_table[0][0] = vec![Action::Accept];
+
         let compressor = TableCompressor::new();
         // Use proper helper to collect token indices
         let grammar = Grammar::default(); // Minimal grammar for test
         let token_indices = helpers::collect_token_indices(&grammar, &parse_table);
-        // Compute start_can_be_empty based on EOF cell in state 0
-        let start_can_be_empty = false; // Conservative default for empty test
+        // We just added Accept on EOF, so this is true for the large-table test
+        let start_can_be_empty = true;
         let result = compressor.compress(&parse_table, &token_indices, start_can_be_empty);
 
-        assert!(result.is_ok());
-        let compressed = result.unwrap();
+        let compressed = result.expect("large table should compress");
 
         // Should use large table format
         assert_eq!(compressed.small_table_threshold, 32768);
@@ -1183,7 +1192,7 @@ mod tests {
 
     #[test]
     fn test_compressed_tables_validation() {
-        let parse_table = ParseTable {
+        let mut parse_table = ParseTable {
             action_table: vec![
                 vec![vec![Action::Shift(StateId(1))], vec![Action::Error]],
                 vec![vec![Action::Reduce(RuleId(0))], vec![Action::Accept]],
@@ -1195,6 +1204,9 @@ mod tests {
             symbol_to_index: std::collections::BTreeMap::new(),
             external_scanner_states: vec![],
         };
+
+        // Add EOF to symbol_to_index (required invariant)
+        parse_table.symbol_to_index.insert(SymbolId(0), 0);
 
         let compressor = TableCompressor::new();
         // Use proper helper to collect token indices
@@ -1256,7 +1268,7 @@ mod tests {
         grammar.tokens.insert(SymbolId(0), token);
 
         // Simple parse table
-        let parse_table = ParseTable {
+        let mut parse_table = ParseTable {
             action_table: vec![
                 vec![vec![Action::Shift(StateId(1))]],
                 vec![vec![Action::Accept]],
@@ -1268,6 +1280,9 @@ mod tests {
             symbol_to_index: std::collections::BTreeMap::new(),
             external_scanner_states: vec![],
         };
+
+        // Add EOF to symbol_to_index (required invariant)
+        parse_table.symbol_to_index.insert(SymbolId(0), 0);
 
         let mut generator = StaticLanguageGenerator::new(grammar, parse_table);
         generator.compress_tables().unwrap();

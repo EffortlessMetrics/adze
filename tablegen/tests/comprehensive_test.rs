@@ -97,7 +97,7 @@ fn create_test_parse_table() -> ParseTable {
 
     parse_table.state_count = 4;
     parse_table.symbol_count = 4;
-    
+
     // Add symbol to index mapping, including EOF (symbol 0)
     parse_table.symbol_to_index.insert(SymbolId(0), 0); // EOF at column 0
     parse_table.symbol_to_index.insert(SymbolId(1), 1); // token 1
@@ -122,12 +122,13 @@ fn test_table_compression() {
     let compressor = TableCompressor::new();
 
     // Use the real helper function to collect token indices (mirrors production)
-    let token_indices = rust_sitter_tablegen::helpers::collect_token_indices(&grammar, &parse_table);
-    
+    let token_indices =
+        rust_sitter_tablegen::helpers::collect_token_indices(&grammar, &parse_table);
+
     // Canary check: Verify state 0 invariants before compression
     // This ensures our parse table is valid for GLR parsing
     assert_state0_basic_invariants(&parse_table, &token_indices);
-    
+
     let compressed = compressor.compress(&parse_table, &token_indices, false);
     assert!(compressed.is_ok());
 
@@ -139,7 +140,7 @@ fn test_table_compression() {
 fn assert_state0_basic_invariants(parse_table: &ParseTable, token_indices: &[usize]) {
     use rust_sitter_ir::SymbolId;
     use std::collections::HashSet;
-    
+
     // Check for duplicate indices
     let indices_set: HashSet<_> = token_indices.iter().copied().collect();
     assert_eq!(
@@ -147,28 +148,31 @@ fn assert_state0_basic_invariants(parse_table: &ParseTable, token_indices: &[usi
         token_indices.len(),
         "token_indices must not contain duplicates"
     );
-    
+
     // Check that EOF is in symbol_to_index and token_indices
     let eof_idx = *parse_table
         .symbol_to_index
         .get(&SymbolId(0))
         .expect("EOF must be in symbol_to_index");
-    
+
     assert!(
         token_indices.iter().any(|&i| i == eof_idx),
         "EOF column must be in token_indices"
     );
-    
+
     // Check that state 0 exists and has actions
-    assert!(!parse_table.action_table.is_empty(), "Parse table must have at least state 0");
-    
+    assert!(
+        !parse_table.action_table.is_empty(),
+        "Parse table must have at least state 0"
+    );
+
     let state0 = &parse_table.action_table[0];
-    
+
     // Check if any token has an action in state 0
-    let has_any_action = token_indices.iter().any(|&idx| {
-        state0.get(idx).map_or(false, |cell| !cell.is_empty())
-    });
-    
+    let has_any_action = token_indices
+        .iter()
+        .any(|&idx| state0.get(idx).map_or(false, |cell| !cell.is_empty()));
+
     assert!(
         has_any_action,
         "State 0 must have at least one action for token columns"

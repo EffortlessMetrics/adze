@@ -41,12 +41,15 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
     token_indices
 }
 
-/// Check if state 0 has an Accept or Reduce action in the EOF column.
-/// This is used to detect nullable start symbols in GLR grammars.
+/// Returns `true` if state 0 has an **Accept** or **Reduce** action in the EOF column.
 ///
+/// This is a convenience for deriving `start_can_be_empty` from a `ParseTable`.
+/// It only inspects the EOF cell of state 0.
+///
+/// This is used to detect nullable start symbols in GLR grammars.
 /// Returns true if state 0 can accept or reduce on EOF, indicating
 /// that the start symbol can be empty (nullable).
-pub(crate) fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
+pub fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
     // Get EOF column index
     let eof_idx = match parse_table.symbol_to_index.get(&SymbolId(0)) {
         Some(&idx) => idx,
@@ -62,6 +65,79 @@ pub(crate) fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
 
     // Check if EOF column exists and has Accept or Reduce actions
     state0.get(eof_idx).map_or(false, |cell| {
-        cell.iter().any(|action| matches!(action, Action::Accept | Action::Reduce(_)))
+        cell.iter()
+            .any(|action| matches!(action, Action::Accept | Action::Reduce(_)))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_sitter_glr_core::ParseTable;
+    use rust_sitter_ir::{Grammar, SymbolId};
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn test_collect_token_indices() {
+        let grammar = Grammar::default();
+        let mut parse_table = ParseTable {
+            action_table: vec![],
+            goto_table: vec![],
+            symbol_metadata: vec![],
+            state_count: 0,
+            symbol_count: 5,
+            symbol_to_index: BTreeMap::new(),
+            external_scanner_states: vec![],
+        };
+
+        // Add some symbols to the mapping
+        parse_table.symbol_to_index.insert(SymbolId(0), 0); // EOF - always present
+        parse_table.symbol_to_index.insert(SymbolId(1), 3); // Some token at column 3
+        parse_table.symbol_to_index.insert(SymbolId(2), 1); // Another token at column 1
+        parse_table.symbol_to_index.insert(SymbolId(3), 3); // Duplicate column (should be deduped)
+        parse_table.symbol_to_index.insert(SymbolId(4), 2); // Token at column 2
+
+        let indices = collect_token_indices(&grammar, &parse_table);
+
+        // Should be sorted, deduped, and always contain EOF (0)
+        assert_eq!(indices, vec![0, 1, 2, 3]);
+
+        // Verify EOF is always included
+        assert!(
+            indices.contains(&0),
+            "Token indices must always include EOF column (0)"
+        );
+
+        // Verify sorted
+        let mut sorted = indices.clone();
+        sorted.sort_unstable();
+        assert_eq!(indices, sorted, "Token indices must be sorted");
+
+        // Verify deduped
+        let mut deduped = indices.clone();
+        deduped.dedup();
+        assert_eq!(indices, deduped, "Token indices must be deduplicated");
+    }
+
+    #[test]
+    fn test_collect_token_indices_empty() {
+        let grammar = Grammar::default();
+        let mut parse_table = ParseTable {
+            action_table: vec![],
+            goto_table: vec![],
+            symbol_metadata: vec![],
+            state_count: 0,
+            symbol_count: 1,
+            symbol_to_index: BTreeMap::new(),
+            external_scanner_states: vec![],
+        };
+
+        // Only EOF in the mapping
+        parse_table.symbol_to_index.insert(SymbolId(0), 0);
+
+        let indices = collect_token_indices(&grammar, &parse_table);
+
+        // Should still contain EOF
+        assert_eq!(indices, vec![0]);
+    }
 }
