@@ -1,7 +1,42 @@
 // Test for nullable start symbol handling in table compression
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, Action};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, Action, ParseTable};
 use rust_sitter_ir::*;
 use rust_sitter_tablegen::{helpers::collect_token_indices, compress::TableCompressor};
+use rustc_hash::FxHashSet;
+
+/// Assert core invariants about state 0 in the parse table
+fn assert_state0_invariants(grammar: &Grammar, pt: &ParseTable) {
+    use rust_sitter_ir::SymbolId;
+    use rust_sitter_glr_core::Action;
+
+    let token_indices = collect_token_indices(grammar, pt);
+    let eof_idx = *pt.symbol_to_index.get(&SymbolId(0)).expect("EOF must be in symbol_to_index");
+    
+    // Invariant 1: EOF column must be in token_indices
+    assert!(token_indices.iter().any(|&i| i == eof_idx), 
+        "EOF column {} must be in token_indices", eof_idx);
+    
+    // Invariant 2: No duplicate indices
+    let indices_set: FxHashSet<_> = token_indices.iter().copied().collect();
+    assert_eq!(indices_set.len(), token_indices.len(), 
+        "token_indices must not contain duplicates");
+
+    let s0 = &pt.action_table[0];
+    
+    // Check if any token column has a shift action
+    let has_token_shift = token_indices.iter().any(|&i| {
+        s0.get(i).map_or(false, |cell| cell.iter().any(|a| matches!(a, Action::Shift(_))))
+    });
+    
+    // Check if EOF cell has Accept or Reduce
+    let eof_accept_or_reduce = s0.get(eof_idx).map_or(false, |cell| {
+        cell.iter().any(|a| matches!(a, Action::Accept | Action::Reduce(_)))
+    });
+
+    // Invariant 3: State 0 must be able to process input
+    assert!(has_token_shift || eof_accept_or_reduce,
+        "State 0 must shift some token OR (if Start is nullable) have Accept/Reduce on EOF");
+}
 
 #[test]
 fn nullable_start_allows_eof_accept_or_reduce() {
@@ -50,6 +85,9 @@ fn nullable_start_allows_eof_accept_or_reduce() {
     // Build FIRST/FOLLOW sets and parse table
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
+    
+    // Assert invariants about state 0
+    assert_state0_invariants(&grammar, &parse_table);
     
     // Collect token indices using helper (includes EOF)
     let token_indices = collect_token_indices(&grammar, &parse_table);
@@ -128,6 +166,9 @@ fn non_nullable_start_has_no_eof_reduce() {
     
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
+    
+    // Assert invariants about state 0
+    assert_state0_invariants(&grammar, &parse_table);
     
     let token_indices = collect_token_indices(&grammar, &parse_table);
     

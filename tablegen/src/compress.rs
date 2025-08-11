@@ -461,6 +461,36 @@ impl TableCompressor {
             row_offsets,
         })
     }
+    
+    /// Compatibility shim for old API - will be removed in next major version
+    /// 
+    /// # Deprecation Notice
+    /// This method is deprecated. Please use the new `compress()` method with explicit
+    /// `token_indices` and `start_can_be_empty` parameters. See MIGRATING.md for details.
+    #[deprecated(
+        since = "0.1.0",
+        note = "Use compress() with token_indices and start_can_be_empty parameters. \
+                See tablegen/MIGRATING.md for migration guide."
+    )]
+    #[allow(deprecated)]
+    pub fn compress_default(&self, parse_table: &ParseTable, grammar: &rust_sitter_ir::Grammar) -> Result<CompressedTables, TableGenError> {
+        use crate::helpers::collect_token_indices;
+        use rust_sitter_ir::SymbolId;
+        
+        // Collect token indices using helper
+        let token_indices = collect_token_indices(grammar, parse_table);
+        
+        // Determine if start can be empty by checking EOF cell in state 0
+        let start_can_be_empty = parse_table.symbol_to_index.get(&SymbolId(0))
+            .and_then(|&eof_idx| {
+                parse_table.action_table.get(0)
+                    .and_then(|state0| state0.get(eof_idx))
+                    .map(|cell| cell.iter().any(|a| matches!(a, Action::Accept | Action::Reduce(_))))
+            })
+            .unwrap_or(false);
+        
+        self.compress(parse_table, &token_indices, start_can_be_empty)
+    }
 }
 
 #[cfg(test)]
