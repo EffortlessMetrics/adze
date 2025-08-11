@@ -2,6 +2,7 @@
 name = "rust-sitter-ir"
 version = "0.6.0"
 edition = "2024"
+rust-version = "1.87"
 description = "Grammar Intermediate Representation for pure-Rust Tree-sitter"
 license = "MIT"
 repository = "https://github.com/hydro-project/rust-sitter"
