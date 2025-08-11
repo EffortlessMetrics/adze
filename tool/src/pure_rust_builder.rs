@@ -4,9 +4,8 @@
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 use anyhow::{Context, Result};
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, Token, TokenPattern, ProductionId};
+use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern, ProductionId};
 use rust_sitter_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
-use std::collections::BTreeMap;
 use serde_json::Value;
 use std::fs;
 use std::io::Write;
@@ -317,8 +316,11 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         writeln!(debug_file, "  '{}' -> SymbolId({})", name, symbol_id.0)?;
     }
 
-    // Debug: Print all rules in the grammar
+    // Debug: Print all rules in the grammar and verify desugaring
     writeln!(debug_file, "Debug: All rules in grammar:")?;
+    let mut wrappers_with_rules = 0;
+    let mut wrappers_without_rules = Vec::new();
+    
     for (symbol_id, rules) in &grammar.rules {
         writeln!(
             debug_file,
@@ -329,7 +331,29 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         for rule in rules {
             writeln!(debug_file, "    {:?} -> {:?}", rule.lhs, rule.rhs)?;
         }
+        
+        // Check if this is a wrapper that got desugared
+        if let Some(name) = grammar.rule_names.get(symbol_id) {
+            if rules.len() == 1 && rules[0].rhs.len() == 1 {
+                if let Symbol::Terminal(_) = &rules[0].rhs[0] {
+                    wrappers_with_rules += 1;
+                    writeln!(debug_file, "    -> This appears to be a desugared wrapper")?;
+                }
+            } else if rules.is_empty() {
+                wrappers_without_rules.push((symbol_id, name.clone()));
+            }
+        }
     }
+    
+    // Sanity check: Report any wrappers that didn't get rules
+    if !wrappers_without_rules.is_empty() {
+        writeln!(debug_file, "WARNING: {} non-terminals have no rules:", wrappers_without_rules.len())?;
+        for (id, name) in &wrappers_without_rules {
+            writeln!(debug_file, "  - Symbol {:?}: {}", id, name)?;
+        }
+    }
+    
+    writeln!(debug_file, "Debug: Found {} desugared wrappers", wrappers_with_rules)?;
 
     // Step 2: Build LR(1) automaton
     let parse_table = match build_lr1_automaton(&grammar, &first_follow) {
@@ -361,6 +385,25 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         "Debug: Goto table has {} entries",
         parse_table.goto_table.len()
     )?;
+    
+    // Sanity check: Verify all terminals are in symbol_to_index
+    let mut unmapped_terminals = Vec::new();
+    for token_id in grammar.tokens.keys() {
+        if !parse_table.symbol_to_index.contains_key(token_id) {
+            unmapped_terminals.push(token_id);
+        }
+    }
+    
+    if !unmapped_terminals.is_empty() {
+        writeln!(debug_file, "ERROR: {} terminals not in symbol_to_index:", unmapped_terminals.len())?;
+        for tid in &unmapped_terminals {
+            let name = grammar.tokens.get(*tid)
+                .map(|t| t.name.as_str())
+                .unwrap_or("<unknown>");
+            writeln!(debug_file, "  - Token {:?}: {}", tid, name)?;
+        }
+        eprintln!("ERROR: {} terminals not mapped in parse table", unmapped_terminals.len());
+    }
 
     // Debug: Print detailed action table content
     writeln!(debug_file, "Debug: Action table contents:")?;
@@ -421,23 +464,12 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         let compressor = TableCompressor::new();
         
         // Collect token indices for validation
-        let mut token_indices = Vec::new();
+        let token_indices = rust_sitter_tablegen::helpers::collect_token_indices(&grammar, &parse_table);
         
-        // EOF is always symbol 0 and should be in the symbol_to_index map
-        if let Some(&eof_idx) = parse_table.symbol_to_index.get(&SymbolId(0)) {
-            token_indices.push(eof_idx);
-        }
-        
-        // Add all grammar tokens
-        for token_id in grammar.tokens.keys() {
-            if let Some(&idx) = parse_table.symbol_to_index.get(token_id) {
-                token_indices.push(idx);
-            }
-        }
-        
-        // Check if start symbol can be empty (for proper validation)
-        // For now, assume it cannot be empty - this would require FIRST set computation
-        let start_can_be_empty = false;
+        // Check if start symbol can be empty using FIRST/FOLLOW sets
+        let start_can_be_empty = grammar.start_symbol()
+            .map(|sym| first_follow.is_nullable(sym))
+            .unwrap_or(false);
         
         let compressed_tables = compressor
             .compress(&parse_table, &token_indices, start_can_be_empty)

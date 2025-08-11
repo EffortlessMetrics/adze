@@ -12,6 +12,7 @@ pub mod compression;
 pub mod external_scanner;
 pub mod external_scanner_v2;
 pub mod generate;
+pub mod helpers;
 pub mod language_gen;
 pub mod lexer_gen;
 pub mod node_types;
@@ -497,22 +498,11 @@ impl StaticLanguageGenerator {
         let compressor = TableCompressor::new();
         
         // Collect token indices for validation
-        let mut token_indices = Vec::new();
-        
-        // EOF is always symbol 0 and should be in the symbol_to_index map
-        if let Some(&eof_idx) = self.parse_table.symbol_to_index.get(&SymbolId(0)) {
-            token_indices.push(eof_idx);
-        }
-        
-        // Add all grammar tokens
-        for token_id in self.grammar.tokens.keys() {
-            if let Some(&idx) = self.parse_table.symbol_to_index.get(token_id) {
-                token_indices.push(idx);
-            }
-        }
+        let token_indices = helpers::collect_token_indices(&self.grammar, &self.parse_table);
         
         // Check if start symbol can be empty (for proper validation)
-        // For now, assume it cannot be empty - this would require FIRST set computation
+        // Without access to FIRST/FOLLOW sets here, we conservatively assume false
+        // The actual computation happens in pure_rust_builder.rs where first_follow is available
         let start_can_be_empty = false;
         
         self.compressed_tables = Some(compressor.compress(&self.parse_table, &token_indices, start_can_be_empty)?);
