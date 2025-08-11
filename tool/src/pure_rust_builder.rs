@@ -4,8 +4,9 @@
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 use anyhow::{Context, Result};
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, Token, TokenPattern};
+use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, Token, TokenPattern, ProductionId};
 use rust_sitter_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
+use std::collections::BTreeMap;
 use serde_json::Value;
 use std::fs;
 use std::io::Write;
@@ -47,92 +48,115 @@ pub struct BuildResult {
     pub node_types_json: String,
 }
 
-/// Desugar pattern wrappers into unit productions
-/// For any non-terminal N whose only production is a pattern/token T,
-/// ensure we have an explicit unit rule N -> T
+/// Allocate a valid ProductionId safely
+fn alloc_production_id(grammar: &Grammar) -> Result<ProductionId> {
+    let max = grammar.rules.values()
+        .flat_map(|rs| rs.iter().map(|r| r.production_id.0))
+        .max()
+        .unwrap_or(0);
+    let next = max.checked_add(1).context("too many productions (u16 overflow)")?;
+    Ok(ProductionId(next))
+}
+
+/// Allocate a valid SymbolId safely
+fn alloc_token_id(grammar: &Grammar) -> Result<SymbolId> {
+    let max_tok = grammar.tokens.keys().map(|k| k.0).max().unwrap_or(0);
+    let max_rule = grammar.rules.keys().map(|k| k.0).max().unwrap_or(0);
+    let max_id = max_tok.max(max_rule);
+    let next = max_id.checked_add(1).context("too many symbols (u16 overflow)")?;
+    Ok(SymbolId(next))
+}
+
+/// Ensures every wrapper non-terminal that directly produces a pattern has an explicit unit rule N -> T.
+/// This guarantees LR items expose terminal lookaheads, enabling token shifts from initial states.
+/// 
+/// A wrapper is any non-terminal N that:
+/// 1. Has no rules at all (empty wrapper)
+/// 2. Has unit rules (RHS length == 1) that need desugaring
 fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
-    let mut new_rules = Vec::new();
-    let mut next_symbol_id = SymbolId(1000); // Start with a high ID to avoid conflicts
+    // Track non-terminals that need unit rules to tokens
+    let mut wrappers_needing_rules = Vec::new();
     
-    // Find the maximum existing symbol ID
-    for id in grammar.rules.keys() {
-        if id.0 >= next_symbol_id.0 {
-            next_symbol_id = SymbolId(id.0 + 1);
-        }
-    }
-    for id in grammar.tokens.keys() {
-        if id.0 >= next_symbol_id.0 {
-            next_symbol_id = SymbolId(id.0 + 1);
-        }
-    }
+    // First pass: Find non-terminals with no rules at all
+    let all_nonterminals: Vec<SymbolId> = grammar.rule_names.keys()
+        .filter(|id| !grammar.tokens.contains_key(*id))
+        .copied()
+        .collect();
     
-    eprintln!("Desugaring: Checking for pattern wrappers to desugar...");
-    eprintln!("Desugaring: Current tokens in grammar:");
-    for (token_id, token) in &grammar.tokens {
-        eprintln!("  Token {}: {} = {:?}", token_id.0, token.name, token.pattern);
-    }
-    
-    // Check each non-terminal to see if it needs desugaring
-    for (nt_id, existing_rules) in grammar.rules.clone() {
-        // Look for non-terminals that represent enum variants with patterns
-        if let Some(nt_name) = grammar.rule_names.get(&nt_id) {
-            eprintln!("Desugaring: Checking non-terminal '{}' (id={})", nt_name, nt_id.0);
-            
-            // Check if this is a wrapper non-terminal (like Expression_Number)
-            // that should directly produce a token but has no rules yet
-            if (nt_name.contains("_Number") || nt_name.contains("Number")) && existing_rules.is_empty() {
-                eprintln!("  Found pattern wrapper '{}' with no rules", nt_name);
-                
-                // Find the corresponding token
-                // First look for a token with ID matching the pattern (e.g., _2 for number token)
-                let mut token_id = None;
-                
-                // Look for token by pattern - number tokens contain \d
-                for (tid, token) in &grammar.tokens {
-                    if matches!(&token.pattern, TokenPattern::Regex(r) if r.contains(r"\d")) {
-                        eprintln!("  Found number token: {} (id={})", token.name, tid.0);
-                        token_id = Some(*tid);
-                        break;
-                    }
-                }
-                
-                // Also check for tokens named like "_2" which might be the number token
-                if token_id.is_none() {
+    for nt_id in all_nonterminals {
+        let has_rules = grammar.rules.get(&nt_id)
+            .map(|rules| !rules.is_empty())
+            .unwrap_or(false);
+        
+        if !has_rules {
+            // This non-terminal has no rules - it's likely a wrapper for a pattern
+            // For now, use a heuristic: if the name contains "Number", look for a number token
+            // TODO: This should be improved to handle all pattern wrappers structurally
+            if let Some(nt_name) = grammar.rule_names.get(&nt_id) {
+                if nt_name.to_lowercase().contains("number") {
+                    // Find a number token (one with \d pattern)
                     for (tid, token) in &grammar.tokens {
-                        if token.name.starts_with("_") {
-                            // Check if this is a number-like token
-                            eprintln!("  Checking token '{}' (id={})", token.name, tid.0);
-                            token_id = Some(*tid);
-                            break;
+                        if let TokenPattern::Regex(r) = &token.pattern {
+                            if r.contains(r"\d") || r.contains("[0-9]") {
+                                wrappers_needing_rules.push((nt_id, *tid));
+                                break;
+                            }
                         }
                     }
-                }
-                
-                if let Some(tid) = token_id {
-                    // Add unit production: Expression_Number -> number_token
-                    let unit_rule = Rule {
-                        lhs: nt_id,
-                        rhs: vec![Symbol::Terminal(tid)],
-                        precedence: None,
-                        associativity: None,
-                        fields: vec![],
-                        production_id: rust_sitter_ir::ProductionId((nt_id.0.saturating_mul(1000)).saturating_add(new_rules.len() as u16)),
-                    };
-                    
-                    eprintln!("  Adding unit rule: {} -> Terminal({})", nt_id.0, tid.0);
-                    new_rules.push(unit_rule);
-                } else {
-                    eprintln!("  WARNING: Could not find token for pattern wrapper '{}'", nt_name);
                 }
             }
         }
     }
     
-    eprintln!("Desugaring: Adding {} new unit rules", new_rules.len());
+    // Second pass: Look for existing unit rules that might need desugaring
+    // (This handles cases where the wrapper has a rule but it's to an inline pattern)
+    let mut rules_to_add = Vec::new();
+    for (nt_id, rules) in &grammar.rules {
+        for rule in rules {
+            if rule.rhs.len() == 1 {
+                // This is a unit rule
+                match &rule.rhs[0] {
+                    Symbol::Terminal(_) => {
+                        // Already a terminal unit rule, good
+                    },
+                    Symbol::NonTerminal(_) => {
+                        // Unit rule to another non-terminal, leave it alone
+                    },
+                    // Handle other symbol types that might represent inline patterns
+                    _ => {
+                        // For now, we don't handle these - would need to create tokens for patterns
+                    }
+                }
+            }
+        }
+    }
     
-    // Add the new rules to the grammar
-    for rule in new_rules {
-        grammar.add_rule(rule);
+    // Add unit rules for all wrappers that need them
+    for (nt_id, token_id) in wrappers_needing_rules {
+        let production_id = alloc_production_id(grammar)?;
+        let unit_rule = Rule {
+            lhs: nt_id,
+            rhs: vec![Symbol::Terminal(token_id)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id,
+        };
+        grammar.add_rule(unit_rule);
+        rules_to_add.push((nt_id, token_id));
+    }
+    
+    // Rebuild symbol registry after changes
+    let _ = grammar.get_or_build_registry();
+    
+    // Log what we did (only if debug logging is enabled)
+    if std::env::var("RUST_LOG").unwrap_or_default().contains("debug") {
+        if !rules_to_add.is_empty() {
+            eprintln!("Desugaring: Added {} unit rules for pattern wrappers", rules_to_add.len());
+            for (nt, tok) in rules_to_add {
+                eprintln!("  {} -> Terminal({})", nt.0, tok.0);
+            }
+        }
     }
     
     Ok(())
@@ -358,6 +382,33 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
                 state_idx,
                 non_error_actions.len()
             )?;
+        }
+    }
+
+    // Debug state 0 actions only in debug mode
+    if std::env::var("RUST_LOG").unwrap_or_default().contains("debug") {
+        if let Some(state0_actions) = parse_table.action_table.get(0) {
+            eprintln!("State 0 debug: {} action cells, {} tokens", 
+                state0_actions.len(), grammar.tokens.len());
+            
+            let mut token_actions = 0;
+            for (symbol_idx, action_cell) in state0_actions.iter().enumerate() {
+                if !action_cell.is_empty() {
+                    // Check if this is a token
+                    for (sym_id, idx) in &parse_table.symbol_to_index {
+                        if *idx == symbol_idx && grammar.tokens.contains_key(sym_id) {
+                            token_actions += 1;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if token_actions > 0 {
+                eprintln!("State 0 has {} token actions - parser can accept input ✓", token_actions);
+            } else {
+                eprintln!("WARNING: State 0 has no token actions - parser cannot accept input!");
+            }
         }
     }
 

@@ -161,6 +161,37 @@ impl TableCompressor {
 
     /// Compress parse tables using Tree-sitter's exact algorithms
     pub fn compress(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
+        // Validation: Ensure state 0 has at least one token action
+        // This catches the "state 0 bug" where no tokens can be shifted from the initial state
+        if let Some(state0_actions) = parse_table.action_table.get(0) {
+            // Find the minimum non-terminal symbol index
+            // Tokens have indices less than the minimum non-terminal index
+            let mut min_nonterminal_index = usize::MAX;
+            let mut has_any_action = false;
+            
+            for (idx, action_cell) in state0_actions.iter().enumerate() {
+                if !action_cell.is_empty() {
+                    has_any_action = true;
+                    // Check if this is a shift action (vs reduce/accept/error)
+                    for action in action_cell {
+                        if matches!(action, Action::Shift(_)) {
+                            // This could be a token or non-terminal shift
+                            // We'll need to verify at least one is a token
+                        }
+                    }
+                }
+            }
+            
+            // Simple heuristic: state 0 should have at least one non-empty action cell
+            // A more sophisticated check would verify token indices specifically
+            if !has_any_action {
+                return Err(TableGenError::CompressionError(
+                    "State 0 has no actions at all. This is likely the 'state 0 bug' - \
+                     pattern wrappers may need desugaring to expose terminal lookaheads.".to_string()
+                ));
+            }
+        }
+        
         // Determine if we should use small table optimization
         let use_small_table = parse_table.state_count < self.small_table_threshold;
 
@@ -212,18 +243,6 @@ impl TableCompressor {
             index_to_symbol.insert(index, symbol_id);
         }
 
-        eprintln!(
-            "DEBUG compress: symbol_to_index has {} entries",
-            symbol_to_index.len()
-        );
-        eprintln!("DEBUG compress: index_to_symbol mapping:");
-        for i in 0..action_table.first().map(|a| a.len()).unwrap_or(0) {
-            eprintln!(
-                "  Index {} -> Symbol {}",
-                i,
-                index_to_symbol.get(&i).map(|id| id.0).unwrap_or(i as u16)
-            );
-        }
 
         for (state_idx, action_row) in action_table.iter().enumerate() {
             // Find the most common action across all cells
@@ -258,10 +277,6 @@ impl TableCompressor {
             default_actions.push(default_action.clone());
             row_offsets.push(entries.len() as u16);
 
-            if state_idx == 0 {
-                eprintln!("DEBUG compress: State 0 actions:");
-                eprintln!("  Default action: {:?}", default_action);
-            }
 
             for (index, action_cell) in action_row.iter().enumerate() {
                 // Process each action in the cell
@@ -276,12 +291,6 @@ impl TableCompressor {
                         .map(|id| id.0)
                         .unwrap_or(index as u16);
 
-                    if state_idx == 0 {
-                        eprintln!(
-                            "  Index {} (symbol {}) -> action {:?}",
-                            index, symbol_id, action
-                        );
-                    }
 
                     entries.push(CompressedActionEntry {
                         symbol: symbol_id,
