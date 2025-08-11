@@ -115,7 +115,9 @@ fn test_table_compression() {
     let parse_table = create_test_parse_table();
     let compressor = TableCompressor::new();
 
-    let compressed = compressor.compress(&parse_table);
+    // Create minimal token indices for test
+    let token_indices = vec![0]; // EOF is always a token
+    let compressed = compressor.compress(&parse_table, &token_indices, false);
     assert!(compressed.is_ok());
 
     let compressed = compressed.unwrap();
@@ -250,7 +252,9 @@ fn test_compressed_table_format() {
     let parse_table = create_test_parse_table();
     let compressor = TableCompressor::new();
 
-    let compressed = compressor.compress(&parse_table).unwrap();
+    // Create minimal token indices for test
+    let token_indices = vec![0]; // EOF is always a token
+    let compressed = compressor.compress(&parse_table, &token_indices, false).unwrap();
 
     // Check action table structure
     assert_eq!(

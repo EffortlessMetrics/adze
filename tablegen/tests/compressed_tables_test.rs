@@ -54,7 +54,9 @@ fn test_compressed_table_generation() {
 
     // Compress the tables
     let compressor = TableCompressor::new();
-    let compressed = compressor.compress(&parse_table).unwrap();
+    // Create minimal token indices for test
+    let token_indices = vec![0]; // EOF is always a token
+    let compressed = compressor.compress(&parse_table, &token_indices, false).unwrap();
 
     // Verify compression
     assert!(!compressed.action_table.data.is_empty());
@@ -148,8 +150,10 @@ fn test_deterministic_table_generation() {
     let parse_table2 = build_lr1_automaton(&grammar2, &first_follow2).unwrap();
 
     let compressor = TableCompressor::new();
-    let compressed1 = compressor.compress(&parse_table1).unwrap();
-    let compressed2 = compressor.compress(&parse_table2).unwrap();
+    // Create minimal token indices for test
+    let token_indices = vec![0]; // EOF is always a token
+    let compressed1 = compressor.compress(&parse_table1, &token_indices, false).unwrap();
+    let compressed2 = compressor.compress(&parse_table2, &token_indices, false).unwrap();
 
     // Verify deterministic compression
     assert_eq!(

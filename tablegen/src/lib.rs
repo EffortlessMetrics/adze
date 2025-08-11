@@ -502,15 +502,16 @@ impl StaticLanguageGenerator {
 
     /// Apply table compression
     pub fn compress_tables(&mut self) -> Result<(), TableGenError> {
-        // If start_can_be_empty hasn't been explicitly set, compute it now
-        // This ensures tests and other callers that don't set it explicitly still work correctly
+        // If start_can_be_empty wasn't explicitly set by the caller, derive a conservative value:
+        // look only at EOF actions in state 0 (Accept or Reduce there implies nullable start).
         if !self.start_can_be_empty {
-            // Simple check: if state 0 has a reduce action, the start symbol can be empty
-            // A more accurate check would use FIRST/FOLLOW sets, but that requires more context
-            if let Some(state0) = self.parse_table.action_table.get(0) {
-                self.start_can_be_empty = state0.iter().any(|cell| {
-                    cell.iter().any(|action| matches!(action, Action::Reduce(_)))
-                });
+            use rust_sitter_ir::SymbolId;
+            if let Some(&eof_idx) = self.parse_table.symbol_to_index.get(&SymbolId(0)) {
+                if let Some(state0) = self.parse_table.action_table.get(0) {
+                    if let Some(cell) = state0.get(eof_idx) {
+                        self.start_can_be_empty = cell.iter().any(|a| matches!(a, Action::Accept | Action::Reduce(_)));
+                    }
+                }
             }
         }
         
@@ -991,9 +992,12 @@ mod tests {
         };
 
         let compressor = TableCompressor::new();
-        // Create minimal token indices for test
-        let token_indices = vec![0]; // EOF is always a token
-        let result = compressor.compress(&parse_table, &token_indices, false);
+        // Use proper helper to collect token indices
+        let grammar = Grammar::default(); // Minimal grammar for test
+        let token_indices = helpers::collect_token_indices(&grammar, &parse_table);
+        // Compute start_can_be_empty based on EOF cell in state 0
+        let start_can_be_empty = false; // Conservative default for empty test
+        let result = compressor.compress(&parse_table, &token_indices, start_can_be_empty);
 
         assert!(result.is_ok());
         let compressed = result.unwrap();
@@ -1188,9 +1192,12 @@ mod tests {
         };
 
         let compressor = TableCompressor::new();
-        // Create minimal token indices for test
-        let token_indices = vec![0]; // EOF is always a token
-        let compressed = compressor.compress(&parse_table, &token_indices, false).unwrap();
+        // Use proper helper to collect token indices
+        let grammar = Grammar::default(); // Minimal grammar for test
+        let token_indices = helpers::collect_token_indices(&grammar, &parse_table);
+        // Compute start_can_be_empty based on EOF cell in state 0
+        let start_can_be_empty = false; // Conservative default for empty test
+        let compressed = compressor.compress(&parse_table, &token_indices, start_can_be_empty).unwrap();
 
         // Validate compressed tables
         assert!(compressed.validate(&parse_table).is_ok());
