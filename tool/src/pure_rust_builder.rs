@@ -132,17 +132,29 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
     
     // Add unit rules for all wrappers that need them
     for (nt_id, token_id) in wrappers_needing_rules {
-        let production_id = alloc_production_id(grammar)?;
-        let unit_rule = Rule {
-            lhs: nt_id,
-            rhs: vec![Symbol::Terminal(token_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id,
-        };
-        grammar.add_rule(unit_rule);
-        rules_to_add.push((nt_id, token_id));
+        // Check if this exact unit rule already exists to avoid duplicates
+        let already_exists = grammar.rules.get(&nt_id)
+            .map(|existing_rules| {
+                existing_rules.iter().any(|r| {
+                    r.rhs.len() == 1 && 
+                    matches!(&r.rhs[0], Symbol::Terminal(tid) if *tid == token_id)
+                })
+            })
+            .unwrap_or(false);
+        
+        if !already_exists {
+            let production_id = alloc_production_id(grammar)?;
+            let unit_rule = Rule {
+                lhs: nt_id,
+                rhs: vec![Symbol::Terminal(token_id)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id,
+            };
+            grammar.add_rule(unit_rule);
+            rules_to_add.push((nt_id, token_id));
+        }
     }
     
     // Rebuild symbol registry after changes

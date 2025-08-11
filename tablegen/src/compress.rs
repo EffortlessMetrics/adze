@@ -161,16 +161,17 @@ impl TableCompressor {
 
     /// Compress parse tables using Tree-sitter's exact algorithms
     pub fn compress(&self, parse_table: &ParseTable, token_indices: &[usize], start_can_be_empty: bool) -> Result<CompressedTables, TableGenError> {
-        // Convert token_indices to HashSet for O(1) membership checks
-        use std::collections::HashSet;
-        let token_set: HashSet<usize> = token_indices.iter().copied().collect();
+        // Convert token_indices to FxHashSet for O(1) membership checks with better performance
+        use rustc_hash::FxHashSet;
+        let token_set: FxHashSet<usize> = token_indices.iter().copied().collect();
         
-        // Validation: EOF must be in symbol_to_index (strong invariant)
-        if !parse_table.symbol_to_index.contains_key(&SymbolId(0)) {
-            return Err(TableGenError::InvalidTable(
-                "EOF (symbol 0) not found in symbol_to_index map - this is a critical invariant violation".to_string()
-            ));
-        }
+        // Fetch EOF column index once and reuse it everywhere
+        let eof_idx = *parse_table
+            .symbol_to_index
+            .get(&SymbolId(0))
+            .ok_or_else(|| TableGenError::InvalidTable(
+                "EOF (symbol 0) not found in symbol_to_index map - this is a critical invariant violation".into()
+            ))?;
         
         // Validation: Ensure state 0 has at least one token shift action
         // This catches the "state 0 bug" where no tokens can be shifted from the initial state
@@ -181,17 +182,12 @@ impl TableCompressor {
                     .map_or(false, |cell| cell.iter().any(|a| matches!(a, Action::Shift(_))))
             });
             
-            // If no token shifts, check if start is nullable and EOF has accept/reduce
-            let eof_ok = if !has_token_shift && start_can_be_empty {
-                // EOF is always symbol 0, find its index
-                parse_table.symbol_to_index.get(&SymbolId(0))
-                    .and_then(|&eof_idx| state0_actions.get(eof_idx))
-                    .map_or(false, |cell| {
-                        cell.iter().any(|a| matches!(a, Action::Accept | Action::Reduce(_)))
-                    })
-            } else {
-                false
-            };
+            // If no token shifts, and start is nullable, allow ACCEPT/REDUCE on EOF column
+            let eof_ok = !has_token_shift
+                && start_can_be_empty
+                && state0_actions
+                    .get(eof_idx)
+                    .map_or(false, |cell| cell.iter().any(|a| matches!(a, Action::Accept | Action::Reduce(_))));
             
             if !has_token_shift && !eof_ok {
                 // Provide detailed debugging info
@@ -202,24 +198,24 @@ impl TableCompressor {
                     token_indices.iter().take(12).collect::<Vec<_>>()));
                 debug_info.push_str(&format!("Start can be empty: {}\n", start_can_be_empty));
                 
-                // Show the actual state 0 actions
+                // Show the actual state-0 actions
                 debug_info.push_str("State 0 actions (first 12 columns):\n");
                 for idx in 0..state0_actions.len().min(12) {
                     let cell = &state0_actions[idx];
                     
-                    // Find which symbol this index maps to
-                    let symbol_info = parse_table.symbol_to_index.iter()
-                        .find(|(_, i)| **i == idx)
-                        .map(|(sym_id, _)| {
-                            if sym_id.0 == 0 {
-                                "EOF".to_string()
-                            } else {
-                                format!("sym_{}", sym_id.0)
-                            }
-                        })
-                        .unwrap_or_else(|| "unmapped".to_string());
+                    // Prefer labeling by EOF column equality rather than symbol id
+                    let symbol_info = if idx == eof_idx {
+                        "EOF".to_string()
+                    } else {
+                        parse_table
+                            .symbol_to_index
+                            .iter()
+                            .find(|(_, i)| **i == idx)
+                            .map(|(sym_id, _)| format!("sym_{}", sym_id.0))
+                            .unwrap_or_else(|| "unmapped".to_string())
+                    };
                     
-                    let type_str = if idx == 0 || token_set.contains(&idx) { 
+                    let type_str = if idx == eof_idx || token_set.contains(&idx) { 
                         "TOKEN" 
                     } else { 
                         "NT" 

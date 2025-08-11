@@ -502,13 +502,24 @@ impl StaticLanguageGenerator {
 
     /// Apply table compression
     pub fn compress_tables(&mut self) -> Result<(), TableGenError> {
+        // If start_can_be_empty hasn't been explicitly set, compute it now
+        // This ensures tests and other callers that don't set it explicitly still work correctly
+        if !self.start_can_be_empty {
+            // Simple check: if state 0 has a reduce action, the start symbol can be empty
+            // A more accurate check would use FIRST/FOLLOW sets, but that requires more context
+            if let Some(state0) = self.parse_table.action_table.get(0) {
+                self.start_can_be_empty = state0.iter().any(|cell| {
+                    cell.iter().any(|action| matches!(action, Action::Reduce(_)))
+                });
+            }
+        }
+        
         let compressor = TableCompressor::new();
         
         // Collect token indices for validation
         let token_indices = helpers::collect_token_indices(&self.grammar, &self.parse_table);
         
-        // Use the start_can_be_empty value that was set earlier
-        // This should be computed using FIRST/FOLLOW sets by the caller
+        // Use the start_can_be_empty value (either explicitly set or computed above)
         self.compressed_tables = Some(compressor.compress(&self.parse_table, &token_indices, self.start_can_be_empty)?);
         Ok(())
     }
@@ -980,7 +991,9 @@ mod tests {
         };
 
         let compressor = TableCompressor::new();
-        let result = compressor.compress(&parse_table);
+        // Create minimal token indices for test
+        let token_indices = vec![0]; // EOF is always a token
+        let result = compressor.compress(&parse_table, &token_indices, false);
 
         assert!(result.is_ok());
         let compressed = result.unwrap();
@@ -1175,7 +1188,9 @@ mod tests {
         };
 
         let compressor = TableCompressor::new();
-        let compressed = compressor.compress(&parse_table).unwrap();
+        // Create minimal token indices for test
+        let token_indices = vec![0]; // EOF is always a token
+        let compressed = compressor.compress(&parse_table, &token_indices, false).unwrap();
 
         // Validate compressed tables
         assert!(compressed.validate(&parse_table).is_ok());

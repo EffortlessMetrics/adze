@@ -2021,6 +2021,7 @@ dependencies = [
  "quote",
  "rust-sitter-glr-core",
  "rust-sitter-ir",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
