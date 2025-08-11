@@ -161,6 +161,17 @@ impl TableCompressor {
 
     /// Compress parse tables using Tree-sitter's exact algorithms
     pub fn compress(&self, parse_table: &ParseTable, token_indices: &[usize], start_can_be_empty: bool) -> Result<CompressedTables, TableGenError> {
+        // Convert token_indices to HashSet for O(1) membership checks
+        use std::collections::HashSet;
+        let token_set: HashSet<usize> = token_indices.iter().copied().collect();
+        
+        // Validation: EOF must be in symbol_to_index (strong invariant)
+        if !parse_table.symbol_to_index.contains_key(&SymbolId(0)) {
+            return Err(TableGenError::InvalidTable(
+                "EOF (symbol 0) not found in symbol_to_index map - this is a critical invariant violation".to_string()
+            ));
+        }
+        
         // Validation: Ensure state 0 has at least one token shift action
         // This catches the "state 0 bug" where no tokens can be shifted from the initial state
         if let Some(state0_actions) = parse_table.action_table.get(0) {
@@ -185,25 +196,53 @@ impl TableCompressor {
             if !has_token_shift && !eof_ok {
                 // Provide detailed debugging info
                 let mut debug_info = String::new();
-                debug_info.push_str(&format!("Token indices: {:?}\n", token_indices));
+                
+                // Show expected token columns
+                debug_info.push_str(&format!("Expected token columns (first 12): {:?}\n", 
+                    token_indices.iter().take(12).collect::<Vec<_>>()));
                 debug_info.push_str(&format!("Start can be empty: {}\n", start_can_be_empty));
-                debug_info.push_str("State 0 actions:\n");
-                for (idx, cell) in state0_actions.iter().enumerate().take(8) {
-                    if !cell.is_empty() {
-                        // Find which symbol this index maps to
-                        let symbol_info = parse_table.symbol_to_index.iter()
-                            .find(|(_, i)| **i == idx)
-                            .map(|(sym_id, _)| format!("symbol {}", sym_id.0))
-                            .unwrap_or_else(|| "unknown".to_string());
-                        
-                        let type_str = if token_indices.contains(&idx) { "token" } else { "non-terminal" };
-                        debug_info.push_str(&format!("  Column {} ({}, {}): {:?}\n", 
-                            idx, symbol_info, type_str, cell));
-                    }
+                
+                // Show the actual state 0 actions
+                debug_info.push_str("State 0 actions (first 12 columns):\n");
+                for idx in 0..state0_actions.len().min(12) {
+                    let cell = &state0_actions[idx];
+                    
+                    // Find which symbol this index maps to
+                    let symbol_info = parse_table.symbol_to_index.iter()
+                        .find(|(_, i)| **i == idx)
+                        .map(|(sym_id, _)| {
+                            if sym_id.0 == 0 {
+                                "EOF".to_string()
+                            } else {
+                                format!("sym_{}", sym_id.0)
+                            }
+                        })
+                        .unwrap_or_else(|| "unmapped".to_string());
+                    
+                    let type_str = if idx == 0 || token_set.contains(&idx) { 
+                        "TOKEN" 
+                    } else { 
+                        "NT" 
+                    };
+                    
+                    let action_str = if cell.is_empty() {
+                        "[]".to_string()
+                    } else {
+                        format!("{:?}", cell)
+                    };
+                    
+                    debug_info.push_str(&format!("  Col {:2} ({:8} {:5}): {}\n", 
+                        idx, symbol_info, type_str, action_str));
                 }
                 
+                // Provide actionable guidance
+                debug_info.push_str("\nPossible causes:\n");
+                debug_info.push_str("1. Pattern wrappers not desugared to unit rules\n");
+                debug_info.push_str("2. Token symbols not properly registered in symbol_to_index\n");
+                debug_info.push_str("3. Grammar start symbol issues\n");
+                
                 return Err(TableGenError::CompressionError(format!(
-                    "State 0 has no token shift actions (pattern wrapper desugaring may have failed).\n{}",
+                    "State 0 validation failed: No valid token shift actions found.\n{}",
                     debug_info
                 )));
             }

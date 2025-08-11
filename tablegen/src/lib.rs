@@ -44,6 +44,7 @@ pub struct StaticLanguageGenerator {
     pub grammar: Grammar,
     pub parse_table: ParseTable,
     pub compressed_tables: Option<CompressedTables>,
+    pub start_can_be_empty: bool,
 }
 
 impl StaticLanguageGenerator {
@@ -53,7 +54,13 @@ impl StaticLanguageGenerator {
             grammar,
             parse_table,
             compressed_tables: None,
+            start_can_be_empty: false,
         }
+    }
+    
+    /// Set whether the start symbol can be empty (nullable)
+    pub fn set_start_can_be_empty(&mut self, value: bool) {
+        self.start_can_be_empty = value;
     }
 
     /// Generate static Rust code for the Language
@@ -500,12 +507,9 @@ impl StaticLanguageGenerator {
         // Collect token indices for validation
         let token_indices = helpers::collect_token_indices(&self.grammar, &self.parse_table);
         
-        // Check if start symbol can be empty (for proper validation)
-        // Without access to FIRST/FOLLOW sets here, we conservatively assume false
-        // The actual computation happens in pure_rust_builder.rs where first_follow is available
-        let start_can_be_empty = false;
-        
-        self.compressed_tables = Some(compressor.compress(&self.parse_table, &token_indices, start_can_be_empty)?);
+        // Use the start_can_be_empty value that was set earlier
+        // This should be computed using FIRST/FOLLOW sets by the caller
+        self.compressed_tables = Some(compressor.compress(&self.parse_table, &token_indices, self.start_can_be_empty)?);
         Ok(())
     }
 }

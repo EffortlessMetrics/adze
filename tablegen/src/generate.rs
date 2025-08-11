@@ -9,6 +9,7 @@ use rust_sitter_ir::Grammar;
 pub struct LanguageBuilder {
     grammar: Grammar,
     parse_table: ParseTable,
+    start_can_be_empty: bool,
 }
 
 impl LanguageBuilder {
@@ -17,7 +18,13 @@ impl LanguageBuilder {
         Self {
             grammar,
             parse_table,
+            start_can_be_empty: false,
         }
+    }
+    
+    /// Set whether the start symbol can be empty (nullable)
+    pub fn set_start_can_be_empty(&mut self, value: bool) {
+        self.start_can_be_empty = value;
     }
 
     /// Generate a static Language struct with full validation
