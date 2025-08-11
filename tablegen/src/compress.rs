@@ -160,6 +160,17 @@ impl TableCompressor {
     }
 
     /// Compress parse tables using Tree-sitter's exact algorithms
+    /// 
+    /// # Parameters
+    /// - `parse_table`: The parse table to compress
+    /// - `token_indices`: Sorted list of column indices for all tokens (including EOF).
+    ///   Use `helpers::collect_token_indices()` to generate this list.
+    /// - `start_can_be_empty`: Whether the start symbol can derive empty string.
+    ///   This affects how state 0 is validated during compression.
+    /// 
+    /// # Breaking Change Note
+    /// This function signature changed to include `token_indices` and `start_can_be_empty` parameters
+    /// to properly handle nullable start symbols and GLR multi-action cells.
     pub fn compress(&self, parse_table: &ParseTable, token_indices: &[usize], start_can_be_empty: bool) -> Result<CompressedTables, TableGenError> {
         // Convert token_indices to FxHashSet for O(1) membership checks with better performance
         use rustc_hash::FxHashSet;
