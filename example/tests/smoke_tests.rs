@@ -6,16 +6,24 @@
 fn test_basic_parsing() {
     // Basic smoke test - parse a simple arithmetic expression
     use rust_sitter_example::arithmetic::grammar;
-    
+
     let input = "1 - 2 * 3";
     let result = grammar::parse(input);
-    
-    assert!(result.is_ok(), "Failed to parse basic arithmetic expression");
-    
+
+    assert!(
+        result.is_ok(),
+        "Failed to parse basic arithmetic expression"
+    );
+
     // Verify we got some result
     let expr = result.unwrap();
     // Just check it's not completely broken - actual parsing tests are elsewhere
-    assert!(matches!(expr, grammar::Expression::Sub(_, _, _) | grammar::Expression::Mul(_, _, _) | grammar::Expression::Number(_)));
+    assert!(matches!(
+        expr,
+        grammar::Expression::Sub(_, _, _)
+            | grammar::Expression::Mul(_, _, _)
+            | grammar::Expression::Number(_)
+    ));
 }
 
 // C backend tests
@@ -25,8 +33,11 @@ fn test_c_backend_language_function() {
     // Ensure the C backend's tree_sitter_* function is available and non-null
     unsafe {
         let lang_ptr = rust_sitter_example::arithmetic::tree_sitter_arithmetic();
-        assert!(!lang_ptr.is_null(), "tree_sitter_arithmetic() returned null");
-        
+        assert!(
+            !lang_ptr.is_null(),
+            "tree_sitter_arithmetic() returned null"
+        );
+
         // Basic sanity check on the language struct
         let version = (*lang_ptr).version;
         assert!(version > 0, "Language version should be positive");
@@ -39,10 +50,10 @@ fn test_pure_rust_no_c_symbols() {
     // This test just needs to compile and run - it verifies we're not
     // accidentally pulling in C symbols in pure-rust mode
     use rust_sitter_example::arithmetic::grammar;
-    
+
     let result = grammar::parse("42");
     assert!(result.is_ok());
-    
+
     // Verify we got the expected number
     if let Ok(grammar::Expression::Number(n)) = result {
         assert_eq!(n, 42);
@@ -55,13 +66,13 @@ fn test_pure_rust_no_c_symbols() {
 #[test]
 fn test_multiple_grammars_available() {
     // Verify that multiple grammars are available
-    
+
     // Test arithmetic grammar
     {
         use rust_sitter_example::arithmetic::grammar;
         assert!(grammar::parse("1 - 1").is_ok());
     }
-    
+
     // Test repetitions grammar
     {
         use rust_sitter_example::repetitions::grammar;
@@ -70,7 +81,7 @@ fn test_multiple_grammars_available() {
         // Just verify it doesn't panic
         let _ = result;
     }
-    
+
     // Test words grammar
     {
         use rust_sitter_example::words::grammar;
@@ -85,13 +96,13 @@ fn test_multiple_grammars_available() {
 fn test_error_recovery() {
     // Basic test that parsing continues even with errors
     use rust_sitter_example::arithmetic::grammar;
-    
+
     // Invalid input with missing operand
     let result = grammar::parse("1 -");
     // Should still parse what it can rather than completely failing
     // The exact behavior depends on error recovery implementation
     let _ = result; // Just ensure it doesn't panic
-    
+
     // Invalid tokens
     let result = grammar::parse("1 @ 2");
     let _ = result; // Just ensure it doesn't panic
@@ -105,10 +116,10 @@ fn test_c_backend_multiple_grammars() {
     unsafe {
         let arith_lang = rust_sitter_example::arithmetic::tree_sitter_arithmetic();
         assert!(!arith_lang.is_null());
-        
+
         let words_lang = rust_sitter_example::words::tree_sitter_words();
         assert!(!words_lang.is_null());
-        
+
         let reps_lang = rust_sitter_example::repetitions::tree_sitter_repetitions();
         assert!(!reps_lang.is_null());
     }

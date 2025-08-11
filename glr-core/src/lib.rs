@@ -1276,8 +1276,14 @@ pub fn build_lr1_automaton(
     let mut conflicts_by_state: BTreeMap<(usize, usize), Vec<Action>> = BTreeMap::new();
 
     // Debug: Print goto table entries
-    eprintln!("DEBUG: Collection goto table has {} entries", collection.goto_table.len());
-    eprintln!("DEBUG: Augmented grammar has {} tokens", augmented_grammar.tokens.len());
+    eprintln!(
+        "DEBUG: Collection goto table has {} entries",
+        collection.goto_table.len()
+    );
+    eprintln!(
+        "DEBUG: Augmented grammar has {} tokens",
+        augmented_grammar.tokens.len()
+    );
 
     // First, add shift actions from goto table for terminals
     // This must be done BEFORE reduce actions to enable shift/reduce conflict detection
@@ -1308,8 +1314,10 @@ pub fn build_lr1_automaton(
                     // Add as a shift action
                     let new_action = Action::Shift(*to_state);
                     if state_idx == 0 {
-                        eprintln!("DEBUG: Adding shift action to state 0: symbol {} (idx={}) -> state {}", 
-                                 symbol.0, symbol_idx, to_state.0);
+                        eprintln!(
+                            "DEBUG: Adding shift action to state 0: symbol {} (idx={}) -> state {}",
+                            symbol.0, symbol_idx, to_state.0
+                        );
                     }
                     add_action_with_conflict(
                         &mut action_table,
@@ -1319,12 +1327,23 @@ pub fn build_lr1_automaton(
                         new_action,
                     );
                 } else if state_idx == 0 {
-                    eprintln!("DEBUG: SKIPPING shift for state 0: bounds check failed - state_idx={}, symbol_idx={}, action_table.len={}, inner_len={}", 
-                             state_idx, symbol_idx, action_table.len(), 
-                             if state_idx < action_table.len() { action_table[state_idx].len() } else { 0 });
+                    eprintln!(
+                        "DEBUG: SKIPPING shift for state 0: bounds check failed - state_idx={}, symbol_idx={}, action_table.len={}, inner_len={}",
+                        state_idx,
+                        symbol_idx,
+                        action_table.len(),
+                        if state_idx < action_table.len() {
+                            action_table[state_idx].len()
+                        } else {
+                            0
+                        }
+                    );
                 }
             } else if from_state.0 == 0 {
-                eprintln!("DEBUG: Terminal {} not in symbol_to_index for state 0", symbol.0);
+                eprintln!(
+                    "DEBUG: Terminal {} not in symbol_to_index for state 0",
+                    symbol.0
+                );
             }
         } else {
             _non_terminal_count += 1;

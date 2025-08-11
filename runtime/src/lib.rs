@@ -93,7 +93,11 @@ use std::ops::Deref;
 
 pub use rust_sitter_macro::*;
 
-#[cfg(all(feature = "tree-sitter-standard", not(feature = "tree-sitter-c2rust"), not(feature = "pure-rust")))]
+#[cfg(all(
+    feature = "tree-sitter-standard",
+    not(feature = "tree-sitter-c2rust"),
+    not(feature = "pure-rust")
+))]
 pub use tree_sitter_runtime_standard as tree_sitter;
 
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
@@ -429,7 +433,11 @@ impl Extract<String> for String {
 }
 
 pub mod errors {
-    #[cfg(all(feature = "tree-sitter-standard", not(feature = "tree-sitter-c2rust"), not(feature = "pure-rust")))]
+    #[cfg(all(
+        feature = "tree-sitter-standard",
+        not(feature = "tree-sitter-c2rust"),
+        not(feature = "pure-rust")
+    ))]
     use tree_sitter_runtime_standard as tree_sitter;
 
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]

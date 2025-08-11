@@ -12,10 +12,14 @@ use syn::{
     *,
 };
 
+/// Name-value expression for attribute parameters
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NameValueExpr {
+    /// The parameter name
     pub path: Ident,
+    /// The equals token
     pub eq_token: Token![=],
+    /// The parameter value expression
     pub expr: Expr,
 }
 
@@ -29,10 +33,14 @@ impl Parse for NameValueExpr {
     }
 }
 
+/// Field followed by optional parameters
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldThenParams {
+    /// The field declaration
     pub field: Field,
+    /// Optional comma separator
     pub comma: Option<Token![,]>,
+    /// Additional parameters
     pub params: Punctuated<NameValueExpr, Token![,]>,
 }
 
@@ -54,6 +62,7 @@ impl Parse for FieldThenParams {
     }
 }
 
+/// Attempts to extract the inner type from a container type
 pub fn try_extract_inner_type(
     ty: &Type,
     inner_of: &str,
@@ -91,6 +100,7 @@ pub fn try_extract_inner_type(
     }
 }
 
+/// Filters a type by removing specified container types
 pub fn filter_inner_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     if let Type::Path(p) = &ty {
         let type_segment = p.path.segments.last().unwrap();
@@ -112,6 +122,7 @@ pub fn filter_inner_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     }
 }
 
+/// Wraps a leaf type in a Box if it's not already wrapped in specified container types
 pub fn wrap_leaf_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     let mut ty = ty.clone();
     if let Type::Path(p) = &mut ty {

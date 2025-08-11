@@ -160,22 +160,27 @@ impl TableCompressor {
     }
 
     /// Compress parse tables using Tree-sitter's exact algorithms
-    /// 
+    ///
     /// # Parameters
     /// - `parse_table`: The parse table to compress
     /// - `token_indices`: Sorted list of column indices for all tokens (including EOF).
     ///   Use `helpers::collect_token_indices()` to generate this list.
     /// - `start_can_be_empty`: Whether the start symbol can derive empty string.
     ///   This affects how state 0 is validated during compression.
-    /// 
+    ///
     /// # Breaking Change Note
     /// This function signature changed to include `token_indices` and `start_can_be_empty` parameters
     /// to properly handle nullable start symbols and GLR multi-action cells.
-    pub fn compress(&self, parse_table: &ParseTable, token_indices: &[usize], start_can_be_empty: bool) -> Result<CompressedTables, TableGenError> {
+    pub fn compress(
+        &self,
+        parse_table: &ParseTable,
+        token_indices: &[usize],
+        start_can_be_empty: bool,
+    ) -> Result<CompressedTables, TableGenError> {
         // Convert token_indices to FxHashSet for O(1) membership checks with better performance
         use rustc_hash::FxHashSet;
         let token_set: FxHashSet<usize> = token_indices.iter().copied().collect();
-        
+
         // Fetch EOF column index once and reuse it everywhere
         let eof_idx = *parse_table
             .symbol_to_index
@@ -183,37 +188,41 @@ impl TableCompressor {
             .ok_or_else(|| TableGenError::InvalidTable(
                 "EOF (symbol 0) not found in symbol_to_index map - this is a critical invariant violation".into()
             ))?;
-        
+
         // Validation: Ensure state 0 has at least one token shift action
         // This catches the "state 0 bug" where no tokens can be shifted from the initial state
         if let Some(state0_actions) = parse_table.action_table.get(0) {
             // Check if any token column has a shift action
             let has_token_shift = token_indices.iter().any(|&idx| {
-                state0_actions.get(idx)
-                    .map_or(false, |cell| cell.iter().any(|a| matches!(a, Action::Shift(_))))
+                state0_actions.get(idx).map_or(false, |cell| {
+                    cell.iter().any(|a| matches!(a, Action::Shift(_)))
+                })
             });
-            
+
             // If no token shifts, and start is nullable, allow ACCEPT/REDUCE on EOF column
             let eof_ok = !has_token_shift
                 && start_can_be_empty
-                && state0_actions
-                    .get(eof_idx)
-                    .map_or(false, |cell| cell.iter().any(|a| matches!(a, Action::Accept | Action::Reduce(_))));
-            
+                && state0_actions.get(eof_idx).map_or(false, |cell| {
+                    cell.iter()
+                        .any(|a| matches!(a, Action::Accept | Action::Reduce(_)))
+                });
+
             if !has_token_shift && !eof_ok {
                 // Provide detailed debugging info
                 let mut debug_info = String::new();
-                
+
                 // Show expected token columns
-                debug_info.push_str(&format!("Expected token columns (first 12): {:?}\n", 
-                    token_indices.iter().take(12).collect::<Vec<_>>()));
+                debug_info.push_str(&format!(
+                    "Expected token columns (first 12): {:?}\n",
+                    token_indices.iter().take(12).collect::<Vec<_>>()
+                ));
                 debug_info.push_str(&format!("Start can be empty: {}\n", start_can_be_empty));
-                
+
                 // Show the actual state-0 actions
                 debug_info.push_str("State 0 actions (first 12 columns):\n");
                 for idx in 0..state0_actions.len().min(12) {
                     let cell = &state0_actions[idx];
-                    
+
                     // Prefer labeling by EOF column equality rather than symbol id
                     let symbol_info = if idx == eof_idx {
                         "EOF".to_string()
@@ -225,49 +234,52 @@ impl TableCompressor {
                             .map(|(sym_id, _)| format!("sym_{}", sym_id.0))
                             .unwrap_or_else(|| "unmapped".to_string())
                     };
-                    
-                    let type_str = if idx == eof_idx || token_set.contains(&idx) { 
-                        "TOKEN" 
-                    } else { 
-                        "NT" 
+
+                    let type_str = if idx == eof_idx || token_set.contains(&idx) {
+                        "TOKEN"
+                    } else {
+                        "NT"
                     };
-                    
+
                     let action_str = if cell.is_empty() {
                         "[]".to_string()
                     } else {
                         format!("{:?}", cell)
                     };
-                    
-                    debug_info.push_str(&format!("  Col {:2} ({:8} {:5}): {}\n", 
-                        idx, symbol_info, type_str, action_str));
+
+                    debug_info.push_str(&format!(
+                        "  Col {:2} ({:8} {:5}): {}\n",
+                        idx, symbol_info, type_str, action_str
+                    ));
                 }
-                
+
                 // Provide actionable guidance
                 debug_info.push_str("\nPossible causes:\n");
                 debug_info.push_str("1. Pattern wrappers not desugared to unit rules\n");
-                debug_info.push_str("2. Token symbols not properly registered in symbol_to_index\n");
+                debug_info
+                    .push_str("2. Token symbols not properly registered in symbol_to_index\n");
                 debug_info.push_str("3. Grammar start symbol issues\n");
-                
+
                 return Err(TableGenError::CompressionError(format!(
                     "State 0 validation failed: No valid token shift actions found.\n{}",
                     debug_info
                 )));
             }
         }
-        
+
         // Additional sanity guards
         if parse_table.action_table.is_empty() {
             return Err(TableGenError::CompressionError(
-                "Empty action table - grammar has no parse states".to_string()
+                "Empty action table - grammar has no parse states".to_string(),
             ));
         }
-        
+
         if parse_table.state_count == 0 {
             return Err(TableGenError::CompressionError(
-                "State count is 0 - invalid parse table".to_string()
+                "State count is 0 - invalid parse table".to_string(),
             ));
         }
-        
+
         // Determine if we should use small table optimization
         let use_small_table = parse_table.state_count < self.small_table_threshold;
 
@@ -319,7 +331,6 @@ impl TableCompressor {
             index_to_symbol.insert(index, symbol_id);
         }
 
-
         for (_state_idx, action_row) in action_table.iter().enumerate() {
             // Find the most common action across all cells
             let mut action_counts: HashMap<Action, usize> = HashMap::new();
@@ -353,7 +364,6 @@ impl TableCompressor {
             default_actions.push(default_action.clone());
             row_offsets.push(entries.len() as u16);
 
-
             for (index, action_cell) in action_row.iter().enumerate() {
                 // Process each action in the cell
                 for action in action_cell {
@@ -367,7 +377,6 @@ impl TableCompressor {
                         .map(|id| id.0)
                         .unwrap_or(index as u16);
 
-
                     entries.push(CompressedActionEntry {
                         symbol: symbol_id,
                         action: action.clone(),
@@ -380,19 +389,22 @@ impl TableCompressor {
 
         // Validate row_offsets are strictly increasing
         for i in 1..row_offsets.len() {
-            if row_offsets[i] < row_offsets[i-1] {
+            if row_offsets[i] < row_offsets[i - 1] {
                 return Err(TableGenError::CompressionError(format!(
                     "Row offsets not strictly increasing at index {}: {} < {}",
-                    i, row_offsets[i], row_offsets[i-1]
+                    i,
+                    row_offsets[i],
+                    row_offsets[i - 1]
                 )));
             }
         }
-        
+
         // Validate map length matches state count
         if row_offsets.len() != action_table.len() + 1 {
             return Err(TableGenError::CompressionError(format!(
                 "Row offsets length {} doesn't match state count {} + 1",
-                row_offsets.len(), action_table.len()
+                row_offsets.len(),
+                action_table.len()
             )));
         }
 
@@ -461,34 +473,45 @@ impl TableCompressor {
             row_offsets,
         })
     }
-    
+
     /// Compatibility shim for old API - will be removed in next major version
-    /// 
+    ///
     /// # Deprecation Notice
     /// This method is deprecated. Please use the new `compress()` method with explicit
     /// `token_indices` and `start_can_be_empty` parameters. See MIGRATING.md for details.
+    #[doc(hidden)]
     #[deprecated(
         since = "0.7.0",
-        note = "Use compress() with token_indices and start_can_be_empty parameters. \
-                See tablegen/MIGRATING.md for migration guide."
+        note = "Use compress(parse_table, token_indices, start_can_be_empty). See MIGRATING.md."
     )]
     #[allow(deprecated)]
-    pub fn compress_default(&self, parse_table: &ParseTable, grammar: &rust_sitter_ir::Grammar) -> Result<CompressedTables, TableGenError> {
+    pub fn compress_default(
+        &self,
+        parse_table: &ParseTable,
+        grammar: &rust_sitter_ir::Grammar,
+    ) -> Result<CompressedTables, TableGenError> {
         use crate::helpers::collect_token_indices;
         use rust_sitter_ir::SymbolId;
-        
+
         // Collect token indices using helper
         let token_indices = collect_token_indices(grammar, parse_table);
-        
+
         // Determine if start can be empty by checking EOF cell in state 0
-        let start_can_be_empty = parse_table.symbol_to_index.get(&SymbolId(0))
+        let start_can_be_empty = parse_table
+            .symbol_to_index
+            .get(&SymbolId(0))
             .and_then(|&eof_idx| {
-                parse_table.action_table.get(0)
+                parse_table
+                    .action_table
+                    .get(0)
                     .and_then(|state0| state0.get(eof_idx))
-                    .map(|cell| cell.iter().any(|a| matches!(a, Action::Accept | Action::Reduce(_))))
+                    .map(|cell| {
+                        cell.iter()
+                            .any(|a| matches!(a, Action::Accept | Action::Reduce(_)))
+                    })
             })
             .unwrap_or(false);
-        
+
         self.compress(parse_table, &token_indices, start_can_be_empty)
     }
 }

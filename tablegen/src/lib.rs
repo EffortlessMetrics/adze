@@ -3,14 +3,14 @@
 #![warn(missing_docs)]
 
 //! Static table generation and compression for pure-Rust Tree-sitter
-//! 
+//!
 //! This module implements Tree-sitter's exact table compression algorithms.
-//! 
+//!
 //! ## Important Notes
-//! 
+//!
 //! - The `helpers::collect_token_indices()` function ALWAYS includes the EOF token (symbol 0)
 //!   in its output. This is essential for proper table compression.
-//! - When using `TableCompressor::compress()`, ensure you provide correct `token_indices` 
+//! - When using `TableCompressor::compress()`, ensure you provide correct `token_indices`
 //!   and `start_can_be_empty` parameters. See MIGRATING.md for migration guidance.
 
 pub mod abi;
@@ -65,7 +65,7 @@ impl StaticLanguageGenerator {
             start_can_be_empty: false,
         }
     }
-    
+
     /// Set whether the start symbol can be empty (nullable)
     pub fn set_start_can_be_empty(&mut self, value: bool) {
         self.start_can_be_empty = value;
@@ -511,9 +511,15 @@ impl StaticLanguageGenerator {
     /// Check if EOF cell in state 0 has Accept or Reduce actions (indicates nullable start)
     fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
         use rust_sitter_ir::SymbolId;
-        if let Some((&eof_idx, state0)) = parse_table.symbol_to_index.get(&SymbolId(0)).zip(parse_table.action_table.get(0)) {
+        if let Some((&eof_idx, state0)) = parse_table
+            .symbol_to_index
+            .get(&SymbolId(0))
+            .zip(parse_table.action_table.get(0))
+        {
             if let Some(cell) = state0.get(eof_idx) {
-                return cell.iter().any(|a| matches!(a, Action::Accept | Action::Reduce(_)));
+                return cell
+                    .iter()
+                    .any(|a| matches!(a, Action::Accept | Action::Reduce(_)));
             }
         }
         false
@@ -526,14 +532,18 @@ impl StaticLanguageGenerator {
         if !self.start_can_be_empty {
             self.start_can_be_empty = Self::eof_accepts_or_reduces(&self.parse_table);
         }
-        
+
         let compressor = TableCompressor::new();
-        
+
         // Collect token indices for validation
         let token_indices = helpers::collect_token_indices(&self.grammar, &self.parse_table);
-        
+
         // Use the start_can_be_empty value (either explicitly set or computed above)
-        self.compressed_tables = Some(compressor.compress(&self.parse_table, &token_indices, self.start_can_be_empty)?);
+        self.compressed_tables = Some(compressor.compress(
+            &self.parse_table,
+            &token_indices,
+            self.start_can_be_empty,
+        )?);
         Ok(())
     }
 }
@@ -1209,7 +1219,9 @@ mod tests {
         let token_indices = helpers::collect_token_indices(&grammar, &parse_table);
         // Compute start_can_be_empty based on EOF cell in state 0
         let start_can_be_empty = false; // Conservative default for empty test
-        let compressed = compressor.compress(&parse_table, &token_indices, start_can_be_empty).unwrap();
+        let compressed = compressor
+            .compress(&parse_table, &token_indices, start_can_be_empty)
+            .unwrap();
 
         // Validate compressed tables
         assert!(compressed.validate(&parse_table).is_ok());

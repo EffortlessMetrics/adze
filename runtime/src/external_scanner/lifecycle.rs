@@ -44,9 +44,7 @@ impl ScannerWrapper {
     /// Serialize scanner state
     pub fn serialize(&self, buffer: &mut Vec<u8>) {
         match self {
-            ScannerWrapper::Rust(scanner) => {
-                scanner.lock().unwrap().serialize(buffer)
-            }
+            ScannerWrapper::Rust(scanner) => scanner.lock().unwrap().serialize(buffer),
             ScannerWrapper::C(_guard) => {
                 // C scanner serialization via FFI
             }
@@ -56,9 +54,7 @@ impl ScannerWrapper {
     /// Deserialize scanner state
     pub fn deserialize(&mut self, buffer: &[u8]) {
         match self {
-            ScannerWrapper::Rust(scanner) => {
-                scanner.lock().unwrap().deserialize(buffer)
-            }
+            ScannerWrapper::Rust(scanner) => scanner.lock().unwrap().deserialize(buffer),
             ScannerWrapper::C(_guard) => {
                 // C scanner deserialization via FFI
             }
@@ -88,7 +84,11 @@ mod tests {
     }
 
     impl ExternalScanner for TestScanner {
-        fn scan(&self, _lexer: &mut dyn crate::external_scanner::Lexer, _valid_symbols: &[bool]) -> Option<usize> {
+        fn scan(
+            &self,
+            _lexer: &mut dyn crate::external_scanner::Lexer,
+            _valid_symbols: &[bool],
+        ) -> Option<usize> {
             None
         }
 

@@ -620,7 +620,7 @@ impl Parser {
             unsafe {
                 let mut lex_state = LexerState {
                     input: lexer.input.as_ptr(),
-                    input_len: lexer.input.len() - 1,  // Exclude sentinel byte
+                    input_len: lexer.input.len() - 1, // Exclude sentinel byte
                     position,
                     point_row: point.row,
                     point_column: point.column,
@@ -666,17 +666,19 @@ impl Parser {
                     // The lexer returns symbol IDs, but the parse table uses indices
                     // This is a hack for the arithmetic grammar - should be generalized
                     let symbol_index = match symbol {
-                        0 => 0, // EOF
-                        1 => 5, // "-"
-                        2 => 6, // "*"
-                        3 => 7, // whitespace
-                        4 => 8, // number
+                        0 => 0,             // EOF
+                        1 => 5,             // "-"
+                        2 => 6,             // "*"
+                        3 => 7,             // whitespace
+                        4 => 8,             // number
                         _ => symbol as u16, // fallback
                     };
-                    
-                    eprintln!("DEBUG: Lexer returned symbol_id={} -> mapped to index={}, len={}, extra={}", 
-                        symbol, symbol_index, lex_state.result_length, is_extra);
-                    
+
+                    eprintln!(
+                        "DEBUG: Lexer returned symbol_id={} -> mapped to index={}, len={}, extra={}",
+                        symbol, symbol_index, lex_state.result_length, is_extra
+                    );
+
                     return Token {
                         symbol: symbol_index,
                         length: lex_state.result_length,
@@ -697,7 +699,7 @@ impl Parser {
                 is_extra: false,
             }; // EOF
         }
-        
+
         let ch = lexer.input[position];
         //eprintln!("DEBUG lex_token: Fallback lexing at position={}, ch={:?} ({})", position, ch as char, ch);
 
@@ -784,23 +786,29 @@ impl Parser {
         unsafe {
             let large_state_count = language.large_state_count as usize;
             let token_count = language.token_count as u16;
-            
+
             eprintln!("=== Dumping state {} ===", state);
-            eprintln!("token_count: {}, symbol_count: {}", language.token_count, language.symbol_count);
-            
+            eprintln!(
+                "token_count: {}, symbol_count: {}",
+                language.token_count, language.symbol_count
+            );
+
             if (state as usize) >= large_state_count {
                 let map_index = (state as usize) - large_state_count;
                 let start_offset = (*language.small_parse_table_map.add(map_index)) as usize;
                 let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
-                
-                eprintln!("Small state: map_index={}, start={}, end={}", map_index, start_offset, end_offset);
-                
+
+                eprintln!(
+                    "Small state: map_index={}, start={}, end={}",
+                    map_index, start_offset, end_offset
+                );
+
                 let mut offset = start_offset;
                 while offset + 1 < end_offset {
                     let s = *language.small_parse_table.add(offset);
                     let v = *language.small_parse_table.add(offset + 1);
                     offset += 2;
-                    
+
                     let kind = if s < token_count { "TOK " } else { "GOTO" };
                     eprintln!("  {:>4} {:>5} -> action {}", kind, s, v);
                 }
@@ -818,7 +826,7 @@ impl Parser {
         if state == 0 {
             DUMP_ONCE.call_once(|| self.dump_row(language, 0));
         }
-        
+
         // Look up action in parse table
         unsafe {
             // Check bounds
@@ -829,25 +837,25 @@ impl Parser {
             let large_state_count = language.large_state_count as usize;
             let symbol_count = language.symbol_count as usize;
             let token_count = language.token_count as u16;
-            
+
             // Only tokens (not non-terminals) are valid lookaheads
             if symbol >= token_count {
                 return Action::Error;
             }
-            
+
             // Sanity checks
             debug_assert!((language.token_count as usize) <= language.symbol_count as usize);
             debug_assert!((state as usize) < language.state_count as usize);
-            
+
             if (state as usize) < large_state_count {
                 // LARGE STATE: Dense row in parse_table
                 // Layout: parse_table[(state * symbol_count) + lookahead]
                 let base = (state as usize) * symbol_count;
                 let index = base + (symbol as usize);
-                
+
                 // Large states use the main parse_table
                 let action_value = *language.parse_table.add(index);
-                
+
                 if action_value != 0 {
                     return self.decode_action(language, action_value as usize);
                 }
@@ -855,19 +863,19 @@ impl Parser {
                 // SMALL STATE: Compressed row in small_parse_table
                 // Format is direct (symbol, action) pairs
                 let map_index = (state as usize) - large_state_count;
-                
+
                 // Read u32 offsets properly!
                 let start_offset = (*language.small_parse_table_map.add(map_index)) as usize;
                 let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
-                
+
                 // Parse direct (symbol, action) pairs
                 let mut offset = start_offset;
-                
+
                 while offset + 1 < end_offset {
                     let entry_symbol = *language.small_parse_table.add(offset);
                     let action_value = *language.small_parse_table.add(offset + 1);
                     offset += 2;
-                    
+
                     // Only process tokens, not non-terminals (gotos)
                     if entry_symbol < token_count && entry_symbol == symbol {
                         if action_value != 0 {

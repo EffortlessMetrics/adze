@@ -398,7 +398,7 @@ fn test_multi_dedent() {
             length: 0
         })
     );
-    
+
     // Stack should have popped one level
     assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0, 4]);
 
@@ -411,7 +411,7 @@ fn test_multi_dedent() {
             length: 0
         })
     );
-    
+
     // Stack should have popped another level
     assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0]);
 }

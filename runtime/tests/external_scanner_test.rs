@@ -155,7 +155,7 @@ impl ExternalScanner for NestedCommentScanner {
                     lexer.advance(1);
                     length += 1;
                 }
-                None => return None,  // EOF
+                None => return None, // EOF
             }
         }
 
@@ -176,50 +176,50 @@ impl ExternalScanner for NestedCommentScanner {
 #[test]
 fn test_indentation_scanner() {
     let mut scanner = IndentationScanner::default();
-    
+
     // Create a mock lexer for testing
     struct MockLexer {
         input: Vec<u8>,
         position: usize,
         marked_end: usize,
     }
-    
+
     impl Lexer for MockLexer {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
-        
+
         fn advance(&mut self, n: usize) {
             self.position = (self.position + n).min(self.input.len());
         }
-        
+
         fn mark_end(&mut self) {
             self.marked_end = self.position;
         }
-        
+
         fn column(&self) -> usize {
             // Simplified: just return position
             self.position
         }
-        
+
         fn is_eof(&self) -> bool {
             self.position >= self.input.len()
         }
     }
-    
+
     // Test newline detection
     let mut lexer = MockLexer {
         input: b"\n    ".to_vec(),
         position: 0,
         marked_end: 0,
     };
-    
-    let valid_symbols = vec![false, false, true];  // Only NEWLINE is valid
+
+    let valid_symbols = vec![false, false, true]; // Only NEWLINE is valid
     let result = scanner.scan(&mut lexer, &valid_symbols);
     assert!(result.is_some());
-    
+
     if let Some(scan_result) = result {
-        assert_eq!(scan_result.symbol, 2);  // NEWLINE
+        assert_eq!(scan_result.symbol, 2); // NEWLINE
         assert_eq!(scan_result.length, 1);
     }
 }
@@ -227,49 +227,49 @@ fn test_indentation_scanner() {
 #[test]
 fn test_nested_comment_scanner() {
     let mut scanner = NestedCommentScanner::default();
-    
+
     struct MockLexer {
         input: Vec<u8>,
         position: usize,
         marked_end: usize,
     }
-    
+
     impl Lexer for MockLexer {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
-        
+
         fn advance(&mut self, n: usize) {
             self.position = (self.position + n).min(self.input.len());
         }
-        
+
         fn mark_end(&mut self) {
             self.marked_end = self.position;
         }
-        
+
         fn column(&self) -> usize {
             self.position
         }
-        
+
         fn is_eof(&self) -> bool {
             self.position >= self.input.len()
         }
     }
-    
+
     // Test simple comment
     let mut lexer = MockLexer {
         input: b"(* comment *)".to_vec(),
         position: 0,
         marked_end: 0,
     };
-    
-    let valid_symbols = vec![true];  // COMMENT is valid
+
+    let valid_symbols = vec![true]; // COMMENT is valid
     let result = scanner.scan(&mut lexer, &valid_symbols);
     assert!(result.is_some());
-    
+
     if let Some(scan_result) = result {
-        assert_eq!(scan_result.symbol, 0);  // COMMENT
-        assert_eq!(lexer.marked_end, 13);   // Should have consumed entire comment
+        assert_eq!(scan_result.symbol, 0); // COMMENT
+        assert_eq!(lexer.marked_end, 13); // Should have consumed entire comment
     }
 }
 
@@ -278,14 +278,14 @@ fn test_nested_comment_scanner() {
 fn test_scanner_state_persistence() {
     let mut scanner = IndentationScanner::default();
     scanner.indent_stack = vec![0, 4, 8];
-    
+
     // Serialize state
     let mut buffer = Vec::new();
     scanner.serialize(&mut buffer);
-    
+
     // Create new scanner and deserialize
     let mut new_scanner = IndentationScanner::default();
     new_scanner.deserialize(&buffer);
-    
+
     assert_eq!(new_scanner.indent_stack, vec![0, 4, 8]);
 }

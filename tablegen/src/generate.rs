@@ -21,7 +21,7 @@ impl LanguageBuilder {
             start_can_be_empty: false,
         }
     }
-    
+
     /// Set whether the start symbol can be empty (nullable)
     pub fn set_start_can_be_empty(&mut self, value: bool) {
         self.start_can_be_empty = value;

@@ -97,6 +97,11 @@ fn create_test_parse_table() -> ParseTable {
 
     parse_table.state_count = 4;
     parse_table.symbol_count = 4;
+    
+    // Add symbol to index mapping, including EOF (symbol 0)
+    parse_table.symbol_to_index.insert(SymbolId(0), 0); // EOF at column 0
+    parse_table.symbol_to_index.insert(SymbolId(1), 1); // token 1
+    parse_table.symbol_to_index.insert(SymbolId(2), 2); // token 2
 
     parse_table
 }
@@ -117,11 +122,44 @@ fn test_table_compression() {
 
     // Create minimal token indices for test
     let token_indices = vec![0]; // EOF is always a token
+    
+    // Canary check: Verify state 0 invariants before compression
+    // This ensures our parse table is valid for GLR parsing
+    assert_state0_basic_invariants(&parse_table, &token_indices);
+    
     let compressed = compressor.compress(&parse_table, &token_indices, false);
     assert!(compressed.is_ok());
 
     let compressed = compressed.unwrap();
     assert!(compressed.validate(&parse_table).is_ok());
+}
+
+// Basic state 0 invariant check (canary test)
+fn assert_state0_basic_invariants(parse_table: &ParseTable, token_indices: &[usize]) {
+    use std::collections::HashSet;
+    
+    // Check for duplicate indices
+    let indices_set: HashSet<_> = token_indices.iter().copied().collect();
+    assert_eq!(
+        indices_set.len(),
+        token_indices.len(),
+        "token_indices must not contain duplicates"
+    );
+    
+    // Check that state 0 exists and has actions
+    assert!(!parse_table.action_table.is_empty(), "Parse table must have at least state 0");
+    
+    let state0 = &parse_table.action_table[0];
+    
+    // Check if any token has an action in state 0
+    let has_any_action = token_indices.iter().any(|&idx| {
+        state0.get(idx).map_or(false, |cell| !cell.is_empty())
+    });
+    
+    assert!(
+        has_any_action,
+        "State 0 must have at least one action for token columns"
+    );
 }
 
 #[test]
@@ -254,7 +292,9 @@ fn test_compressed_table_format() {
 
     // Create minimal token indices for test
     let token_indices = vec![0]; // EOF is always a token
-    let compressed = compressor.compress(&parse_table, &token_indices, false).unwrap();
+    let compressed = compressor
+        .compress(&parse_table, &token_indices, false)
+        .unwrap();
 
     // Check action table structure
     assert_eq!(

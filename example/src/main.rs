@@ -6,8 +6,8 @@ use rust_sitter::errors::{ParseError, ParseErrorReason};
 
 // Import modules from the lib instead of compiling them locally
 use rust_sitter_example::{
-    arithmetic, external_word_example, optionals, repetitions, words,
-    performance_test, test_precedence, test_whitespace, ambiguous
+    ambiguous, arithmetic, external_word_example, optionals, performance_test, repetitions,
+    test_precedence, test_whitespace, words,
 };
 
 fn convert_parse_error_to_diagnostics(

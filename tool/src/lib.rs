@@ -70,20 +70,30 @@ use tree_sitter_generate::generate_parser_for_grammar;
 /// submodules.
 pub fn build_parsers(root_file: &Path) {
     // Determine which builder to use - check both env vars for compatibility
-    let use_pure_rust = std::env::var("CARGO_FEATURE_PURE_RUST").is_ok() 
+    let use_pure_rust = std::env::var("CARGO_FEATURE_PURE_RUST").is_ok()
         || std::env::var("RUST_SITTER_USE_PURE_RUST").is_ok();
-    
+
     // Debug to file to bypass any stderr capture issues
     {
         use std::io::Write;
         if let Ok(mut f) = std::fs::File::create("/tmp/rust_sitter_debug.txt") {
             writeln!(f, "build_parsers called for: {}", root_file.display()).ok();
-            writeln!(f, "CARGO_FEATURE_PURE_RUST={:?}", std::env::var("CARGO_FEATURE_PURE_RUST")).ok();
-            writeln!(f, "RUST_SITTER_USE_PURE_RUST={:?}", std::env::var("RUST_SITTER_USE_PURE_RUST")).ok();
+            writeln!(
+                f,
+                "CARGO_FEATURE_PURE_RUST={:?}",
+                std::env::var("CARGO_FEATURE_PURE_RUST")
+            )
+            .ok();
+            writeln!(
+                f,
+                "RUST_SITTER_USE_PURE_RUST={:?}",
+                std::env::var("RUST_SITTER_USE_PURE_RUST")
+            )
+            .ok();
             writeln!(f, "use_pure_rust={}", use_pure_rust).ok();
         }
     }
-    
+
     if use_pure_rust {
         // Use pure-Rust builder exclusively
         use pure_rust_builder::{BuildOptions, build_parser_for_crate};
@@ -109,27 +119,29 @@ pub fn build_parsers(root_file: &Path) {
         }
         return; // Critical: don't fall through to C generation
     }
-    
+
     // If we get here, use C-based generation exclusively
     use std::env;
     let out_dir = env::var("OUT_DIR").unwrap();
     let emit_artifacts: bool = env::var("RUST_SITTER_EMIT_ARTIFACTS")
         .map(|s| s.parse().unwrap_or(false))
         .unwrap_or(false);
-    
+
     // Only check CLI if explicitly requested (for debugging)
     if std::env::var("RUST_SITTER_REQUIRE_TS_CLI").is_ok() {
         if let Err(e) = std::process::Command::new("tree-sitter")
             .arg("--version")
-            .output() 
+            .output()
         {
             eprintln!("Warning: tree-sitter CLI not found or not executable");
             eprintln!("  Details: {}", e);
-            eprintln!("  Hint: Install tree-sitter CLI >= 0.22 with: npm install -g tree-sitter-cli");
+            eprintln!(
+                "  Hint: Install tree-sitter CLI >= 0.22 with: npm install -g tree-sitter-cli"
+            );
             eprintln!("  Then verify with: tree-sitter --version");
         }
     }
-    
+
     generate_grammars(root_file).iter().for_each(|grammar| {
         let grammar_str = grammar.to_string();
         if emit_artifacts {
@@ -138,7 +150,7 @@ pub fn build_parsers(root_file: &Path) {
                 serde_json::to_string_pretty(&grammar).unwrap()
             );
         }
-        
+
         // Dump grammar JSON for debugging C-backend failures
         let dump_path = env::var("OUT_DIR")
             .ok()
@@ -146,7 +158,7 @@ pub fn build_parsers(root_file: &Path) {
         if let Some(p) = &dump_path {
             let _ = std::fs::write(p, &grammar_str);
         }
-        
+
         // Better error handling for C generation
         let (grammar_name, grammar_c) = match generate_parser_for_grammar(&grammar_str, GENERATED_SEMANTIC_VERSION) {
             Ok(result) => {
@@ -246,19 +258,19 @@ pub fn build_parsers(root_file: &Path) {
 
         let mut c_config = cc::Build::new();
         c_config.std("c11").include(&dir).include(&sysroot_dir);
-        
+
         // Cross-platform warning suppression
         c_config.warnings(false); // Portable way to disable warnings
-        
+
         // Platform-specific optimizations
         if cfg!(target_env = "msvc") {
             c_config.flag_if_supported("/EHsc"); // Enable C++ exceptions for MSVC
         } else {
             c_config.flag_if_supported("-fno-exceptions"); // Disable exceptions for GCC/Clang
         }
-        
+
         c_config.file(dir.join("parser.c"));
-        
+
         // Check for optional scanner files in both generated dir and source root
         // Try generated dir first (tree-sitter CLI output)
         let scanner_paths = [
@@ -266,7 +278,7 @@ pub fn build_parsers(root_file: &Path) {
             (dir.join("scanner.cc"), true),
             (dir.join("scanner.cpp"), true),
         ];
-        
+
         // Also check source root and src/scanner subdir for manually written scanners
         if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
             let src_dir = Path::new(&manifest_dir).join("src");
@@ -279,7 +291,7 @@ pub fn build_parsers(root_file: &Path) {
                 (scanner_subdir.join("scanner.cc"), true),
                 (scanner_subdir.join("scanner.cpp"), true),
             ];
-            
+
             // Check all paths, preferring generated over source
             for (path, is_cpp) in scanner_paths.iter().chain(additional_paths.iter()) {
                 if path.exists() {

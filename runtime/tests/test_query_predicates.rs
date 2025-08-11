@@ -4,7 +4,7 @@
 mod tests {
     use rust_sitter::{
         parser_v3::{ParseNode, Parser},
-        query::{compile_query, Query, QueryCursor},
+        query::{Query, QueryCursor, compile_query},
     };
     use rust_sitter_ir::{Grammar, Rule, RuleExpr, Symbol, SymbolId};
     use std::collections::HashMap;
@@ -66,7 +66,12 @@ mod tests {
     }
 
     /// Helper to create a parse node
-    fn make_node(symbol: SymbolId, start: usize, end: usize, children: Vec<ParseNode>) -> ParseNode {
+    fn make_node(
+        symbol: SymbolId,
+        start: usize,
+        end: usize,
+        children: Vec<ParseNode>,
+    ) -> ParseNode {
         ParseNode {
             symbol,
             children,
@@ -88,9 +93,9 @@ mod tests {
             0,
             18,
             vec![
-                make_node(grammar.get_or_add_symbol("keyword"), 0, 2, vec![]),   // "if"
+                make_node(grammar.get_or_add_symbol("keyword"), 0, 2, vec![]), // "if"
                 make_node(grammar.get_or_add_symbol("identifier"), 3, 7, vec![]), // "test"
-                make_node(grammar.get_or_add_symbol("keyword"), 8, 12, vec![]),  // "else"
+                make_node(grammar.get_or_add_symbol("keyword"), 8, 12, vec![]), // "else"
                 make_node(grammar.get_or_add_symbol("keyword"), 13, 18, vec![]), // "while"
             ],
         );
@@ -102,8 +107,8 @@ mod tests {
         "#;
 
         // Test with the enhanced matcher
-        use rust_sitter::query::matcher_v2::{QueryMatcher, QueryMatch};
-        
+        use rust_sitter::query::matcher_v2::{QueryMatch, QueryMatcher};
+
         // Create a mock query
         let mut query = Query {
             source: query_str.to_string(),
@@ -115,9 +120,7 @@ mod tests {
 
         query.capture_names.insert("kw".to_string(), 0);
 
-        use rust_sitter::query::{
-            ast::{Pattern, PatternNode, Predicate, Quantifier},
-        };
+        use rust_sitter::query::ast::{Pattern, PatternNode, Predicate, Quantifier};
 
         let pattern = Pattern {
             root: PatternNode {
@@ -160,8 +163,8 @@ mod tests {
             0,
             15,
             vec![
-                make_node(grammar.get_or_add_symbol("identifier"), 0, 4, vec![]),   // "test"
-                make_node(grammar.get_or_add_symbol("identifier"), 5, 10, vec![]),  // "other"
+                make_node(grammar.get_or_add_symbol("identifier"), 0, 4, vec![]), // "test"
+                make_node(grammar.get_or_add_symbol("identifier"), 5, 10, vec![]), // "other"
                 make_node(grammar.get_or_add_symbol("identifier"), 11, 15, vec![]), // "test"
             ],
         );
@@ -188,9 +191,9 @@ mod tests {
             0,
             31,
             vec![
-                make_node(grammar.get_or_add_symbol("identifier"), 0, 8, vec![]),    // "test_var"
-                make_node(grammar.get_or_add_symbol("identifier"), 9, 22, vec![]),   // "myFunction123"
-                make_node(grammar.get_or_add_symbol("identifier"), 23, 31, vec![]),  // "_private"
+                make_node(grammar.get_or_add_symbol("identifier"), 0, 8, vec![]), // "test_var"
+                make_node(grammar.get_or_add_symbol("identifier"), 9, 22, vec![]), // "myFunction123"
+                make_node(grammar.get_or_add_symbol("identifier"), 23, 31, vec![]), // "_private"
             ],
         );
 
@@ -248,10 +251,10 @@ mod tests {
             0,
             20,
             vec![
-                make_node(grammar.get_or_add_symbol("keyword"), 0, 2, vec![]),     // "if"
-                make_node(grammar.get_or_add_symbol("identifier"), 3, 7, vec![]),  // "test"
-                make_node(grammar.get_or_add_symbol("keyword"), 8, 14, vec![]),    // "return"
-                make_node(grammar.get_or_add_symbol("keyword"), 15, 20, vec![]),   // "while"
+                make_node(grammar.get_or_add_symbol("keyword"), 0, 2, vec![]), // "if"
+                make_node(grammar.get_or_add_symbol("identifier"), 3, 7, vec![]), // "test"
+                make_node(grammar.get_or_add_symbol("keyword"), 8, 14, vec![]), // "return"
+                make_node(grammar.get_or_add_symbol("keyword"), 15, 20, vec![]), // "while"
             ],
         );
 

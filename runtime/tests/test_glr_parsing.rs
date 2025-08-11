@@ -4,12 +4,14 @@
 #![cfg(test)]
 #![allow(unused_imports, dead_code)]
 
+use rust_sitter::error_recovery::ErrorRecoveryConfig;
 use rust_sitter::glr_parser::{GLRParser, ParseStack};
 use rust_sitter::parser_v4::{Parser, Tree};
 use rust_sitter::subtree::Subtree;
-use rust_sitter::error_recovery::ErrorRecoveryConfig;
 use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, Token, TokenPattern, ProductionId, StateId, RuleId};
+use rust_sitter_ir::{
+    Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token, TokenPattern,
+};
 use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 
@@ -109,7 +111,9 @@ fn create_ambiguous_grammar() -> Grammar {
         .push(rule3);
 
     // Add rule names
-    grammar.rule_names.insert(SYM_EXPR, "expression".to_string());
+    grammar
+        .rule_names
+        .insert(SYM_EXPR, "expression".to_string());
 
     // Note: Grammar doesn't have a start_rule field in this version
     // The start rule is typically inferred from the rules
@@ -202,30 +206,33 @@ fn create_conflicting_parse_table() -> ParseTable {
 fn test_glr_fork_creation() {
     let grammar = create_ambiguous_grammar();
     let parse_table = create_conflicting_parse_table();
-    
+
     // Create a GLR parser
     let mut parser = GLRParser::new(parse_table, grammar);
-    
+
     // Process tokens for "1 + 2 * 3"
     parser.process_token(SYM_NUMBER, "1", 0); // num
     parser.process_token(SYM_PLUS, "+", 2); // plus
     parser.process_token(SYM_NUMBER, "2", 4); // num
-    
+
     // At this point, we should have multiple stacks due to the conflict
     let stack_count_before = parser.stack_count();
-    
+
     parser.process_token(SYM_STAR, "*", 6); // mult - this should trigger forking
-    
+
     let stack_count_after = parser.stack_count();
-    
+
     // We should have more stacks after the conflict
-    assert!(stack_count_after >= stack_count_before, 
-            "Expected forking to create additional stacks. Before: {}, After: {}", 
-            stack_count_before, stack_count_after);
-    
+    assert!(
+        stack_count_after >= stack_count_before,
+        "Expected forking to create additional stacks. Before: {}, After: {}",
+        stack_count_before,
+        stack_count_after
+    );
+
     parser.process_token(SYM_NUMBER, "3", 8); // num
     parser.process_eof(9);
-    
+
     // Check that we can get a parse result
     let result = parser.finish();
     assert!(result.is_ok(), "Parse should succeed: {:?}", result);
@@ -235,9 +242,9 @@ fn test_glr_fork_creation() {
 fn test_glr_merge() {
     let grammar = create_ambiguous_grammar();
     let parse_table = create_conflicting_parse_table();
-    
+
     let mut parser = GLRParser::new(parse_table, grammar);
-    
+
     // Parse an ambiguous expression
     parser.process_token(SYM_NUMBER, "1", 0);
     parser.process_token(SYM_PLUS, "+", 2);
@@ -245,19 +252,22 @@ fn test_glr_merge() {
     parser.process_token(SYM_STAR, "*", 6);
     parser.process_token(SYM_NUMBER, "3", 8);
     parser.process_eof(9);
-    
+
     // Try to get all alternatives (if feature is available)
     #[cfg(feature = "incremental_glr")]
     {
         let alternatives = parser.finish_all_alternatives();
-        assert!(alternatives.is_ok(), "Should be able to get all parse alternatives");
-        
+        assert!(
+            alternatives.is_ok(),
+            "Should be able to get all parse alternatives"
+        );
+
         let trees = alternatives.unwrap();
         // For a truly ambiguous grammar, we might get multiple parse trees
         // But for now, just verify we get at least one
         assert!(!trees.is_empty(), "Should have at least one parse tree");
     }
-    
+
     #[cfg(not(feature = "incremental_glr"))]
     {
         // Just finish normally without alternatives
@@ -270,9 +280,9 @@ fn test_glr_merge() {
 fn test_ambiguous_expression_parsing() {
     let grammar = create_ambiguous_grammar();
     let parse_table = create_conflicting_parse_table();
-    
+
     let mut parser = GLRParser::new(parse_table, grammar);
-    
+
     // Parse "1 + 2 * 3"
     parser.process_token(SYM_NUMBER, "1", 0);
     parser.process_token(SYM_PLUS, "+", 2);
@@ -280,14 +290,17 @@ fn test_ambiguous_expression_parsing() {
     parser.process_token(SYM_STAR, "*", 6);
     parser.process_token(SYM_NUMBER, "3", 8);
     parser.process_eof(9);
-    
+
     let result = parser.finish();
-    assert!(result.is_ok(), "Should successfully parse ambiguous expression");
-    
+    assert!(
+        result.is_ok(),
+        "Should successfully parse ambiguous expression"
+    );
+
     let tree = result.unwrap();
     // The root should be an expression
     assert_eq!(tree.symbol(), SYM_EXPR.0, "Root should be expression");
-    
+
     // Verify the tree has the expected structure
     // Since this is ambiguous, we just verify it has children
     assert!(tree.children.len() > 0, "Parse tree should have children");
@@ -297,9 +310,9 @@ fn test_ambiguous_expression_parsing() {
 fn test_glr_error_recovery() {
     let grammar = create_ambiguous_grammar();
     let parse_table = create_conflicting_parse_table();
-    
+
     let mut parser = GLRParser::new(parse_table, grammar);
-    
+
     // Enable error recovery with correct field names
     let recovery_config = ErrorRecoveryConfig {
         max_panic_skip: 3,
@@ -313,14 +326,14 @@ fn test_glr_error_recovery() {
         enable_indentation_recovery: false,
     };
     parser.enable_error_recovery(recovery_config);
-    
+
     // Parse with an error: "1 + + 3" (missing number)
     parser.process_token(SYM_NUMBER, "1", 0);
     parser.process_token(SYM_PLUS, "+", 2);
     parser.process_token(SYM_PLUS, "+", 4); // Error: unexpected +
     parser.process_token(SYM_NUMBER, "3", 6);
     parser.process_eof(7);
-    
+
     // Should still get a result due to error recovery
     let result = parser.finish();
     // May or may not succeed depending on recovery strategy
@@ -331,19 +344,22 @@ fn test_glr_error_recovery() {
 fn test_glr_expected_symbols() {
     let grammar = create_ambiguous_grammar();
     let parse_table = create_conflicting_parse_table();
-    
+
     let mut parser = GLRParser::new(parse_table, grammar);
-    
+
     // After parsing "1 +"
     parser.process_token(SYM_NUMBER, "1", 0);
     parser.process_token(SYM_PLUS, "+", 2);
-    
+
     // This section uses optional incremental-GLR APIs; keep it discoverable but gated.
     #[cfg(feature = "incremental_glr")]
     {
         let expected = parser.expected_symbols();
         // Should expect a number after +
-        assert!(expected.contains(&SYM_NUMBER), "Should expect number after +");
+        assert!(
+            expected.contains(&SYM_NUMBER),
+            "Should expect number after +"
+        );
     }
 }
 
@@ -351,39 +367,42 @@ fn test_glr_expected_symbols() {
 fn test_glr_state_management() {
     let grammar = create_ambiguous_grammar();
     let parse_table = create_conflicting_parse_table();
-    
+
     let mut parser1 = GLRParser::new(parse_table.clone(), grammar.clone());
-    
+
     // Parse partial input
     parser1.process_token(SYM_NUMBER, "1", 0);
     parser1.process_token(SYM_PLUS, "+", 2);
-    
+
     // This section uses optional incremental-GLR APIs; keep it discoverable but gated.
     #[cfg(feature = "incremental_glr")]
     {
         // Save state
         let saved_stacks = parser1.get_gss_state();
         let next_id = parser1.get_next_stack_id();
-        
+
         // Create new parser and restore state
         let mut parser2 = GLRParser::new(parse_table, grammar);
         parser2.set_gss_state(saved_stacks);
         parser2.set_next_stack_id(next_id);
-        
+
         // Continue parsing
         parser2.process_token(SYM_NUMBER, "2", 4);
         parser2.process_eof(5);
-        
+
         let result = parser2.finish();
-        assert!(result.is_ok(), "Should successfully parse after state restoration");
+        assert!(
+            result.is_ok(),
+            "Should successfully parse after state restoration"
+        );
     }
-    
+
     #[cfg(not(feature = "incremental_glr"))]
     {
         // Just continue with the same parser
         parser1.process_token(SYM_NUMBER, "2", 4);
         parser1.process_eof(5);
-        
+
         let result = parser1.finish();
         assert!(result.is_ok(), "Should successfully parse");
     }

@@ -4,7 +4,7 @@
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 use anyhow::{Context, Result};
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern, ProductionId};
+use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, TokenPattern};
 use rust_sitter_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
 use serde_json::Value;
 use std::fs;
@@ -49,11 +49,15 @@ pub struct BuildResult {
 
 /// Allocate a valid ProductionId safely
 fn alloc_production_id(grammar: &Grammar) -> Result<ProductionId> {
-    let max = grammar.rules.values()
+    let max = grammar
+        .rules
+        .values()
         .flat_map(|rs| rs.iter().map(|r| r.production_id.0))
         .max()
         .unwrap_or(0);
-    let next = max.checked_add(1).context("too many productions (u16 overflow)")?;
+    let next = max
+        .checked_add(1)
+        .context("too many productions (u16 overflow)")?;
     Ok(ProductionId(next))
 }
 
@@ -62,31 +66,37 @@ fn alloc_token_id(grammar: &Grammar) -> Result<SymbolId> {
     let max_tok = grammar.tokens.keys().map(|k| k.0).max().unwrap_or(0);
     let max_rule = grammar.rules.keys().map(|k| k.0).max().unwrap_or(0);
     let max_id = max_tok.max(max_rule);
-    let next = max_id.checked_add(1).context("too many symbols (u16 overflow)")?;
+    let next = max_id
+        .checked_add(1)
+        .context("too many symbols (u16 overflow)")?;
     Ok(SymbolId(next))
 }
 
 /// Ensures every wrapper non-terminal that directly produces a pattern has an explicit unit rule N -> T.
 /// This guarantees LR items expose terminal lookaheads, enabling token shifts from initial states.
-/// 
+///
 /// A wrapper is any non-terminal N that:
 /// 1. Has no rules at all (empty wrapper)
 /// 2. Has unit rules (RHS length == 1) that need desugaring
 fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
     // Track non-terminals that need unit rules to tokens
     let mut wrappers_needing_rules = Vec::new();
-    
+
     // First pass: Find non-terminals with no rules at all
-    let all_nonterminals: Vec<SymbolId> = grammar.rule_names.keys()
+    let all_nonterminals: Vec<SymbolId> = grammar
+        .rule_names
+        .keys()
         .filter(|id| !grammar.tokens.contains_key(*id))
         .copied()
         .collect();
-    
+
     for nt_id in all_nonterminals {
-        let has_rules = grammar.rules.get(&nt_id)
+        let has_rules = grammar
+            .rules
+            .get(&nt_id)
             .map(|rules| !rules.is_empty())
             .unwrap_or(false);
-        
+
         if !has_rules {
             // This non-terminal has no rules - it's likely a wrapper for a pattern
             // For now, use a heuristic: if the name contains "Number", look for a number token
@@ -106,7 +116,7 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
             }
         }
     }
-    
+
     // Second pass: Look for existing unit rules that might need desugaring
     // (This handles cases where the wrapper has a rule but it's to an inline pattern)
     let mut rules_to_add = Vec::new();
@@ -117,10 +127,10 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
                 match &rule.rhs[0] {
                     Symbol::Terminal(_) => {
                         // Already a terminal unit rule, good
-                    },
+                    }
                     Symbol::NonTerminal(_) => {
                         // Unit rule to another non-terminal, leave it alone
-                    },
+                    }
                     // Handle other symbol types that might represent inline patterns
                     _ => {
                         // For now, we don't handle these - would need to create tokens for patterns
@@ -129,19 +139,21 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
             }
         }
     }
-    
+
     // Add unit rules for all wrappers that need them
     for (nt_id, token_id) in wrappers_needing_rules {
         // Check if this exact unit rule already exists to avoid duplicates
-        let already_exists = grammar.rules.get(&nt_id)
+        let already_exists = grammar
+            .rules
+            .get(&nt_id)
             .map(|existing_rules| {
                 existing_rules.iter().any(|r| {
-                    r.rhs.len() == 1 && 
-                    matches!(&r.rhs[0], Symbol::Terminal(tid) if *tid == token_id)
+                    r.rhs.len() == 1
+                        && matches!(&r.rhs[0], Symbol::Terminal(tid) if *tid == token_id)
                 })
             })
             .unwrap_or(false);
-        
+
         if !already_exists {
             let production_id = alloc_production_id(grammar)?;
             let unit_rule = Rule {
@@ -156,20 +168,26 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
             rules_to_add.push((nt_id, token_id));
         }
     }
-    
+
     // Rebuild symbol registry after changes
     let _ = grammar.get_or_build_registry();
-    
+
     // Log what we did (only if debug logging is enabled)
-    if std::env::var("RUST_LOG").unwrap_or_default().contains("debug") {
+    if std::env::var("RUST_LOG")
+        .unwrap_or_default()
+        .contains("debug")
+    {
         if !rules_to_add.is_empty() {
-            eprintln!("Desugaring: Added {} unit rules for pattern wrappers", rules_to_add.len());
+            eprintln!(
+                "Desugaring: Added {} unit rules for pattern wrappers",
+                rules_to_add.len()
+            );
             for (nt, tok) in rules_to_add {
                 eprintln!("  {} -> Terminal({})", nt.0, tok.0);
             }
         }
     }
-    
+
     Ok(())
 }
 
@@ -223,12 +241,18 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
 
     // Find all grammar definitions
     let grammars = crate::generate_grammars(root_file);
-    
+
     // Debug: write to file
     {
         use std::io::Write;
         if let Ok(mut f) = std::fs::File::create("/tmp/rust_sitter_grammars.txt") {
-            writeln!(f, "Found {} grammars from {}", grammars.len(), root_file.display()).ok();
+            writeln!(
+                f,
+                "Found {} grammars from {}",
+                grammars.len(),
+                root_file.display()
+            )
+            .ok();
         }
     }
 
@@ -293,7 +317,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
 
     // Step 0: Desugar pattern wrappers into unit productions
     desugar_pattern_wrappers(&mut grammar)?;
-    
+
     // Step 1: Compute FIRST/FOLLOW sets
     let first_follow = FirstFollowSets::compute(&grammar);
 
@@ -332,7 +356,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     writeln!(debug_file, "Debug: All rules in grammar:")?;
     let mut wrappers_with_rules = 0;
     let mut wrappers_without_rules = Vec::new();
-    
+
     for (symbol_id, rules) in &grammar.rules {
         writeln!(
             debug_file,
@@ -343,7 +367,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         for rule in rules {
             writeln!(debug_file, "    {:?} -> {:?}", rule.lhs, rule.rhs)?;
         }
-        
+
         // Check if this is a wrapper that got desugared
         if let Some(name) = grammar.rule_names.get(symbol_id) {
             if rules.len() == 1 && rules[0].rhs.len() == 1 {
@@ -356,16 +380,24 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
             }
         }
     }
-    
+
     // Sanity check: Report any wrappers that didn't get rules
     if !wrappers_without_rules.is_empty() {
-        writeln!(debug_file, "WARNING: {} non-terminals have no rules:", wrappers_without_rules.len())?;
+        writeln!(
+            debug_file,
+            "WARNING: {} non-terminals have no rules:",
+            wrappers_without_rules.len()
+        )?;
         for (id, name) in &wrappers_without_rules {
             writeln!(debug_file, "  - Symbol {:?}: {}", id, name)?;
         }
     }
-    
-    writeln!(debug_file, "Debug: Found {} desugared wrappers", wrappers_with_rules)?;
+
+    writeln!(
+        debug_file,
+        "Debug: Found {} desugared wrappers",
+        wrappers_with_rules
+    )?;
 
     // Step 2: Build LR(1) automaton
     let parse_table = match build_lr1_automaton(&grammar, &first_follow) {
@@ -397,7 +429,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         "Debug: Goto table has {} entries",
         parse_table.goto_table.len()
     )?;
-    
+
     // Sanity check: Verify all terminals are in symbol_to_index
     let mut unmapped_terminals = Vec::new();
     for token_id in grammar.tokens.keys() {
@@ -405,16 +437,25 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
             unmapped_terminals.push(token_id);
         }
     }
-    
+
     if !unmapped_terminals.is_empty() {
-        writeln!(debug_file, "ERROR: {} terminals not in symbol_to_index:", unmapped_terminals.len())?;
+        writeln!(
+            debug_file,
+            "ERROR: {} terminals not in symbol_to_index:",
+            unmapped_terminals.len()
+        )?;
         for tid in &unmapped_terminals {
-            let name = grammar.tokens.get(*tid)
+            let name = grammar
+                .tokens
+                .get(*tid)
                 .map(|t| t.name.as_str())
                 .unwrap_or("<unknown>");
             writeln!(debug_file, "  - Token {:?}: {}", tid, name)?;
         }
-        eprintln!("ERROR: {} terminals not mapped in parse table", unmapped_terminals.len());
+        eprintln!(
+            "ERROR: {} terminals not mapped in parse table",
+            unmapped_terminals.len()
+        );
     }
 
     // Debug: Print detailed action table content
@@ -441,11 +482,17 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     }
 
     // Debug state 0 actions only in debug mode
-    if std::env::var("RUST_LOG").unwrap_or_default().contains("debug") {
+    if std::env::var("RUST_LOG")
+        .unwrap_or_default()
+        .contains("debug")
+    {
         if let Some(state0_actions) = parse_table.action_table.get(0) {
-            eprintln!("State 0 debug: {} action cells, {} tokens", 
-                state0_actions.len(), grammar.tokens.len());
-            
+            eprintln!(
+                "State 0 debug: {} action cells, {} tokens",
+                state0_actions.len(),
+                grammar.tokens.len()
+            );
+
             let mut token_actions = 0;
             for (symbol_idx, action_cell) in state0_actions.iter().enumerate() {
                 if !action_cell.is_empty() {
@@ -458,9 +505,12 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
                     }
                 }
             }
-            
+
             if token_actions > 0 {
-                eprintln!("State 0 has {} token actions - parser can accept input ✓", token_actions);
+                eprintln!(
+                    "State 0 has {} token actions - parser can accept input ✓",
+                    token_actions
+                );
             } else {
                 eprintln!("WARNING: State 0 has no token actions - parser cannot accept input!");
             }
@@ -474,15 +524,17 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         // Compress the parse tables
         use rust_sitter_tablegen::compress::TableCompressor;
         let compressor = TableCompressor::new();
-        
+
         // Collect token indices for validation
-        let token_indices = rust_sitter_tablegen::helpers::collect_token_indices(&grammar, &parse_table);
-        
+        let token_indices =
+            rust_sitter_tablegen::helpers::collect_token_indices(&grammar, &parse_table);
+
         // Check if start symbol can be empty using FIRST/FOLLOW sets
-        let start_can_be_empty = grammar.start_symbol()
+        let start_can_be_empty = grammar
+            .start_symbol()
             .map(|sym| first_follow.is_nullable(sym))
             .unwrap_or(false);
-        
+
         let compressed_tables = compressor
             .compress(&parse_table, &token_indices, start_can_be_empty)
             .map_err(|e| anyhow::anyhow!("Failed to compress tables: {}", e))?;

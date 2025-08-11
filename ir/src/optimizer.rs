@@ -429,6 +429,7 @@ impl GrammarOptimizer {
     }
 
     /// Recursively check if symbols contain a target symbol
+    #[allow(clippy::only_used_in_recursion)]
     fn contains_symbol_recursive(
         &self,
         symbols: &[Symbol],
@@ -575,6 +576,7 @@ impl GrammarOptimizer {
     }
 
     /// Helper to renumber a symbol recursively
+    #[allow(clippy::only_used_in_recursion)]
     fn collect_symbol_ids(&self, symbol: &Symbol, ids: &mut HashSet<SymbolId>) {
         match symbol {
             Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
@@ -597,6 +599,7 @@ impl GrammarOptimizer {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn renumber_symbol(&self, symbol: &mut Symbol, old_to_new: &HashMap<SymbolId, SymbolId>) {
         match symbol {
             Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
