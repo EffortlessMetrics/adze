@@ -9,6 +9,7 @@ repository = "https://github.com/hydro-project/rust-sitter"
 homepage = "https://github.com/hydro-project/rust-sitter"
 documentation = "https://docs.rs/rust-sitter-glr-core"
 readme = "README.md"
+publish = false
 include = [
     "Cargo.toml",
     "LICENSE*",
@@ -34,6 +35,7 @@ rustc-hash = "2.1.1"
 [features]
 default = []
 parallel = ["rayon"]
+strict_docs = []
 
 [dev-dependencies]
 insta = "1.0"

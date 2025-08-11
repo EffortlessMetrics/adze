@@ -1,6 +1,7 @@
 // GLR core may need unsafe for performance-critical parser algorithms
 #![deny(unsafe_op_in_unsafe_fn)]
-#![warn(missing_docs)]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), warn(missing_docs))]
 
 //! GLR parser generation algorithms for pure-Rust Tree-sitter
 //! This module implements the core GLR state machine generation and conflict resolution

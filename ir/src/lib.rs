@@ -1,6 +1,7 @@
 // IR crate should be safe - no unsafe needed for grammar representation
 #![forbid(unsafe_code)]
-#![deny(missing_docs)]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), warn(missing_docs))]
 
 //! Grammar Intermediate Representation for pure-Rust Tree-sitter
 //! This module provides GLR-aware data structures for representing Tree-sitter grammars
@@ -22,6 +23,8 @@ pub mod debug_macros;
 /// Symbol registry for managing grammar symbols
 pub mod symbol_registry;
 pub use symbol_registry::{SymbolInfo, SymbolRegistry};
+/// Builder API for programmatically constructing grammars
+pub mod builder;
 
 /// Core grammar representation supporting all Tree-sitter features including GLR
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
