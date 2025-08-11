@@ -1,4 +1,4 @@
-use rust_sitter_glr_core::ParseTable;
+use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, SymbolId};
 
 /// Collect all token column indices from a parse table
@@ -39,4 +39,29 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
     token_indices.dedup();
 
     token_indices
+}
+
+/// Check if state 0 has an Accept or Reduce action in the EOF column.
+/// This is used to detect nullable start symbols in GLR grammars.
+///
+/// Returns true if state 0 can accept or reduce on EOF, indicating
+/// that the start symbol can be empty (nullable).
+pub(crate) fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
+    // Get EOF column index
+    let eof_idx = match parse_table.symbol_to_index.get(&SymbolId(0)) {
+        Some(&idx) => idx,
+        None => return false, // No EOF column means no nullable start
+    };
+
+    // Check state 0 (initial state)
+    if parse_table.action_table.is_empty() {
+        return false;
+    }
+
+    let state0 = &parse_table.action_table[0];
+
+    // Check if EOF column exists and has Accept or Reduce actions
+    state0.get(eof_idx).map_or(false, |cell| {
+        cell.iter().any(|action| matches!(action, Action::Accept | Action::Reduce(_)))
+    })
 }

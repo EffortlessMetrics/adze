@@ -508,29 +508,12 @@ impl StaticLanguageGenerator {
         entries
     }
 
-    /// Check if EOF cell in state 0 has Accept or Reduce actions (indicates nullable start)
-    fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
-        use rust_sitter_ir::SymbolId;
-        if let Some((&eof_idx, state0)) = parse_table
-            .symbol_to_index
-            .get(&SymbolId(0))
-            .zip(parse_table.action_table.get(0))
-        {
-            if let Some(cell) = state0.get(eof_idx) {
-                return cell
-                    .iter()
-                    .any(|a| matches!(a, Action::Accept | Action::Reduce(_)));
-            }
-        }
-        false
-    }
-
     /// Apply table compression
     pub fn compress_tables(&mut self) -> Result<(), TableGenError> {
         // If start_can_be_empty wasn't explicitly set by the caller, derive a conservative value:
         // look only at EOF actions in state 0 (Accept or Reduce there implies nullable start).
         if !self.start_can_be_empty {
-            self.start_can_be_empty = Self::eof_accepts_or_reduces(&self.parse_table);
+            self.start_can_be_empty = helpers::eof_accepts_or_reduces(&self.parse_table);
         }
 
         let compressor = TableCompressor::new();

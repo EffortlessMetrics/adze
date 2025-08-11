@@ -117,11 +117,12 @@ fn test_language_generator_creation() {
 
 #[test]
 fn test_table_compression() {
+    let grammar = create_test_grammar();
     let parse_table = create_test_parse_table();
     let compressor = TableCompressor::new();
 
-    // Create minimal token indices for test
-    let token_indices = vec![0]; // EOF is always a token
+    // Use the real helper function to collect token indices (mirrors production)
+    let token_indices = rust_sitter_tablegen::helpers::collect_token_indices(&grammar, &parse_table);
     
     // Canary check: Verify state 0 invariants before compression
     // This ensures our parse table is valid for GLR parsing
@@ -136,6 +137,7 @@ fn test_table_compression() {
 
 // Basic state 0 invariant check (canary test)
 fn assert_state0_basic_invariants(parse_table: &ParseTable, token_indices: &[usize]) {
+    use rust_sitter_ir::SymbolId;
     use std::collections::HashSet;
     
     // Check for duplicate indices
@@ -144,6 +146,17 @@ fn assert_state0_basic_invariants(parse_table: &ParseTable, token_indices: &[usi
         indices_set.len(),
         token_indices.len(),
         "token_indices must not contain duplicates"
+    );
+    
+    // Check that EOF is in symbol_to_index and token_indices
+    let eof_idx = *parse_table
+        .symbol_to_index
+        .get(&SymbolId(0))
+        .expect("EOF must be in symbol_to_index");
+    
+    assert!(
+        token_indices.iter().any(|&i| i == eof_idx),
+        "EOF column must be in token_indices"
     );
     
     // Check that state 0 exists and has actions

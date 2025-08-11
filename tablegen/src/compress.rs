@@ -490,27 +490,13 @@ impl TableCompressor {
         parse_table: &ParseTable,
         grammar: &rust_sitter_ir::Grammar,
     ) -> Result<CompressedTables, TableGenError> {
-        use crate::helpers::collect_token_indices;
-        use rust_sitter_ir::SymbolId;
+        use crate::helpers::{collect_token_indices, eof_accepts_or_reduces};
 
         // Collect token indices using helper
         let token_indices = collect_token_indices(grammar, parse_table);
 
-        // Determine if start can be empty by checking EOF cell in state 0
-        let start_can_be_empty = parse_table
-            .symbol_to_index
-            .get(&SymbolId(0))
-            .and_then(|&eof_idx| {
-                parse_table
-                    .action_table
-                    .get(0)
-                    .and_then(|state0| state0.get(eof_idx))
-                    .map(|cell| {
-                        cell.iter()
-                            .any(|a| matches!(a, Action::Accept | Action::Reduce(_)))
-                    })
-            })
-            .unwrap_or(false);
+        // Determine if start can be empty using shared helper
+        let start_can_be_empty = eof_accepts_or_reduces(parse_table);
 
         self.compress(parse_table, &token_indices, start_can_be_empty)
     }
