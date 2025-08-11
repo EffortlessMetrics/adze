@@ -495,9 +495,27 @@ impl StaticLanguageGenerator {
     /// Apply table compression
     pub fn compress_tables(&mut self) -> Result<(), TableGenError> {
         let compressor = TableCompressor::new();
-        // Add 1 for EOF which is always at index 0
-        let token_count = self.grammar.tokens.len() + 1;
-        self.compressed_tables = Some(compressor.compress(&self.parse_table, token_count)?);
+        
+        // Collect token indices for validation
+        let mut token_indices = Vec::new();
+        
+        // EOF is always symbol 0 and should be in the symbol_to_index map
+        if let Some(&eof_idx) = self.parse_table.symbol_to_index.get(&SymbolId(0)) {
+            token_indices.push(eof_idx);
+        }
+        
+        // Add all grammar tokens
+        for token_id in self.grammar.tokens.keys() {
+            if let Some(&idx) = self.parse_table.symbol_to_index.get(token_id) {
+                token_indices.push(idx);
+            }
+        }
+        
+        // Check if start symbol can be empty (for proper validation)
+        // For now, assume it cannot be empty - this would require FIRST set computation
+        let start_can_be_empty = false;
+        
+        self.compressed_tables = Some(compressor.compress(&self.parse_table, &token_indices, start_can_be_empty)?);
         Ok(())
     }
 }

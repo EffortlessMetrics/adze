@@ -419,10 +419,28 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         // Compress the parse tables
         use rust_sitter_tablegen::compress::TableCompressor;
         let compressor = TableCompressor::new();
-        // Add 1 for EOF which is always at index 0
-        let token_count = grammar.tokens.len() + 1;
+        
+        // Collect token indices for validation
+        let mut token_indices = Vec::new();
+        
+        // EOF is always symbol 0 and should be in the symbol_to_index map
+        if let Some(&eof_idx) = parse_table.symbol_to_index.get(&SymbolId(0)) {
+            token_indices.push(eof_idx);
+        }
+        
+        // Add all grammar tokens
+        for token_id in grammar.tokens.keys() {
+            if let Some(&idx) = parse_table.symbol_to_index.get(token_id) {
+                token_indices.push(idx);
+            }
+        }
+        
+        // Check if start symbol can be empty (for proper validation)
+        // For now, assume it cannot be empty - this would require FIRST set computation
+        let start_can_be_empty = false;
+        
         let compressed_tables = compressor
-            .compress(&parse_table, token_count)
+            .compress(&parse_table, &token_indices, start_can_be_empty)
             .map_err(|e| anyhow::anyhow!("Failed to compress tables: {}", e))?;
 
         // Generate code with compressed tables

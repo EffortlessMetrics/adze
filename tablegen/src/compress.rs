@@ -160,20 +160,33 @@ impl TableCompressor {
     }
 
     /// Compress parse tables using Tree-sitter's exact algorithms
-    pub fn compress(&self, parse_table: &ParseTable, token_count: usize) -> Result<CompressedTables, TableGenError> {
+    pub fn compress(&self, parse_table: &ParseTable, token_indices: &[usize], start_can_be_empty: bool) -> Result<CompressedTables, TableGenError> {
         // Validation: Ensure state 0 has at least one token shift action
         // This catches the "state 0 bug" where no tokens can be shifted from the initial state
         if let Some(state0_actions) = parse_table.action_table.get(0) {
-            // Token columns are [0..token_count), non-terminals are [token_count..)
             // Check if any token column has a shift action
-            let has_token_shift = state0_actions.iter()
-                .take(token_count)  // Only check token columns
-                .any(|cell| cell.iter().any(|a| matches!(a, Action::Shift(_))));
+            let has_token_shift = token_indices.iter().any(|&idx| {
+                state0_actions.get(idx)
+                    .map_or(false, |cell| cell.iter().any(|a| matches!(a, Action::Shift(_))))
+            });
             
-            if !has_token_shift {
+            // If no token shifts, check if start is nullable and EOF has accept/reduce
+            let eof_ok = if !has_token_shift && start_can_be_empty {
+                // EOF is always symbol 0, find its index
+                parse_table.symbol_to_index.get(&SymbolId(0))
+                    .and_then(|&eof_idx| state0_actions.get(eof_idx))
+                    .map_or(false, |cell| {
+                        cell.iter().any(|a| matches!(a, Action::Accept | Action::Reduce(_)))
+                    })
+            } else {
+                false
+            };
+            
+            if !has_token_shift && !eof_ok {
                 // Provide detailed debugging info
                 let mut debug_info = String::new();
-                debug_info.push_str(&format!("Token count: {} (including EOF)\n", token_count));
+                debug_info.push_str(&format!("Token indices: {:?}\n", token_indices));
+                debug_info.push_str(&format!("Start can be empty: {}\n", start_can_be_empty));
                 debug_info.push_str("State 0 actions:\n");
                 for (idx, cell) in state0_actions.iter().enumerate().take(8) {
                     if !cell.is_empty() {
@@ -183,7 +196,7 @@ impl TableCompressor {
                             .map(|(sym_id, _)| format!("symbol {}", sym_id.0))
                             .unwrap_or_else(|| "unknown".to_string());
                         
-                        let type_str = if idx < token_count { "token" } else { "non-terminal" };
+                        let type_str = if token_indices.contains(&idx) { "token" } else { "non-terminal" };
                         debug_info.push_str(&format!("  Column {} ({}, {}): {:?}\n", 
                             idx, symbol_info, type_str, cell));
                     }
