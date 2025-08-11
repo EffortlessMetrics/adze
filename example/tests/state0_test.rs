@@ -10,23 +10,10 @@ fn test_state0_has_token_actions() {
     // Include the generated parser to get access to constants
     include!(concat!(env!("OUT_DIR"), "/grammar_arithmetic/parser_arithmetic.rs"));
     
-    // Access the language structure
+    // Access the language structure and tables directly
     let lang = &LANGUAGE;
-    
-    // Access the compressed parse table
-    let parse_table_data = unsafe {
-        std::slice::from_raw_parts(
-            SMALL_PARSE_TABLE.as_ptr(),
-            SMALL_PARSE_TABLE.len()
-        )
-    };
-    
-    let parse_table_map = unsafe {
-        std::slice::from_raw_parts(
-            SMALL_PARSE_TABLE_MAP.as_ptr(),
-            (lang.state_count - lang.large_state_count + 1) as usize
-        )
-    };
+    let parse_table_data = SMALL_PARSE_TABLE;
+    let parse_table_map = SMALL_PARSE_TABLE_MAP;
     
     // State 0 starts at index 0 in the map
     let state0_start = parse_table_map[0] as usize;
@@ -94,12 +81,7 @@ fn test_parse_arithmetic_expression() {
     assert!(lang.symbol_count > 0, "Language should have symbols");
     
     // Verify state 0 specifically has the expected structure
-    let parse_table_data = unsafe {
-        std::slice::from_raw_parts(
-            SMALL_PARSE_TABLE.as_ptr(),
-            SMALL_PARSE_TABLE.len()
-        )
-    };
+    let parse_table_data = SMALL_PARSE_TABLE;
     
     // Check that parse table has data
     assert!(!parse_table_data.is_empty(), "Parse table should not be empty");

@@ -419,8 +419,10 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         // Compress the parse tables
         use rust_sitter_tablegen::compress::TableCompressor;
         let compressor = TableCompressor::new();
+        // Add 1 for EOF which is always at index 0
+        let token_count = grammar.tokens.len() + 1;
         let compressed_tables = compressor
-            .compress(&parse_table)
+            .compress(&parse_table, token_count)
             .map_err(|e| anyhow::anyhow!("Failed to compress tables: {}", e))?;
 
         // Generate code with compressed tables

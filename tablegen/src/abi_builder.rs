@@ -209,10 +209,10 @@ impl<'a> AbiLanguageBuilder<'a> {
             static PARSE_TABLE: &[u16] = &[];
 
             // Small parse table (compressed states data)
-            static SMALL_PARSE_TABLE: &[u16] = &[#(#parse_table_data),*];
+            pub static SMALL_PARSE_TABLE: &[u16] = &[#(#parse_table_data),*];
 
             // Small parse table map
-            static SMALL_PARSE_TABLE_MAP: &[u32] = &[#(#small_parse_table_map),*];
+            pub static SMALL_PARSE_TABLE_MAP: &[u32] = &[#(#small_parse_table_map),*];
 
             // Parse actions
             static PARSE_ACTIONS: &[TSParseAction] = &[#(#parse_actions),*];

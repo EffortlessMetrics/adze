@@ -160,36 +160,53 @@ impl TableCompressor {
     }
 
     /// Compress parse tables using Tree-sitter's exact algorithms
-    pub fn compress(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
-        // Validation: Ensure state 0 has at least one token action
+    pub fn compress(&self, parse_table: &ParseTable, token_count: usize) -> Result<CompressedTables, TableGenError> {
+        // Validation: Ensure state 0 has at least one token shift action
         // This catches the "state 0 bug" where no tokens can be shifted from the initial state
         if let Some(state0_actions) = parse_table.action_table.get(0) {
-            // Find the minimum non-terminal symbol index
-            // Tokens have indices less than the minimum non-terminal index
-            let mut min_nonterminal_index = usize::MAX;
-            let mut has_any_action = false;
+            // Token columns are [0..token_count), non-terminals are [token_count..)
+            // Check if any token column has a shift action
+            let has_token_shift = state0_actions.iter()
+                .take(token_count)  // Only check token columns
+                .any(|cell| cell.iter().any(|a| matches!(a, Action::Shift(_))));
             
-            for (idx, action_cell) in state0_actions.iter().enumerate() {
-                if !action_cell.is_empty() {
-                    has_any_action = true;
-                    // Check if this is a shift action (vs reduce/accept/error)
-                    for action in action_cell {
-                        if matches!(action, Action::Shift(_)) {
-                            // This could be a token or non-terminal shift
-                            // We'll need to verify at least one is a token
-                        }
+            if !has_token_shift {
+                // Provide detailed debugging info
+                let mut debug_info = String::new();
+                debug_info.push_str(&format!("Token count: {} (including EOF)\n", token_count));
+                debug_info.push_str("State 0 actions:\n");
+                for (idx, cell) in state0_actions.iter().enumerate().take(8) {
+                    if !cell.is_empty() {
+                        // Find which symbol this index maps to
+                        let symbol_info = parse_table.symbol_to_index.iter()
+                            .find(|(_, i)| **i == idx)
+                            .map(|(sym_id, _)| format!("symbol {}", sym_id.0))
+                            .unwrap_or_else(|| "unknown".to_string());
+                        
+                        let type_str = if idx < token_count { "token" } else { "non-terminal" };
+                        debug_info.push_str(&format!("  Column {} ({}, {}): {:?}\n", 
+                            idx, symbol_info, type_str, cell));
                     }
                 }
+                
+                return Err(TableGenError::CompressionError(format!(
+                    "State 0 has no token shift actions (pattern wrapper desugaring may have failed).\n{}",
+                    debug_info
+                )));
             }
-            
-            // Simple heuristic: state 0 should have at least one non-empty action cell
-            // A more sophisticated check would verify token indices specifically
-            if !has_any_action {
-                return Err(TableGenError::CompressionError(
-                    "State 0 has no actions at all. This is likely the 'state 0 bug' - \
-                     pattern wrappers may need desugaring to expose terminal lookaheads.".to_string()
-                ));
-            }
+        }
+        
+        // Additional sanity guards
+        if parse_table.action_table.is_empty() {
+            return Err(TableGenError::CompressionError(
+                "Empty action table - grammar has no parse states".to_string()
+            ));
+        }
+        
+        if parse_table.state_count == 0 {
+            return Err(TableGenError::CompressionError(
+                "State count is 0 - invalid parse table".to_string()
+            ));
         }
         
         // Determine if we should use small table optimization
@@ -244,7 +261,7 @@ impl TableCompressor {
         }
 
 
-        for (state_idx, action_row) in action_table.iter().enumerate() {
+        for (_state_idx, action_row) in action_table.iter().enumerate() {
             // Find the most common action across all cells
             let mut action_counts: HashMap<Action, usize> = HashMap::new();
             let mut has_shift = false;
@@ -301,6 +318,24 @@ impl TableCompressor {
         }
 
         row_offsets.push(entries.len() as u16);
+
+        // Validate row_offsets are strictly increasing
+        for i in 1..row_offsets.len() {
+            if row_offsets[i] < row_offsets[i-1] {
+                return Err(TableGenError::CompressionError(format!(
+                    "Row offsets not strictly increasing at index {}: {} < {}",
+                    i, row_offsets[i], row_offsets[i-1]
+                )));
+            }
+        }
+        
+        // Validate map length matches state count
+        if row_offsets.len() != action_table.len() + 1 {
+            return Err(TableGenError::CompressionError(format!(
+                "Row offsets length {} doesn't match state count {} + 1",
+                row_offsets.len(), action_table.len()
+            )));
+        }
 
         Ok(CompressedActionTable {
             data: entries,

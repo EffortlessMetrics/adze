@@ -495,7 +495,9 @@ impl StaticLanguageGenerator {
     /// Apply table compression
     pub fn compress_tables(&mut self) -> Result<(), TableGenError> {
         let compressor = TableCompressor::new();
-        self.compressed_tables = Some(compressor.compress(&self.parse_table)?);
+        // Add 1 for EOF which is always at index 0
+        let token_count = self.grammar.tokens.len() + 1;
+        self.compressed_tables = Some(compressor.compress(&self.parse_table, token_count)?);
         Ok(())
     }
 }
