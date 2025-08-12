@@ -12,8 +12,9 @@ use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Error types and Result alias for GLR operations.
 pub mod error;
-// Re-export GLRError as GlrError for naming consistency
+/// Back-compat alias: prefer `GlrError`; `GLRError` remains for now.
 pub use GLRError as GlrError;
 pub use error::Result as GlrResult;
 

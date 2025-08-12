@@ -10,6 +10,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// Error types and Result alias for IR operations.
 pub mod error;
 pub use error::{IrError, Result as IrResult};
 
