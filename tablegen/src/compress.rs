@@ -105,7 +105,10 @@ pub enum CompressedGotoEntry {
     RunLength { state: u16, count: u16 },
 }
 
-/// Table compressor for encoding actions
+/// Lossless compressor for LR(1) parse tables produced by `glr-core`.
+///
+/// The compressor packs the ACTION/GOTO matrices into compact columnar
+/// representations while preserving all transitions.
 pub struct TableCompressor {
     // Tree-sitter's magic constants for compression
     small_table_threshold: usize,
@@ -159,18 +162,32 @@ impl TableCompressor {
         }
     }
 
-    /// Compress parse tables using Tree-sitter's exact algorithms
+    /// Compress a parse table into compact ACTION/GOTO forms.
     ///
-    /// # Parameters
-    /// - `parse_table`: The parse table to compress
-    /// - `token_indices`: Sorted list of column indices for all tokens (including EOF).
-    ///   Use `helpers::collect_token_indices()` to generate this list.
-    /// - `start_can_be_empty`: Whether the start symbol can derive empty string.
-    ///   This affects how state 0 is validated during compression.
+    /// * `parse_table` — LR(1) automaton from `glr-core`.
+    /// * `token_indices` — column indices including EOF from `collect_token_indices`.
+    /// * `start_can_be_empty` — whether the start symbol is nullable.
+    ///
+    /// Returns compressed tables suitable for embedding.
+    ///
+    /// ```no_run
+    /// # use rust_sitter_ir::builder::GrammarBuilder;
+    /// # use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+    /// # use rust_sitter_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
+    /// # let g = GrammarBuilder::new("demo").start("module").build();
+    /// # let ff = FirstFollowSets::compute(&g);
+    /// # let pt = build_lr1_automaton(&g, &ff).unwrap();
+    /// # let token_ix = collect_token_indices(&g, &pt);
+    /// let compressed = TableCompressor::new()
+    ///     .compress(&pt, &token_ix, eof_accepts_or_reduces(&pt))
+    ///     .unwrap();
+    /// # let _ = compressed;
+    /// ```
     ///
     /// # Breaking Change Note
     /// This function signature changed to include `token_indices` and `start_can_be_empty` parameters
     /// to properly handle nullable start symbols and GLR multi-action cells.
+    #[must_use]
     pub fn compress(
         &self,
         parse_table: &ParseTable,

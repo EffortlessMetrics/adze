@@ -2,9 +2,31 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
 
-//! Static table generation and compression for pure-Rust Tree-sitter
+//! # rust-sitter-tablegen
 //!
-//! This module implements Tree-sitter's exact table compression algorithms.
+//! Generate and compress LR(1) parse tables for pure-Rust Tree-sitter grammars.
+//!
+//! ## Quick start
+//! ```no_run
+//! use rust_sitter_ir::builder::GrammarBuilder;
+//! use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+//! use rust_sitter_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
+//!
+//! let g = GrammarBuilder::new("demo")
+//!     .token("IDENT", r"[a-zA-Z_][a-zA-Z0-9_]*")
+//!     .rule("module", vec![])                 // ε
+//!     .rule("module", vec!["IDENT"])
+//!     .start("module")
+//!     .build();
+//!
+//! let ff = FirstFollowSets::compute(&g);
+//! let pt = build_lr1_automaton(&g, &ff).unwrap();
+//! let token_ix = collect_token_indices(&g, &pt);
+//! let compressed = TableCompressor::new()
+//!     .compress(&pt, &token_ix, eof_accepts_or_reduces(&pt))
+//!     .unwrap();
+//! # let _ = compressed;
+//! ```
 //!
 //! ## Important Notes
 //!

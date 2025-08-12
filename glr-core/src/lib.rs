@@ -13,7 +13,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod error;
-pub use error::{GlrError, Result as GlrResult};
+// Re-export GLRError as GlrError for naming consistency
+pub use GLRError as GlrError;
+pub use error::Result as GlrResult;
 
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {
@@ -1714,6 +1716,17 @@ fn add_action_with_conflict(
             *entry = current_cell.clone();
         }
     }
+}
+
+/// Build LR(1) automaton using the GlrResult type alias
+/// 
+/// This is a convenience wrapper that uses the crate-level Result type.
+/// Use this when migrating code to the new error handling pattern.
+pub fn build_lr1_automaton_res(
+    grammar: &Grammar,
+    first_follow: &FirstFollowSets,
+) -> GlrResult<ParseTable> {
+    build_lr1_automaton(grammar, first_follow)
 }
 
 /// Check if two actions are equivalent

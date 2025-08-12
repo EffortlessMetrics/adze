@@ -47,3 +47,17 @@ impl From<&str> for TableGenError {
         TableGenError::TableGeneration(s.to_string())
     }
 }
+
+impl From<rust_sitter_glr_core::GLRError> for TableGenError {
+    fn from(e: rust_sitter_glr_core::GLRError) -> Self {
+        // Treat upstream generator/analysis failures as table generation errors.
+        TableGenError::TableGeneration(e.to_string())
+    }
+}
+
+impl From<rust_sitter_ir::IrError> for TableGenError {
+    fn from(e: rust_sitter_ir::IrError) -> Self {
+        // Same rationale: tablegen orchestrates IR → automaton → compression.
+        TableGenError::TableGeneration(e.to_string())
+    }
+}
