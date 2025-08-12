@@ -1,6 +1,6 @@
 [package]
 name = "rust-sitter-tablegen"
-version = "0.7.0"
+version = "0.8.0-dev"
 edition = "2024"
 rust-version = "1.87"
 description = "Table generation and compression for pure-Rust Tree-sitter"
@@ -22,8 +22,8 @@ include = [
 all-features = true
 
 [dependencies]
-rust-sitter-ir = { version = "0.6.0", path = "../ir" }
-rust-sitter-glr-core = { version = "0.6.0", path = "../glr-core" }
+rust-sitter-ir = { version = "0.8.0-dev", path = "../ir" }
+rust-sitter-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
 proc-macro2 = "1.0"
 quote = "1.0"
 serde = { version = "1.0", features = ["derive"] }

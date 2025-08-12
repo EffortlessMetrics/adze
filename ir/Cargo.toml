@@ -1,6 +1,6 @@
 [package]
 name = "rust-sitter-ir"
-version = "0.6.0"
+version = "0.8.0-dev"
 edition = "2024"
 rust-version = "1.87"
 description = "Grammar Intermediate Representation for pure-Rust Tree-sitter"
