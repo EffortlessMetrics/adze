@@ -3,7 +3,7 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::builder::GrammarBuilder;
-use rust_sitter_tablegen::{TableCompressor, helpers::collect_token_indices};
+use rust_sitter_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
 
 /// Benchmark small grammar compression
 fn bench_small_grammar(c: &mut Criterion) {
@@ -17,6 +17,7 @@ fn bench_small_grammar(c: &mut Criterion) {
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
+    let start_nullable = eof_accepts_or_reduces(&parse_table);
 
     c.bench_function("compress_small_grammar", |b| {
         b.iter(|| {
@@ -24,7 +25,7 @@ fn bench_small_grammar(c: &mut Criterion) {
             let compressed = compressor.compress(
                 black_box(&parse_table),
                 black_box(&token_indices),
-                black_box(false),
+                black_box(start_nullable),
             );
             compressed
         })
@@ -55,6 +56,7 @@ fn bench_arithmetic_grammar(c: &mut Criterion) {
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
+    let start_nullable = eof_accepts_or_reduces(&parse_table);
 
     c.bench_function("compress_arithmetic_grammar", |b| {
         b.iter(|| {
@@ -62,7 +64,7 @@ fn bench_arithmetic_grammar(c: &mut Criterion) {
             let compressed = compressor.compress(
                 black_box(&parse_table),
                 black_box(&token_indices),
-                black_box(false),
+                black_box(start_nullable),
             );
             compressed
         })
@@ -75,6 +77,7 @@ fn bench_python_like_grammar(c: &mut Criterion) {
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
+    let start_nullable = eof_accepts_or_reduces(&parse_table);
 
     c.bench_function("compress_python_like_grammar", |b| {
         b.iter(|| {
@@ -82,7 +85,7 @@ fn bench_python_like_grammar(c: &mut Criterion) {
             let compressed = compressor.compress(
                 black_box(&parse_table),
                 black_box(&token_indices),
-                black_box(false),
+                black_box(start_nullable),
             );
             compressed
         })
@@ -95,6 +98,7 @@ fn bench_javascript_like_grammar(c: &mut Criterion) {
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
+    let start_nullable = eof_accepts_or_reduces(&parse_table);
 
     c.bench_function("compress_javascript_like_grammar", |b| {
         b.iter(|| {
@@ -102,7 +106,7 @@ fn bench_javascript_like_grammar(c: &mut Criterion) {
             let compressed = compressor.compress(
                 black_box(&parse_table),
                 black_box(&token_indices),
-                black_box(false),
+                black_box(start_nullable),
             );
             compressed
         })
@@ -136,6 +140,7 @@ fn bench_table_size_scaling(c: &mut Criterion) {
         let first_follow = FirstFollowSets::compute(&grammar);
         let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
         let token_indices = collect_token_indices(&grammar, &parse_table);
+        let start_nullable = eof_accepts_or_reduces(&parse_table);
 
         group.bench_with_input(
             BenchmarkId::from_parameter(size),
@@ -146,7 +151,7 @@ fn bench_table_size_scaling(c: &mut Criterion) {
                     let compressed = compressor.compress(
                         black_box(&parse_table),
                         black_box(&token_indices),
-                        black_box(false),
+                        black_box(start_nullable),
                     );
                     compressed
                 })
@@ -162,30 +167,31 @@ fn bench_compression_options(c: &mut Criterion) {
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
+    let start_nullable = eof_accepts_or_reduces(&parse_table);
 
     let mut group = c.benchmark_group("compression_options");
 
-    // Test with EOF optimization disabled
-    group.bench_function("no_eof_optimization", |b| {
+    // Test with actual EOF optimization (based on grammar)
+    group.bench_function("actual_eof_optimization", |b| {
         b.iter(|| {
             let compressor = TableCompressor::new();
             let compressed = compressor.compress(
                 black_box(&parse_table),
                 black_box(&token_indices),
-                black_box(false), // EOF optimization disabled
+                black_box(start_nullable), // Use actual nullable state
             );
             compressed
         })
     });
 
-    // Test with EOF optimization enabled
-    group.bench_function("with_eof_optimization", |b| {
+    // Test forcing no EOF optimization (even if grammar allows it)
+    group.bench_function("forced_no_eof", |b| {
         b.iter(|| {
             let compressor = TableCompressor::new();
             let compressed = compressor.compress(
                 black_box(&parse_table),
                 black_box(&token_indices),
-                black_box(true), // EOF optimization enabled
+                black_box(false), // Force disabled
             );
             compressed
         })

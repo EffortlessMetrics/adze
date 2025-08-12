@@ -1,6 +1,5 @@
 use rust_sitter_ir::Grammar;
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_tablegen::TableCompressor;
 
 #[test]
 fn error_roundtrip_propagates_failure() {
