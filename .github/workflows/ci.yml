@@ -62,6 +62,20 @@ jobs:
       - name: Run doctests
         run: cargo test --doc --workspace ${{ matrix.features }}
 
+  benchmarks:
+    name: Benchmark Compilation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Check glr-core benchmarks compile
+        run: cargo bench -p rust-sitter-glr-core --bench automaton --no-run
+      
+      - name: Check tablegen benchmarks compile
+        run: cargo bench -p rust-sitter-tablegen --bench compression --no-run
+
   backend-matrix:
     name: Backend Build Matrix (${{ matrix.backend }})
     runs-on: ubuntu-latest

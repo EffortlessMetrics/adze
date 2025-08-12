@@ -3,7 +3,7 @@ name = "rust-sitter-tool"
 description = "The external tool for Rust Sitter that extracts grammars from Rust definitions"
 readme = "../README.md"
 repository = "https://github.com/hydro-project/rust-sitter"
-version = "0.6.0"
+version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 license = "MIT"
 edition = "2024"
@@ -26,10 +26,10 @@ syn = { version = "2", features = ["full", "extra-traits"] }
 syn-inline-mod = "0.6"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-rust-sitter-common = { version = "0.6.0", path = "../common" }
-rust-sitter-ir = { version = "0.6.0", path = "../ir" }
-rust-sitter-glr-core = { version = "0.6.0", path = "../glr-core" }
-rust-sitter-tablegen = { version = "0.7.0", path = "../tablegen" }
+rust-sitter-common = { version = "0.8.0-dev", path = "../common" }
+rust-sitter-ir = { version = "0.8.0-dev", path = "../ir" }
+rust-sitter-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+rust-sitter-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
 regex = "1.10"
 anyhow = "1.0"
 indexmap = "2.0"

@@ -39,3 +39,9 @@ strict_docs = []
 
 [dev-dependencies]
 insta = "1.0"
+criterion = "0.5"
+dhat = "0.3"
+
+[[bench]]
+name = "automaton"
+harness = false
