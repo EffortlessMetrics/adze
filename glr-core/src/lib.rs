@@ -12,30 +12,56 @@ use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Stable imports for downstream users during 0.8.0-dev.
+pub mod prelude {
+    pub use crate::{ParseTable, FirstFollowSets, build_lr1_automaton};
+}
+
+// Keep available, but don't promise public docs yet:
+#[doc(hidden)]
 pub mod advanced_conflict;
+#[doc(hidden)]
 pub mod conflict_resolution;
+#[doc(hidden)]
 pub mod conflict_visualizer;
+#[doc(hidden)]
 pub mod disambiguation;
+#[doc(hidden)]
 pub mod gss;
+#[doc(hidden)]
 pub mod gss_arena;
+#[doc(hidden)]
 pub mod parse_forest;
+#[doc(hidden)]
 pub mod perf_optimizations;
+#[doc(hidden)]
 pub mod precedence_compare;
+#[doc(hidden)]
 pub mod symbol_comparison;
+#[doc(hidden)]
 pub mod version_info;
 
+#[doc(hidden)]
 pub use advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
 };
+#[doc(hidden)]
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
+#[doc(hidden)]
 pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
+#[doc(hidden)]
 pub use gss::{GSSStats, GraphStructuredStack, StackNode};
+#[doc(hidden)]
 pub use parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree};
+#[doc(hidden)]
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
+#[doc(hidden)]
 pub use precedence_compare::{
     PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
 };
+#[doc(hidden)]
 pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
+#[doc(hidden)]
 pub use version_info::{CompareResult, VersionInfo, compare_versions};
 
 /// FIRST/FOLLOW sets computation for GLR parsing

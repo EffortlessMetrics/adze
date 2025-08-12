@@ -491,32 +491,8 @@ impl TableCompressor {
         })
     }
 
-    /// Compatibility shim for old API - will be removed in next major version
-    ///
-    /// # Deprecation Notice
-    /// This method is deprecated. Please use the new `compress()` method with explicit
-    /// `token_indices` and `start_can_be_empty` parameters. See MIGRATING.md for details.
-    #[doc(hidden)]
-    #[deprecated(
-        since = "0.7.0",
-        note = "Use compress(parse_table, token_indices, start_can_be_empty). See MIGRATING.md."
-    )]
-    #[allow(deprecated)]
-    pub fn compress_default(
-        &self,
-        parse_table: &ParseTable,
-        grammar: &rust_sitter_ir::Grammar,
-    ) -> Result<CompressedTables, TableGenError> {
-        use crate::helpers::{collect_token_indices, eof_accepts_or_reduces};
-
-        // Collect token indices using helper
-        let token_indices = collect_token_indices(grammar, parse_table);
-
-        // Determine if start can be empty using shared helper
-        let start_can_be_empty = eof_accepts_or_reduces(parse_table);
-
-        self.compress(parse_table, &token_indices, start_can_be_empty)
-    }
+    // Removed in 0.8.0 - use compress(parse_table, token_indices, start_can_be_empty)
+    // See MIGRATING.md for migration guide
 }
 
 #[cfg(test)]
