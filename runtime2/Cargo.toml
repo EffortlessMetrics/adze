@@ -1,0 +1,39 @@
+[package]
+name = "rust-sitter-runtime"
+version = "0.1.0"
+edition = "2021"
+authors = ["Steven Bal"]
+license = "MIT OR Apache-2.0"
+description = "GLR runtime for rust-sitter parsers with Tree-sitter API compatibility"
+repository = "https://github.com/stevenjohnstone/rust-sitter"
+keywords = ["parser", "parsing", "glr", "tree-sitter", "incremental"]
+categories = ["parsing", "compilers"]
+
+[dependencies]
+# Core dependencies
+thiserror = "1.0"
+smallvec = "1.13"
+rustc-hash = "2.1"
+
+# For incremental parsing (future)
+memchr = "2.7"
+
+# Optional dependencies for different features
+bumpalo = { version = "3.16", optional = true }
+typed-arena = { version = "2.0", optional = true }
+
+[dev-dependencies]
+criterion = "0.5"
+pretty_assertions = "1.4"
+
+[features]
+default = []
+# Enable arena allocators for performance
+arenas = ["bumpalo", "typed-arena"]
+# Enable incremental parsing support
+incremental = []
+# Enable external scanner support
+external-scanners = []
+# Enable query system (future)
+queries = []
+

@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "macro",
   "runtime",
+  "runtime2",
   "tool",
   "example",
   "common",
