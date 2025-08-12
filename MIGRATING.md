@@ -4,6 +4,26 @@ This document describes breaking changes and how to migrate your code.
 
 ## 0.8.0
 
+### Error Unification
+
+New crate errors provide consistent error handling across the workspace:
+- `ir::IrError` - IR-level errors (via `thiserror`)
+- `glr-core::GLRError` (re-exported as `GlrError`) - Parser generation errors
+- `tablegen::TableGenError` - Table generation and compression errors
+
+The `tablegen` crate implements `From<GLRError>` and `From<IrError>`, so the `?` operator
+will automatically convert upstream errors into `TableGenError`:
+
+```rust
+// In tablegen code, these all work with `?`:
+let ff = FirstFollowSets::compute(&g);  // Returns GlrResult
+let pt = build_lr1_automaton(&g, &ff)?; // GLRError -> TableGenError
+let compressed = compressor.compress(&pt, &indices, nullable)?; // Already TableGenError
+```
+
+For now `GLRError` remains the canonical name for compatibility. We may standardize
+on `GlrError` in a future release with a deprecation window.
+
 ### Removed: `compress_default`
 
 The deprecated `compress_default` method has been removed. Replace with:
