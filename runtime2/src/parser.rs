@@ -73,14 +73,19 @@ impl Parser {
     }
 
     fn parse_full(&mut self, _language: &Language, _input: &[u8]) -> Result<Tree, ParseError> {
-        // TODO: Implement full GLR parsing
-        // 1. Initialize GSS with start state
-        // 2. Lex input into tokens
-        // 3. Process tokens through GLR engine
-        // 4. Build SPPF
-        // 5. Convert SPPF to Tree facade
+        // Use GLR engine if available
+        #[cfg(feature = "glr-core")]
+        {
+            // TODO: Create GlrEngine from language and parse
+            // For now, we need the grammar which isn't available from Language yet
+            return Err(ParseError::with_msg("GLR engine requires grammar - integration pending"));
+        }
         
-        Ok(Tree::new_stub())
+        #[cfg(not(feature = "glr-core"))]
+        {
+            // Fallback stub implementation
+            Ok(Tree::new_stub())
+        }
     }
 
     #[cfg(feature = "incremental")]

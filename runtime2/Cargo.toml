@@ -15,6 +15,10 @@ thiserror = "1.0"
 smallvec = "1.13"
 rustc-hash = "2.1"
 
+# GLR core (optional, enabled by default)
+rust-sitter-glr-core = { path = "../glr-core", optional = true }
+rust-sitter-ir = { path = "../ir", optional = true }
+
 # For incremental parsing (future)
 memchr = "2.7"
 
@@ -27,7 +31,9 @@ criterion = "0.5"
 pretty_assertions = "1.4"
 
 [features]
-default = []
+default = ["glr-core"]
+# Enable GLR core integration
+glr-core = ["dep:rust-sitter-glr-core", "dep:rust-sitter-ir"]
 # Enable arena allocators for performance
 arenas = ["bumpalo", "typed-arena"]
 # Enable incremental parsing support

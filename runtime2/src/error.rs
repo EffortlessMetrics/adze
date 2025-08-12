@@ -48,6 +48,10 @@ pub enum ParseErrorKind {
     /// Memory allocation failure
     #[error("memory allocation failed")]
     AllocationError,
+    
+    /// Other error with custom message
+    #[error("{0}")]
+    Other(String),
 }
 
 /// Location information for an error
@@ -90,6 +94,14 @@ impl ParseError {
     pub fn with_location(mut self, location: ErrorLocation) -> Self {
         self.location = Some(location);
         self
+    }
+    
+    /// Create an error with a custom message
+    pub fn with_msg(msg: &str) -> Self {
+        Self {
+            kind: ParseErrorKind::Other(msg.to_string()),
+            location: None,
+        }
     }
 }
 

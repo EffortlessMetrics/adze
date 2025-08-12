@@ -2025,6 +2025,8 @@ dependencies = [
  "criterion",
  "memchr",
  "pretty_assertions",
+ "rust-sitter-glr-core",
+ "rust-sitter-ir",
  "rustc-hash 2.1.1",
  "smallvec",
  "thiserror 1.0.69",

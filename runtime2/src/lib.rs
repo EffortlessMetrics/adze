@@ -13,6 +13,9 @@ pub mod node;
 pub mod parser;
 pub mod tree;
 
+#[cfg(feature = "glr-core")]
+mod engine;
+
 // Re-exports for convenience
 pub use error::{ParseError, ParseErrorKind};
 pub use external_scanner::{ExternalScanner, ScanResult};
