@@ -45,6 +45,14 @@ pub enum TableGenError {
     /// JSON serialization/deserialization error.
     #[error(transparent)]
     Json(#[from] serde_json::Error),
+
+    /// Error bubbled from the GLR automaton builder.
+    #[error(transparent)]
+    Glr(#[from] rust_sitter_glr_core::GLRError),
+
+    /// Error bubbled from the IR layer.
+    #[error(transparent)]
+    Ir(#[from] rust_sitter_ir::IrError),
 }
 
 /// Convenience type alias for TableGen results.
@@ -59,19 +67,5 @@ impl From<String> for TableGenError {
 impl From<&str> for TableGenError {
     fn from(s: &str) -> Self {
         TableGenError::TableGeneration(s.to_string())
-    }
-}
-
-impl From<rust_sitter_glr_core::GLRError> for TableGenError {
-    fn from(e: rust_sitter_glr_core::GLRError) -> Self {
-        // Treat upstream generator/analysis failures as table generation errors.
-        TableGenError::TableGeneration(e.to_string())
-    }
-}
-
-impl From<rust_sitter_ir::IrError> for TableGenError {
-    fn from(e: rust_sitter_ir::IrError) -> Self {
-        // Same rationale: tablegen orchestrates IR → automaton → compression.
-        TableGenError::TableGeneration(e.to_string())
     }
 }
