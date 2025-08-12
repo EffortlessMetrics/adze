@@ -61,6 +61,12 @@ jobs:
       
       - name: Run doctests
         run: cargo test --doc --workspace ${{ matrix.features }}
+      
+      - name: Tablegen rustdoc (strict)
+        run: cargo doc -p rust-sitter-tablegen --no-deps --features strict_docs
+      
+      - name: Tablegen doctests (strict)
+        run: cargo test -p rust-sitter-tablegen --doc --features strict_docs
 
   benchmarks:
     name: Benchmark Compilation

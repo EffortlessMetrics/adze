@@ -10,6 +10,9 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+pub mod error;
+pub use error::{IrError, Result as IrResult};
+
 /// Grammar optimization utilities
 pub mod optimizer;
 pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};

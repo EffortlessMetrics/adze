@@ -12,6 +12,9 @@ use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+pub mod error;
+pub use error::{GlrError, Result as GlrResult};
+
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {
     pub use crate::{ParseTable, FirstFollowSets, build_lr1_automaton};
