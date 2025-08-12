@@ -11,18 +11,54 @@ New crate errors provide consistent error handling across the workspace:
 - `glr-core::GLRError` (re-exported as `GlrError`) - Parser generation errors
 - `tablegen::TableGenError` - Table generation and compression errors
 
-The `tablegen` crate implements `From<GLRError>` and `From<IrError>`, so the `?` operator
-will automatically convert upstream errors into `TableGenError`:
+The `tablegen` crate now has transparent error variants that preserve source chains:
 
 ```rust
-// In tablegen code, these all work with `?`:
-let ff = FirstFollowSets::compute(&g);  // Returns GlrResult
-let pt = build_lr1_automaton(&g, &ff)?; // GLRError -> TableGenError
-let compressed = compressor.compress(&pt, &indices, nullable)?; // Already TableGenError
+pub enum TableGenError {
+    // ... existing variants ...
+    
+    #[error(transparent)]
+    Glr(#[from] rust_sitter_glr_core::GLRError),
+    
+    #[error(transparent)]
+    Ir(#[from] rust_sitter_ir::error::IrError),
+}
+```
+
+This enables better error debugging with preserved source chains:
+
+```rust
+// Error sources are preserved through conversions
+let result: Result<_, TableGenError> = build_lr1_automaton(&g, &ff)
+    .map_err(Into::into)?;
+    
+// You can traverse the error chain
+if let Err(e) = result {
+    let mut source = Some(&e as &dyn std::error::Error);
+    while let Some(err) = source {
+        eprintln!("Error: {}", err);
+        source = err.source();
+    }
+}
 ```
 
 For now `GLRError` remains the canonical name for compatibility. We may standardize
 on `GlrError` in a future release with a deprecation window.
+
+### Documentation Features
+
+New `strict_docs` feature flag for conditional documentation enforcement:
+
+```toml
+[features]
+strict_docs = []  # Enforces documentation at compile time
+```
+
+When building documentation for docs.rs:
+
+```bash
+RUSTDOCFLAGS="--cfg docsrs" cargo doc --features strict_docs
+```
 
 ### Removed: `compress_default`
 
