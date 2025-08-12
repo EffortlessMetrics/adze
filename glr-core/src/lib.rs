@@ -355,6 +355,7 @@ pub struct LRItem {
 }
 
 impl LRItem {
+    /// Construct an `LRItem` from its owning rule, dot position, and lookahead symbol.
     pub fn new(rule_id: RuleId, position: usize, lookahead: SymbolId) -> Self {
         Self {
             rule_id,
