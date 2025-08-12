@@ -72,6 +72,9 @@ jobs:
       
       - name: Clippy (tablegen only, warnings as errors)
         run: cargo clippy -p rust-sitter-tablegen -- -D warnings
+      
+      - name: Example (pure-rust) tests
+        run: cargo test -p rust-sitter-example --features pure-rust
 
   benchmarks:
     name: Benchmark Compilation

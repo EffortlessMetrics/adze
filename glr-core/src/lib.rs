@@ -346,8 +346,11 @@ impl FirstFollowSets {
 /// LR(1) item for GLR parsing
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LRItem {
+    /// Owning rule for this item/state
     pub rule_id: RuleId,
+    /// Position within the rule's RHS
     pub position: usize,
+    /// Lookahead symbol for LR(1) parsing
     pub lookahead: SymbolId,
 }
 
