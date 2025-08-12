@@ -20,6 +20,8 @@ include = [
 
 [package.metadata.docs.rs]
 all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+features = ["strict_docs"]
 
 [dependencies]
 rust-sitter-ir = { version = "0.8.0-dev", path = "../ir" }
