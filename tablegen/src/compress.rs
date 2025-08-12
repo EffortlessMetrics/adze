@@ -121,6 +121,8 @@ impl Default for TableCompressor {
 }
 
 impl TableCompressor {
+    /// Create a new compressor with default thresholds.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             small_table_threshold: 32768, // Tree-sitter's threshold
