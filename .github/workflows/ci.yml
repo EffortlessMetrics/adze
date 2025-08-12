@@ -64,7 +64,7 @@ jobs:
       
       - name: Tablegen rustdoc (strict, all features)
         env:
-          RUSTDOCFLAGS: --cfg docsrs
+          RUSTDOCFLAGS: --cfg docsrs -D warnings
         run: cargo doc -p rust-sitter-tablegen --all-features --no-deps --features strict_docs
       
       - name: Tablegen doctests (strict)

@@ -42,6 +42,19 @@ if let Err(e) = result {
 }
 ```
 
+When handling errors, you can now match on the specific typed variants:
+
+```rust
+use rust_sitter_tablegen::error::TableGenError;
+
+match err {
+    TableGenError::Ir(e)  => eprintln!("IR error: {e}"),
+    TableGenError::Glr(e) => eprintln!("GLR error: {e}"),
+    TableGenError::TableGeneration(msg) => eprintln!("Table generation: {msg}"),
+    other => eprintln!("Other tablegen error: {other}"),
+}
+```
+
 For now `GLRError` remains the canonical name for compatibility. We may standardize
 on `GlrError` in a future release with a deprecation window.
 
