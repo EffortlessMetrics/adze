@@ -2014,6 +2014,7 @@ dependencies = [
 name = "rust-sitter-tablegen"
 version = "0.7.0"
 dependencies = [
+ "criterion 0.5.1",
  "indexmap",
  "insta",
  "proc-macro2",
