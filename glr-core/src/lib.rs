@@ -392,11 +392,14 @@ impl LRItem {
 /// Set of LR(1) items representing a parser state
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ItemSet {
+    /// The LR(1) item set that defines this state's closure
     pub items: BTreeSet<LRItem>,
+    /// Unique identifier for this state in the canonical collection
     pub id: StateId,
 }
 
 impl ItemSet {
+    /// Create a new empty item set with the given state ID
     pub fn new(id: StateId) -> Self {
         Self {
             items: BTreeSet::new(),
@@ -404,6 +407,7 @@ impl ItemSet {
         }
     }
 
+    /// Add an LR(1) item to this item set
     pub fn add_item(&mut self, item: LRItem) {
         self.items.insert(item);
     }
