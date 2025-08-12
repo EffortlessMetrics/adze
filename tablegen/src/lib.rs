@@ -17,6 +17,7 @@ pub mod abi;
 pub mod abi_builder;
 pub mod compress;
 pub mod compression;
+pub mod error;
 pub mod external_scanner;
 pub mod external_scanner_v2;
 pub mod generate;
@@ -27,6 +28,8 @@ pub mod node_types;
 pub mod parser;
 pub mod serializer;
 pub mod validation;
+
+pub use error::{Result, TableGenError};
 
 // Re-export commonly used helpers at crate root for ergonomics
 pub use helpers::{collect_token_indices, eof_accepts_or_reduces};
@@ -512,7 +515,7 @@ impl StaticLanguageGenerator {
     }
 
     /// Apply table compression
-    pub fn compress_tables(&mut self) -> Result<(), TableGenError> {
+    pub fn compress_tables(&mut self) -> Result<()> {
         // If start_can_be_empty wasn't explicitly set by the caller, derive a conservative value:
         // look only at EOF actions in state 0 (Accept or Reduce there implies nullable start).
         if !self.start_can_be_empty {
@@ -539,7 +542,7 @@ impl StaticLanguageGenerator {
 // Remove the TableCompressor impl - it's now in compress.rs
 /*
 impl TableCompressor {
-    pub fn compress(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
+    pub fn compress(&self, parse_table: &ParseTable) -> Result<CompressedTables> {
         // Determine if we should use small table optimization
         let use_small_table = parse_table.state_count < self.small_table_threshold;
 
@@ -552,7 +555,7 @@ impl TableCompressor {
 
     /// Compress using Tree-sitter's "small table" optimization
     /// This is the most common case and what Tree-sitter uses for most grammars
-    fn compress_small_table(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
+    fn compress_small_table(&self, parse_table: &ParseTable) -> Result<CompressedTables> {
         // Tree-sitter's small table format:
         // 1. Action table: 2D array flattened with row displacement
         // 2. Each entry is a u16 encoding action type + data
@@ -569,7 +572,7 @@ impl TableCompressor {
     }
 
     /// Compress using large table optimization (for very large grammars)
-    fn compress_large_table(&self, parse_table: &ParseTable) -> Result<CompressedTables, TableGenError> {
+    fn compress_large_table(&self, parse_table: &ParseTable) -> Result<CompressedTables> {
         // For large tables, Tree-sitter uses pointer indirection
         // This is rarely used but necessary for grammars like C++
 
@@ -584,7 +587,7 @@ impl TableCompressor {
     }
 
     /// Compress action table using Tree-sitter's small table format
-    fn compress_action_table_small(&self, action_table: &[Vec<Vec<Action>>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
+    fn compress_action_table_small(&self, action_table: &[Vec<Vec<Action>>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable> {
         // Tree-sitter's encoding for small tables:
         // - Actions are encoded as u16 values
         // - Shift: 0x0000 | state_id
@@ -672,18 +675,18 @@ impl TableCompressor {
     }
 
     /// Compress action table using large table format
-    fn compress_action_table_large(&self, action_table: &[Vec<Vec<Action>>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable, TableGenError> {
+    fn compress_action_table_large(&self, action_table: &[Vec<Vec<Action>>], symbol_to_index: &HashMap<SymbolId, usize>) -> Result<CompressedActionTable> {
         // For large tables, use pointer indirection
         // This is a simplified version - real Tree-sitter uses more sophisticated compression
         self.compress_action_table_small(action_table, symbol_to_index)
     }
 
     /// Encode an action as a u16 for small table format
-    fn encode_action_small(&self, action: &Action) -> Result<u16, TableGenError> {
+    fn encode_action_small(&self, action: &Action) -> Result<u16> {
         match action {
             Action::Shift(state) => {
                 if state.0 >= 0x8000 {
-                    return Err(TableGenError::CompressionError(
+                    return Err(TableGenError::Compression(
                         format!("Shift state {} too large for small table encoding", state.0)
                     ));
                 }
@@ -691,7 +694,7 @@ impl TableCompressor {
             }
             Action::Reduce(rule) => {
                 if rule.0 >= 0x4000 {
-                    return Err(TableGenError::CompressionError(
+                    return Err(TableGenError::Compression(
                         format!("Reduce rule {} too large for small table encoding", rule.0)
                     ));
                 }
@@ -712,7 +715,7 @@ impl TableCompressor {
     }
 
     /// Compress goto table using Tree-sitter's small table format
-    fn compress_goto_table_small(&self, goto_table: &[Vec<StateId>]) -> Result<CompressedGotoTable, TableGenError> {
+    fn compress_goto_table_small(&self, goto_table: &[Vec<StateId>]) -> Result<CompressedGotoTable> {
         // Tree-sitter uses simple array compression for goto table
         // Each row is stored contiguously with row offsets
 
@@ -775,7 +778,7 @@ impl TableCompressor {
     }
 
     /// Compress goto table using large table format
-    fn compress_goto_table_large(&self, goto_table: &[Vec<StateId>]) -> Result<CompressedGotoTable, TableGenError> {
+    fn compress_goto_table_large(&self, goto_table: &[Vec<StateId>]) -> Result<CompressedGotoTable> {
         // For large tables, use the same compression for now
         // Real Tree-sitter would use more sophisticated techniques
         self.compress_goto_table_small(goto_table)
@@ -785,18 +788,7 @@ impl TableCompressor {
 
 // CompressedTables and related types are now defined in compress.rs
 
-/// Table generation errors
-#[derive(Debug, thiserror::Error)]
-pub enum TableGenError {
-    #[error("Compression failed: {0}")]
-    CompressionError(String),
-
-    #[error("Code generation failed: {0}")]
-    CodeGeneration(String),
-
-    #[error("Invalid table structure: {0}")]
-    InvalidTable(String),
-}
+// TableGenError is now defined in error.rs and re-exported above
 
 #[cfg(test)]
 mod tests {

@@ -1,4 +1,4 @@
-use crate::TableGenError;
+use crate::{Result, TableGenError};
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{StateId, SymbolId};
 use std::collections::{BTreeMap, HashMap};
@@ -49,7 +49,7 @@ pub struct CompressedTables {
 
 impl CompressedTables {
     /// Validate compressed tables against original parse table
-    pub fn validate(&self, _parse_table: &ParseTable) -> Result<(), TableGenError> {
+    pub fn validate(&self, _parse_table: &ParseTable) -> Result<()> {
         // TODO: Implement validation logic
         // For now, just return Ok to make tests compile
         Ok(())
@@ -125,11 +125,11 @@ impl TableCompressor {
     }
 
     /// Encode an action for small tables
-    pub fn encode_action_small(&self, action: &Action) -> Result<u16, TableGenError> {
+    pub fn encode_action_small(&self, action: &Action) -> Result<u16> {
         match action {
             Action::Shift(state) => {
                 if state.0 >= 0x8000 {
-                    return Err(TableGenError::CompressionError(format!(
+                    return Err(TableGenError::Compression(format!(
                         "Shift state {} too large for small table encoding",
                         state.0
                     )));
@@ -138,7 +138,7 @@ impl TableCompressor {
             }
             Action::Reduce(rule) => {
                 if rule.0 >= 0x4000 {
-                    return Err(TableGenError::CompressionError(format!(
+                    return Err(TableGenError::Compression(format!(
                         "Reduce rule {} too large for small table encoding",
                         rule.0
                     )));
@@ -176,7 +176,7 @@ impl TableCompressor {
         parse_table: &ParseTable,
         token_indices: &[usize],
         start_can_be_empty: bool,
-    ) -> Result<CompressedTables, TableGenError> {
+    ) -> Result<CompressedTables> {
         // Convert token_indices to FxHashSet for O(1) membership checks with better performance
         use rustc_hash::FxHashSet;
 
@@ -277,7 +277,7 @@ impl TableCompressor {
                     .push_str("2. Token symbols not properly registered in symbol_to_index\n");
                 debug_info.push_str("3. Grammar start symbol issues\n");
 
-                return Err(TableGenError::CompressionError(format!(
+                return Err(TableGenError::Compression(format!(
                     "State 0 validation failed: No valid token shift actions found.\n{}",
                     debug_info
                 )));
@@ -286,13 +286,13 @@ impl TableCompressor {
 
         // Additional sanity guards
         if parse_table.action_table.is_empty() {
-            return Err(TableGenError::CompressionError(
+            return Err(TableGenError::Compression(
                 "Empty action table - grammar has no parse states".to_string(),
             ));
         }
 
         if parse_table.state_count == 0 {
-            return Err(TableGenError::CompressionError(
+            return Err(TableGenError::Compression(
                 "State count is 0 - invalid parse table".to_string(),
             ));
         }
@@ -311,7 +311,7 @@ impl TableCompressor {
     fn compress_small_table(
         &self,
         parse_table: &ParseTable,
-    ) -> Result<CompressedTables, TableGenError> {
+    ) -> Result<CompressedTables> {
         let compressed_action_table = self
             .compress_action_table_small(&parse_table.action_table, &parse_table.symbol_to_index)?;
         let compressed_goto_table = self.compress_goto_table_small(&parse_table.goto_table)?;
@@ -327,7 +327,7 @@ impl TableCompressor {
     fn compress_large_table(
         &self,
         parse_table: &ParseTable,
-    ) -> Result<CompressedTables, TableGenError> {
+    ) -> Result<CompressedTables> {
         // For now, use the same as small table
         self.compress_small_table(parse_table)
     }
@@ -337,7 +337,7 @@ impl TableCompressor {
         &self,
         action_table: &[Vec<Vec<Action>>],
         symbol_to_index: &BTreeMap<SymbolId, usize>,
-    ) -> Result<CompressedActionTable, TableGenError> {
+    ) -> Result<CompressedActionTable> {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
         let mut default_actions = Vec::new();
@@ -407,7 +407,7 @@ impl TableCompressor {
         // Validate row_offsets are strictly increasing
         for i in 1..row_offsets.len() {
             if row_offsets[i] < row_offsets[i - 1] {
-                return Err(TableGenError::CompressionError(format!(
+                return Err(TableGenError::Compression(format!(
                     "Row offsets not strictly increasing at index {}: {} < {}",
                     i,
                     row_offsets[i],
@@ -418,7 +418,7 @@ impl TableCompressor {
 
         // Validate map length matches state count
         if row_offsets.len() != action_table.len() + 1 {
-            return Err(TableGenError::CompressionError(format!(
+            return Err(TableGenError::Compression(format!(
                 "Row offsets length {} doesn't match state count {} + 1",
                 row_offsets.len(),
                 action_table.len()
@@ -436,7 +436,7 @@ impl TableCompressor {
     pub fn compress_goto_table_small(
         &self,
         goto_table: &[Vec<StateId>],
-    ) -> Result<CompressedGotoTable, TableGenError> {
+    ) -> Result<CompressedGotoTable> {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
 
