@@ -893,6 +893,73 @@ pub struct ParseTable {
     pub symbol_to_index: BTreeMap<SymbolId, usize>,
     /// For each state, a bitset indicating which external tokens are valid
     pub external_scanner_states: Vec<Vec<bool>>,
+    /// Grammar rules for reduction
+    pub rules: Vec<ParseRule>,
+    /// Mapping from nonterminal symbols to goto table columns
+    pub nonterminal_to_index: BTreeMap<SymbolId, usize>,
+    /// EOF symbol ID
+    pub eof_symbol: SymbolId,
+    /// Start symbol ID
+    pub start_symbol: SymbolId,
+    /// Grammar metadata
+    pub grammar: Grammar,
+}
+
+/// Parse rule for reduction
+#[derive(Debug, Clone)]
+pub struct ParseRule {
+    pub lhs: SymbolId,
+    pub rhs_len: u16,
+}
+
+impl ParseTable {
+    /// Get actions for a state and symbol
+    #[inline]
+    pub fn actions(&self, state: StateId, sym: SymbolId) -> &'_ [Action] {
+        let s = state.0 as usize;
+        let Some(&col) = self.symbol_to_index.get(&sym) else {
+            return &[];
+        };
+        if s >= self.action_table.len() || col >= self.action_table[s].len() {
+            return &[];
+        }
+        &self.action_table[s][col]
+    }
+
+    /// Get goto state for a nonterminal
+    #[inline]
+    pub fn goto(&self, state: StateId, nt: SymbolId) -> Option<StateId> {
+        let s = state.0 as usize;
+        let &col = self.nonterminal_to_index.get(&nt)?;
+        // Allow "no edge" to be represented as a sentinel (e.g., u16::MAX)
+        let ns = *self.goto_table.get(s)?.get(col)?;
+        (ns.0 != u16::MAX).then_some(ns)
+    }
+
+    /// Get rule information by ID
+    #[inline]
+    pub fn rule(&self, id: RuleId) -> (SymbolId, u16) {
+        let r = &self.rules[id.0 as usize];
+        (r.lhs, r.rhs_len)
+    }
+
+    /// Get EOF symbol
+    #[inline]
+    pub fn eof(&self) -> SymbolId {
+        self.eof_symbol
+    }
+
+    /// Get start symbol
+    #[inline]
+    pub fn start_symbol(&self) -> SymbolId {
+        self.start_symbol
+    }
+
+    /// Get grammar reference
+    #[inline]
+    pub fn grammar(&self) -> &Grammar {
+        &self.grammar
+    }
 }
 
 /// Actions in GLR parse table (supporting multiple actions per state)
@@ -1683,6 +1750,26 @@ pub fn build_lr1_automaton(
         }
     }
 
+    // Build rules for reduction
+    let mut rules = Vec::new();
+    for rule in grammar.all_rules() {
+        rules.push(ParseRule {
+            lhs: rule.lhs,
+            rhs_len: rule.rhs.len() as u16,
+        });
+    }
+    
+    // Build nonterminal_to_index mapping
+    let mut nonterminal_to_index = BTreeMap::new();
+    for (&symbol_id, &idx) in &symbol_to_index {
+        // Check if this is a nonterminal
+        if !grammar.tokens.contains_key(&symbol_id) 
+            && !grammar.externals.iter().any(|e| e.symbol_id == symbol_id)
+            && symbol_id.0 != 0 { // Not EOF
+            nonterminal_to_index.insert(symbol_id, idx);
+        }
+    }
+
     Ok(ParseTable {
         action_table,
         goto_table,
@@ -1691,6 +1778,11 @@ pub fn build_lr1_automaton(
         symbol_count,
         symbol_to_index,
         external_scanner_states,
+        rules,
+        nonterminal_to_index,
+        eof_symbol: SymbolId(0),
+        start_symbol: original_start,
+        grammar: grammar.clone(),
     })
 }
 
