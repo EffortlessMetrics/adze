@@ -1,15 +1,21 @@
 fn main() {
-    // Build the tiny C shim against tree-sitter headers
     println!("cargo:rerun-if-changed=ffi/shim.c");
     println!("cargo:rerun-if-changed=ffi/shim.h");
-    println!("cargo:rerun-if-changed=ffi/ts_stub.c");
-    
-    cc::Build::new()
-        .file("ffi/shim.c")
-        .file("ffi/ts_stub.c")  // Include stub implementations for now
-        .include("ffi") // shim.h
-        // The grammar crate (e.g., tree-sitter-json) must make TS headers visible in CI.
-        // In local dev, rely on system include path or vendored headers.
-        .warnings(false)
-        .compile("tsb_shim");
+
+    let mut b = cc::Build::new();
+    b.file("ffi/shim.c").include("ffi");
+
+    if cfg!(feature = "stub-ts") {
+        println!("cargo:rerun-if-changed=ffi/ts_stub.c");
+        println!("cargo:rustc-cfg=tsb_stub");
+        b.define("tsb_stub", None);  // Define for C preprocessor
+        b.file("ffi/ts_stub.c").include("ffi");
+    } else {
+        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/api.h");
+        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/parser.h");
+        b.include("ci/vendor");                 // has tree_sitter/
+        b.include("ci/vendor/tree_sitter");     // so #include "tree_sitter/api.h" resolves
+    }
+
+    b.warnings(false).compile("tsb_shim");
 }

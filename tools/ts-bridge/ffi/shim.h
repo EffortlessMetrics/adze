@@ -57,8 +57,9 @@ uint32_t tsb_next_state(const TSLanguage* lang, uint32_t state, uint32_t nonterm
 uint32_t tsb_detect_start_symbol(const TSLanguage* lang);
 
 // --- Field map pointers (wired later in PR2) ---
-typedef struct { uint16_t index, length; } TSFieldMapSlice;
-typedef struct { uint16_t field_id; uint8_t child_index; bool inherited; } TSFieldMapEntry;
+// These types are defined in tree_sitter/parser.h, so we just forward declare
+struct TSFieldMapSlice;
+struct TSFieldMapEntry;
 
-const TSFieldMapSlice* tsb_field_map_slices(const TSLanguage* lang);
-const TSFieldMapEntry* tsb_field_map_entries(const TSLanguage* lang);
+const struct TSFieldMapSlice* tsb_field_map_slices(const TSLanguage* lang);
+const struct TSFieldMapEntry* tsb_field_map_entries(const TSLanguage* lang);

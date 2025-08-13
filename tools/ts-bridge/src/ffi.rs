@@ -135,3 +135,14 @@ impl SafeLang {
         }
     }
 }
+
+/// Assert that the Tree-sitter ABI is compatible
+pub fn assert_abi_compatible() {
+    let v = unsafe { tsb_language_version() };
+    let min = unsafe { tsb_min_compatible_version() };
+    assert!(
+        v == 15 && v >= min, 
+        "Tree-sitter ABI drift: got {}, expected 15+", 
+        v
+    );
+}

@@ -4,6 +4,13 @@ use ts_bridge::extract;
 type LangFn = unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage;
 
 fn main() -> anyhow::Result<()> {
+    #[cfg(tsb_stub)]
+    {
+        eprintln!("ERROR: ts-bridge was built with --features stub-ts (dev stub).");
+        eprintln!("Rebuild without it to extract real tables.");
+        std::process::exit(2);
+    }
+    
     let args: Vec<String> = std::env::args().collect();
     
     if args.len() < 2 {

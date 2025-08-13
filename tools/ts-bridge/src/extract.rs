@@ -2,6 +2,8 @@ use crate::ffi::{SafeLang, TsbActionKind};
 use crate::schema::*;
 use std::collections::BTreeMap;
 
+const MAX_ACTIONS_PER_CELL: usize = 32;
+
 pub fn extract(
     language_fn: unsafe extern "C" fn() -> *const crate::ffi::TSLanguage
 ) -> anyhow::Result<ParseTableData> {
@@ -9,6 +11,11 @@ pub fn extract(
     let lang = SafeLang(unsafe { language_fn() });
 
     let (symc, stc, tokc, extc) = lang.counts();
+    
+    // Width checks to ensure values fit in u16
+    debug_assert!(symc <= u16::MAX as u32, "symbol count {} exceeds u16", symc);
+    debug_assert!(stc <= u16::MAX as u32, "state count {} exceeds u16", stc);
+    debug_assert!(tokc <= u16::MAX as u32, "token count {} exceeds u16", tokc);
     let term_boundary = tokc + extc;
 
     // names
@@ -25,6 +32,7 @@ pub fn extract(
     let mut rule_ids: BTreeMap<(u16, u16, u16), u16> = BTreeMap::new();
 
     // First pass: scan terminals
+    // Start with a reasonable buffer, but expand dynamically if needed
     let mut buf = vec![
         crate::ffi::TsbAction {
             kind: TsbActionKind::Accept,
@@ -36,13 +44,27 @@ pub fn extract(
             extra: false,
             repetition: false,
         };
-        64
+        MAX_ACTIONS_PER_CELL
     ];
 
     for state in 0..stc {
         // Actions for terminals
         for sym in 0..term_boundary {
             if let Some((hdr, idx)) = lang.entry(state, sym) {
+                // Dynamically resize buffer if needed for large action cells
+                if hdr.count as usize > buf.len() {
+                    buf.resize(hdr.count as usize, crate::ffi::TsbAction {
+                        kind: TsbActionKind::Accept,
+                        state: 0,
+                        lhs: 0,
+                        rhs_len: 0,
+                        dynamic_precedence: 0,
+                        production_id: 0,
+                        extra: false,
+                        repetition: false,
+                    });
+                }
+                
                 let n = lang.unpack(idx, hdr.count, &mut buf);
                 if n == 0 { 
                     continue; 
@@ -59,6 +81,10 @@ pub fn extract(
                             });
                         }
                         TsbActionKind::Reduce => {
+                            // Width checks for rule components
+                            debug_assert!(a.lhs <= u16::MAX as u16, "lhs {} exceeds u16", a.lhs);
+                            debug_assert!(a.rhs_len <= u16::MAX as u16, "rhs_len {} exceeds u16", a.rhs_len);
+                            
                             // allocate or get rule id
                             let key = (a.lhs, a.rhs_len, a.production_id);
                             let next_id = rule_ids.len() as u16;

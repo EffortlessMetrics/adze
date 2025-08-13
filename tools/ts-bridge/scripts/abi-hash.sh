@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This script checks that the Tree-sitter ABI hasn't changed
-# It should be run in CI to catch any ABI drift
+# Check that vendored headers match pinned hashes
+sha_ref_api=$(cat tools/ts-bridge/ci/pinned.api.h.sha)
+sha_ref_parser=$(cat tools/ts-bridge/ci/pinned.parser.h.sha)
+sha_api=$(sha256sum tools/ts-bridge/ci/vendor/tree_sitter/api.h | awk '{print $1}')
+sha_parser=$(sha256sum tools/ts-bridge/ci/vendor/tree_sitter/parser.h | awk '{print $1}')
 
-echo "Checking Tree-sitter ABI stability..."
+if [[ "$sha_api" != "$sha_ref_api" || "$sha_parser" != "$sha_ref_parser" ]]; then
+  echo "Header hash mismatch (ABI drift)"
+  echo "  api.h:    expected $sha_ref_api, got $sha_api"
+  echo "  parser.h: expected $sha_ref_parser, got $sha_parser"
+  exit 1
+fi
 
-# For now, we just verify the tool can assert ABI version
-# In production, you'd:
-# 1. Download specific version of tree_sitter/api.h
-# 2. Hash it and compare to known good hash
-# 3. Do the same for a sample parser.h from tree-sitter-json
+echo "Header hashes match ✓"
 
-# Run the ABI version check via the tool
-cargo build --release -p ts-bridge
+# Runtime ABI (v15) check using shim
+cargo run -q -p ts-bridge --bin tsb-abi-check
 
-echo "ABI check passed!"
+echo "ABI verification complete ✓"
