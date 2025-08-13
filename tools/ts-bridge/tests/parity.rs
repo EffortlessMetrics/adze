@@ -1,6 +1,10 @@
+// These imports will be used when the test is enabled with actual tree-sitter libraries
+#[allow(unused_imports)]
 use rand::{Rng, SeedableRng};
+#[allow(unused_imports)]
 use ts_bridge::{ffi::SafeLang, extract};
 
+#[allow(dead_code)]
 type LangFn = unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage;
 
 #[test]
@@ -18,7 +22,7 @@ fn parity_actions_and_gotos_json() {
     unsafe extern "C" fn dummy_lang() -> *const ts_bridge::ffi::TSLanguage {
         std::ptr::null()
     }
-    let lang_fn: LangFn = dummy_lang;
+    let _lang_fn: LangFn = dummy_lang;
     
     // The rest would require actual tree-sitter-json
     // Since this test is ignored, we can return early
