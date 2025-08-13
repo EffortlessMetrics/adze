@@ -13,11 +13,14 @@ tree-sitter-json = { version = "0.24", optional = true }
 
 [build-dependencies]
 cc = "1.0"
+pkg-config = "0.3"
 
 [dev-dependencies]
 rand = "0.8"
 
 [features]
-default = []
-stub-ts = []          # opt-in: builds against stub header & stubs (dev only)
-with-grammars = ["dep:tree-sitter-json"]    # opt-in: enable parity tests that link grammar crates
+default = ["vendored-ts-runtime"]
+stub-ts = []                              # dev-only stub build
+with-grammars = ["dep:tree-sitter-json"]  # parity tests with real grammars
+vendored-ts-runtime = []                  # compile Tree-sitter runtime into the shim (default)
+link-system-ts = []                       # instead of vendoring, link system libtree-sitter via pkg-config
