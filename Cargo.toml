@@ -25,6 +25,7 @@ members = [
   "test-mini",
   "golden-tests",
   "wasm-demo",
+  "tools/ts-bridge",
 ]
 exclude = ["runtime/fuzz"]
 
