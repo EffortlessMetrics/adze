@@ -1,32 +1,29 @@
 #ifndef TREE_SITTER_LANGUAGE_H_
 #define TREE_SITTER_LANGUAGE_H_
 
-#include "tree_sitter/api.h"
-#include <stdbool.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// Language lookup implementation
+#include "./alloc.h"
+#include "./tree_sitter_internal.h"
+#include "tree_sitter/api.h"
+#include "tree_sitter/parser.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+// Language functions
+const TSParseAction *ts_language_actions(const TSLanguage *, TSStateId, TSSymbol, uint32_t *);
 uint32_t ts_language_lookup(const TSLanguage *, TSStateId, TSSymbol);
 
-// Action retrieval
-const TSParseAction *ts_language_actions(
-  const TSLanguage *,
-  TSStateId,
-  TSSymbol,
-  uint32_t *count
-);
-
-// Memory allocation functions
-void *ts_malloc(size_t);
-void *ts_calloc(size_t, size_t);
-void *ts_realloc(void *, size_t);
-void ts_free(void *);
-
-// Lookahead iterator internals
-void ts_lookahead_iterator__next(TSLookaheadIterator *);
-
-// Check if language is WASM
+// WASM support check
 static inline bool ts_language_is_wasm(const TSLanguage *self) {
-  return (uintptr_t)self->create != 0 && (uintptr_t)self->create < 65536;
+  const TSLanguage_Internal *lang = (const TSLanguage_Internal *)self;
+  return (uintptr_t)lang->create != 0 && (uintptr_t)lang->create < 65536;
 }
 
-#endif // TREE_SITTER_LANGUAGE_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // TREE_SITTER_LANGUAGE_H_

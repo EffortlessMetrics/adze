@@ -28,15 +28,19 @@ fn main() {
         println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/parser.h");
         b.include("ci/vendor");
     } else if vendored_rt {
-        // Vendored headers (ABI pinned) + compile minimal runtime sources
-        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/api.h");
-        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/parser.h");
-        b.include("ci/vendor");
-        b.include("ci/vendor/tree_sitter");     // so #include "tree_sitter/api.h" resolves
+        // Use upstream headers + sources
+        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/lib/include/tree_sitter/api.h");
+        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/lib/include/tree_sitter/parser.h");
+        b.include("ci/vendor/tree_sitter/lib/include");
+        b.include("ci/vendor/tree_sitter/lib/src"); // internal headers
         
-        // Minimal runtime that defines ts_language_* functions used by shim
-        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/lib/src/runtime_minimal.c");
-        b.file("ci/vendor/tree_sitter/lib/src/runtime_minimal.c");
+        // Official runtime sources
+        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/lib/src/language.c");
+        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/lib/src/alloc.c");
+        println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/lib/src/lookup.c");
+        b.file("ci/vendor/tree_sitter/lib/src/language.c");
+        b.file("ci/vendor/tree_sitter/lib/src/alloc.c");
+        b.file("ci/vendor/tree_sitter/lib/src/lookup.c");
     } else {
         // Fallback: headers only (will fail to link). Nudge the user.
         println!("cargo:warning=No runtime selected. Enable 'vendored-ts-runtime' (default) or 'link-system-ts'.");
