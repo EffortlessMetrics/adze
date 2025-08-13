@@ -129,6 +129,13 @@ The runtime crate (`/runtime/`) now includes:
 The tool crate (`/tool/`) now includes:
 - **`visualization.rs`** - Grammar and tree visualization tools
 
+9. **`ts-bridge`** - Tree-sitter to GLR Bridge Tool
+   - Located in `/tools/ts-bridge/`
+   - Extracts parse tables from compiled Tree-sitter grammars
+   - Features ABI stability guards (v15 pinning with SHA verification)
+   - Supports feature-gated development (stub) and production builds
+   - Includes comprehensive parity testing framework
+
 ### Key Design Patterns
 
 1. **Grammar Definition Flow**:
@@ -267,8 +274,48 @@ The pure-Rust implementation now features a production-ready GLR parser:
 - **Research Applications**: Foundation for grammar inference and language analysis tools
 - **WASM Compatibility**: Pure-Rust implementation enables browser-based parsing
 
+### New Tools (January 2025)
+
+#### ts-bridge: Tree-sitter to GLR Runtime Bridge
+The ts-bridge tool extracts parse tables from compiled Tree-sitter grammars for use with rust-sitter's GLR runtime:
+
+**Building:**
+```bash
+# Production build (with vendored headers)
+cargo build -p ts-bridge
+
+# Development build (with stubs for testing)
+cargo build -p ts-bridge --features stub-ts
+
+# Run ABI verification
+cargo run -p ts-bridge --bin tsb-abi-check
+./tools/ts-bridge/scripts/abi-hash.sh
+```
+
+**Testing:**
+```bash
+# Run basic tests (works with stubs)
+cargo test -p ts-bridge --test basic --features stub-ts
+
+# Run parity tests (requires actual Tree-sitter libraries)
+cargo test -p ts-bridge --features with-grammars
+```
+
+**Usage:**
+```bash
+# Extract parse tables from a compiled grammar
+cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter_json
+```
+
+**Key Features:**
+- ABI stability with Tree-sitter v15 (vendored headers + SHA verification)
+- Dynamic buffer allocation (no truncation for large action cells)
+- Feature-gated builds for development vs production
+- Comprehensive parity testing against Tree-sitter
+
 ### Known Issues (Being Addressed)
 
 1. **GLR Runtime Optimization**: Fork/merge logic needs performance tuning for large files
 2. **External Scanner FFI**: Integration with C scanners needs final touches
 3. **Incremental Parsing**: GLR incremental parsing algorithms need implementation
+4. **ts-bridge Linking**: Production builds need actual Tree-sitter library linking (undefined symbols)

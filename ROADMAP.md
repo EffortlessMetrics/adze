@@ -94,6 +94,15 @@ This document outlines the completed features and future direction of the rust-s
 - **Test suite updated**: All tests adapted for new GLR ActionCell structure
 - **Build verification**: Workspace builds successfully with exit code 0
 
+### New Tools Added (January 2025)
+- **ts-bridge Tool**: Production-ready Tree-sitter to GLR runtime bridge
+  - Extracts parse tables from compiled Tree-sitter grammars
+  - Full ABI stability with v15 pinning and SHA-256 header verification
+  - Feature-gated builds: production (vendored headers) vs development (stubs)
+  - Dynamic buffer allocation for large action cells
+  - Comprehensive parity testing framework
+  - Located in `tools/ts-bridge/` with complete documentation
+
 ### Previous Achievements (August 2025)
 - **Python Grammar Compilation**: Successfully compiled using pure-Rust
 - **Type System Unified**: Fixed `SymbolId` mismatches across crates
@@ -150,6 +159,11 @@ This document outlines the completed features and future direction of the rust-s
 
 ### High Priority
 1. **Publish to crates.io**
+2. **Complete ts-bridge integration**
+   - Link against actual Tree-sitter libraries (resolve undefined symbols)
+   - Run full parity test suite with real grammars
+   - Add CI integration for ABI stability checks
+   - Document migration path from Tree-sitter grammars
    - Release v0.6.0-beta.1 following dependency order
    - Update documentation with GLR features
    - Announce release with migration guide

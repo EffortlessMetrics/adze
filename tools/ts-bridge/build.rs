@@ -1,4 +1,7 @@
 fn main() {
+    // Register the custom cfg for Rust compiler
+    println!("cargo::rustc-check-cfg=cfg(tsb_stub)");
+    
     println!("cargo:rerun-if-changed=ffi/shim.c");
     println!("cargo:rerun-if-changed=ffi/shim.h");
 

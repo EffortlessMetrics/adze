@@ -94,6 +94,24 @@ rust-sitter = { version = "0.6", features = ["incremental_glr", "queries", "seri
 - Full query system with predicates
 - Large-table compression
 
+### New Tools 🔧
+
+#### ts-bridge: Tree-sitter Grammar Bridge
+The new `ts-bridge` tool (located in `tools/ts-bridge/`) allows extraction of parse tables from compiled Tree-sitter grammars for use with Rust Sitter's GLR runtime:
+
+```bash
+# Extract parse tables from a Tree-sitter grammar
+cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter_json
+```
+
+Features:
+- Extract complete parse tables from any Tree-sitter grammar
+- ABI stability guards (pinned to Tree-sitter v15)
+- Feature-gated development/production builds
+- Comprehensive parity testing framework
+
+See [tools/ts-bridge/README.md](tools/ts-bridge/README.md) for details.
+
 For the most reliable experience, use the core parsing functionality with the pure-Rust backend. Track progress on the [issue tracker](https://github.com/hydro-project/rust-sitter/issues).
 
 ## Installation
