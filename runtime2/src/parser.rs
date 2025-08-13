@@ -1,6 +1,10 @@
 //! Parser implementation with Tree-sitter-compatible API
 
 use crate::{error::ParseError, language::Language, tree::Tree};
+#[cfg(feature = "glr-core")]
+use crate::engine::{parse_full as engine_parse_full, parse_incremental as engine_parse_incremental};
+#[cfg(feature = "glr-core")]
+use crate::builder::forest_to_tree;
 use std::time::Duration;
 
 /// A parser that can parse text using a Language
@@ -72,31 +76,35 @@ impl Parser {
         self.parse(input.as_bytes(), old_tree)
     }
 
-    fn parse_full(&mut self, _language: &Language, _input: &[u8]) -> Result<Tree, ParseError> {
+    fn parse_full(&mut self, language: &Language, input: &[u8]) -> Result<Tree, ParseError> {
         // Use GLR engine if available
         #[cfg(feature = "glr-core")]
         {
-            // TODO: Create GlrEngine from language and parse
-            // For now, we need the grammar which isn't available from Language yet
-            return Err(ParseError::with_msg("GLR engine requires grammar - integration pending"));
+            let forest = engine_parse_full(language, input)?;
+            return Ok(forest_to_tree(forest));
         }
         
         #[cfg(not(feature = "glr-core"))]
         {
+            let _ = (language, input);
             // Fallback stub implementation
             Ok(Tree::new_stub())
         }
     }
 
     #[cfg(feature = "incremental")]
-    fn parse_incremental(&mut self, _language: &Language, _input: &[u8], _old_tree: &Tree) -> Result<Tree, ParseError> {
-        // TODO: Implement incremental GLR parsing
-        // 1. Apply edits to old tree
-        // 2. Identify affected regions
-        // 3. Reuse unaffected SPPF nodes
-        // 4. Re-parse only dirty regions
+    fn parse_incremental(&mut self, language: &Language, input: &[u8], old_tree: &Tree) -> Result<Tree, ParseError> {
+        #[cfg(feature = "glr-core")]
+        {
+            let forest = engine_parse_incremental(language, input, old_tree)?;
+            return Ok(forest_to_tree(forest));
+        }
         
-        Ok(Tree::new_stub())
+        #[cfg(not(feature = "glr-core"))]
+        {
+            let _ = (language, input, old_tree);
+            Ok(Tree::new_stub())
+        }
     }
     
     #[cfg(not(feature = "incremental"))]

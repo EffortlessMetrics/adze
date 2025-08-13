@@ -15,6 +15,8 @@ pub mod tree;
 
 #[cfg(feature = "glr-core")]
 mod engine;
+#[cfg(feature = "glr-core")]
+mod builder;
 
 // Re-exports for convenience
 pub use error::{ParseError, ParseErrorKind};

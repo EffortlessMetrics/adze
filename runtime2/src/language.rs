@@ -1,6 +1,5 @@
 //! Language representation compatible with Tree-sitter
 
-
 /// A language definition containing parse tables and metadata
 #[derive(Debug, Clone)]
 pub struct Language {
@@ -13,6 +12,9 @@ pub struct Language {
     /// Maximum alias sequence length
     pub max_alias_sequence_length: u32,
     /// Parse table (action/goto combined for GLR)
+    #[cfg(feature = "glr-core")]
+    pub parse_table: Option<rust_sitter_glr_core::ParseTable>,
+    #[cfg(not(feature = "glr-core"))]
     pub parse_table: ParseTable,
     /// Symbol names
     pub symbol_names: Vec<String>,
@@ -70,6 +72,9 @@ impl Language {
             symbol_count: 0,
             field_count: 0,
             max_alias_sequence_length: 0,
+            #[cfg(feature = "glr-core")]
+            parse_table: None,
+            #[cfg(not(feature = "glr-core"))]
             parse_table: ParseTable {
                 state_count: 0,
                 action_table: vec![],

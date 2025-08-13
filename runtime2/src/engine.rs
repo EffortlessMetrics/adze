@@ -1,96 +1,48 @@
 //! Engine adapter for GLR-core integration
 
 use crate::{error::ParseError, language::Language, tree::Tree};
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-use rust_sitter_ir::Grammar;
-use std::sync::Arc;
 
-/// GLR parser engine wrapper
-pub struct GlrEngine {
-    parse_table: ParseTable,
-    grammar: Grammar,
-    first_follow: FirstFollowSets,
-}
+#[cfg(feature = "glr-core")]
+use rust_sitter_glr_core::{Driver, Forest as CoreForest};
 
-impl GlrEngine {
-    /// Create a new GLR engine from a language
-    pub fn new(language: &Language) -> Result<Self, ParseError> {
-        // For now, we need the grammar to be provided separately
-        // In the final integration, this would come from the Language struct
-        Err(ParseError::with_msg("GLR engine requires grammar - not yet wired"))
-    }
-    
-    /// Create engine from grammar (for testing)
-    pub fn from_grammar(grammar: Grammar) -> Result<Self, ParseError> {
-        let first_follow = FirstFollowSets::compute(&grammar);
-        let parse_table = build_lr1_automaton(&grammar, &first_follow)
-            .map_err(|e| ParseError::with_msg(&format!("Failed to build parse table: {}", e)))?;
-        
-        Ok(Self {
-            parse_table,
-            grammar,
-            first_follow,
-        })
-    }
-    
-    /// Parse input text
-    pub fn parse(&mut self, input: &[u8]) -> Result<Tree, ParseError> {
-        // We need to adapt the existing GLRParser from runtime/src/glr_parser.rs
-        // For now, return a stub
-        Err(ParseError::with_msg("GLR parsing not yet implemented in adapter"))
-    }
-    
-    /// Parse with old tree for incremental parsing
-    pub fn parse_incremental(&mut self, input: &[u8], old_tree: &Tree) -> Result<Tree, ParseError> {
-        // Incremental parsing will reuse portions of old_tree
-        let _ = old_tree;
-        self.parse(input)
-    }
-    
-    /// Get the parse table for direct access
-    pub fn parse_table(&self) -> &ParseTable {
-        &self.parse_table
-    }
-    
-    /// Get the grammar
-    pub fn grammar(&self) -> &Grammar {
-        &self.grammar
-    }
-}
-
-/// Forest representation for GLR parse results
-pub struct Forest {
-    /// The actual forest implementation will depend on GLR parser
-    inner: ForestInner,
-}
-
-enum ForestInner {
-    /// Placeholder for when we have the actual GLR forest
+pub enum Forest {
+    #[cfg(feature = "glr-core")]
+    Glr(CoreForest),
     Stub,
-    /// Actual GLR parse forest when available
-    #[allow(dead_code)]
-    Glr(Arc<dyn std::any::Any + Send + Sync>),
 }
 
-impl Forest {
-    /// Create a stub forest for testing
-    pub fn stub() -> Self {
-        Self {
-            inner: ForestInner::Stub,
+pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseError> {
+    #[cfg(feature = "glr-core")]
+    {
+        // Check if language has parse table
+        if language.parse_table.is_none() {
+            return Err(ParseError::with_msg("Language missing parse table - GLR integration pending"));
         }
+        
+        let parse_table = language.parse_table.as_ref().unwrap();
+        let mut drv = Driver::new(parse_table);
+        
+        // For now, just a trivial byte-lexer: one token = one byte (kind = byte).
+        // Replace with your generated lexer/tokenizer.
+        let toks = input.iter().enumerate().map(|(i, b)| (*b as u32, i as u32, i as u32 + 1));
+        
+        let forest = drv.parse_tokens(toks).map_err(map_glr_err)?;
+        return Ok(Forest::Glr(forest));
+    }
+    
+    #[cfg(not(feature = "glr-core"))]
+    {
+        let _ = (language, input);
+        Ok(Forest::Stub)
     }
 }
 
-/// Convert a forest to a Tree
-pub fn forest_to_tree(forest: Forest) -> Tree {
-    match forest.inner {
-        ForestInner::Stub => {
-            // Return a placeholder tree
-            Tree::new_stub()
-        }
-        ForestInner::Glr(_) => {
-            // TODO: Convert actual GLR forest to tree
-            Tree::new_stub()
-        }
-    }
+pub fn parse_incremental(language: &Language, input: &[u8], _old: &Tree) -> Result<Forest, ParseError> {
+    // Call the same path now; replace with proper reuse later.
+    parse_full(language, input)
+}
+
+#[cfg(feature = "glr-core")]
+fn map_glr_err(e: rust_sitter_glr_core::driver::GlrError) -> ParseError {
+    ParseError::with_msg(&e.to_string())
 }

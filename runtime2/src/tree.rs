@@ -14,7 +14,7 @@ pub struct Tree {
 }
 
 /// Internal tree node representation
-struct TreeNode {
+pub(crate) struct TreeNode {
     /// Symbol type
     symbol: u16,
     /// Byte range in source
@@ -26,7 +26,29 @@ struct TreeNode {
     field_id: Option<u16>,
 }
 
+impl TreeNode {
+    /// Create a new tree node with children
+    pub(crate) fn new_with_children(symbol: u16, start_byte: usize, end_byte: usize, children: Vec<TreeNode>) -> Self {
+        Self {
+            symbol,
+            start_byte,
+            end_byte,
+            children,
+            field_id: None,
+        }
+    }
+}
+
 impl Tree {
+    /// Create a new tree from a root node
+    pub(crate) fn new(root: TreeNode) -> Self {
+        Self {
+            root,
+            language: None,
+            source: None,
+        }
+    }
+    
     /// Create a stub tree for testing
     pub fn new_stub() -> Self {
         Self {

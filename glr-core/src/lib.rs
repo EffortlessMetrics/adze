@@ -38,6 +38,9 @@ pub mod gss;
 pub mod gss_arena;
 #[doc(hidden)]
 pub mod parse_forest;
+
+pub mod forest_view;
+pub mod driver;
 #[doc(hidden)]
 pub mod perf_optimizations;
 #[doc(hidden)]
@@ -69,6 +72,10 @@ pub use precedence_compare::{
 pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
 #[doc(hidden)]
 pub use version_info::{CompareResult, VersionInfo, compare_versions};
+
+// Public API exports
+pub use driver::Driver;
+pub use forest_view::{Forest, ForestView, Span};
 
 /// FIRST/FOLLOW sets computation for GLR parsing
 #[derive(Debug, Clone)]
