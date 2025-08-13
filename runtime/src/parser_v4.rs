@@ -5,11 +5,12 @@ use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
-use anyhow::{Result, anyhow, bail};
+use anyhow::{anyhow, bail, Result};
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::collections::HashSet;
 use std::rc::Rc;
+use std::time::Instant;
 
 // Define types directly in parser_v4 (no longer dependent on parser_v3)
 
@@ -26,6 +27,8 @@ pub enum ParseError {
     InvalidAction(String),
     #[error("Unexpected token: expected {expected:?}, got {got:?}")]
     UnexpectedToken { expected: Vec<String>, got: String },
+    #[error("Parsing timed out")]
+    Timeout,
 }
 
 /// A node in the parse tree
@@ -88,6 +91,8 @@ pub struct Parser {
     /// Language name for scanner registry lookup
     #[allow(dead_code)]
     language: String,
+    /// Timeout for parsing in microseconds
+    timeout_micros: u64,
 }
 
 impl Parser {
@@ -137,6 +142,7 @@ impl Parser {
             external_scanner,
             external_runtime,
             language,
+            timeout_micros: 0,
         }
     }
 
@@ -194,7 +200,13 @@ impl Parser {
             external_scanner,
             external_runtime,
             language: language_name,
+            timeout_micros: 0,
         }
+    }
+
+    /// Set timeout for parsing in microseconds
+    pub fn set_timeout_micros(&mut self, timeout: u64) {
+        self.timeout_micros = timeout;
     }
 
     /// Set the language for this parser from a TSLanguage struct
@@ -279,9 +291,15 @@ impl Parser {
         // Track current position in input
         let input_bytes = input.as_bytes();
         let mut current_position = 0;
+        let start_time = Instant::now();
 
         // Main parsing loop
         loop {
+            if self.timeout_micros > 0 {
+                if start_time.elapsed().as_micros() as u64 > self.timeout_micros {
+                    return Err(anyhow!(ParseError::Timeout));
+                }
+            }
             // Get current state
             let current_state = *state_stack
                 .last()
@@ -1051,7 +1069,7 @@ impl Parser {
     }
 
     /// Reset the parser state
-    /// 
+    ///
     /// This clears any internal state and prepares the parser for a fresh parse
     pub fn reset(&mut self) {
         self.glr_state = GLRParserState::new();
@@ -1067,7 +1085,7 @@ impl Parser {
             }
         }
     }
-    
+
     /// Get the GLR parser statistics
     pub fn get_glr_stats(&self) -> &crate::glr_forest::GLRStats {
         self.glr_state.get_stats()

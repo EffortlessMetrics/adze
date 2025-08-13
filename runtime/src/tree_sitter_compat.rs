@@ -1,6 +1,7 @@
 // Compatibility layer to make pure-Rust types work with existing Extract trait
 use crate::pure_incremental::Tree as PureTree;
 use crate::pure_parser::{ParsedNode, Parser as PureParser};
+use std::ffi::CStr;
 
 // Type aliases for compatibility
 #[allow(dead_code)]
@@ -26,15 +27,7 @@ impl<'a> NodeCompat<'a> {
     }
 
     pub fn kind(&self) -> &str {
-        // In pure-Rust, we use symbol IDs, but we need to convert to strings
-        // This would be populated from the language's symbol_names
-        match self.inner.symbol {
-            0 => "program",
-            1 => "expression",
-            2 => "number",
-            3 => "identifier",
-            _ => "unknown",
-        }
+        self.inner.kind()
     }
 
     pub fn start_byte(&self) -> usize {
@@ -86,15 +79,48 @@ impl<'a> NodeCompat<'a> {
     }
 
     pub fn walk(&self) -> TreeCursor<'a> {
-        TreeCursor {
-            node: self.clone(),
-            index: 0,
-        }
+        TreeCursor::new(self)
     }
 
-    pub fn field_name_for_child(&self, _index: usize) -> Option<&str> {
-        // In pure-Rust, field names would come from the language definition
-        // For now, return None
+    pub fn field_name_for_child(&self, index: usize) -> Option<&str> {
+        let language = self.inner.language?;
+        let production_id = self.inner.production_id;
+
+        if production_id == 0 {
+            return None;
+        }
+
+        unsafe {
+            let language = &*language;
+            if (production_id as u32) >= language.production_id_count {
+                return None;
+            }
+            let slice_start = *language.field_map_slices.add(production_id as usize) as usize;
+            let slice_end = *language
+                .field_map_slices
+                .add(production_id as usize + 1) as usize;
+
+            for i in (slice_start..slice_end).step_by(2) {
+                let field_id = *language.field_map_entries.add(i) as usize;
+                let child_index = *language.field_map_entries.add(i + 1) as usize;
+
+                if child_index == index {
+                    if field_id < language.field_count as usize {
+                        let field_names = std::slice::from_raw_parts(
+                            language.field_names,
+                            language.field_count as usize,
+                        );
+                        let name_ptr = field_names[field_id];
+                        if !name_ptr.is_null() {
+                            let c_str = CStr::from_ptr(name_ptr as *const i8);
+                            return c_str.to_str().ok();
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
         None
     }
 
@@ -115,20 +141,26 @@ impl<'a> Clone for NodeCompat<'a> {
 /// Tree cursor for traversing the parse tree
 #[allow(dead_code)]
 pub struct TreeCursor<'a> {
+    stack: Vec<(NodeCompat<'a>, usize)>, // (parent, child_index)
     node: NodeCompat<'a>,
-    index: usize,
 }
 
 #[allow(dead_code)]
 impl<'a> TreeCursor<'a> {
+    pub fn new(node: &NodeCompat<'a>) -> Self {
+        TreeCursor {
+            stack: vec![],
+            node: node.clone(),
+        }
+    }
     pub fn node(&self) -> NodeCompat<'a> {
         self.node.clone()
     }
 
     pub fn goto_first_child(&mut self) -> bool {
         if let Some(first_child) = self.node.child(0) {
+            self.stack.push((self.node.clone(), 0));
             self.node = first_child;
-            self.index = 0;
             true
         } else {
             false
@@ -136,17 +168,40 @@ impl<'a> TreeCursor<'a> {
     }
 
     pub fn goto_next_sibling(&mut self) -> bool {
-        // This is simplified - in reality we'd need to track parent nodes
-        false
+        if let Some((parent, child_index)) = self.stack.last_mut() {
+            let next_child_index = *child_index + 1;
+            if let Some(next_sibling) = parent.child(next_child_index) {
+                *child_index = next_child_index;
+                self.node = next_sibling;
+                true
+            } else {
+                false
+            }
+        } else {
+            false // no parent
+        }
+    }
+
+    pub fn goto_parent(&mut self) -> bool {
+        if let Some((parent, _)) = self.stack.pop() {
+            self.node = parent;
+            true
+        } else {
+            false
+        }
     }
 
     pub fn field_name(&self) -> Option<&str> {
-        None
+        if let Some((parent, child_index)) = self.stack.last() {
+            parent.field_name_for_child(*child_index)
+        } else {
+            None
+        }
     }
 
     pub fn reset(&mut self, node: Node<'a>) {
+        self.stack.clear();
         self.node = node;
-        self.index = 0;
     }
 }
 

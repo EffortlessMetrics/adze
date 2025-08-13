@@ -17,7 +17,7 @@ fn create_test_grammar() -> (Grammar, ParseTable) {
     let mut grammar = Grammar::new("test".to_string());
     
     // Define symbols
-    let expr_id = SymbolId(0);
+    let expr_id = SymbolId(2);
     let num_id = SymbolId(1);
     
     // Add token

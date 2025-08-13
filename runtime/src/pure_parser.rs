@@ -194,6 +194,7 @@ pub struct ParsedNode {
     pub is_named: bool,
     pub field_name: Option<String>,
     pub(crate) language: Option<*const TSLanguage>,
+    pub(crate) production_id: u16,
 }
 
 /// Parse error
@@ -1234,6 +1235,7 @@ fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> Par
         is_named,
         field_name: None, // TODO: Extract field names from production ID
         language,
+        production_id: subtree.production_id,
     }
 }
 

@@ -223,6 +223,7 @@ mod tests {
             is_named: true,
             field_name: None,
             language: None,
+            production_id: 0,
         };
 
         let language = {
