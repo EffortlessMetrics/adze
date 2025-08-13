@@ -49,6 +49,11 @@ impl Tree {
         }
     }
     
+    /// Get the root node's kind
+    pub fn root_kind(&self) -> u16 {
+        self.root.symbol
+    }
+    
     /// Create a stub tree for testing
     pub fn new_stub() -> Self {
         Self {

@@ -22,9 +22,9 @@ pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseErro
         let parse_table = language.parse_table.as_ref().unwrap();
         let mut drv = Driver::new(parse_table);
         
-        // For now, just a trivial byte-lexer: one token = one byte (kind = byte).
-        // Replace with your generated lexer/tokenizer.
-        let toks = input.iter().enumerate().map(|(i, b)| (*b as u32, i as u32, i as u32 + 1));
+        let tok_fn = language.tokenize.as_ref().ok_or_else(|| ParseError::with_msg(
+            "Language has no tokenizer; generated grammar must set `Language::tokenize`"))?;
+        let toks = tok_fn(input).map(|t| (t.kind, t.start, t.end));
         
         let forest = drv.parse_tokens(toks).map_err(map_glr_err)?;
         return Ok(Forest::Glr(forest));

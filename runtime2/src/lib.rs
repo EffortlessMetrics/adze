@@ -17,9 +17,11 @@ pub mod tree;
 mod engine;
 #[cfg(feature = "glr-core")]
 mod builder;
+pub mod token;
 
 // Re-exports for convenience
 pub use error::{ParseError, ParseErrorKind};
+pub use token::Token;
 pub use external_scanner::{ExternalScanner, ScanResult};
 pub use language::Language;
 pub use node::{Node, Point};

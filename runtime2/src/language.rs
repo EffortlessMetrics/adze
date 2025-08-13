@@ -1,7 +1,6 @@
 //! Language representation compatible with Tree-sitter
 
 /// A language definition containing parse tables and metadata
-#[derive(Debug, Clone)]
 pub struct Language {
     /// Language version for compatibility checking
     pub version: u32,
@@ -13,9 +12,12 @@ pub struct Language {
     pub max_alias_sequence_length: u32,
     /// Parse table (action/goto combined for GLR)
     #[cfg(feature = "glr-core")]
-    pub parse_table: Option<rust_sitter_glr_core::ParseTable>,
+    pub parse_table: Option<&'static rust_sitter_glr_core::ParseTable>,
     #[cfg(not(feature = "glr-core"))]
     pub parse_table: ParseTable,
+    /// Optional tokenizer. If absent, parsing will fail with a clear error.
+    #[cfg(feature = "glr-core")]
+    pub tokenize: Option<Box<dyn Fn(&[u8]) -> Box<dyn Iterator<Item = crate::Token> + '_>>>,
     /// Symbol names
     pub symbol_names: Vec<String>,
     /// Symbol metadata
@@ -64,6 +66,55 @@ pub struct SymbolMetadata {
     pub is_supertype: bool,
 }
 
+impl std::fmt::Debug for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut ds = f.debug_struct("Language");
+        ds.field("version", &self.version)
+            .field("symbol_count", &self.symbol_count)
+            .field("field_count", &self.field_count)
+            .field("max_alias_sequence_length", &self.max_alias_sequence_length);
+        
+        #[cfg(feature = "glr-core")]
+        ds.field("parse_table", &self.parse_table.is_some());
+        #[cfg(not(feature = "glr-core"))]
+        ds.field("parse_table", &self.parse_table);
+        
+        ds.field("symbol_names", &self.symbol_names)
+            .field("symbol_metadata", &self.symbol_metadata)
+            .field("field_names", &self.field_names);
+        
+        #[cfg(feature = "glr-core")]
+        ds.field("tokenize", &self.tokenize.is_some());
+        
+        #[cfg(feature = "external-scanners")]
+        ds.field("external_scanner", &self.external_scanner.is_some());
+        
+        ds.finish()
+    }
+}
+
+impl Clone for Language {
+    fn clone(&self) -> Self {
+        Self {
+            version: self.version,
+            symbol_count: self.symbol_count,
+            field_count: self.field_count,
+            max_alias_sequence_length: self.max_alias_sequence_length,
+            #[cfg(feature = "glr-core")]
+            parse_table: self.parse_table,
+            #[cfg(not(feature = "glr-core"))]
+            parse_table: self.parse_table.clone(),
+            #[cfg(feature = "glr-core")]
+            tokenize: None, // Can't clone closures, so reset
+            symbol_names: self.symbol_names.clone(),
+            symbol_metadata: self.symbol_metadata.clone(),
+            field_names: self.field_names.clone(),
+            #[cfg(feature = "external-scanners")]
+            external_scanner: None,
+        }
+    }
+}
+
 impl Language {
     /// Create a stub language for testing
     pub fn new_stub() -> Self {
@@ -86,7 +137,19 @@ impl Language {
             field_names: vec![],
             #[cfg(feature = "external-scanners")]
             external_scanner: None,
+            #[cfg(feature = "glr-core")]
+            tokenize: None,
         }
+    }
+
+    /// Convenience: turn a `Vec<Token>` into a source for tests/examples.
+    #[cfg(feature = "glr-core")]
+    pub fn with_static_tokens(mut self, toks: Vec<crate::Token>) -> Self {
+        self.tokenize = Some(Box::new(move |_: &[u8]| {
+            // This allocates a boxed iterator; fine for examples/tests.
+            Box::new(toks.clone().into_iter()) as Box<dyn Iterator<Item = crate::Token>>
+        }));
+        self
     }
 
     /// Get symbol name by ID

@@ -33,10 +33,11 @@ fn build_from_glr(core: rust_sitter_glr_core::Forest) -> Tree {
 fn build_node(view: &dyn CoreForestView, id: u32) -> TreeNode {
     let span = view.span(id);
     let kind = view.kind(id);
-    let children = view.best_children(id)
+    let kids = view.best_children(id)
         .iter()
-        .map(|&child_id| build_node(view, child_id))
+        .copied()
+        .map(|c| build_node(view, c))
         .collect();
-    
-    TreeNode::new_with_children(kind as u16, span.start as usize, span.end as usize, children)
+    let sym = u16::try_from(kind).unwrap_or(u16::MAX);
+    TreeNode::new_with_children(sym, span.start as usize, span.end as usize, kids)
 }
