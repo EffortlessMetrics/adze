@@ -1,4 +1,4 @@
-#![cfg(feature = "with-grammars")]  // compile only when enabled
+#![cfg(all(feature = "with-grammars", not(feature = "stub-ts")))]  // compile only when grammars are linked and not using stubs
 
 use rand::{Rng, SeedableRng};
 use ts_bridge::{extract, ffi::SafeLang};

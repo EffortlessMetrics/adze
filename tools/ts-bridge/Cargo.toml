@@ -9,7 +9,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 anyhow = "1"
-rand = "0.8"
 tree-sitter-json = { version = "0.24", optional = true }
 
 [build-dependencies]
@@ -21,4 +20,4 @@ rand = "0.8"
 [features]
 default = []
 stub-ts = []          # opt-in: builds against stub header & stubs (dev only)
-with-grammars = ["tree-sitter-json"]    # opt-in: enable parity tests that link grammar crates
+with-grammars = ["dep:tree-sitter-json"]    # opt-in: enable parity tests that link grammar crates

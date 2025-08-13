@@ -84,6 +84,7 @@ pub fn extract(
                             // Width checks for rule components
                             debug_assert!(a.lhs <= u16::MAX as u16, "lhs {} exceeds u16", a.lhs);
                             debug_assert!(a.rhs_len <= u16::MAX as u16, "rhs_len {} exceeds u16", a.rhs_len);
+                            debug_assert!(a.production_id <= u16::MAX as u16, "production_id {} exceeds u16", a.production_id);
                             
                             // allocate or get rule id
                             let key = (a.lhs, a.rhs_len, a.production_id);

@@ -1,17 +1,16 @@
 fn main() {
-    // Register the custom cfg for Rust compiler
-    println!("cargo::rustc-check-cfg=cfg(tsb_stub)");
-    
     println!("cargo:rerun-if-changed=ffi/shim.c");
     println!("cargo:rerun-if-changed=ffi/shim.h");
+
+    // Detect stub feature via Cargo's environment variable
+    let stub = std::env::var_os("CARGO_FEATURE_STUB_TS").is_some();
 
     let mut b = cc::Build::new();
     b.file("ffi/shim.c").include("ffi");
 
-    if cfg!(feature = "stub-ts") {
+    if stub {
         println!("cargo:rerun-if-changed=ffi/ts_stub.c");
-        println!("cargo:rustc-cfg=tsb_stub");
-        b.define("tsb_stub", None);  // Define for C preprocessor
+        b.define("tsb_stub", None);  // Define for C preprocessor only
         b.file("ffi/ts_stub.c").include("ffi");
     } else {
         println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/api.h");
