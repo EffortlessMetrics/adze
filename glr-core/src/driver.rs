@@ -32,6 +32,8 @@ struct ParseStack {
     states: Vec<StateId>,
     nodes: Vec<usize>, // Node IDs in the forest
     pos: usize,        // Current byte position (end of last consumed token)
+    /// Total recovery cost accumulated on this path.
+    error_cost: u32,
 }
 
 /// GLR parser state
@@ -71,6 +73,7 @@ impl<'t> Driver<'t> {
                 states: vec![self.tables.initial_state],
                 nodes: vec![],
                 pos: 0,
+                error_cost: 0,
             }],
             forest: ParseForest {
                 roots: vec![],
@@ -150,13 +153,27 @@ impl<'t> Driver<'t> {
             // Process all stacks with this token
             let stacks = std::mem::take(&mut state.stacks);
             let mut new_stacks = Vec::new();
+            let mut has_any_real_action = false;
             
             for mut stk in stacks {
                 // Apply reduces before shifts
                 self.reduce_closure(&mut state, &mut stk, token_sym)?;
                 
+                // Get actions and filter Recover if real actions exist
+                let all_actions = self.tables.actions(*stk.states.last().unwrap(), token_sym);
+                let real_actions: Vec<_> = all_actions.iter()
+                    .filter(|a| !matches!(**a, Action::Recover | Action::Error))
+                    .collect();
+                
+                let actions_to_use: Vec<&Action> = if !real_actions.is_empty() {
+                    has_any_real_action = true;
+                    real_actions
+                } else {
+                    all_actions.iter().collect()
+                };
+                
                 // Then apply shifts/accepts
-                for action in self.tables.actions(*stk.states.last().unwrap(), token_sym) {
+                for action in actions_to_use {
                     match *action {
                         Action::Shift(ns) => {
                             let node_id = self.push_terminal(&mut state, token_sym, (token_start, token_end));
@@ -194,6 +211,24 @@ impl<'t> Driver<'t> {
                         _ => {}
                     }
                 }
+            }
+            
+            // If no stack had any real action, try recovery
+            if !has_any_real_action && new_stacks.is_empty() {
+                // Try insertion first
+                if self.try_insertion(&mut state, pos)? {
+                    continue; // Re-lex at current position with new stacks
+                }
+                
+                // Otherwise skip one byte as error
+                if self.try_skip_one_byte(&mut state, input, &mut pos) {
+                    continue;
+                }
+                
+                // If we can't recover, fail
+                return Err(GlrError::Parse(
+                    "input not accepted: no valid parse and recovery failed".to_string()
+                ));
             }
             
             state.stacks = new_stacks;
@@ -277,6 +312,7 @@ impl<'t> Driver<'t> {
                 states: vec![self.tables.initial_state],
                 nodes: vec![],
                 pos: 0,
+                error_cost: 0,
             }],
             forest: ParseForest {
                 roots: vec![],
@@ -295,13 +331,27 @@ impl<'t> Driver<'t> {
             
             let stacks = std::mem::take(&mut state.stacks);
             let mut new_stacks = Vec::with_capacity(stacks.len());
+            let mut has_any_real_action = false;
 
             for mut stk in stacks {
                 // 1) Closure: apply all reduces available on this lookahead BEFORE any shift
                 self.reduce_closure(&mut state, &mut stk, lookahead)?;
 
-                // 2) Then apply shifts for this lookahead
-                for action in self.tables.actions(*stk.states.last().unwrap(), lookahead) {
+                // 2) Get actions and filter Recover if real actions exist
+                let all_actions = self.tables.actions(*stk.states.last().unwrap(), lookahead);
+                let real_actions: Vec<_> = all_actions.iter()
+                    .filter(|a| !matches!(**a, Action::Recover | Action::Error))
+                    .collect();
+                
+                let actions_to_use: Vec<&Action> = if !real_actions.is_empty() {
+                    has_any_real_action = true;
+                    real_actions
+                } else {
+                    all_actions.iter().collect()
+                };
+
+                // 3) Then apply shifts for this lookahead
+                for action in actions_to_use {
                     match *action {
                         Action::Shift(ns) => {
                             let node_id = self.push_terminal(&mut state, lookahead, (start as usize, end as usize));
@@ -488,6 +538,16 @@ impl<'t> Driver<'t> {
 
     #[inline]
     fn push_terminal(&self, st: &mut GlrState, sym: SymbolId, span: (usize, usize)) -> usize {
+        Self::push_terminal_with_meta_static(st, sym, span, Default::default())
+    }
+
+    #[inline]
+    fn push_terminal_with_meta(&self, st: &mut GlrState, sym: SymbolId, span: (usize, usize), meta: crate::parse_forest::ErrorMeta) -> usize {
+        Self::push_terminal_with_meta_static(st, sym, span, meta)
+    }
+
+    #[inline]
+    fn push_terminal_with_meta_static(st: &mut GlrState, sym: SymbolId, span: (usize, usize), meta: crate::parse_forest::ErrorMeta) -> usize {
         let id = st.next_node_id;
         st.next_node_id += 1;
         st.forest.nodes.insert(id, ForestNode {
@@ -495,6 +555,7 @@ impl<'t> Driver<'t> {
             symbol: sym,
             span,
             alternatives: vec![ForestAlternative { children: vec![] }],
+            error_meta: meta,
         });
         id
     }
@@ -532,6 +593,7 @@ impl<'t> Driver<'t> {
             symbol: lhs,
             span: (start, end),
             alternatives: vec![ForestAlternative { children: child_ids }],
+            error_meta: Default::default(), // Non-terminals have no error metadata
         });
 
         // Goto
@@ -563,6 +625,121 @@ impl<'t> Driver<'t> {
             }
         }
         Ok(())
+    }
+
+    /// Recovery beam width - keep stacks within best_cost + RECOVERY_BEAM
+    const RECOVERY_BEAM: u32 = 3;
+
+    /// Try inserting a zero-width terminal that is actionable in the top state.
+    /// Returns true if we made progress (i.e., at least one new stack advanced).
+    fn try_insertion(
+        &self,
+        state: &mut GlrState,
+        pos: usize,
+    ) -> Result<bool, GlrError> {
+        let mut progressed = false;
+        let mut next = Vec::new();
+        
+        // Clone stacks to avoid borrow issues
+        let stacks = state.stacks.clone();
+
+        for stk in &stacks {
+            let top = *stk.states.last().unwrap();
+
+            // Find terminals with any real (non-Recover) action from this state
+            // Note: We need to check both regular and external tokens
+            let total_tokens = self.tables.token_count + self.tables.external_token_count;
+            for tidx in 0..total_tokens {
+                let sym = SymbolId(tidx as u16);
+                let acts = self.tables.actions(top, sym);
+                
+                // Skip if only has Recover/Error actions
+                if acts.iter().all(|a| matches!(a, Action::Recover | Action::Error)) {
+                    continue;
+                }
+
+                // Insert zero-width terminal (missing)
+                let node_id = Self::push_terminal_with_meta_static(
+                    state,
+                    sym,
+                    (pos, pos),
+                    crate::parse_forest::ErrorMeta { missing: true, cost: 1, ..Default::default() },
+                );
+
+                let mut s2 = stk.clone();
+                s2.nodes.push(node_id);
+
+                // Apply actions as usual (shift/reduce/accept) on this inserted symbol
+                for a in acts {
+                    match *a {
+                        Action::Shift(ns) => {
+                            let mut s3 = s2.clone();
+                            s3.states.push(ns);
+                            s3.error_cost = s3.error_cost.saturating_add(1);
+                            next.push(s3);
+                            progressed = true;
+                        }
+                        Action::Reduce(rid) => {
+                            let mut s3 = self.reduce_once(state, s2.clone(), rid)?;
+                            self.reduce_closure(state, &mut s3, sym)?;
+                            s3.error_cost = s3.error_cost.saturating_add(1);
+                            next.push(s3);
+                            progressed = true;
+                        }
+                        Action::Accept => {
+                            let mut s3 = s2.clone();
+                            s3.error_cost = s3.error_cost.saturating_add(1);
+                            if let Some(&root_id) = s3.nodes.last() {
+                                if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
+                                    state.forest.roots.push(root);
+                                }
+                            }
+                            return Ok(true);
+                        }
+                        Action::Recover | Action::Error | Action::Fork(_) => { /* ignore here */ }
+                    }
+                }
+            }
+        }
+
+        if progressed {
+            state.stacks = Self::prune_by_cost(next);
+        }
+        Ok(progressed)
+    }
+
+    /// If insertion cannot help, consume one byte into an ERROR chunk.
+    fn try_skip_one_byte(&self, state: &mut GlrState, input: &str, pos: &mut usize) -> bool {
+        if *pos < input.len() {
+            let start = *pos;
+            *pos += 1;
+            
+            // Use a special error symbol if available, otherwise use symbol 0
+            let error_sym = SymbolId(0); // TODO: Get actual error symbol from tables
+            let node_id = Self::push_terminal_with_meta_static(
+                state,
+                error_sym,
+                (start, *pos),
+                crate::parse_forest::ErrorMeta { is_error: true, cost: 1, ..Default::default() },
+            );
+            
+            for stk in &mut state.stacks {
+                stk.nodes.push(node_id);
+                stk.error_cost = stk.error_cost.saturating_add(1);
+                stk.pos = *pos;
+            }
+            state.stacks = Self::prune_by_cost(state.stacks.clone());
+            true
+        } else {
+            false
+        }
+    }
+
+    fn prune_by_cost(mut stacks: Vec<ParseStack>) -> Vec<ParseStack> {
+        if stacks.is_empty() { return stacks; }
+        let best = stacks.iter().map(|s| s.error_cost).min().unwrap_or(0);
+        stacks.retain(|s| s.error_cost <= best.saturating_add(Self::RECOVERY_BEAM));
+        stacks
     }
 
     /// Convert internal parse forest to public Forest

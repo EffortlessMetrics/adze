@@ -1,6 +1,17 @@
 use crate::{Grammar, SymbolId};
 use std::collections::HashMap;
 
+/// Extra metadata carried by leaf/ERROR nodes.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ErrorMeta {
+    /// If true, this terminal was inserted by recovery (zero-width).
+    pub missing: bool,
+    /// If true, this node demarcates a run of skipped/unknown bytes.
+    pub is_error: bool,
+    /// Error cost accumulated for this recovery action
+    pub cost: u32,
+}
+
 /// A parse forest represents all possible parse trees for ambiguous input
 #[derive(Debug, Clone)]
 pub struct ParseForest {
@@ -17,6 +28,8 @@ pub struct ForestNode {
     pub symbol: SymbolId,
     pub span: (usize, usize),
     pub alternatives: Vec<ForestAlternative>,
+    /// Error metadata for terminal/error nodes
+    pub error_meta: ErrorMeta,
 }
 
 /// One possible parse alternative for a forest node
