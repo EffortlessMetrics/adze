@@ -2109,6 +2109,11 @@ mod tests {
             symbol_count: 5,
             symbol_to_index: BTreeMap::new(),
             external_scanner_states: vec![],
+            rules: vec![],
+            nonterminal_to_index: BTreeMap::new(),
+            eof_symbol: SymbolId(0),
+            start_symbol: SymbolId(1),
+            grammar: Grammar::new("test".to_string()),
         };
 
         assert_eq!(parse_table.state_count, 3);

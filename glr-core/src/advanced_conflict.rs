@@ -165,6 +165,11 @@ mod tests {
             symbol_count: 1,
             symbol_to_index: std::collections::BTreeMap::new(),
             external_scanner_states: vec![],
+            rules: vec![],
+            nonterminal_to_index: std::collections::BTreeMap::new(),
+            eof_symbol: SymbolId(0),
+            start_symbol: SymbolId(1),
+            grammar: Grammar::new("test".to_string()),
         };
 
         let mut analyzer = ConflictAnalyzer::new();

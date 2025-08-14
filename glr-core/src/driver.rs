@@ -31,6 +31,7 @@ pub struct Driver<'t> {
 struct ParseStack {
     states: Vec<StateId>,
     nodes: Vec<usize>, // Node IDs in the forest
+    pos: usize,        // Current byte position (end of last consumed token)
 }
 
 /// GLR parser state
@@ -56,6 +57,7 @@ impl<'t> Driver<'t> {
             stacks: vec![ParseStack {
                 states: vec![StateId(0)],
                 nodes: vec![],
+                pos: 0,
             }],
             forest: ParseForest {
                 roots: vec![],
@@ -87,6 +89,7 @@ impl<'t> Driver<'t> {
                             let mut s2 = stk.clone();
                             s2.states.push(ns);
                             s2.nodes.push(node_id);
+                            s2.pos = end as usize; // Update position to token end
                             new_stacks.push(s2);
                         }
                         Action::Accept => {
@@ -110,6 +113,7 @@ impl<'t> Driver<'t> {
                                     let mut s3 = s2_clone.clone();
                                     s3.states.push(ns);
                                     s3.nodes.push(node_id);
+                                    s3.pos = end as usize; // Update position to token end
                                     new_stacks.push(s3);
                                 }
                             }
@@ -123,10 +127,22 @@ impl<'t> Driver<'t> {
                                     let mut s2 = stk.clone();
                                     s2.states.push(ns);
                                     s2.nodes.push(node_id);
+                                    s2.pos = end as usize; // Update position to token end
                                     new_stacks.push(s2);
                                 } else if let Action::Reduce(rid) = *a {
-                                    let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
-                                    new_stacks.push(s2);
+                                    let mut s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
+                                    self.reduce_closure(&mut state, &mut s2, lookahead)?;
+                                    // After closure, check if we can shift
+                                    for a2 in self.tables.actions(*s2.states.last().unwrap(), lookahead) {
+                                        if let Action::Shift(ns) = *a2 {
+                                            let node_id = self.push_terminal(&mut state, lookahead, (start as usize, end as usize));
+                                            let mut s3 = s2.clone();
+                                            s3.states.push(ns);
+                                            s3.nodes.push(node_id);
+                                            s3.pos = end as usize;
+                                            new_stacks.push(s3);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -205,7 +221,7 @@ impl<'t> Driver<'t> {
         // Span = [first_child.start, last_child.end], or current position if empty production
         let (start, end) = if child_ids.is_empty() {
             // Empty production - use current position
-            (0, 0) // TODO: track current position
+            (stack.pos, stack.pos)
         } else {
             let first = st.forest.nodes.get(child_ids.first().unwrap()).unwrap().span.0;
             let last = st.forest.nodes.get(child_ids.last().unwrap()).unwrap().span.1;
