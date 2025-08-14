@@ -150,10 +150,11 @@ pub enum PrecedenceDecision {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Action, ParseTable, StateId};
+    use crate::{Action, ParseTable, StateId, LexMode};
     use rust_sitter_ir::{
-        Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
+        Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, RuleId,
     };
+    use std::collections::BTreeMap;
 
     #[test]
     fn test_conflict_analyzer() {
@@ -163,16 +164,22 @@ mod tests {
             symbol_metadata: vec![],
             state_count: 1,
             symbol_count: 1,
-            symbol_to_index: std::collections::BTreeMap::new(),
+            symbol_to_index: BTreeMap::new(),
             external_scanner_states: vec![],
             rules: vec![],
-            nonterminal_to_index: std::collections::BTreeMap::new(),
+            nonterminal_to_index: BTreeMap::new(),
             eof_symbol: SymbolId(0),
             start_symbol: SymbolId(1),
             grammar: Grammar::new("test".to_string()),
             initial_state: StateId(0),
             token_count: 1,
             external_token_count: 0,
+            lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 1],
+            extras: vec![],
+            dynamic_prec_by_rule: vec![],
+            alias_sequences: vec![],
+            field_names: vec![],
+            field_map: BTreeMap::new(),
         };
 
         let mut analyzer = ConflictAnalyzer::new();

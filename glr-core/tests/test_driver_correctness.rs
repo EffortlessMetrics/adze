@@ -2,7 +2,7 @@
 //! Tests epsilon spans, fork handling, EOF acceptance, and root selection
 
 use rust_sitter_glr_core::{
-    ParseTable, Driver, ParseRule, Action
+    ParseTable, Driver, ParseRule, Action, LexMode
 };
 use rust_sitter_ir::{Grammar, SymbolId, StateId, RuleId};
 use std::collections::BTreeMap;
@@ -34,7 +34,7 @@ fn create_test_table(
     ParseTable {
         action_table: states,
         goto_table: gotos,
-        rules,
+        rules: rules.clone(),
         state_count,
         symbol_count,
         symbol_to_index,
@@ -47,6 +47,12 @@ fn create_test_table(
         initial_state: StateId(0),  // Default to state 0 for test grammars
         token_count: 2,  // + and ( are terminals
         external_token_count: 0,
+        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; state_count],
+        extras: vec![],
+        dynamic_prec_by_rule: vec![0; rules.len()],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: BTreeMap::new(),
     }
 }
 

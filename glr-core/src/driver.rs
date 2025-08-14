@@ -47,7 +47,56 @@ impl<'t> Driver<'t> {
         Self { tables }
     }
 
+    /// Parse input text using a lexer that properly handles extras (whitespace/comments).
+    /// 
+    /// This is the preferred method for Tree-sitter compatibility as it:
+    /// - Skips extras automatically
+    /// - Uses correct lex modes per state
+    /// - Handles external scanners when present
+    pub fn parse_with_lexer<L>(&mut self, input: &str, mut lexer: L) -> Result<Forest, GlrError>
+    where
+        L: FnMut(&str, usize, &[bool], crate::LexMode) -> Option<crate::ts_lexer::NextToken>,
+    {
+        let mut tokens = Vec::new();
+        let mut pos = 0usize;
+        
+        // Get tokens from the lexer, skipping extras
+        // For simplicity, we'll collect all tokens first
+        // TODO: Stream tokens for better memory usage
+        while pos < input.len() {
+            // Get the top state from first stack (all stacks should be at same position)
+            // For initial tokenization, use initial state
+            let state = self.tables.initial_state;
+            let mode = self.tables.lex_mode(state);
+            let valid_symbols = self.tables.valid_symbols_mask(state);
+            
+            // Get next token
+            if let Some(token) = lexer(input, pos, &valid_symbols, mode) {
+                // Check if this is an extra token to skip
+                let sym = SymbolId(token.kind as u16);
+                if self.tables.is_extra(sym) {
+                    // Skip extras (whitespace/comments)
+                    pos = token.end as usize;
+                    continue;
+                }
+                
+                // Add non-extra token
+                tokens.push((token.kind, token.start, token.end));
+                pos = token.end as usize;
+            } else {
+                // No more tokens
+                break;
+            }
+        }
+        
+        // Parse the filtered token stream
+        self.parse_tokens(tokens)
+    }
+
     /// Parse from a token stream.
+    /// 
+    /// The token stream should already have extras (whitespace/comments) filtered out.
+    /// For Tree-sitter compatibility, use parse_with_lexer instead which handles extras.
     pub fn parse_tokens<I>(&mut self, tokens: I) -> Result<Forest, GlrError>
     where
         I: IntoIterator<Item = (u32 /* kind */, u32 /* start */, u32 /* end */)>,

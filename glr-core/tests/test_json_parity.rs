@@ -1,7 +1,7 @@
 //! Test GLR parser against tree-sitter-json extracted tables
 
 use rust_sitter_glr_core::{
-    Driver, ParseTable, Action, ParseRule, SymbolMetadata, ActionCell
+    Driver, ParseTable, Action, ParseRule, SymbolMetadata, ActionCell, LexMode
 };
 use rust_sitter_ir::{StateId, SymbolId, RuleId, Grammar};
 use std::fs;
@@ -22,9 +22,19 @@ fn test_json_simple_object() {
     let token_count = extracted["token_count"].as_u64().unwrap() as usize;
     let external_count = extracted["external_token_count"].as_u64().unwrap_or(0) as usize;
     let terminal_boundary = token_count + external_count;  // Terminals are [0..terminal_boundary)
-    // Note: ts-bridge seems to be extracting the wrong start symbol.
-    // The actual start symbol for JSON is "document" (symbol 15), not "{" (symbol 1)
-    let start_symbol = SymbolId(15);  // Hard-code to document for now
+    
+    // Get start symbol from rules[0].lhs (Tree-sitter convention)
+    let start_symbol = if let Some(rules) = extracted["rules"].as_array() {
+        if let Some(first_rule) = rules.first() {
+            SymbolId(first_rule["lhs"].as_u64().unwrap() as u16)
+        } else {
+            // Fallback to extracted value if no rules
+            SymbolId(extracted["start_symbol"].as_u64().unwrap() as u16)
+        }
+    } else {
+        SymbolId(extracted["start_symbol"].as_u64().unwrap() as u16)
+    };
+    
     let eof_symbol = SymbolId(extracted["eof_symbol"].as_u64().unwrap() as u16);
     
     println!("JSON grammar: {} symbols, {} states", symbol_count, state_count);
@@ -117,6 +127,7 @@ fn test_json_simple_object() {
     let grammar = Grammar::new("json".to_string());
     
     // Create ParseTable
+    let rule_count = rules.len();
     let parse_table = ParseTable {
         action_table,
         goto_table,
@@ -133,6 +144,12 @@ fn test_json_simple_object() {
         initial_state: StateId(1),  // Tree-sitter uses state 1 as initial, not 0
         token_count,
         external_token_count: external_count,
+        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; state_count],
+        extras: vec![],  // TODO: Extract from tree-sitter
+        dynamic_prec_by_rule: vec![0; rule_count],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: BTreeMap::new(),
     };
     
     // Create driver and parse some JSON

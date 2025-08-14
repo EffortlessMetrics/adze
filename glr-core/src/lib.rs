@@ -41,6 +41,7 @@ pub mod parse_forest;
 
 pub mod forest_view;
 pub mod driver;
+pub mod ts_lexer;
 
 // Trace macro for debugging GLR conflicts and decisions
 #[cfg(feature = "glr-trace")]
@@ -895,6 +896,15 @@ impl ItemSetCollection {
     }
 }
 
+/// Lexer mode for a parser state
+#[derive(Debug, Clone)]
+pub struct LexMode {
+    /// Internal lexer DFA state
+    pub lex_state: u16,
+    /// State for the external scanner (if any)
+    pub external_lex_state: u16,
+}
+
 /// GLR-compatible parse table supporting multiple actions per state
 #[derive(Debug, Clone)]
 pub struct ParseTable {
@@ -922,6 +932,18 @@ pub struct ParseTable {
     pub token_count: usize,
     /// Number of external tokens (from external scanner)
     pub external_token_count: usize,
+    /// Lex modes for each state (length == state_count)
+    pub lex_modes: Vec<LexMode>,
+    /// Terminal symbols to skip as whitespace/comments
+    pub extras: Vec<SymbolId>,
+    /// Dynamic precedence for each rule (optional)
+    pub dynamic_prec_by_rule: Vec<i16>,
+    /// Alias sequences for rules
+    pub alias_sequences: Vec<Vec<Option<SymbolId>>>,
+    /// Field names
+    pub field_names: Vec<String>,
+    /// Map (rule, child_index) -> field_id
+    pub field_map: BTreeMap<(RuleId, u16), u16>,
 }
 
 /// Parse rule for reduction
@@ -1003,6 +1025,37 @@ impl ParseTable {
     #[inline]
     pub fn grammar(&self) -> &Grammar {
         &self.grammar
+    }
+
+    /// Check if a symbol is an extra (to be skipped)
+    #[inline]
+    pub fn is_extra(&self, s: SymbolId) -> bool {
+        self.extras.iter().any(|&x| x == s)
+    }
+
+    /// Get valid symbols mask for a state (terminals that have actions)
+    #[inline]
+    pub fn valid_symbols_mask(&self, state: StateId) -> Vec<bool> {
+        let n = self.terminal_boundary();
+        let mut v = vec![false; n];
+        let s = state.0 as usize;
+        if s < self.action_table.len() {
+            for t in 0..n.min(self.action_table[s].len()) {
+                v[t] = !self.action_table[s][t].is_empty();
+            }
+        }
+        v
+    }
+
+    /// Get lex mode for a state
+    #[inline]
+    pub fn lex_mode(&self, state: StateId) -> LexMode {
+        let idx = state.0 as usize;
+        if idx < self.lex_modes.len() {
+            self.lex_modes[idx].clone()
+        } else {
+            LexMode { lex_state: 0, external_lex_state: 0 }
+        }
     }
 }
 
@@ -1814,6 +1867,7 @@ pub fn build_lr1_automaton(
         }
     }
 
+    let rule_count = rules.len();
     Ok(ParseTable {
         action_table,
         goto_table,
@@ -1830,6 +1884,12 @@ pub fn build_lr1_automaton(
         initial_state: StateId(0),  // Default initial state
         token_count: symbol_count,  // TODO: Get actual token count from grammar
         external_token_count: 0,  // TODO: Get actual external token count
+        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; state_count],
+        extras: vec![],  // TODO: Get from grammar metadata
+        dynamic_prec_by_rule: vec![0; rule_count],  // TODO: Get from grammar
+        alias_sequences: vec![],  // TODO: Get from grammar
+        field_names: vec![],  // TODO: Get from grammar
+        field_map: BTreeMap::new(),  // TODO: Get from grammar
     })
 }
 
@@ -2164,6 +2224,12 @@ mod tests {
             initial_state: StateId(0),
             token_count: 3,
             external_token_count: 0,
+            lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 3],
+            extras: vec![],
+            dynamic_prec_by_rule: vec![],
+            alias_sequences: vec![],
+            field_names: vec![],
+            field_map: BTreeMap::new(),
         };
 
         assert_eq!(parse_table.state_count, 3);
