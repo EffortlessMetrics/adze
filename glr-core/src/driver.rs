@@ -96,6 +96,12 @@ impl<'t> Driver<'t> {
                             // Accept on lookahead (rare, usually on EOF)
                             if let Some(&root_id) = stk.nodes.last() {
                                 if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
+                                    // Assert the accepted root is the start symbol (catches table/config drift)
+                                    debug_assert_eq!(
+                                        root.symbol, self.tables.start_symbol(),
+                                        "accepted non-start symbol: {:?} != {:?}",
+                                        root.symbol, self.tables.start_symbol()
+                                    );
                                     state.forest.roots.push(root);
                                 }
                             }
@@ -166,6 +172,12 @@ impl<'t> Driver<'t> {
                     Action::Accept => {
                         if let Some(&root_id) = stk.nodes.last() {
                             if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
+                                // Assert the accepted root is the start symbol (catches table/config drift)
+                                debug_assert_eq!(
+                                    root.symbol, self.tables.start_symbol(),
+                                    "accepted non-start symbol: {:?} != {:?}",
+                                    root.symbol, self.tables.start_symbol()
+                                );
                                 state.forest.roots.push(root);
                             }
                         }
@@ -178,6 +190,12 @@ impl<'t> Driver<'t> {
                             if let Action::Accept = *a2 {
                                 if let Some(&root_id) = s2.nodes.last() {
                                     if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
+                                        // Assert the accepted root is the start symbol (catches table/config drift)
+                                        debug_assert_eq!(
+                                            root.symbol, self.tables.start_symbol(),
+                                            "accepted non-start symbol: {:?} != {:?}",
+                                            root.symbol, self.tables.start_symbol()
+                                        );
                                         state.forest.roots.push(root);
                                     }
                                 }
@@ -267,7 +285,15 @@ impl<'t> Driver<'t> {
     }
 
     /// Convert internal parse forest to public Forest
-    pub(crate) fn wrap_forest(forest: ParseForest) -> Forest {
+    pub(crate) fn wrap_forest(mut forest: ParseForest) -> Forest {
+        // Deterministic root selection: prefer largest span, then earliest start position
+        forest.roots.sort_by_key(|n| (
+            std::cmp::Reverse(n.span.1.saturating_sub(n.span.0)), // Largest span first
+            n.span.0  // Then earliest start position
+        ));
+        // Remove duplicate roots by ID
+        forest.roots.dedup_by_key(|n| n.id);
+        
         let view = Box::new(ParseForestView::new(forest));
         Forest { view }
     }
