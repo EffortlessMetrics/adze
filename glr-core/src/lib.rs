@@ -1033,6 +1033,14 @@ impl ParseTable {
         self.extras.iter().any(|&x| x == s)
     }
 
+    /// Get the ERROR symbol (by convention, symbol 0 or -1 in Tree-sitter)
+    #[inline]
+    pub fn error_symbol(&self) -> SymbolId {
+        // Tree-sitter convention: ERROR is typically symbol 0
+        // We could also check for a symbol named "ERROR" in the grammar
+        SymbolId(0)
+    }
+
     /// Get valid symbols mask for a state (terminals that have actions)
     #[inline]
     pub fn valid_symbols_mask(&self, state: StateId) -> Vec<bool> {

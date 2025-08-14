@@ -151,11 +151,12 @@ impl<'t> Driver<'t> {
             let token_end = lookahead.end as usize;
             
             // Process all stacks with this token
-            let stacks = std::mem::take(&mut state.stacks);
+            let prev_stacks = state.stacks.clone();  // Keep snapshot for recovery
+            state.stacks.clear();  // Clear for filling with new_stacks
             let mut new_stacks = Vec::new();
             let mut has_any_real_action = false;
             
-            for mut stk in stacks {
+            for mut stk in prev_stacks.iter().cloned() {
                 // Apply reduces before shifts
                 self.reduce_closure(&mut state, &mut stk, token_sym)?;
                 
@@ -215,6 +216,9 @@ impl<'t> Driver<'t> {
             
             // If no stack had any real action, try recovery
             if !has_any_real_action && new_stacks.is_empty() {
+                // Restore previous stacks for recovery
+                state.stacks = prev_stacks;
+                
                 // Try insertion first
                 if self.try_insertion(&mut state, pos)? {
                     continue; // Re-lex at current position with new stacks
@@ -229,9 +233,10 @@ impl<'t> Driver<'t> {
                 return Err(GlrError::Parse(
                     "input not accepted: no valid parse and recovery failed".to_string()
                 ));
+            } else {
+                // Commit the new frontier
+                state.stacks = new_stacks;
             }
-            
-            state.stacks = new_stacks;
             
             // Check for EOF acceptance
             if token_sym == self.tables.eof_symbol {
@@ -329,11 +334,11 @@ impl<'t> Driver<'t> {
             debug_assert!(kind <= u16::MAX as u32, "terminal id overflow");
             let lookahead = SymbolId(kind as u16);
             
-            let stacks = std::mem::take(&mut state.stacks);
-            let mut new_stacks = Vec::with_capacity(stacks.len());
-            let mut has_any_real_action = false;
+            let prev_stacks = state.stacks.clone();  // Keep snapshot for recovery
+            state.stacks.clear();  // Clear for filling with new_stacks
+            let mut new_stacks = Vec::with_capacity(prev_stacks.len());
 
-            for mut stk in stacks {
+            for mut stk in prev_stacks.iter().cloned() {
                 // 1) Closure: apply all reduces available on this lookahead BEFORE any shift
                 self.reduce_closure(&mut state, &mut stk, lookahead)?;
 
@@ -344,7 +349,6 @@ impl<'t> Driver<'t> {
                     .collect();
                 
                 let actions_to_use: Vec<&Action> = if !real_actions.is_empty() {
-                    has_any_real_action = true;
                     real_actions
                 } else {
                     all_actions.iter().collect()
@@ -431,9 +435,13 @@ impl<'t> Driver<'t> {
             }
 
             if new_stacks.is_empty() {
-                // State.stacks is empty here because we moved it with std::mem::take
-                // Use the initial_state as fallback for error reporting
-                let top_state = self.tables.initial_state;
+                // For token streams, we'll just fail - no recovery for pre-tokenized input
+                // Recovery doesn't make sense when we can't re-lex
+                let top_state = if !prev_stacks.is_empty() {
+                    *prev_stacks[0].states.last().unwrap_or(&self.tables.initial_state)
+                } else {
+                    self.tables.initial_state
+                };
                 return Err(GlrError::Parse(format!(
                     "no valid parse paths at byte {} (state={}, symbol={})",
                     start, top_state.0, lookahead.0
@@ -541,10 +549,6 @@ impl<'t> Driver<'t> {
         Self::push_terminal_with_meta_static(st, sym, span, Default::default())
     }
 
-    #[inline]
-    fn push_terminal_with_meta(&self, st: &mut GlrState, sym: SymbolId, span: (usize, usize), meta: crate::parse_forest::ErrorMeta) -> usize {
-        Self::push_terminal_with_meta_static(st, sym, span, meta)
-    }
 
     #[inline]
     fn push_terminal_with_meta_static(st: &mut GlrState, sym: SymbolId, span: (usize, usize), meta: crate::parse_forest::ErrorMeta) -> usize {
@@ -651,6 +655,12 @@ impl<'t> Driver<'t> {
             let total_tokens = self.tables.token_count + self.tables.external_token_count;
             for tidx in 0..total_tokens {
                 let sym = SymbolId(tidx as u16);
+                
+                // Skip extras (whitespace/comments) - we don't want to insert these
+                if self.tables.is_extra(sym) {
+                    continue;
+                }
+                
                 let acts = self.tables.actions(top, sym);
                 
                 // Skip if only has Recover/Error actions
@@ -714,8 +724,8 @@ impl<'t> Driver<'t> {
             let start = *pos;
             *pos += 1;
             
-            // Use a special error symbol if available, otherwise use symbol 0
-            let error_sym = SymbolId(0); // TODO: Get actual error symbol from tables
+            // Use the ERROR symbol from the table
+            let error_sym = self.tables.error_symbol();
             let node_id = Self::push_terminal_with_meta_static(
                 state,
                 error_sym,
