@@ -44,9 +44,27 @@ struct GlrState {
 }
 
 impl<'t> Driver<'t> {
+    /// Maximum insertions allowed at a single position before forcing skip
+    const MAX_INSERTS_PER_POS: u32 = 3;
+    
     /// Create a new driver with the given parse tables
     pub fn new(tables: &'t ParseTable) -> Self {
         Self { tables }
+    }
+    
+    /// Build union of valid external symbols across all active stacks
+    fn union_valid_external_symbols(&self, stacks: &[ParseStack]) -> Vec<bool> {
+        let mut mask = vec![false; self.tables.external_token_count as usize];
+        for stack in stacks {
+            let top_state = *stack.states.last().unwrap();
+            for ext_idx in 0..self.tables.external_token_count {
+                let sym = SymbolId((self.tables.token_count + ext_idx) as u16);
+                if !self.tables.actions(top_state, sym).is_empty() {
+                    mask[ext_idx as usize] = true;
+                }
+            }
+        }
+        mask
     }
 
     /// Parse input with Tree-sitter compatible streaming lexer.
@@ -86,6 +104,7 @@ impl<'t> Driver<'t> {
         };
         
         let mut pos = 0usize;
+        let mut inserts_at_pos: u32 = 0;
         
         // Main parse loop - lex at each position based on active stacks
         while pos <= input.len() && !state.stacks.is_empty() {
@@ -112,23 +131,16 @@ impl<'t> Driver<'t> {
                     }
                     
                     // Try external scanner if applicable
-                    if mode.external_lex_state != 0 || self.tables.external_token_count > 0 {
+                    if mode.external_lex_state != 0 {
                         if let Some(ref mut ext) = external_scanner {
                             // Build union of valid external symbols across all stacks
-                            let mut valid_ext = vec![false; self.tables.external_token_count as usize];
-                            for stack in &state.stacks {
-                                let top_state = *stack.states.last().unwrap();
-                                // External tokens start after regular tokens
-                                for ext_idx in 0..self.tables.external_token_count {
-                                    let sym = SymbolId((self.tables.token_count + ext_idx) as u16);
-                                    if !self.tables.actions(top_state, sym).is_empty() {
-                                        valid_ext[ext_idx as usize] = true;
-                                    }
-                                }
-                            }
+                            let valid_ext = self.union_valid_external_symbols(&state.stacks);
                             
-                            if let Some(token) = ext(input, pos, &valid_ext, mode) {
-                                candidates.push((token, true)); // true = external
+                            // Only call external scanner if at least one symbol is valid
+                            if valid_ext.iter().any(|&b| b) {
+                                if let Some(token) = ext(input, pos, &valid_ext, mode) {
+                                    candidates.push((token, true)); // true = external
+                                }
                             }
                         }
                     }
@@ -220,13 +232,17 @@ impl<'t> Driver<'t> {
                 // Restore previous stacks for recovery
                 state.stacks = prev_stacks;
                 
-                // Try insertion first
-                if self.try_insertion(&mut state, token_sym, pos)? {
-                    continue; // Re-lex at current position with new stacks
+                // Try insertion first, but cap insertions per position
+                if inserts_at_pos < Self::MAX_INSERTS_PER_POS {
+                    if self.try_insertion(&mut state, token_sym, pos)? {
+                        inserts_at_pos = inserts_at_pos.saturating_add(1);
+                        continue; // Re-lex at current position with new stacks
+                    }
                 }
                 
-                // Otherwise skip one byte as error
+                // Otherwise skip one byte as error (forces progress)
                 if self.try_skip_one_byte(&mut state, input, &mut pos) {
+                    inserts_at_pos = 0; // Reset counter after skip
                     continue;
                 }
                 
@@ -237,6 +253,7 @@ impl<'t> Driver<'t> {
             } else {
                 // Commit the new frontier
                 state.stacks = new_stacks;
+                inserts_at_pos = 0; // Reset counter on successful real token
             }
             
             // Check for EOF acceptance
@@ -247,9 +264,11 @@ impl<'t> Driver<'t> {
             // Advance position if we consumed input
             if token_end > pos {
                 pos = token_end;
+                inserts_at_pos = 0; // Reset counter when position advances
             } else if pos < input.len() {
                 // Ensure we make progress even with zero-width tokens
                 pos += 1;
+                inserts_at_pos = 0; // Reset counter when position advances
             }
         }
         
@@ -643,7 +662,7 @@ impl<'t> Driver<'t> {
     }
 
     /// Recovery beam width - keep stacks within best_cost + RECOVERY_BEAM
-    const RECOVERY_BEAM: u32 = 3;
+    pub const RECOVERY_BEAM: u32 = 3;
 
     /// Try inserting a zero-width terminal that is actionable in the top state.
     /// Returns true if we made progress (i.e., at least one new stack advanced).

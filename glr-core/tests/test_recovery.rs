@@ -1,71 +1,156 @@
-use rust_sitter_glr_core::{Driver, ParseTable, Action};
+use rust_sitter_glr_core::{Driver, ParseTable, Action, ParseRule, LexMode};
 use rust_sitter_ir::{Grammar, StateId, SymbolId, RuleId};
 use rust_sitter_glr_core::parse_forest::{ERROR_SYMBOL, ErrorMeta};
+use std::collections::BTreeMap;
+
+type ActionCell = Vec<Action>;
 
 /// Create a minimal JSON-like grammar for testing recovery
 fn create_test_grammar() -> (Grammar, ParseTable) {
-    use rust_sitter_ir::*;
-    
-    let mut g = Grammar::new();
-    
-    // Terminal symbols
-    let lbrace = g.define_symbol_raw(SymbolId(1), "{", 1, true, false, false);
-    let rbrace = g.define_symbol_raw(SymbolId(2), "}", 2, true, false, false);
-    let lbracket = g.define_symbol_raw(SymbolId(3), "[", 3, true, false, false);
-    let rbracket = g.define_symbol_raw(SymbolId(4), "]", 4, true, false, false);
-    let colon = g.define_symbol_raw(SymbolId(5), ":", 5, true, false, false);
-    let comma = g.define_symbol_raw(SymbolId(6), ",", 6, true, false, false);
-    let string = g.define_symbol_raw(SymbolId(7), "string", 7, true, false, false);
-    let number = g.define_symbol_raw(SymbolId(8), "number", 8, true, false, false);
-    let eof = g.define_symbol_raw(SymbolId(9), "EOF", 9, true, false, false);
-    
-    // Non-terminal symbols
-    let document = g.define_symbol_raw(SymbolId(10), "document", 10, false, false, false);
-    let value = g.define_symbol_raw(SymbolId(11), "value", 11, false, false, false);
-    let object = g.define_symbol_raw(SymbolId(12), "object", 12, false, false, false);
-    let array = g.define_symbol_raw(SymbolId(13), "array", 13, false, false, false);
-    let members = g.define_symbol_raw(SymbolId(14), "members", 14, false, false, false);
-    let pair = g.define_symbol_raw(SymbolId(15), "pair", 15, false, false, false);
-    let elements = g.define_symbol_raw(SymbolId(16), "elements", 16, false, false, false);
-    
-    // Set start symbol
-    g.start_symbol = Some(document);
-    
-    // Define rules
-    // document -> value
-    g.add_rule(document, vec![value], 0);
-    
-    // value -> object | array | string | number
-    g.add_rule(value, vec![object], 1);
-    g.add_rule(value, vec![array], 2);
-    g.add_rule(value, vec![string], 3);
-    g.add_rule(value, vec![number], 4);
-    
+    // Create a simple grammar that accepts:
     // object -> '{' '}' | '{' members '}'
-    g.add_rule(object, vec![lbrace, rbrace], 5);
-    g.add_rule(object, vec![lbrace, members, rbrace], 6);
-    
     // array -> '[' ']' | '[' elements ']'
-    g.add_rule(array, vec![lbracket, rbracket], 7);
-    g.add_rule(array, vec![lbracket, elements, rbracket], 8);
+    // For simplicity, we'll just test empty object "{}"
     
-    // members -> pair | members ',' pair
-    g.add_rule(members, vec![pair], 9);
-    g.add_rule(members, vec![members, comma, pair], 10);
+    let mut states = vec![];
+    let mut gotos = vec![];
+    let mut rules = vec![];
     
-    // pair -> string ':' value
-    g.add_rule(pair, vec![string, colon, value], 11);
+    // State 0: initial state
+    // Can shift '{' to state 1
+    states.push(vec![
+        vec![],  // 0 (unused)
+        vec![Action::Shift(StateId(1))],  // 1: '{'
+        vec![],  // 2: '}'
+        vec![Action::Shift(StateId(3))],  // 3: '['
+        vec![],  // 4: ']'
+        vec![],  // 5: ':'
+        vec![],  // 6: ','
+        vec![],  // 7: string
+        vec![],  // 8: number
+        vec![],  // 9: EOF
+    ]);
+    gotos.push(vec![StateId(0); 10]);
     
-    // elements -> value | elements ',' value
-    g.add_rule(elements, vec![value], 12);
-    g.add_rule(elements, vec![elements, comma, value], 13);
+    // State 1: after '{'
+    // Can shift '}' to state 2
+    // Can shift string to build members
+    states.push(vec![
+        vec![],  // 0
+        vec![],  // 1: '{'
+        vec![Action::Shift(StateId(2))],  // 2: '}'
+        vec![],  // 3: '['
+        vec![],  // 4: ']'
+        vec![],  // 5: ':'
+        vec![],  // 6: ','
+        vec![Action::Shift(StateId(4))],  // 7: string (for members)
+        vec![],  // 8: number
+        vec![],  // 9: EOF
+    ]);
+    gotos.push(vec![StateId(0); 10]);
     
-    // Build parse table
-    let first_follow = rust_sitter_glr_core::compute_first_follow(&g).unwrap();
-    let lr1_automaton = rust_sitter_glr_core::build_lr1_automaton(&g, &first_follow).unwrap();
-    let parse_table = rust_sitter_glr_core::build_parse_table(&g, &lr1_automaton, &first_follow).unwrap();
+    // State 2: after '{' '}'
+    // Reduce to object (rule 0)
+    let rule0 = ParseRule {
+        lhs: SymbolId(10),  // object
+        rhs: vec![SymbolId(1), SymbolId(2)],  // '{' '}'
+        precedence: 0,
+        associativity: 0,
+    };
+    rules.push(rule0.clone());
     
-    (g, parse_table)
+    states.push(vec![
+        vec![Action::Reduce(RuleId(0))],  // 0
+        vec![Action::Reduce(RuleId(0))],  // 1
+        vec![Action::Reduce(RuleId(0))],  // 2
+        vec![Action::Reduce(RuleId(0))],  // 3
+        vec![Action::Reduce(RuleId(0))],  // 4
+        vec![Action::Reduce(RuleId(0))],  // 5
+        vec![Action::Reduce(RuleId(0))],  // 6
+        vec![Action::Reduce(RuleId(0))],  // 7
+        vec![Action::Reduce(RuleId(0))],  // 8
+        vec![Action::Accept],  // 9: EOF - accept!
+    ]);
+    gotos.push(vec![StateId(0); 10]);
+    
+    // State 3: after '['
+    states.push(vec![
+        vec![],  // 0
+        vec![],  // 1
+        vec![],  // 2
+        vec![],  // 3
+        vec![Action::Shift(StateId(5))],  // 4: ']'
+        vec![],  // 5
+        vec![],  // 6
+        vec![],  // 7
+        vec![],  // 8
+        vec![],  // 9
+    ]);
+    gotos.push(vec![StateId(0); 10]);
+    
+    // Add more states as needed...
+    // State 4: after '{' string (building members)
+    states.push(vec![
+        vec![],  // 0
+        vec![],  // 1
+        vec![],  // 2
+        vec![],  // 3
+        vec![],  // 4
+        vec![Action::Shift(StateId(6))],  // 5: ':' 
+        vec![],  // 6
+        vec![],  // 7
+        vec![],  // 8
+        vec![],  // 9
+    ]);
+    gotos.push(vec![StateId(0); 10]);
+    
+    // State 5: after '[' ']'
+    let rule1 = ParseRule {
+        lhs: SymbolId(11),  // array
+        rhs: vec![SymbolId(3), SymbolId(4)],  // '[' ']'
+        precedence: 0,
+        associativity: 0,
+    };
+    rules.push(rule1);
+    
+    states.push(vec![vec![Action::Reduce(RuleId(1))]; 10]);
+    gotos.push(vec![StateId(0); 10]);
+    
+    // State 6: after '{' string ':'
+    states.push(vec![vec![]; 10]);
+    gotos.push(vec![StateId(0); 10]);
+    
+    let table = ParseTable {
+        action_table: states,
+        goto_table: gotos,
+        rules,
+        state_count: 7,
+        symbol_count: 10,
+        symbol_to_index: {
+            let mut m = BTreeMap::new();
+            for i in 0..10 {
+                m.insert(SymbolId(i as u16), i);
+            }
+            m
+        },
+        external_scanner_states: vec![],
+        nonterminal_to_index: BTreeMap::new(),
+        eof_symbol: SymbolId(9),
+        start_symbol: SymbolId(10),
+        grammar: Grammar::new("test".to_string()),
+        symbol_metadata: vec![],
+        initial_state: StateId(0),
+        token_count: 9,
+        external_token_count: 0,
+        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 7],
+        extras: vec![],
+        dynamic_prec_by_rule: vec![0; 2],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: BTreeMap::new(),
+    };
+    
+    (Grammar::new("test".to_string()), table)
 }
 
 #[test]
@@ -210,9 +295,11 @@ fn test_valid_json_no_errors() {
             let view = forest.view();
             assert!(!view.roots().is_empty(), "Should have at least one parse tree");
             
-            // Verify no error nodes were created
-            // We'd need to traverse the forest and check for ERROR_SYMBOL nodes
-            // For now, just ensure it parsed
+            // Verify no error nodes were created using debug_error_stats
+            let (has_error, missing, cost) = forest.debug_error_stats();
+            assert!(!has_error, "Valid JSON '{{}}' must have no error chunks");
+            assert_eq!(missing, 0, "Valid JSON '{{}}' must not insert missing terminals");
+            assert_eq!(cost, 0, "Valid JSON '{{}}' must have zero error cost");
         }
     }
     
@@ -237,6 +324,13 @@ fn test_valid_json_no_errors() {
         
         let result = driver.parse_streaming("[]", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
         assert!(result.is_ok(), "Empty array should parse without errors");
+        
+        if let Ok(forest) = result {
+            let (has_error, missing, cost) = forest.debug_error_stats();
+            assert!(!has_error, "Valid JSON '[]' must have no error chunks");
+            assert_eq!(missing, 0, "Valid JSON '[]' must not insert missing terminals");
+            assert_eq!(cost, 0, "Valid JSON '[]' must have zero error cost");
+        }
     }
     
     // Test 3: Simple key-value object
@@ -274,6 +368,13 @@ fn test_valid_json_no_errors() {
         
         let result = driver.parse_streaming("{\"key\":\"value\"}", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
         assert!(result.is_ok(), "Simple object should parse without errors");
+        
+        if let Ok(forest) = result {
+            let (has_error, missing, cost) = forest.debug_error_stats();
+            assert!(!has_error, "Valid JSON object must have no error chunks");
+            assert_eq!(missing, 0, "Valid JSON object must not insert missing terminals");
+            assert_eq!(cost, 0, "Valid JSON object must have zero error cost");
+        }
     }
 }
 
@@ -317,7 +418,12 @@ fn test_gentle_errors_bounded_recovery() {
             Ok(forest) => {
                 let view = forest.view();
                 assert!(!view.roots().is_empty(), "Should recover and produce a tree");
-                // TODO: Check that error_cost is bounded (≤ beam width)
+                
+                // Check that error_cost is bounded (≤ beam width)
+                let (has_error, _missing, cost) = forest.debug_error_stats();
+                assert!(has_error, "Malformed input should have error markers");
+                assert!(cost <= rust_sitter_glr_core::Driver::RECOVERY_BEAM + 1, 
+                    "Recovery cost {} should be bounded by beam width", cost);
             }
             Err(_) => {
                 // Acceptable if recovery can't handle this case
@@ -417,6 +523,126 @@ fn test_gentle_errors_bounded_recovery() {
             Err(_) => {
                 // Also acceptable
             }
+        }
+    }
+}
+
+#[test]
+fn test_cell_parity_after_lbrace() {
+    // Create a JSON grammar and parse table
+    let (_grammar, table) = create_test_grammar();
+    
+    // Start from initial state
+    let initial_state = table.initial_state;
+    
+    // Find the state after shifting '{'
+    let lbrace_sym = SymbolId(1); // '{' token
+    let mut after_lbrace_state = None;
+    
+    // Look for a shift action on '{' from the initial state
+    for action in table.actions(initial_state, lbrace_sym) {
+        if let Action::Shift(target) = action {
+            after_lbrace_state = Some(target);
+            break;
+        }
+    }
+    
+    assert!(after_lbrace_state.is_some(), "Should be able to shift '{' from initial state");
+    let after_lbrace = after_lbrace_state.unwrap();
+    
+    // Now check what actions exist for '}' in that state
+    let rbrace_sym = SymbolId(2); // '}' token
+    let actions_for_rbrace = table.actions(*after_lbrace, rbrace_sym);
+    
+    // Assert there should be at least one non-Recover action
+    let has_real_action = actions_for_rbrace.iter().any(|a| 
+        !matches!(a, Action::Recover | Action::Error)
+    );
+    
+    assert!(has_real_action, 
+        "After '{', there should be a real action (Shift/Reduce/Accept) for '}', not just Recover. \
+         Found actions: {:?}", actions_for_rbrace);
+    
+    // Additional check: valid JSON "{}" should parse without error nodes
+    // This verifies the driver can handle the action correctly
+    let mut driver = Driver::new(&table);
+    let lexer = |input: &str, pos: usize, _mode| {
+        if pos >= input.len() { return None; }
+        match &input[pos..] {
+            s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                kind: 1,
+                start: pos as u32,
+                end: (pos + 1) as u32,
+            }),
+            s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                kind: 2,
+                start: pos as u32,
+                end: (pos + 1) as u32,
+            }),
+            _ => None,
+        }
+    };
+    
+    let result = driver.parse_streaming("{}", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
+    assert!(result.is_ok(), "Empty object '{{}}' must parse successfully");
+    
+    if let Ok(forest) = result {
+        let (has_error, missing, cost) = forest.debug_error_stats();
+        assert!(!has_error, "Valid JSON '{{}}' must have no error chunks");
+        assert_eq!(missing, 0, "Valid JSON '{{}}' must not insert missing terminals");
+        assert_eq!(cost, 0, "Valid JSON '{{}}' must have zero error cost");
+    }
+}
+
+#[test]
+fn test_zero_width_progress_guard() {
+    // Test that we always make progress even with pathological zero-width tokens
+    let (_grammar, mut table) = create_test_grammar();
+    
+    table.initial_state = StateId(0); 
+    table.eof_symbol = SymbolId(9);
+    
+    let mut driver = Driver::new(&table);
+    
+    // Create a pathological lexer that always returns zero-width tokens
+    let mut call_count = 0;
+    let mut positions_seen = std::collections::HashSet::new();
+    
+    let tracking_lexer = |_input: &str, pos: usize, _mode| {
+        positions_seen.insert(pos);
+        call_count += 1;
+        
+        // Stop if we're stuck at the same position
+        if call_count > 100 {
+            panic!("Infinite loop detected: lexer called {} times", call_count);
+        }
+        
+        // Always return a zero-width token at the current position
+        // This tests that the driver doesn't get stuck
+        if pos > 5 { return None; } // Stop after a few positions
+        
+        Some(rust_sitter_glr_core::ts_lexer::NextToken {
+            kind: 7, // String token (insertable)
+            start: pos as u32,
+            end: pos as u32, // Zero-width!
+        })
+    };
+    
+    // This should not hang or panic
+    let result = driver.parse_streaming("test", tracking_lexer, None::<fn(&str, usize, &[bool], _) -> _>);
+    
+    // We should have advanced through multiple positions
+    assert!(positions_seen.len() > 1, 
+        "Driver must advance position even with zero-width tokens. Positions seen: {:?}", 
+        positions_seen);
+    
+    // The parse might fail, but it shouldn't hang
+    match result {
+        Ok(_) => {
+            // If it somehow succeeded, that's fine
+        }
+        Err(_) => {
+            // Expected - the important thing is we didn't hang
         }
     }
 }

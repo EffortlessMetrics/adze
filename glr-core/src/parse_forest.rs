@@ -44,6 +44,28 @@ impl ParseForest {
         });
         id
     }
+
+    /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
+    #[cfg(any(test, feature = "test-accessors"))]
+    pub fn debug_error_stats(&self) -> (bool, usize, u32) {
+        let mut any_error = false;
+        let mut missing = 0usize;
+        let mut cost = 0u32;
+
+        for (_id, node) in self.nodes.iter() {
+            // Error chunks (ERROR_SYMBOL or meta.is_error)
+            if node.symbol == ERROR_SYMBOL || node.error_meta.is_error {
+                any_error = true;
+                cost = cost.saturating_add(node.error_meta.cost);
+            }
+            // Missing terminals
+            if node.error_meta.missing {
+                missing += 1;
+                cost = cost.saturating_add(node.error_meta.cost);
+            }
+        }
+        (any_error, missing, cost)
+    }
 }
 
 /// A node in the parse forest that may have multiple alternatives
