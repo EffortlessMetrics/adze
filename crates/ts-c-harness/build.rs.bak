@@ -1,0 +1,55 @@
+use std::env;
+use std::path::PathBuf;
+
+fn main() {
+    // Only build for tests
+    let profile = env::var("PROFILE").unwrap_or_default();
+    if profile != "test" && profile != "debug" {
+        return;
+    }
+
+    println!("cargo:rerun-if-changed=tests/ts_c_shim.c");
+
+    // Find tree-sitter include directory
+    // The tree-sitter crate should export this via DEP_TREE_SITTER_INCLUDE
+    let ts_include = env::var("DEP_TREE_SITTER_INCLUDE")
+        .or_else(|_| env::var("DEP_tree_sitter_INCLUDE"))
+        .unwrap_or_else(|_| {
+            // Fallback: try to find it in target directory
+            let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+            let mut search = out_dir.clone();
+            
+            // Go up to target directory
+            while search.file_name() != Some(std::ffi::OsStr::new("target")) {
+                if !search.pop() {
+                    break;
+                }
+            }
+            
+            // Look for tree-sitter build output
+            for entry in std::fs::read_dir(&search).unwrap() {
+                let entry = entry.unwrap();
+                let path = entry.path();
+                if path.is_dir() && path.file_name().unwrap().to_str().unwrap().contains("tree-sitter") {
+                    let include = path.join("out/include");
+                    if include.exists() {
+                        return include.to_str().unwrap().to_string();
+                    }
+                }
+            }
+            
+            // Last resort: use vendored headers from ts-bridge
+            let vendor_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
+                .join("../../tools/ts-bridge/ci/vendor/tree_sitter/lib/include");
+            vendor_path.to_str().unwrap().to_string()
+        });
+
+    // Build only our shim
+    cc::Build::new()
+        .file("tests/ts_c_shim.c")
+        .include(&ts_include)
+        .warnings(false)
+        .compile("ts_c_shim");
+    
+    println!("cargo:rustc-link-lib=static=ts_c_shim");
+}
