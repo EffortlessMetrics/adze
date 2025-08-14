@@ -28,7 +28,18 @@ impl Parser {
     }
 
     /// Set the language for parsing
+    /// 
+    /// In GLR mode, validates that the language provides a parse table and tokenizer.
     pub fn set_language(&mut self, language: Language) -> Result<(), ParseError> {
+        #[cfg(feature = "glr-core")]
+        {
+            if language.parse_table.is_none() {
+                return Err(ParseError::with_msg("Language has no parse table"));
+            }
+            if language.tokenize.is_none() {
+                return Err(ParseError::with_msg("Language has no tokenizer"));
+            }
+        }
         // TODO: Validate language version compatibility
         self.language = Some(language);
         Ok(())

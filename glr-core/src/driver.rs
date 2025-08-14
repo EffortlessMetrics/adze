@@ -5,17 +5,24 @@ use crate::parse_forest::{ParseForest, ForestNode, ForestAlternative};
 use crate::{ParseTable, Action, StateId, SymbolId, RuleId};
 use std::collections::HashMap;
 
+/// Error type for GLR parsing operations
 #[derive(thiserror::Error, Debug)]
 pub enum GlrError {
+    /// Lexer error
     #[error("lexer error: {0}")]
     Lex(String),
+    /// Parse error
     #[error("parse error: {0}")]
     Parse(String),
+    /// Other error
     #[error("{0}")]
     Other(String),
 }
 
+/// GLR parser driver that executes the parsing algorithm
 pub struct Driver<'t> {
+    /// LR tables used by the driver
+    #[allow(dead_code)]
     tables: &'t ParseTable,
 }
 
@@ -34,6 +41,7 @@ struct GlrState {
 }
 
 impl<'t> Driver<'t> {
+    /// Create a new driver with the given parse tables
     pub fn new(tables: &'t ParseTable) -> Self {
         Self { tables }
     }
@@ -252,14 +260,30 @@ impl<'t> Driver<'t> {
 struct ParseForestView {
     forest: ParseForest,
     roots_cache: Vec<u32>,
+    children_cache: HashMap<u32, Vec<u32>>,
 }
 
 impl ParseForestView {
     fn new(forest: ParseForest) -> Self {
         let roots_cache = forest.roots.iter().map(|n| n.id as u32).collect();
+        
+        // Pre-compute children cache
+        let mut children_cache = HashMap::new();
+        for (&id, node) in &forest.nodes {
+            if !node.alternatives.is_empty() {
+                // Take first alternative (best)
+                let children: Vec<u32> = node.alternatives[0].children
+                    .iter()
+                    .map(|&c| c as u32)
+                    .collect();
+                children_cache.insert(id as u32, children);
+            }
+        }
+        
         Self { 
             forest, 
             roots_cache,
+            children_cache,
         }
     }
 }
@@ -286,9 +310,6 @@ impl ForestView for ParseForestView {
     }
 
     fn best_children(&self, id: u32) -> &[u32] {
-        // For simplicity, return empty slice for now
-        // In a real implementation, this would cache and return the best alternative's children
-        // Terminals have no children, non-terminals would have children from their best alternative
-        &[]
+        self.children_cache.get(&id).map(|v| v.as_slice()).unwrap_or(&[])
     }
 }

@@ -2,6 +2,22 @@
 //!
 //! This crate provides a runtime that mimics Tree-sitter's API while using
 //! GLR parsing internally to handle ambiguous grammars.
+//!
+//! # Quick start
+//! ```no_run
+//! use rust_sitter_runtime::{Parser, Language, Token};
+//! # #[cfg(feature = "glr-core")]
+//! let lang = Language::new_stub()
+//!     .with_static_tokens(vec![
+//!         Token { kind: 1, start: 0, end: 1 },
+//!         Token { kind: 0, start: 1, end: 1 }, // EOF
+//!     ]);
+//! # #[cfg(not(feature = "glr-core"))]
+//! # let lang = Language::new_stub();
+//! let mut p = Parser::new();
+//! p.set_language(lang).unwrap(); // will fail fast if tokenizer/tables missing in GLR mode
+//! let _ = p.parse("a", None); // will error until parse tables are provided
+//! ```
 
 #![warn(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]

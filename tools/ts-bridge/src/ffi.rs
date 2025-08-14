@@ -35,6 +35,29 @@ pub struct TsbAction {
     pub repetition: bool,
 }
 
+impl Default for TsbAction {
+    fn default() -> Self {
+        TsbAction {
+            kind: TsbActionKind::Shift,
+            state: 0,
+            lhs: 0,
+            rhs_len: 0,
+            dynamic_precedence: 0,
+            production_id: 0,
+            extra: false,
+            repetition: false,
+        }
+    }
+}
+
+/// Symbol metadata from Tree-sitter
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct TsbSymbolMetadata {
+    pub visible: bool,
+    pub named: bool,
+}
+
 extern "C" {
     fn tsb_language_version() -> u32;
     fn tsb_min_compatible_version() -> u32;
@@ -43,6 +66,8 @@ extern "C" {
                   symc: *mut u32, stc: *mut u32, tokc: *mut u32, extc: *mut u32);
 
     fn tsb_symbol_name(lang: *const TSLanguage, sym: u32) -> *const c_char;
+    
+    fn tsb_symbol_metadata(lang: *const TSLanguage, sym: u32) -> TsbSymbolMetadata;
 
     fn tsb_table_entry(lang: *const TSLanguage,
                        state: u32, symbol: u32,
@@ -92,6 +117,12 @@ impl SafeLang {
             let p = tsb_symbol_name(self.0, sym);
             let s = std::ffi::CStr::from_ptr(p);
             s.to_string_lossy().into_owned()
+        }
+    }
+
+    pub fn symbol_metadata(&self, sym: u32) -> TsbSymbolMetadata {
+        unsafe {
+            tsb_symbol_metadata(self.0, sym)
         }
     }
 

@@ -68,5 +68,6 @@ typedef struct TSLanguage TSLanguage;
 uint32_t ts_language_symbol_count(const TSLanguage *);
 uint32_t ts_language_state_count(const TSLanguage *);
 const char *ts_language_symbol_name(const TSLanguage *, TSSymbol);
+TSSymbolMetadata ts_language_symbol_metadata(const TSLanguage *, TSSymbol);
 uint32_t ts_language_table_entry(const TSLanguage *, TSStateId, TSSymbol, TSParseActionEntry *);
 TSStateId ts_language_next_state(const TSLanguage *, TSStateId, TSSymbol);

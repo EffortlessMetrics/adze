@@ -35,6 +35,14 @@ void tsb_counts(const TSLanguage* lang,
 
 const char* tsb_symbol_name(const TSLanguage* lang, uint32_t sym);
 
+// Symbol metadata
+typedef struct {
+  bool visible;
+  bool named;
+} TsbSymbolMetadata;
+
+TsbSymbolMetadata tsb_symbol_metadata(const TSLanguage* lang, uint32_t sym);
+
 // --- Table access ---
 typedef struct {
   uint32_t action_index;  // index into lang->parse_actions

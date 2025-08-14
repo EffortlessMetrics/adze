@@ -26,7 +26,7 @@ pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseErro
             "Language has no tokenizer; generated grammar must set `Language::tokenize`"))?;
         let toks = tok_fn(input).map(|t| (t.kind, t.start, t.end));
         
-        let forest = drv.parse_tokens(toks).map_err(map_glr_err)?;
+        let forest = drv.parse_tokens(toks)?;
         return Ok(Forest::Glr(forest));
     }
     
@@ -40,9 +40,4 @@ pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseErro
 pub fn parse_incremental(language: &Language, input: &[u8], _old: &Tree) -> Result<Forest, ParseError> {
     // Call the same path now; replace with proper reuse later.
     parse_full(language, input)
-}
-
-#[cfg(feature = "glr-core")]
-fn map_glr_err(e: rust_sitter_glr_core::driver::GlrError) -> ParseError {
-    ParseError::with_msg(&e.to_string())
 }

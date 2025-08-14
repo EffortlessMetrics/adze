@@ -54,7 +54,7 @@ fn main() -> anyhow::Result<()> {
     eprintln!("  - {} rules", data.rules.len());
     eprintln!("  - {} action cells", data.actions.len());
     eprintln!("  - {} goto cells", data.gotos.len());
-    eprintln!("  - start symbol: {} ('{}')", data.start_symbol, &data.symbol_names[data.start_symbol as usize]);
+    eprintln!("  - start symbol: {} ('{}')", data.start_symbol, &data.symbols[data.start_symbol as usize].name);
     
     let json = serde_json::to_vec_pretty(&data)?;
     std::fs::write(out, &json)?;

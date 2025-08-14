@@ -1,5 +1,6 @@
 #include "shim.h"
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef tsb_stub
   // For development stub builds
@@ -8,6 +9,9 @@
   // Production: use real tree-sitter headers
   #include <tree_sitter/api.h>
   #include <tree_sitter/parser.h>
+  
+  // Include internal header for accessing symbol_metadata
+  #include "../ci/vendor/tree_sitter/lib/src/tree_sitter_internal.h"
 #endif
 
 // ABI versions
@@ -25,26 +29,81 @@ void tsb_counts(const TSLanguage* lang,
   *symc = ts_language_symbol_count(lang);
   *stc  = ts_language_state_count(lang);
   
-  // We need to access internal fields for token counts
-  // This requires the TSLanguage struct definition from parser.h
-  // For now, set reasonable defaults
-  *tokc = 100; // Will be determined from actual grammar
-  *extc = 0;   // External scanner tokens
+#ifdef tsb_stub
+  // Stub values for testing
+  *tokc = 100;
+  *extc = 0;
+#else
+  // Access internal fields for token counts
+  const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
+  *tokc = lang_internal->token_count;
+  *extc = lang_internal->external_token_count;
+#endif
 }
 
 const char* tsb_symbol_name(const TSLanguage* lang, uint32_t sym) {
   return ts_language_symbol_name(lang, (TSSymbol)sym);
 }
 
+TsbSymbolMetadata tsb_symbol_metadata(const TSLanguage* lang, uint32_t sym) {
+#ifdef tsb_stub
+  // Stub implementation for testing
+  TsbSymbolMetadata result;
+  result.visible = (sym % 2 == 0);
+  result.named = (sym % 3 == 0);
+  return result;
+#else
+  // Access the symbol_metadata array directly from the language struct
+  const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
+  TSSymbolMetadata meta = lang_internal->symbol_metadata[sym];
+  TsbSymbolMetadata result;
+  result.visible = meta.visible;
+  result.named = meta.named;
+  return result;
+#endif
+}
+
+// Forward declare the lookup function
+extern uint32_t ts_language_lookup(const TSLanguage *, TSStateId, TSSymbol);
+
 uint32_t tsb_table_entry(const TSLanguage* lang,
                          uint32_t state, uint32_t symbol,
                          TsbEntryHeader* out_hdr) {
-  // This is a simplified version - actual implementation needs
-  // proper Tree-sitter table decoding logic
+#ifdef tsb_stub
+  // Stub implementation for testing
   out_hdr->reusable = false;
-  out_hdr->count = 1;
+  out_hdr->count = 0;
   out_hdr->action_index = 0;
   return 0;
+#else
+  // Use internal knowledge of how Tree-sitter stores actions
+  const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
+  
+  // Special handling for error symbols
+  if (symbol == (uint32_t)-1 || symbol == (uint32_t)-2) {
+    out_hdr->count = 0;
+    out_hdr->reusable = false;
+    out_hdr->action_index = 0;
+    return 0;
+  }
+  
+  // Get the action index from the lookup table
+  uint32_t action_index = ts_language_lookup(lang, (TSStateId)state, (TSSymbol)symbol);
+  if (action_index == 0) {
+    out_hdr->count = 0;
+    out_hdr->reusable = false;
+    out_hdr->action_index = 0;
+    return 0;
+  }
+  
+  // Get the entry from parse_actions
+  const TSParseActionEntry *entry = &lang_internal->parse_actions[action_index];
+  out_hdr->count = entry->entry.count;
+  out_hdr->reusable = entry->entry.reusable;
+  out_hdr->action_index = action_index;
+  
+  return action_index;
+#endif
 }
 
 static inline TsbAction from_ts_action(TSParseAction act) {
@@ -76,8 +135,22 @@ static inline TsbAction from_ts_action(TSParseAction act) {
 uint32_t tsb_unpack_actions(const TSLanguage* lang,
                             uint32_t action_index, uint8_t count,
                             TsbAction* out, uint32_t cap) {
-  // Simplified - actual implementation needs proper action unpacking
+#ifdef tsb_stub
+  // Stub implementation for testing
   return 0;
+#else
+  // Get the actions from the parse_actions array
+  const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
+  const TSParseActionEntry *entry = &lang_internal->parse_actions[action_index];
+  const TSParseAction *actions = (const TSParseAction *)(entry + 1);
+  
+  uint32_t n = count < cap ? count : cap;
+  for (uint32_t i = 0; i < n; i++) {
+    out[i] = from_ts_action(actions[i]);
+  }
+  
+  return n;
+#endif
 }
 
 uint32_t tsb_next_state(const TSLanguage* lang, uint32_t state, uint32_t nonterm) {

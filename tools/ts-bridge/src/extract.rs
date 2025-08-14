@@ -18,10 +18,15 @@ pub fn extract(
     debug_assert!(tokc <= u16::MAX as u32, "token count {} exceeds u16", tokc);
     let term_boundary = tokc + extc;
 
-    // names
-    let mut names = Vec::with_capacity(symc as usize);
+    // Symbol metadata (names, visibility, etc.)
+    let mut symbols = Vec::with_capacity(symc as usize);
     for s in 0..symc { 
-        names.push(lang.symbol_name(s)); 
+        let meta = lang.symbol_metadata(s);
+        symbols.push(Symbol {
+            name: lang.symbol_name(s),
+            visible: meta.visible,
+            named: meta.named,
+        });
     }
 
     // collect actions and rules
@@ -92,8 +97,7 @@ pub fn extract(
                             let rid = *rule_ids.entry(key).or_insert(next_id);
                             seq.push(Action::Reduce { 
                                 rule: rid, 
-                                dyn_prec: a.dynamic_precedence, 
-                                prod: a.production_id 
+                                dyn_prec: a.dynamic_precedence,
                             });
                         }
                         TsbActionKind::Accept => seq.push(Action::Accept),
@@ -101,9 +105,9 @@ pub fn extract(
                     }
                 }
                 actions.push(ActionCell { 
-                    state, 
-                    terminal: sym as u16, 
-                    seq 
+                    state: state as u16, 
+                    symbol: sym as u16, 
+                    actions: seq 
                 });
             }
         }
@@ -113,9 +117,9 @@ pub fn extract(
             let ns = lang.next_state(state, a);
             if ns != 0 {
                 gotos.push(GotoCell { 
-                    state, 
-                    nonterminal: a as u16, 
-                    next_state: ns 
+                    state: state as u16, 
+                    symbol: a as u16, 
+                    next_state: Some(ns as u16),
                 });
             }
         }
@@ -151,7 +155,7 @@ pub fn extract(
         external_token_count: extc,
         eof_symbol,
         start_symbol,
-        symbol_names: names,
+        symbols,
         rules,
         actions,
         gotos,

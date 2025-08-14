@@ -27,6 +27,15 @@ const char *ts_language_symbol_name(const TSLanguage *lang, TSSymbol symbol) {
     return "unknown";
 }
 
+TSSymbolMetadata ts_language_symbol_metadata(const TSLanguage *lang, TSSymbol symbol) {
+    // Return dummy metadata
+    TSSymbolMetadata meta;
+    meta.visible = (symbol % 2 == 0);
+    meta.named = (symbol % 3 == 0);
+    meta.supertype = false;
+    return meta;
+}
+
 uint32_t ts_language_table_entry(const TSLanguage *lang, TSStateId state, TSSymbol symbol, TSParseActionEntry *entry) {
     // Return dummy entry
     entry->entry.count = 0;

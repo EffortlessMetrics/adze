@@ -110,3 +110,10 @@ impl fmt::Display for ErrorLocation {
         write!(f, "{}:{}", self.line, self.column)
     }
 }
+
+#[cfg(feature = "glr-core")]
+impl From<rust_sitter_glr_core::driver::GlrError> for ParseError {
+    fn from(e: rust_sitter_glr_core::driver::GlrError) -> Self {
+        ParseError::with_msg(&e.to_string())
+    }
+}

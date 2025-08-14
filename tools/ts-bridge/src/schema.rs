@@ -10,12 +10,19 @@ pub struct ParseTableData {
     pub external_token_count: u32,
     pub eof_symbol: u16,         // 0
     pub start_symbol: u16,
-    pub symbol_names: Vec<String>,
+    pub symbols: Vec<Symbol>,    // All symbol metadata
 
     pub rules: Vec<Rule>,        // stable RuleId == index
     // Sparse maps for compact JSON; use Vec for deterministic order.
     pub actions: Vec<ActionCell>,
     pub gotos: Vec<GotoCell>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Symbol {
+    pub name: String,
+    pub visible: bool,
+    pub named: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -27,9 +34,9 @@ pub struct Rule {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionCell {
-    pub state: u32,
-    pub terminal: u16,        // < token_count + external_token_count
-    pub seq: Vec<Action>,     // 1..N
+    pub state: u16,
+    pub symbol: u16,          // terminal symbol (< token_count + external_token_count)
+    pub actions: Vec<Action>, // 1..N
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -46,7 +53,6 @@ pub enum Action {
     Reduce { 
         rule: u16,  // index into `rules`
         dyn_prec: i16, 
-        prod: u16 
     },
     #[serde(rename = "A")] 
     Accept,
@@ -56,7 +62,7 @@ pub enum Action {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GotoCell {
-    pub state: u32,
-    pub nonterminal: u16,   // >= token_count + external_token_count
-    pub next_state: u32,    // 0 => none (not emitted)
+    pub state: u16,
+    pub symbol: u16,          // nonterminal symbol (>= token_count + external_token_count)
+    pub next_state: Option<u16>, // None means no goto for this cell
 }

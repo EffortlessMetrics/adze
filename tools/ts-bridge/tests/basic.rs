@@ -13,13 +13,13 @@ fn test_schema_serialization() {
         external_token_count: 0,
         eof_symbol: 0,
         start_symbol: 1,
-        symbol_names: vec![
-            "EOF".to_string(),
-            "start".to_string(),
-            "number".to_string(),
-            "+".to_string(),
-            "-".to_string(),
-            "expression".to_string(),
+        symbols: vec![
+            Symbol { name: "EOF".to_string(), visible: true, named: false },
+            Symbol { name: "start".to_string(), visible: true, named: true },
+            Symbol { name: "number".to_string(), visible: true, named: true },
+            Symbol { name: "+".to_string(), visible: true, named: false },
+            Symbol { name: "-".to_string(), visible: true, named: false },
+            Symbol { name: "expression".to_string(), visible: true, named: true },
         ],
         rules: vec![
             Rule { lhs: 1, rhs_len: 1, production_id: 0 },
@@ -28,20 +28,20 @@ fn test_schema_serialization() {
         actions: vec![
             ActionCell {
                 state: 0,
-                terminal: 2,
-                seq: vec![Action::Shift { state: 1, extra: false, rep: false }],
+                symbol: 2,
+                actions: vec![Action::Shift { state: 1, extra: false, rep: false }],
             },
             ActionCell {
                 state: 1,
-                terminal: 0,
-                seq: vec![Action::Accept],
+                symbol: 0,
+                actions: vec![Action::Accept],
             },
         ],
         gotos: vec![
             GotoCell {
                 state: 0,
-                nonterminal: 5,
-                next_state: 2,
+                symbol: 5,
+                next_state: Some(2),
             },
         ],
     };
@@ -67,7 +67,7 @@ fn test_action_serialization() {
     assert!(json.contains("\"k\":\"S\""));
     assert!(json.contains("\"state\":42"));
     
-    let reduce = Action::Reduce { rule: 5, dyn_prec: -1, prod: 7 };
+    let reduce = Action::Reduce { rule: 5, dyn_prec: -1 };
     let json = serde_json::to_string(&reduce).unwrap();
     assert!(json.contains("\"k\":\"R\""));
     assert!(json.contains("\"rule\":5"));
