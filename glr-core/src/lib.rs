@@ -897,7 +897,7 @@ impl ItemSetCollection {
 }
 
 /// Lexer mode for a parser state
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LexMode {
     /// Internal lexer DFA state
     pub lex_state: u16,
@@ -1066,6 +1066,7 @@ pub enum Action {
     Reduce(RuleId),
     Accept,
     Error,
+    Recover, // Tree-sitter error recovery - insert missing node
     Fork(Vec<Action>), // GLR fork point - multiple valid actions
 }
 

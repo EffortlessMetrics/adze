@@ -47,56 +47,225 @@ impl<'t> Driver<'t> {
         Self { tables }
     }
 
-    /// Parse input text using a lexer that properly handles extras (whitespace/comments).
+    /// Parse input with Tree-sitter compatible streaming lexer.
     /// 
-    /// This is the preferred method for Tree-sitter compatibility as it:
-    /// - Skips extras automatically
-    /// - Uses correct lex modes per state
-    /// - Handles external scanners when present
-    pub fn parse_with_lexer<L>(&mut self, input: &str, mut lexer: L) -> Result<Forest, GlrError>
+    /// This implements the full GLR-aware lexing algorithm:
+    /// - Lexes at each position based on active stack states
+    /// - Handles multiple lex modes when stacks diverge
+    /// - Integrates external scanners when present
+    pub fn parse_streaming<L, E>(
+        &mut self, 
+        input: &str, 
+        mut internal_lexer: L,
+        mut external_scanner: Option<E>,
+    ) -> Result<Forest, GlrError>
     where
-        L: FnMut(&str, usize, &[bool], crate::LexMode) -> Option<crate::ts_lexer::NextToken>,
+        L: FnMut(&str, usize, crate::LexMode) -> Option<crate::ts_lexer::NextToken>,
+        E: FnMut(&str, usize, &[bool], crate::LexMode) -> Option<crate::ts_lexer::NextToken>,
     {
-        let mut tokens = Vec::new();
+        use std::collections::HashSet;
+        
+        // Initialize state with starting stack
+        let mut state = GlrState {
+            stacks: vec![ParseStack {
+                states: vec![self.tables.initial_state],
+                nodes: vec![],
+                pos: 0,
+            }],
+            forest: ParseForest {
+                roots: vec![],
+                nodes: HashMap::new(),
+                grammar: self.tables.grammar().clone(),
+                source: input.to_string(),
+            },
+            next_node_id: 0,
+        };
+        
         let mut pos = 0usize;
         
-        // Get tokens from the lexer, skipping extras
-        // For simplicity, we'll collect all tokens first
-        // TODO: Stream tokens for better memory usage
-        while pos < input.len() {
-            // Get the top state from first stack (all stacks should be at same position)
-            // For initial tokenization, use initial state
-            let state = self.tables.initial_state;
-            let mode = self.tables.lex_mode(state);
-            let valid_symbols = self.tables.valid_symbols_mask(state);
-            
-            // Get next token
-            if let Some(token) = lexer(input, pos, &valid_symbols, mode) {
-                // Check if this is an extra token to skip
-                let sym = SymbolId(token.kind as u16);
-                if self.tables.is_extra(sym) {
-                    // Skip extras (whitespace/comments)
-                    pos = token.end as usize;
-                    continue;
+        // Main parse loop - lex at each position based on active stacks
+        while pos <= input.len() && !state.stacks.is_empty() {
+            // If we're at EOF, use EOF token
+            let lookahead = if pos >= input.len() {
+                crate::ts_lexer::NextToken {
+                    kind: self.tables.eof_symbol.0 as u32,
+                    start: pos as u32,
+                    end: pos as u32,
+                }
+            } else {
+                // Gather distinct lex modes from all active stacks
+                let modes: HashSet<crate::LexMode> = state.stacks.iter()
+                    .map(|stk| self.tables.lex_mode(*stk.states.last().unwrap()))
+                    .collect();
+                
+                // Collect candidate tokens from all modes
+                let mut candidates = Vec::new();
+                
+                for mode in modes {
+                    // Try internal lexer (it handles extras/whitespace internally via advance)
+                    if let Some(token) = internal_lexer(input, pos, mode) {
+                        candidates.push((token, false)); // false = internal
+                    }
+                    
+                    // Try external scanner if applicable
+                    if mode.external_lex_state != 0 || self.tables.external_token_count > 0 {
+                        if let Some(ref mut ext) = external_scanner {
+                            // Build union of valid external symbols across all stacks
+                            let mut valid_ext = vec![false; self.tables.external_token_count as usize];
+                            for stack in &state.stacks {
+                                let top_state = *stack.states.last().unwrap();
+                                // External tokens start after regular tokens
+                                for ext_idx in 0..self.tables.external_token_count {
+                                    let sym = SymbolId((self.tables.token_count + ext_idx) as u16);
+                                    if !self.tables.actions(top_state, sym).is_empty() {
+                                        valid_ext[ext_idx as usize] = true;
+                                    }
+                                }
+                            }
+                            
+                            if let Some(token) = ext(input, pos, &valid_ext, mode) {
+                                candidates.push((token, true)); // true = external
+                            }
+                        }
+                    }
                 }
                 
-                // Add non-extra token
-                tokens.push((token.kind, token.start, token.end));
-                pos = token.end as usize;
-            } else {
-                // No more tokens
+                // Choose best candidate (longest match, prefer actionable, then lowest symbol)
+                if candidates.is_empty() {
+                    // No valid token - this is an error
+                    return Err(GlrError::Parse(format!(
+                        "cannot lex at byte {}: no valid tokens",
+                        pos
+                    )));
+                }
+                
+                self.pick_best_candidate(&candidates, &state.stacks)?
+            };
+            
+            // Process this token through the GLR parser
+            let token_sym = SymbolId(lookahead.kind as u16);
+            let token_start = lookahead.start as usize;
+            let token_end = lookahead.end as usize;
+            
+            // Process all stacks with this token
+            let stacks = std::mem::take(&mut state.stacks);
+            let mut new_stacks = Vec::new();
+            
+            for mut stk in stacks {
+                // Apply reduces before shifts
+                self.reduce_closure(&mut state, &mut stk, token_sym)?;
+                
+                // Then apply shifts/accepts
+                for action in self.tables.actions(*stk.states.last().unwrap(), token_sym) {
+                    match *action {
+                        Action::Shift(ns) => {
+                            let node_id = self.push_terminal(&mut state, token_sym, (token_start, token_end));
+                            let mut s2 = stk.clone();
+                            s2.states.push(ns);
+                            s2.nodes.push(node_id);
+                            s2.pos = token_end;
+                            new_stacks.push(s2);
+                        }
+                        Action::Accept => {
+                            if let Some(&root_id) = stk.nodes.last() {
+                                if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
+                                    state.forest.roots.push(root);
+                                }
+                            }
+                            return Ok(Self::wrap_forest(state.forest));
+                        }
+                        Action::Reduce(rid) => {
+                            // Handle reduce+shift conflicts
+                            let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
+                            let mut s2_clone = s2.clone();
+                            self.reduce_closure(&mut state, &mut s2_clone, token_sym)?;
+                            // Try shift after reduce
+                            for a2 in self.tables.actions(*s2_clone.states.last().unwrap(), token_sym) {
+                                if let Action::Shift(ns) = *a2 {
+                                    let node_id = self.push_terminal(&mut state, token_sym, (token_start, token_end));
+                                    let mut s3 = s2_clone.clone();
+                                    s3.states.push(ns);
+                                    s3.nodes.push(node_id);
+                                    s3.pos = token_end;
+                                    new_stacks.push(s3);
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            
+            state.stacks = new_stacks;
+            
+            // Check for EOF acceptance
+            if token_sym == self.tables.eof_symbol {
                 break;
+            }
+            
+            // Advance position if we consumed input
+            if token_end > pos {
+                pos = token_end;
+            } else if pos < input.len() {
+                // Ensure we make progress even with zero-width tokens
+                pos += 1;
             }
         }
         
-        // Parse the filtered token stream
-        self.parse_tokens(tokens)
+        // Check if we have any accepted roots
+        if !state.forest.roots.is_empty() {
+            return Ok(Self::wrap_forest(state.forest));
+        }
+        
+        Err(GlrError::Parse(
+            "input not accepted: no valid parse".to_string()
+        ))
+    }
+    
+    /// Pick the best token candidate based on Tree-sitter's rules
+    fn pick_best_candidate(
+        &self,
+        candidates: &[(crate::ts_lexer::NextToken, bool)],
+        stacks: &[ParseStack],
+    ) -> Result<crate::ts_lexer::NextToken, GlrError> {
+        let mut best: Option<(crate::ts_lexer::NextToken, bool)> = None;
+        
+        for &(ref tok, is_ext) in candidates {
+            if let Some((ref b, _)) = best {
+                let b_len = (b.end - b.start) as i64;
+                let t_len = (tok.end - tok.start) as i64;
+                
+                // Longest match wins
+                if t_len < b_len { continue; }
+                if t_len == b_len {
+                    // Prefer tokens that have actions in at least one stack
+                    let b_ok = self.has_action_for_any_stack(b.kind, stacks);
+                    let t_ok = self.has_action_for_any_stack(tok.kind, stacks);
+                    if !t_ok || (b_ok && !t_ok) { continue; }
+                    // Final tie-break: smaller symbol id
+                    if tok.kind >= b.kind { continue; }
+                }
+            }
+            best = Some((*tok, is_ext));
+        }
+        
+        best.map(|(t, _)| t).ok_or_else(|| GlrError::Parse(
+            "no valid token candidate".to_string()
+        ))
+    }
+    
+    /// Check if any stack has an action for this symbol
+    fn has_action_for_any_stack(&self, kind: u32, stacks: &[ParseStack]) -> bool {
+        let sym = SymbolId(kind as u16);
+        stacks.iter().any(|stk| {
+            !self.tables.actions(*stk.states.last().unwrap(), sym).is_empty()
+        })
     }
 
     /// Parse from a token stream.
     /// 
     /// The token stream should already have extras (whitespace/comments) filtered out.
-    /// For Tree-sitter compatibility, use parse_with_lexer instead which handles extras.
+    /// For Tree-sitter compatibility, use parse_streaming instead which handles per-position lexing.
     pub fn parse_tokens<I>(&mut self, tokens: I) -> Result<Forest, GlrError>
     where
         I: IntoIterator<Item = (u32 /* kind */, u32 /* start */, u32 /* end */)>,
@@ -175,6 +344,11 @@ impl<'t> Driver<'t> {
                             }
                         }
                         Action::Error => { /* drop path */ }
+                        Action::Recover => {
+                            // Tree-sitter error recovery: insert a missing/error node
+                            // For now, treat as Error until we implement proper recovery
+                            // TODO: Insert ERROR node and continue parsing
+                        }
                         Action::Fork(ref xs) => {
                             // If your generator emits Fork, just treat as a set of actions
                             for a in xs {
