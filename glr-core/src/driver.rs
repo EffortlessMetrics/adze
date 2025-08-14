@@ -53,9 +53,10 @@ impl<'t> Driver<'t> {
         I: IntoIterator<Item = (u32 /* kind */, u32 /* start */, u32 /* end */)>,
     {
         // Initialize state with grammar from parse table
+        // Use initial_state from ParseTable (default 0, Tree-sitter uses 1)
         let mut state = GlrState {
             stacks: vec![ParseStack {
-                states: vec![StateId(0)],
+                states: vec![self.tables.initial_state],
                 nodes: vec![],
                 pos: 0,
             }],
@@ -157,7 +158,9 @@ impl<'t> Driver<'t> {
             }
 
             if new_stacks.is_empty() {
-                let top_state = state.stacks[0].states.last().copied().unwrap_or(StateId(0));
+                // State.stacks is empty here because we moved it with std::mem::take
+                // Use the initial_state as fallback for error reporting
+                let top_state = self.tables.initial_state;
                 return Err(GlrError::Parse(format!(
                     "no valid parse paths at byte {} (state={}, symbol={})",
                     start, top_state.0, lookahead.0

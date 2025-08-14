@@ -916,6 +916,8 @@ pub struct ParseTable {
     pub start_symbol: SymbolId,
     /// Grammar metadata
     pub grammar: Grammar,
+    /// Initial parser state (default: 0, Tree-sitter uses 1)
+    pub initial_state: StateId,
 }
 
 /// Parse rule for reduction
@@ -1796,6 +1798,7 @@ pub fn build_lr1_automaton(
         eof_symbol: SymbolId(0),
         start_symbol: original_start,
         grammar: grammar.clone(),
+        initial_state: StateId(0),  // Default initial state
     })
 }
 
@@ -2127,6 +2130,7 @@ mod tests {
             eof_symbol: SymbolId(0),
             start_symbol: SymbolId(1),
             grammar: Grammar::new("test".to_string()),
+            initial_state: StateId(0),
         };
 
         assert_eq!(parse_table.state_count, 3);

@@ -170,6 +170,7 @@ mod tests {
             eof_symbol: SymbolId(0),
             start_symbol: SymbolId(1),
             grammar: Grammar::new("test".to_string()),
+            initial_state: StateId(0),
         };
 
         let mut analyzer = ConflictAnalyzer::new();

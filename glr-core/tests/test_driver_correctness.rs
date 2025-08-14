@@ -44,6 +44,7 @@ fn create_test_table(
         start_symbol: start,
         grammar: Grammar::new("test".to_string()),
         symbol_metadata: vec![],
+        initial_state: StateId(0),  // Default to state 0 for test grammars
     }
 }
 
