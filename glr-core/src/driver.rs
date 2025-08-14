@@ -80,6 +80,7 @@ impl<'t> Driver<'t> {
                 nodes: HashMap::new(),
                 grammar: self.tables.grammar().clone(),
                 source: input.to_string(),
+                next_node_id: 0,
             },
             next_node_id: 0,
         };
@@ -324,6 +325,7 @@ impl<'t> Driver<'t> {
                 nodes: HashMap::new(),
                 grammar: self.tables.grammar().clone(),
                 source: String::new(),
+                next_node_id: 0,
             },
             next_node_id: 0,
         };
@@ -715,14 +717,11 @@ impl<'t> Driver<'t> {
                             progressed = true;
                         }
                         Action::Accept => {
+                            // Valid when at EOF; treat as success
                             let mut s3 = s2.clone();
                             s3.error_cost = s3.error_cost.saturating_add(1);
-                            if let Some(&root_id) = s3.nodes.last() {
-                                if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
-                                    state.forest.roots.push(root);
-                                }
-                            }
-                            return Ok(true);
+                            next.push(s3);
+                            progressed = true;
                         }
                         Action::Recover | Action::Error | Action::Fork(_) => { /* ignore here */ }
                     }
@@ -742,14 +741,10 @@ impl<'t> Driver<'t> {
             let start = *pos;
             *pos += 1;
             
-            // Use the ERROR symbol from the table
-            let error_sym = self.tables.error_symbol();
-            let node_id = Self::push_terminal_with_meta_static(
-                state,
-                error_sym,
-                (start, *pos),
-                crate::parse_forest::ErrorMeta { is_error: true, cost: 1, ..Default::default() },
-            );
+            // Create a proper error node outside the grammar's symbol space
+            let node_id = state.forest.push_error_chunk((start, *pos));
+            // Keep state's next_node_id in sync
+            state.next_node_id = state.forest.next_node_id;
             
             for stk in &mut state.stacks {
                 stk.nodes.push(node_id);

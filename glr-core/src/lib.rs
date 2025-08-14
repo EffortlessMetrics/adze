@@ -1027,11 +1027,6 @@ impl ParseTable {
         &self.grammar
     }
 
-    /// Check if a symbol is an extra (to be skipped)
-    #[inline]
-    pub fn is_extra(&self, s: SymbolId) -> bool {
-        self.extras.iter().any(|&x| x == s)
-    }
 
     /// Get the ERROR symbol (by convention, symbol 0 or -1 in Tree-sitter)
     #[inline]
@@ -1064,6 +1059,12 @@ impl ParseTable {
         } else {
             LexMode { lex_state: 0, external_lex_state: 0 }
         }
+    }
+    
+    /// Check if a symbol is an extra (whitespace/comment)
+    #[inline]
+    pub fn is_extra(&self, sym: SymbolId) -> bool {
+        self.extras.contains(&sym)
     }
 }
 

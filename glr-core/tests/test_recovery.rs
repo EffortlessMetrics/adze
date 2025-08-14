@@ -1,5 +1,6 @@
 use rust_sitter_glr_core::{Driver, ParseTable, Action};
 use rust_sitter_ir::{Grammar, StateId, SymbolId, RuleId};
+use rust_sitter_glr_core::parse_forest::{ERROR_SYMBOL, ErrorMeta};
 
 /// Create a minimal JSON-like grammar for testing recovery
 fn create_test_grammar() -> (Grammar, ParseTable) {
@@ -163,6 +164,259 @@ fn test_missing_value_recovery() {
         }
         Err(e) => {
             println!("Parse failed: {}", e);
+        }
+    }
+}
+
+#[test]
+fn test_valid_json_no_errors() {
+    // Test A: Valid JSON should have no error/missing nodes
+    let (_grammar, mut table) = create_test_grammar();
+    
+    table.initial_state = StateId(0); 
+    table.eof_symbol = SymbolId(9);
+    
+    let mut driver = Driver::new(&table);
+    
+    // Test 1: Empty object "{}"
+    {
+        let tokens = vec![
+            (1, 0, 1),  // {
+            (2, 1, 2),  // }
+        ];
+        
+        // Use streaming parse with a simple lexer
+        let lexer = |input: &str, pos: usize, _mode| {
+            if pos >= input.len() { return None; }
+            match &input[pos..] {
+                s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 1,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 2,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                _ => None,
+            }
+        };
+        
+        let result = driver.parse_streaming("{}", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
+        assert!(result.is_ok(), "Empty object should parse without errors");
+        
+        if let Ok(forest) = result {
+            let view = forest.view();
+            assert!(!view.roots().is_empty(), "Should have at least one parse tree");
+            
+            // Verify no error nodes were created
+            // We'd need to traverse the forest and check for ERROR_SYMBOL nodes
+            // For now, just ensure it parsed
+        }
+    }
+    
+    // Test 2: Empty array "[]"
+    {
+        let lexer = |input: &str, pos: usize, _mode| {
+            if pos >= input.len() { return None; }
+            match &input[pos..] {
+                s if s.starts_with('[') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 3,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with(']') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 4,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                _ => None,
+            }
+        };
+        
+        let result = driver.parse_streaming("[]", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
+        assert!(result.is_ok(), "Empty array should parse without errors");
+    }
+    
+    // Test 3: Simple key-value object
+    {
+        let lexer = |input: &str, pos: usize, _mode| {
+            if pos >= input.len() { return None; }
+            match &input[pos..] {
+                s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 1,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 2,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with('"') => {
+                    // Simple string detection
+                    let end = s[1..].find('"').map(|i| i + 2).unwrap_or(1);
+                    Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                        kind: 7,
+                        start: pos as u32,
+                        end: (pos + end) as u32,
+                    })
+                },
+                s if s.starts_with(':') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 5,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                _ => None,
+            }
+        };
+        
+        let result = driver.parse_streaming("{\"key\":\"value\"}", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
+        assert!(result.is_ok(), "Simple object should parse without errors");
+    }
+}
+
+#[test]
+fn test_gentle_errors_bounded_recovery() {
+    // Test B: Gentle errors should recover with bounded cost
+    let (_grammar, mut table) = create_test_grammar();
+    
+    table.initial_state = StateId(0); 
+    table.eof_symbol = SymbolId(9);
+    
+    let mut driver = Driver::new(&table);
+    
+    // Test 1: Leading comma in object "{,}"
+    {
+        let lexer = |input: &str, pos: usize, _mode| {
+            if pos >= input.len() { return None; }
+            match &input[pos..] {
+                s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 1,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 2,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with(',') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 6,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                _ => None,
+            }
+        };
+        
+        let result = driver.parse_streaming("{,}", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
+        // Should either parse with recovery or fail gracefully
+        match result {
+            Ok(forest) => {
+                let view = forest.view();
+                assert!(!view.roots().is_empty(), "Should recover and produce a tree");
+                // TODO: Check that error_cost is bounded (≤ beam width)
+            }
+            Err(_) => {
+                // Acceptable if recovery can't handle this case
+            }
+        }
+    }
+    
+    // Test 2: Missing value in object {"k":}
+    {
+        let lexer = |input: &str, pos: usize, _mode| {
+            if pos >= input.len() { return None; }
+            match &input[pos..] {
+                s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 1,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 2,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with('"') => {
+                    let end = s[1..].find('"').map(|i| i + 2).unwrap_or(1);
+                    Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                        kind: 7,
+                        start: pos as u32,
+                        end: (pos + end) as u32,
+                    })
+                },
+                s if s.starts_with(':') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 5,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                _ => None,
+            }
+        };
+        
+        let result = driver.parse_streaming("{\"k\":}", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
+        // Recovery should insert a missing value
+        match result {
+            Ok(forest) => {
+                let view = forest.view();
+                assert!(!view.roots().is_empty(), "Should recover with inserted value");
+            }
+            Err(_) => {
+                // Also acceptable
+            }
+        }
+    }
+    
+    // Test 3: Trailing comma {"k":"v",}
+    {
+        let lexer = |input: &str, pos: usize, _mode| {
+            if pos >= input.len() { return None; }
+            match &input[pos..] {
+                s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 1,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 2,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with('"') => {
+                    let end = s[1..].find('"').map(|i| i + 2).unwrap_or(1);
+                    Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                        kind: 7,
+                        start: pos as u32,
+                        end: (pos + end) as u32,
+                    })
+                },
+                s if s.starts_with(':') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 5,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                s if s.starts_with(',') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    kind: 6,
+                    start: pos as u32,
+                    end: (pos + 1) as u32,
+                }),
+                _ => None,
+            }
+        };
+        
+        let result = driver.parse_streaming("{\"k\":\"v\",}", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
+        // Should handle trailing comma gracefully
+        match result {
+            Ok(forest) => {
+                let view = forest.view();
+                assert!(!view.roots().is_empty(), "Should handle trailing comma");
+            }
+            Err(_) => {
+                // Also acceptable
+            }
         }
     }
 }

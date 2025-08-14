@@ -1,6 +1,9 @@
 use crate::{Grammar, SymbolId};
 use std::collections::HashMap;
 
+/// Special symbol ID for error nodes (outside grammar's symbol space)
+pub const ERROR_SYMBOL: SymbolId = SymbolId(u16::MAX);
+
 /// Extra metadata carried by leaf/ERROR nodes.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ErrorMeta {
@@ -19,6 +22,28 @@ pub struct ParseForest {
     pub nodes: HashMap<usize, ForestNode>,
     pub grammar: Grammar,
     pub source: String,
+    /// Next available node ID
+    pub next_node_id: usize,
+}
+
+impl ParseForest {
+    /// Create an error chunk node for skipped bytes
+    pub fn push_error_chunk(&mut self, span: (usize, usize)) -> usize {
+        let id = self.next_node_id;
+        self.next_node_id += 1;
+        self.nodes.insert(id, ForestNode {
+            id,
+            symbol: ERROR_SYMBOL,
+            span,
+            alternatives: vec![ForestAlternative { children: vec![] }],
+            error_meta: ErrorMeta { 
+                is_error: true, 
+                missing: false,
+                cost: 1,
+            },
+        });
+        id
+    }
 }
 
 /// A node in the parse forest that may have multiple alternatives
