@@ -918,6 +918,10 @@ pub struct ParseTable {
     pub grammar: Grammar,
     /// Initial parser state (default: 0, Tree-sitter uses 1)
     pub initial_state: StateId,
+    /// Number of tokens (regular terminals)
+    pub token_count: usize,
+    /// Number of external tokens (from external scanner)
+    pub external_token_count: usize,
 }
 
 /// Parse rule for reduction
@@ -928,6 +932,31 @@ pub struct ParseRule {
 }
 
 impl ParseTable {
+    /// Get the terminal boundary (tokens + external tokens)
+    #[inline]
+    pub fn terminal_boundary(&self) -> usize {
+        self.token_count + self.external_token_count
+    }
+
+    /// Check if a symbol is a terminal
+    #[inline]
+    pub fn is_terminal(&self, sym: SymbolId) -> bool {
+        (sym.0 as usize) < self.terminal_boundary()
+    }
+
+    /// Get valid symbols mask for a state (terminals that have actions)
+    pub fn valid_symbols(&self, state: StateId) -> Vec<bool> {
+        let n = self.terminal_boundary();
+        let mut v = vec![false; n];
+        let s = state.0 as usize;
+        if s < self.action_table.len() {
+            for t in 0..n.min(self.action_table[s].len()) {
+                v[t] = !self.action_table[s][t].is_empty();
+            }
+        }
+        v
+    }
+
     /// Get actions for a state and symbol
     #[inline]
     pub fn actions(&self, state: StateId, sym: SymbolId) -> &'_ [Action] {
@@ -1799,6 +1828,8 @@ pub fn build_lr1_automaton(
         start_symbol: original_start,
         grammar: grammar.clone(),
         initial_state: StateId(0),  // Default initial state
+        token_count: symbol_count,  // TODO: Get actual token count from grammar
+        external_token_count: 0,  // TODO: Get actual external token count
     })
 }
 
@@ -2131,6 +2162,8 @@ mod tests {
             start_symbol: SymbolId(1),
             grammar: Grammar::new("test".to_string()),
             initial_state: StateId(0),
+            token_count: 3,
+            external_token_count: 0,
         };
 
         assert_eq!(parse_table.state_count, 3);

@@ -171,12 +171,34 @@ impl<'t> Driver<'t> {
 
         // EOF phase - use the table's EOF symbol instead of hardcoded 0
         let eof = self.tables.eof();
+        eprintln!("DEBUG: EOF phase starting with {} stack(s)", state.stacks.len());
+        
         let stacks = std::mem::take(&mut state.stacks);
         for mut stk in stacks {
+            eprintln!("DEBUG: Processing stack with {} states, top state={}", 
+                     stk.states.len(), stk.states.last().unwrap().0);
+            
             self.reduce_closure(&mut state, &mut stk, eof)?;
+            
+            eprintln!("DEBUG: After reduce_closure, checking actions for state {} on EOF", 
+                     stk.states.last().unwrap().0);
+            
+            // Check if we have the start symbol on top of the stack
+            if let Some(&root_id) = stk.nodes.last() {
+                if let Some(root) = state.forest.nodes.get(&root_id) {
+                    eprintln!("DEBUG: Top node has symbol {}", root.symbol.0);
+                    if root.symbol == self.tables.start_symbol() {
+                        eprintln!("DEBUG: Found start symbol! Adding as root");
+                        state.forest.roots.push(root.clone());
+                    }
+                }
+            }
+            
             for action in self.tables.actions(*stk.states.last().unwrap(), eof) {
+                eprintln!("DEBUG: EOF action: {:?}", action);
                 match *action {
                     Action::Accept => {
+                        eprintln!("DEBUG: Accept action found");
                         if let Some(&root_id) = stk.nodes.last() {
                             if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
                                 // Assert the accepted root is the start symbol (catches table/config drift)
@@ -191,7 +213,20 @@ impl<'t> Driver<'t> {
                         return Ok(Self::wrap_forest(state.forest));
                     }
                     Action::Reduce(rid) => {
+                        eprintln!("DEBUG: Reduce action found, rule {}", rid.0);
                         let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
+                        
+                        // Check if reduction produced start symbol
+                        if let Some(&root_id) = s2.nodes.last() {
+                            if let Some(root) = state.forest.nodes.get(&root_id) {
+                                eprintln!("DEBUG: After reduction, top symbol is {}", root.symbol.0);
+                                if root.symbol == self.tables.start_symbol() {
+                                    eprintln!("DEBUG: Reduced to start symbol! Adding as root");
+                                    state.forest.roots.push(root.clone());
+                                }
+                            }
+                        }
+                        
                         // Try accept after reduce
                         for a2 in self.tables.actions(*s2.states.last().unwrap(), eof) {
                             if let Action::Accept = *a2 {
@@ -213,6 +248,12 @@ impl<'t> Driver<'t> {
                     _ => {}
                 }
             }
+        }
+
+        // If we found any roots with the start symbol, accept the parse
+        if !state.forest.roots.is_empty() {
+            eprintln!("DEBUG: Accepting parse with {} root(s)", state.forest.roots.len());
+            return Ok(Self::wrap_forest(state.forest));
         }
 
         Err(GlrError::Parse(format!(

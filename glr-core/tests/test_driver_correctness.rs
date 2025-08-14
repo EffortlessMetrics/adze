@@ -45,6 +45,8 @@ fn create_test_table(
         grammar: Grammar::new("test".to_string()),
         symbol_metadata: vec![],
         initial_state: StateId(0),  // Default to state 0 for test grammars
+        token_count: 2,  // + and ( are terminals
+        external_token_count: 0,
     }
 }
 

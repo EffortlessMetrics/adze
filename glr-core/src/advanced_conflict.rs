@@ -171,6 +171,8 @@ mod tests {
             start_symbol: SymbolId(1),
             grammar: Grammar::new("test".to_string()),
             initial_state: StateId(0),
+            token_count: 1,
+            external_token_count: 0,
         };
 
         let mut analyzer = ConflictAnalyzer::new();
