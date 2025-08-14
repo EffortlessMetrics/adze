@@ -41,6 +41,19 @@ pub mod parse_forest;
 
 pub mod forest_view;
 pub mod driver;
+
+// Trace macro for debugging GLR conflicts and decisions
+#[cfg(feature = "glr-trace")]
+#[macro_export]
+macro_rules! glr_trace {
+    ($($t:tt)*) => { eprintln!("[GLR] {}", format!($($t)*)); }
+}
+#[cfg(not(feature = "glr-trace"))]
+#[macro_export]
+macro_rules! glr_trace {
+    ($($t:tt)*) => {};
+}
+
 #[doc(hidden)]
 pub mod perf_optimizations;
 #[doc(hidden)]

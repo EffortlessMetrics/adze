@@ -36,6 +36,7 @@ rustc-hash = "2.1.1"
 default = []
 parallel = ["rayon"]
 strict_docs = []
+glr-trace = []
 
 [dev-dependencies]
 insta = "1.0"

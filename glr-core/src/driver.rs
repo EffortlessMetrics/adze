@@ -157,7 +157,11 @@ impl<'t> Driver<'t> {
             }
 
             if new_stacks.is_empty() {
-                return Err(GlrError::Parse("no valid parse paths".into()));
+                let top_state = state.stacks[0].states.last().copied().unwrap_or(StateId(0));
+                return Err(GlrError::Parse(format!(
+                    "no valid parse paths at byte {} (state={}, symbol={})",
+                    start, top_state.0, lookahead.0
+                )));
             }
             state.stacks = new_stacks;
         }
@@ -208,7 +212,11 @@ impl<'t> Driver<'t> {
             }
         }
 
-        Err(GlrError::Parse("input not accepted".into()))
+        Err(GlrError::Parse(format!(
+            "input not accepted: EOF phase failed (expected start symbol {}, got {} root(s))",
+            self.tables.start_symbol().0,
+            state.forest.roots.len()
+        )))
     }
 
     #[inline]
@@ -228,7 +236,10 @@ impl<'t> Driver<'t> {
     fn reduce_once(&self, st: &mut GlrState, mut stack: ParseStack, rid: RuleId) -> Result<ParseStack, GlrError> {
         let (lhs, rhs_len) = self.tables.rule(rid);
         if rhs_len as usize > stack.nodes.len() || rhs_len as usize > stack.states.len().saturating_sub(1) {
-            return Err(GlrError::Parse("reduce underflow".into()));
+            return Err(GlrError::Parse(format!(
+                "reduce underflow: rule {} requires {} symbols but stack has {}",
+                rid.0, rhs_len, stack.nodes.len()
+            )));
         }
 
         // Pop rhs_len nodes/states (states pop rhs_len; bottom state remains)
@@ -258,7 +269,10 @@ impl<'t> Driver<'t> {
 
         // Goto
         let Some(ns) = self.tables.goto(goto_from, lhs) else {
-            return Err(GlrError::Parse("missing goto".into()));
+            return Err(GlrError::Parse(format!(
+                "missing goto: no transition from state {} on symbol {}",
+                goto_from.0, lhs.0
+            )));
         };
         stack.states.push(ns);
         stack.nodes.push(id);
