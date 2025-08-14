@@ -2932,6 +2932,7 @@ name = "ts-c-harness"
 version = "0.1.0"
 dependencies = [
  "cc",
+ "serde_json",
  "tree-sitter 0.25.8",
  "tree-sitter-json",
 ]
