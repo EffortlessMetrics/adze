@@ -2928,6 +2928,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ts-c-harness"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "tree-sitter 0.25.8",
+ "tree-sitter-json",
+]
+
+[[package]]
 name = "typed-arena"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
