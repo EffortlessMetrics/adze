@@ -38,6 +38,5 @@ fn build_node(view: &dyn CoreForestView, id: u32) -> TreeNode {
         .copied()
         .map(|c| build_node(view, c))
         .collect();
-    let sym = u16::try_from(kind).unwrap_or(u16::MAX);
-    TreeNode::new_with_children(sym, span.start as usize, span.end as usize, kids)
+    TreeNode::new_with_children(kind, span.start as usize, span.end as usize, kids)
 }
