@@ -220,7 +220,7 @@ impl<'t> Driver<'t> {
                 state.stacks = prev_stacks;
                 
                 // Try insertion first
-                if self.try_insertion(&mut state, pos)? {
+                if self.try_insertion(&mut state, token_sym, pos)? {
                     continue; // Re-lex at current position with new stacks
                 }
                 
@@ -435,10 +435,18 @@ impl<'t> Driver<'t> {
             }
 
             if new_stacks.is_empty() {
-                // For token streams, we'll just fail - no recovery for pre-tokenized input
-                // Recovery doesn't make sense when we can't re-lex
-                let top_state = if !prev_stacks.is_empty() {
-                    *prev_stacks[0].states.last().unwrap_or(&self.tables.initial_state)
+                // Restore previous stacks for recovery
+                state.stacks = prev_stacks;
+                
+                // Try insertion recovery for token streams (no skip since we can't re-lex)
+                if self.try_insertion(&mut state, lookahead, start as usize)? {
+                    // Continue with recovered stacks
+                    continue;
+                }
+                
+                // If insertion didn't help, fail
+                let top_state = if !state.stacks.is_empty() {
+                    *state.stacks[0].states.last().unwrap_or(&self.tables.initial_state)
                 } else {
                     self.tables.initial_state
                 };
@@ -446,8 +454,9 @@ impl<'t> Driver<'t> {
                     "no valid parse paths at byte {} (state={}, symbol={})",
                     start, top_state.0, lookahead.0
                 )));
+            } else {
+                state.stacks = new_stacks;
             }
-            state.stacks = new_stacks;
         }
 
         // EOF phase - use the table's EOF symbol instead of hardcoded 0
@@ -639,6 +648,7 @@ impl<'t> Driver<'t> {
     fn try_insertion(
         &self,
         state: &mut GlrState,
+        next_lookahead: SymbolId,
         pos: usize,
     ) -> Result<bool, GlrError> {
         let mut progressed = false;
@@ -658,6 +668,11 @@ impl<'t> Driver<'t> {
                 
                 // Skip extras (whitespace/comments) - we don't want to insert these
                 if self.tables.is_extra(sym) {
+                    continue;
+                }
+                
+                // Skip EOF - we don't want to insert EOF symbols
+                if sym == self.tables.eof_symbol {
                     continue;
                 }
                 
@@ -686,12 +701,15 @@ impl<'t> Driver<'t> {
                             let mut s3 = s2.clone();
                             s3.states.push(ns);
                             s3.error_cost = s3.error_cost.saturating_add(1);
+                            // Run closure with the real lookahead after insertion shift
+                            self.reduce_closure(state, &mut s3, next_lookahead)?;
                             next.push(s3);
                             progressed = true;
                         }
                         Action::Reduce(rid) => {
                             let mut s3 = self.reduce_once(state, s2.clone(), rid)?;
-                            self.reduce_closure(state, &mut s3, sym)?;
+                            // Use real lookahead for closure
+                            self.reduce_closure(state, &mut s3, next_lookahead)?;
                             s3.error_cost = s3.error_cost.saturating_add(1);
                             next.push(s3);
                             progressed = true;
