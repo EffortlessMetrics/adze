@@ -141,7 +141,7 @@ fn test_json_simple_object() {
         eof_symbol,
         start_symbol,
         grammar,
-        initial_state: StateId(1),  // Tree-sitter uses state 1 as initial, not 0
+        initial_state: StateId(1),  // Tree-sitter uses state 1 as initial (state 0 is error recovery)
         token_count,
         external_token_count: external_count,
         lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; state_count],

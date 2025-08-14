@@ -132,7 +132,7 @@ fn test_streaming_json_parser() {
         eof_symbol,
         start_symbol,
         grammar: rust_sitter_ir::Grammar::new("json".to_string()),
-        initial_state: StateId(1), // Tree-sitter uses 1
+        initial_state: StateId(1), // Tree-sitter uses 1 (0 is error recovery)
         token_count,
         external_token_count: external_count,
         lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; state_count],

@@ -56,7 +56,7 @@ pub enum Action {
     },
     #[serde(rename = "A")] 
     Accept,
-    #[serde(rename = "E")] 
+    #[serde(rename = "V")]  // 'V' for recoVer
     Recover,
 }
 
