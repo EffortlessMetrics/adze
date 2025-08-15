@@ -11,10 +11,13 @@
 //! This crate maintains several critical invariants for correct parsing:
 //!
 //! ### EOF Symbol Invariants
-//! - EOF symbol is never the ERROR symbol (SymbolId(0))
-//! - EOF symbol is a proper sentinel (>= token_count + external_token_count)
+//! - EOF symbol must equal the terminal boundary
+//!   (token_count + external_token_count).
+//! - EOF symbol must not equal the internal ERROR sentinel
+//!   (`parse_forest::ERROR_SYMBOL`, currently 0xFFFF).
 //! - EOF symbol is always present in the symbol_to_index mapping
-//! - EOF and END columns maintain action parity (both empty or both non-empty)
+//! - EOF column actions are byte-for-byte copies of the TS "end" column,
+//!   guaranteeing per-state equality.
 //!
 //! ### Error Recovery Invariants
 //! - `has_error`: true if any error chunks exist in the parse forest
@@ -1106,14 +1109,28 @@ impl ParseTable {
     /// - EOF symbol is present in symbol_to_index mapping
     /// - EOF and END columns have matching action patterns (parity)
     pub fn validate(&self) -> Result<(), TableError> {
-        // Check EOF is not ERROR
+        // Check EOF equals terminal_boundary exactly
+        let terminal_boundary = self.token_count + self.external_token_count;
+        debug_assert_eq!(
+            self.eof_symbol.0 as usize,
+            terminal_boundary,
+            "EOF must equal terminal_boundary (token_count + external_token_count)"
+        );
+        
+        // Check EOF is not the internal ERROR sentinel
+        debug_assert_ne!(
+            self.eof_symbol,
+            parse_forest::ERROR_SYMBOL,
+            "EOF symbol cannot be the ERROR sentinel"
+        );
+        
+        // Legacy check: EOF is not 0
         if self.eof_symbol.0 == 0 {
             return Err(TableError::EofIsError);
         }
 
-        // Check EOF is a proper sentinel
-        let terminal_boundary = self.token_count + self.external_token_count;
-        if (self.eof_symbol.0 as usize) < terminal_boundary {
+        // Check EOF equals terminal_boundary
+        if (self.eof_symbol.0 as usize) != terminal_boundary {
             return Err(TableError::EofNotSentinel {
                 eof: self.eof_symbol.0,
                 token_count: self.token_count as u32,
@@ -1125,6 +1142,36 @@ impl ParseTable {
         if !self.symbol_to_index.contains_key(&self.eof_symbol) {
             return Err(TableError::EofMissingFromIndex);
         }
+        
+        // Validate terminal partitions
+        let tb = self.terminal_boundary();
+        
+        // All extras must be regular terminals
+        debug_assert!(
+            self.extras.iter().all(|&sym| (sym.0 as usize) < self.token_count),
+            "all extras must be within [0..token_count)"
+        );
+        
+        // Regular terminals must not be external
+        for sym_id in 0..self.token_count {
+            let sym = SymbolId(sym_id as u16);
+            debug_assert!(self.is_terminal(sym), "0..token_count are terminals");
+            // Regular terminals are not external - we verify this by the band
+            debug_assert!((sym.0 as usize) < self.token_count, "regular terminals are in [0..token_count)");
+        }
+        
+        // External tokens must be in their band
+        for sym_id in self.token_count..tb {
+            let sym = SymbolId(sym_id as u16);
+            debug_assert!(self.is_terminal(sym), "external tokens are terminals");
+            // External tokens are in the external band by definition
+            debug_assert!((sym.0 as usize) >= self.token_count && (sym.0 as usize) < tb, "external tokens are in [token_count..terminal_boundary)");
+        }
+        
+        debug_assert_eq!(
+            self.eof_symbol.0 as usize, tb,
+            "EOF must equal terminal_boundary"
+        );
 
         // Check EOF/END parity if we have END symbol in Tree-sitter (last terminal)
         // The END symbol in Tree-sitter is typically the last terminal before EOF
@@ -1454,11 +1501,28 @@ fn can_derive_start(grammar: &Grammar, symbol: SymbolId, start: SymbolId) -> boo
 fn normalize_action_table(action_table: &mut Vec<Vec<ActionCell>>) {
     for row in action_table.iter_mut() {
         for cell in row.iter_mut() {
-            // Sort actions by a deterministic key
-            cell.sort_by_key(|action| action_sort_key(action));
-            // Remove duplicates (shouldn't happen, but be safe)
-            cell.dedup();
+            normalize_action_cell(cell);
         }
+    }
+}
+
+/// Normalize a single action cell (recursive for Fork actions)
+fn normalize_action_cell(cell: &mut ActionCell) {
+    for action in cell.iter_mut() {
+        normalize_action(action);
+    }
+    cell.sort_by_key(|action| action_sort_key(action));
+    cell.dedup();
+}
+
+/// Normalize a single action (recursively normalizes Fork contents)
+fn normalize_action(action: &mut Action) {
+    if let Action::Fork(inner) = action {
+        for inner_action in inner.iter_mut() {
+            normalize_action(inner_action);
+        }
+        inner.sort_by_key(|a| action_sort_key(a));
+        inner.dedup();
     }
 }
 
@@ -1470,14 +1534,10 @@ fn action_sort_key(action: &Action) -> (u8, u16, u16) {
         Action::Accept => (2, 0, 0),
         Action::Error => (3, 0, 0),
         Action::Recover => (4, 0, 0),
-        Action::Fork(actions) => {
-            // For Fork, use the first action's key, or a default if empty
-            if let Some(first) = actions.first() {
-                let (t, v1, v2) = action_sort_key(first);
-                (5, t as u16, v1)
-            } else {
-                (5, 0, 0)
-            }
+        Action::Fork(inner) => {
+            // Use first normalized inner action as key, or (5,0,0) if empty
+            let key = inner.first().map(action_sort_key).unwrap_or((0, 0, 0));
+            (5, key.0 as u16, key.1)
         }
     }
 }
@@ -2530,5 +2590,47 @@ mod tests {
         // Sets should be equal based on items, not ID
         assert_eq!(set1.items, set2.items);
         assert_ne!(set1.id, set2.id);
+    }
+    
+    #[test]
+    fn test_recursive_fork_normalization() {
+        // Create a messy nested Fork action
+        let mut action = Action::Fork(vec![
+            Action::Fork(vec![
+                Action::Reduce(RuleId(3)),
+                Action::Shift(StateId(2)),
+                Action::Reduce(RuleId(1)),
+            ]),
+            Action::Shift(StateId(1)),
+            Action::Fork(vec![
+                Action::Accept,
+                Action::Shift(StateId(4)),
+                Action::Error,
+            ]),
+        ]);
+        
+        // Normalize it
+        normalize_action(&mut action);
+        
+        // Check that inner forks are sorted
+        if let Action::Fork(ref actions) = action {
+            // First inner fork should have actions sorted: Shift < Reduce
+            if let Action::Fork(ref inner) = actions[0] {
+                assert_eq!(inner.len(), 3);
+                assert!(matches!(inner[0], Action::Shift(StateId(2))));
+                assert!(matches!(inner[1], Action::Reduce(RuleId(1))));
+                assert!(matches!(inner[2], Action::Reduce(RuleId(3))));
+            }
+            
+            // Last inner fork should have actions sorted: Shift < Accept < Error
+            if let Action::Fork(ref inner) = actions[2] {
+                assert_eq!(inner.len(), 3);
+                assert!(matches!(inner[0], Action::Shift(StateId(4))));
+                assert!(matches!(inner[1], Action::Accept));
+                assert!(matches!(inner[2], Action::Error));
+            }
+        } else {
+            panic!("Expected Fork action");
+        }
     }
 }
