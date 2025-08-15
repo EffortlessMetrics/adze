@@ -63,8 +63,12 @@ TsbSymbolMetadata tsb_symbol_metadata(const TSLanguage* lang, uint32_t sym) {
 #endif
 }
 
-// Forward declare the lookup function
+// Forward declare the internal functions we need
+#ifndef tsb_stub
+// These are internal Tree-sitter functions not exposed in the public API
 extern uint32_t ts_language_lookup(const TSLanguage *, TSStateId, TSSymbol);
+extern TSStateId ts_language_next_state(const TSLanguage *, TSStateId, TSSymbol);
+#endif
 
 uint32_t tsb_table_entry(const TSLanguage* lang,
                          uint32_t state, uint32_t symbol,
@@ -154,7 +158,12 @@ uint32_t tsb_unpack_actions(const TSLanguage* lang,
 }
 
 uint32_t tsb_next_state(const TSLanguage* lang, uint32_t state, uint32_t nonterm) {
+#ifdef tsb_stub
+  // Stub implementation for testing
+  return 0;
+#else
   return (uint32_t)ts_language_next_state(lang, (TSStateId)state, (TSSymbol)nonterm);
+#endif
 }
 
 uint32_t tsb_detect_start_symbol(const TSLanguage* lang) {

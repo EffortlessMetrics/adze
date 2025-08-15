@@ -440,6 +440,20 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         symbol_count: lang.symbol_count as usize,
         symbol_to_index,
         external_scanner_states,
+        rules: Vec::new(), // TODO: Decode from language
+        nonterminal_to_index: BTreeMap::new(), // TODO: Build from symbols
+        eof_symbol: SymbolId((lang.token_count + lang.external_token_count) as u16),
+        start_symbol: SymbolId(1), // TODO: Detect from language
+        grammar: Grammar::default(), // TODO: Build from language
+        initial_state: StateId(0),
+        token_count: lang.token_count as usize,
+        external_token_count: lang.external_token_count as usize,
+        lex_modes: Vec::new(), // TODO: Decode from language
+        extras: Vec::new(), // TODO: Decode from language
+        dynamic_prec_by_rule: Vec::new(), // TODO: Decode from language
+        alias_sequences: Vec::new(), // TODO: Decode from language
+        field_names: Vec::new(), // TODO: Decode from language
+        field_map: BTreeMap::new(), // TODO: Decode from language
     }
 }
 

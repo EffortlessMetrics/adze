@@ -59,27 +59,27 @@ pub struct TsbSymbolMetadata {
 }
 
 extern "C" {
-    fn tsb_language_version() -> u32;
-    fn tsb_min_compatible_version() -> u32;
+    pub fn tsb_language_version() -> u32;
+    pub fn tsb_min_compatible_version() -> u32;
 
-    fn tsb_counts(lang: *const TSLanguage,
-                  symc: *mut u32, stc: *mut u32, tokc: *mut u32, extc: *mut u32);
+    pub fn tsb_counts(lang: *const TSLanguage,
+                      symc: *mut u32, stc: *mut u32, tokc: *mut u32, extc: *mut u32);
 
-    fn tsb_symbol_name(lang: *const TSLanguage, sym: u32) -> *const c_char;
+    pub fn tsb_symbol_name(lang: *const TSLanguage, sym: u32) -> *const c_char;
     
-    fn tsb_symbol_metadata(lang: *const TSLanguage, sym: u32) -> TsbSymbolMetadata;
+    pub fn tsb_symbol_metadata(lang: *const TSLanguage, sym: u32) -> TsbSymbolMetadata;
 
-    fn tsb_table_entry(lang: *const TSLanguage,
-                       state: u32, symbol: u32,
-                       hdr: *mut TsbEntryHeader) -> u32;
+    pub fn tsb_table_entry(lang: *const TSLanguage,
+                           state: u32, symbol: u32,
+                           hdr: *mut TsbEntryHeader) -> u32;
 
-    fn tsb_unpack_actions(lang: *const TSLanguage,
-                          action_index: u32, count: u8,
-                          out: *mut TsbAction, cap: u32) -> u32;
+    pub fn tsb_unpack_actions(lang: *const TSLanguage,
+                              action_index: u32, count: u8,
+                              out: *mut TsbAction, cap: u32) -> u32;
 
-    fn tsb_next_state(lang: *const TSLanguage, state: u32, nonterm: u32) -> u32;
+    pub fn tsb_next_state(lang: *const TSLanguage, state: u32, nonterm: u32) -> u32;
 
-    fn tsb_detect_start_symbol(lang: *const TSLanguage) -> u32;
+    pub fn tsb_detect_start_symbol(lang: *const TSLanguage) -> u32;
 }
 
 pub struct SafeLang(pub *const TSLanguage);

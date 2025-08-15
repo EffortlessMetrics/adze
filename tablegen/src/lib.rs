@@ -528,6 +528,19 @@ impl StaticLanguageGenerator {
                                 }
                             }
                         }
+                        _ => {
+                            // Unknown action type - treat as error
+                            quote! {
+                                rust_sitter::ffi::TSParseActionEntry {
+                                    type_: rust_sitter::ffi::TSParseActionType::Error,
+                                    state: 0,
+                                    symbol: 0,
+                                    child_count: 0,
+                                    dynamic_precedence: 0,
+                                    fragile: false,
+                                }
+                            }
+                        }
                         }
                     })
                 })

@@ -3,6 +3,10 @@ name = "ts-bridge"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "extract-json"
+required-features = ["with-grammars"]
+
 [dependencies]
 libloading = "0.8"
 serde = { version = "1", features = ["derive"] }
@@ -24,3 +28,4 @@ stub-ts = []                              # dev-only stub build
 with-grammars = ["dep:tree-sitter-json"]  # parity tests with real grammars
 vendored-ts-runtime = []                  # compile Tree-sitter runtime into the shim (default)
 link-system-ts = []                       # instead of vendoring, link system libtree-sitter via pkg-config
+ts-ffi-raw = []                           # compile raw C shim for internal functions

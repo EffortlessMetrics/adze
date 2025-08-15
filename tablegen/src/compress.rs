@@ -162,6 +162,10 @@ impl TableCompressor {
                 // For now, treat as error
                 Ok(0xFFFE)
             }
+            _ => {
+                // Unknown action type - treat as error
+                Ok(0xFFFE)
+            }
         }
     }
 

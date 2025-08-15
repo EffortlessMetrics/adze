@@ -147,6 +147,12 @@ impl BitPackedActionTable {
                     Action::Fork(actions) => {
                         fork_data.insert((state_idx, symbol_idx), actions.clone());
                     }
+                    _ => {
+                        // Unknown action type - treat as error
+                        let word_idx = cell_idx / 64;
+                        let bit_idx = cell_idx % 64;
+                        error_mask[word_idx] |= 1 << bit_idx;
+                    }
                 }
             }
         }

@@ -300,6 +300,7 @@ impl<'a> LanguageGenerator<'a> {
                     rust_sitter_glr_core::Action::Error => 0xFFFE,
                     rust_sitter_glr_core::Action::Recover => 0xFFFD, // Use distinct value for Recover
                     rust_sitter_glr_core::Action::Fork(_) => 0xFFFE, // TODO: Handle GLR forks
+                    _ => 0xFFFE, // Unknown action type - treat as error
                 }
             }
         } else {

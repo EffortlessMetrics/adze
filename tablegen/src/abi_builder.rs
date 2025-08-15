@@ -819,6 +819,10 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // If all actions are errors (shouldn't happen), return error
                 Ok(0)
             }
+            _ => {
+                // Unknown action type - treat as error
+                Ok(0)
+            }
         }
     }
 

@@ -456,6 +456,24 @@ impl Parser {
                     });
                 }
 
+                Action::Recover => {
+                    // Handle Recover action - treat as error for now
+                    error_count += 1;
+
+                    // Return a partial tree with errors
+                    let root_kind = if let Some(node) = node_stack.last() {
+                        node.symbol.0
+                    } else {
+                        0
+                    };
+
+                    return Ok(Tree {
+                        root_kind,
+                        error_count,
+                        source: input.to_string(),
+                    });
+                }
+
                 Action::Fork(actions) => {
                     // GLR fork point - multiple valid parse paths
                     // Quick implementation: try each action in sequence, use first successful one
@@ -558,6 +576,22 @@ impl Parser {
                         error_count += 1;
                         current_position += 1;
                     }
+                }
+
+                _ => {
+                    // Unknown action type - treat as error
+                    error_count += 1;
+                    let root_kind = if let Some(node) = node_stack.last() {
+                        node.symbol.0
+                    } else {
+                        0
+                    };
+
+                    return Ok(Tree {
+                        root_kind,
+                        error_count,
+                        source: input.to_string(),
+                    });
                 }
             }
 
@@ -1148,6 +1182,20 @@ mod tests {
             symbol_count: 0,
             symbol_to_index: std::collections::BTreeMap::new(),
             external_scanner_states: vec![],
+            rules: vec![],
+            nonterminal_to_index: std::collections::BTreeMap::new(),
+            eof_symbol: SymbolId(0),
+            start_symbol: SymbolId(1),
+            grammar: Grammar::default(),
+            initial_state: StateId(0),
+            token_count: 0,
+            external_token_count: 0,
+            lex_modes: vec![],
+            extras: vec![],
+            dynamic_prec_by_rule: vec![],
+            alias_sequences: vec![],
+            field_names: vec![],
+            field_map: std::collections::BTreeMap::new(),
         };
 
         // Create parser

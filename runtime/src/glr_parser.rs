@@ -477,6 +477,14 @@ impl GLRParser {
                         }
                     }
 
+                    Action::Recover => {
+                        // Handle Recover action - similar to Error but with specific recovery
+                        // For now, treat it as an error
+                        let mut error_stack = stack.clone();
+                        error_stack.version.enter_error();
+                        new_stacks.push(error_stack);
+                    }
+
                     Action::Error => {
                         // println!("    Action: Error");
 
@@ -551,6 +559,13 @@ impl GLRParser {
                         }
 
                         // Default error handling - mark stack as errored
+                        let mut error_stack = stack.clone();
+                        error_stack.version.enter_error();
+                        new_stacks.push(error_stack);
+                    }
+
+                    _ => {
+                        // Unknown action type - treat as error
                         let mut error_stack = stack.clone();
                         error_stack.version.enter_error();
                         new_stacks.push(error_stack);
