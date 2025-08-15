@@ -168,6 +168,25 @@ pub fn extract(
             }
         }
         actions.extend(eof_actions);
+        
+        // Ensure EOF column exists in every state (defensive check)
+        #[cfg(debug_assertions)]
+        {
+            let states_with_eof: std::collections::HashSet<u16> = 
+                actions.iter()
+                    .filter(|c| c.symbol == eof_symbol)
+                    .map(|c| c.state)
+                    .collect();
+            let states_with_ts_end: std::collections::HashSet<u16> = 
+                actions.iter()
+                    .filter(|c| c.symbol == ts_end_sym)
+                    .map(|c| c.state)
+                    .collect();
+            debug_assert_eq!(
+                states_with_eof, states_with_ts_end,
+                "EOF column must exist in exactly the same states as TS end column"
+            );
+        }
     }
 
     Ok(ParseTableData {

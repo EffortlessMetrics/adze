@@ -75,6 +75,11 @@ fn accept_via_insertion_at_eof_cost_is_one() {
 
     let mut driver = Driver::new(&parse_table);
     
+    // Debug: check what actions exist
+    println!("State 1 RBRACE actions: {:?}", parse_table.action_table[1][2]);
+    println!("State 1 EOF actions: {:?}", parse_table.action_table[1][3]);
+    println!("State 2 EOF actions: {:?}", parse_table.action_table[2][3]);
+    
     // Feed tokens: LBRACE then EOF (missing RBRACE)
     let result = driver.parse_tokens([
         (1u32, 0u32, 1u32),  // LBRACE at position 0-1
