@@ -1,4 +1,5 @@
 //! Test GLR parser against tree-sitter-json extracted tables
+#![cfg(feature = "json-parity")]
 
 use rust_sitter_glr_core::{
     Driver, ParseTable, Action, ParseRule, SymbolMetadata, ActionCell, LexMode
@@ -8,7 +9,6 @@ use std::fs;
 use std::collections::BTreeMap;
 
 #[test]
-#[ignore] // Requires /tmp/json-grammar.json to be extracted first
 fn test_json_simple_object() {
     // Load the extracted JSON grammar tables
     let json_data = fs::read_to_string("/tmp/json-grammar.json")

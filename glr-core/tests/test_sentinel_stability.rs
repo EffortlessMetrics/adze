@@ -33,19 +33,22 @@ fn eof_invariants() {
     // Create a minimal ParseTable to test invariants
     use std::collections::BTreeMap;
     let mut symbol_to_index = BTreeMap::new();
-    symbol_to_index.insert(SymbolId(3), 0); // EOF at symbol 3
+    symbol_to_index.insert(SymbolId(0), 0); // ERROR
+    symbol_to_index.insert(SymbolId(1), 1); // terminal
+    symbol_to_index.insert(SymbolId(2), 2); // EOF
+    symbol_to_index.insert(SymbolId(3), 3); // start symbol
     
     let tables = ParseTable {
-        action_table: vec![vec![vec![]]],
-        goto_table: vec![vec![]],
+        action_table: vec![vec![vec![]; 4]],
+        goto_table: vec![vec![StateId(65535); 4]],
         rules: vec![],
         state_count: 1,
         symbol_count: 4,
         symbol_to_index,
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        eof_symbol: SymbolId(3),
-        start_symbol: SymbolId(1),
+        eof_symbol: SymbolId(2),
+        start_symbol: SymbolId(3),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
         token_count: 2,
@@ -72,8 +75,8 @@ fn eof_cannot_be_error() {
     symbol_to_index.insert(SymbolId(0), 0); // EOF at symbol 0 (ERROR)
     
     let tables = ParseTable {
-        action_table: vec![vec![vec![]]],
-        goto_table: vec![vec![]],
+        action_table: vec![vec![vec![]; 4]],
+        goto_table: vec![vec![StateId(65535); 4]],
         rules: vec![],
         state_count: 1,
         symbol_count: 4,

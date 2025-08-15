@@ -1,10 +1,10 @@
 //! Debug test for JSON parsing issues
+#![cfg(feature = "json-parity")]
 
 use rust_sitter_ir::SymbolId;
 use std::fs;
 
-#[test] 
-#[ignore] // Requires /tmp/json-grammar.json to be extracted first
+#[test]
 fn test_json_empty_object_debug() {
     // Load the extracted JSON parse table
     let json_data = fs::read_to_string("/tmp/json-grammar.json")

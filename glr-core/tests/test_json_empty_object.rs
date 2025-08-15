@@ -1,5 +1,6 @@
 //! Test that JSON empty object {} parses correctly
 //! This tests the critical fix for Tree-sitter table extraction
+#![cfg(feature = "json-parity")]
 
 use rust_sitter_glr_core::{Driver, ParseTable, Action, ParseRule, SymbolMetadata, ActionCell, LexMode};
 use rust_sitter_ir::{StateId, SymbolId, RuleId};
@@ -7,7 +8,6 @@ use std::fs;
 use std::collections::BTreeMap;
 
 #[test]
-#[ignore] // Requires /tmp/json-grammar.json to be extracted first
 fn test_json_empty_object_parses() {
     // Load the extracted JSON grammar tables
     let json_data = fs::read_to_string("/tmp/json-grammar.json")

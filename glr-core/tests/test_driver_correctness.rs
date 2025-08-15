@@ -28,9 +28,17 @@ fn create_test_table(
     }
     
     // Build nonterminal_to_index for gotos
+    // For manual tests, map all non-terminals (any symbol that has a goto entry)
     let mut nonterminal_to_index = BTreeMap::new();
-    nonterminal_to_index.insert(start, 1);
-    nonterminal_to_index.insert(SymbolId(2), 2); // A symbol
+    for i in 0..symbol_count {
+        // Check if any state has a goto for this symbol
+        for state_gotos in &gotos {
+            if state_gotos[i] != StateId(65535) {
+                nonterminal_to_index.insert(SymbolId(i as u16), i);
+                break;
+            }
+        }
+    }
     
     ParseTable {
         action_table: states,
@@ -100,9 +108,9 @@ fn test_epsilon_reduce_span() {
     actions[3][2].push(Action::Accept); // on EOF, accept
     
     let invalid = StateId(65535);
-    let mut gotos = vec![vec![invalid; 2]; 4];
-    gotos[0][1] = StateId(1); // goto state 1 after reducing to A
-    gotos[0][0] = StateId(3); // goto state 3 after reducing to S
+    let mut gotos = vec![vec![invalid; 5]; 4];
+    gotos[0][4] = StateId(1); // goto state 1 after reducing to A (symbol 4)
+    gotos[0][3] = StateId(3); // goto state 3 after reducing to S (symbol 3)
     
     let table = create_test_table(actions, gotos, rules, s_sym, eof);
     
@@ -189,13 +197,13 @@ fn test_fork_sanity() {
     actions[5][2].push(Action::Accept);
     
     let invalid = StateId(65535);
-    let mut gotos = vec![vec![invalid; 2]; 6];
-    gotos[0][0] = StateId(5); // goto accept after S
-    gotos[0][1] = StateId(3); // goto state 3 after T
-    gotos[1][0] = StateId(5); // goto accept after S
-    gotos[2][0] = StateId(5); // goto accept after S
-    gotos[3][0] = StateId(5); // goto accept after S
-    gotos[4][0] = StateId(5); // goto accept after S
+    let mut gotos = vec![vec![invalid; 5]; 6];
+    gotos[0][3] = StateId(5); // goto accept after S (symbol 3)
+    gotos[0][4] = StateId(3); // goto state 3 after T (symbol 4)
+    gotos[1][3] = StateId(5); // goto accept after S (symbol 3)
+    gotos[2][3] = StateId(5); // goto accept after S (symbol 3)
+    gotos[3][3] = StateId(5); // goto accept after S (symbol 3)
+    gotos[4][3] = StateId(5); // goto accept after S (symbol 3)
     
     let table = create_test_table(actions, gotos, rules, s_sym, eof);
     
@@ -247,8 +255,8 @@ fn test_eof_accept() {
     actions[2][2].push(Action::Accept);
     
     let invalid = StateId(65535);
-    let mut gotos = vec![vec![invalid; 1]; 3];
-    gotos[0][0] = StateId(2); // goto state 2 after S
+    let mut gotos = vec![vec![invalid; 4]; 3];
+    gotos[0][3] = StateId(2); // goto state 2 after S (symbol 3)
     
     let table = create_test_table(actions, gotos, rules, s_sym, eof);
     
@@ -299,10 +307,10 @@ fn test_root_selection_deterministic() {
     actions[3][2].push(Action::Accept);
     
     let invalid = StateId(65535);
-    let mut gotos = vec![vec![invalid; 1]; 4];
-    gotos[0][0] = StateId(3);
-    gotos[1][0] = StateId(3);
-    gotos[2][0] = StateId(3);
+    let mut gotos = vec![vec![invalid; 4]; 4];
+    gotos[0][3] = StateId(3); // goto state 3 after S (symbol 3)
+    gotos[1][3] = StateId(3); // goto state 3 after S (symbol 3)
+    gotos[2][3] = StateId(3); // goto state 3 after S (symbol 3)
     
     let table = create_test_table(actions, gotos, rules, s_sym, eof);
     

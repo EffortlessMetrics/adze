@@ -39,6 +39,8 @@ strict_docs = []
 glr-trace = []
 test-helpers = []
 strict-invariants = []
+memory-tests = []
+json-parity = []
 
 [dev-dependencies]
 insta = "1.0"
