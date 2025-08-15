@@ -49,6 +49,13 @@ impl<'t> Driver<'t> {
     
     /// Create a new driver with the given parse tables
     pub fn new(tables: &'t ParseTable) -> Self {
+        // Critical invariant: EOF must not be the ERROR symbol (0)
+        debug_assert_ne!(tables.eof_symbol, SymbolId(0), 
+            "EOF symbol cannot be ERROR symbol (0). Got EOF={}", tables.eof_symbol.0);
+        // EOF should be outside the normal terminal space
+        debug_assert!(tables.eof_symbol.0 as usize >= tables.token_count + tables.external_token_count,
+            "EOF symbol {} should be >= token_count({}) + external_token_count({})",
+            tables.eof_symbol.0, tables.token_count, tables.external_token_count);
         Self { tables }
     }
     

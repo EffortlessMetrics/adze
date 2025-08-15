@@ -143,8 +143,9 @@ pub fn extract(
     }
 
     let start_symbol = lang.detect_start_symbol() as u16;
-    debug_assert!(start_symbol != 0, "start symbol shouldn't be EOF");
-    let eof_symbol: u16 = 0;
+    debug_assert!(start_symbol != 0, "start symbol shouldn't be ERROR");
+    // EOF must be a sentinel outside the terminal space, not 0 (which is ERROR)
+    let eof_symbol: u16 = (tokc + extc) as u16;
 
     Ok(ParseTableData {
         version: 1,

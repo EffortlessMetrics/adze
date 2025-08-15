@@ -27,10 +27,10 @@ pub trait ForestView: Send + Sync {
     fn best_children(&self, id: u32) -> &[u32];
     
     /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
+    /// Implementations MUST override this - no silent fallbacks allowed in tests.
     #[cfg(any(test, feature = "test-helpers"))]
     fn debug_error_stats(&self) -> (bool, usize, u32) {
-        // Default implementation for compatibility
-        (false, 0, 0)
+        panic!("debug_error_stats() must be implemented for test builds - no silent zero fallbacks allowed")
     }
 }
 
