@@ -1,142 +1,70 @@
-#!/usr/bin/env bash
-# Test Connectivity Verification Script
-# Run this locally to check test harness health
-
+#!/bin/bash
 set -euo pipefail
 
-echo "🔍 Test Connectivity Check"
-echo "=========================="
-echo ""
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Check if cargo-nextest is installed
-if ! command -v cargo-nextest &> /dev/null; then
-    echo "⚠️  cargo-nextest not found. Installing..."
-    cargo install cargo-nextest --locked
-fi
+echo "=== Test Connectivity Check ==="
+echo
 
-# 1. Check for disabled test files
-echo "1️⃣  Checking for disabled test files (.rs.disabled)..."
-DISABLED_FILES=$(git ls-files '*tests/*.rs.disabled' 2>/dev/null || true)
+# Check for disabled test files
+echo "Checking for disabled test files..."
+DISABLED_FILES=$(find . -name "*.rs.disabled" -type f 2>/dev/null || true)
 if [ -n "$DISABLED_FILES" ]; then
-    echo "❌ Found disabled test files:"
-    echo "$DISABLED_FILES" | sed 's/^/   /'
-    echo ""
-else
-    echo "✅ No disabled test files found"
-    echo ""
+    echo -e "${RED}ERROR: Found disabled test files:${NC}"
+    echo "$DISABLED_FILES"
+    echo -e "${YELLOW}Action: Re-enable by removing .disabled suffix or use #[ignore] attribute${NC}"
+    echo
 fi
 
-# 2. Count tests for each feature set
-echo "2️⃣  Discovering tests by feature set..."
-declare -A FEATURE_COUNTS
-FEATURES=("" "--features external_scanners" "--features incremental_glr" "--all-features")
-FEATURE_NAMES=("default" "external_scanners" "incremental_glr" "all-features")
+# Count tests per crate and feature set
+echo "Test counts per crate:"
+echo
 
-for i in "${!FEATURES[@]}"; do
-    FEATURE="${FEATURES[$i]}"
-    NAME="${FEATURE_NAMES[$i]}"
-    echo -n "   $NAME: "
-    
-    # Use nextest to list tests and count them
-    COUNT=$(cargo nextest list --workspace $FEATURE 2>/dev/null | grep -E '^\s+(test|bench)' | wc -l | tr -d ' ')
-    FEATURE_COUNTS["$NAME"]=$COUNT
-    
-    if [ "$COUNT" -eq 0 ]; then
-        echo "❌ 0 tests (ERROR: no tests discovered!)"
-    else
-        echo "✅ $COUNT tests"
-    fi
-done
-echo ""
-
-# 3. Per-crate test counts
-echo "3️⃣  Per-crate test discovery (default features)..."
-echo "   ┌─────────────────────────────────────┬────────┐"
-echo "   │ Crate                               │ Tests  │"
-echo "   ├─────────────────────────────────────┼────────┤"
-
-ZERO_TEST_CRATES=""
-cargo metadata --no-deps --format-version=1 | jq -r '.packages[].name' | sort | while read CRATE; do
-    COUNT=$(cargo nextest list -p "$CRATE" 2>/dev/null | grep -E '^\s+(test|bench)' | wc -l | tr -d ' ')
-    printf "   │ %-35s │ %6d │\n" "$CRATE" "$COUNT"
-    
-    if [ "$COUNT" -eq 0 ]; then
-        ZERO_TEST_CRATES="${ZERO_TEST_CRATES}${CRATE}\n"
-    fi
-done
-echo "   └─────────────────────────────────────┴────────┘"
-echo ""
-
-# 4. Check for ignored tests
-echo "4️⃣  Checking for #[ignore] tests..."
-IGNORED_COUNT=$(rg -c '^\s*#\s*\[\s*ignore' --glob '!target' 2>/dev/null | wc -l | tr -d ' ')
-if [ "$IGNORED_COUNT" -gt 0 ]; then
-    echo "   ⚠️  Found ignored tests in $IGNORED_COUNT files:"
-    rg -l '^\s*#\s*\[\s*ignore' --glob '!target' 2>/dev/null | head -10 | sed 's/^/      /'
-    TOTAL_IGNORED=$(rg '^\s*#\s*\[\s*ignore' --glob '!target' 2>/dev/null | wc -l | tr -d ' ')
-    echo "   Total: $TOTAL_IGNORED ignored test functions"
-else
-    echo "   ✅ No ignored tests found"
-fi
-echo ""
-
-# 5. Check for test modules in src/ that might be disconnected
-echo "5️⃣  Checking for potential orphaned test modules..."
-ORPHANED=0
-for f in $(find . -path ./target -prune -o -path './xtask/fixtures' -prune -o -name '*.rs' -path '*/tests/*' -print 2>/dev/null); do
-    # Skip files that are clearly integration test entry points
-    if basename "$f" | grep -qE '^(main|lib|mod)\.rs$'; then
-        continue
-    fi
-    
-    # Check if file has any test functions or modules
-    if ! grep -qE '^\s*(#\[test\]|#\[cfg\(test\)\]|fn test_|mod tests)' "$f" 2>/dev/null; then
-        if [ $ORPHANED -eq 0 ]; then
-            echo "   ⚠️  Potential orphaned files (no test markers found):"
+for crate in runtime glr-core tablegen tools/ts-bridge ir common macro tool example; do
+    if [ -d "$crate" ]; then
+        crate_name=$(basename "$crate")
+        if [ "$crate" = "tools/ts-bridge" ]; then
+            crate_name="ts-bridge"
+        else
+            crate_name="rust-sitter-$crate_name"
         fi
-        echo "      $f"
-        ORPHANED=$((ORPHANED + 1))
+        
+        echo "  $crate_name:"
+        
+        # Default features
+        count=$(cargo test -p "$crate_name" --no-run 2>&1 | grep -E "Running.*test" | wc -l 2>/dev/null || echo "0")
+        echo "    default features: $count tests"
+        
+        # With test-helpers if applicable
+        if cargo metadata --format-version 1 2>/dev/null | jq -r ".packages[] | select(.name == \"$crate_name\") | .features | keys[]" | grep -q "test-helpers"; then
+            count=$(cargo test -p "$crate_name" --features test-helpers --no-run 2>&1 | grep -E "Running.*test" | wc -l 2>/dev/null || echo "0")
+            echo "    with test-helpers: $count tests"
+        fi
+        
+        # Check for #[ignore] tests
+        ignored=$(rg "#\[ignore\]" "$crate" --glob "*.rs" 2>/dev/null | wc -l || echo "0")
+        if [ "$ignored" -gt "0" ]; then
+            echo -e "    ${YELLOW}ignored tests: $ignored${NC}"
+        fi
     fi
 done
 
-if [ $ORPHANED -eq 0 ]; then
-    echo "   ✅ No orphaned test files detected"
+echo
+echo "Checking for potentially orphaned test modules..."
+ORPHANS=$(rg "^mod.*test.*;" --glob "*.rs" -n 2>/dev/null | grep -v "^tests/" | grep -v "#\[cfg\(test\)\]" || true)
+if [ -n "$ORPHANS" ]; then
+    echo -e "${YELLOW}Warning: Potential orphaned test modules:${NC}"
+    echo "$ORPHANS"
 fi
-echo ""
 
-# 6. Summary and recommendations
-echo "📊 Summary"
-echo "=========="
-echo ""
-
-TOTAL_DEFAULT="${FEATURE_COUNTS["default"]}"
-TOTAL_ALL="${FEATURE_COUNTS["all-features"]}"
-
-echo "• Total tests (default): $TOTAL_DEFAULT"
-echo "• Total tests (all features): $TOTAL_ALL"
-echo "• Ignored tests: ${TOTAL_IGNORED:-0}"
-echo "• Disabled files: $(echo "$DISABLED_FILES" | grep -c '^' 2>/dev/null || echo 0)"
-echo ""
-
-# Provide actionable recommendations
-if [ -n "$DISABLED_FILES" ] || [ "${TOTAL_DEFAULT}" -eq 0 ] || [ $ORPHANED -gt 0 ]; then
-    echo "⚠️  Recommendations:"
-    
-    if [ -n "$DISABLED_FILES" ]; then
-        echo "   • Re-enable disabled test files or remove them"
-    fi
-    
-    if [ "${TOTAL_DEFAULT}" -eq 0 ]; then
-        echo "   • CRITICAL: No tests discovered! Check Cargo.toml configurations"
-    fi
-    
-    if [ $ORPHANED -gt 0 ]; then
-        echo "   • Review potentially orphaned test files"
-    fi
+echo
+echo "=== Summary ==="
+if [ -n "$DISABLED_FILES" ]; then
+    echo -e "${RED}✗ Found disabled test files that need attention${NC}"
+    exit 1
 else
-    echo "✅ Test infrastructure appears healthy!"
+    echo -e "${GREEN}✓ No disabled test files found${NC}"
 fi
-
-echo ""
-echo "💡 Tip: Run this script regularly to catch test disconnections early"
-echo "💡 Tip: The CI will fail if any of these checks detect issues"

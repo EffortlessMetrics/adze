@@ -1070,6 +1070,7 @@ impl ParseTable {
 
 /// Actions in GLR parse table (supporting multiple actions per state)
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Action {
     Shift(StateId),
     Reduce(RuleId),

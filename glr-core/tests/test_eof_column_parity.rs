@@ -15,6 +15,7 @@ fn eof_column_matches_ts_end_column() {
             Action::Error     => 'E',
             Action::Recover   => 'V',
             Action::Fork(_)   => 'F',
+            _ => 'U', // Unknown (for future variants due to #[non_exhaustive])
         }).collect();
         kinds.sort(); // Sort for deterministic comparison
         kinds

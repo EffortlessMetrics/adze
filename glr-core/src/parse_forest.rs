@@ -45,7 +45,23 @@ impl ParseForest {
         id
     }
 
-    /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
+    /// Returns error recovery statistics for this parse forest.
+    ///
+    /// # Returns
+    /// 
+    /// - `has_error`: `true` if any SPPF node is an error chunk
+    ///   (ERROR_SYMBOL or meta.is_error == true).
+    /// - `missing`: count of terminals with meta.missing == true.
+    /// - `cost`: sum of meta.cost for all recovery artifacts.
+    ///   Cost of a node must be counted exactly once:
+    ///   * error chunks contribute cost;
+    ///   * missing terminals contribute cost only if the same node
+    ///     is not also marked as error (mutually exclusive by invariant).
+    ///
+    /// # Invariants (debug-asserted)
+    /// 
+    /// - A node cannot be both {is_error == true} and {missing == true}.
+    /// - ERROR_SYMBOL nodes never have missing == true.
     #[cfg(any(test, feature = "test-helpers"))]
     pub fn debug_error_stats(&self) -> (bool, usize, u32) {
         let mut any_error = false;

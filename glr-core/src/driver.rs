@@ -334,6 +334,7 @@ impl<'t> Driver<'t> {
     }
     
     /// Check if any stack has an action for this symbol
+    #[must_use]
     fn has_action_for_any_stack(&self, kind: u32, stacks: &[ParseStack]) -> bool {
         let sym = SymbolId(kind as u16);
         stacks.iter().any(|stk| {
@@ -685,6 +686,7 @@ impl<'t> Driver<'t> {
 
     /// Try inserting a zero-width terminal that is actionable in the top state.
     /// Returns true if we made progress (i.e., at least one new stack advanced).
+    #[must_use]
     fn try_insertion(
         &self,
         state: &mut GlrState,
@@ -775,6 +777,7 @@ impl<'t> Driver<'t> {
     }
 
     /// If insertion cannot help, consume one byte into an ERROR chunk.
+    #[must_use]
     fn try_skip_one_byte(&self, state: &mut GlrState, input: &str, pos: &mut usize) -> bool {
         if *pos < input.len() {
             let start = *pos;
@@ -814,8 +817,17 @@ impl<'t> Driver<'t> {
         // Remove duplicate roots by ID
         forest.roots.dedup_by_key(|n| n.id);
         
+        #[cfg(any(test, feature = "test-helpers"))]
+        let error_stats = forest.debug_error_stats();
+        
         let view = Box::new(ParseForestView::new(forest));
-        Forest { view }
+        Forest { 
+            view,
+            #[cfg(any(test, feature = "test-helpers"))]
+            test_hooks: Some(crate::forest_view::ForestTestHooks {
+                error_stats,
+            }),
+        }
     }
 }
 
@@ -849,12 +861,9 @@ impl ParseForestView {
         }
     }
     
-    /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
-    #[cfg(any(test, feature = "test-helpers"))]
-    pub fn debug_error_stats(&self) -> (bool, usize, u32) {
-        self.forest.debug_error_stats()
-    }
 }
+
+impl crate::forest_view::sealed::Sealed for ParseForestView {}
 
 impl ForestView for ParseForestView {
     fn roots(&self) -> &[u32] {
@@ -880,10 +889,5 @@ impl ForestView for ParseForestView {
 
     fn best_children(&self, id: u32) -> &[u32] {
         self.children_cache.get(&id).map(|v| v.as_slice()).unwrap_or(&[])
-    }
-    
-    #[cfg(any(test, feature = "test-helpers"))]
-    fn debug_error_stats(&self) -> (bool, usize, u32) {
-        self.forest.debug_error_stats()
     }
 }

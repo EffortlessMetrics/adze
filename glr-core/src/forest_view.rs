@@ -1,5 +1,9 @@
 //! Object-safe view over a GLR forest/SPPF used by downstream runtimes.
 
+pub(crate) mod sealed {
+    pub trait Sealed {}
+}
+
 /// Numeric symbol id (terminals and nonterminals share the space).
 pub type SymbolId = u32;
 
@@ -16,9 +20,9 @@ pub struct Span {
 /// - We keep ambiguity handling simple for now: `best_children` returns one
 ///   chosen family (e.g., first/longest/leftmost). You can extend this later
 ///   with explicit "families" if you want full ambiguity exposure.
-/// - The `debug_error_stats()` method exists only in test builds and is not
-///   part of the stable runtime API.
-pub trait ForestView: Send + Sync {
+/// - This trait's shape is stable across all build configurations.
+/// - This trait is sealed and cannot be implemented outside this crate.
+pub trait ForestView: sealed::Sealed + Send + Sync {
     /// Root candidate nodes (usually 1).
     fn roots(&self) -> &[u32];
     /// Symbol kind for a node id.
@@ -27,19 +31,21 @@ pub trait ForestView: Send + Sync {
     fn span(&self, id: u32) -> Span;
     /// Children chosen for the best family.
     fn best_children(&self, id: u32) -> &[u32];
-    
-    /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
-    /// Only available in test builds. Not part of the stable runtime API.
-    #[cfg(any(test, feature = "test-helpers"))]
-    #[allow(dead_code)]
-    fn debug_error_stats(&self) -> (bool, usize, u32) {
-        panic!("debug_error_stats() must be implemented for test builds - no silent zero fallbacks allowed")
-    }
+}
+
+/// Test hooks for Forest (only available in test builds).
+#[cfg(any(test, feature = "test-helpers"))]
+pub struct ForestTestHooks {
+    /// Cached error stats from the forest.
+    /// (has_error_chunks, missing_terminals, total_error_cost).
+    pub error_stats: (bool, usize, u32),
 }
 
 /// Opaque forest handle exported to consumers via trait object.
 pub struct Forest {
     pub(crate) view: Box<dyn ForestView>,
+    #[cfg(any(test, feature = "test-helpers"))]
+    pub(crate) test_hooks: Option<ForestTestHooks>,
 }
 
 impl Forest {
@@ -48,8 +54,11 @@ impl Forest {
     }
     
     /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
+    /// Only available in test builds. Not part of the stable runtime API.
     #[cfg(any(test, feature = "test-helpers"))]
     pub fn debug_error_stats(&self) -> (bool, usize, u32) {
-        self.view.debug_error_stats()
+        let hooks = self.test_hooks.as_ref()
+            .expect("Forest built without test hooks");
+        hooks.error_stats
     }
 }
