@@ -1527,17 +1527,17 @@ fn normalize_action(action: &mut Action) {
 }
 
 /// Generate a sort key for actions to ensure deterministic ordering
-fn action_sort_key(action: &Action) -> (u8, u16, u16) {
+fn action_sort_key(action: &Action) -> (u8, u16, u16, u16) {
     match action {
-        Action::Shift(s) => (0, s.0, 0),
-        Action::Reduce(r) => (1, r.0, 0),
-        Action::Accept => (2, 0, 0),
-        Action::Error => (3, 0, 0),
-        Action::Recover => (4, 0, 0),
+        Action::Shift(s) => (0, s.0, 0, 0),
+        Action::Reduce(r) => (1, r.0, 0, 0),
+        Action::Accept => (2, 0, 0, 0),
+        Action::Error => (3, 0, 0, 0),
+        Action::Recover => (4, 0, 0, 0),
         Action::Fork(inner) => {
-            // Use first normalized inner action as key, or (5,0,0) if empty
-            let key = inner.first().map(action_sort_key).unwrap_or((0, 0, 0));
-            (5, key.0 as u16, key.1)
+            // Tie-break forks by length (minor) and first key (major)
+            let first = inner.first().map(action_sort_key).unwrap_or((0, 0, 0, 0));
+            (5, first.1, first.2, inner.len() as u16)
         }
     }
 }
