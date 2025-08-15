@@ -46,16 +46,26 @@ fn eof_column_matches_ts_end_column() {
     let eof_idx = 3usize;     // Our EOF sentinel
     
     for (state_idx, row) in action_table.iter().enumerate() {
-        if ts_end_idx < row.len() && eof_idx < row.len() {
-            let ts_end_kinds = action_kinds(&row[ts_end_idx]);
-            let eof_kinds = action_kinds(&row[eof_idx]);
-            
-            assert_eq!(
-                ts_end_kinds, eof_kinds,
-                "State {}: EOF column kinds {:?} != TS end column kinds {:?}",
-                state_idx, eof_kinds, ts_end_kinds
-            );
-        }
+        // Assert both columns exist (should never have partial coverage)
+        assert!(
+            ts_end_idx < row.len(),
+            "State {}: Missing TS end column (expected at index {})",
+            state_idx, ts_end_idx
+        );
+        assert!(
+            eof_idx < row.len(),
+            "State {}: Missing EOF column (expected at index {})",
+            state_idx, eof_idx
+        );
+        
+        let ts_end_kinds = action_kinds(&row[ts_end_idx]);
+        let eof_kinds = action_kinds(&row[eof_idx]);
+        
+        assert_eq!(
+            ts_end_kinds, eof_kinds,
+            "State {}: TS end column actions {:?} != EOF column actions {:?}",
+            state_idx, ts_end_kinds, eof_kinds
+        );
     }
     
     println!("✓ EOF column parity verified across all states");

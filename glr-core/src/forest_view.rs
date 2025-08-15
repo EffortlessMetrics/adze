@@ -1,8 +1,5 @@
 //! Object-safe view over a GLR forest/SPPF used by downstream runtimes.
 
-#[cfg(any(test, feature = "test-helpers"))]
-use core::any::Any;
-
 /// Numeric symbol id (terminals and nonterminals share the space).
 pub type SymbolId = u32;
 
@@ -19,7 +16,8 @@ pub struct Span {
 /// - We keep ambiguity handling simple for now: `best_children` returns one
 ///   chosen family (e.g., first/longest/leftmost). You can extend this later
 ///   with explicit "families" if you want full ambiguity exposure.
-#[cfg(not(any(test, feature = "test-helpers")))]
+/// - The `debug_error_stats()` method exists only in test builds and is not
+///   part of the stable runtime API.
 pub trait ForestView: Send + Sync {
     /// Root candidate nodes (usually 1).
     fn roots(&self) -> &[u32];
@@ -29,20 +27,11 @@ pub trait ForestView: Send + Sync {
     fn span(&self, id: u32) -> Span;
     /// Children chosen for the best family.
     fn best_children(&self, id: u32) -> &[u32];
-}
-
-/// ForestView with test helpers
-#[cfg(any(test, feature = "test-helpers"))]
-pub trait ForestView: Send + Sync + Any {
-    /// Root candidate nodes (usually 1).
-    fn roots(&self) -> &[u32];
-    /// Symbol kind for a node id.
-    fn kind(&self, id: u32) -> SymbolId;
-    /// Byte span for a node id.
-    fn span(&self, id: u32) -> Span;
-    /// Children chosen for the best family.
-    fn best_children(&self, id: u32) -> &[u32];
+    
     /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
+    /// Only available in test builds. Not part of the stable runtime API.
+    #[cfg(any(test, feature = "test-helpers"))]
+    #[allow(dead_code)]
     fn debug_error_stats(&self) -> (bool, usize, u32) {
         panic!("debug_error_stats() must be implemented for test builds - no silent zero fallbacks allowed")
     }

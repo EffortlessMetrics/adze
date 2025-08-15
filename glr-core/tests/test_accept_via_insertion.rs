@@ -17,12 +17,12 @@ fn accept_via_insertion_at_eof_cost_is_one() {
                 vec![],  // RBRACE column
                 vec![],  // EOF column
             ],
-            // State 1: shift RBRACE to state 2
+            // State 1: shift RBRACE to state 2, no action on EOF (triggers recovery)
             vec![
                 vec![],  // ERROR column
                 vec![],  // LBRACE column  
                 vec![Action::Shift(StateId(2))],  // RBRACE column
-                vec![Action::Recover],  // EOF column - allow recovery here
+                vec![],  // EOF column - no action, will trigger recovery
             ],
             // State 2: reduce by rule 0 (accept)
             vec![
@@ -31,19 +31,28 @@ fn accept_via_insertion_at_eof_cost_is_one() {
                 vec![],  // RBRACE column
                 vec![Action::Reduce(RuleId(0))],  // EOF column - reduce by rule 0
             ],
+            // State 3: accept state
+            vec![
+                vec![],  // ERROR column
+                vec![],  // LBRACE column
+                vec![],  // RBRACE column
+                vec![Action::Accept],  // EOF column - accept
+            ],
         ],
         goto_table: vec![
-            // State 0 gotos
-            vec![StateId(2)],  // After reducing rule 0, go to accept
+            // State 0 gotos (indexed by nonterminal_to_index)
+            vec![StateId(3)],  // Symbol 4 (start) at index 0 -> go to state 3 (accept state)
             // State 1 gotos  
             vec![],
             // State 2 gotos
+            vec![],
+            // State 3 (accept state)
             vec![],
         ],
         rules: vec![
             ParseRule { lhs: SymbolId(4), rhs_len: 2 },  // Rule 0: start -> LBRACE RBRACE
         ],
-        state_count: 3,
+        state_count: 4,  // States 0, 1, 2, 3
         symbol_count: 5,
         symbol_to_index: {
             let mut map = BTreeMap::new();
@@ -54,14 +63,18 @@ fn accept_via_insertion_at_eof_cost_is_one() {
             map
         },
         external_scanner_states: vec![],
-        nonterminal_to_index: BTreeMap::new(),
+        nonterminal_to_index: {
+            let mut map = BTreeMap::new();
+            map.insert(SymbolId(4), 0);  // start symbol at index 0
+            map
+        },
         eof_symbol: SymbolId(3),  // EOF = token_count + external_token_count
         start_symbol: SymbolId(4),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
         token_count: 2,  // LBRACE, RBRACE
         external_token_count: 0,
-        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 3],
+        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 4],
         extras: vec![],
         dynamic_prec_by_rule: vec![0],
         alias_sequences: vec![],
@@ -70,15 +83,7 @@ fn accept_via_insertion_at_eof_cost_is_one() {
         field_names: vec![],
     };
 
-    // Add an extra ACCEPT action on EOF from state 2
-    parse_table.action_table[2][3].push(Action::Accept);
-
     let mut driver = Driver::new(&parse_table);
-    
-    // Debug: check what actions exist
-    println!("State 1 RBRACE actions: {:?}", parse_table.action_table[1][2]);
-    println!("State 1 EOF actions: {:?}", parse_table.action_table[1][3]);
-    println!("State 2 EOF actions: {:?}", parse_table.action_table[2][3]);
     
     // Feed tokens: LBRACE then EOF (missing RBRACE)
     let result = driver.parse_tokens([

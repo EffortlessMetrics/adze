@@ -701,10 +701,11 @@ impl<'t> Driver<'t> {
             let top = *stk.states.last().unwrap();
 
             // Find terminals with any real (non-Recover) action from this state
-            // Note: We need to check both regular and external tokens
-            let total_tokens = self.tables.token_count + self.tables.external_token_count;
-            for tidx in 0..total_tokens {
-                let sym = SymbolId(tidx as u16);
+            // We need to check all symbols that could be terminals (not just 0..token_count)
+            // Because symbol IDs may not be contiguous from 0
+            // Check all symbols up to EOF (exclusive)
+            for sym_id in 0..self.tables.eof_symbol.0 {
+                let sym = SymbolId(sym_id);
                 
                 // Skip extras (whitespace/comments) - we don't want to insert these
                 if self.tables.is_extra(sym) {
