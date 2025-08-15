@@ -69,6 +69,10 @@ fn test_json_simple_object() {
                             // Error recovery action - track for later
                             action_table[state][symbol].push(Action::Error);
                         }
+                        "V" => {
+                            // Recover action (Tree-sitter error recovery)
+                            action_table[state][symbol].push(Action::Recover);
+                        }
                         _ => panic!("Unknown action type: {}", action_type),
                     }
                 }

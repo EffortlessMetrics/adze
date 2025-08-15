@@ -828,6 +828,12 @@ impl ParseForestView {
             children_cache,
         }
     }
+    
+    /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
+    #[cfg(any(test, feature = "test-helpers"))]
+    pub fn debug_error_stats(&self) -> (bool, usize, u32) {
+        self.forest.debug_error_stats()
+    }
 }
 
 impl ForestView for ParseForestView {
@@ -853,5 +859,10 @@ impl ForestView for ParseForestView {
 
     fn best_children(&self, id: u32) -> &[u32] {
         self.children_cache.get(&id).map(|v| v.as_slice()).unwrap_or(&[])
+    }
+    
+    #[cfg(any(test, feature = "test-helpers"))]
+    fn debug_error_stats(&self) -> (bool, usize, u32) {
+        self.forest.debug_error_stats()
     }
 }

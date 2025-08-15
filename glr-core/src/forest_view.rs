@@ -25,6 +25,13 @@ pub trait ForestView: Send + Sync {
     fn span(&self, id: u32) -> Span;
     /// Children chosen for the best family.
     fn best_children(&self, id: u32) -> &[u32];
+    
+    /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
+    #[cfg(any(test, feature = "test-helpers"))]
+    fn debug_error_stats(&self) -> (bool, usize, u32) {
+        // Default implementation for compatibility
+        (false, 0, 0)
+    }
 }
 
 /// Opaque forest handle exported to consumers via trait object.
@@ -38,11 +45,8 @@ impl Forest {
     }
     
     /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
-    /// This is a workaround since we can't directly access the internal ParseForest
     #[cfg(any(test, feature = "test-helpers"))]
     pub fn debug_error_stats(&self) -> (bool, usize, u32) {
-        // For now, return default values - in a real implementation, 
-        // we'd need to add this to the ForestView trait or make ParseForestView accessible
-        (false, 0, 0)
+        self.view.debug_error_stats()
     }
 }
