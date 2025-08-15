@@ -71,3 +71,10 @@ repos:
           fi
         '
         files: '\.rs\.disabled$'
+
+      - id: cargo-deny
+        name: cargo deny (advisories & licenses)
+        entry: bash -c 'command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --quiet; cargo deny check advisories licenses'
+        language: system
+        pass_filenames: false
+        files: 'Cargo\.(toml|lock)$'

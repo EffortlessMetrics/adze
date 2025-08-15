@@ -68,6 +68,15 @@ impl<'t> Driver<'t> {
             "EOF symbol {} must be present in symbol_to_index/action table", 
             tables.eof_symbol.0
         );
+        
+        // Validate tables when strict-invariants feature is enabled
+        #[cfg(feature = "strict-invariants")]
+        {
+            if let Err(e) = tables.validate() {
+                panic!("Invalid parse table: {}", e);
+            }
+        }
+        
         Self { tables }
     }
     

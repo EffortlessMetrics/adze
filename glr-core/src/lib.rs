@@ -5,6 +5,37 @@
 
 //! GLR parser generation algorithms for pure-Rust Tree-sitter
 //! This module implements the core GLR state machine generation and conflict resolution
+//!
+//! ## Contracts & Invariants
+//!
+//! This crate maintains several critical invariants for correct parsing:
+//!
+//! ### EOF Symbol Invariants
+//! - EOF symbol is never the ERROR symbol (SymbolId(0))
+//! - EOF symbol is a proper sentinel (>= token_count + external_token_count)
+//! - EOF symbol is always present in the symbol_to_index mapping
+//! - EOF and END columns maintain action parity (both empty or both non-empty)
+//!
+//! ### Error Recovery Invariants
+//! - `has_error`: true if any error chunks exist in the parse forest
+//! - `missing`: count of unique missing terminal symbols inserted
+//! - `cost`: total error recovery cost (insertions + deletions)
+//! - No double counting: each missing symbol counted exactly once
+//! - Extras (whitespace/comments) are never inserted during recovery
+//!
+//! ### Table Normalization
+//! - Action cells are sorted deterministically by action type and value
+//! - Duplicate actions are removed from cells
+//! - Action ordering: Shift < Reduce < Accept < Error < Recover < Fork
+//!
+//! ### API Stability
+//! - `ForestView` trait is sealed and cannot be implemented outside this crate
+//! - `Action` enum is marked `#[non_exhaustive]` for future extensibility
+//! - Test-only APIs are gated behind `test-helpers` feature
+//!
+//! ### Validation
+//! Enable the `strict-invariants` feature to validate parse tables at runtime.
+//! This adds overhead but catches invariant violations early in development.
 
 use fixedbitset::FixedBitSet;
 use indexmap::IndexMap;
@@ -1066,6 +1097,61 @@ impl ParseTable {
     pub fn is_extra(&self, sym: SymbolId) -> bool {
         self.extras.contains(&sym)
     }
+
+    /// Validate parse table invariants
+    /// 
+    /// This method checks critical invariants that must hold for correct parsing:
+    /// - EOF symbol is not ERROR (symbol 0)
+    /// - EOF symbol is a proper sentinel (>= token_count + external_token_count)
+    /// - EOF symbol is present in symbol_to_index mapping
+    /// - EOF and END columns have matching action patterns (parity)
+    pub fn validate(&self) -> Result<(), TableError> {
+        // Check EOF is not ERROR
+        if self.eof_symbol.0 == 0 {
+            return Err(TableError::EofIsError);
+        }
+
+        // Check EOF is a proper sentinel
+        let terminal_boundary = self.token_count + self.external_token_count;
+        if (self.eof_symbol.0 as usize) < terminal_boundary {
+            return Err(TableError::EofNotSentinel {
+                eof: self.eof_symbol.0,
+                token_count: self.token_count as u32,
+                external_count: self.external_token_count as u32,
+            });
+        }
+
+        // Check EOF is in symbol_to_index
+        if !self.symbol_to_index.contains_key(&self.eof_symbol) {
+            return Err(TableError::EofMissingFromIndex);
+        }
+
+        // Check EOF/END parity if we have END symbol in Tree-sitter (last terminal)
+        // The END symbol in Tree-sitter is typically the last terminal before EOF
+        if terminal_boundary > 0 {
+            let end_symbol = SymbolId((terminal_boundary - 1) as u16);
+            if let (Some(&eof_col), Some(&end_col)) = (
+                self.symbol_to_index.get(&self.eof_symbol),
+                self.symbol_to_index.get(&end_symbol),
+            ) {
+                // Check parity for each state
+                for (state_idx, row) in self.action_table.iter().enumerate() {
+                    if eof_col < row.len() && end_col < row.len() {
+                        let eof_actions = &row[eof_col];
+                        let end_actions = &row[end_col];
+                        
+                        // They should have the same action pattern (both empty or both non-empty)
+                        // and if non-empty, should have compatible actions
+                        if eof_actions.is_empty() != end_actions.is_empty() {
+                            return Err(TableError::EofParityMismatch(state_idx as u16));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// Actions in GLR parse table (supporting multiple actions per state)
@@ -1319,6 +1405,25 @@ pub enum GLRError {
 
     #[error("State machine generation failed: {0}")]
     StateMachine(String),
+
+    #[error("Table validation failed: {0}")]
+    TableValidation(TableError),
+}
+
+/// Errors related to parse table validation
+#[derive(Debug, thiserror::Error)]
+pub enum TableError {
+    #[error("EOF symbol collides with ERROR")]
+    EofIsError,
+    
+    #[error("EOF symbol must be >= token_count + external_token_count (EOF: {eof}, tokens: {token_count}, externals: {external_count})")]
+    EofNotSentinel { eof: u16, token_count: u32, external_count: u32 },
+    
+    #[error("EOF not present in symbol_to_index")]
+    EofMissingFromIndex,
+    
+    #[error("EOF column parity mismatch at state {0}")]
+    EofParityMismatch(u16),
 }
 
 /// Check if a symbol can derive the start symbol through unit productions
@@ -1342,6 +1447,39 @@ fn can_derive_start(grammar: &Grammar, symbol: SymbolId, start: SymbolId) -> boo
     }
 
     false
+}
+
+/// Normalize action cells for deterministic output
+/// Sorts actions by type and value, and removes duplicates
+fn normalize_action_table(action_table: &mut Vec<Vec<ActionCell>>) {
+    for row in action_table.iter_mut() {
+        for cell in row.iter_mut() {
+            // Sort actions by a deterministic key
+            cell.sort_by_key(|action| action_sort_key(action));
+            // Remove duplicates (shouldn't happen, but be safe)
+            cell.dedup();
+        }
+    }
+}
+
+/// Generate a sort key for actions to ensure deterministic ordering
+fn action_sort_key(action: &Action) -> (u8, u16, u16) {
+    match action {
+        Action::Shift(s) => (0, s.0, 0),
+        Action::Reduce(r) => (1, r.0, 0),
+        Action::Accept => (2, 0, 0),
+        Action::Error => (3, 0, 0),
+        Action::Recover => (4, 0, 0),
+        Action::Fork(actions) => {
+            // For Fork, use the first action's key, or a default if empty
+            if let Some(first) = actions.first() {
+                let (t, v1, v2) = action_sort_key(first);
+                (5, t as u16, v1)
+            } else {
+                (5, 0, 0)
+            }
+        }
+    }
 }
 
 /// Build LR(1) automaton (parse table) from grammar
@@ -1896,6 +2034,9 @@ pub fn build_lr1_automaton(
             symbol_to_index.insert(eof_symbol, eof_idx);
         }
     }
+    
+    // Normalize action table for deterministic output
+    normalize_action_table(&mut action_table);
     
     Ok(ParseTable {
         action_table,

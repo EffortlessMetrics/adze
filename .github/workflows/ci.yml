@@ -76,6 +76,32 @@ jobs:
       - name: Example (pure-rust) tests
         run: cargo test -p rust-sitter-example --features pure-rust
 
+  test-release:
+    name: Test Release Mode (${{ matrix.features }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          - ""  # default features
+          - "--features strict-invariants"
+          - "--all-features"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Run tests in release mode
+        run: cargo test --workspace --release ${{ matrix.features }}
+      
+      - name: Run invariant tests with strict-invariants
+        if: contains(matrix.features, 'strict-invariants')
+        run: |
+          cargo test -p rust-sitter-glr-core --release --features strict-invariants,test-helpers
+          cargo test -p rust-sitter-glr-core --release --test test_eof_fix --features strict-invariants
+          cargo test -p rust-sitter-glr-core --release --test test_eof_column_parity --features strict-invariants
+          cargo test -p rust-sitter-glr-core --release --test test_accept_via_insertion --features strict-invariants
+
   benchmarks:
     name: Benchmark Compilation
     runs-on: ubuntu-latest
