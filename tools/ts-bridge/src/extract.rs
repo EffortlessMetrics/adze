@@ -143,14 +143,37 @@ pub fn extract(
     }
 
     let start_symbol = lang.detect_start_symbol() as u16;
-    debug_assert!(start_symbol != 0, "start symbol shouldn't be ERROR");
-    // EOF must be a sentinel outside the terminal space, not 0 (which is ERROR)
+    
+    // In Tree-sitter: ts_builtin_sym_end = 0, ts_builtin_sym_error = -1
+    // We need to map Tree-sitter's symbol 0 (end-of-input) to our EOF sentinel
+    // Our EOF should be outside the normal symbol space
     let eof_symbol: u16 = (tokc + extc) as u16;
+    
+    // Ensure symbol_count includes the EOF symbol
+    let symbol_count = symc.max((eof_symbol as u32) + 1);
+    
+    // Copy Tree-sitter's symbol 0 (ts_builtin_sym_end) actions to our EOF sentinel
+    // This ensures the driver's EOF phase sees the right accept/reduce actions
+    let ts_end_sym = 0u16; // Tree-sitter's builtin end-of-input symbol
+    if eof_symbol != ts_end_sym {
+        // Find all action cells for symbol 0 and duplicate them for our EOF
+        let mut eof_actions = Vec::new();
+        for cell in &actions {
+            if cell.symbol == ts_end_sym {
+                eof_actions.push(ActionCell {
+                    state: cell.state,
+                    symbol: eof_symbol,
+                    actions: cell.actions.clone(),
+                });
+            }
+        }
+        actions.extend(eof_actions);
+    }
 
     Ok(ParseTableData {
         version: 1,
         ts_language_version: 15,
-        symbol_count: symc,
+        symbol_count,
         state_count: stc,
         token_count: tokc,
         external_token_count: extc,

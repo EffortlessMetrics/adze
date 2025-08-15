@@ -53,15 +53,26 @@ impl ParseForest {
         let mut cost = 0u32;
 
         for (_id, node) in self.nodes.iter() {
+            let is_err = node.symbol == ERROR_SYMBOL || node.error_meta.is_error;
+            let is_missing = node.error_meta.missing;
+            
+            // A node should not be both; trip-wire if it happens
+            debug_assert!(
+                !(is_err && is_missing),
+                "ParseForest invariant: node cannot be both error and missing"
+            );
+            
             // Error chunks (ERROR_SYMBOL or meta.is_error)
-            if node.symbol == ERROR_SYMBOL || node.error_meta.is_error {
+            if is_err {
                 any_error = true;
                 cost = cost.saturating_add(node.error_meta.cost);
             }
-            // Missing terminals
-            if node.error_meta.missing {
+            // Missing terminals (only count cost if not already counted as error)
+            if is_missing {
                 missing += 1;
-                cost = cost.saturating_add(node.error_meta.cost);
+                if !is_err {
+                    cost = cost.saturating_add(node.error_meta.cost);
+                }
             }
         }
         (any_error, missing, cost)

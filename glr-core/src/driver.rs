@@ -5,6 +5,12 @@ use crate::parse_forest::{ParseForest, ForestNode, ForestAlternative};
 use crate::{ParseTable, Action, StateId, SymbolId, RuleId};
 use std::collections::HashMap;
 
+/// Helper function to safely convert usize spans to u32, avoiding overflow on giant buffers
+#[inline]
+fn u32_span(start: usize, end: usize) -> (u32, u32) {
+    (start.min(u32::MAX as usize) as u32, end.min(u32::MAX as usize) as u32)
+}
+
 /// Error type for GLR parsing operations
 #[derive(thiserror::Error, Debug)]
 pub enum GlrError {
@@ -56,6 +62,12 @@ impl<'t> Driver<'t> {
         debug_assert!(tables.eof_symbol.0 as usize >= tables.token_count + tables.external_token_count,
             "EOF symbol {} should be >= token_count({}) + external_token_count({})",
             tables.eof_symbol.0, tables.token_count, tables.external_token_count);
+        // EOF must be present in symbol_to_index mapping
+        debug_assert!(
+            tables.symbol_to_index.get(&tables.eof_symbol).is_some(),
+            "EOF symbol {} must be present in symbol_to_index/action table", 
+            tables.eof_symbol.0
+        );
         Self { tables }
     }
     
@@ -858,7 +870,8 @@ impl ForestView for ParseForestView {
 
     fn span(&self, id: u32) -> Span {
         if let Some(node) = self.forest.nodes.get(&(id as usize)) {
-            Span { start: node.span.0 as u32, end: node.span.1 as u32 }
+            let (start, end) = u32_span(node.span.0, node.span.1);
+            Span { start, end }
         } else {
             Span { start: 0, end: 0 }
         }

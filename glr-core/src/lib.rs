@@ -1878,6 +1878,24 @@ pub fn build_lr1_automaton(
     }
 
     let rule_count = rules.len();
+    
+    // Calculate proper counts for EOF symbol
+    let token_count = grammar.tokens.len();
+    let external_token_count = grammar.externals.len();
+    
+    // EOF should be outside the normal symbol space
+    // The internal parser uses SymbolId(0) for EOF during construction,
+    // but we expose a proper EOF symbol that's outside the token space
+    let eof_symbol = SymbolId((token_count + external_token_count) as u16);
+    
+    // Add EOF to symbol_to_index if not present
+    // Map our EOF symbol to the same index as SymbolId(0) for compatibility
+    if !symbol_to_index.contains_key(&eof_symbol) {
+        if let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0)) {
+            symbol_to_index.insert(eof_symbol, eof_idx);
+        }
+    }
+    
     Ok(ParseTable {
         action_table,
         goto_table,
@@ -1888,12 +1906,12 @@ pub fn build_lr1_automaton(
         external_scanner_states,
         rules,
         nonterminal_to_index,
-        eof_symbol: SymbolId(0),
+        eof_symbol,
         start_symbol: original_start,
         grammar: grammar.clone(),
         initial_state: StateId(0),  // Default initial state
-        token_count: symbol_count,  // TODO: Get actual token count from grammar
-        external_token_count: 0,  // TODO: Get actual external token count
+        token_count,
+        external_token_count,
         lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; state_count],
         extras: vec![],  // TODO: Get from grammar metadata
         dynamic_prec_by_rule: vec![0; rule_count],  // TODO: Get from grammar

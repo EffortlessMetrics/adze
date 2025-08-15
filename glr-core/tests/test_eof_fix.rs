@@ -15,14 +15,18 @@ fn test_eof_not_error_symbol() {
         rules: vec![],
         state_count: 1,
         symbol_count: 6,
-        symbol_to_index: BTreeMap::new(),
+        symbol_to_index: {
+            let mut map = BTreeMap::new();
+            map.insert(SymbolId(3), 0);  // Map EOF to index 0
+            map
+        },
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        eof_symbol: SymbolId(5),  // Critical: NOT 0!
+        eof_symbol: SymbolId(3),  // token_count + external_token_count  // Critical: NOT 0!
         start_symbol: SymbolId(10),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
-        token_count: 5,
+        token_count: 3,
         external_token_count: 0,
         lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }],
         extras: vec![],
@@ -79,14 +83,18 @@ fn test_error_stats_not_stubbed() {
         ],
         state_count: 3,
         symbol_count: 11,
-        symbol_to_index: BTreeMap::new(),
+        symbol_to_index: {
+            let mut map = BTreeMap::new();
+            map.insert(SymbolId(3), 0);  // Map EOF to index 0
+            map
+        },
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        eof_symbol: SymbolId(5),
+        eof_symbol: SymbolId(3),  // token_count + external_token_count
         start_symbol: SymbolId(10),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
-        token_count: 5,
+        token_count: 3,
         external_token_count: 0,
         lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 3],
         extras: vec![],
@@ -102,7 +110,7 @@ fn test_error_stats_not_stubbed() {
     // Tokenized mode test - provide LBRACE then EOF (missing RBRACE)
     let result = driver.parse_tokens([
         (1u32, 0u32, 1u32),  // LBRACE
-        (5u32, 1u32, 1u32),  // EOF
+        (3u32, 1u32, 1u32),  // EOF
     ]);
     
     match result {
