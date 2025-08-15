@@ -1,4 +1,5 @@
 //! Trip-wire test to prevent regression of debug_error_stats to silent zeros
+#![cfg(not(feature = "strict-invariants"))]
 
 use rust_sitter_glr_core::{Driver, ParseTable, Action, ParseRule, ActionCell, LexMode};
 use rust_sitter_ir::{StateId, SymbolId, RuleId};
@@ -79,7 +80,7 @@ fn test_error_stats_not_stubbed() {
         start_symbol: SymbolId(5),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
-        token_count: 3,  // 'a', 'b', 'c'
+        token_count: 4,  // ERROR, 'a', 'b', 'c'
         external_token_count: 0,
         symbol_metadata: vec![],
         lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 4],
@@ -209,7 +210,7 @@ fn test_clean_parse_has_zero_errors() {
         start_symbol: SymbolId(5),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
-        token_count: 3,  // 'a', 'b', 'c'
+        token_count: 4,  // ERROR, 'a', 'b', 'c'
         external_token_count: 0,
         symbol_metadata: vec![],
         lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 5],

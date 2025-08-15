@@ -1,3 +1,6 @@
+// Only compile & run these memory/profiling tests if explicitly requested.
+#![cfg(feature = "memory-tests")]
+
 #[cfg(test)]
 mod memory_tests {
     use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};

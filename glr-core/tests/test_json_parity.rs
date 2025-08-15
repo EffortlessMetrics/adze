@@ -8,6 +8,7 @@ use std::fs;
 use std::collections::BTreeMap;
 
 #[test]
+#[ignore] // Requires /tmp/json-grammar.json to be extracted first
 fn test_json_simple_object() {
     // Load the extracted JSON grammar tables
     let json_data = fs::read_to_string("/tmp/json-grammar.json")

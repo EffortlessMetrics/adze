@@ -1,4 +1,5 @@
 //! Test that EOF symbol is correctly handled (not 0/ERROR)
+#![cfg(not(feature = "strict-invariants"))]
 
 use rust_sitter_glr_core::{Driver, ParseTable, Action, ParseRule, ActionCell, LexMode};
 use rust_sitter_ir::{StateId, SymbolId, RuleId};

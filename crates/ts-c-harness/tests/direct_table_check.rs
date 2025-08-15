@@ -1,5 +1,6 @@
 // This test directly verifies the table extraction by using ts-bridge
 // to extract and examine the actual parse table cells
+#![cfg(all(feature = "runtime-parity", feature = "ts-ffi-raw"))]
 
 use std::process::Command;
 use std::fs;

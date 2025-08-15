@@ -1,6 +1,8 @@
 //! Test that accept-via-insertion at EOF has cost of exactly 1
 
-#[cfg(feature = "test-helpers")]
+// This test requires a parse table that violates the EOF/END parity invariant
+// to trigger the specific recovery scenario we're testing
+#[cfg(all(feature = "test-helpers", not(feature = "strict-invariants")))]
 #[test]
 fn accept_via_insertion_at_eof_cost_is_one() {
     use rust_sitter_glr_core::{Driver, ParseTable, Action, LexMode, ParseRule};
@@ -14,28 +16,28 @@ fn accept_via_insertion_at_eof_cost_is_one() {
             vec![
                 vec![],  // ERROR column  
                 vec![Action::Shift(StateId(1))],  // LBRACE column
-                vec![],  // RBRACE column
+                vec![],  // RBRACE column (END - last terminal)
                 vec![],  // EOF column
             ],
             // State 1: shift RBRACE to state 2, no action on EOF (triggers recovery)
             vec![
                 vec![],  // ERROR column
                 vec![],  // LBRACE column  
-                vec![Action::Shift(StateId(2))],  // RBRACE column
-                vec![],  // EOF column - no action, will trigger recovery
+                vec![Action::Shift(StateId(2))],  // RBRACE column (END - last terminal)
+                vec![],  // EOF column - empty to trigger recovery, violates parity but test needs it
             ],
             // State 2: reduce by rule 0 (accept)
             vec![
                 vec![],  // ERROR column
                 vec![],  // LBRACE column
-                vec![],  // RBRACE column
+                vec![],  // RBRACE column (END - last terminal)
                 vec![Action::Reduce(RuleId(0))],  // EOF column - reduce by rule 0
             ],
             // State 3: accept state
             vec![
                 vec![],  // ERROR column
                 vec![],  // LBRACE column
-                vec![],  // RBRACE column
+                vec![],  // RBRACE column (END - last terminal)
                 vec![Action::Accept],  // EOF column - accept
             ],
         ],
@@ -72,7 +74,7 @@ fn accept_via_insertion_at_eof_cost_is_one() {
         start_symbol: SymbolId(4),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
-        token_count: 2,  // LBRACE, RBRACE
+        token_count: 3,  // ERROR, LBRACE, RBRACE
         external_token_count: 0,
         lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 4],
         extras: vec![],

@@ -4,6 +4,7 @@ use rust_sitter_ir::SymbolId;
 use std::fs;
 
 #[test] 
+#[ignore] // Requires /tmp/json-grammar.json to be extracted first
 fn test_json_empty_object_debug() {
     // Load the extracted JSON parse table
     let json_data = fs::read_to_string("/tmp/json-grammar.json")
