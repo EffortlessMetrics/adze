@@ -796,6 +796,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             }
             Action::Accept => Ok(0x7FFF), // Use 0x7FFF for accept to match parser
             Action::Error => Ok(0),       // Use 0 for error to match parser expectation
+            Action::Recover => Ok(0xFFFD), // Use distinct value for Recover
             Action::Fork(actions) => {
                 // For Fork actions, we need to choose one action from the fork
                 // For now, let's prefer reduce actions over shift actions

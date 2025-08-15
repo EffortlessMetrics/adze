@@ -156,6 +156,7 @@ impl TableCompressor {
             }
             Action::Accept => Ok(0xFFFF),
             Action::Error => Ok(0xFFFE),
+            Action::Recover => Ok(0xFFFD), // Use distinct value for Recover
             Action::Fork(_) => {
                 // GLR fork points need special handling
                 // For now, treat as error

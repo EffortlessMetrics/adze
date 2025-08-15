@@ -53,9 +53,7 @@ fn create_test_grammar() -> (Grammar, ParseTable) {
     // Reduce to object (rule 0)
     let rule0 = ParseRule {
         lhs: SymbolId(10),  // object
-        rhs: vec![SymbolId(1), SymbolId(2)],  // '{' '}'
-        precedence: 0,
-        associativity: 0,
+        rhs_len: 2,  // '{' '}' = 2 symbols
     };
     rules.push(rule0.clone());
     
@@ -107,9 +105,7 @@ fn create_test_grammar() -> (Grammar, ParseTable) {
     // State 5: after '[' ']'
     let rule1 = ParseRule {
         lhs: SymbolId(11),  // array
-        rhs: vec![SymbolId(3), SymbolId(4)],  // '[' ']'
-        precedence: 0,
-        associativity: 0,
+        rhs_len: 2,  // '[' ']' = 2 symbols
     };
     rules.push(rule1);
     
@@ -154,7 +150,7 @@ fn create_test_grammar() -> (Grammar, ParseTable) {
 }
 
 #[test]
-#[ignore] // API needs update
+#[ignore] // Grammar setup needs work
 fn test_empty_object_with_recovery() {
     let (_grammar, mut table) = create_test_grammar();
     
@@ -179,8 +175,8 @@ fn test_empty_object_with_recovery() {
     assert!(!view.roots().is_empty(), "Should have at least one parse tree");
 }
 
-#[test] 
-#[ignore] // API needs update
+#[test]
+#[ignore] // Grammar setup needs work  
 fn test_incomplete_object_recovery() {
     let (_grammar, mut table) = create_test_grammar();
     
@@ -191,7 +187,7 @@ fn test_incomplete_object_recovery() {
     // Add Recover action for incomplete object (state after '{')
     // This simulates what Tree-sitter tables would have
     let lbrace_shift_state = StateId(2); // Assume state 2 after shifting '{'
-    table.action_table[lbrace_shift_state.0 as usize][9] = vec![vec![Action::Recover]];
+    table.action_table[lbrace_shift_state.0 as usize][9] = vec![Action::Recover];
     
     let mut driver = Driver::new(&table);
     
@@ -220,7 +216,7 @@ fn test_incomplete_object_recovery() {
 }
 
 #[test]
-#[ignore] // API needs update
+#[ignore] // Grammar setup needs work
 fn test_missing_value_recovery() {
     let (_grammar, mut table) = create_test_grammar();
     
@@ -547,7 +543,7 @@ fn test_cell_parity_after_lbrace() {
         }
     }
     
-    assert!(after_lbrace_state.is_some(), "Should be able to shift '{' from initial state");
+    assert!(after_lbrace_state.is_some(), "Should be able to shift '{{' from initial state");
     let after_lbrace = after_lbrace_state.unwrap();
     
     // Now check what actions exist for '}' in that state
@@ -560,7 +556,7 @@ fn test_cell_parity_after_lbrace() {
     );
     
     assert!(has_real_action, 
-        "After '{', there should be a real action (Shift/Reduce/Accept) for '}', not just Recover. \
+        "After '{{', there should be a real action (Shift/Reduce/Accept) for '}}', not just Recover. \
          Found actions: {:?}", actions_for_rbrace);
     
     // Additional check: valid JSON "{}" should parse without error nodes

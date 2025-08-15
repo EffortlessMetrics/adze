@@ -471,6 +471,19 @@ impl StaticLanguageGenerator {
                                 }
                             }
                         }
+                        Action::Recover => {
+                            // Treat Recover as Error for FFI compatibility
+                            quote! {
+                                rust_sitter::ffi::TSParseActionEntry {
+                                    type_: rust_sitter::ffi::TSParseActionType::Error,
+                                    state: 0,
+                                    symbol: 0,
+                                    child_count: 0,
+                                    dynamic_precedence: 0,
+                                    fragile: false,
+                                }
+                            }
+                        }
                         Action::Fork(actions) => {
                             // For GLR fork points, we'll need to handle multiple actions
                             // For now, just take the first action
@@ -730,6 +743,7 @@ impl TableCompressor {
             }
             Action::Accept => Ok(0xFFFF),
             Action::Error => Ok(0xFFFE),
+            Action::Recover => Ok(0xFFFD), // Use a distinct value for Recover
             Action::Fork(_) => {
                 // GLR fork points need special handling
                 // For now, treat as error

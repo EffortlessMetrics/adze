@@ -138,6 +138,12 @@ impl BitPackedActionTable {
                         // Accept is rare, can be stored as special reduce
                         reduce_data.push(u32::MAX);
                     }
+                    Action::Recover => {
+                        // Treat Recover as error for now
+                        let word_idx = cell_idx / 64;
+                        let bit_idx = cell_idx % 64;
+                        error_mask[word_idx] |= 1 << bit_idx;
+                    }
                     Action::Fork(actions) => {
                         fork_data.insert((state_idx, symbol_idx), actions.clone());
                     }

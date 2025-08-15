@@ -46,7 +46,7 @@ impl ParseForest {
     }
 
     /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
-    #[cfg(any(test, feature = "test-accessors"))]
+    #[cfg(any(test, feature = "test-helpers"))]
     pub fn debug_error_stats(&self) -> (bool, usize, u32) {
         let mut any_error = false;
         let mut missing = 0usize;

@@ -170,6 +170,7 @@ fn generate_parse_table_data(compressed: Option<&CompressedTables>) -> (Vec<u16>
                 }
                 rust_sitter_glr_core::Action::Accept => table_data.push(0xFFFF),
                 rust_sitter_glr_core::Action::Error => table_data.push(0xFFFE),
+                rust_sitter_glr_core::Action::Recover => table_data.push(0xFFFD),
                 rust_sitter_glr_core::Action::Fork(_) => table_data.push(0xFFFE),
             }
         }
@@ -240,6 +241,7 @@ pub fn serialize_compressed_tables(tables: &CompressedTables) -> Result<String, 
                 rust_sitter_glr_core::Action::Reduce(r) => format!("Reduce({})", r.0),
                 rust_sitter_glr_core::Action::Accept => "Accept".to_string(),
                 rust_sitter_glr_core::Action::Error => "Error".to_string(),
+                rust_sitter_glr_core::Action::Recover => "Recover".to_string(),
                 rust_sitter_glr_core::Action::Fork(actions) => format!("Fork({})", actions.len()),
             };
             (entry.symbol, action_str)
@@ -255,6 +257,7 @@ pub fn serialize_compressed_tables(tables: &CompressedTables) -> Result<String, 
             rust_sitter_glr_core::Action::Reduce(r) => format!("Reduce({})", r.0),
             rust_sitter_glr_core::Action::Accept => "Accept".to_string(),
             rust_sitter_glr_core::Action::Error => "Error".to_string(),
+            rust_sitter_glr_core::Action::Recover => "Recover".to_string(),
             rust_sitter_glr_core::Action::Fork(actions) => format!("Fork({})", actions.len()),
         })
         .collect();

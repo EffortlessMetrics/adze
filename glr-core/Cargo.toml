@@ -37,6 +37,7 @@ default = []
 parallel = ["rayon"]
 strict_docs = []
 glr-trace = []
+test-helpers = []
 
 [dev-dependencies]
 insta = "1.0"
