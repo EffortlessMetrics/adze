@@ -70,10 +70,10 @@ fn test_extras_never_inserted_during_recovery() {
     
     // Empty input - missing 'a'
     // The driver should insert 'a' (SymbolId(1)), never WS (SymbolId(2))
-    let tokens = vec![];
+    let tokens: Vec<(u32, u32, u32)> = vec![];
     
     // Parse with error recovery
-    let result = driver.parse(&tokens).unwrap();
+    let result = driver.parse_tokens(tokens.into_iter()).unwrap();
     
     // Check error stats using the test helper
     #[cfg(any(test, feature = "test-helpers"))]
@@ -163,10 +163,10 @@ fn test_insertion_skips_all_extras() {
     
     // Input with only 'b' - missing 'a'
     let tokens = vec![
-        (SymbolId(2), 0, 1),  // 'b' at position 0-1
+        (2, 0, 1),  // 'b' at position 0-1
     ];
     
-    let result = driver.parse(&tokens).unwrap();
+    let result = driver.parse_tokens(tokens.into_iter()).unwrap();
     
     #[cfg(any(test, feature = "test-helpers"))]
     {

@@ -1,15 +1,20 @@
 #![cfg(feature = "runtime-parity")]
 
 use std::ffi::CStr;
-use tree_sitter::{ffi, Language, Parser};
+use tree_sitter::{ffi, Parser};
 use tree_sitter_json as ts_json;
 
+// The tree-sitter-json crate exports this C symbol
+extern "C" {
+    fn tree_sitter_json() -> *const ffi::TSLanguage;
+}
+
 /// Discover symbol ID by name without guessing
-fn symbol_id_by_name(lang: *const ffi::TSLanguage, name: &str) -> u16 {
-    let n_syms = unsafe { ffi::ts_language_symbol_count(lang) } as u16;
+fn symbol_id_by_name(lptr: *const ffi::TSLanguage, name: &str) -> u16 {
+    let n_syms = unsafe { ffi::ts_language_symbol_count(lptr) } as u16;
     
     for i in 0..n_syms {
-        let c_name = unsafe { ffi::ts_language_symbol_name(lang, i) };
+        let c_name = unsafe { ffi::ts_language_symbol_name(lptr, i) };
         if !c_name.is_null() {
             let symbol_name = unsafe { CStr::from_ptr(c_name) }.to_str().unwrap();
             if symbol_name == name {
@@ -19,13 +24,6 @@ fn symbol_id_by_name(lang: *const ffi::TSLanguage, name: &str) -> u16 {
     }
     
     panic!("symbol `{name}` not found in language");
-}
-
-/// Get raw language pointer from Language struct (tuple struct hack)
-fn get_lang_ptr(lang: &Language) -> *const ffi::TSLanguage {
-    // Language is a tuple struct: Language(*const ffi::TSLanguage)
-    // We need to extract the inner pointer
-    unsafe { std::mem::transmute_copy(lang) }
 }
 
 #[test]
@@ -49,8 +47,7 @@ fn runtime_parses_single_pair() {
 
 #[test]
 fn symbol_discovery_works() {
-    let lang: Language = ts_json::LANGUAGE.into();
-    let lptr = get_lang_ptr(&lang);
+    let lptr = unsafe { tree_sitter_json() };
     
     // Verify we can find common JSON symbols
     let symbols = vec![
@@ -71,8 +68,7 @@ fn symbol_discovery_works() {
 
 #[test]
 fn language_metadata_available() {
-    let lang: Language = ts_json::LANGUAGE.into();
-    let lptr = get_lang_ptr(&lang);
+    let lptr = unsafe { tree_sitter_json() };
     
     // Check basic language metadata
     let symbol_count = unsafe { ffi::ts_language_symbol_count(lptr) };
