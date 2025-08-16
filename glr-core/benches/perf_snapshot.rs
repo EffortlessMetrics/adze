@@ -24,13 +24,15 @@ pub fn bench_parse_small(c: &mut Criterion) {
         );
         let mut driver = Driver::new(&table);
 
+        // One EOF token. Pass as an iterator of values (no alloc each iter).
+        const TOKENS: &[(u32, u32, u32)] = &[(2, 0, 0)];
+
         g.bench_function("small-parse", |b| {
             b.iter(|| {
                 // Scoped measurement: zero → run → take snapshot
                 let _ = perf::take(); // clear
-                // Token format: (kind, start, end)
-                let tokens = vec![(2u32, 0u32, 0u32)]; // EOF token at position 0
-                let _ = driver.parse_tokens(black_box(tokens.clone()));
+                let iter = TOKENS.iter().copied(); // -> impl IntoIterator<Item=(u32,u32,u32)>
+                let _ = driver.parse_tokens(black_box(iter));
                 let c = perf::take();
                 // Keep the counters "used" to avoid being optimized away
                 black_box((c.shifts, c.reductions, c.forks, c.merges));

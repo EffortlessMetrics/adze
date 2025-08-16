@@ -223,6 +223,7 @@ pub mod perf {
         Counters::default()
     }
 
+    /// Present even when disabled so benches/tests compile unchanged.
     #[inline(always)]
     pub fn take() -> Counters {
         Counters::default()
