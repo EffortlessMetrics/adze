@@ -198,3 +198,33 @@ When enabled, the counters track:
 - Reductions: Rule application operations  
 - Forks: GLR parser fork points
 - Merges: GLR parser merge operations
+
+## Benchmarking
+
+### Quick Benchmarks (Development)
+```bash
+# Fast iteration during development
+./scripts/bench-quick.sh
+
+# With additional arguments
+./scripts/bench-quick.sh -- --save-baseline my-change
+```
+
+### Full Benchmarks (Baselines)
+```bash
+# Save baseline before changes
+cargo bench -p rust-sitter-glr-core --features perf-counters -- --save-baseline before
+
+# Make changes, then compare
+cargo bench -p rust-sitter-glr-core --features perf-counters -- --save-baseline after
+
+# Compare baselines with critcmp
+critcmp before after
+```
+
+### Feature Flags in CI
+The CI tests with these feature combinations:
+- `perf-counters` - Performance counter tracking
+- `test-api` - Internal testing APIs
+- All features enabled together
+- No default features (minimal build)
