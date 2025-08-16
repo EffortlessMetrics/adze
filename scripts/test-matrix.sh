@@ -19,6 +19,11 @@ fi
 # Use a dedicated build dir to avoid lock contention with other cargo jobs
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target/precommit}"
 
+# (opt-in) Make rustc warnings fatal too: RUSTC_WARN_FATAL=1 .githooks/pre-commit
+if [[ -n "${RUSTC_WARN_FATAL:-}" ]]; then
+  export RUSTFLAGS="${RUSTFLAGS:-} -D warnings"
+fi
+
 ensure_tests() {
   local label="$1"; shift
   local -a args=("$@")
