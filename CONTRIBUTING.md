@@ -255,3 +255,14 @@ The ts-bridge smoke tests run on:
 - Windows (latest)
 
 The smoke test verifies symbol exports and linkage across all platforms.
+
+### Fast Benches
+- Quick iteration: `./scripts/bench-quick.sh` - Runs benchmarks with `BENCH_QUICK=1` for fast feedback
+- Save baselines: `cargo bench ... -- --save-baseline NAME` for comparison
+- Compare results: `critcmp before after` to see performance changes
+
+### CI Configuration Notes
+- The `CORE_CRATES_NO_DEFAULT` environment variable lives in `.github/workflows/core-tests.yml`
+- `RUSTFLAGS=-D warnings` is enforced in CI to catch all warnings
+- `cargo fmt --check` runs automatically to ensure consistent formatting
+- All cargo commands use `--locked` to ensure reproducible builds

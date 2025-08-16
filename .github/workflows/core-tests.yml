@@ -1,5 +1,10 @@
 name: core-tests
 on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   core:
     runs-on: ubuntu-latest
@@ -14,33 +19,34 @@ jobs:
         run: cargo fmt --all -- --check
       
       - name: Run core tests with test-api and perf-counters
-        run: cargo test -p rust-sitter-glr-core --features test-api,perf-counters --lib --tests
+        run: cargo test -p rust-sitter-glr-core --features test-api,perf-counters --lib --tests --locked
       
       - name: Compile benches (no perf counters)
-        run: cargo bench -p rust-sitter-glr-core --no-run
+        run: cargo bench -p rust-sitter-glr-core --no-run --locked
       
       - name: Compile benches (with perf counters)
-        run: cargo bench -p rust-sitter-glr-core --features perf-counters --no-run
+        run: cargo bench -p rust-sitter-glr-core --features perf-counters --no-run --locked
       
       - name: Check all targets, all features (deny warnings)
         env:
           RUSTFLAGS: -D warnings
-        run: cargo check --workspace --all-targets --all-features
+        run: cargo check --workspace --all-targets --all-features --locked
       
       - name: Clippy (all targets, all features)
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       
       - name: Docs compilation check
-        run: cargo doc --workspace --no-deps
+        run: cargo doc --workspace --no-deps --locked
       
       - name: Check no-default-features (core crates only)
         env:
           CORE_CRATES_NO_DEFAULT: "rust-sitter-glr-core rust-sitter-ir rust-sitter-tablegen rust-sitter-common rust-sitter-macro"
         run: |
+          set -euxo pipefail
           for krate in $CORE_CRATES_NO_DEFAULT; do
             echo "Checking $krate (no-default-features)"
-            cargo check --no-default-features -p "$krate"
+            cargo check --no-default-features -p "$krate" --locked
           done
       
       - name: Check GLR core with all features
-        run: cargo check -p rust-sitter-glr-core --features "perf-counters test-api"
+        run: cargo check -p rust-sitter-glr-core --features "perf-counters test-api" --locked
