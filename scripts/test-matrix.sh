@@ -107,6 +107,18 @@ cargo fmt --all -- --check
 # Only lint core crates with strict warnings - other crates may have more relaxed requirements
 cargo clippy -p rust-sitter -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablegen --lib -- -D warnings
 
+# (opt-in) Lint test code too: CLIPPY_TESTS=1 .githooks/pre-commit
+if [[ -n "${CLIPPY_TESTS:-}" ]]; then
+  echo "${BLD}Clippy (tests)…${RST}"
+  cargo clippy -p rust-sitter -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablegen --tests -- -D warnings
+fi
+
+# (opt-in) Enforce strict docs across the workspace: STRICT_DOCS=1 .githooks/pre-commit
+if [[ -n "${STRICT_DOCS:-}" ]]; then
+  echo "${BLD}Strict docs (workspace)…${RST}"
+  cargo clippy --workspace --all-targets -D warnings --features strict_docs
+fi
+
 echo "${BLD}Running test matrix…${RST}"
 
 # Core (dev features)
