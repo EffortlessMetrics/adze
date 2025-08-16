@@ -54,3 +54,7 @@ glr-test-support = { path = "../glr-test-support" }
 [[bench]]
 name = "automaton"
 harness = false
+
+[[bench]]
+name = "perf_snapshot"
+harness = false

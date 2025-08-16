@@ -38,6 +38,9 @@ cargo test -- --nocapture
 
 # Update snapshot tests (uses insta)
 cargo insta review
+
+# For integration tests that need internal debug helpers, enable the test-api feature:
+cargo test -p rust-sitter-glr-core --features test-api
 ```
 
 ### Linting and Formatting

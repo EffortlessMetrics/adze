@@ -192,3 +192,9 @@ pub fn assert_parse_table_invariants(table: &ParseTable) {
         );
     }
 }
+
+pub mod test_utilities {
+    pub use super::make_minimal_table;
+}
+
+pub mod perf;

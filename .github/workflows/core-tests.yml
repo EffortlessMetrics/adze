@@ -1,0 +1,10 @@
+name: core-tests
+on: [push, pull_request]
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run core tests with test-api and perf-counters
+        run: cargo test -p rust-sitter-glr-core --features test-api,perf-counters --lib --tests

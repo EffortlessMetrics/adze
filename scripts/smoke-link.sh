@@ -20,8 +20,17 @@ case "$(uname -s)" in
     ;;
   MINGW*|MSYS*|CYGWIN*) 
     ext="dll"
-    list="objdump -x"
-    undef="objdump -x"
+    # Try multiple tools in order of preference
+    if command -v dumpbin >/dev/null 2>&1; then
+      list="dumpbin /exports"
+      undef="dumpbin /imports"
+    elif command -v llvm-objdump >/dev/null 2>&1; then
+      list="llvm-objdump -p"
+      undef="llvm-objdump -p"
+    else
+      list="objdump -x"
+      undef="objdump -x"
+    fi
     ;;
   *) 
     ext="so"
@@ -34,6 +43,12 @@ esac
 lib_name=$(echo "$crate" | tr '-' '_')
 so=$(find target/release -maxdepth 1 -name "lib${lib_name}.${ext}" -o -name "${lib_name}.${ext}" 2>/dev/null | head -n1)
 
+# Also check for import library on Windows
+if [[ "$ext" == "dll" ]]; then
+    imp=$(find target/release -maxdepth 1 -name "${lib_name}.dll.lib" -o -name "lib${lib_name}.dll.a" 2>/dev/null | head -n1 || true)
+    [ -n "$imp" ] && echo "→ Found import lib: $imp"
+fi
+
 if [ -z "$so" ]; then
     echo "ERROR: Could not find library file for $crate"
     exit 1
@@ -41,8 +56,12 @@ fi
 
 echo "→ Checking symbols in $so"
 if [[ "$ext" == "dll" ]]; then
-    # Windows: use objdump to list exports
-    $list "$so" 2>/dev/null | grep -E 'rs_ts_bridge_version|ts_' | head -20 || echo "No matching symbols found"
+    # Windows: use the chosen tool to list exports
+    if [[ "$list" == "dumpbin /exports" ]]; then
+        $list "$so" 2>/dev/null | tr -d '\r' | grep -E 'rs_ts_bridge_version|ts_' | head -20 || echo "No matching symbols found"
+    else
+        $list "$so" 2>/dev/null | grep -E 'rs_ts_bridge_version|ts_' | head -20 || echo "No matching symbols found"
+    fi
 else
     # Unix: use nm
     $list "$so" 2>/dev/null | grep -E 'rs_ts_bridge_version|ts_' | head -20 || echo "No matching symbols found"
