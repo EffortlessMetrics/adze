@@ -7,7 +7,7 @@
 fn test_extras_concept() {
     // Extras are symbols that can appear anywhere in the input but are not
     // part of the grammar structure. They are typically whitespace and comments.
-    // 
+    //
     // The GLR driver ensures that extras are never inserted during error recovery
     // by excluding them from the valid symbols mask when considering insertions.
     //

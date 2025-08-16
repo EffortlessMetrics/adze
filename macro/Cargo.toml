@@ -16,6 +16,7 @@ path = "src/lib.rs"
 
 [features]
 pure-rust = []
+strict_docs = [] # Enable strict documentation requirements
 
 [dependencies]
 syn = { version = "2", features = [ "full", "extra-traits" ] }

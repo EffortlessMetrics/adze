@@ -12,15 +12,11 @@ type LangFn = unsafe extern "C" fn() -> *const TSLanguage;
 
 // Use the LANGUAGE constant from tree-sitter-json crate
 fn get_json_language() -> *const TSLanguage {
-    unsafe {
-        tree_sitter_json::LANGUAGE.into_raw()() as *const TSLanguage
-    }
+    unsafe { tree_sitter_json::LANGUAGE.into_raw()() as *const TSLanguage }
 }
 
 fn tree_sitter_json_fn() -> LangFn {
-    unsafe {
-        std::mem::transmute(tree_sitter_json::LANGUAGE.into_raw())
-    }
+    unsafe { std::mem::transmute(tree_sitter_json::LANGUAGE.into_raw()) }
 }
 
 #[test]
@@ -55,7 +51,7 @@ fn parity_actions_and_gotos_json() {
     // 3) Sample cells (keeps test time reasonable)
     let mut rng = rand::rngs::StdRng::seed_from_u64(0x0123456789ABCDEF);
     let samples = 5_000.min((stc * symc) as usize);
-    
+
     for _ in 0..samples {
         let s = rng.gen_range(0..stc) as u16;
         let x = rng.gen_range(0..symc) as u16;
@@ -84,8 +80,7 @@ fn parity_actions_and_gotos_json() {
                         }
                         (TsbActionKind::Reduce, Action::Reduce { rule, dyn_prec }) => {
                             assert_eq!(
-                                *dyn_prec,
-                                a.dynamic_precedence,
+                                *dyn_prec, a.dynamic_precedence,
                                 "dyn_prec diff at ({s},{x})"
                             );
                             // We can't compare rule numbers directly (they're assigned),
@@ -94,8 +89,7 @@ fn parity_actions_and_gotos_json() {
                             assert_eq!(r.lhs, a.lhs, "lhs diff at ({s},{x})");
                             assert_eq!(r.rhs_len, a.rhs_len, "rhs_len diff at ({s},{x})");
                             assert_eq!(
-                                r.production_id,
-                                a.production_id,
+                                r.production_id, a.production_id,
                                 "prod_id diff at ({s},{x})"
                             );
                         }
@@ -118,15 +112,12 @@ fn parity_actions_and_gotos_json() {
             let next_rt = lang.next_state(s as u32, x as u32);
             match goto_map.get(&(s, x)).copied() {
                 Some(nxt) => assert_eq!(
-                    nxt as u32,
-                    next_rt,
+                    nxt as u32, next_rt,
                     "goto diff at ({s},{x}): expected {}, got {}",
-                    nxt,
-                    next_rt
+                    nxt, next_rt
                 ),
                 None => assert_eq!(
-                    next_rt,
-                    0,
+                    next_rt, 0,
                     "unexpected goto at ({s},{x}): runtime returned {}",
                     next_rt
                 ),
@@ -137,17 +128,19 @@ fn parity_actions_and_gotos_json() {
     // 4) Start symbol check
     let rt_start = lang.detect_start_symbol();
     assert_eq!(
-        data.start_symbol as u32,
-        rt_start,
+        data.start_symbol as u32, rt_start,
         "start symbol mismatch: extracted {}, runtime {}",
-        data.start_symbol,
-        rt_start
+        data.start_symbol, rt_start
     );
 
     println!("✅ Parity test passed for JSON grammar!");
     println!("   - {} states, {} symbols", stc, symc);
     println!("   - {} sampled cells", samples);
-    println!("   - {} action cells, {} goto cells", data.actions.len(), data.gotos.len());
+    println!(
+        "   - {} action cells, {} goto cells",
+        data.actions.len(),
+        data.gotos.len()
+    );
     println!("   - {} rules", data.rules.len());
 }
 
@@ -162,12 +155,9 @@ fn parity_metadata_json() {
     for (i, sym) in data.symbols.iter().enumerate() {
         let name = lang.symbol_name(i as u32);
         assert_eq!(
-            sym.name,
-            name,
+            sym.name, name,
             "symbol name mismatch at {}: extracted '{}', runtime '{}'",
-            i,
-            sym.name,
-            name
+            i, sym.name, name
         );
     }
 

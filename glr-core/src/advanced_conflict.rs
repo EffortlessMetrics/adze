@@ -100,11 +100,9 @@ impl PrecedenceResolver {
         // Extract precedence from rules
         for (symbol_id, rules) in &grammar.rules {
             for rule in rules {
-                if let Some(prec_kind) = &rule.precedence {
-                    if let PrecedenceKind::Static(level) = prec_kind {
-                        if let Some(assoc) = rule.associativity {
-                            symbol_precedences.insert(*symbol_id, (*level, assoc));
-                        }
+                if let Some(PrecedenceKind::Static(level)) = &rule.precedence {
+                    if let Some(assoc) = rule.associativity {
+                        symbol_precedences.insert(*symbol_id, (*level, assoc));
                     }
                 }
             }
@@ -150,9 +148,10 @@ pub enum PrecedenceDecision {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Action, ParseTable, StateId, LexMode};
+    use crate::{Action, LexMode, ParseTable, StateId};
     use rust_sitter_ir::{
-        Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, RuleId,
+        Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, Symbol,
+        SymbolId,
     };
     use std::collections::BTreeMap;
 
@@ -174,7 +173,13 @@ mod tests {
             initial_state: StateId(0),
             token_count: 1,
             external_token_count: 0,
-            lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 1],
+            lex_modes: vec![
+                LexMode {
+                    lex_state: 0,
+                    external_lex_state: 0
+                };
+                1
+            ],
             extras: vec![],
             dynamic_prec_by_rule: vec![],
             alias_sequences: vec![],

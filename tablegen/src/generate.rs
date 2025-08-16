@@ -250,17 +250,14 @@ mod tests {
     }
 
     fn create_test_parse_table() -> ParseTable {
-        let mut table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            symbol_count: 0,
-            state_count: 0,
-            symbol_to_index: Default::default(),
-            external_scanner_states: vec![],
-        };
-        table.symbol_count = 2;
-        table.state_count = 3;
+        let mut table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![]; 2]; 3], // 3 states, 2 symbols
+            vec![vec![crate::test_helpers::test::INVALID; 2]; 3],
+            vec![],
+            rust_sitter_ir::SymbolId(1), // start_symbol
+            rust_sitter_ir::SymbolId(1), // eof_symbol
+            0,                           // external_token_count
+        );
 
         // Add some basic actions
         // Since we don't have an actions field, just initialize the action table with proper size

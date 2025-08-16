@@ -1,6 +1,10 @@
 // Runtime crate needs unsafe for FFI bindings and performance-critical operations
 #![deny(unsafe_op_in_unsafe_fn)]
-#![warn(missing_docs)]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+#![allow(clippy::missing_safety_doc)] // Many FFI functions - safety documented at module level
+#![allow(clippy::needless_range_loop)] // Sometimes clearer than iterators
+#![allow(clippy::only_used_in_recursion)] // Recursive algorithms in parsers
 
 //! rust-sitter runtime library for Tree-sitter parsing
 

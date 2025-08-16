@@ -72,9 +72,16 @@ pub struct ExternalScanner {
     pub symbol_map: *const u16,
     pub create: Option<extern "C" fn() -> *mut c_void>,
     pub destroy: Option<extern "C" fn(scanner: *mut c_void)>,
-    pub scan: Option<extern "C" fn(scanner: *mut c_void, lexer: *mut TSLexer, valid_symbols: *const bool) -> bool>,
+    pub scan: Option<
+        extern "C" fn(
+            scanner: *mut c_void,
+            lexer: *mut TSLexer,
+            valid_symbols: *const bool,
+        ) -> bool,
+    >,
     pub serialize: Option<extern "C" fn(scanner: *mut c_void, buffer: *mut c_char) -> u32>,
-    pub deserialize: Option<extern "C" fn(scanner: *mut c_void, buffer: *const c_char, length: u32)>,
+    pub deserialize:
+        Option<extern "C" fn(scanner: *mut c_void, buffer: *const c_char, length: u32)>,
 }
 
 /// Token produced by the lexer
@@ -98,28 +105,28 @@ impl<'a> TsLexerHost<'a> {
         let host = unsafe { &mut *(payload as *mut Self) };
         host.pos >= host.input.len()
     }
-    
+
     extern "C" fn advance(payload: *mut c_void, skip: bool) {
         let host = unsafe { &mut *(payload as *mut Self) };
         if host.pos < host.input.len() {
             host.pos += 1;
-            if !skip { 
-                host.end_mark = host.pos; 
+            if !skip {
+                host.end_mark = host.pos;
             }
         }
     }
-    
+
     extern "C" fn mark_end(payload: *mut c_void) {
         let host = unsafe { &mut *(payload as *mut Self) };
         host.end_mark = host.pos;
     }
-    
-    extern "C" fn get_column(_payload: *mut c_void) -> u32 { 
-        0  // TODO: Track column for proper error reporting
+
+    extern "C" fn get_column(_payload: *mut c_void) -> u32 {
+        0 // TODO: Track column for proper error reporting
     }
-    
-    extern "C" fn is_included(_payload: *mut c_void) -> bool { 
-        false  // TODO: Support included ranges for injections
+
+    extern "C" fn is_included(_payload: *mut c_void) -> bool {
+        false // TODO: Support included ranges for injections
     }
 }
 
@@ -130,31 +137,38 @@ pub struct GrammarLexer {
 
 impl GrammarLexer {
     /// Create a lexer for a specific Tree-sitter language
+    ///
+    /// # Safety
+    ///
+    /// `lang` must be a valid, non-null pointer to a live [`TSLanguage`]
+    /// from Tree-sitter. It must remain valid for the lifetime of the
+    /// returned wrapper. Passing an invalid pointer or one that outlives
+    /// the wrapper is undefined behavior.
     pub unsafe fn new(lang: *const TSLanguage) -> Self {
         Self { lang }
     }
-    
+
     /// Get the next token from the input
     pub fn next(
         &self,
         input: &str,
         pos: usize,
         mode: LexMode,
-        _valid_symbols: &[bool],  // TODO: Use for external scanner
+        _valid_symbols: &[bool], // TODO: Use for external scanner
     ) -> Option<NextToken> {
-        let mut host = TsLexerHost { 
-            input: input.as_bytes(), 
-            pos, 
-            end_mark: pos 
+        let mut host = TsLexerHost {
+            input: input.as_bytes(),
+            pos,
+            end_mark: pos,
         };
-        
+
         // Update lookahead
         let lookahead = if pos < host.input.len() {
             host.input[pos] as i32
         } else {
-            0  // EOF
+            0 // EOF
         };
-        
+
         let mut c_lexer = TSLexer {
             lookahead,
             result_symbol: 0,
@@ -165,14 +179,14 @@ impl GrammarLexer {
             is_included: TsLexerHost::is_included,
             payload: &mut host as *mut _ as *mut _,
         };
-        
+
         let lex_fn = unsafe { (*self.lang).lex_fn }?;
         let ok = unsafe { lex_fn(&mut c_lexer as *mut TSLexer, mode.lex_state) };
-        
+
         if !ok || c_lexer.result_symbol == 0 {
             return None;
         }
-        
+
         Some(NextToken {
             kind: c_lexer.result_symbol as u32,
             start: pos as u32,
@@ -192,9 +206,9 @@ unsafe extern "C" {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
-    #[ignore]  // Requires actual Tree-sitter library to be linked
+    #[ignore] // Requires actual Tree-sitter library to be linked
     fn test_json_lexer() {
         // This test would require linking to a real Tree-sitter grammar
         // unsafe {

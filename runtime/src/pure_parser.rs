@@ -666,12 +666,12 @@ impl Parser {
                     // The lexer returns symbol IDs, but the parse table uses indices
                     // This is a hack for the arithmetic grammar - should be generalized
                     let symbol_index = match symbol {
-                        0 => 0,             // EOF
-                        1 => 5,             // "-"
-                        2 => 6,             // "*"
-                        3 => 7,             // whitespace
-                        4 => 8,             // number
-                        _ => symbol as u16, // fallback
+                        0 => 0,      // EOF
+                        1 => 5,      // "-"
+                        2 => 6,      // "*"
+                        3 => 7,      // whitespace
+                        4 => 8,      // number
+                        _ => symbol, // fallback
                     };
 
                     eprintln!(
@@ -1130,6 +1130,7 @@ impl Parser {
     }
 
     /// Get production ID for field mappings
+    #[allow(dead_code)]
     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
         unsafe {
             if action_index < language.production_id_count as u16 {

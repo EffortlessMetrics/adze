@@ -73,22 +73,22 @@ impl std::fmt::Debug for Language {
             .field("symbol_count", &self.symbol_count)
             .field("field_count", &self.field_count)
             .field("max_alias_sequence_length", &self.max_alias_sequence_length);
-        
+
         #[cfg(feature = "glr-core")]
         ds.field("parse_table", &self.parse_table.is_some());
         #[cfg(not(feature = "glr-core"))]
         ds.field("parse_table", &self.parse_table);
-        
+
         ds.field("symbol_names", &self.symbol_names)
             .field("symbol_metadata", &self.symbol_metadata)
             .field("field_names", &self.field_names);
-        
+
         #[cfg(feature = "glr-core")]
         ds.field("tokenize", &self.tokenize.is_some());
-        
+
         #[cfg(feature = "external-scanners")]
         ds.field("external_scanner", &self.external_scanner.is_some());
-        
+
         ds.finish()
     }
 }

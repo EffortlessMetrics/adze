@@ -241,14 +241,61 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         symbol_to_index.insert(SymbolId(i as u16), i);
     }
 
+    // Build nonterminal_to_index (expression is the only non-terminal)
+    let mut nonterminal_to_index = BTreeMap::new();
+    nonterminal_to_index.insert(expr_symbol, 0);
+
+    use rust_sitter_glr_core::LexMode;
+
     let table = ParseTable {
+        // Core grids
         action_table,
         goto_table,
-        symbol_metadata,
+
+        // Grammar rules (empty for this test grammar)
+        rules: vec![],
+
+        // Shapes
         state_count,
         symbol_count,
+
+        // Symbol bookkeeping
         symbol_to_index,
+        nonterminal_to_index,
+        symbol_metadata,
+
+        // Token layout / sentinels
+        token_count: 5,            // five terminals (excluding EOF)
+        external_token_count: 0,   // no externals
+        eof_symbol: SymbolId(5),   // EOF column = token_count + externals
+        start_symbol: expr_symbol, // Expression is our start symbol
+
+        // Parsing config
+        initial_state: StateId(0),
+
+        // Lexing config
+        lex_modes: vec![
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0
+            };
+            state_count
+        ],
         external_scanner_states: vec![vec![false; 0]; state_count], // No external scanner
+        extras: vec![],
+
+        // Dynamic precedence
+        dynamic_prec_by_rule: vec![],
+
+        // Aliasing
+        alias_sequences: vec![],
+
+        // Fields
+        field_names: vec![],
+        field_map: BTreeMap::new(),
+
+        // Grammar metadata
+        grammar: Grammar::new("arithmetic".to_string()),
     };
 
     (grammar, table)

@@ -1,22 +1,21 @@
 //! Builder API for programmatically constructing grammars
-//! 
+//!
 //! This module provides an ergonomic API for building grammars in tests
 //! and integration scenarios without dealing with the internal complexity.
 
 use crate::{
-    Grammar, Rule, Symbol, Token, TokenPattern, Precedence, Associativity, 
-    PrecedenceKind, SymbolId, ProductionId, ExternalToken,
-    ConflictDeclaration
+    Associativity, ConflictDeclaration, ExternalToken, Grammar, Precedence, PrecedenceKind,
+    ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
 use indexmap::IndexMap;
 
 /// A builder for constructing grammars programmatically
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```no_run
 /// use rust_sitter_ir::builder::GrammarBuilder;
-/// 
+///
 /// let grammar = GrammarBuilder::new("example")
 ///     .token("NUMBER", r"\d+")
 ///     .token("+", "+")
@@ -74,10 +73,22 @@ impl GrammarBuilder {
             self.next_symbol_id += 1;
             self.symbol_ids.insert(name.to_string(), id);
             // Also update rule_names if it's not a token
-            if !name.chars().all(|c| c.is_uppercase() || c == '_') && name != "(" && name != ")" 
-                && name != "{" && name != "}" && name != "[" && name != "]" 
-                && name != "+" && name != "-" && name != "*" && name != "/" 
-                && name != "=" && name != ";" && name != ":" && name != "," {
+            if !name.chars().all(|c| c.is_uppercase() || c == '_')
+                && name != "("
+                && name != ")"
+                && name != "{"
+                && name != "}"
+                && name != "["
+                && name != "]"
+                && name != "+"
+                && name != "-"
+                && name != "*"
+                && name != "/"
+                && name != "="
+                && name != ";"
+                && name != ":"
+                && name != ","
+            {
                 self.rule_names.insert(id, name.to_string());
             }
             id
@@ -87,23 +98,27 @@ impl GrammarBuilder {
     /// Add a token (terminal) to the grammar
     pub fn token(mut self, name: &str, pattern: &str) -> Self {
         let symbol_id = self.get_or_create_symbol(name);
-        
+
         // Determine if it's a literal or regex pattern
-        let token_pattern = if pattern == name && !pattern.chars().any(|c| c.is_alphanumeric() || c == '_') {
-            TokenPattern::String(pattern.to_string())
-        } else if pattern.starts_with('/') && pattern.ends_with('/') {
-            TokenPattern::Regex(pattern[1..pattern.len()-1].to_string())
-        } else if pattern.contains(|c: char| "\\[]{}()*+?|^$.".contains(c)) {
-            TokenPattern::Regex(pattern.to_string())
-        } else {
-            TokenPattern::String(pattern.to_string())
-        };
-        
-        self.tokens.insert(symbol_id, Token {
-            name: name.to_string(),
-            pattern: token_pattern,
-            fragile: false,
-        });
+        let token_pattern =
+            if pattern == name && !pattern.chars().any(|c| c.is_alphanumeric() || c == '_') {
+                TokenPattern::String(pattern.to_string())
+            } else if pattern.starts_with('/') && pattern.ends_with('/') {
+                TokenPattern::Regex(pattern[1..pattern.len() - 1].to_string())
+            } else if pattern.contains(|c: char| "\\[]{}()*+?|^$.".contains(c)) {
+                TokenPattern::Regex(pattern.to_string())
+            } else {
+                TokenPattern::String(pattern.to_string())
+            };
+
+        self.tokens.insert(
+            symbol_id,
+            Token {
+                name: name.to_string(),
+                pattern: token_pattern,
+                fragile: false,
+            },
+        );
         self
     }
 
@@ -115,21 +130,24 @@ impl GrammarBuilder {
         } else {
             TokenPattern::Regex(pattern.to_string())
         };
-        
-        self.tokens.insert(symbol_id, Token {
-            name: name.to_string(),
-            pattern: token_pattern,
-            fragile: true,
-        });
+
+        self.tokens.insert(
+            symbol_id,
+            Token {
+                name: name.to_string(),
+                pattern: token_pattern,
+                fragile: true,
+            },
+        );
         self
     }
 
     /// Add a rule to the grammar
-    /// 
+    ///
     /// Multiple calls with the same left-hand side will add alternative productions
     pub fn rule(mut self, lhs: &str, rhs: Vec<&str>) -> Self {
         let lhs_id = self.get_or_create_symbol(lhs);
-        
+
         let rhs_symbols: Vec<Symbol> = if rhs.is_empty() {
             vec![Symbol::Epsilon]
         } else {
@@ -145,10 +163,10 @@ impl GrammarBuilder {
                 })
                 .collect()
         };
-        
+
         let production_id = ProductionId(self.next_production_id);
         self.next_production_id += 1;
-        
+
         let rule = Rule {
             lhs: lhs_id,
             rhs: rhs_symbols,
@@ -157,16 +175,23 @@ impl GrammarBuilder {
             fields: Vec::new(),
             production_id,
         };
-        
+
         self.rules.entry(lhs_id).or_default().push(rule);
         self
     }
 
     /// Add a rule with precedence
-    pub fn rule_with_precedence(mut self, lhs: &str, rhs: Vec<&str>, prec: i16, assoc: Associativity) -> Self {
+    pub fn rule_with_precedence(
+        mut self,
+        lhs: &str,
+        rhs: Vec<&str>,
+        prec: i16,
+        assoc: Associativity,
+    ) -> Self {
         let lhs_id = self.get_or_create_symbol(lhs);
-        
-        let rhs_symbols: Vec<Symbol> = rhs.iter()
+
+        let rhs_symbols: Vec<Symbol> = rhs
+            .iter()
             .map(|&name| {
                 let id = self.get_or_create_symbol(name);
                 if self.tokens.contains_key(&id) {
@@ -176,10 +201,10 @@ impl GrammarBuilder {
                 }
             })
             .collect();
-        
+
         let production_id = ProductionId(self.next_production_id);
         self.next_production_id += 1;
-        
+
         let rule = Rule {
             lhs: lhs_id,
             rhs: rhs_symbols,
@@ -188,7 +213,7 @@ impl GrammarBuilder {
             fields: Vec::new(),
             production_id,
         };
-        
+
         self.rules.entry(lhs_id).or_default().push(rule);
         self
     }
@@ -219,10 +244,11 @@ impl GrammarBuilder {
 
     /// Add a precedence declaration
     pub fn precedence(mut self, level: i16, assoc: Associativity, symbols: Vec<&str>) -> Self {
-        let symbol_ids: Vec<SymbolId> = symbols.iter()
+        let symbol_ids: Vec<SymbolId> = symbols
+            .iter()
             .map(|&s| self.get_or_create_symbol(s))
             .collect();
-        
+
         self.precedences.push(Precedence {
             level,
             associativity: assoc,
@@ -235,18 +261,18 @@ impl GrammarBuilder {
     pub fn build(mut self) -> Grammar {
         // If a start symbol was specified, ensure its rules come first
         let mut ordered_rules = IndexMap::new();
-        
+
         if let Some(start_id) = self.start_symbol {
             if let Some(rules) = self.rules.shift_remove(&start_id) {
                 ordered_rules.insert(start_id, rules);
             }
         }
-        
+
         // Add remaining rules
         for (id, rules) in self.rules {
             ordered_rules.insert(id, rules);
         }
-        
+
         Grammar {
             name: self.name,
             rules: ordered_rules,
@@ -279,8 +305,8 @@ impl GrammarBuilder {
             .token(")", ")")
             .token(":", ":")
             .token("NEWLINE", r"\n")
-            .token("INDENT", "INDENT")  // External scanner
-            .token("DEDENT", "DEDENT")  // External scanner
+            .token("INDENT", "INDENT") // External scanner
+            .token("DEDENT", "DEDENT") // External scanner
             .external("INDENT")
             .external("DEDENT")
             .extra("WHITESPACE")
@@ -293,7 +319,10 @@ impl GrammarBuilder {
             .rule("statement", vec!["function_def"])
             .rule("statement", vec!["pass", "NEWLINE"])
             // Function definition
-            .rule("function_def", vec!["def", "IDENTIFIER", "(", ")", ":", "suite"])
+            .rule(
+                "function_def",
+                vec!["def", "IDENTIFIER", "(", ")", ":", "suite"],
+            )
             // Suite with indentation
             .rule("suite", vec!["NEWLINE", "INDENT", "statements", "DEDENT"])
             .rule("statements", vec!["statement"])
@@ -330,9 +359,15 @@ impl GrammarBuilder {
             .rule("statement", vec!["function_declaration"])
             .rule("statement", vec!["expression_statement"])
             // Variable declaration
-            .rule("var_declaration", vec!["var", "IDENTIFIER", "=", "expression", ";"])
+            .rule(
+                "var_declaration",
+                vec!["var", "IDENTIFIER", "=", "expression", ";"],
+            )
             // Function declaration
-            .rule("function_declaration", vec!["function", "IDENTIFIER", "(", ")", "block"])
+            .rule(
+                "function_declaration",
+                vec!["function", "IDENTIFIER", "(", ")", "block"],
+            )
             // Block
             .rule("block", vec!["{", "}"])
             .rule("block", vec!["{", "statements", "}"])
@@ -341,10 +376,30 @@ impl GrammarBuilder {
             // Expression statement
             .rule("expression_statement", vec!["expression", ";"])
             // Expressions with precedence
-            .rule_with_precedence("expression", vec!["expression", "+", "expression"], 1, Associativity::Left)
-            .rule_with_precedence("expression", vec!["expression", "-", "expression"], 1, Associativity::Left)
-            .rule_with_precedence("expression", vec!["expression", "*", "expression"], 2, Associativity::Left)
-            .rule_with_precedence("expression", vec!["expression", "/", "expression"], 2, Associativity::Left)
+            .rule_with_precedence(
+                "expression",
+                vec!["expression", "+", "expression"],
+                1,
+                Associativity::Left,
+            )
+            .rule_with_precedence(
+                "expression",
+                vec!["expression", "-", "expression"],
+                1,
+                Associativity::Left,
+            )
+            .rule_with_precedence(
+                "expression",
+                vec!["expression", "*", "expression"],
+                2,
+                Associativity::Left,
+            )
+            .rule_with_precedence(
+                "expression",
+                vec!["expression", "/", "expression"],
+                2,
+                Associativity::Left,
+            )
             .rule("expression", vec!["IDENTIFIER"])
             .rule("expression", vec!["NUMBER"])
             .rule("expression", vec!["(", "expression", ")"])
@@ -374,29 +429,41 @@ mod tests {
     #[test]
     fn test_python_like_nullable_start() {
         let grammar = GrammarBuilder::python_like();
-        
+
         // Check that module has an empty production (nullable start)
-        let module_id = grammar.rule_names.iter()
+        let module_id = grammar
+            .rule_names
+            .iter()
             .find(|(_, name)| name.as_str() == "module")
             .map(|(id, _)| *id)
             .unwrap();
-        
+
         let module_rules = &grammar.rules[&module_id];
-        assert!(module_rules.iter().any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon)));
+        assert!(
+            module_rules
+                .iter()
+                .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon))
+        );
     }
 
     #[test]
     fn test_javascript_like_non_nullable() {
         let grammar = GrammarBuilder::javascript_like();
-        
+
         // Check that program does NOT have an empty production
-        let program_id = grammar.rule_names.iter()
+        let program_id = grammar
+            .rule_names
+            .iter()
             .find(|(_, name)| name.as_str() == "program")
             .map(|(id, _)| *id)
             .unwrap();
-        
+
         let program_rules = &grammar.rules[&program_id];
-        assert!(!program_rules.iter().any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon)));
+        assert!(
+            !program_rules
+                .iter()
+                .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon))
+        );
     }
 
     #[test]
@@ -411,27 +478,40 @@ mod tests {
             .start("expr")
             .build();
 
-        let expr_id = grammar.rule_names.iter()
+        let expr_id = grammar
+            .rule_names
+            .iter()
             .find(|(_, name)| name.as_str() == "expr")
             .map(|(id, _)| *id)
             .unwrap();
-        
+
         let expr_rules = &grammar.rules[&expr_id];
-        
+
         // Find the addition and multiplication rules
-        let add_rule = expr_rules.iter()
-            .find(|r| r.rhs.len() == 3 && 
-                  r.rhs.iter().any(|s| matches!(s, Symbol::Terminal(id) if grammar.tokens[id].name == "+")))
+        let add_rule = expr_rules
+            .iter()
+            .find(|r| {
+                r.rhs.len() == 3
+                    && r.rhs.iter().any(
+                        |s| matches!(s, Symbol::Terminal(id) if grammar.tokens[id].name == "+"),
+                    )
+            })
             .unwrap();
-        
-        let mul_rule = expr_rules.iter()
-            .find(|r| r.rhs.len() == 3 && 
-                  r.rhs.iter().any(|s| matches!(s, Symbol::Terminal(id) if grammar.tokens[id].name == "*")))
+
+        let mul_rule = expr_rules
+            .iter()
+            .find(|r| {
+                r.rhs.len() == 3
+                    && r.rhs.iter().any(
+                        |s| matches!(s, Symbol::Terminal(id) if grammar.tokens[id].name == "*"),
+                    )
+            })
             .unwrap();
-        
+
         // Check precedence
-        if let (Some(PrecedenceKind::Static(add_prec)), Some(PrecedenceKind::Static(mul_prec))) = 
-            (add_rule.precedence, mul_rule.precedence) {
+        if let (Some(PrecedenceKind::Static(add_prec)), Some(PrecedenceKind::Static(mul_prec))) =
+            (add_rule.precedence, mul_rule.precedence)
+        {
             assert!(add_prec < mul_prec);
         } else {
             panic!("Expected precedence to be set");

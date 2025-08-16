@@ -5,8 +5,8 @@
 #[cfg(all(feature = "test-helpers", not(feature = "strict-invariants")))]
 #[test]
 fn accept_via_insertion_at_eof_cost_is_one() {
-    use rust_sitter_glr_core::{Driver, ParseTable, Action, LexMode, ParseRule};
-    use rust_sitter_ir::{StateId, SymbolId, RuleId};
+    use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
+    use rust_sitter_ir::{RuleId, StateId, SymbolId};
     use std::collections::BTreeMap;
 
     // Minimal grammar: start -> LBRACE RBRACE
@@ -14,37 +14,37 @@ fn accept_via_insertion_at_eof_cost_is_one() {
         action_table: vec![
             // State 0: shift LBRACE to state 1
             vec![
-                vec![],  // ERROR column  
-                vec![Action::Shift(StateId(1))],  // LBRACE column
-                vec![],  // RBRACE column (END - last terminal)
-                vec![],  // EOF column
+                vec![],                          // ERROR column
+                vec![Action::Shift(StateId(1))], // LBRACE column
+                vec![],                          // RBRACE column (END - last terminal)
+                vec![],                          // EOF column
             ],
             // State 1: shift RBRACE to state 2, no action on EOF (triggers recovery)
             vec![
-                vec![],  // ERROR column
-                vec![],  // LBRACE column  
-                vec![Action::Shift(StateId(2))],  // RBRACE column (END - last terminal)
-                vec![],  // EOF column - empty to trigger recovery, violates parity but test needs it
+                vec![],                          // ERROR column
+                vec![],                          // LBRACE column
+                vec![Action::Shift(StateId(2))], // RBRACE column (END - last terminal)
+                vec![], // EOF column - empty to trigger recovery, violates parity but test needs it
             ],
             // State 2: reduce by rule 0 (accept)
             vec![
-                vec![],  // ERROR column
-                vec![],  // LBRACE column
-                vec![],  // RBRACE column (END - last terminal)
-                vec![Action::Reduce(RuleId(0))],  // EOF column - reduce by rule 0
+                vec![],                          // ERROR column
+                vec![],                          // LBRACE column
+                vec![],                          // RBRACE column (END - last terminal)
+                vec![Action::Reduce(RuleId(0))], // EOF column - reduce by rule 0
             ],
             // State 3: accept state
             vec![
-                vec![],  // ERROR column
-                vec![],  // LBRACE column
-                vec![],  // RBRACE column (END - last terminal)
-                vec![Action::Accept],  // EOF column - accept
+                vec![],               // ERROR column
+                vec![],               // LBRACE column
+                vec![],               // RBRACE column (END - last terminal)
+                vec![Action::Accept], // EOF column - accept
             ],
         ],
         goto_table: vec![
             // State 0 gotos (indexed by nonterminal_to_index)
-            vec![StateId(3)],  // Symbol 4 (start) at index 0 -> go to state 3 (accept state)
-            // State 1 gotos  
+            vec![StateId(3)], // Symbol 4 (start) at index 0 -> go to state 3 (accept state)
+            // State 1 gotos
             vec![],
             // State 2 gotos
             vec![],
@@ -52,31 +52,40 @@ fn accept_via_insertion_at_eof_cost_is_one() {
             vec![],
         ],
         rules: vec![
-            ParseRule { lhs: SymbolId(4), rhs_len: 2 },  // Rule 0: start -> LBRACE RBRACE
+            ParseRule {
+                lhs: SymbolId(4),
+                rhs_len: 2,
+            }, // Rule 0: start -> LBRACE RBRACE
         ],
-        state_count: 4,  // States 0, 1, 2, 3
+        state_count: 4, // States 0, 1, 2, 3
         symbol_count: 5,
         symbol_to_index: {
             let mut map = BTreeMap::new();
-            map.insert(SymbolId(0), 0);  // ERROR at index 0
-            map.insert(SymbolId(1), 1);  // LBRACE at index 1  
-            map.insert(SymbolId(2), 2);  // RBRACE at index 2
-            map.insert(SymbolId(3), 3);  // EOF at index 3
+            map.insert(SymbolId(0), 0); // ERROR at index 0
+            map.insert(SymbolId(1), 1); // LBRACE at index 1  
+            map.insert(SymbolId(2), 2); // RBRACE at index 2
+            map.insert(SymbolId(3), 3); // EOF at index 3
             map
         },
         external_scanner_states: vec![],
         nonterminal_to_index: {
             let mut map = BTreeMap::new();
-            map.insert(SymbolId(4), 0);  // start symbol at index 0
+            map.insert(SymbolId(4), 0); // start symbol at index 0
             map
         },
-        eof_symbol: SymbolId(3),  // EOF = token_count + external_token_count
+        eof_symbol: SymbolId(3), // EOF = token_count + external_token_count
         start_symbol: SymbolId(4),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
-        token_count: 3,  // ERROR, LBRACE, RBRACE
+        token_count: 3, // ERROR, LBRACE, RBRACE
         external_token_count: 0,
-        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 4],
+        lex_modes: vec![
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0
+            };
+            4
+        ],
         extras: vec![],
         dynamic_prec_by_rule: vec![0],
         alias_sequences: vec![],
@@ -86,18 +95,18 @@ fn accept_via_insertion_at_eof_cost_is_one() {
     };
 
     let mut driver = Driver::new(&parse_table);
-    
+
     // Feed tokens: LBRACE then EOF (missing RBRACE)
     let result = driver.parse_tokens([
-        (1u32, 0u32, 1u32),  // LBRACE at position 0-1
-        (3u32, 1u32, 1u32),  // EOF at position 1-1
+        (1u32, 0u32, 1u32), // LBRACE at position 0-1
+        (3u32, 1u32, 1u32), // EOF at position 1-1
     ]);
-    
+
     match result {
         Ok(forest) => {
             // Get error stats
             let (has_error, missing, cost) = forest.debug_error_stats();
-            
+
             // Should have exactly 1 missing terminal (RBRACE) with cost = 1
             assert!(
                 !has_error,
@@ -108,12 +117,8 @@ fn accept_via_insertion_at_eof_cost_is_one() {
                 "Should have exactly 1 missing terminal (RBRACE), got {}",
                 missing
             );
-            assert_eq!(
-                cost, 1,
-                "Single insertion should have cost=1, got {}",
-                cost
-            );
-            
+            assert_eq!(cost, 1, "Single insertion should have cost=1, got {}", cost);
+
             println!("✓ Accept-via-insertion at EOF correctly has cost=1");
         }
         Err(e) => {

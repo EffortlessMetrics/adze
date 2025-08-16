@@ -28,7 +28,12 @@ pub(crate) struct TreeNode {
 
 impl TreeNode {
     /// Create a new tree node with children
-    pub(crate) fn new_with_children(symbol: u32, start_byte: usize, end_byte: usize, children: Vec<TreeNode>) -> Self {
+    pub(crate) fn new_with_children(
+        symbol: u32,
+        start_byte: usize,
+        end_byte: usize,
+        children: Vec<TreeNode>,
+    ) -> Self {
         Self {
             symbol,
             start_byte,
@@ -48,12 +53,12 @@ impl Tree {
             source: None,
         }
     }
-    
+
     /// Get the root node's kind
     pub fn root_kind(&self) -> u32 {
         self.root.symbol
     }
-    
+
     /// Create a stub tree for testing
     pub fn new_stub() -> Self {
         Self {

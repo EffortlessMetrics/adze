@@ -52,12 +52,14 @@ impl Forest {
     pub fn view(&self) -> &dyn ForestView {
         &*self.view
     }
-    
+
     /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
     /// Only available in test builds. Not part of the stable runtime API.
     #[cfg(any(test, feature = "test-helpers"))]
     pub fn debug_error_stats(&self) -> (bool, usize, u32) {
-        let hooks = self.test_hooks.as_ref()
+        let hooks = self
+            .test_hooks
+            .as_ref()
             .expect("Forest built without test hooks");
         hooks.error_stats
     }

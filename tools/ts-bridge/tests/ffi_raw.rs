@@ -12,19 +12,19 @@ fn test_raw_ffi_linking() {
         let lang_fn = tree_sitter_json::LANGUAGE.into_raw();
         let lang = lang_fn() as *const ffi::TSLanguage;
         assert!(!lang.is_null());
-        
+
         // Try to get some basic counts
         let mut symc = 0u32;
         let mut stc = 0u32;
         let mut tokc = 0u32;
         let mut extc = 0u32;
-        
+
         ffi::tsb_counts(lang, &mut symc, &mut stc, &mut tokc, &mut extc);
-        
+
         // JSON grammar should have symbols and states
         assert!(symc > 0, "Expected symbols, got {}", symc);
         assert!(stc > 0, "Expected states, got {}", stc);
-        
+
         // Try to get symbol names for a few symbols
         for i in 0..5.min(symc) {
             let name_ptr = ffi::tsb_symbol_name(lang, i);
@@ -32,7 +32,7 @@ fn test_raw_ffi_linking() {
             let name = std::ffi::CStr::from_ptr(name_ptr).to_str().unwrap();
             println!("Symbol {}: {}", i, name);
         }
-        
+
         // Test table entry access (state 0, symbol 1)
         let mut hdr = ffi::TsbEntryHeader {
             count: 0,
@@ -40,8 +40,11 @@ fn test_raw_ffi_linking() {
             action_index: 0,
         };
         let entry = ffi::tsb_table_entry(lang, 0, 1, &mut hdr);
-        println!("Entry for state 0, symbol 1: index={}, count={}", entry, hdr.count);
-        
+        println!(
+            "Entry for state 0, symbol 1: index={}, count={}",
+            entry, hdr.count
+        );
+
         // Test next state function
         let next = ffi::tsb_next_state(lang, 0, 1);
         println!("Next state from 0 on symbol 1: {}", next);

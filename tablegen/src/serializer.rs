@@ -328,15 +328,7 @@ mod tests {
             },
         );
 
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 1,
-            symbol_count: 4,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::empty_table!(states: 1, terms: 3, nonterms: 0);
 
         let language = build_serializable_language(&grammar, &parse_table, None);
 
@@ -356,15 +348,7 @@ mod tests {
         grammar.fields.insert(FieldId(1), "apple".to_string());
         grammar.fields.insert(FieldId(2), "mango".to_string());
 
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 1,
-            symbol_count: 1,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::empty_table!(states: 1, terms: 0, nonterms: 0);
 
         let language = build_serializable_language(&grammar, &parse_table, None);
 

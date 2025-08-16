@@ -1,6 +1,7 @@
 // Common crate is pure-Rust - no unsafe needed
 #![forbid(unsafe_code)]
-#![warn(missing_docs)]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 //! Shared utilities for rust-sitter macro and tool crates
 

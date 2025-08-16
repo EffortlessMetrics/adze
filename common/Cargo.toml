@@ -13,6 +13,9 @@ categories = ["development-tools"]
 [lib]
 path = "src/lib.rs"
 
+[features]
+strict_docs = [] # Enable strict documentation requirements
+
 [dependencies]
 syn = { version = "2", features = [ "full", "extra-traits" ] }
 quote = "1"

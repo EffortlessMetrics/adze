@@ -13,7 +13,7 @@ pub struct ScanResult {
 pub trait ExternalScanner: Send + Sync {
     /// Initialize the scanner
     fn init(&mut self);
-    
+
     /// Scan for a token
     ///
     /// # Arguments
@@ -24,10 +24,10 @@ pub trait ExternalScanner: Send + Sync {
     /// * `Some(ScanResult)` if a token was found
     /// * `None` if no external token matches
     fn scan(&mut self, valid_symbols: &[bool], input: &[u8]) -> Option<ScanResult>;
-    
+
     /// Serialize scanner state for incremental parsing
     fn serialize(&self) -> Vec<u8>;
-    
+
     /// Deserialize scanner state for incremental parsing
     fn deserialize(&mut self, data: &[u8]);
 }
@@ -59,7 +59,7 @@ pub struct TSExternalScannerVTable {
     pub serialize: unsafe extern "C" fn(
         *const std::os::raw::c_void,
         *mut u8, // buffer
-    ) -> u32,    // bytes written
+    ) -> u32, // bytes written
     /// Deserialize scanner state
     pub deserialize: unsafe extern "C" fn(
         *mut std::os::raw::c_void,
@@ -80,11 +80,11 @@ impl ExternalScanner for IndentationScanner {
         self.indent_stack.clear();
         self.indent_stack.push(0);
     }
-    
+
     fn scan(&mut self, _valid_symbols: &[bool], input: &[u8]) -> Option<ScanResult> {
         // Simple example: count leading spaces
         let indent = input.iter().take_while(|&&b| b == b' ').count() as u32;
-        
+
         if indent > *self.indent_stack.last()? {
             // INDENT token
             self.indent_stack.push(indent);
@@ -105,7 +105,7 @@ impl ExternalScanner for IndentationScanner {
             None
         }
     }
-    
+
     fn serialize(&self) -> Vec<u8> {
         // Serialize indent stack
         let mut data = Vec::new();
@@ -115,7 +115,7 @@ impl ExternalScanner for IndentationScanner {
         }
         data
     }
-    
+
     fn deserialize(&mut self, data: &[u8]) {
         // Deserialize indent stack
         if data.len() >= 4 {

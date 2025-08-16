@@ -5,21 +5,23 @@ use rust_sitter_runtime::{Language, Parser};
 fn main() {
     // Create a parser
     let mut parser = Parser::new();
-    
+
     // In a real scenario, you'd load a language from a generated crate
     // For now, we use a stub
     let language = Language::new_stub();
-    
+
     // Set the language
-    parser.set_language(language).expect("Failed to set language");
-    
+    parser
+        .set_language(language)
+        .expect("Failed to set language");
+
     // Parse some input (will return a stub tree for now)
     let input = "def hello():\n    print('Hello, world!')";
     match parser.parse_utf8(input, None) {
         Ok(tree) => {
             println!("Parse successful!");
             println!("Root node: {:?}", tree.root_node());
-            
+
             // In a real implementation, you could walk the tree
             let root = tree.root_node();
             println!("Node kind: {}", root.kind());
@@ -30,11 +32,12 @@ fn main() {
             eprintln!("Parse failed: {}", e);
         }
     }
-    
+
     // Example of incremental parsing (when implemented)
     println!("\nIncremental parsing example:");
     let edited_input = "def hello():\n    print('Hello, Rust!')";
-    match parser.parse_utf8(edited_input, None) {  // Would pass old_tree in real usage
+    match parser.parse_utf8(edited_input, None) {
+        // Would pass old_tree in real usage
         Ok(_tree) => println!("Incremental parse successful!"),
         Err(e) => eprintln!("Incremental parse failed: {}", e),
     }

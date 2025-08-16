@@ -17,19 +17,19 @@ extern "C" {
 #[test]
 fn test_raw_lookup_parity() {
     let lptr = unsafe { tree_sitter_json() };
-    
+
     // Test a few state/symbol pairs - these are internal details
     // that could change between tree-sitter versions
     let test_cases = vec![
-        (0, 0),    // State 0, symbol 0
-        (0, 1),    // State 0, symbol 1
-        (1, 0),    // State 1, symbol 0
+        (0, 0), // State 0, symbol 0
+        (0, 1), // State 0, symbol 1
+        (1, 0), // State 1, symbol 0
     ];
-    
+
     for (state, symbol) in test_cases {
         let action = unsafe { tsb_lookup(lptr, state, symbol) };
         eprintln!("ts_language_lookup({state}, {symbol}) = 0x{action:08x}");
-        
+
         // Just verify we get some value (not testing exact values as they're internal)
         // The important thing is that we can call the function
     }
@@ -38,18 +38,18 @@ fn test_raw_lookup_parity() {
 #[test]
 fn test_raw_next_state_parity() {
     let lptr = unsafe { tree_sitter_json() };
-    
+
     // Test a few state/symbol pairs
     let test_cases = vec![
-        (0, 0),    // State 0, symbol 0
-        (0, 1),    // State 0, symbol 1
-        (1, 0),    // State 1, symbol 0
+        (0, 0), // State 0, symbol 0
+        (0, 1), // State 0, symbol 1
+        (1, 0), // State 1, symbol 0
     ];
-    
+
     for (state, symbol) in test_cases {
         let next = unsafe { tsb_next_state(lptr, state, symbol) };
         eprintln!("ts_language_next_state({state}, {symbol}) = {next}");
-        
+
         // Just verify we get some value
         // These are internal details that vary between grammars
     }

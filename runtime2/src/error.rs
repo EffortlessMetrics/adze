@@ -19,36 +19,36 @@ pub enum ParseErrorKind {
     /// No language was set on the parser
     #[error("no language set")]
     NoLanguage,
-    
+
     /// Parse timeout exceeded
     #[error("parse timeout exceeded")]
     Timeout,
-    
+
     /// Invalid input encoding
     #[error("invalid input encoding")]
     InvalidEncoding,
-    
+
     /// Parse was cancelled
     #[error("parse cancelled")]
     Cancelled,
-    
+
     /// Language version mismatch
     #[error("language version mismatch: expected {expected}, got {actual}")]
     VersionMismatch { expected: u32, actual: u32 },
-    
+
     /// Syntax error in input
     #[error("syntax error at {0}")]
     SyntaxError(String),
-    
+
     /// External scanner error
     #[cfg(feature = "external-scanners")]
     #[error("external scanner error: {0}")]
     ExternalScannerError(String),
-    
+
     /// Memory allocation failure
     #[error("memory allocation failed")]
     AllocationError,
-    
+
     /// Other error with custom message
     #[error("{0}")]
     Other(String),
@@ -73,7 +73,7 @@ impl ParseError {
             location: None,
         }
     }
-    
+
     /// Create a timeout error
     pub fn timeout() -> Self {
         Self {
@@ -81,7 +81,7 @@ impl ParseError {
             location: None,
         }
     }
-    
+
     /// Create a syntax error with location
     pub fn syntax_error(message: impl Into<String>, location: ErrorLocation) -> Self {
         Self {
@@ -89,13 +89,13 @@ impl ParseError {
             location: Some(location),
         }
     }
-    
+
     /// Add location information to this error
     pub fn with_location(mut self, location: ErrorLocation) -> Self {
         self.location = Some(location);
         self
     }
-    
+
     /// Create an error with a custom message
     pub fn with_msg(msg: &str) -> Self {
         Self {

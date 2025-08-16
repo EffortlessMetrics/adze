@@ -4,6 +4,8 @@
 #![cfg(test)]
 #![allow(unused_imports, dead_code)]
 
+mod common;
+
 use rust_sitter::error_recovery::ErrorRecoveryConfig;
 use rust_sitter::glr_parser::{GLRParser, ParseStack};
 use rust_sitter::parser_v4::{Parser, Tree};
@@ -187,18 +189,74 @@ fn create_conflicting_parse_table() -> ParseTable {
     let mut symbol_to_index = BTreeMap::new();
     symbol_to_index.insert(SYM_EOF, 0); // EOF
     symbol_to_index.insert(SYM_NUMBER, 1); // num
-    symbol_to_index.insert(SYM_PLUS, 2); // plus
-    symbol_to_index.insert(SYM_STAR, 3); // mult
-    symbol_to_index.insert(SYM_EXPR, 0); // expr (for goto table)
+    // Create parse rules for the table
+    // These correspond to the grammar rules created in create_ambiguous_grammar
+    let rules = vec![
+        rust_sitter_glr_core::ParseRule {
+            lhs: SYM_EXPR,
+            rhs_len: 1, // E -> num
+        },
+        rust_sitter_glr_core::ParseRule {
+            lhs: SYM_EXPR,
+            rhs_len: 3, // E -> E + E
+        },
+        rust_sitter_glr_core::ParseRule {
+            lhs: SYM_EXPR,
+            rhs_len: 3, // E -> E * E
+        },
+    ];
+
+    // Build symbol maps
+    let mut symbol_to_index: BTreeMap<SymbolId, usize> = BTreeMap::new();
+    for i in 0..11 {
+        symbol_to_index.insert(SymbolId(i as u16), i);
+    }
+
+    let mut nonterminal_to_index: BTreeMap<SymbolId, usize> = BTreeMap::new();
+    nonterminal_to_index.insert(SYM_EXPR, SYM_EXPR.0 as usize);
 
     ParseTable {
         action_table,
         goto_table,
-        symbol_metadata: vec![],
-        state_count: 10,
+        rules,
+
+        // State and symbol counts
+        state_count: action_table.len(),
         symbol_count: 11,
+
+        // Symbol bookkeeping
         symbol_to_index,
-        external_scanner_states: vec![], // Add the missing field
+        nonterminal_to_index,
+        symbol_metadata: vec![],
+
+        // Token layout / sentinels
+        token_count: 9,
+        external_token_count: 0,
+        eof_symbol: SymbolId(10),
+        start_symbol: SYM_EXPR,
+
+        // Parsing config
+        initial_state: StateId(0),
+
+        // Lexing config
+        lex_modes: vec![
+            rust_sitter_glr_core::LexMode {
+                lex_state: 0,
+                external_lex_state: 0
+            };
+            action_table.len()
+        ],
+        extras: vec![],
+        external_scanner_states: vec![],
+
+        // Advanced features (unused in tests)
+        dynamic_prec_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: BTreeMap::new(),
+
+        // Grammar metadata
+        grammar: Grammar::default(),
     }
 }
 

@@ -14,7 +14,10 @@ pub struct Node<'tree> {
 
 impl<'tree> Node<'tree> {
     /// Create a new node (internal use)
-    pub(crate) fn new(_node: &'tree impl std::any::Any, _language: Option<&'tree Language>) -> Self {
+    pub(crate) fn new(
+        _node: &'tree impl std::any::Any,
+        _language: Option<&'tree Language>,
+    ) -> Self {
         Self {
             _data: &(),
             _language,

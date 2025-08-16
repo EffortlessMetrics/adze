@@ -29,15 +29,23 @@ fn runtime_parses_empty_object() {
     let mut p = Parser::new();
     p.set_language(&ts_json::LANGUAGE.into()).unwrap();
     let tree = p.parse("{}", None).expect("parse returned None");
-    assert!(!tree.root_node().has_error(), "runtime reported a syntax error for {{}}");
+    assert!(
+        !tree.root_node().has_error(),
+        "runtime reported a syntax error for {{}}"
+    );
 }
 
 #[test]
 fn runtime_parses_single_pair() {
     let mut p = Parser::new();
     p.set_language(&ts_json::LANGUAGE.into()).unwrap();
-    let tree = p.parse(r#"{"key":"value"}"#, None).expect("parse returned None");
-    assert!(!tree.root_node().has_error(), "runtime reported a syntax error on single pair");
+    let tree = p
+        .parse(r#"{"key":"value"}"#, None)
+        .expect("parse returned None");
+    assert!(
+        !tree.root_node().has_error(),
+        "runtime reported a syntax error on single pair"
+    );
 }
 
 #[test]

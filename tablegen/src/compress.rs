@@ -164,6 +164,7 @@ impl TableCompressor {
             }
             _ => {
                 // Unknown action type - treat as error
+                crate::util::unexpected_action(action, "encode_action_as_u16");
                 Ok(0xFFFE)
             }
         }
@@ -194,7 +195,6 @@ impl TableCompressor {
     /// # Breaking Change Note
     /// This function signature changed to include `token_indices` and `start_can_be_empty` parameters
     /// to properly handle nullable start symbols and GLR multi-action cells.
-    #[must_use]
     pub fn compress(
         &self,
         parse_table: &ParseTable,
@@ -232,18 +232,18 @@ impl TableCompressor {
 
         // Validation: Ensure state 0 has at least one token shift action
         // This catches the "state 0 bug" where no tokens can be shifted from the initial state
-        if let Some(state0_actions) = parse_table.action_table.get(0) {
+        if let Some(state0_actions) = parse_table.action_table.first() {
             // Check if any token column has a shift action
             let has_token_shift = token_indices.iter().any(|&idx| {
-                state0_actions.get(idx).map_or(false, |cell| {
-                    cell.iter().any(|a| matches!(a, Action::Shift(_)))
-                })
+                state0_actions
+                    .get(idx)
+                    .is_some_and(|cell| cell.iter().any(|a| matches!(a, Action::Shift(_))))
             });
 
             // If no token shifts, and start is nullable, allow ACCEPT/REDUCE on EOF column
             let eof_ok = !has_token_shift
                 && start_can_be_empty
-                && state0_actions.get(eof_idx).map_or(false, |cell| {
+                && state0_actions.get(eof_idx).is_some_and(|cell| {
                     cell.iter()
                         .any(|a| matches!(a, Action::Accept | Action::Reduce(_)))
                 });
@@ -261,6 +261,7 @@ impl TableCompressor {
 
                 // Show the actual state-0 actions
                 debug_info.push_str("State 0 actions (first 12 columns):\n");
+                #[allow(clippy::needless_range_loop)]
                 for idx in 0..state0_actions.len().min(12) {
                     let cell = &state0_actions[idx];
 
@@ -332,10 +333,7 @@ impl TableCompressor {
     }
 
     /// Compress using Tree-sitter's "small table" optimization
-    fn compress_small_table(
-        &self,
-        parse_table: &ParseTable,
-    ) -> Result<CompressedTables> {
+    fn compress_small_table(&self, parse_table: &ParseTable) -> Result<CompressedTables> {
         let compressed_action_table = self
             .compress_action_table_small(&parse_table.action_table, &parse_table.symbol_to_index)?;
         let compressed_goto_table = self.compress_goto_table_small(&parse_table.goto_table)?;
@@ -348,10 +346,7 @@ impl TableCompressor {
     }
 
     /// Compress using large table optimization
-    fn compress_large_table(
-        &self,
-        parse_table: &ParseTable,
-    ) -> Result<CompressedTables> {
+    fn compress_large_table(&self, parse_table: &ParseTable) -> Result<CompressedTables> {
         // For now, use the same as small table
         self.compress_small_table(parse_table)
     }
@@ -372,7 +367,7 @@ impl TableCompressor {
             index_to_symbol.insert(index, symbol_id);
         }
 
-        for (_state_idx, action_row) in action_table.iter().enumerate() {
+        for action_row in action_table.iter() {
             // Find the most common action across all cells
             let mut action_counts: HashMap<Action, usize> = HashMap::new();
             let mut has_shift = false;
@@ -534,15 +529,14 @@ mod tests {
 
     #[test]
     fn test_compressed_parse_table_from_parse_table() {
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            symbol_count: 5,
-            state_count: 10,
-            symbol_to_index: Default::default(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![]; 5]; 10], // 10 states, 5 symbols
+            vec![vec![crate::test_helpers::test::INVALID; 5]; 10],
+            vec![],
+            SymbolId(2), // start_symbol
+            SymbolId(1), // eof_symbol (must be > 0)
+            0,           // external_token_count
+        );
 
         let compressed = CompressedParseTable::from_parse_table(&parse_table);
         assert_eq!(compressed.symbol_count(), 5);
@@ -638,15 +632,14 @@ mod tests {
             small_table_threshold: 32768,
         };
 
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            symbol_count: 0,
-            state_count: 0,
-            symbol_to_index: Default::default(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![]]], // 1 state, 1 symbol (minimum required)
+            vec![vec![crate::test_helpers::test::INVALID]], // 1 state, 1 symbol
+            vec![],             // 0 rules
+            SymbolId(1),        // start_symbol
+            SymbolId(1),        // eof_symbol (must be >= 1)
+            0,                  // external_token_count
+        );
         let result = tables.validate(&parse_table);
         assert!(result.is_ok());
     }

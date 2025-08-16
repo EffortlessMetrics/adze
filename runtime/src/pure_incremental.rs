@@ -86,6 +86,7 @@ impl Tree {
         nodes
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn collect_reusable_nodes(&self, node: &ParsedNode, nodes: &mut Vec<ReusableNode>) {
         // Add this node as reusable
         nodes.push(ReusableNode {

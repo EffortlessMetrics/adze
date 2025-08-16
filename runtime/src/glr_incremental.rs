@@ -155,11 +155,11 @@ fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
 /// This function bridges between the public parser_v4 API and the internal
 /// GLR incremental parsing implementation.
 pub fn reparse(
-    grammar: &Grammar,
-    table: &ParseTable,
-    source: &[u8],
-    old_tree: &crate::parser_v4::Tree,
-    edit: &crate::pure_incremental::Edit,
+    _grammar: &Grammar,
+    _table: &ParseTable,
+    _source: &[u8],
+    _old_tree: &crate::parser_v4::Tree,
+    _edit: &crate::pure_incremental::Edit,
 ) -> Option<crate::parser_v4::Tree> {
     // Only enable incremental parsing if the feature is enabled
     #[cfg(feature = "incremental_glr")]
@@ -582,7 +582,7 @@ impl IncrementalGLRParser {
                 } else {
                     // Multiple parse trees - ambiguous grammar!
                     let mut alternatives = Vec::new();
-                    for (_i, tree) in trees.iter().enumerate() {
+                    for tree in trees.iter() {
                         let fork_id = self.fork_tracker.create_fork(Some(initial_fork));
                         let forest = self.subtree_to_forest_recursive(tree.clone(), fork_id);
                         alternatives.push(ForkAlternative {
@@ -786,7 +786,7 @@ impl IncrementalGLRParser {
         }
     }
 
-    /// Create a parser initialized from a GSS snapshot
+    // Create a parser initialized from a GSS snapshot
     // GSS snapshot methods removed - replaced with direct forest splicing
 
     /// Extract reusable prefix and suffix nodes from the old forest

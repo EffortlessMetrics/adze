@@ -180,11 +180,11 @@ impl<'a> LanguageGenerator<'a> {
         let mut metadata = vec![0u8; symbol_count];
 
         // Mark visible symbols
-        for i in 0..symbol_count {
+        for item in metadata.iter_mut().take(symbol_count) {
             // For now, mark all symbols as visible
             // Bit 0: visible
             // Bit 1: named
-            metadata[i] = 0b11;
+            *item = 0b11;
         }
 
         metadata
@@ -354,15 +354,7 @@ mod tests {
         grammar.tokens.insert(SymbolId(1), num_token);
 
         // Create a simple parse table
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 10,
-            symbol_count: 5,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::empty_table!(states: 10, terms: 4, nonterms: 0);
 
         let generator = LanguageGenerator::new(&grammar, &parse_table);
         let output = generator.generate();

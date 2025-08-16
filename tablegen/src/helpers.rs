@@ -91,7 +91,7 @@ pub fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
     let state0 = &parse_table.action_table[0];
 
     // Check if EOF column exists and has Accept or Reduce actions
-    state0.get(eof_idx).map_or(false, |cell| {
+    state0.get(eof_idx).is_some_and(|cell| {
         cell.iter()
             .any(|action| matches!(action, Action::Accept | Action::Reduce(_)))
     })
@@ -106,33 +106,65 @@ mod tests {
 
     #[test]
     fn test_collect_token_indices() {
-        let grammar = Grammar::default();
-        let mut parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 0,
-            symbol_count: 5,
-            symbol_to_index: BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let mut grammar = Grammar::default();
+        let mut parse_table = crate::empty_table!(states: 1, terms: 4, nonterms: 0);
+        // empty_table puts EOF at column 5 (1 + 4 terms)
+        let eof_col = 5;
 
-        // Add some symbols to the mapping
-        parse_table.symbol_to_index.insert(SymbolId(0), 0); // EOF - always present
+        // Add tokens to the grammar
+        use rust_sitter_ir::{Token, TokenPattern};
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "token1".to_string(),
+                pattern: TokenPattern::String("a".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.tokens.insert(
+            SymbolId(2),
+            Token {
+                name: "token2".to_string(),
+                pattern: TokenPattern::String("b".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.tokens.insert(
+            SymbolId(3),
+            Token {
+                name: "token3".to_string(),
+                pattern: TokenPattern::String("c".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.tokens.insert(
+            SymbolId(4),
+            Token {
+                name: "token4".to_string(),
+                pattern: TokenPattern::String("d".to_string()),
+                fragile: false,
+            },
+        );
+
+        // Replace the default mapping with our test values
+        parse_table.symbol_to_index.clear();
+        parse_table.symbol_to_index.insert(SymbolId(0), eof_col); // EOF at its standard position
         parse_table.symbol_to_index.insert(SymbolId(1), 3); // Some token at column 3
         parse_table.symbol_to_index.insert(SymbolId(2), 1); // Another token at column 1
         parse_table.symbol_to_index.insert(SymbolId(3), 3); // Duplicate column (should be deduped)
+        parse_table.symbol_count = 7; // Adjusted for new layout
         parse_table.symbol_to_index.insert(SymbolId(4), 2); // Token at column 2
 
         let indices = collect_token_indices(&grammar, &parse_table);
 
-        // Should be sorted, deduped, and always contain EOF (0)
-        assert_eq!(indices, vec![0, 1, 2, 3]);
+        // Should be sorted, deduped, and always contain EOF
+        assert_eq!(indices, vec![1, 2, 3, eof_col]);
 
         // Verify EOF is always included
         assert!(
-            indices.contains(&0),
-            "Token indices must always include EOF column (0)"
+            indices.contains(&eof_col),
+            "Token indices must always include EOF column ({})",
+            eof_col
         );
 
         // Verify sorted
@@ -149,18 +181,12 @@ mod tests {
     #[test]
     fn test_collect_token_indices_empty() {
         let grammar = Grammar::default();
-        let mut parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 0,
-            symbol_count: 1,
-            symbol_to_index: BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let mut parse_table = crate::empty_table!(states: 1, terms: 0, nonterms: 0);
 
-        // Only EOF in the mapping
+        // Replace the default mapping with just EOF
+        parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
+        parse_table.symbol_count = 1;
 
         let indices = collect_token_indices(&grammar, &parse_table);
 

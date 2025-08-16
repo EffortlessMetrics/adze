@@ -1,9 +1,12 @@
 //! Benchmarks for table compression performance
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::builder::GrammarBuilder;
-use rust_sitter_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
+use rust_sitter_tablegen::{
+    TableCompressor,
+    helpers::{collect_token_indices, eof_accepts_or_reduces},
+};
 
 /// Benchmark small grammar compression
 fn bench_small_grammar(c: &mut Criterion) {
@@ -44,10 +47,30 @@ fn bench_arithmetic_grammar(c: &mut Criterion) {
         .token(")", ")")
         .extra("WHITESPACE")
         .token("WHITESPACE", r"[ \t\n]+")
-        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, rust_sitter_ir::Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "-", "expr"], 1, rust_sitter_ir::Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "*", "expr"], 2, rust_sitter_ir::Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "/", "expr"], 2, rust_sitter_ir::Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "+", "expr"],
+            1,
+            rust_sitter_ir::Associativity::Left,
+        )
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "-", "expr"],
+            1,
+            rust_sitter_ir::Associativity::Left,
+        )
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "*", "expr"],
+            2,
+            rust_sitter_ir::Associativity::Left,
+        )
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "/", "expr"],
+            2,
+            rust_sitter_ir::Associativity::Left,
+        )
         .rule("expr", vec!["(", "expr", ")"])
         .rule("expr", vec!["NUMBER"])
         .start("expr")
@@ -120,12 +143,12 @@ fn bench_table_size_scaling(c: &mut Criterion) {
     for size in [10, 20, 50, 100].iter() {
         // Create a grammar with N rules
         let mut builder = GrammarBuilder::new(&format!("size_{}", size));
-        
+
         // Add tokens
         for i in 0..*size {
             builder = builder.token(&format!("T{}", i), &format!("t{}", i));
         }
-        
+
         // Add rules
         builder = builder.rule("start", vec!["rule0"]);
         for i in 0..size - 1 {
@@ -134,29 +157,28 @@ fn bench_table_size_scaling(c: &mut Criterion) {
             let token = format!("T{}", i);
             builder = builder.rule(&rule_name, vec![&token, &next_rule]);
         }
-        builder = builder.rule(&format!("rule{}", size - 1), vec![&format!("T{}", size - 1)]);
-        
+        builder = builder.rule(
+            &format!("rule{}", size - 1),
+            vec![&format!("T{}", size - 1)],
+        );
+
         let grammar = builder.start("start").build();
         let first_follow = FirstFollowSets::compute(&grammar);
         let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
         let token_indices = collect_token_indices(&grammar, &parse_table);
         let start_nullable = eof_accepts_or_reduces(&parse_table);
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            size,
-            |b, _| {
-                b.iter(|| {
-                    let compressor = TableCompressor::new();
-                    let compressed = compressor.compress(
-                        black_box(&parse_table),
-                        black_box(&token_indices),
-                        black_box(start_nullable),
-                    );
-                    compressed
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, _| {
+            b.iter(|| {
+                let compressor = TableCompressor::new();
+                let compressed = compressor.compress(
+                    black_box(&parse_table),
+                    black_box(&token_indices),
+                    black_box(start_nullable),
+                );
+                compressed
+            })
+        });
     }
     group.finish();
 }

@@ -204,12 +204,12 @@ impl<'tree> GLRNode<'tree> {
             // Non-leaf node
             let mut result = format!("{}({}", indent, self.kind());
 
-            for (i, edge) in self.subtree.children.iter().enumerate() {
+            for edge in self.subtree.children.iter() {
                 result.push('\n');
 
                 // Add field name if present
                 if edge.field_id != crate::subtree::FIELD_NONE {
-                    if let Some((field_id, field_name)) = self
+                    if let Some((_field_id, field_name)) = self
                         .tree
                         .grammar
                         .fields
@@ -222,7 +222,7 @@ impl<'tree> GLRNode<'tree> {
                             tree: self.tree,
                         }
                         .to_sexp_internal(0);
-                        result.push_str(&child_sexp.trim_start());
+                        result.push_str(child_sexp.trim_start());
                     } else {
                         let child_sexp = GLRNode {
                             subtree: edge.subtree.clone(),

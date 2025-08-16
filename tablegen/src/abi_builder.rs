@@ -786,6 +786,7 @@ impl<'a> AbiLanguageBuilder<'a> {
     }
 
     /// Encode an action as u16
+    #[allow(clippy::only_used_in_recursion)]
     fn encode_action(&self, action: &Action) -> Result<u16, String> {
         match action {
             Action::Shift(state) => Ok(state.0),
@@ -821,6 +822,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             }
             _ => {
                 // Unknown action type - treat as error
+                crate::util::unexpected_action(action, "encode_action");
                 Ok(0)
             }
         }
@@ -1267,15 +1269,12 @@ mod tests {
         symbol_to_index.insert(SymbolId(1), 1); // token1
         symbol_to_index.insert(SymbolId(5), 2); // token5
 
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 1,
-            symbol_count: 3,
-            symbol_to_index,
-            external_scanner_states: vec![],
-        };
+        // Create a minimal parse table for testing
+        let mut parse_table = crate::empty_table!(states: 1, terms: 2, nonterms: 0);
+
+        // Override the symbol mapping for the test
+        parse_table.symbol_to_index = symbol_to_index;
+        parse_table.symbol_count = 3;
 
         let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
         let (names, _) = builder.generate_symbol_names();

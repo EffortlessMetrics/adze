@@ -1,11 +1,11 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::builder::GrammarBuilder;
 
 fn small_nullable() -> rust_sitter_ir::Grammar {
     GrammarBuilder::new("small_nullable")
         .token("IDENT", r"[a-zA-Z_][a-zA-Z0-9_]*")
-        .rule("module", vec![])            // ε
+        .rule("module", vec![]) // ε
         .rule("module", vec!["IDENT"])
         .start("module")
         .build()
@@ -44,7 +44,7 @@ fn bench_automaton(c: &mut Criterion) {
     ];
 
     let mut group = c.benchmark_group("lr1_automaton_build");
-    
+
     for (name, grammar) in cases {
         group.bench_function(BenchmarkId::new("full_build", name), |b| {
             b.iter(|| {
@@ -53,12 +53,12 @@ fn bench_automaton(c: &mut Criterion) {
             })
         });
     }
-    
+
     group.finish();
 
     // Separate benchmark for just FIRST/FOLLOW computation
     let mut ff_group = c.benchmark_group("first_follow");
-    
+
     for (name, grammar) in [
         ("nullable", small_nullable()),
         ("nonnullable", small_nonnullable()),
@@ -70,7 +70,7 @@ fn bench_automaton(c: &mut Criterion) {
             })
         });
     }
-    
+
     ff_group.finish();
 }
 

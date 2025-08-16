@@ -196,6 +196,7 @@ impl ErrorRecoveryState {
     }
 
     /// Record an error node
+    #[allow(clippy::too_many_arguments)]
     pub fn record_error(
         &mut self,
         start_byte: usize,

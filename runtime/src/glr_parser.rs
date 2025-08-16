@@ -335,6 +335,7 @@ impl GLRParser {
                         token.0,
                         action_cell.len()
                     );
+                    #[allow(clippy::unused_enumerate_index)]
                     for (_i, _act) in action_cell.iter().enumerate() {
                         debug_glr!("  Action {}: {:?}", _i, _act);
                     }
@@ -392,7 +393,7 @@ impl GLRParser {
                             );
 
                             // Fork the stack for EACH action to explore all parse paths
-                            for (_i, fork_action) in actions.iter().enumerate() {
+                            for fork_action in actions.iter() {
                                 match fork_action {
                                     Action::Shift(new_state) => {
                                         let mut forked = stack.fork(self.next_stack_id);
@@ -1105,7 +1106,7 @@ impl GLRParser {
             "DEBUG finish_all_alternatives: have {} stacks",
             self.stacks.len()
         );
-        for (_i, stack) in self.stacks.iter().enumerate() {
+        for stack in self.stacks.iter() {
             debug_glr!(
                 "  Stack {}: {} nodes, state {}",
                 _i,

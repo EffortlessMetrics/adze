@@ -17,7 +17,7 @@ pub enum TableGenError {
     /// General table generation failure, often from upstream errors.
     #[error("table generation failed: {0}")]
     TableGeneration(String),
-    
+
     /// The table structure is invalid or corrupted.
     #[error("invalid table structure: {0}")]
     InvalidTable(String),

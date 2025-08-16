@@ -172,18 +172,18 @@ mod tests {
         });
 
         // Create a simple parse table
-        let mut parse_table = ParseTable {
-            action_table: vec![vec![vec![Action::Error]; 2]; 2], // 2 states, 2 symbols
-            goto_table: vec![vec![rust_sitter_ir::StateId(0); 2]; 2],
-            symbol_metadata: vec![],
-            state_count: 2,
-            symbol_count: 2,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![
-                vec![true, false], // State 0: INDENT is valid
-                vec![false, true], // State 1: DEDENT is valid
-            ],
-        };
+        let mut parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![Action::Error]; 2]; 2], // 2 states, 2 symbols
+            vec![vec![crate::test_helpers::test::INVALID; 2]; 2],
+            vec![],
+            rust_sitter_ir::SymbolId(1), // start_symbol
+            rust_sitter_ir::SymbolId(1), // eof_symbol
+            0,                           // external_token_count
+        );
+        parse_table.external_scanner_states = vec![
+            vec![true, false], // State 0: INDENT is valid
+            vec![false, true], // State 1: DEDENT is valid
+        ];
 
         // Map external symbols to indices
         parse_table.symbol_to_index.insert(SymbolId(100), 0); // INDENT

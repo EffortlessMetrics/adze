@@ -31,24 +31,27 @@ impl ParseForest {
     pub fn push_error_chunk(&mut self, span: (usize, usize)) -> usize {
         let id = self.next_node_id;
         self.next_node_id += 1;
-        self.nodes.insert(id, ForestNode {
+        self.nodes.insert(
             id,
-            symbol: ERROR_SYMBOL,
-            span,
-            alternatives: vec![ForestAlternative { children: vec![] }],
-            error_meta: ErrorMeta { 
-                is_error: true, 
-                missing: false,
-                cost: 1,
+            ForestNode {
+                id,
+                symbol: ERROR_SYMBOL,
+                span,
+                alternatives: vec![ForestAlternative { children: vec![] }],
+                error_meta: ErrorMeta {
+                    is_error: true,
+                    missing: false,
+                    cost: 1,
+                },
             },
-        });
+        );
         id
     }
 
     /// Returns error recovery statistics for this parse forest.
     ///
     /// # Returns
-    /// 
+    ///
     /// - `has_error`: `true` if any SPPF node is an error chunk
     ///   (ERROR_SYMBOL or meta.is_error == true).
     /// - `missing`: count of terminals with meta.missing == true.
@@ -59,7 +62,7 @@ impl ParseForest {
     ///     is not also marked as error (mutually exclusive by invariant).
     ///
     /// # Invariants (debug-asserted)
-    /// 
+    ///
     /// - A node cannot be both {is_error == true} and {missing == true}.
     /// - ERROR_SYMBOL nodes never have missing == true.
     #[cfg(any(test, feature = "test-helpers"))]
@@ -71,13 +74,13 @@ impl ParseForest {
         for (_id, node) in self.nodes.iter() {
             let is_err = node.symbol == ERROR_SYMBOL || node.error_meta.is_error;
             let is_missing = node.error_meta.missing;
-            
+
             // A node should not be both; trip-wire if it happens
             debug_assert!(
                 !(is_err && is_missing),
                 "ParseForest invariant: node cannot be both error and missing"
             );
-            
+
             // Error chunks (ERROR_SYMBOL or meta.is_error)
             if is_err {
                 any_error = true;

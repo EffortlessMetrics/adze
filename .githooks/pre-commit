@@ -1,5 +1,9 @@
-#!/bin/bash
-# Pre-commit hook to prevent committing disabled test files
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pre-commit hook to prevent committing disabled test files and ensure test connectivity
+
+echo "Running pre-commit checks..."
 
 # Check for .rs.disabled files
 disabled_files=$(git ls-files '*.rs.disabled' 2>/dev/null)
@@ -22,4 +26,21 @@ if [ -n "$disabled_files" ]; then
     echo "Consider re-enabling these files with proper #[ignore] attributes."
 fi
 
-exit 0
+# Run the test matrix to ensure all tests are connected and pass
+if [ -x scripts/test-matrix.sh ]; then
+    scripts/test-matrix.sh
+else
+    echo "⚠️  Warning: test-matrix.sh not found or not executable"
+    echo "Running basic checks instead..."
+    
+    # Basic formatting check
+    cargo fmt --all -- --check
+    
+    # Basic clippy check
+    cargo clippy --workspace --all-targets -- -D warnings
+    
+    # Basic test run
+    cargo test --workspace --lib
+fi
+
+echo "✅ Pre-commit checks passed!"

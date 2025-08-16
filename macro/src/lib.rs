@@ -1,6 +1,7 @@
 // Proc-macro crate is safe code only
 #![forbid(unsafe_code)]
-#![warn(missing_docs)]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 //! Procedural macros for rust-sitter grammar definition
 

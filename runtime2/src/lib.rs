@@ -30,18 +30,18 @@ pub mod parser;
 pub mod tree;
 
 #[cfg(feature = "glr-core")]
-mod engine;
-#[cfg(feature = "glr-core")]
 mod builder;
+#[cfg(feature = "glr-core")]
+mod engine;
 pub mod token;
 
 // Re-exports for convenience
 pub use error::{ParseError, ParseErrorKind};
-pub use token::Token;
 pub use external_scanner::{ExternalScanner, ScanResult};
 pub use language::Language;
 pub use node::{Node, Point};
 pub use parser::Parser;
+pub use token::Token;
 pub use tree::Tree;
 
 /// Input edit information for incremental parsing

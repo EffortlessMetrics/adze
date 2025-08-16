@@ -2,10 +2,8 @@
 //! Tests epsilon spans, fork handling, EOF acceptance, and root selection
 #![cfg(not(feature = "strict-invariants"))]
 
-use rust_sitter_glr_core::{
-    ParseTable, Driver, ParseRule, Action, LexMode
-};
-use rust_sitter_ir::{Grammar, SymbolId, StateId, RuleId};
+use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
+use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 type ActionCell = Vec<Action>;
@@ -20,13 +18,13 @@ fn create_test_table(
 ) -> ParseTable {
     let symbol_count = states.first().map(|s| s.len()).unwrap_or(0);
     let state_count = states.len();
-    
+
     // Build symbol_to_index mapping
     let mut symbol_to_index = BTreeMap::new();
     for i in 0..symbol_count {
         symbol_to_index.insert(SymbolId(i as u16), i);
     }
-    
+
     // Build nonterminal_to_index for gotos
     // For manual tests, map all non-terminals (any symbol that has a goto entry)
     let mut nonterminal_to_index = BTreeMap::new();
@@ -39,7 +37,7 @@ fn create_test_table(
             }
         }
     }
-    
+
     ParseTable {
         action_table: states,
         goto_table: gotos,
@@ -53,10 +51,16 @@ fn create_test_table(
         start_symbol: start,
         grammar: Grammar::new("test".to_string()),
         symbol_metadata: vec![],
-        initial_state: StateId(0),  // Default to state 0 for test grammars
-        token_count: 2,  // + and ( are terminals
+        initial_state: StateId(0), // Default to state 0 for test grammars
+        token_count: 2,            // + and ( are terminals
         external_token_count: 0,
-        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; state_count],
+        lex_modes: vec![
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0
+            };
+            state_count
+        ],
         extras: vec![],
         dynamic_prec_by_rule: vec![0; rules.len()],
         alias_sequences: vec![],
@@ -70,7 +74,7 @@ fn test_epsilon_reduce_span() {
     // Grammar: A -> ε; S -> A 'x'
     // Input: "x"
     // Expected: A has span (0,0), S has span (0,1)
-    
+
     // Symbol layout: terminals first, then EOF, then non-terminals
     // 0: ERROR (reserved)
     // 1: 'x' (terminal)
@@ -81,66 +85,76 @@ fn test_epsilon_reduce_span() {
     let eof = SymbolId(2);
     let s_sym = SymbolId(3);
     let a_sym = SymbolId(4);
-    
+
     // Rules
     let rules = vec![
-        ParseRule { lhs: a_sym, rhs_len: 0 },        // A -> ε
-        ParseRule { lhs: s_sym, rhs_len: 2 }, // S -> A 'x'
+        ParseRule {
+            lhs: a_sym,
+            rhs_len: 0,
+        }, // A -> ε
+        ParseRule {
+            lhs: s_sym,
+            rhs_len: 2,
+        }, // S -> A 'x'
     ];
-    
+
     // State 0: can reduce A -> ε on 'x' lookahead
     // State 1: after reducing A, can shift 'x'
     // State 2: after shifting 'x', can reduce S -> A 'x'
     // State 3: accept state
-    
+
     let mut actions = vec![vec![vec![]; 5]; 4];
-    
+
     // State 0
     actions[0][1].push(Action::Reduce(RuleId(0))); // on 'x', reduce A -> ε
-    
+
     // State 1 (after A reduction)
     actions[1][1].push(Action::Shift(StateId(2))); // on 'x', shift to state 2
-    
+
     // State 2 (after shifting 'x')
     actions[2][2].push(Action::Reduce(RuleId(1))); // on EOF, reduce S -> A 'x'
-    
+
     // State 3 (after S reduction)
     actions[3][2].push(Action::Accept); // on EOF, accept
-    
+
     let invalid = StateId(65535);
     let mut gotos = vec![vec![invalid; 5]; 4];
     gotos[0][4] = StateId(1); // goto state 1 after reducing to A (symbol 4)
     gotos[0][3] = StateId(3); // goto state 3 after reducing to S (symbol 3)
-    
+
     let table = create_test_table(actions, gotos, rules, s_sym, eof);
-    
+
     // Create token stream for 'x' at position 0-1
     let tokens = vec![(x_sym, 0, 1)];
-    
+
     let mut driver = Driver::new(&table);
-    let result = driver.parse_tokens(tokens.into_iter().map(|(s, start, end)| (s.0 as u32, start as u32, end as u32)));
-    
+    let result = driver.parse_tokens(
+        tokens
+            .into_iter()
+            .map(|(s, start, end)| (s.0 as u32, start as u32, end as u32)),
+    );
+
     assert!(result.is_ok(), "Parse should succeed: {:?}", result.err());
     let forest = result.unwrap();
-    
+
     // Verify the forest has the expected structure
     let view = forest.view();
     let roots = view.roots();
     assert_eq!(roots.len(), 1, "Should have exactly one root");
-    
+
     // The root should be S with span (0,1)
     let root_span = view.span(roots[0]);
     assert_eq!(root_span.start, 0);
     assert_eq!(root_span.end, 1);
-    
+
     // Check that A (first child) has span (0,0) for epsilon
     let children = view.best_children(roots[0]);
     assert_eq!(children.len(), 2, "S should have 2 children: A and 'x'");
-    
+
     let a_span = view.span(children[0]);
     assert_eq!(a_span.start, 0, "Epsilon A should have start position 0");
     assert_eq!(a_span.end, 0, "Epsilon A should have end position 0");
-    
+
     let x_span = view.span(children[1]);
     assert_eq!(x_span.start, 0);
     assert_eq!(x_span.end, 1);
@@ -152,7 +166,7 @@ fn test_fork_sanity() {
     // S -> 'a' | T 'a'
     // T -> 'a'
     // On input "a a", both paths should be explored
-    
+
     // Symbol layout: terminals first, then EOF, then non-terminals
     // 0: ERROR (reserved)
     // 1: 'a' (terminal)
@@ -163,39 +177,48 @@ fn test_fork_sanity() {
     let eof = SymbolId(2);
     let s_sym = SymbolId(3);
     let t_sym = SymbolId(4);
-    
+
     let rules = vec![
-        ParseRule { lhs: s_sym, rhs_len: 1 },      // S -> 'a'
-        ParseRule { lhs: s_sym, rhs_len: 2 }, // S -> T 'a'
-        ParseRule { lhs: t_sym, rhs_len: 1 },      // T -> 'a'
+        ParseRule {
+            lhs: s_sym,
+            rhs_len: 1,
+        }, // S -> 'a'
+        ParseRule {
+            lhs: s_sym,
+            rhs_len: 2,
+        }, // S -> T 'a'
+        ParseRule {
+            lhs: t_sym,
+            rhs_len: 1,
+        }, // T -> 'a'
     ];
-    
+
     let mut actions = vec![vec![vec![]; 5]; 6];
-    
+
     // State 0: shift 'a' to state 1
     actions[0][1].push(Action::Shift(StateId(1)));
-    
+
     // State 1: shift/reduce conflict on 'a'
     // Can shift 'a' to state 2 (for S -> T 'a')
     // Can reduce T -> 'a' (rule 2)
     actions[1][1].push(Action::Shift(StateId(2)));
     actions[1][1].push(Action::Reduce(RuleId(2))); // Creates a fork!
-    
+
     // Also can reduce S -> 'a' on EOF
     actions[1][2].push(Action::Reduce(RuleId(0)));
-    
+
     // State 2: after second 'a', reduce S -> 'a'
     actions[2][2].push(Action::Reduce(RuleId(0)));
-    
+
     // State 3: after reducing to T, shift 'a'
     actions[3][1].push(Action::Shift(StateId(4)));
-    
+
     // State 4: after T 'a', reduce S -> T 'a'
     actions[4][2].push(Action::Reduce(RuleId(1)));
-    
+
     // State 5: accept
     actions[5][2].push(Action::Accept);
-    
+
     let invalid = StateId(65535);
     let mut gotos = vec![vec![invalid; 5]; 6];
     gotos[0][3] = StateId(5); // goto accept after S (symbol 3)
@@ -204,23 +227,27 @@ fn test_fork_sanity() {
     gotos[2][3] = StateId(5); // goto accept after S (symbol 3)
     gotos[3][3] = StateId(5); // goto accept after S (symbol 3)
     gotos[4][3] = StateId(5); // goto accept after S (symbol 3)
-    
+
     let table = create_test_table(actions, gotos, rules, s_sym, eof);
-    
+
     // Token stream for "a a"
     let tokens = vec![(a_sym, 0, 1), (a_sym, 2, 3)];
-    
+
     let mut driver = Driver::new(&table);
-    let result = driver.parse_tokens(tokens.into_iter().map(|(s, start, end)| (s.0 as u32, start as u32, end as u32)));
-    
+    let result = driver.parse_tokens(
+        tokens
+            .into_iter()
+            .map(|(s, start, end)| (s.0 as u32, start as u32, end as u32)),
+    );
+
     assert!(result.is_ok(), "Parse should succeed with fork");
     let forest = result.unwrap();
-    
+
     // The forest should contain both parse alternatives
     let view = forest.view();
     let roots = view.roots();
     assert!(!roots.is_empty(), "Should have at least one root");
-    
+
     // We successfully handled the fork and found a parse
 }
 
@@ -229,7 +256,7 @@ fn test_eof_accept() {
     // Grammar: S -> 't'
     // Input: "t"
     // Should only accept after EOF phase
-    
+
     // Symbol layout: terminals first, then EOF, then non-terminals
     // 0: ERROR (reserved)
     // 1: 't' (terminal)
@@ -238,40 +265,47 @@ fn test_eof_accept() {
     let t_sym = SymbolId(1);
     let eof = SymbolId(2);
     let s_sym = SymbolId(3);
-    
+
     let rules = vec![
-        ParseRule { lhs: s_sym, rhs_len: 1 }, // S -> 't'
+        ParseRule {
+            lhs: s_sym,
+            rhs_len: 1,
+        }, // S -> 't'
     ];
-    
+
     let mut actions = vec![vec![vec![]; 4]; 3];
-    
+
     // State 0: shift 't' to state 1
     actions[0][1].push(Action::Shift(StateId(1)));
-    
+
     // State 1: reduce S -> 't' on EOF (not on regular lookahead!)
     actions[1][2].push(Action::Reduce(RuleId(0)));
-    
+
     // State 2: accept on EOF
     actions[2][2].push(Action::Accept);
-    
+
     let invalid = StateId(65535);
     let mut gotos = vec![vec![invalid; 4]; 3];
     gotos[0][3] = StateId(2); // goto state 2 after S (symbol 3)
-    
+
     let table = create_test_table(actions, gotos, rules, s_sym, eof);
-    
+
     let tokens = vec![(t_sym, 0, 1)];
-    
+
     let mut driver = Driver::new(&table);
-    let result = driver.parse_tokens(tokens.into_iter().map(|(s, start, end)| (s.0 as u32, start as u32, end as u32)));
-    
+    let result = driver.parse_tokens(
+        tokens
+            .into_iter()
+            .map(|(s, start, end)| (s.0 as u32, start as u32, end as u32)),
+    );
+
     assert!(result.is_ok(), "Parse should succeed with EOF accept");
     let forest = result.unwrap();
-    
+
     let view = forest.view();
     let roots = view.roots();
     assert_eq!(roots.len(), 1, "Should have exactly one root");
-    
+
     // Verify it's the start symbol with correct span
     let root_span = view.span(roots[0]);
     assert_eq!(root_span.start, 0);
@@ -282,7 +316,7 @@ fn test_eof_accept() {
 fn test_root_selection_deterministic() {
     // Test that when multiple roots exist, we select the one with the largest span
     // This simulates a case where the parser might produce multiple valid parses
-    
+
     // Symbol layout: terminals first, then EOF, then non-terminals
     // 0: ERROR (reserved)
     // 1: 'a' (terminal)
@@ -291,12 +325,18 @@ fn test_root_selection_deterministic() {
     let a_sym = SymbolId(1);
     let eof = SymbolId(2);
     let s_sym = SymbolId(3);
-    
+
     let rules = vec![
-        ParseRule { lhs: s_sym, rhs_len: 1 }, // S -> 'a'
-        ParseRule { lhs: s_sym, rhs_len: 2 }, // S -> 'a' 'a'
+        ParseRule {
+            lhs: s_sym,
+            rhs_len: 1,
+        }, // S -> 'a'
+        ParseRule {
+            lhs: s_sym,
+            rhs_len: 2,
+        }, // S -> 'a' 'a'
     ];
-    
+
     // This is a simplified test - in reality the grammar would need to be ambiguous
     // For now we just verify the root sorting logic compiles and runs
     let mut actions = vec![vec![vec![]; 4]; 4];
@@ -305,23 +345,27 @@ fn test_root_selection_deterministic() {
     actions[1][1].push(Action::Shift(StateId(2)));
     actions[2][2].push(Action::Reduce(RuleId(1)));
     actions[3][2].push(Action::Accept);
-    
+
     let invalid = StateId(65535);
     let mut gotos = vec![vec![invalid; 4]; 4];
     gotos[0][3] = StateId(3); // goto state 3 after S (symbol 3)
     gotos[1][3] = StateId(3); // goto state 3 after S (symbol 3)
     gotos[2][3] = StateId(3); // goto state 3 after S (symbol 3)
-    
+
     let table = create_test_table(actions, gotos, rules, s_sym, eof);
-    
+
     let tokens = vec![(a_sym, 0, 1), (a_sym, 1, 2)];
-    
+
     let mut driver = Driver::new(&table);
-    let result = driver.parse_tokens(tokens.into_iter().map(|(s, start, end)| (s.0 as u32, start as u32, end as u32)));
-    
+    let result = driver.parse_tokens(
+        tokens
+            .into_iter()
+            .map(|(s, start, end)| (s.0 as u32, start as u32, end as u32)),
+    );
+
     assert!(result.is_ok(), "Parse should succeed: {:?}", result.err());
     let forest = result.unwrap();
-    
+
     // Just verify we got a deterministic root
     let view = forest.view();
     let roots = view.roots();

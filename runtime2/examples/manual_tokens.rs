@@ -3,25 +3,39 @@ use rust_sitter_runtime::{Language, Parser, Token};
 fn main() {
     // Create a stub language with test tokens to validate the tokenizer hookup
     // This will error on actual parsing since we don't have real parse tables yet
-    let lang = Language::new_stub()
-        .with_static_tokens(vec![
-            Token { kind: 1, start: 0, end: 1 },  // First token 'a'
-            Token { kind: 2, start: 1, end: 2 },  // Second token 'b'
-            Token { kind: 0, start: 2, end: 2 },  // EOF token (kind 0)
-        ]);
+    let lang = Language::new_stub().with_static_tokens(vec![
+        Token {
+            kind: 1,
+            start: 0,
+            end: 1,
+        }, // First token 'a'
+        Token {
+            kind: 2,
+            start: 1,
+            end: 2,
+        }, // Second token 'b'
+        Token {
+            kind: 0,
+            start: 2,
+            end: 2,
+        }, // EOF token (kind 0)
+    ]);
 
     let mut p = Parser::new();
-    
+
     // Try to set language - this will fail in GLR mode if no parse table
     match p.set_language(lang) {
         Ok(_) => println!("✓ Language set successfully"),
         Err(e) => {
-            println!("✗ Failed to set language (expected in GLR mode without tables): {}", e);
+            println!(
+                "✗ Failed to set language (expected in GLR mode without tables): {}",
+                e
+            );
             println!("  This is expected until parse tables are generated.");
             return;
         }
     }
-    
+
     println!("Attempting to parse 'ab' with manual tokens...");
     match p.parse("ab", None) {
         Ok(tree) => {

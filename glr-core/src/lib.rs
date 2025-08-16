@@ -1,7 +1,13 @@
 // GLR core may need unsafe for performance-critical parser algorithms
 #![deny(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), warn(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+// Keep surface stable without big refactors:
+#![allow(
+    clippy::ptr_arg,
+    clippy::explicit_counter_loop,
+    clippy::needless_range_loop
+)]
 
 //! GLR parser generation algorithms for pure-Rust Tree-sitter
 //! This module implements the core GLR state machine generation and conflict resolution
@@ -54,7 +60,7 @@ pub use error::Result as GlrResult;
 
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {
-    pub use crate::{ParseTable, FirstFollowSets, build_lr1_automaton};
+    pub use crate::{FirstFollowSets, ParseTable, build_lr1_automaton};
 }
 
 // Keep available, but don't promise public docs yet:
@@ -73,8 +79,8 @@ pub mod gss_arena;
 #[doc(hidden)]
 pub mod parse_forest;
 
-pub mod forest_view;
 pub mod driver;
+pub mod forest_view;
 pub mod ts_lexer;
 
 // Trace macro for debugging GLR conflicts and decisions
@@ -1061,7 +1067,6 @@ impl ParseTable {
         &self.grammar
     }
 
-
     /// Get the ERROR symbol (by convention, symbol 0 or -1 in Tree-sitter)
     #[inline]
     pub fn error_symbol(&self) -> SymbolId {
@@ -1089,12 +1094,15 @@ impl ParseTable {
     pub fn lex_mode(&self, state: StateId) -> LexMode {
         let idx = state.0 as usize;
         if idx < self.lex_modes.len() {
-            self.lex_modes[idx].clone()
+            self.lex_modes[idx]
         } else {
-            LexMode { lex_state: 0, external_lex_state: 0 }
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            }
         }
     }
-    
+
     /// Check if a symbol is an extra (whitespace/comment)
     #[inline]
     pub fn is_extra(&self, sym: SymbolId) -> bool {
@@ -1102,7 +1110,7 @@ impl ParseTable {
     }
 
     /// Validate parse table invariants
-    /// 
+    ///
     /// This method checks critical invariants that must hold for correct parsing:
     /// - EOF symbol is not ERROR (symbol 0)
     /// - EOF symbol is a proper sentinel (>= token_count + external_token_count)
@@ -1112,18 +1120,17 @@ impl ParseTable {
         // Check EOF equals terminal_boundary exactly
         let terminal_boundary = self.token_count + self.external_token_count;
         debug_assert_eq!(
-            self.eof_symbol.0 as usize,
-            terminal_boundary,
+            self.eof_symbol.0 as usize, terminal_boundary,
             "EOF must equal terminal_boundary (token_count + external_token_count)"
         );
-        
+
         // Check EOF is not the internal ERROR sentinel
         debug_assert_ne!(
             self.eof_symbol,
             parse_forest::ERROR_SYMBOL,
             "EOF symbol cannot be the ERROR sentinel"
         );
-        
+
         // Legacy check: EOF is not 0
         if self.eof_symbol.0 == 0 {
             return Err(TableError::EofIsError);
@@ -1142,32 +1149,40 @@ impl ParseTable {
         if !self.symbol_to_index.contains_key(&self.eof_symbol) {
             return Err(TableError::EofMissingFromIndex);
         }
-        
+
         // Validate terminal partitions
         let tb = self.terminal_boundary();
-        
+
         // All extras must be regular terminals
         debug_assert!(
-            self.extras.iter().all(|&sym| (sym.0 as usize) < self.token_count),
+            self.extras
+                .iter()
+                .all(|&sym| (sym.0 as usize) < self.token_count),
             "all extras must be within [0..token_count)"
         );
-        
+
         // Regular terminals must not be external
         for sym_id in 0..self.token_count {
             let sym = SymbolId(sym_id as u16);
             debug_assert!(self.is_terminal(sym), "0..token_count are terminals");
             // Regular terminals are not external - we verify this by the band
-            debug_assert!((sym.0 as usize) < self.token_count, "regular terminals are in [0..token_count)");
+            debug_assert!(
+                (sym.0 as usize) < self.token_count,
+                "regular terminals are in [0..token_count)"
+            );
         }
-        
+
         // External tokens must be in their band
         for sym_id in self.token_count..tb {
             let sym = SymbolId(sym_id as u16);
             debug_assert!(self.is_terminal(sym), "external tokens are terminals");
             // External tokens are in the external band by definition
-            debug_assert!((sym.0 as usize) >= self.token_count && (sym.0 as usize) < tb, "external tokens are in [token_count..terminal_boundary)");
+            debug_assert!(
+                (sym.0 as usize) >= self.token_count && (sym.0 as usize) < tb,
+                "external tokens are in [token_count..terminal_boundary)"
+            );
         }
-        
+
         debug_assert_eq!(
             self.eof_symbol.0 as usize, tb,
             "EOF must equal terminal_boundary"
@@ -1186,7 +1201,7 @@ impl ParseTable {
                     if eof_col < row.len() && end_col < row.len() {
                         let eof_actions = &row[eof_col];
                         let end_actions = &row[end_col];
-                        
+
                         // They should have the same action pattern (both empty or both non-empty)
                         // and if non-empty, should have compatible actions
                         if eof_actions.is_empty() != end_actions.is_empty() {
@@ -1209,7 +1224,7 @@ pub enum Action {
     Reduce(RuleId),
     Accept,
     Error,
-    Recover, // Tree-sitter error recovery - insert missing node
+    Recover,           // Tree-sitter error recovery - insert missing node
     Fork(Vec<Action>), // GLR fork point - multiple valid actions
 }
 
@@ -1462,13 +1477,19 @@ pub enum GLRError {
 pub enum TableError {
     #[error("EOF symbol collides with ERROR")]
     EofIsError,
-    
-    #[error("EOF symbol must be >= token_count + external_token_count (EOF: {eof}, tokens: {token_count}, externals: {external_count})")]
-    EofNotSentinel { eof: u16, token_count: u32, external_count: u32 },
-    
+
+    #[error(
+        "EOF symbol must be >= token_count + external_token_count (EOF: {eof}, tokens: {token_count}, externals: {external_count})"
+    )]
+    EofNotSentinel {
+        eof: u16,
+        token_count: u32,
+        external_count: u32,
+    },
+
     #[error("EOF not present in symbol_to_index")]
     EofMissingFromIndex,
-    
+
     #[error("EOF column parity mismatch at state {0}")]
     EofParityMismatch(u16),
 }
@@ -1511,7 +1532,7 @@ fn normalize_action_cell(cell: &mut ActionCell) {
     for action in cell.iter_mut() {
         normalize_action(action);
     }
-    cell.sort_by_key(|action| action_sort_key(action));
+    cell.sort_by_key(action_sort_key);
     cell.dedup();
 }
 
@@ -1521,7 +1542,7 @@ fn normalize_action(action: &mut Action) {
         for inner_action in inner.iter_mut() {
             normalize_action(inner_action);
         }
-        inner.sort_by_key(|a| action_sort_key(a));
+        inner.sort_by_key(action_sort_key);
         inner.dedup();
     }
 }
@@ -2064,29 +2085,31 @@ pub fn build_lr1_automaton(
             rhs_len: rule.rhs.len() as u16,
         });
     }
-    
+
     // Build nonterminal_to_index mapping
     let mut nonterminal_to_index = BTreeMap::new();
     for (&symbol_id, &idx) in &symbol_to_index {
         // Check if this is a nonterminal
-        if !grammar.tokens.contains_key(&symbol_id) 
+        if !grammar.tokens.contains_key(&symbol_id)
             && !grammar.externals.iter().any(|e| e.symbol_id == symbol_id)
-            && symbol_id.0 != 0 { // Not EOF
+            && symbol_id.0 != 0
+        {
+            // Not EOF
             nonterminal_to_index.insert(symbol_id, idx);
         }
     }
 
     let rule_count = rules.len();
-    
+
     // Calculate proper counts for EOF symbol
     let token_count = grammar.tokens.len();
     let external_token_count = grammar.externals.len();
-    
+
     // EOF should be outside the normal symbol space
     // The internal parser uses SymbolId(0) for EOF during construction,
     // but we expose a proper EOF symbol that's outside the token space
     let eof_symbol = SymbolId((token_count + external_token_count) as u16);
-    
+
     // Add EOF to symbol_to_index if not present
     // Map our EOF symbol to the same index as SymbolId(0) for compatibility
     if !symbol_to_index.contains_key(&eof_symbol) {
@@ -2094,10 +2117,10 @@ pub fn build_lr1_automaton(
             symbol_to_index.insert(eof_symbol, eof_idx);
         }
     }
-    
+
     // Normalize action table for deterministic output
     normalize_action_table(&mut action_table);
-    
+
     Ok(ParseTable {
         action_table,
         goto_table,
@@ -2111,15 +2134,21 @@ pub fn build_lr1_automaton(
         eof_symbol,
         start_symbol: original_start,
         grammar: grammar.clone(),
-        initial_state: StateId(0),  // Default initial state
+        initial_state: StateId(0), // Default initial state
         token_count,
         external_token_count,
-        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; state_count],
-        extras: vec![],  // TODO: Get from grammar metadata
-        dynamic_prec_by_rule: vec![0; rule_count],  // TODO: Get from grammar
-        alias_sequences: vec![],  // TODO: Get from grammar
-        field_names: vec![],  // TODO: Get from grammar
-        field_map: BTreeMap::new(),  // TODO: Get from grammar
+        lex_modes: vec![
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0
+            };
+            state_count
+        ],
+        extras: vec![],                            // TODO: Get from grammar metadata
+        dynamic_prec_by_rule: vec![0; rule_count], // TODO: Get from grammar
+        alias_sequences: vec![],                   // TODO: Get from grammar
+        field_names: vec![],                       // TODO: Get from grammar
+        field_map: BTreeMap::new(),                // TODO: Get from grammar
     })
 }
 
@@ -2164,7 +2193,7 @@ fn add_action_with_conflict(
 }
 
 /// Build LR(1) automaton using the GlrResult type alias
-/// 
+///
 /// This is a convenience wrapper that uses the crate-level Result type.
 /// Use this when migrating code to the new error handling pattern.
 pub fn build_lr1_automaton_res(
@@ -2454,7 +2483,13 @@ mod tests {
             initial_state: StateId(0),
             token_count: 3,
             external_token_count: 0,
-            lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 3],
+            lex_modes: vec![
+                LexMode {
+                    lex_state: 0,
+                    external_lex_state: 0
+                };
+                3
+            ],
             extras: vec![],
             dynamic_prec_by_rule: vec![],
             alias_sequences: vec![],
@@ -2591,7 +2626,7 @@ mod tests {
         assert_eq!(set1.items, set2.items);
         assert_ne!(set1.id, set2.id);
     }
-    
+
     #[test]
     fn test_recursive_fork_normalization() {
         // Create a messy nested Fork action
@@ -2608,10 +2643,10 @@ mod tests {
                 Action::Error,
             ]),
         ]);
-        
+
         // Normalize it
         normalize_action(&mut action);
-        
+
         // Check that inner forks are sorted
         if let Action::Fork(ref actions) = action {
             // First inner fork should have actions sorted: Shift < Reduce
@@ -2621,7 +2656,7 @@ mod tests {
                 assert!(matches!(inner[1], Action::Reduce(RuleId(1))));
                 assert!(matches!(inner[2], Action::Reduce(RuleId(3))));
             }
-            
+
             // Last inner fork should have actions sorted: Shift < Accept < Error
             if let Action::Fork(ref inner) = actions[2] {
                 assert_eq!(inner.len(), 3);

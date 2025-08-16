@@ -7,7 +7,7 @@ use std::os::raw::{c_char, c_uint};
 
 /// Tree-sitter external scanner function signatures
 /// These match the C API defined in tree-sitter/parser.h
-
+///
 /// Create a new scanner instance
 pub type CreateFn = extern "C" fn() -> *mut c_void;
 

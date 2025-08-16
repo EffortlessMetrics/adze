@@ -2,8 +2,10 @@
 //! These tests are preserved for historical reference but are ignored
 //! as the codebase has moved to parser v4 with GLR support.
 
+mod common;
+
 use rust_sitter::parser::Parser;
-use rust_sitter_glr_core::{Action, ParseTable};
+use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
 use rust_sitter_ir::*;
 
 fn create_simple_arithmetic_grammar() -> Grammar {
@@ -147,21 +149,26 @@ fn create_simple_parse_table() -> ParseTable {
     action_table[5][1] = vec![Action::Reduce(RuleId(1))]; // number
     action_table[5][2] = vec![Action::Reduce(RuleId(1))]; // +
 
-    let mut symbol_to_index = indexmap::IndexMap::new();
-    symbol_to_index.insert(SymbolId(0), 0); // EOF
-    symbol_to_index.insert(SymbolId(1), 1); // number
-    symbol_to_index.insert(SymbolId(2), 2); // +
-    symbol_to_index.insert(SymbolId(3), 3); // expr
+    // Create parse rules for the table
+    let rules = vec![
+        ParseRule {
+            lhs: SymbolId(3), // expr
+            rhs_len: 1,       // expr -> number
+        },
+        ParseRule {
+            lhs: SymbolId(3), // expr
+            rhs_len: 3,       // expr -> expr + expr
+        },
+    ];
 
-    ParseTable {
+    common::make_minimal_table(
         action_table,
         goto_table,
-        symbol_metadata: vec![],
-        state_count: 6,
-        symbol_count: 4,
-        symbol_to_index: symbol_to_index.into_iter().collect(),
-        external_scanner_states: Vec::new(),
-    }
+        rules,
+        SymbolId(3), // start_symbol (expr)
+        SymbolId(0), // eof_symbol
+        0,           // external_token_count
+    )
 }
 
 #[test]

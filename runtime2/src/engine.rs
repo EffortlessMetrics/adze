@@ -16,20 +16,25 @@ pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseErro
     {
         // Check if language has parse table
         if language.parse_table.is_none() {
-            return Err(ParseError::with_msg("Language missing parse table - GLR integration pending"));
+            return Err(ParseError::with_msg(
+                "Language missing parse table - GLR integration pending",
+            ));
         }
-        
+
         let parse_table = language.parse_table.as_ref().unwrap();
         let mut drv = Driver::new(parse_table);
-        
-        let tok_fn = language.tokenize.as_ref().ok_or_else(|| ParseError::with_msg(
-            "Language has no tokenizer; generated grammar must set `Language::tokenize`"))?;
+
+        let tok_fn = language.tokenize.as_ref().ok_or_else(|| {
+            ParseError::with_msg(
+                "Language has no tokenizer; generated grammar must set `Language::tokenize`",
+            )
+        })?;
         let toks = tok_fn(input).map(|t| (t.kind, t.start, t.end));
-        
+
         let forest = drv.parse_tokens(toks)?;
         return Ok(Forest::Glr(forest));
     }
-    
+
     #[cfg(not(feature = "glr-core"))]
     {
         let _ = (language, input);
@@ -37,7 +42,11 @@ pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseErro
     }
 }
 
-pub fn parse_incremental(language: &Language, input: &[u8], _old: &Tree) -> Result<Forest, ParseError> {
+pub fn parse_incremental(
+    language: &Language,
+    input: &[u8],
+    _old: &Tree,
+) -> Result<Forest, ParseError> {
     // Call the same path now; replace with proper reuse later.
     parse_full(language, input)
 }

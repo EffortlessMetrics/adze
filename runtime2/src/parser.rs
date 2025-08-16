@@ -1,10 +1,12 @@
 //! Parser implementation with Tree-sitter-compatible API
 
-use crate::{error::ParseError, language::Language, tree::Tree};
-#[cfg(feature = "glr-core")]
-use crate::engine::{parse_full as engine_parse_full, parse_incremental as engine_parse_incremental};
 #[cfg(feature = "glr-core")]
 use crate::builder::forest_to_tree;
+#[cfg(feature = "glr-core")]
+use crate::engine::{
+    parse_full as engine_parse_full, parse_incremental as engine_parse_incremental,
+};
+use crate::{error::ParseError, language::Language, tree::Tree};
 use std::time::Duration;
 
 /// A parser that can parse text using a Language
@@ -28,7 +30,7 @@ impl Parser {
     }
 
     /// Set the language for parsing
-    /// 
+    ///
     /// In GLR mode, validates that the language provides a parse table and tokenizer.
     pub fn set_language(&mut self, language: Language) -> Result<(), ParseError> {
         #[cfg(feature = "glr-core")]
@@ -63,12 +65,15 @@ impl Parser {
     /// Parse the given input text
     ///
     /// If `old_tree` is provided, performs incremental parsing.
-    pub fn parse(&mut self, input: impl AsRef<[u8]>, old_tree: Option<&Tree>) -> Result<Tree, ParseError> {
-        let language = self.language.clone()
-            .ok_or(ParseError::no_language())?;
-        
+    pub fn parse(
+        &mut self,
+        input: impl AsRef<[u8]>,
+        old_tree: Option<&Tree>,
+    ) -> Result<Tree, ParseError> {
+        let language = self.language.clone().ok_or(ParseError::no_language())?;
+
         let input = input.as_ref();
-        
+
         // TODO: Implement actual GLR parsing
         // For now, return a stub tree
         let tree = if let Some(old) = old_tree {
@@ -78,7 +83,7 @@ impl Parser {
             // Full parse
             self.parse_full(&language, input)?
         };
-        
+
         Ok(tree)
     }
 
@@ -94,7 +99,7 @@ impl Parser {
             let forest = engine_parse_full(language, input)?;
             return Ok(forest_to_tree(forest));
         }
-        
+
         #[cfg(not(feature = "glr-core"))]
         {
             let _ = (language, input);
@@ -104,22 +109,32 @@ impl Parser {
     }
 
     #[cfg(feature = "incremental")]
-    fn parse_incremental(&mut self, language: &Language, input: &[u8], old_tree: &Tree) -> Result<Tree, ParseError> {
+    fn parse_incremental(
+        &mut self,
+        language: &Language,
+        input: &[u8],
+        old_tree: &Tree,
+    ) -> Result<Tree, ParseError> {
         #[cfg(feature = "glr-core")]
         {
             let forest = engine_parse_incremental(language, input, old_tree)?;
             return Ok(forest_to_tree(forest));
         }
-        
+
         #[cfg(not(feature = "glr-core"))]
         {
             let _ = (language, input, old_tree);
             Ok(Tree::new_stub())
         }
     }
-    
+
     #[cfg(not(feature = "incremental"))]
-    fn parse_incremental(&mut self, language: &Language, input: &[u8], _old_tree: &Tree) -> Result<Tree, ParseError> {
+    fn parse_incremental(
+        &mut self,
+        language: &Language,
+        input: &[u8],
+        _old_tree: &Tree,
+    ) -> Result<Tree, ParseError> {
         // Fall back to full parse when incremental is disabled
         self.parse_full(language, input)
     }

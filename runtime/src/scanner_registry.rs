@@ -124,9 +124,9 @@ impl ScannerRegistry {
     }
 
     /// Register a Rust external scanner
-    pub fn register_rust_scanner<S: ExternalScanner + Default + 'static>(&mut self, language: &str)
+    pub fn register_rust_scanner<S>(&mut self, language: &str)
     where
-        S: Send + Sync,
+        S: ExternalScanner + Default + Send + Sync + 'static,
     {
         eprintln!("Registering scanner for language: {}", language);
         let factory: ScannerFactory = Box::new(|| {
@@ -185,9 +185,9 @@ pub fn get_global_registry() -> Arc<Mutex<ScannerRegistry>> {
 }
 
 /// Register a Rust scanner with the global registry
-pub fn register_rust_scanner<S: ExternalScanner + Default + 'static>(language: &str)
+pub fn register_rust_scanner<S>(language: &str)
 where
-    S: Send + Sync,
+    S: ExternalScanner + Default + Send + Sync + 'static,
 {
     let registry = get_global_registry();
     let mut registry = registry.lock().unwrap();
@@ -227,9 +227,9 @@ impl ExternalScannerBuilder {
     }
 
     /// Register a Rust scanner
-    pub fn register_rust<S: ExternalScanner + Default + 'static>(self) -> Self
+    pub fn register_rust<S>(self) -> Self
     where
-        S: Send + Sync,
+        S: ExternalScanner + Default + Send + Sync + 'static,
     {
         register_rust_scanner::<S>(&self.language);
         self

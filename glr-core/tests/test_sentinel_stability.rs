@@ -2,7 +2,7 @@
 //! These values are part of the ABI contract with Tree-sitter.
 
 use rust_sitter_glr_core::*;
-use rust_sitter_ir::{SymbolId, StateId, RuleId};
+use rust_sitter_ir::{RuleId, StateId, SymbolId};
 
 /// Tree-sitter sentinel codepoint values that must remain stable.
 pub const ACCEPT_CODEPOINT: u16 = 0xFFFF;
@@ -21,15 +21,18 @@ fn sentinel_codepoints_are_stable() {
 fn error_symbol_is_max() {
     // ERROR_SYMBOL is u16::MAX in our implementation (0xFFFF)
     // This differs from Tree-sitter's symbol 0, but we use a sentinel value
-    assert_eq!(parse_forest::ERROR_SYMBOL.0, u16::MAX, "ERROR_SYMBOL must be u16::MAX");
+    assert_eq!(
+        parse_forest::ERROR_SYMBOL.0,
+        u16::MAX,
+        "ERROR_SYMBOL must be u16::MAX"
+    );
 }
-
 
 #[test]
 fn eof_invariants() {
     // Test the EOF invariants we enforce in Driver::new
     // This test ensures we never accidentally relax these checks
-    
+
     // Create a minimal ParseTable to test invariants
     use std::collections::BTreeMap;
     let mut symbol_to_index = BTreeMap::new();
@@ -37,7 +40,7 @@ fn eof_invariants() {
     symbol_to_index.insert(SymbolId(1), 1); // terminal
     symbol_to_index.insert(SymbolId(2), 2); // EOF
     symbol_to_index.insert(SymbolId(3), 3); // start symbol
-    
+
     let tables = ParseTable {
         action_table: vec![vec![vec![]; 4]],
         goto_table: vec![vec![StateId(65535); 4]],
@@ -53,7 +56,10 @@ fn eof_invariants() {
         initial_state: StateId(0),
         token_count: 2,
         external_token_count: 0,
-        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }],
+        lex_modes: vec![LexMode {
+            lex_state: 0,
+            external_lex_state: 0,
+        }],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
         alias_sequences: vec![],
@@ -61,7 +67,7 @@ fn eof_invariants() {
         field_map: BTreeMap::new(),
         symbol_metadata: vec![],
     };
-    
+
     // This should not panic - valid configuration
     let _driver = Driver::new(&tables);
 }
@@ -73,7 +79,7 @@ fn eof_cannot_be_error() {
     use std::collections::BTreeMap;
     let mut symbol_to_index = BTreeMap::new();
     symbol_to_index.insert(SymbolId(0), 0); // EOF at symbol 0 (ERROR)
-    
+
     let tables = ParseTable {
         action_table: vec![vec![vec![]; 4]],
         goto_table: vec![vec![StateId(65535); 4]],
@@ -89,7 +95,10 @@ fn eof_cannot_be_error() {
         initial_state: StateId(0),
         token_count: 2,
         external_token_count: 0,
-        lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }],
+        lex_modes: vec![LexMode {
+            lex_state: 0,
+            external_lex_state: 0,
+        }],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
         alias_sequences: vec![],
@@ -97,7 +106,7 @@ fn eof_cannot_be_error() {
         field_map: BTreeMap::new(),
         symbol_metadata: vec![],
     };
-    
+
     // This should panic with our invariant check
     let _driver = Driver::new(&tables);
 }

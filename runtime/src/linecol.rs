@@ -1,5 +1,5 @@
 /// Utilities for tracking line and column positions in text
-
+///
 /// Track line and column position while iterating through text
 #[derive(Debug, Clone, Copy)]
 pub struct LineCol {

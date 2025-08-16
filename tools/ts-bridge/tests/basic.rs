@@ -14,22 +14,58 @@ fn test_schema_serialization() {
         eof_symbol: 0,
         start_symbol: 1,
         symbols: vec![
-            Symbol { name: "EOF".to_string(), visible: true, named: false },
-            Symbol { name: "start".to_string(), visible: true, named: true },
-            Symbol { name: "number".to_string(), visible: true, named: true },
-            Symbol { name: "+".to_string(), visible: true, named: false },
-            Symbol { name: "-".to_string(), visible: true, named: false },
-            Symbol { name: "expression".to_string(), visible: true, named: true },
+            Symbol {
+                name: "EOF".to_string(),
+                visible: true,
+                named: false,
+            },
+            Symbol {
+                name: "start".to_string(),
+                visible: true,
+                named: true,
+            },
+            Symbol {
+                name: "number".to_string(),
+                visible: true,
+                named: true,
+            },
+            Symbol {
+                name: "+".to_string(),
+                visible: true,
+                named: false,
+            },
+            Symbol {
+                name: "-".to_string(),
+                visible: true,
+                named: false,
+            },
+            Symbol {
+                name: "expression".to_string(),
+                visible: true,
+                named: true,
+            },
         ],
         rules: vec![
-            Rule { lhs: 1, rhs_len: 1, production_id: 0 },
-            Rule { lhs: 5, rhs_len: 3, production_id: 1 },
+            Rule {
+                lhs: 1,
+                rhs_len: 1,
+                production_id: 0,
+            },
+            Rule {
+                lhs: 5,
+                rhs_len: 3,
+                production_id: 1,
+            },
         ],
         actions: vec![
             ActionCell {
                 state: 0,
                 symbol: 2,
-                actions: vec![Action::Shift { state: 1, extra: false, rep: false }],
+                actions: vec![Action::Shift {
+                    state: 1,
+                    extra: false,
+                    rep: false,
+                }],
             },
             ActionCell {
                 state: 1,
@@ -37,20 +73,18 @@ fn test_schema_serialization() {
                 actions: vec![Action::Accept],
             },
         ],
-        gotos: vec![
-            GotoCell {
-                state: 0,
-                symbol: 5,
-                next_state: Some(2),
-            },
-        ],
+        gotos: vec![GotoCell {
+            state: 0,
+            symbol: 5,
+            next_state: Some(2),
+        }],
     };
-    
+
     // Test that we can serialize to JSON
     let json = serde_json::to_string_pretty(&data).unwrap();
     assert!(json.contains("\"version\": 1"));
     assert!(json.contains("\"symbol_count\": 10"));
-    
+
     // Test that we can deserialize back
     let data2: ParseTableData = serde_json::from_str(&json).unwrap();
     assert_eq!(data2.version, 1);
@@ -62,16 +96,23 @@ fn test_schema_serialization() {
 
 #[test]
 fn test_action_serialization() {
-    let shift = Action::Shift { state: 42, extra: false, rep: true };
+    let shift = Action::Shift {
+        state: 42,
+        extra: false,
+        rep: true,
+    };
     let json = serde_json::to_string(&shift).unwrap();
     assert!(json.contains("\"k\":\"S\""));
     assert!(json.contains("\"state\":42"));
-    
-    let reduce = Action::Reduce { rule: 5, dyn_prec: -1 };
+
+    let reduce = Action::Reduce {
+        rule: 5,
+        dyn_prec: -1,
+    };
     let json = serde_json::to_string(&reduce).unwrap();
     assert!(json.contains("\"k\":\"R\""));
     assert!(json.contains("\"rule\":5"));
-    
+
     let accept = Action::Accept;
     let json = serde_json::to_string(&accept).unwrap();
     assert!(json.contains("\"k\":\"A\""));

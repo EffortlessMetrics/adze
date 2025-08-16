@@ -254,6 +254,7 @@ impl<'a> LanguageValidator<'a> {
         }
     }
 
+    #[allow(clippy::ptr_arg)]
     fn validate_table_dimensions(&self, _errors: &mut Vec<ValidationError>) {
         // Validate based on whether we have small or large tables
         if !self.language.small_parse_table.is_null() {

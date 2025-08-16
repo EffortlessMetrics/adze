@@ -1,41 +1,18 @@
+//! # rust-sitter-tablegen
+//!
+//! Generate and compress LR(1) parse tables for pure-Rust Tree-sitter grammars.
+
 // Table generation requires unsafe for FFI-compatible Language struct generation
 #![deny(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), warn(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-//! # rust-sitter-tablegen
-//!
-//! Generate and compress LR(1) parse tables for pure-Rust Tree-sitter grammars.
-//!
-//! ## Quick start
-//! ```no_run
-//! use rust_sitter_ir::builder::GrammarBuilder;
-//! use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-//! use rust_sitter_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
-//!
-//! let g = GrammarBuilder::new("demo")
-//!     .token("IDENT", r"[a-zA-Z_][a-zA-Z0-9_]*")
-//!     .rule("module", vec![])                 // ε
-//!     .rule("module", vec!["IDENT"])
-//!     .start("module")
-//!     .build();
-//!
-//! let ff = FirstFollowSets::compute(&g);
-//! let pt = build_lr1_automaton(&g, &ff).unwrap();
-//! let token_ix = collect_token_indices(&g, &pt);
-//! let compressed = TableCompressor::new()
-//!     .compress(&pt, &token_ix, eof_accepts_or_reduces(&pt))
-//!     .unwrap();
-//! # let _ = compressed;
-//! ```
-//!
-//! ## Important Notes
-//!
-//! - The `helpers::collect_token_indices()` function ALWAYS includes the EOF token (symbol 0)
-//!   in its output. This is essential for proper table compression.
-//! - When using `TableCompressor::compress()`, ensure you provide correct `token_indices`
-//!   and `start_can_be_empty` parameters. See MIGRATING.md for migration guidance.
+mod test_helpers;
+mod util;
+
+#[cfg(test)]
+pub use crate::test_helpers::test::{make_empty_table, make_minimal_table};
 
 pub mod abi;
 pub mod abi_builder;
@@ -421,101 +398,45 @@ impl StaticLanguageGenerator {
                     // For each action cell, generate entries for all actions
                     action_cell.iter().map(|action| {
                         match action {
-                        Action::Shift(state) => {
-                            let state_id = state.0;
-                            quote! {
-                                rust_sitter::ffi::TSParseActionEntry {
-                                    type_: rust_sitter::ffi::TSParseActionType::Shift,
-                                    state: #state_id,
-                                    symbol: 0,
-                                    child_count: 0,
-                                    dynamic_precedence: 0,
-                                    fragile: false,
-                                }
-                            }
-                        }
-                        Action::Reduce(rule) => {
-                            let rule_id = rule.0;
-                            quote! {
-                                rust_sitter::ffi::TSParseActionEntry {
-                                    type_: rust_sitter::ffi::TSParseActionType::Reduce,
-                                    state: 0,
-                                    symbol: #rule_id,
-                                    child_count: 0, // Will be filled with actual child count
-                                    dynamic_precedence: 0,
-                                    fragile: false,
-                                }
-                            }
-                        }
-                        Action::Accept => {
-                            quote! {
-                                rust_sitter::ffi::TSParseActionEntry {
-                                    type_: rust_sitter::ffi::TSParseActionType::Accept,
-                                    state: 0,
-                                    symbol: 0,
-                                    child_count: 0,
-                                    dynamic_precedence: 0,
-                                    fragile: false,
-                                }
-                            }
-                        }
-                        Action::Error => {
-                            quote! {
-                                rust_sitter::ffi::TSParseActionEntry {
-                                    type_: rust_sitter::ffi::TSParseActionType::Error,
-                                    state: 0,
-                                    symbol: 0,
-                                    child_count: 0,
-                                    dynamic_precedence: 0,
-                                    fragile: false,
-                                }
-                            }
-                        }
-                        Action::Recover => {
-                            // Treat Recover as Error for FFI compatibility
-                            quote! {
-                                rust_sitter::ffi::TSParseActionEntry {
-                                    type_: rust_sitter::ffi::TSParseActionType::Error,
-                                    state: 0,
-                                    symbol: 0,
-                                    child_count: 0,
-                                    dynamic_precedence: 0,
-                                    fragile: false,
-                                }
-                            }
-                        }
-                        Action::Fork(actions) => {
-                            // For GLR fork points, we'll need to handle multiple actions
-                            // For now, just take the first action
-                            if let Some(first_action) = actions.first() {
-                                match first_action {
-                                    Action::Shift(state) => {
-                                        let state_id = state.0;
-                                        quote! {
-                                            rust_sitter::ffi::TSParseActionEntry {
-                                                type_: rust_sitter::ffi::TSParseActionType::Shift,
-                                                state: #state_id,
-                                                symbol: 0,
-                                                child_count: 0,
-                                                dynamic_precedence: 0,
-                                                fragile: false,
-                                            }
-                                        }
-                                    }
-                                    _ => {
-                                        quote! {
-                                            rust_sitter::ffi::TSParseActionEntry {
-                                                type_: rust_sitter::ffi::TSParseActionType::Error,
-                                                state: 0,
-                                                symbol: 0,
-                                                child_count: 0,
-                                                dynamic_precedence: 0,
-                                                fragile: false,
-                                            }
-                                        }
+                            Action::Shift(state) => {
+                                let state_id = state.0;
+                                quote! {
+                                    rust_sitter::ffi::TSParseActionEntry {
+                                        type_: rust_sitter::ffi::TSParseActionType::Shift,
+                                        state: #state_id,
+                                        symbol: 0,
+                                        child_count: 0,
+                                        dynamic_precedence: 0,
+                                        fragile: false,
                                     }
                                 }
-                            } else {
+                            }
+                            Action::Reduce(rule) => {
+                                let rule_id = rule.0;
+                                quote! {
+                                    rust_sitter::ffi::TSParseActionEntry {
+                                        type_: rust_sitter::ffi::TSParseActionType::Reduce,
+                                        state: 0,
+                                        symbol: #rule_id,
+                                        child_count: 0, // Will be filled with actual child count
+                                        dynamic_precedence: 0,
+                                        fragile: false,
+                                    }
+                                }
+                            }
+                            Action::Accept => {
+                                quote! {
+                                    rust_sitter::ffi::TSParseActionEntry {
+                                        type_: rust_sitter::ffi::TSParseActionType::Accept,
+                                        state: 0,
+                                        symbol: 0,
+                                        child_count: 0,
+                                        dynamic_precedence: 0,
+                                        fragile: false,
+                                    }
+                                }
+                            }
+                            Action::Error => {
                                 quote! {
                                     rust_sitter::ffi::TSParseActionEntry {
                                         type_: rust_sitter::ffi::TSParseActionType::Error,
@@ -527,20 +448,60 @@ impl StaticLanguageGenerator {
                                     }
                                 }
                             }
-                        }
-                        _ => {
-                            // Unknown action type - treat as error
-                            quote! {
-                                rust_sitter::ffi::TSParseActionEntry {
-                                    type_: rust_sitter::ffi::TSParseActionType::Error,
-                                    state: 0,
-                                    symbol: 0,
-                                    child_count: 0,
-                                    dynamic_precedence: 0,
-                                    fragile: false,
+                            Action::Recover => {
+                                // Treat Recover as Error for FFI compatibility
+                                quote! {
+                                    rust_sitter::ffi::TSParseActionEntry {
+                                        type_: rust_sitter::ffi::TSParseActionType::Error,
+                                        state: 0,
+                                        symbol: 0,
+                                        child_count: 0,
+                                        dynamic_precedence: 0,
+                                        fragile: false,
+                                    }
                                 }
                             }
-                        }
+                            Action::Fork(actions) => {
+                                // For GLR fork points, we'll need to handle multiple actions
+                                // For now, just take the first action
+                                if let Some(Action::Shift(state)) = actions.first() {
+                                    let state_id = state.0;
+                                    quote! {
+                                        rust_sitter::ffi::TSParseActionEntry {
+                                            type_: rust_sitter::ffi::TSParseActionType::Shift,
+                                            state: #state_id,
+                                            symbol: 0,
+                                            child_count: 0,
+                                            dynamic_precedence: 0,
+                                            fragile: false,
+                                        }
+                                    }
+                                } else {
+                                    quote! {
+                                        rust_sitter::ffi::TSParseActionEntry {
+                                            type_: rust_sitter::ffi::TSParseActionType::Error,
+                                            state: 0,
+                                            symbol: 0,
+                                            child_count: 0,
+                                            dynamic_precedence: 0,
+                                            fragile: false,
+                                        }
+                                    }
+                                }
+                            }
+                            _ => {
+                                // Unknown action type - treat as error
+                                quote! {
+                                    rust_sitter::ffi::TSParseActionEntry {
+                                        type_: rust_sitter::ffi::TSParseActionType::Error,
+                                        state: 0,
+                                        symbol: 0,
+                                        child_count: 0,
+                                        dynamic_precedence: 0,
+                                        fragile: false,
+                                    }
+                                }
+                            }
                         }
                     })
                 })
@@ -848,19 +809,11 @@ mod tests {
     #[test]
     fn test_static_language_generator_creation() {
         let grammar = Grammar::new("test".to_string());
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 0,
-            symbol_count: 0,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::empty_table!(states: 1, terms: 0, nonterms: 0);
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
         assert_eq!(generator.grammar.name, "test");
-        assert_eq!(generator.parse_table.state_count, 0);
+        assert_eq!(generator.parse_table.state_count, 1); // minimum is 1
         assert!(generator.compressed_tables.is_none());
     }
 
@@ -937,15 +890,7 @@ mod tests {
         };
         grammar.add_rule(rule);
 
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 0,
-            symbol_count: 0,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::empty_table!(states: 1, terms: 0, nonterms: 0);
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
         let symbol_names = generator.generate_symbol_names();
@@ -963,15 +908,7 @@ mod tests {
         grammar.fields.insert(FieldId(0), "left".to_string());
         grammar.fields.insert(FieldId(1), "right".to_string());
 
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 0,
-            symbol_count: 0,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::empty_table!(states: 1, terms: 0, nonterms: 0);
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
         let field_names = generator.generate_field_names();
@@ -982,15 +919,7 @@ mod tests {
     #[test]
     fn test_node_types_generation() {
         let grammar = Grammar::new("test".to_string());
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 0,
-            symbol_count: 0,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::empty_table!(states: 1, terms: 0, nonterms: 0);
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
         let node_types = generator.generate_node_types();
@@ -1004,21 +933,22 @@ mod tests {
         let grammar = Grammar::new("test".to_string());
 
         // Create a simple parse table
-        let mut parse_table = ParseTable {
-            action_table: vec![
+        let mut parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![
                 vec![vec![Action::Shift(StateId(1))], vec![Action::Error]],
                 vec![vec![Action::Reduce(RuleId(0))], vec![Action::Accept]],
             ],
-            goto_table: vec![vec![StateId(0), StateId(1)], vec![StateId(2), StateId(0)]],
-            symbol_metadata: vec![],
-            state_count: 2,
-            symbol_count: 2,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+            vec![vec![StateId(0), StateId(1)], vec![StateId(2), StateId(0)]],
+            vec![],
+            SymbolId(1), // start_symbol
+            SymbolId(1), // eof_symbol (column 1)
+            0,           // external_token_count
+        );
 
-        // Add EOF to symbol_to_index (required invariant)
+        // Override to put EOF at column 0 for test compatibility
+        parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
+        parse_table.symbol_to_index.insert(SymbolId(1), 1);
 
         let mut generator = StaticLanguageGenerator::new(grammar, parse_table);
 
@@ -1035,18 +965,17 @@ mod tests {
         let _grammar = Grammar::new("large_test".to_string());
 
         // Create a parse table that exceeds small table threshold
-        let mut parse_table = ParseTable {
-            // Make most cells Error, but let state 0 / EOF accept so compression can succeed
-            action_table: vec![vec![vec![Action::Error]; 10]; 40000],
-            goto_table: vec![vec![StateId(0); 10]; 40000],
-            symbol_metadata: vec![],
-            state_count: 40000,
-            symbol_count: 10,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let mut parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![Action::Error]; 10]; 40000],
+            vec![vec![StateId(0); 10]; 40000],
+            vec![],
+            SymbolId(1), // start_symbol
+            SymbolId(1), // eof_symbol (column 1)
+            0,           // external_token_count
+        );
 
-        // EOF mapping (column 0)
+        // Set EOF at column 0 for compatibility with existing test logic
+        parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
 
         // Give state 0 / EOF an Accept so the compressor has a valid path
@@ -1215,15 +1144,15 @@ mod tests {
     #[test]
     fn test_language_code_generation() {
         let grammar = Grammar::new("test_lang".to_string());
-        let parse_table = ParseTable {
-            action_table: vec![vec![vec![Action::Accept]]],
-            goto_table: vec![vec![StateId(0)]],
-            symbol_metadata: vec![],
-            state_count: 1,
-            symbol_count: 1,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = crate::test_helpers::test::make_minimal_table(
+            // 1 state × 2 columns; Accept on EOF col (1)
+            vec![vec![vec![], vec![Action::Accept]]],
+            vec![vec![StateId(0), StateId(0)]],
+            vec![],
+            SymbolId(1), // start_symbol (now in-bounds)
+            SymbolId(1), // EOF column (1 = 1 + terms + externals with terms=1-implicit)
+            0,
+        );
 
         let generator = StaticLanguageGenerator::new(grammar, parse_table);
         let code = generator.generate_language_code();
@@ -1238,21 +1167,22 @@ mod tests {
 
     #[test]
     fn test_compressed_tables_validation() {
-        let mut parse_table = ParseTable {
-            action_table: vec![
+        let mut parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![
                 vec![vec![Action::Shift(StateId(1))], vec![Action::Error]],
                 vec![vec![Action::Reduce(RuleId(0))], vec![Action::Accept]],
             ],
-            goto_table: vec![vec![StateId(0), StateId(1)], vec![StateId(2), StateId(0)]],
-            symbol_metadata: vec![],
-            state_count: 2,
-            symbol_count: 2,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+            vec![vec![StateId(0), StateId(1)], vec![StateId(2), StateId(0)]],
+            vec![],
+            SymbolId(1), // start_symbol
+            SymbolId(1), // eof_symbol (column 1)
+            0,           // external_token_count
+        );
 
-        // Add EOF to symbol_to_index (required invariant)
+        // Override to put EOF at column 0 for test compatibility
+        parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
+        parse_table.symbol_to_index.insert(SymbolId(1), 1);
 
         let compressor = TableCompressor::new();
         // Use proper helper to collect token indices
@@ -1314,18 +1244,17 @@ mod tests {
         grammar.tokens.insert(SymbolId(0), token);
 
         // Simple parse table
-        let mut parse_table = ParseTable {
-            action_table: vec![
-                vec![vec![Action::Shift(StateId(1))]],
-                vec![vec![Action::Accept]],
+        let mut parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![
+                vec![vec![Action::Shift(StateId(1))], vec![]],
+                vec![vec![], vec![Action::Accept]],
             ],
-            goto_table: vec![vec![StateId(1)], vec![StateId(0)]],
-            symbol_metadata: vec![],
-            state_count: 2,
-            symbol_count: 1,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+            vec![vec![StateId(1), StateId(0)], vec![StateId(0), StateId(0)]],
+            vec![],
+            SymbolId(2), // start_symbol
+            SymbolId(1), // eof_symbol (must be > 0)
+            0,           // external_token_count
+        );
 
         // Add EOF to symbol_to_index (required invariant)
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
