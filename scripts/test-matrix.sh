@@ -16,6 +16,9 @@ else
   RST=""
 fi
 
+# Use a dedicated build dir to avoid lock contention with other cargo jobs
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target/precommit}"
+
 ensure_tests() {
   local label="$1"; shift
   local -a args=("$@")

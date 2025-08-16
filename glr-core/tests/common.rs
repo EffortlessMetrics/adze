@@ -2,6 +2,14 @@ use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
 use rust_sitter_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
+/// Test helpers for constructing minimal parse tables
+///
+/// ### Invariants captured here
+/// - `EOF` column index **must equal** `token_count + external_token_count`.
+/// - `ERROR` lives at column 0; terminals occupy the next `token_count` columns.
+/// - `initial_state` is in range of `state_count`.
+/// - `start_symbol` is a nonterminal present in `nonterminal_to_index`.
+
 /// Sentinel used throughout the tests for "no goto".
 pub const INVALID: StateId = StateId(u16::MAX);
 
