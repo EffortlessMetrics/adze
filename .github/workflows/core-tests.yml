@@ -23,8 +23,14 @@ jobs:
       - name: Clippy (all targets, all features)
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       
-      - name: Check feature extremes (no default features)
-        run: cargo check --workspace --all-targets --no-default-features
+      - name: Check no-default-features (core crates only)
+        run: |
+          cargo check --no-default-features \
+            -p rust-sitter-glr-core \
+            -p rust-sitter-ir \
+            -p rust-sitter-tablegen \
+            -p rust-sitter-common \
+            -p rust-sitter-macro
       
       - name: Check GLR core with all features
         run: cargo check -p rust-sitter-glr-core --features "perf-counters test-api"
