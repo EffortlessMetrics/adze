@@ -1,10 +1,16 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use std::time::Duration;
 
 #[cfg(feature = "perf-counters")]
 use rust_sitter_glr_core::perf;
 
 pub fn bench_parse_small(c: &mut Criterion) {
     let mut g = c.benchmark_group("glr-perf-snapshot");
+    
+    // Micro-bench stability knobs for tiny workloads
+    g.sample_size(60);
+    g.measurement_time(Duration::from_millis(600));
+    g.warm_up_time(Duration::from_millis(300));
 
     #[cfg(feature = "perf-counters")]
     {
@@ -26,6 +32,11 @@ pub fn bench_parse_small(c: &mut Criterion) {
 
         // One EOF token. Pass as an iterator of values (no alloc each iter).
         const TOKENS: &[(u32, u32, u32)] = &[(2, 0, 0)];
+
+        // Pre-warm to remove first-iteration noise (OnceLock init, JIT-ish cold paths)
+        let _ = perf::take(); // clear
+        let _ = driver.parse_tokens(TOKENS.iter().copied()); // warm caches
+        let _ = perf::take(); // clear again before measuring
 
         g.bench_function("small-parse", |b| {
             b.iter(|| {
