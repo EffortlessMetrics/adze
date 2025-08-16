@@ -7,11 +7,8 @@
 fn test_state0_has_token_actions() {
     use std::sync::Once;
 
-    // Include the generated parser to get access to constants
-    include!(concat!(
-        env!("OUT_DIR"),
-        "/grammar_arithmetic/parser_arithmetic.rs"
-    ));
+    // Import the symbols from the arithmetic module
+    use rust_sitter_example::arithmetic::{LANGUAGE, SMALL_PARSE_TABLE, SMALL_PARSE_TABLE_MAP};
 
     // Access the language structure and tables directly
     let lang = &LANGUAGE;
@@ -87,11 +84,8 @@ fn test_state0_has_token_actions() {
 #[cfg(feature = "pure-rust")]
 #[test]
 fn test_parse_arithmetic_expression() {
-    // Include the generated parser
-    include!(concat!(
-        env!("OUT_DIR"),
-        "/grammar_arithmetic/parser_arithmetic.rs"
-    ));
+    // Import the symbols from the arithmetic module
+    use rust_sitter_example::arithmetic::{LANGUAGE, SMALL_PARSE_TABLE};
 
     // For now, just validate that the parser compiles and the language structure is valid
     let lang = &LANGUAGE;

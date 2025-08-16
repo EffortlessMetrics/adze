@@ -1,5 +1,15 @@
-// For pure-rust: The parser is generated at build time but we don't include it here
-// to avoid duplicate symbols. The grammar macro below handles everything.
+// For pure-rust: Include and re-export the generated parser symbols
+#[cfg(feature = "pure-rust")]
+pub mod generated {
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_arithmetic/parser_arithmetic.rs"
+    ));
+}
+
+// Re-export the key symbols for tests
+#[cfg(feature = "pure-rust")]
+pub use generated::{LANGUAGE, SMALL_PARSE_TABLE, SMALL_PARSE_TABLE_MAP};
 
 // C path: declare the C export and link the object produced by build.rs
 #[cfg(not(feature = "pure-rust"))]

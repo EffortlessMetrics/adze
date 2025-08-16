@@ -1667,6 +1667,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "prettyplease"
+version = "0.2.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6837b9e10d61f45f987d50808f83d1ee3d206c66acf650c3e4ae2e1f6ddedf55"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.98",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2141,6 +2151,9 @@ dependencies = [
  "glob",
  "indexmap",
  "insta",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
  "regex",
  "rust-sitter-common",
  "rust-sitter-glr-core",

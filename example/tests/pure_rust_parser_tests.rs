@@ -9,17 +9,16 @@ mod tests {
 
     #[test]
     fn test_state0_has_token_actions() {
+        // Use the LANGUAGE static directly since it's pub
+        let lang = &LANGUAGE;
+
+        // Check that we have compressed tables only (no large states)
+        let large_state_count = lang.large_state_count as usize;
+        assert_eq!(large_state_count, 0, "Expected all states to be compressed");
+
+        // Get state 0's row from the small parse table
+        // SAFETY: These are generated static arrays with known bounds
         unsafe {
-            // Get the language struct for arithmetic grammar
-            let lang = tree_sitter_arithmetic();
-            assert!(!lang.is_null());
-            let lang = &*lang;
-
-            // Check that we have compressed tables only (no large states)
-            let large_state_count = lang.large_state_count as usize;
-            assert_eq!(large_state_count, 0, "Expected all states to be compressed");
-
-            // Get state 0's row from the small parse table
             let state_0_start = *lang.small_parse_table_map.add(0) as usize;
             let state_0_end = *lang.small_parse_table_map.add(1) as usize;
 

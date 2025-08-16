@@ -175,13 +175,13 @@ impl<'a> AbiLanguageBuilder<'a> {
 
         // Only import TSSymbol if we have external scanners
         let ts_symbol_import = if !self.grammar.externals.is_empty() {
-            quote! { use ::rust_sitter::TSSymbol; }
+            quote! { use rust_sitter::TSSymbol; }
         } else {
             quote! {}
         };
 
         quote! {
-            use ::rust_sitter::pure_parser::*;
+            use rust_sitter::pure_parser::*;
             #ts_symbol_import
 
             // Lexer implementation

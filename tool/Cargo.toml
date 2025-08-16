@@ -36,6 +36,9 @@ anyhow = "1.0"
 indexmap = "2.0"
 clap = { version = "4.5", features = ["derive"] }
 glob = "0.3"
+prettyplease = "0.2"
+proc-macro2 = "1"
+quote = "1"
 
 tempfile = { version = "3", optional = true }
 tree-sitter = { version = "0.25.2", optional = true }
