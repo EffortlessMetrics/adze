@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euxo pipefail
 
 crate="${1:-ts-bridge}"
 echo "Building $crate in release mode..."
 export CARGO_TARGET_DIR=target
-cargo build -p "$crate" --release 2>&1 | tail -5
+cargo build -p "$crate" --release --locked 2>&1 | tail -5
 
 # Detect OS and set appropriate extension and symbol lister
 case "$(uname -s)" in
