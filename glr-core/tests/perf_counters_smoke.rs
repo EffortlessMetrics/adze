@@ -20,4 +20,11 @@ fn counters_api_smoke_test() {
     assert_eq!(after.reductions - initial.reductions, 5);
     assert_eq!(after.forks - initial.forks, 2);
     assert_eq!(after.merges - initial.merges, 1);
+    
+    // Verify take() truly resets
+    let reset = perf::take();
+    assert_eq!(reset.shifts, 0, "take() should reset shifts to 0");
+    assert_eq!(reset.reductions, 0, "take() should reset reductions to 0");
+    assert_eq!(reset.forks, 0, "take() should reset forks to 0");
+    assert_eq!(reset.merges, 0, "take() should reset merges to 0");
 }
