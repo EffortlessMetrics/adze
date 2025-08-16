@@ -42,6 +42,7 @@ strict-invariants = []
 memory-tests = []
 json-parity = []
 perf-counters = []
+test-api = []
 
 [dev-dependencies]
 insta = "1.0"

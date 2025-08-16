@@ -34,7 +34,7 @@ pub trait ForestView: sealed::Sealed + Send + Sync {
 }
 
 /// Test hooks for Forest (only available in test builds).
-#[cfg(any(test, feature = "test-helpers"))]
+#[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
 pub struct ForestTestHooks {
     /// Cached error stats from the forest.
     /// (has_error_chunks, missing_terminals, total_error_cost).
@@ -44,7 +44,7 @@ pub struct ForestTestHooks {
 /// Opaque forest handle exported to consumers via trait object.
 pub struct Forest {
     pub(crate) view: Box<dyn ForestView>,
-    #[cfg(any(test, feature = "test-helpers"))]
+    #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
     pub(crate) test_hooks: Option<ForestTestHooks>,
 }
 
@@ -55,7 +55,7 @@ impl Forest {
 
     /// Test helper: returns (has_error_chunks, missing_terminals, total_error_cost)
     /// Only available in test builds. Not part of the stable runtime API.
-    #[cfg(any(test, feature = "test-helpers"))]
+    #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
     pub fn debug_error_stats(&self) -> (bool, usize, u32) {
         let hooks = self
             .test_hooks

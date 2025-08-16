@@ -968,13 +968,13 @@ impl<'t> Driver<'t> {
         // Remove duplicate roots by ID
         forest.roots.dedup_by_key(|n| n.id);
 
-        #[cfg(any(test, feature = "test-helpers"))]
+        #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
         let error_stats = forest.debug_error_stats();
 
         let view = Box::new(ParseForestView::new(forest));
         Forest {
             view,
-            #[cfg(any(test, feature = "test-helpers"))]
+            #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
             test_hooks: Some(crate::forest_view::ForestTestHooks { error_stats }),
         }
     }

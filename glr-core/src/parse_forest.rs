@@ -65,7 +65,7 @@ impl ParseForest {
     ///
     /// - A node cannot be both {is_error == true} and {missing == true}.
     /// - ERROR_SYMBOL nodes never have missing == true.
-    #[cfg(any(test, feature = "test-helpers"))]
+    #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
     pub fn debug_error_stats(&self) -> (bool, usize, u32) {
         let mut any_error = false;
         let mut missing = 0usize;

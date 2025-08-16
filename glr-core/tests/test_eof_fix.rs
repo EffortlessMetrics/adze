@@ -132,10 +132,31 @@ fn test_error_stats_not_stubbed() {
 
     match result {
         Ok(forest) => {
-            // TODO: debug_error_stats is not available in integration tests
-            // The method is only available with cfg(test) which is not set for integration tests
-            // let (has_error, missing, cost) = forest.debug_error_stats();
-            // assert!(has_error || missing > 0);
+            // Get real stats - this should NOT return (false, 0, 0) from a stub
+            #[cfg(feature = "test-api")]
+            {
+                let (has_error, missing, cost) = forest.debug_error_stats();
+
+                // We expect recovery to have inserted the missing RBRACE
+                assert!(
+                    has_error || missing > 0,
+                    "Expected error or missing terminal from recovery, got: has_error={}, missing={}, cost={}",
+                    has_error,
+                    missing,
+                    cost
+                );
+                assert!(
+                    cost > 0,
+                    "Expected non-zero cost from recovery, got {}",
+                    cost
+                );
+
+                println!(
+                    "✓ Error stats correctly reported: has_error={}, missing={}, cost={}",
+                    has_error, missing, cost
+                );
+            }
+            #[cfg(not(feature = "test-api"))]
             println!("✓ Parse with recovery completed");
         }
         Err(e) => {

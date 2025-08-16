@@ -178,6 +178,16 @@ pub mod perf {
         }
     }
 
+    /// Atomic read-and-clear (consistent snapshot)
+    pub fn take() -> Counters {
+        Counters {
+            shifts: SHIFTS.swap(0, Ordering::Relaxed),
+            reductions: REDUCTIONS.swap(0, Ordering::Relaxed),
+            forks: FORKS.swap(0, Ordering::Relaxed),
+            merges: MERGES.swap(0, Ordering::Relaxed),
+        }
+    }
+
     pub fn reset() {
         SHIFTS.store(0, Ordering::Relaxed);
         REDUCTIONS.store(0, Ordering::Relaxed);
@@ -210,6 +220,11 @@ pub mod perf {
 
     #[inline(always)]
     pub fn snapshot() -> Counters {
+        Counters::default()
+    }
+
+    #[inline(always)]
+    pub fn take() -> Counters {
         Counters::default()
     }
 

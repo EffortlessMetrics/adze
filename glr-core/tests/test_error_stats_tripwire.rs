@@ -112,10 +112,36 @@ fn test_error_stats_not_stubbed() {
 
     match result {
         Ok(forest) => {
-            // TODO: debug_error_stats is not available in integration tests
-            // The method is only available with cfg(test) which is not set for integration tests
-            // let (has_error, missing, cost) = forest.debug_error_stats();
-            // assert!(has_error || missing > 0 || cost > 0);
+            #[cfg(feature = "test-api")]
+            {
+                let (has_error, missing, cost) = forest.debug_error_stats();
+
+                // THE CRITICAL ASSERTION: If error recovery happened, stats must show it
+                // This prevents regression to stub returning (false, 0, 0)
+                assert!(
+                    has_error || missing > 0 || cost > 0,
+                    "ERROR: debug_error_stats returned all zeros for a parse requiring recovery!\n\
+                     This indicates the method has regressed to a stub implementation.\n\
+                     Got: has_error={}, missing={}, cost={}\n\
+                     Expected: At least one non-zero value since 'b' is missing",
+                    has_error,
+                    missing,
+                    cost
+                );
+
+                // More specific check: we expect exactly 1 missing terminal ('b')
+                assert_eq!(
+                    missing, 1,
+                    "Expected exactly 1 missing terminal ('b'), got {}",
+                    missing
+                );
+
+                println!(
+                    "✓ Error stats correctly reported: has_error={}, missing={}, cost={}",
+                    has_error, missing, cost
+                );
+            }
+            #[cfg(not(feature = "test-api"))]
             println!("✓ Parse with recovery completed");
         }
         Err(_) => {
@@ -237,9 +263,23 @@ fn test_clean_parse_has_zero_errors() {
 
     match result {
         Ok(forest) => {
-            // TODO: debug_error_stats is not available in integration tests
-            // let (has_error, missing, cost) = forest.debug_error_stats();
-            // assert_eq!((has_error, missing, cost), (false, 0, 0));
+            #[cfg(feature = "test-api")]
+            {
+                let (has_error, missing, cost) = forest.debug_error_stats();
+
+                // Clean parse should have all zeros
+                assert_eq!(
+                    (has_error, missing, cost),
+                    (false, 0, 0),
+                    "Clean parse should have zero error stats"
+                );
+
+                println!(
+                    "✓ Clean parse correctly has zero errors: has_error={}, missing={}, cost={}",
+                    has_error, missing, cost
+                );
+            }
+            #[cfg(not(feature = "test-api"))]
             println!("✓ Clean parse completed");
         }
         Err(e) => {
