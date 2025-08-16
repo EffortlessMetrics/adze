@@ -1,10 +1,10 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::time::Duration;
 
-#[cfg(feature = "perf-counters")]
-use rust_sitter_glr_core::perf;
 use glr_test_support::test_utilities::make_minimal_table;
 use rust_sitter_glr_core::Driver;
+#[cfg(feature = "perf-counters")]
+use rust_sitter_glr_core::perf;
 use rust_sitter_ir::SymbolId;
 
 pub fn bench_parse_small(c: &mut Criterion) {

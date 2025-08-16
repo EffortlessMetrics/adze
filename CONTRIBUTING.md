@@ -227,4 +227,31 @@ The CI tests with these feature combinations:
 - `perf-counters` - Performance counter tracking
 - `test-api` - Internal testing APIs
 - All features enabled together
-- No default features (minimal build)
+- No default features (core crates only)
+
+## CI Configuration
+
+### Code Quality Checks
+The CI enforces:
+- **Format**: `cargo fmt --all -- --check`
+- **Clippy**: `cargo clippy` with `-D warnings`
+- **Docs**: `cargo doc` with `RUSTDOCFLAGS=-D warnings`
+- **Compilation**: `cargo check` with `RUSTFLAGS=-D warnings`
+
+### No-Default-Features Testing
+The following core crates are tested without default features:
+- `rust-sitter-glr-core`
+- `rust-sitter-ir`
+- `rust-sitter-tablegen`
+- `rust-sitter-common`
+- `rust-sitter-macro`
+
+This list is maintained in `.github/workflows/core-tests.yml` as the `CORE_CRATES_NO_DEFAULT` environment variable.
+
+### Cross-Platform Testing
+The ts-bridge smoke tests run on:
+- Ubuntu (latest)
+- macOS (latest)
+- Windows (latest)
+
+The smoke test verifies symbol exports and linkage across all platforms.
