@@ -669,6 +669,8 @@ impl ItemSet {
 pub struct ItemSetCollection {
     pub sets: Vec<ItemSet>,
     pub goto_table: IndexMap<(StateId, SymbolId), StateId>,
+    /// Track which symbols in goto_table are terminals (true) vs non-terminals (false)
+    pub symbol_is_terminal: IndexMap<SymbolId, bool>,
 }
 
 impl ItemSetCollection {
@@ -682,6 +684,7 @@ impl ItemSetCollection {
         let mut collection = Self {
             sets: Vec::new(),
             goto_table: IndexMap::new(),
+            symbol_is_terminal: IndexMap::new(),
         };
 
         // Create initial state with the augmented start rule S' -> S $
@@ -706,6 +709,11 @@ impl ItemSetCollection {
             "Initial state 0 after closure has {} items:",
             initial_set.items.len()
         );
+        
+        // Track what symbols we expect transitions for
+        let mut expected_terminals = std::collections::BTreeSet::new();
+        let mut expected_nonterminals = std::collections::BTreeSet::new();
+        
         for item in &initial_set.items {
             // Print each item to debug
             if let Some(rule) = grammar
@@ -730,8 +738,25 @@ impl ItemSetCollection {
                     "  Item: NT({}) -> {}, lookahead={}",
                     rule.lhs.0, rhs_str, item.lookahead.0
                 );
+                
+                // Track what symbol is next
+                if item.position < rule.rhs.len() {
+                    match &rule.rhs[item.position] {
+                        Symbol::Terminal(t) => {
+                            expected_terminals.insert(*t);
+                        }
+                        Symbol::NonTerminal(nt) => {
+                            expected_nonterminals.insert(*nt);
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
+        
+        eprintln!("State 0 expects transitions for:");
+        eprintln!("  Terminals: {:?}", expected_terminals);
+        eprintln!("  Nonterminals: {:?}", expected_nonterminals);
 
         collection.sets.push(initial_set);
         let mut state_counter = 1;
@@ -846,6 +871,10 @@ impl ItemSetCollection {
                     collection
                         .goto_table
                         .insert((current_set.id, symbol_id), target_state);
+                    
+                    // Track whether this symbol is a terminal or non-terminal
+                    let is_terminal = matches!(symbol, Symbol::Terminal(_) | Symbol::External(_));
+                    collection.symbol_is_terminal.insert(symbol_id, is_terminal);
                     // "DEBUG: Added goto({}, {}) = {}"
                 }
             }
@@ -861,6 +890,7 @@ impl ItemSetCollection {
         let mut collection = Self {
             sets: Vec::new(),
             goto_table: IndexMap::new(),
+            symbol_is_terminal: IndexMap::new(),
         };
 
         // Create initial state with augmented start rule
@@ -1027,6 +1057,10 @@ impl ItemSetCollection {
                     collection
                         .goto_table
                         .insert((current_set.id, symbol_id), target_state);
+                    
+                    // Track whether this symbol is a terminal or non-terminal
+                    let is_terminal = matches!(symbol, Symbol::Terminal(_) | Symbol::External(_));
+                    collection.symbol_is_terminal.insert(symbol_id, is_terminal);
                     // "DEBUG: Added goto({}, {}) = {}"
                 }
             }
@@ -1828,6 +1862,22 @@ pub fn build_lr1_automaton(
         "DEBUG: Augmented grammar has {} tokens",
         augmented_grammar.tokens.len()
     );
+    
+    // Debug: Print what tokens are in the augmented grammar
+    eprintln!("=== Symbol Classification Debug ===");
+    eprintln!("Tokens in augmented_grammar: {:?}", augmented_grammar.tokens.keys().map(|k| k.0).collect::<Vec<_>>());
+    eprintln!("Externals in augmented_grammar: {:?}", augmented_grammar.externals.iter().map(|e| e.symbol_id.0).collect::<Vec<_>>());
+    eprintln!("Original grammar tokens: {}", grammar.tokens.len());
+    eprintln!("Collection goto_table size: {}", collection.goto_table.len());
+    
+    // Debug state 0 specifically
+    let state0_gotos: Vec<_> = collection.goto_table.iter()
+        .filter(|((from, _), _)| from.0 == 0)
+        .collect();
+    eprintln!("State 0 has {} goto entries", state0_gotos.len());
+    for ((_, symbol), to_state) in &state0_gotos {
+        eprintln!("  Symbol {} -> State {}", symbol.0, to_state.0);
+    }
 
     // First, add shift actions from goto table for terminals
     // This must be done BEFORE reduce actions to enable shift/reduce conflict detection
@@ -1835,18 +1885,19 @@ pub fn build_lr1_automaton(
     let mut _non_terminal_count = 0;
 
     for ((from_state, symbol), to_state) in &collection.goto_table {
-        // Check if this symbol is a terminal (token or external)
-        let is_terminal = augmented_grammar.tokens.contains_key(symbol)
-            || augmented_grammar
-                .externals
-                .iter()
-                .any(|e| e.symbol_id == *symbol)
-            || symbol.0 == 0; // EOF is also a terminal
+        // Check if this symbol is a terminal using the tracking from collection
+        let is_terminal = collection.symbol_is_terminal.get(symbol).copied().unwrap_or_else(|| {
+            // Fallback for symbols not in the map (shouldn't happen, but be safe)
+            symbol.0 == 0 // EOF is a terminal
+        });
 
         if from_state.0 == 0 {
             eprintln!(
-                "State 0 goto entry: symbol {} -> state {}, is_terminal={}",
-                symbol.0, to_state.0, is_terminal
+                "State 0 goto entry: symbol {} -> state {}, is_terminal={} (in tokens={}, in externals={}, is EOF={})",
+                symbol.0, to_state.0, is_terminal,
+                augmented_grammar.tokens.contains_key(symbol),
+                augmented_grammar.externals.iter().any(|e| e.symbol_id == *symbol),
+                symbol.0 == 0
             );
         }
 
@@ -2065,13 +2116,11 @@ pub fn build_lr1_automaton(
 
     // Add non-terminal goto entries to the goto table
     for ((from_state, symbol), _to_state) in &collection.goto_table {
-        // Check if this symbol is a non-terminal
-        let is_terminal = augmented_grammar.tokens.contains_key(symbol)
-            || augmented_grammar
-                .externals
-                .iter()
-                .any(|e| e.symbol_id == *symbol)
-            || symbol.0 == 0; // EOF is also a terminal
+        // Check if this symbol is a non-terminal using the tracking from collection
+        let is_terminal = collection.symbol_is_terminal.get(symbol).copied().unwrap_or_else(|| {
+            // Fallback for symbols not in the map
+            symbol.0 == 0 // EOF is a terminal
+        });
 
         if !is_terminal {
             if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
@@ -2682,6 +2731,7 @@ mod tests {
         let collection = ItemSetCollection {
             sets: vec![],
             goto_table: IndexMap::new(),
+            symbol_is_terminal: IndexMap::new(),
         };
 
         assert!(collection.sets.is_empty());
