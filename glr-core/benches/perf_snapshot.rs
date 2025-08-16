@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::time::Duration;
 
 #[cfg(feature = "perf-counters")]
@@ -32,27 +32,53 @@ pub fn bench_parse_small(c: &mut Criterion) {
 
         // One EOF token. Pass as an iterator of values (no alloc each iter).
         const TOKENS: &[(u32, u32, u32)] = &[(2, 0, 0)];
+        
+        g.throughput(Throughput::Elements(TOKENS.len() as u64));
 
         // Pre-warm to remove first-iteration noise (OnceLock init, JIT-ish cold paths)
         let _ = perf::take(); // clear
-        let _ = driver.parse_tokens(TOKENS.iter().copied()); // warm caches
+        let _ = black_box(driver.parse_tokens(black_box(TOKENS.iter().copied()))); // warm caches
         let _ = perf::take(); // clear again before measuring
 
-        g.bench_function("small-parse", |b| {
+        g.bench_with_input(BenchmarkId::new("small-parse", TOKENS.len()), &(), |b, _| {
             b.iter(|| {
                 // Scoped measurement: zero → run → take snapshot
                 let _ = perf::take(); // clear
-                let iter = TOKENS.iter().copied(); // -> impl IntoIterator<Item=(u32,u32,u32)>
-                let _ = driver.parse_tokens(black_box(iter));
-                let c = perf::take();
-                // Keep the counters "used" to avoid being optimized away
-                black_box((c.shifts, c.reductions, c.forks, c.merges));
+                let _res = black_box(driver.parse_tokens(black_box(TOKENS.iter().copied())));
+                let _snap = black_box(perf::take());
             })
         });
     }
 
     #[cfg(not(feature = "perf-counters"))]
-    g.bench_function("skipped-no-perf-counters", |b| b.iter(|| {}));
+    {
+        use glr_test_support::test_utilities::make_minimal_table;
+        use rust_sitter_glr_core::Driver;
+        use rust_sitter_ir::SymbolId;
+        
+        // Create a minimal table for benchmarking
+        let table = make_minimal_table(
+            vec![vec![vec![]]],  // Minimal action table
+            vec![vec![]],        // Minimal goto table
+            vec![],              // No rules for this simple test
+            SymbolId(1),         // Start symbol
+            SymbolId(2),         // EOF symbol
+            0,                   // No external tokens
+        );
+        let mut driver = Driver::new(&table);
+        
+        // One EOF token. Pass as an iterator of values (no alloc each iter).
+        const TOKENS: &[(u32, u32, u32)] = &[(2, 0, 0)];
+        
+        g.throughput(Throughput::Elements(TOKENS.len() as u64));
+        
+        g.bench_with_input(BenchmarkId::new("small-parse", TOKENS.len()), &(), |b, _| {
+            b.iter(|| {
+                // Without perf counters, just run the parser
+                let _res = black_box(driver.parse_tokens(black_box(TOKENS.iter().copied())));
+            })
+        });
+    }
 
     g.finish();
 }

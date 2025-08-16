@@ -14,3 +14,8 @@ jobs:
       
       - name: Compile benches (with perf counters)
         run: cargo bench -p rust-sitter-glr-core --features perf-counters --no-run
+      
+      - name: Check all targets, all features (deny warnings)
+        env:
+          RUSTFLAGS: -D warnings
+        run: cargo check --workspace --all-targets --all-features

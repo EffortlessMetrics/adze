@@ -8,5 +8,8 @@ publish = false
 rust-sitter-glr-core = { path = "../glr-core" }
 rust-sitter-ir = { path = "../ir" }
 
+[features]
+perf-counters = ["rust-sitter-glr-core/perf-counters"]
+
 [lib]
 path = "src/lib.rs"
