@@ -150,8 +150,7 @@ mod tests {
     use super::*;
     use crate::{Action, LexMode, ParseTable, StateId};
     use rust_sitter_ir::{
-        Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, Symbol,
-        SymbolId,
+        Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
     };
     use std::collections::BTreeMap;
 

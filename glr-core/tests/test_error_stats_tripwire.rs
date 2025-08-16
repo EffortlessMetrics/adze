@@ -1,8 +1,8 @@
 //! Trip-wire test to prevent regression of debug_error_stats to silent zeros
 #![cfg(not(feature = "strict-invariants"))]
 
-use rust_sitter_glr_core::{Action, ActionCell, Driver, LexMode, ParseRule, ParseTable};
-use rust_sitter_ir::{RuleId, StateId, SymbolId};
+use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
+use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 #[test]

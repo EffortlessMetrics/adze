@@ -21,7 +21,11 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target/precommit}"
 
 # (opt-in) Make rustc warnings fatal too: RUSTC_WARN_FATAL=1 .githooks/pre-commit
 if [[ -n "${RUSTC_WARN_FATAL:-}" ]]; then
-  export RUSTFLAGS="${RUSTFLAGS:-} -D warnings"
+  case " ${RUSTFLAGS:-} " in
+    *" -D warnings "*) ;;                                  # already present
+    *) export RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-D warnings" ;;
+  esac
+  echo "${BLD}Rustc warnings → errors (RUSTC_WARN_FATAL=1).${RST}"
 fi
 
 ensure_tests() {

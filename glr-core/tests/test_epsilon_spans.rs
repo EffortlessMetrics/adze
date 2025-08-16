@@ -1,8 +1,5 @@
 //! Test epsilon span tracking in GLR driver
 
-use rust_sitter_glr_core::{Driver, Forest};
-use rust_sitter_ir::{Grammar, SymbolId};
-
 #[test]
 fn test_epsilon_span_position_tracking() {
     // This test verifies that epsilon productions get the correct span (pos, pos)

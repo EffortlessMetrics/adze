@@ -1,7 +1,6 @@
+use glr_test_support::*;
 use rust_sitter_glr_core::{ParseRule, ParseTable};
 use rust_sitter_ir::{StateId, SymbolId};
-
-mod common;
 
 /// Assert that a ParseTable satisfies all structural invariants
 fn assert_parse_table_invariants(t: &ParseTable) {
@@ -80,7 +79,7 @@ fn parse_table_invariants_minimal_table() {
         rhs_len: 0,
     }];
 
-    let table = common::make_minimal_table(
+    let table = make_minimal_table(
         actions,
         gotos,
         rules,
@@ -108,7 +107,7 @@ fn parse_table_invariants_empty_table() {
 
     let rules = vec![];
 
-    let table = common::make_minimal_table(
+    let table = make_minimal_table(
         actions,
         gotos,
         rules,
@@ -142,7 +141,7 @@ fn parse_table_invariants_with_externals() {
         rhs_len: 0,
     }];
 
-    let table = common::make_minimal_table(
+    let table = make_minimal_table(
         actions,
         gotos,
         rules,
@@ -177,7 +176,7 @@ fn parse_table_invariants_custom_states() {
         rhs_len: 0,
     }];
 
-    let table = common::make_minimal_table(actions, gotos, rules, start_symbol, eof_symbol, 0);
+    let table = make_minimal_table(actions, gotos, rules, start_symbol, eof_symbol, 0);
 
     assert_parse_table_invariants(&table);
 }

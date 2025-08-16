@@ -2,7 +2,7 @@
 //! These values are part of the ABI contract with Tree-sitter.
 
 use rust_sitter_glr_core::*;
-use rust_sitter_ir::{RuleId, StateId, SymbolId};
+use rust_sitter_ir::{StateId, SymbolId};
 
 /// Tree-sitter sentinel codepoint values that must remain stable.
 pub const ACCEPT_CODEPOINT: u16 = 0xFFFF;

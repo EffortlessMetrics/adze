@@ -205,7 +205,6 @@ unsafe extern "C" {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[test]
     #[ignore] // Requires actual Tree-sitter library to be linked

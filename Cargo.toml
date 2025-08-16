@@ -9,6 +9,7 @@ members = [
   "common",
   "ir",
   "glr-core",
+  "glr-test-support",
   "tablegen",
   "xtask",
   "testing",

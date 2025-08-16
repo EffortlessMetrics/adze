@@ -127,3 +127,68 @@ pub fn make_minimal_table(
         grammar: Grammar::default(),
     }
 }
+
+/// Assert that a ParseTable respects all invariants
+pub fn assert_parse_table_invariants(table: &ParseTable) {
+    // Verify EOF column index matches token counts
+    let eof_column = table
+        .symbol_to_index
+        .get(&table.eof_symbol)
+        .expect("EOF symbol must be in symbol_to_index");
+
+    let expected_eof_column = table.token_count + table.external_token_count;
+    assert_eq!(
+        *eof_column, expected_eof_column,
+        "EOF column {} != token_count {} + external_token_count {}",
+        *eof_column, table.token_count, table.external_token_count
+    );
+
+    // Verify initial state is valid
+    assert!(
+        (table.initial_state.0 as usize) < table.state_count,
+        "initial_state {} out of range (state_count={})",
+        table.initial_state.0,
+        table.state_count
+    );
+
+    // Verify start symbol is a nonterminal
+    assert!(
+        table.nonterminal_to_index.contains_key(&table.start_symbol),
+        "start_symbol {:?} must be in nonterminal_to_index",
+        table.start_symbol
+    );
+
+    // Verify table dimensions
+    assert_eq!(
+        table.action_table.len(),
+        table.state_count,
+        "action_table rows != state_count"
+    );
+    assert_eq!(
+        table.goto_table.len(),
+        table.state_count,
+        "goto_table rows != state_count"
+    );
+
+    for (i, row) in table.action_table.iter().enumerate() {
+        assert_eq!(
+            row.len(),
+            table.symbol_count,
+            "action_table row {} has {} cols, expected {}",
+            i,
+            row.len(),
+            table.symbol_count
+        );
+    }
+
+    for (i, row) in table.goto_table.iter().enumerate() {
+        assert_eq!(
+            row.len(),
+            table.symbol_count,
+            "goto_table row {} has {} cols, expected {}",
+            i,
+            row.len(),
+            table.symbol_count
+        );
+    }
+}

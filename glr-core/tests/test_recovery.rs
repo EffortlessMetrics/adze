@@ -1,9 +1,7 @@
-mod common;
+use glr_test_support::*;
 
-use rust_sitter_glr_core::parse_forest::{ERROR_SYMBOL, ErrorMeta};
-use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
+use rust_sitter_glr_core::{Action, Driver, ParseRule, ParseTable};
 use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
-use std::collections::BTreeMap;
 
 type ActionCell = Vec<Action>;
 
@@ -118,7 +116,7 @@ fn create_test_grammar() -> (Grammar, ParseTable) {
     states.push(vec![vec![]; 10]);
     gotos.push(vec![StateId(0); 10]);
 
-    let table = common::make_minimal_table(
+    let table = make_minimal_table(
         states,
         gotos,
         rules,

@@ -47,6 +47,7 @@ insta = "1.0"
 criterion = "0.5"
 dhat = "0.3"
 serde_json = "1.0"
+glr-test-support = { path = "../glr-test-support" }
 
 [[bench]]
 name = "automaton"

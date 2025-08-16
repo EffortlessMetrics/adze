@@ -1,6 +1,5 @@
 //! Test JSON parsing with error recovery to verify our EOF and error stats fixes
 
-use rust_sitter_glr_core::{Driver, FirstFollowSets, ParseTable, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_json_grammar() -> Grammar {
