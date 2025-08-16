@@ -5,6 +5,9 @@ use crate::parse_forest::{ForestAlternative, ForestNode, ParseForest};
 use crate::{Action, ParseTable, RuleId, StateId, SymbolId};
 use std::collections::HashMap;
 
+#[cfg(feature = "perf-counters")]
+use crate::perf;
+
 /// Helper function to safely convert usize spans to u32, avoiding overflow on giant buffers
 #[inline]
 fn u32_span(start: usize, end: usize) -> (u32, u32) {
@@ -232,6 +235,8 @@ impl<'t> Driver<'t> {
                 for action in actions_to_use {
                     match *action {
                         Action::Shift(ns) => {
+                            #[cfg(feature = "perf-counters")]
+                            perf::inc_shifts(1);
                             let node_id =
                                 self.push_terminal(&mut state, token_sym, (token_start, token_end));
                             let mut s2 = stk.clone();
@@ -249,6 +254,8 @@ impl<'t> Driver<'t> {
                             return Ok(Self::wrap_forest(state.forest));
                         }
                         Action::Reduce(rid) => {
+                            #[cfg(feature = "perf-counters")]
+                            perf::inc_reductions(1);
                             // Handle reduce+shift conflicts
                             let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
                             let mut s2_clone = s2.clone();
@@ -444,6 +451,8 @@ impl<'t> Driver<'t> {
                 for action in actions_to_use {
                     match *action {
                         Action::Shift(ns) => {
+                            #[cfg(feature = "perf-counters")]
+                            perf::inc_shifts(1);
                             let node_id = self.push_terminal(
                                 &mut state,
                                 lookahead,
@@ -473,6 +482,8 @@ impl<'t> Driver<'t> {
                             return Ok(Self::wrap_forest(state.forest));
                         }
                         Action::Reduce(rid) => {
+                            #[cfg(feature = "perf-counters")]
+                            perf::inc_reductions(1);
                             // If your table encodes reduce+shift conflicts, we still need to try the reduce path
                             let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
                             // After a single reduce, we can still be able to shift this lookahead
@@ -503,6 +514,8 @@ impl<'t> Driver<'t> {
                             // TODO: Insert ERROR node and continue parsing
                         }
                         Action::Fork(ref xs) => {
+                            #[cfg(feature = "perf-counters")]
+                            perf::inc_forks(1);
                             // If your generator emits Fork, just treat as a set of actions
                             for a in xs {
                                 if let Action::Shift(ns) = *a {

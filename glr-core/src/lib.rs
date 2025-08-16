@@ -134,7 +134,7 @@ pub use forest_view::{Forest, ForestView, Span};
 // Performance counters module
 #[cfg(feature = "perf-counters")]
 pub mod perf {
-    use std::sync::{Mutex, OnceLock};
+    use std::sync::atomic::{AtomicU64, Ordering};
 
     #[derive(Clone, Debug, Default)]
     pub struct Counters {
@@ -144,44 +144,45 @@ pub mod perf {
         pub merges: u64,
     }
 
-    static COUNTERS: OnceLock<Mutex<Counters>> = OnceLock::new();
+    static SHIFTS: AtomicU64 = AtomicU64::new(0);
+    static REDUCTIONS: AtomicU64 = AtomicU64::new(0);
+    static FORKS: AtomicU64 = AtomicU64::new(0);
+    static MERGES: AtomicU64 = AtomicU64::new(0);
 
-    fn cell() -> &'static Mutex<Counters> {
-        COUNTERS.get_or_init(|| Mutex::new(Counters::default()))
-    }
-
+    #[inline]
     pub fn inc_shifts(n: u64) {
-        if let Ok(mut c) = cell().lock() {
-            c.shifts += n;
-        }
+        SHIFTS.fetch_add(n, Ordering::Relaxed);
     }
 
+    #[inline]
     pub fn inc_reductions(n: u64) {
-        if let Ok(mut c) = cell().lock() {
-            c.reductions += n;
-        }
+        REDUCTIONS.fetch_add(n, Ordering::Relaxed);
     }
 
+    #[inline]
     pub fn inc_forks(n: u64) {
-        if let Ok(mut c) = cell().lock() {
-            c.forks += n;
-        }
+        FORKS.fetch_add(n, Ordering::Relaxed);
     }
 
+    #[inline]
     pub fn inc_merges(n: u64) {
-        if let Ok(mut c) = cell().lock() {
-            c.merges += n;
-        }
+        MERGES.fetch_add(n, Ordering::Relaxed);
     }
 
     pub fn snapshot() -> Counters {
-        cell().lock().map(|c| c.clone()).unwrap_or_default()
+        Counters {
+            shifts: SHIFTS.load(Ordering::Relaxed),
+            reductions: REDUCTIONS.load(Ordering::Relaxed),
+            forks: FORKS.load(Ordering::Relaxed),
+            merges: MERGES.load(Ordering::Relaxed),
+        }
     }
 
     pub fn reset() {
-        if let Ok(mut c) = cell().lock() {
-            *c = Counters::default();
-        }
+        SHIFTS.store(0, Ordering::Relaxed);
+        REDUCTIONS.store(0, Ordering::Relaxed);
+        FORKS.store(0, Ordering::Relaxed);
+        MERGES.store(0, Ordering::Relaxed);
     }
 }
 
