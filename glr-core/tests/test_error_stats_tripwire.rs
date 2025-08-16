@@ -1,10 +1,6 @@
 //! Trip-wire test to prevent regression of debug_error_stats to silent zeros
 #![cfg(not(feature = "strict-invariants"))]
 
-use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
-use std::collections::BTreeMap;
-
 #[test]
 #[cfg(feature = "test-helpers")]
 fn test_error_stats_not_stubbed() {

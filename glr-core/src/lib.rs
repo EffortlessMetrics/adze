@@ -131,6 +131,91 @@ pub use version_info::{CompareResult, VersionInfo, compare_versions};
 pub use driver::Driver;
 pub use forest_view::{Forest, ForestView, Span};
 
+// Performance counters module
+#[cfg(feature = "perf-counters")]
+pub mod perf {
+    use std::sync::{Mutex, OnceLock};
+
+    #[derive(Clone, Debug, Default)]
+    pub struct Counters {
+        pub shifts: u64,
+        pub reductions: u64,
+        pub forks: u64,
+        pub merges: u64,
+    }
+
+    static COUNTERS: OnceLock<Mutex<Counters>> = OnceLock::new();
+
+    fn cell() -> &'static Mutex<Counters> {
+        COUNTERS.get_or_init(|| Mutex::new(Counters::default()))
+    }
+
+    pub fn inc_shifts(n: u64) {
+        if let Ok(mut c) = cell().lock() {
+            c.shifts += n;
+        }
+    }
+
+    pub fn inc_reductions(n: u64) {
+        if let Ok(mut c) = cell().lock() {
+            c.reductions += n;
+        }
+    }
+
+    pub fn inc_forks(n: u64) {
+        if let Ok(mut c) = cell().lock() {
+            c.forks += n;
+        }
+    }
+
+    pub fn inc_merges(n: u64) {
+        if let Ok(mut c) = cell().lock() {
+            c.merges += n;
+        }
+    }
+
+    pub fn snapshot() -> Counters {
+        cell().lock().map(|c| c.clone()).unwrap_or_default()
+    }
+
+    pub fn reset() {
+        if let Ok(mut c) = cell().lock() {
+            *c = Counters::default();
+        }
+    }
+}
+
+#[cfg(not(feature = "perf-counters"))]
+pub mod perf {
+    #[derive(Clone, Debug, Default)]
+    pub struct Counters {
+        pub shifts: u64,
+        pub reductions: u64,
+        pub forks: u64,
+        pub merges: u64,
+    }
+
+    #[inline(always)]
+    pub fn inc_shifts(_: u64) {}
+
+    #[inline(always)]
+    pub fn inc_reductions(_: u64) {}
+
+    #[inline(always)]
+    pub fn inc_forks(_: u64) {}
+
+    #[inline(always)]
+    pub fn inc_merges(_: u64) {}
+
+    #[inline(always)]
+    pub fn snapshot() -> Counters {
+        Counters::default()
+    }
+
+    #[inline(always)]
+    pub fn reset() {}
+}
+
 /// FIRST/FOLLOW sets computation for GLR parsing
 #[derive(Debug, Clone)]
 pub struct FirstFollowSets {

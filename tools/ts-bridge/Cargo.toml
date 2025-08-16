@@ -3,6 +3,9 @@ name = "ts-bridge"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [[bin]]
 name = "extract-json"
 required-features = ["with-grammars"]

@@ -1,10 +1,6 @@
 //! Test that EOF symbol is correctly handled (not 0/ERROR)
 #![cfg(not(feature = "strict-invariants"))]
 
-use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
-use rust_sitter_ir::{Grammar, StateId, SymbolId};
-use std::collections::BTreeMap;
-
 #[test]
 #[cfg(feature = "test-helpers")]
 fn test_eof_not_error_symbol() {

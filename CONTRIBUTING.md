@@ -24,6 +24,9 @@ cargo clippy -p rust-sitter -p rust-sitter-glr-core -p rust-sitter-ir -p rust-si
 ```
 
 ### Running Tests
+
+Test helpers are centralized in the `glr-test-support` crate and shared across crates.
+
 ```bash
 # Test core crates
 cargo test -p rust-sitter -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablegen --lib
@@ -178,14 +181,20 @@ ls target/debug/build/*/out/
 - Run tests with `--nocapture` to see debug output
 - Use `RUST_LOG=debug` for verbose logging
 
-## Currently Disabled Tests
+## Performance Counters
 
-The following test files need attention:
-- `runtime/tests/golden_tests.rs.disabled`
-- `runtime/tests/test_complete_example.rs.disabled`
-- `runtime/tests/test_glr_parsing.rs.disabled`
-- `runtime/tests/test_pure_rust_e2e.rs.disabled`
-- `runtime/tests/test_pure_rust_real_grammar.rs.disabled`
-- `runtime/tests/test_query_predicates.rs.disabled`
+The `glr-core` crate includes optional performance counters for tracking parser operations:
 
-These should be either re-enabled, marked with `#[ignore]`, or removed.
+```bash
+# Enable perf counters
+cargo test --features perf-counters
+
+# Use in benchmarks
+cargo bench --features perf-counters
+```
+
+When enabled, the counters track:
+- Shifts: Token consumption operations
+- Reductions: Rule application operations  
+- Forks: GLR parser fork points
+- Merges: GLR parser merge operations

@@ -41,6 +41,7 @@ test-helpers = []
 strict-invariants = []
 memory-tests = []
 json-parity = []
+perf-counters = []
 
 [dev-dependencies]
 insta = "1.0"

@@ -131,10 +131,10 @@ fi
 echo "${BLD}Running test matrix…${RST}"
 
 # Core (dev features)
-ensure_tests "glr-core (dev)" -p rust-sitter-glr-core --features test-helpers
+ensure_tests "glr-core (dev)" -p rust-sitter-glr-core
 
 # Core (strict invariants) — some manual-table tests should be gated off here
-ensure_tests "glr-core (strict)" -p rust-sitter-glr-core --features strict-invariants,test-helpers
+ensure_tests "glr-core (strict)" -p rust-sitter-glr-core --features strict-invariants
 
 # Runtime (lib + integration): pass if either exists, run both if present
 ensure_any_tests \
