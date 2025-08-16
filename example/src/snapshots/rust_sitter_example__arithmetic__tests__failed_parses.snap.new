@@ -7,7 +7,7 @@ Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "symbol 5",
+                "symbol 8",
             ),
             start: 0,
             end: 0,
@@ -21,7 +21,7 @@ Err(
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 5",
+                "symbol 8",
             ),
             start: 4,
             end: 4,

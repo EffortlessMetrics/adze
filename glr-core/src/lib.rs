@@ -709,11 +709,11 @@ impl ItemSetCollection {
             "Initial state 0 after closure has {} items:",
             initial_set.items.len()
         );
-        
+
         // Track what symbols we expect transitions for
         let mut expected_terminals = std::collections::BTreeSet::new();
         let mut expected_nonterminals = std::collections::BTreeSet::new();
-        
+
         for item in &initial_set.items {
             // Print each item to debug
             if let Some(rule) = grammar
@@ -738,7 +738,7 @@ impl ItemSetCollection {
                     "  Item: NT({}) -> {}, lookahead={}",
                     rule.lhs.0, rhs_str, item.lookahead.0
                 );
-                
+
                 // Track what symbol is next
                 if item.position < rule.rhs.len() {
                     match &rule.rhs[item.position] {
@@ -753,7 +753,7 @@ impl ItemSetCollection {
                 }
             }
         }
-        
+
         eprintln!("State 0 expects transitions for:");
         eprintln!("  Terminals: {:?}", expected_terminals);
         eprintln!("  Nonterminals: {:?}", expected_nonterminals);
@@ -788,39 +788,67 @@ impl ItemSetCollection {
 
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
-            let mut _terminal_count = 0;
-            let mut _non_terminal_count = 0;
+            let mut terminal_count = 0;
+            let mut non_terminal_count = 0;
             if i == 0 {
-                eprintln!("State 0: Finding symbols that can be shifted...");
+                eprintln!("\n=== State 0 Analysis ===");
+                eprintln!("State 0 has {} items:", current_set.items.len());
             }
-            for item in &current_set.items {
+            for (idx, item) in current_set.items.iter().enumerate() {
+                if i == 0 {
+                    // Print the item details
+                    if let Some(rule) = grammar
+                        .all_rules()
+                        .find(|r| r.production_id.0 == item.rule_id.0)
+                    {
+                        let mut item_str = String::new();
+                        item_str.push_str(&format!("NT({}) -> ", rule.lhs.0));
+                        for (pos, sym) in rule.rhs.iter().enumerate() {
+                            if pos == item.position {
+                                item_str.push_str("• ");
+                            }
+                            match sym {
+                                Symbol::Terminal(t) => item_str.push_str(&format!("T({}) ", t.0)),
+                                Symbol::NonTerminal(nt) => {
+                                    item_str.push_str(&format!("NT({}) ", nt.0))
+                                }
+                                Symbol::External(e) => item_str.push_str(&format!("EXT({}) ", e.0)),
+                                _ => item_str.push_str(&format!("{:?} ", sym)),
+                            }
+                        }
+                        if item.position == rule.rhs.len() {
+                            item_str.push_str("• ");
+                        }
+                        eprintln!("  Item {}: {} (rule_id={})", idx, item_str, item.rule_id.0);
+                    }
+                }
+
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
                         Symbol::Terminal(_id) => {
-                            _terminal_count += 1;
+                            terminal_count += 1;
                         }
                         Symbol::NonTerminal(_id) => {
-                            _non_terminal_count += 1;
+                            non_terminal_count += 1;
                         }
                         Symbol::External(_id) => {
-                            _terminal_count += 1; // Count externals as terminals
+                            terminal_count += 1; // Count externals as terminals
                         }
                         _ => {}
                     }
                     symbols.insert(symbol.clone());
                     if i == 0 {
-                        // Check if this is 'def'
-                        if let Symbol::Terminal(id) = &symbol {
-                            if let Some(token) = grammar.tokens.get(id) {
-                                if matches!(token.pattern, TokenPattern::String(ref s) if s == "def")
-                                {
-                                    eprintln!("  Found 'def' as shiftable symbol: {:?}", symbol);
-                                }
-                            }
-                        }
-                        eprintln!("  Can shift symbol: {:?}", symbol);
+                        eprintln!("    -> next symbol: {:?}", symbol);
                     }
                 }
+            }
+
+            if i == 0 {
+                eprintln!("\nState 0 summary:");
+                eprintln!("  Total symbols that can be shifted: {}", symbols.len());
+                eprintln!("  Terminals: {}", terminal_count);
+                eprintln!("  Non-terminals: {}", non_terminal_count);
+                eprintln!("  Symbols: {:?}\n", symbols);
             }
 
             // Debug: symbols.len(), terminal_count, non_terminal_count
@@ -871,7 +899,7 @@ impl ItemSetCollection {
                     collection
                         .goto_table
                         .insert((current_set.id, symbol_id), target_state);
-                    
+
                     // Track whether this symbol is a terminal or non-terminal
                     let is_terminal = matches!(symbol, Symbol::Terminal(_) | Symbol::External(_));
                     collection.symbol_is_terminal.insert(symbol_id, is_terminal);
@@ -957,39 +985,67 @@ impl ItemSetCollection {
 
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
-            let mut _terminal_count = 0;
-            let mut _non_terminal_count = 0;
+            let mut terminal_count = 0;
+            let mut non_terminal_count = 0;
             if i == 0 {
-                eprintln!("State 0: Finding symbols that can be shifted...");
+                eprintln!("\n=== State 0 Analysis ===");
+                eprintln!("State 0 has {} items:", current_set.items.len());
             }
-            for item in &current_set.items {
+            for (idx, item) in current_set.items.iter().enumerate() {
+                if i == 0 {
+                    // Print the item details
+                    if let Some(rule) = grammar
+                        .all_rules()
+                        .find(|r| r.production_id.0 == item.rule_id.0)
+                    {
+                        let mut item_str = String::new();
+                        item_str.push_str(&format!("NT({}) -> ", rule.lhs.0));
+                        for (pos, sym) in rule.rhs.iter().enumerate() {
+                            if pos == item.position {
+                                item_str.push_str("• ");
+                            }
+                            match sym {
+                                Symbol::Terminal(t) => item_str.push_str(&format!("T({}) ", t.0)),
+                                Symbol::NonTerminal(nt) => {
+                                    item_str.push_str(&format!("NT({}) ", nt.0))
+                                }
+                                Symbol::External(e) => item_str.push_str(&format!("EXT({}) ", e.0)),
+                                _ => item_str.push_str(&format!("{:?} ", sym)),
+                            }
+                        }
+                        if item.position == rule.rhs.len() {
+                            item_str.push_str("• ");
+                        }
+                        eprintln!("  Item {}: {} (rule_id={})", idx, item_str, item.rule_id.0);
+                    }
+                }
+
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
                         Symbol::Terminal(_id) => {
-                            _terminal_count += 1;
+                            terminal_count += 1;
                         }
                         Symbol::NonTerminal(_id) => {
-                            _non_terminal_count += 1;
+                            non_terminal_count += 1;
                         }
                         Symbol::External(_id) => {
-                            _terminal_count += 1; // Count externals as terminals
+                            terminal_count += 1; // Count externals as terminals
                         }
                         _ => {}
                     }
                     symbols.insert(symbol.clone());
                     if i == 0 {
-                        // Check if this is 'def'
-                        if let Symbol::Terminal(id) = &symbol {
-                            if let Some(token) = grammar.tokens.get(id) {
-                                if matches!(token.pattern, TokenPattern::String(ref s) if s == "def")
-                                {
-                                    eprintln!("  Found 'def' as shiftable symbol: {:?}", symbol);
-                                }
-                            }
-                        }
-                        eprintln!("  Can shift symbol: {:?}", symbol);
+                        eprintln!("    -> next symbol: {:?}", symbol);
                     }
                 }
+            }
+
+            if i == 0 {
+                eprintln!("\nState 0 summary:");
+                eprintln!("  Total symbols that can be shifted: {}", symbols.len());
+                eprintln!("  Terminals: {}", terminal_count);
+                eprintln!("  Non-terminals: {}", non_terminal_count);
+                eprintln!("  Symbols: {:?}\n", symbols);
             }
 
             // Debug: symbols.len(), terminal_count, non_terminal_count
@@ -1057,7 +1113,7 @@ impl ItemSetCollection {
                     collection
                         .goto_table
                         .insert((current_set.id, symbol_id), target_state);
-                    
+
                     // Track whether this symbol is a terminal or non-terminal
                     let is_terminal = matches!(symbol, Symbol::Terminal(_) | Symbol::External(_));
                     collection.symbol_is_terminal.insert(symbol_id, is_terminal);
@@ -1862,16 +1918,35 @@ pub fn build_lr1_automaton(
         "DEBUG: Augmented grammar has {} tokens",
         augmented_grammar.tokens.len()
     );
-    
+
     // Debug: Print what tokens are in the augmented grammar
     eprintln!("=== Symbol Classification Debug ===");
-    eprintln!("Tokens in augmented_grammar: {:?}", augmented_grammar.tokens.keys().map(|k| k.0).collect::<Vec<_>>());
-    eprintln!("Externals in augmented_grammar: {:?}", augmented_grammar.externals.iter().map(|e| e.symbol_id.0).collect::<Vec<_>>());
+    eprintln!(
+        "Tokens in augmented_grammar: {:?}",
+        augmented_grammar
+            .tokens
+            .keys()
+            .map(|k| k.0)
+            .collect::<Vec<_>>()
+    );
+    eprintln!(
+        "Externals in augmented_grammar: {:?}",
+        augmented_grammar
+            .externals
+            .iter()
+            .map(|e| e.symbol_id.0)
+            .collect::<Vec<_>>()
+    );
     eprintln!("Original grammar tokens: {}", grammar.tokens.len());
-    eprintln!("Collection goto_table size: {}", collection.goto_table.len());
-    
+    eprintln!(
+        "Collection goto_table size: {}",
+        collection.goto_table.len()
+    );
+
     // Debug state 0 specifically
-    let state0_gotos: Vec<_> = collection.goto_table.iter()
+    let state0_gotos: Vec<_> = collection
+        .goto_table
+        .iter()
         .filter(|((from, _), _)| from.0 == 0)
         .collect();
     eprintln!("State 0 has {} goto entries", state0_gotos.len());
@@ -1886,17 +1961,23 @@ pub fn build_lr1_automaton(
 
     for ((from_state, symbol), to_state) in &collection.goto_table {
         // Check if this symbol is a terminal using the tracking from collection
-        let is_terminal = collection.symbol_is_terminal.get(symbol).copied().unwrap_or_else(|| {
-            // Fallback for symbols not in the map (shouldn't happen, but be safe)
-            symbol.0 == 0 // EOF is a terminal
-        });
+        let is_terminal = collection
+            .symbol_is_terminal
+            .get(symbol)
+            .copied()
+            .unwrap_or(symbol.0 == 0); // EOF is a terminal
 
         if from_state.0 == 0 {
             eprintln!(
                 "State 0 goto entry: symbol {} -> state {}, is_terminal={} (in tokens={}, in externals={}, is EOF={})",
-                symbol.0, to_state.0, is_terminal,
+                symbol.0,
+                to_state.0,
+                is_terminal,
                 augmented_grammar.tokens.contains_key(symbol),
-                augmented_grammar.externals.iter().any(|e| e.symbol_id == *symbol),
+                augmented_grammar
+                    .externals
+                    .iter()
+                    .any(|e| e.symbol_id == *symbol),
                 symbol.0 == 0
             );
         }
@@ -2117,10 +2198,11 @@ pub fn build_lr1_automaton(
     // Add non-terminal goto entries to the goto table
     for ((from_state, symbol), _to_state) in &collection.goto_table {
         // Check if this symbol is a non-terminal using the tracking from collection
-        let is_terminal = collection.symbol_is_terminal.get(symbol).copied().unwrap_or_else(|| {
-            // Fallback for symbols not in the map
-            symbol.0 == 0 // EOF is a terminal
-        });
+        let is_terminal = collection
+            .symbol_is_terminal
+            .get(symbol)
+            .copied()
+            .unwrap_or(symbol.0 == 0); // EOF is a terminal
 
         if !is_terminal {
             if let Some(&symbol_idx) = symbol_to_index.get(symbol) {

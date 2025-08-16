@@ -25,18 +25,25 @@ mod tests {
             // Check that state 0 has at least one token action
             let mut found_token_action = false;
             let mut offset = state_0_start;
-            
+
             println!("State 0 analysis:");
             println!("  token_count: {}", lang.token_count);
-            println!("  state_0_start: {}, state_0_end: {}", state_0_start, state_0_end);
+            println!(
+                "  state_0_start: {}, state_0_end: {}",
+                state_0_start, state_0_end
+            );
 
             while offset + 1 < state_0_end {
                 let symbol_index = *lang.small_parse_table.add(offset);
                 let action = *lang.small_parse_table.add(offset + 1);
                 offset += 2;
-                
-                println!("  Symbol {} -> action {} (is_token: {})", 
-                    symbol_index, action, symbol_index < lang.token_count as u16);
+
+                println!(
+                    "  Symbol {} -> action {} (is_token: {})",
+                    symbol_index,
+                    action,
+                    symbol_index < lang.token_count as u16
+                );
 
                 // Check if this is a token (symbol index < token_count)
                 if symbol_index < lang.token_count as u16 {

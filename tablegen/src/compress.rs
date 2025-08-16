@@ -407,11 +407,9 @@ impl TableCompressor {
                         continue;
                     }
 
-                    // Get the actual symbol ID from the index
-                    let symbol_id = index_to_symbol
-                        .get(&index)
-                        .map(|id| id.0)
-                        .unwrap_or(index as u16);
+                    // Use the mapped index directly, not the original symbol ID
+                    // This ensures terminals (index < token_count) are correctly identified
+                    let symbol_id = index as u16;
 
                     entries.push(CompressedActionEntry {
                         symbol: symbol_id,
