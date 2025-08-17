@@ -662,25 +662,10 @@ impl Parser {
                         }
                     }
 
-                    // Convert symbol ID to symbol index
-                    // The lexer returns symbol IDs, but the parse table uses indices
-                    // This is a hack for the arithmetic grammar - should be generalized
-                    let symbol_index = match symbol {
-                        0 => 0,      // EOF
-                        1 => 5,      // "-"
-                        2 => 6,      // "*"
-                        3 => 7,      // whitespace
-                        4 => 8,      // number
-                        _ => symbol, // fallback
-                    };
-
-                    eprintln!(
-                        "DEBUG: Lexer returned symbol_id={} -> mapped to index={}, len={}, extra={}",
-                        symbol, symbol_index, lex_state.result_length, is_extra
-                    );
-
+                    // The lexer already returns the correct symbol index
+                    // No additional mapping needed
                     return Token {
-                        symbol: symbol_index,
+                        symbol,
                         length: lex_state.result_length,
                         is_extra,
                     };

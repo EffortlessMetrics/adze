@@ -2,22 +2,35 @@
 source: example/src/repetitions.rs
 expression: "grammar::parse(\"1, 2\")"
 ---
-Ok(
-    NumberList {
-        numbers: Spanned {
-            value: [
-                Spanned {
-                    value: 1,
-                    span: (
-                        0,
-                        1,
-                    ),
-                },
-            ],
-            span: (
-                0,
-                1,
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 6",
             ),
+            start: 0,
+            end: 0,
         },
-    },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 7",
+            ),
+            start: 1,
+            end: 1,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 6",
+            ),
+            start: 3,
+            end: 3,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 0",
+            ),
+            start: 4,
+            end: 4,
+        },
+    ],
 )

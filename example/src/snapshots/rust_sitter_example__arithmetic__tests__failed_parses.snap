@@ -6,13 +6,6 @@ Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "symbol 6",
-            ),
-            start: 0,
-            end: 0,
-        },
-        ParseError {
-            reason: UnexpectedToken(
                 "symbol 43",
             ),
             start: 2,
@@ -20,10 +13,17 @@ Err(
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 6",
+                "symbol 3",
             ),
             start: 4,
             end: 4,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 0",
+            ),
+            start: 5,
+            end: 5,
         },
         ParseError {
             reason: UnexpectedToken(
