@@ -803,6 +803,57 @@ impl Parser {
         }
     }
 
+    /// Get goto state for a non-terminal after reduction
+    fn get_goto(&self, language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> Option<TSStateId> {
+        unsafe {
+            // Check bounds
+            if state >= language.state_count as u16 || symbol >= language.symbol_count as u16 {
+                return None;
+            }
+
+            let large_state_count = language.large_state_count as usize;
+            let symbol_count = language.symbol_count as usize;
+            let token_count = language.token_count as u16;
+
+            // Only non-terminals have goto entries
+            if symbol < token_count {
+                return None;
+            }
+
+            if (state as usize) < large_state_count {
+                // LARGE STATE: Dense row in parse_table
+                let base = (state as usize) * symbol_count;
+                let index = base + (symbol as usize);
+                let goto_state = *language.parse_table.add(index);
+                
+                if goto_state != 0 {
+                    return Some(goto_state);
+                }
+            } else {
+                // SMALL STATE: Look for goto entry
+                let map_index = (state as usize) - large_state_count;
+                let start_offset = (*language.small_parse_table_map.add(map_index)) as usize;
+                let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
+                
+                let mut offset = start_offset;
+                while offset + 1 < end_offset {
+                    let entry_symbol = *language.small_parse_table.add(offset);
+                    let goto_state = *language.small_parse_table.add(offset + 1);
+                    offset += 2;
+                    
+                    // Check for non-terminal goto
+                    if entry_symbol >= token_count && entry_symbol == symbol {
+                        if goto_state != 0 {
+                            return Some(goto_state);
+                        }
+                        return None;
+                    }
+                }
+            }
+            None
+        }
+    }
+
     /// Get parse action for state and symbol
     fn get_action(&self, language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> Action {
         // Debug dump state 0 once
@@ -886,9 +937,8 @@ impl Parser {
             let production_id = (action_index & 0x7FFF) as u16;
             // Reduce action
             Action::Reduce(production_id)
-        } else if action_index == 0x7FFF {
-            // Accept action
-            // Accept action
+        } else if action_index == 0xFFFF {
+            // Accept action (encoded as 0xFFFF in compression)
             Action::Accept
         } else {
             // Shift action
@@ -955,8 +1005,8 @@ impl Parser {
 
             if source.len() < 20 {
                 eprintln!(
-                    "DEBUG reduce: Production {} (index {}) reduces to symbol {} with {} children",
-                    production_id, production_index, symbol, child_count
+                    "DEBUG reduce: Production {} (index {}) reduces to symbol {} with {} children (token_count={})",
+                    production_id, production_index, symbol, child_count, language.token_count
                 );
             }
 
@@ -1065,51 +1115,22 @@ impl Parser {
             //symbol, prev_state
             //);
 
-            // Check if this is an accept condition
-            // In Tree-sitter, when we reduce to the root symbol (typically source_file, which seems to be symbol 8)
-            // and we're in state 0, we should accept
-            let is_root_symbol = symbol == 8; // source_file is symbol 8 based on the debug output
-            let is_initial_state = prev_state == 0;
-
-            if is_root_symbol && is_initial_state {
-                ////eprintln!($
-                //"DEBUG reduce: Accept condition met - reduced to root symbol {} in state 0",
-                //symbol
-                //);
-                // This is a successful parse!
-                // Push the final node onto the stack
+            // Look up goto state for the non-terminal we just reduced to
+            if let Some(goto_state) = self.get_goto(language, prev_state, symbol) {
+                // Push the reduced node with the goto state
                 self.stack.push(StackEntry {
-                    state: 0,
+                    state: goto_state,
                     subtree: Some(parent),
                     position: end_byte,
                 });
-                return true;
-            }
-
-            // Look up goto state using the parse table
-            let goto_action = self.get_action(language, prev_state, symbol);
-
-            ////eprintln!("DEBUG reduce: Goto action: {:?}", goto_action);
-
-            match goto_action {
-                Action::Shift(next_state) => {
-                    ////eprintln!($
-                    //"DEBUG reduce: Pushing reduced node with state {}",
-                    //next_state
-                    //);
-                    // Push the reduced node with the goto state
-                    self.stack.push(StackEntry {
-                        state: next_state,
-                        subtree: Some(parent),
-                        position: end_byte,
-                    });
-                    true
-                }
-                _ => {
-                    ////eprintln!("DEBUG reduce: No valid goto found - error!");
-                    // If no valid goto found, this is an error
-                    false
-                }
+                true
+            } else {
+                // No goto found - this shouldn't happen in a valid parse table
+                eprintln!(
+                    "DEBUG reduce: No goto for symbol {} from state {} (symbol >= token_count: {})",
+                    symbol, prev_state, symbol >= language.token_count as u16
+                );
+                false
             }
         }
     }

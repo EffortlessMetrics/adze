@@ -169,6 +169,16 @@ impl<'a> AbiLanguageBuilder<'a> {
             }
         };
 
+        // Debug: Print symbol_to_index mapping for tokens
+        eprintln!("DEBUG: Symbol to index mapping for lexer generation:");
+        for (sym_id, idx) in &self.parse_table.symbol_to_index {
+            if self.grammar.tokens.contains_key(sym_id) {
+                let token = &self.grammar.tokens[sym_id];
+                eprintln!("  Token '{}' (SymbolId {:?}) -> index {}", token.name, sym_id, idx);
+            }
+        }
+        eprintln!("DEBUG: token_count = {}", self.parse_table.token_count);
+        
         // Generate lexer function with symbol mapping
         let lexer_code =
             crate::lexer_gen::generate_lexer(self.grammar, &self.parse_table.symbol_to_index);
