@@ -1898,6 +1898,14 @@ pub fn build_lr1_automaton(
 
     // Calculate the final symbol count after adding all symbols including EOF
     let indexed_symbol_count = symbol_to_index.len();
+    
+    // Debug: Print symbol_to_index mapping for key symbols
+    eprintln!("DEBUG: symbol_to_index mapping:");
+    for (symbol_id, index) in &symbol_to_index {
+        if symbol_id.0 <= 10 || index <= &10 {
+            eprintln!("  SymbolId({}) -> index {}", symbol_id.0, index);
+        }
+    }
 
     // Create parse table with proper dimensions
     let state_count = collection.sets.len();
@@ -2215,10 +2223,16 @@ pub fn build_lr1_automaton(
     }
 
     // Fill goto table from collection's goto_table (kept for compatibility)
+    eprintln!("DEBUG: Filling goto_table from collection.goto_table");
     for ((from_state, symbol), to_state) in &collection.goto_table {
         let from_idx = from_state.0 as usize;
         if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
             goto_table[from_idx][symbol_idx] = *to_state;
+            if from_state.0 == 0 {
+                eprintln!("  State 0: Symbol {} (SymbolId {}) -> index {} -> state {}", 
+                    if augmented_grammar.tokens.contains_key(symbol) { "token" } else { "non-terminal" },
+                    symbol.0, symbol_idx, to_state.0);
+            }
         }
     }
 

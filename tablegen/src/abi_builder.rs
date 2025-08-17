@@ -894,9 +894,21 @@ impl<'a> AbiLanguageBuilder<'a> {
                 }) as u16;
 
             eprintln!(
-                "DEBUG: Production {} (lhs={:?}, rhs={:?}) -> parse_table index={}",
-                rule.production_id.0, rule.lhs, rule.rhs, symbol
+                "DEBUG parse_actions: Production {} (lhs=SymbolId({}), rhs={:?}) -> table index={}",
+                rule.production_id.0, rule.lhs.0, rule.rhs, symbol
             );
+            
+            // Also check what's in the goto table for this symbol
+            eprintln!("  Checking goto_table for symbol index {}:", symbol);
+            for state_idx in 0..std::cmp::min(3, self.parse_table.goto_table.len()) {
+                let symbol_idx = symbol as usize;
+                if state_idx < self.parse_table.goto_table.len() && symbol_idx < self.parse_table.goto_table[state_idx].len() {
+                    let goto_state = self.parse_table.goto_table[state_idx][symbol_idx];
+                    if goto_state.0 > 0 {
+                        eprintln!("    State {} has goto for symbol {} -> state {}", state_idx, symbol, goto_state.0);
+                    }
+                }
+            }
 
             actions[index] = quote! {
                 TSParseAction {
