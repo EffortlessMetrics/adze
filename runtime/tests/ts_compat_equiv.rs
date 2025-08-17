@@ -12,11 +12,8 @@ fn test_fresh_parse_simple() {
     parser.set_language(lang).expect("Failed to set language");
 
     let tree = parser.parse("1+2+3", None).expect("Parse failed");
-    // TODO: Fix root_kind when proper grammar loading is implemented
-    // For now just check that it doesn't panic
-    let _ = tree.root_kind();
-    // Error count will be non-zero with minimal table
-    let _ = tree.error_count();
+    assert_eq!(tree.root_kind(), "expression");
+    assert_eq!(tree.error_count(), 0);
 }
 
 #[test]

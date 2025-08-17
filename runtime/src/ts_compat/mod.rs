@@ -192,16 +192,27 @@ impl Tree {
 
     /// Get the root kind as a string.
     pub fn root_kind(&self) -> &str {
-        // Get the symbol ID from the core tree
-        let symbol_id = self.core.root_kind();
-
-        // Look up the symbol name from the grammar's rule_names
-        self.language
+        let sym = self.core.root_kind();
+        // Try direct rule name mapping first
+        if let Some(name) = self
+            .language
             .grammar
             .rule_names
-            .get(&rust_sitter_ir::SymbolId(symbol_id))
-            .map(|s| s.as_str())
-            .unwrap_or("unknown")
+            .get(&rust_sitter_ir::SymbolId(sym))
+        {
+            return name.as_str();
+        }
+        // Fallback: if index_to_symbol is populated, prefer that
+        if let Some(name) = self
+            .language
+            .table
+            .index_to_symbol
+            .get(sym as usize)
+            .and_then(|sid| self.language.grammar.rule_names.get(sid))
+        {
+            return name.as_str();
+        }
+        "unknown"
     }
 
     /// Get the number of errors in this tree.

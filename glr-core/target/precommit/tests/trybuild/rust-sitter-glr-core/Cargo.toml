@@ -79,6 +79,6 @@ path = "main.rs"
 
 [[bin]]
 name = "trybuild000"
-path = "/home/steven/code/rust-sitter/glr-core/tests/fixtures/missing_parse_table_fields.rs"
+path = "/home/steven/code/rust-sitter/glr-core/tests/fixtures/missing_index_to_symbol.rs"
 
 [workspace]
