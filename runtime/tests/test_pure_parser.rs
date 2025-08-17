@@ -252,6 +252,8 @@ fn test_invalid_language_version() {
             deserialize: None,
         },
         primary_state_ids: ptr::null(),
+        production_count: 0,
+        production_lhs_index: ptr::null(),
     };
 
     assert!(parser.set_language(&INVALID_LANGUAGE).is_err());

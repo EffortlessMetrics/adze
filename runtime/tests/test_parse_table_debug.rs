@@ -135,6 +135,7 @@ fn test_parse_table_has_conflicts() {
                         Action::Fork(_) => {
                             unreachable!("Fork should not appear in new GLR structure")
                         }
+                        _ => continue, // Skip any other variants
                     };
                     println!("  Symbol {} (idx {}): {}", symbol.0, sym_idx, action_str);
                 }

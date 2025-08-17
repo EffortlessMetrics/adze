@@ -416,9 +416,9 @@ impl Parser {
             let action = self.get_action(language, current_state, token.symbol);
             // Debug logging for arithmetic parsing
             if source.len() < 20 {
-                if current_state == 0 && position == 0 {
-                    self.dump_row(language, 0);
-                }
+                //if current_state == 0 && position == 0 {
+                self.dump_row(language, 0);
+                //}
                 let _byte_repr = if position < source.len() {
                     format!(
                         "'{}' (0x{:02x})",
@@ -428,8 +428,13 @@ impl Parser {
                     "EOF".to_string()
                 };
                 eprintln!(
-                    "DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}",
-                    position, current_state, token.symbol, action, _byte_repr
+                    "DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}, stack_len={}",
+                    position,
+                    current_state,
+                    token.symbol,
+                    action,
+                    _byte_repr,
+                    self.stack.len()
                 );
                 eprintln!(
                     "DEBUG: Stack size: {}, token.length={}",
@@ -672,7 +677,22 @@ impl Parser {
                         is_extra,
                     };
                 } else {
-                    //eprintln!("DEBUG lex_token: lexer_fn returned false at position={}", position);
+                    // lex_fn returned false - check if we're at EOF
+                    let at_eof = position >= lexer.input.len() - 1; // Account for sentinel
+                    let symbol = if at_eof {
+                        // EOF is column 0 in Tree-sitter convention
+                        0
+                    } else {
+                        // Return error token for non-EOF failures
+                        // For now using 0, but this should be language-specific
+                        0
+                    };
+
+                    return Token {
+                        symbol,
+                        length: 0,
+                        is_extra: false,
+                    };
                 }
             }
         }
@@ -680,11 +700,12 @@ impl Parser {
         // Fallback: simple character-by-character lexing
         // Safe access with bounds check (accounting for sentinel)
         if position >= lexer.input.len() - 1 {
+            // At EOF - return column 0 (Tree-sitter EOF convention)
             return Token {
-                symbol: 0,
+                symbol: 0, // EOF column index
                 length: 0,
                 is_extra: false,
-            }; // EOF
+            };
         }
 
         let ch = lexer.input[position];
@@ -806,14 +827,15 @@ impl Parser {
     }
 
     /// Get goto state for a non-terminal after reduction
+    /// Note: symbol parameter is a table column index, not a symbol ID
     fn get_goto(
         &self,
         language: &TSLanguage,
         state: TSStateId,
-        symbol: TSSymbol,
+        symbol: TSSymbol, // Actually a column index in table space
     ) -> Option<TSStateId> {
         eprintln!(
-            "DEBUG get_goto: state={}, symbol={}, token_count={}, symbol_count={}",
+            "DEBUG get_goto: state={}, col_idx={}, token_count={}, symbol_count={}",
             state, symbol, language.token_count, language.symbol_count
         );
         unsafe {
@@ -839,7 +861,7 @@ impl Parser {
                 return None;
             }
             eprintln!(
-                "  Symbol {} is a non-terminal (>= {}), checking goto",
+                "  Column {} is a non-terminal (>= {}), checking goto",
                 symbol, token_count
             );
             eprintln!(
@@ -876,24 +898,29 @@ impl Parser {
 
                 let mut offset = start_offset;
                 while offset + 1 < end_offset {
-                    let entry_symbol = *language.small_parse_table.add(offset);
-                    let goto_state = *language.small_parse_table.add(offset + 1);
+                    let entry_col = *language.small_parse_table.add(offset) as usize;
+                    let entry_val = *language.small_parse_table.add(offset + 1);
                     eprintln!(
-                        "    Entry at offset {}: symbol={}, goto_state={}",
-                        offset, entry_symbol, goto_state
+                        "    Entry at offset {}: col={}, val={}",
+                        offset, entry_col, entry_val
                     );
                     offset += 2;
 
-                    // Check for non-terminal goto
-                    if entry_symbol >= token_count && entry_symbol == symbol {
-                        eprintln!("    Found match for symbol {}!", symbol);
-                        if goto_state != 0 {
-                            return Some(goto_state);
+                    // Check if this is the column we're looking for
+                    if entry_col == symbol as usize {
+                        // This entry is for a non-terminal (symbol >= token_count was checked above)
+                        // The value is the goto state
+                        eprintln!(
+                            "    Found match for column {}! goto_state={}",
+                            symbol, entry_val
+                        );
+                        if entry_val != 0 {
+                            return Some(entry_val);
                         }
                         return None;
                     }
                 }
-                eprintln!("    No match found for symbol {}", symbol);
+                eprintln!("    No match found for column {}", symbol);
             }
             None
         }
@@ -949,18 +976,24 @@ impl Parser {
                 let start_offset = (*language.small_parse_table_map.add(map_index)) as usize;
                 let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
 
-                // Parse direct (symbol, action) pairs
+                // Parse direct (column, value) pairs
                 let mut offset = start_offset;
 
                 while offset + 1 < end_offset {
-                    let entry_symbol = *language.small_parse_table.add(offset);
-                    let action_value = *language.small_parse_table.add(offset + 1);
+                    let entry_col = *language.small_parse_table.add(offset);
+                    let entry_val = *language.small_parse_table.add(offset + 1);
                     offset += 2;
 
-                    // Only process tokens, not non-terminals (gotos)
-                    if entry_symbol < token_count && entry_symbol == symbol {
-                        if action_value != 0 {
-                            return self.decode_action(language, action_value as usize);
+                    // Check if this is the column we're looking for
+                    // For tokens, symbol ID equals column index (by design)
+                    if entry_col == symbol {
+                        // Verify this is a token column (should always be true when called from get_action)
+                        debug_assert!(
+                            entry_col < token_count,
+                            "get_action should only look at token columns"
+                        );
+                        if entry_val != 0 {
+                            return self.decode_action(language, entry_val as usize);
                         }
                         return Action::Error;
                     }
@@ -1193,6 +1226,10 @@ impl Parser {
             }
 
             // Look up goto state for the non-terminal we just reduced to
+            eprintln!(
+                "DEBUG reduce: About to call get_goto with prev_state={}, symbol={}",
+                prev_state, symbol
+            );
             if let Some(goto_state) = self.get_goto(language, prev_state, symbol) {
                 // Push the reduced node with the goto state
                 self.stack.push(StackEntry {

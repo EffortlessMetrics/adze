@@ -560,6 +560,12 @@ impl<'a> AbiLanguageBuilder<'a> {
             let mut map_data = Vec::new();
             let mut current_offset = 0u32;
 
+            eprintln!(
+                "DEBUG: goto_table.len() = {}, state_count = {}",
+                self.parse_table.goto_table.len(),
+                self.parse_table.state_count
+            );
+
             for state_idx in 0..self.parse_table.state_count {
                 // Record the starting offset for this state
                 eprintln!(
@@ -619,6 +625,12 @@ impl<'a> AbiLanguageBuilder<'a> {
                             && symbol_idx < self.parse_table.action_table[state_idx].len()
                         {
                             let actions = &self.parse_table.action_table[state_idx][symbol_idx];
+                            eprintln!(
+                                "DEBUG: State {} symbol_idx {} (terminal) has {} actions",
+                                state_idx,
+                                symbol_idx,
+                                actions.len()
+                            );
                             if actions.is_empty() {
                                 Action::Error
                             } else if actions.len() == 1 {
@@ -773,16 +785,16 @@ impl<'a> AbiLanguageBuilder<'a> {
 
                     // The LR construction in glr-core now handles EOF reduce actions properly
 
+                    // Push token actions (keyed by column index)
                     for (symbol_idx, action) in non_error_actions {
-                        // Convert table index back to symbol ID for runtime lookup
-                        // The runtime compares stored values with symbol IDs, not indices
-                        let symbol_id = self.parse_table.index_to_symbol[symbol_idx].0;
-                        table_data.push(quote! { #symbol_id });
+                        // Key is the table column index, not symbol ID
+                        let col_idx = symbol_idx as u16;
+                        table_data.push(quote! { #col_idx });
 
                         if let Ok(encoded) = self.encode_action(&action) {
                             eprintln!(
-                                "DEBUG: State {} entry: symbol_id={} (from idx={}), action={:?}, encoded={}",
-                                state_idx, symbol_id, symbol_idx, action, encoded
+                                "DEBUG: State {} token entry: col_idx={}, action={:?}, encoded={}",
+                                state_idx, col_idx, action, encoded
                             );
                             table_data.push(quote! { #encoded });
                         } else {
@@ -791,6 +803,51 @@ impl<'a> AbiLanguageBuilder<'a> {
                         current_offset += 2;
                     }
                 }
+
+                // Now append nonterminal gotos for this state (regardless of default reduce)
+                let token_cols = self.parse_table.token_count;
+                let symbol_cols = self.parse_table.symbol_count;
+                eprintln!(
+                    "DEBUG: State {} checking gotos from col {} to {}",
+                    state_idx, token_cols, symbol_cols
+                );
+
+                for col in token_cols..symbol_cols {
+                    // Check bounds for goto_table
+                    if state_idx >= self.parse_table.goto_table.len() {
+                        eprintln!(
+                            "DEBUG: State {} out of bounds for goto_table (len={})",
+                            state_idx,
+                            self.parse_table.goto_table.len()
+                        );
+                        break;
+                    }
+                    if col >= self.parse_table.goto_table[state_idx].len() {
+                        eprintln!(
+                            "DEBUG: Col {} out of bounds for goto_table[{}] (len={})",
+                            col,
+                            state_idx,
+                            self.parse_table.goto_table[state_idx].len()
+                        );
+                        break;
+                    }
+                    let to = self.parse_table.goto_table[state_idx][col].0;
+                    if to != 0 {
+                        eprintln!(
+                            "DEBUG: State {} col {} goto_table value = {} (NT goto found!)",
+                            state_idx, col, to
+                        );
+                        let col_idx = col as u16;
+                        table_data.push(quote! { #col_idx });
+                        table_data.push(quote! { #to });
+                        eprintln!(
+                            "DEBUG: State {} goto entry: col_idx={}, goto_state={}",
+                            state_idx, col_idx, to
+                        );
+                        current_offset += 2;
+                    }
+                }
+
                 eprintln!(
                     "DEBUG: State {} ends at offset {}",
                     state_idx, current_offset
