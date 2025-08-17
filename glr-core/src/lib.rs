@@ -127,6 +127,143 @@ pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
 #[doc(hidden)]
 pub use version_info::{CompareResult, VersionInfo, compare_versions};
 
+// Precedence resolution structures
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum Assoc { Left, Right, NonAssoc }
+
+#[derive(Copy, Clone, Debug)]
+struct TokPrec { prec: u8, assoc: Assoc }
+
+struct PrecTables {
+    // table-indexed; entries 0..token_count-1 may be Some(..); others None
+    tok_prec_by_index: Vec<Option<TokPrec>>,
+    // production_id -> precedence value (derived if not explicit)
+    rule_prec: Vec<u8>,
+}
+
+fn build_prec_tables(
+    grammar: &Grammar,
+    symbol_to_index: &BTreeMap<SymbolId, usize>,
+    token_count: u32,
+    production_count: u32,
+) -> PrecTables {
+    use rust_sitter_ir::{Associativity, PrecedenceKind};
+    
+    // token precedence by table index
+    let mut tok_prec_by_index = vec![None; symbol_to_index.len()];
+    
+    // Note: grammar.precedences maps symbols to precedence info
+    // We need to extract this from tokens and rules
+    for (&sym_id, _token_info) in &grammar.tokens {
+        if let Some(&idx) = symbol_to_index.get(&sym_id) {
+            // Token indices should be within token_count, but may not be if
+            // symbol_to_index includes other symbols. Skip if out of range.
+            if (idx as u32) >= token_count {
+                continue;
+            }
+            
+            // Check if this token has precedence info
+            // For now, we'll derive it from rules that use this token
+            // This is a simplified approach - you may have a more direct way
+        }
+    }
+    
+    // production precedence: explicit if present, else rightmost-terminal precedence
+    let mut rule_prec = vec![0u8; production_count as usize];
+    for rules in grammar.rules.values() {
+        for rule in rules {
+            let pid = rule.production_id.0 as usize;
+            // Skip invalid production IDs (e.g., u16::MAX used as sentinel)
+            if pid >= production_count as usize {
+                continue;
+            }
+            let explicit = rule.precedence.and_then(|p| {
+                if let PrecedenceKind::Static(level) = p { Some(level as u8) } else { None }
+            });
+            
+            let derived = if explicit.is_none() {
+                // find rightmost terminal in RHS; if found and it has a token precedence, inherit it
+                rule.rhs.iter().rev()
+                    .find_map(|sym| {
+                        match sym {
+                            Symbol::Terminal(sym_id) => {
+                                symbol_to_index.get(sym_id).and_then(|&idx| {
+                                    if (idx as u32) < token_count {
+                                        tok_prec_by_index[idx].map(|t: TokPrec| t.prec)
+                                    } else {
+                                        None
+                                    }
+                                })
+                            }
+                            _ => None,  // Non-terminals and other symbols don't contribute to token precedence
+                        }
+                    })
+                    .unwrap_or(0)
+            } else { 0 };
+            
+            rule_prec[pid] = explicit.unwrap_or(derived);
+            
+            // Also set token precedence based on rule info if this rule defines precedence for tokens
+            if let Some(prec_val) = explicit {
+                // If this rule has associativity, apply it to the rightmost terminal
+                if let Some(assoc) = rule.associativity {
+                    // Find rightmost terminal
+                    for sym in rule.rhs.iter().rev() {
+                        let sym_id = match sym {
+                            Symbol::Terminal(id) => id,
+                            _ => continue,  // Skip non-terminals and other symbols for token precedence
+                        };
+                        if let Some(&idx) = symbol_to_index.get(sym_id) {
+                            if (idx as u32) < token_count {
+                                let assoc_val = match assoc {
+                                    Associativity::Left  => Assoc::Left,
+                                    Associativity::Right => Assoc::Right,
+                                    Associativity::None  => Assoc::NonAssoc,
+                                };
+                                tok_prec_by_index[idx] = Some(TokPrec { prec: prec_val, assoc: assoc_val });
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    PrecTables { tok_prec_by_index, rule_prec }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum PrecDecision { PreferShift, PreferReduce, Error, NoInfo }
+
+fn decide_with_precedence(
+    lookahead_tok_idx: usize,        // table-index of token
+    reduce_prod_id: u16,             // production id from Action::Reduce
+    prec: &PrecTables,
+) -> PrecDecision {
+    let tokp = match prec.tok_prec_by_index.get(lookahead_tok_idx).and_then(|o| *o) {
+        Some(p) => p,
+        None => return PrecDecision::NoInfo,
+    };
+    let rulep = prec.rule_prec.get(reduce_prod_id as usize).copied().unwrap_or(0);
+    
+    use core::cmp::Ordering::*;
+    match (tokp.prec.cmp(&rulep), tokp.assoc) {
+        (Greater, _)            => PrecDecision::PreferShift,
+        (Less,    _)            => PrecDecision::PreferReduce,
+        (Equal,   Assoc::Left)  => PrecDecision::PreferReduce, // classic Yacc
+        (Equal,   Assoc::Right) => PrecDecision::PreferShift,
+        (Equal,   Assoc::NonAssoc) => PrecDecision::Error,
+    }
+}
+
+// Handle reduce/reduce conflicts (prefer higher rule precedence, tie -> lowest pid)
+fn decide_reduce_reduce(a: u16, b: u16, prec: &PrecTables) -> u16 {
+    let pa = prec.rule_prec.get(a as usize).copied().unwrap_or(0);
+    let pb = prec.rule_prec.get(b as usize).copied().unwrap_or(0);
+    if pa > pb { a } else if pb > pa { b } else { a.min(b) }
+}
+
 // Public API exports
 pub use driver::Driver;
 pub use forest_view::{Forest, ForestView, Span};
@@ -1877,22 +2014,22 @@ pub fn build_lr1_automaton(
     external_symbols.sort_by_key(|s| s.0);
 
     // Now assign indices: tokens first, then non-terminals, then externals
-    for symbol_id in token_symbols {
-        if !symbol_to_index.contains_key(&symbol_id) {
+    for symbol_id in &token_symbols {
+        if !symbol_to_index.contains_key(symbol_id) {
             let idx = symbol_to_index.len();
-            symbol_to_index.insert(symbol_id, idx);
+            symbol_to_index.insert(*symbol_id, idx);
         }
     }
 
-    for symbol_id in non_terminal_symbols {
-        if !symbol_to_index.contains_key(&symbol_id) {
-            symbol_to_index.insert(symbol_id, symbol_to_index.len());
+    for symbol_id in &non_terminal_symbols {
+        if !symbol_to_index.contains_key(symbol_id) {
+            symbol_to_index.insert(*symbol_id, symbol_to_index.len());
         }
     }
 
-    for symbol_id in external_symbols {
-        if !symbol_to_index.contains_key(&symbol_id) {
-            symbol_to_index.insert(symbol_id, symbol_to_index.len());
+    for symbol_id in &external_symbols {
+        if !symbol_to_index.contains_key(symbol_id) {
+            symbol_to_index.insert(*symbol_id, symbol_to_index.len());
         }
     }
 
@@ -2120,80 +2257,55 @@ pub fn build_lr1_automaton(
 
     // Shift actions were already added before reduce actions
 
+    // Build precedence tables once
+    let production_count = augmented_grammar.all_rules().count() as u32;
+    let token_count = token_symbols.len() as u32;
+    let prec_tables = build_prec_tables(&augmented_grammar, &symbol_to_index, token_count, production_count);
+
     // Resolve conflicts using precedence
-    let precedence_resolver = StaticPrecedenceResolver::from_grammar(&augmented_grammar);
-
-    for ((state_idx, symbol_idx), actions) in conflicts_by_state {
-        if actions.len() > 1 {
-            // Try to resolve shift/reduce conflicts using precedence
-            let mut shift_action = None;
-            let mut reduce_actions = Vec::new();
-
-            for action in &actions {
-                match action {
-                    Action::Shift(_) => {
-                        shift_action = Some(action.clone());
-                    }
-                    Action::Reduce(_rule_id) => {
-                        reduce_actions.push(action.clone());
-                    }
-                    _ => {}
-                }
-            }
-
-            // Handle shift/reduce conflicts with precedence
-            if let (Some(_shift), Some(reduce)) = (shift_action.as_ref(), reduce_actions.first()) {
-                // Get the symbol that triggers the shift
-                let symbol_id = symbol_to_index
-                    .iter()
-                    .find(|&(_, &idx)| idx == symbol_idx)
-                    .map(|(sym, _)| *sym)
-                    .unwrap_or(SymbolId(0));
-
-                let shift_prec = precedence_resolver.token_precedence(symbol_id);
-
-                let reduce_prec = if let Action::Reduce(rule_id) = reduce {
-                    precedence_resolver.rule_precedence(*rule_id)
-                } else {
-                    None
-                };
-
-                // "DEBUG: Conflict resolution - symbol {} (id={}) shift_prec={:?}, reduce rule {} prec={:?}"
-                match compare_precedences(shift_prec, reduce_prec) {
-                    PrecedenceComparison::PreferShift => {
-                        // For GLR, we still keep both actions but can mark preference
-                        eprintln!(
-                            "State {}: Precedence prefers shift over reduce for symbol {}",
-                            state_idx, symbol_idx
-                        );
-                    }
-                    PrecedenceComparison::PreferReduce => {
-                        // For GLR, we still keep both actions but can mark preference
-                        eprintln!(
-                            "State {}: Precedence prefers reduce over shift for symbol {}",
-                            state_idx, symbol_idx
-                        );
-                    }
-                    PrecedenceComparison::Error => {
-                        eprintln!(
-                            "State {}: Non-associative conflict for symbol {}",
-                            state_idx, symbol_idx
-                        );
-                    }
-                    PrecedenceComparison::None => {
-                        eprintln!(
-                            "State {}: No precedence info for conflict at symbol {}",
-                            state_idx, symbol_idx
-                        );
-                    }
-                }
-            }
-
-            // For GLR, we keep all conflicting actions in the cell
-            // The runtime parser will handle forking
-            // The actions are already in the cell from add_action_with_conflict
+    for ((state_idx, symbol_idx), _actions) in conflicts_by_state {
+        // Only resolve on TOKEN columns (never on gotos)
+        if (symbol_idx as u32) >= token_count {
+            continue;  // Skip non-terminal columns
         }
-        // No need to do anything - actions are already in the cell
+        
+        let cell = &mut action_table[state_idx][symbol_idx];
+        
+        // Extract first shift and the set of reduces in the cell
+        let first_shift = cell.iter().find_map(|a| if let Action::Shift(s) = a { Some(*s) } else { None });
+        let mut reduces: Vec<u16> = cell.iter().filter_map(|a| if let Action::Reduce(pid) = a { Some(pid.0) } else { None }).collect();
+        
+        // If there are multiple reduces, resolve them first (rule precedence)
+        if reduces.len() > 1 {
+            let winner = reduces[1..].iter().fold(reduces[0], |acc, &r| decide_reduce_reduce(acc, r, &prec_tables));
+            reduces.clear();
+            reduces.push(winner);
+            // keep the non-reduce actions (shift/accept) as-is for now
+            cell.retain(|a| matches!(a, Action::Shift(_) | Action::Accept) || matches!(a, Action::Reduce(pid) if pid.0 == winner));
+        }
+        
+        // Now we have at most one reduce and at most one shift
+        if let (Some(s), Some(r)) = (first_shift, reduces.first().copied()) {
+            match decide_with_precedence(symbol_idx, r, &prec_tables) {
+                PrecDecision::PreferShift  => *cell = vec![Action::Shift(s)],
+                PrecDecision::PreferReduce => *cell = vec![Action::Reduce(RuleId(r))],
+                PrecDecision::Error        => {
+                    // Non-associative at equal precedence: forbid combination at this lookahead.
+                    // For GLR you can either force a parse error here or keep both and let runtime err.
+                    // Common Yacc behavior is to make it a syntax error:
+                    // *cell = vec![Action::Error];  // Uncomment if you want to make it a hard error
+                    // For now, keep both for GLR
+                }
+                PrecDecision::NoInfo       => {
+                    // leave GLR behavior (keep both)
+                }
+            }
+        }
+        
+        // Never touch ACCEPT
+        if cell.iter().any(|a| matches!(a, Action::Accept)) {
+            *cell = vec![Action::Accept];
+        }
     }
 
     // Add non-terminal goto entries to the goto table
