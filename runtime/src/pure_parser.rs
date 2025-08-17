@@ -82,6 +82,8 @@ pub struct TSLanguage {
     pub keyword_capture_token: TSSymbol,
     pub external_scanner: ExternalScanner,
     pub primary_state_ids: *const TSStateId,
+    pub production_lhs_index: *const u16,  // LHS symbols in table index space
+    pub production_count: u16,              // Number of productions
 }
 
 // SAFETY: TSLanguage is a read-only structure that doesn't contain any mutable state.
@@ -805,9 +807,13 @@ impl Parser {
 
     /// Get goto state for a non-terminal after reduction
     fn get_goto(&self, language: &TSLanguage, state: TSStateId, symbol: TSSymbol) -> Option<TSStateId> {
+        eprintln!("DEBUG get_goto: state={}, symbol={}, token_count={}, symbol_count={}", 
+            state, symbol, language.token_count, language.symbol_count);
         unsafe {
             // Check bounds
             if state >= language.state_count as u16 || symbol >= language.symbol_count as u16 {
+                eprintln!("  Bounds check failed: state >= {} or symbol >= {}", 
+                    language.state_count, language.symbol_count);
                 return None;
             }
 
@@ -817,14 +823,20 @@ impl Parser {
 
             // Only non-terminals have goto entries
             if symbol < token_count {
+                eprintln!("  Symbol {} is a token (< {}), no goto", symbol, token_count);
                 return None;
             }
+            eprintln!("  Symbol {} is a non-terminal (>= {}), checking goto", symbol, token_count);
+            eprintln!("  large_state_count={}, state={}, is_large={}", 
+                large_state_count, state, (state as usize) < large_state_count);
 
             if (state as usize) < large_state_count {
                 // LARGE STATE: Dense row in parse_table
                 let base = (state as usize) * symbol_count;
                 let index = base + (symbol as usize);
                 let goto_state = *language.parse_table.add(index);
+                
+                eprintln!("  Large state: base={}, index={}, goto_state={}", base, index, goto_state);
                 
                 if goto_state != 0 {
                     return Some(goto_state);
@@ -835,20 +847,27 @@ impl Parser {
                 let start_offset = (*language.small_parse_table_map.add(map_index)) as usize;
                 let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
                 
+                eprintln!("  Small state: map_index={}, start_offset={}, end_offset={}", 
+                    map_index, start_offset, end_offset);
+                
                 let mut offset = start_offset;
                 while offset + 1 < end_offset {
                     let entry_symbol = *language.small_parse_table.add(offset);
                     let goto_state = *language.small_parse_table.add(offset + 1);
+                    eprintln!("    Entry at offset {}: symbol={}, goto_state={}", 
+                        offset, entry_symbol, goto_state);
                     offset += 2;
                     
                     // Check for non-terminal goto
                     if entry_symbol >= token_count && entry_symbol == symbol {
+                        eprintln!("    Found match for symbol {}!", symbol);
                         if goto_state != 0 {
                             return Some(goto_state);
                         }
                         return None;
                     }
                 }
+                eprintln!("    No match found for symbol {}", symbol);
             }
             None
         }
@@ -948,6 +967,12 @@ impl Parser {
         }
     }
 
+    /// Get the LHS symbol index for a production from the production_lhs_index array
+    #[inline]
+    fn lhs_index_of(&self, language: &TSLanguage, production_index: u16) -> u16 {
+        unsafe { *language.production_lhs_index.add(production_index as usize) }
+    }
+
     /// Perform a reduction
     fn reduce(&mut self, language: &TSLanguage, production_id: u16, source: &[u8]) -> bool {
         if source.len() < 20 {
@@ -1001,12 +1026,25 @@ impl Parser {
 
             let action = &*language.parse_actions.add(production_index as usize);
             let child_count = action.child_count as usize;
-            let symbol = action.symbol;
+            
+            // Get the LHS symbol from the production_lhs_index array instead of parse_actions
+            // This ensures the symbol is in table index space
+            let symbol = self.lhs_index_of(language, production_index);
+            
+            // Also check what parse_actions says for comparison
+            let parse_action_symbol = action.symbol;
+            eprintln!("DEBUG: production_index={}, lhs_index={}, parse_action_symbol={}", 
+                production_index, symbol, parse_action_symbol);
 
             if source.len() < 20 {
                 eprintln!(
                     "DEBUG reduce: Production {} (index {}) reduces to symbol {} with {} children (token_count={})",
                     production_id, production_index, symbol, child_count, language.token_count
+                );
+                debug_assert!(
+                    symbol >= language.token_count as u16,
+                    "LHS symbol {} should be a non-terminal (>= token_count {})",
+                    symbol, language.token_count
                 );
             }
 
@@ -1114,6 +1152,16 @@ impl Parser {
             //"DEBUG reduce: Looking up goto for symbol {} from state {}",
             //symbol, prev_state
             //);
+
+            // Debug: Show all gotos available from this state
+            if source.len() < 20 && prev_state == 0 {
+                eprintln!("DEBUG reduce: Available gotos from state 0:");
+                for sym_idx in 0..12 {
+                    if let Some(goto_state) = self.get_goto(language, 0, sym_idx) {
+                        eprintln!("  Symbol {} -> state {}", sym_idx, goto_state);
+                    }
+                }
+            }
 
             // Look up goto state for the non-terminal we just reduced to
             if let Some(goto_state) = self.get_goto(language, prev_state, symbol) {

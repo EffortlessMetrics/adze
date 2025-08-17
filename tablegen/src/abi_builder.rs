@@ -92,6 +92,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let public_symbol_map = self.generate_public_symbol_map();
         let primary_state_ids = self.generate_primary_state_ids();
         let production_id_map = self.generate_production_id_map();
+        let production_lhs_index = self.generate_production_lhs_index();
         let variant_symbol_map = self.generate_variant_symbol_map();
 
         // Generate external scanner data if needed
@@ -245,6 +246,9 @@ impl<'a> AbiLanguageBuilder<'a> {
             // Production ID map (maps production IDs to rule IDs)
             static PRODUCTION_ID_MAP: &[u16] = &[#(#production_id_map),*];
 
+            // Production LHS index (maps production IDs to LHS symbols in table index space)
+            static PRODUCTION_LHS_INDEX: &[u16] = &[#(#production_lhs_index),*];
+
             // Variant symbol map (for Extract trait to use)
             #variant_symbol_map
 
@@ -282,6 +286,8 @@ impl<'a> AbiLanguageBuilder<'a> {
                 keyword_capture_token: 0,
                 external_scanner: #external_scanner_struct,
                 primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
+                production_lhs_index: PRODUCTION_LHS_INDEX.as_ptr(),
+                production_count: #production_id_count as u16,
             };
 
             // Export the language function for FFI
@@ -893,22 +899,6 @@ impl<'a> AbiLanguageBuilder<'a> {
                     symbol_id.0 as usize // Fallback to symbol ID
                 }) as u16;
 
-            eprintln!(
-                "DEBUG parse_actions: Production {} (lhs=SymbolId({}), rhs={:?}) -> table index={}",
-                rule.production_id.0, rule.lhs.0, rule.rhs, symbol
-            );
-            
-            // Also check what's in the goto table for this symbol
-            eprintln!("  Checking goto_table for symbol index {}:", symbol);
-            for state_idx in 0..std::cmp::min(3, self.parse_table.goto_table.len()) {
-                let symbol_idx = symbol as usize;
-                if state_idx < self.parse_table.goto_table.len() && symbol_idx < self.parse_table.goto_table[state_idx].len() {
-                    let goto_state = self.parse_table.goto_table[state_idx][symbol_idx];
-                    if goto_state.0 > 0 {
-                        eprintln!("    State {} has goto for symbol {} -> state {}", state_idx, symbol, goto_state.0);
-                    }
-                }
-            }
 
             actions[index] = quote! {
                 TSParseAction {
@@ -1134,6 +1124,39 @@ impl<'a> AbiLanguageBuilder<'a> {
         }
 
         production_map
+    }
+
+    fn generate_production_lhs_index(&self) -> Vec<TokenStream> {
+        // Generate array of LHS symbols in table index space, indexed by production ID
+        let mut lhs_indices = Vec::new();
+
+        // Get all rules sorted by production ID
+        let mut rules: Vec<_> = self
+            .grammar
+            .rules
+            .iter()
+            .flat_map(|(_, rules)| rules.iter())
+            .collect();
+        rules.sort_by_key(|rule| rule.production_id.0);
+
+        // For each production, get its LHS symbol in table index space
+        for rule in &rules {
+            let lhs_index = self
+                .parse_table
+                .symbol_to_index
+                .get(&rule.lhs)
+                .copied()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "LHS symbol {} not found in symbol_to_index for production {}",
+                        rule.lhs.0, rule.production_id.0
+                    );
+                }) as u16;
+            
+            lhs_indices.push(quote! { #lhs_index });
+        }
+
+        lhs_indices
     }
 
     /// Calculate counts for the language structure
