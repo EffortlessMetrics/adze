@@ -10,8 +10,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[wasm_bindgen(start)]
 pub fn main() {
     // Set panic hook for better error messages in browser console
-    #[cfg(feature = "console_error_panic_hook")]
-    console_error_panic_hook::set_once();
+    // console_error_panic_hook::set_once();
 
     web_sys::console::log_1(&"rust-sitter WASM demo initialized".into());
 }
@@ -43,23 +42,9 @@ pub fn parse_python(source: &str) -> String {
 
 /// Parse arithmetic expressions and return S-expression representation
 #[wasm_bindgen]
-pub fn parse_arithmetic(source: &str) -> String {
-    let mut parser = Parser::new();
-    match parser.set_language(rust_sitter_example::get_arithmetic_language()) {
-        Ok(_) => {}
-        Err(e) => return format!("Failed to set language: {}", e),
-    }
-
-    match parser.parse(source, None) {
-        Some(tree) => {
-            format!(
-                "Parse successful! Root kind: {}, Errors: {}",
-                tree.root_kind(),
-                tree.error_count()
-            )
-        }
-        None => "Parse failed".to_string(),
-    }
+pub fn parse_arithmetic(_source: &str) -> String {
+    // Temporarily disabled - needs update for new API
+    "Arithmetic parser temporarily disabled - needs API update".to_string()
 }
 
 /// Get GLR statistics from the last parse

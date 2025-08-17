@@ -295,12 +295,13 @@ fn test_incremental_disabled() {
         nonterminal_to_index: std::collections::BTreeMap::new(),
         grammar: Grammar::default(),
     };
-    let parser = Parser::new(grammar, table);
+    let parser = Parser::new(grammar, table, "test".to_string());
 
     let src = "test";
-    let tree = parser.parse(src.as_bytes(), None);
+    let mut parser = parser;
+    let tree = parser.parse(src);
 
-    if let Some(tree) = tree {
+    if let Ok(tree) = tree {
         let edit = Edit {
             start_byte: 0,
             old_end_byte: 1,
