@@ -155,11 +155,13 @@ fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
 /// This function bridges between the public parser_v4 API and the internal
 /// GLR incremental parsing implementation.
 pub fn reparse(
-    _grammar: &Grammar,
-    _table: &ParseTable,
-    _source: &[u8],
-    _old_tree: &crate::parser_v4::Tree,
-    _edit: &crate::pure_incremental::Edit,
+    #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))] grammar: &Grammar,
+    #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))] table: &ParseTable,
+    #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))] source: &[u8],
+    #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))]
+    old_tree: &crate::parser_v4::Tree,
+    #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))]
+    edit: &crate::pure_incremental::Edit,
 ) -> Option<crate::parser_v4::Tree> {
     // Only enable incremental parsing if the feature is enabled
     #[cfg(feature = "incremental_glr")]
@@ -562,11 +564,11 @@ impl IncrementalGLRParser {
 
         // Parse all tokens
         for token in tokens.iter() {
-            parser.process_token(
-                token.symbol,
-                std::str::from_utf8(&token.text).unwrap_or(""),
-                token.start_byte,
-            );
+            // Convert token text to string, properly handling UTF-8
+            let text = std::str::from_utf8(&token.text).map_err(|e| {
+                format!("Invalid UTF-8 in token at byte {}: {}", token.start_byte, e)
+            })?;
+            parser.process_token(token.symbol, text, token.start_byte);
         }
 
         // Calculate total input length from tokens
@@ -1143,11 +1145,14 @@ impl IncrementalGLRParser {
             subtree: subtree.clone(),
         };
 
+        // Calculate token range from byte range
+        let token_range = self.find_token_range(&subtree.node.byte_range, &self.tokens);
+
         Arc::new(ForestNode {
             symbol: subtree.node.symbol_id,
             alternatives: vec![alternative],
             byte_range: subtree.node.byte_range.clone(),
-            token_range: 0..0, // This would need proper calculation in a real implementation
+            token_range,
             cached_subtree: Some(subtree),
         })
     }

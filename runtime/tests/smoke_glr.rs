@@ -28,6 +28,7 @@ fn glr_smoke_table_construction() {
         state_count: 2,
         symbol_count: 4,
         symbol_to_index: sym2idx,
+        index_to_symbol: vec![SymbolId(0), SymbolId(1), SymbolId(2), SymbolId(3)],
         token_count: 2, // 'x', EOF-1 (EOF is token_count)
         external_token_count: 0,
         eof_symbol: SymbolId(2),

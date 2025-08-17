@@ -115,6 +115,9 @@ jobs:
       
       - name: Check tablegen benchmarks compile
         run: cargo bench -p rust-sitter-tablegen --bench compression --no-run
+      
+      - name: Check incremental benchmarks compile
+        run: cargo bench -p rust-sitter-benchmarks --bench incremental_bench --no-run
 
   backend-matrix:
     name: Backend Build Matrix (${{ matrix.backend }})

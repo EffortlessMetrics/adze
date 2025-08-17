@@ -144,4 +144,9 @@ impl Subtree {
     pub fn is_error(&self) -> bool {
         self.node.is_error
     }
+
+    /// Get the byte range for this subtree
+    pub fn byte_range(&self) -> std::ops::Range<usize> {
+        self.node.byte_range.clone()
+    }
 }
