@@ -140,14 +140,36 @@ fn create_python_grammar() -> Grammar {
 /// Create a simple parse table for the Python grammar
 fn create_parse_table() -> ParseTable {
     // This is a simplified parse table - in reality it would be generated
+    let mut symbol_to_index = BTreeMap::new();
+    for i in 0..10 {
+        symbol_to_index.insert(rust_sitter_ir::SymbolId(i as u16), i);
+    }
+
     ParseTable {
         action_table: vec![vec![vec![Action::Error]; 10]; 10],
         goto_table: vec![vec![rust_sitter_ir::StateId(0); 10]; 10],
         symbol_metadata: vec![],
         state_count: 10,
         symbol_count: 10,
-        symbol_to_index: BTreeMap::new(),
+        symbol_to_index,
+        index_to_symbol: (0..10)
+            .map(|i| rust_sitter_ir::SymbolId(i as u16))
+            .collect(),
         external_scanner_states: vec![],
+        token_count: 5,
+        external_token_count: 3,
+        eof_symbol: rust_sitter_ir::SymbolId(9),
+        start_symbol: rust_sitter_ir::SymbolId(0),
+        initial_state: rust_sitter_ir::StateId(0),
+        rules: vec![],
+        lex_modes: vec![],
+        extras: vec![],
+        dynamic_prec_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: BTreeMap::new(),
+        nonterminal_to_index: BTreeMap::new(),
+        grammar: rust_sitter_ir::Grammar::default(),
     }
 }
 

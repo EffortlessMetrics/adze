@@ -193,12 +193,13 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
         for pattern in &edit_patterns {
             let bench_name = format!("{:?}_size_{}", pattern, size);
 
+            // Pre-compute edit and tokens outside benchmark loop
+            let (new_code, edits) = pattern.apply(&code);
+            let new_tokens = tokenize(&new_code);
+
             group.bench_function(BenchmarkId::new("full_reparse", &bench_name), |b| {
                 b.iter(|| {
-                    let (new_code, _edits) = pattern.apply(&code);
-                    let new_tokens = tokenize(&new_code);
-
-                    // Full reparse
+                    // Full reparse with pre-computed tokens
                     let mut parser = GLRParser::new(table.clone(), grammar.clone());
                     for token in &new_tokens {
                         let text_str = String::from_utf8_lossy(&token.text);
@@ -210,14 +211,12 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
             });
 
             group.bench_function(BenchmarkId::new("incremental", &bench_name), |b| {
-                // Initial parse
+                // Initial parse outside benchmark loop
                 let mut inc_parser = IncrementalGLRParser::new(grammar.clone(), table.clone());
                 let _ = inc_parser.parse_incremental(&tokens, &[]);
 
                 b.iter(|| {
-                    let (_new_code, edits) = pattern.apply(&code);
-
-                    // Incremental reparse
+                    // Incremental reparse with pre-computed edits
                     inc_parser.parse_incremental(&tokens, &edits)
                 });
             });
