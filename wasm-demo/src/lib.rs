@@ -1,11 +1,6 @@
 use rust_sitter::ts_compat::Parser;
 use wasm_bindgen::prelude::*;
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 // Called when the WASM module is instantiated
 #[wasm_bindgen(start)]
 pub fn main() {
@@ -27,11 +22,11 @@ pub fn parse_python(_source: &str) -> String {
 pub fn parse_arithmetic(source: &str) -> String {
     let mut parser = Parser::new();
     let lang = rust_sitter_example::ts_langs::arithmetic();
-    
+
     if parser.set_language(lang).is_err() {
         return "Failed to set language".to_string();
     }
-    
+
     match parser.parse(source, None) {
         Some(tree) => {
             format!(

@@ -208,7 +208,7 @@ fn create_arithmetic_language() -> &'static TSLanguage {
     static FIELD_NAMES_DATA: [[u8; 1]; 1] = [EMPTY_NAME; 1];
 
     // Convert to raw pointers at runtime
-    let symbol_name_ptrs: [*const u8; 9] = [
+    let _symbol_name_ptrs: [*const u8; 9] = [
         SYMBOL_NAMES_DATA[0].as_ptr(),
         SYMBOL_NAMES_DATA[1].as_ptr(),
         SYMBOL_NAMES_DATA[2].as_ptr(),
@@ -219,7 +219,7 @@ fn create_arithmetic_language() -> &'static TSLanguage {
         SYMBOL_NAMES_DATA[7].as_ptr(),
         SYMBOL_NAMES_DATA[8].as_ptr(),
     ];
-    let field_name_ptrs: [*const u8; 1] = [FIELD_NAMES_DATA[0].as_ptr()];
+    let _field_name_ptrs: [*const u8; 1] = [FIELD_NAMES_DATA[0].as_ptr()];
     static FIELD_MAP_SLICES: [u16; 10] = [0; 10];
     static FIELD_MAP_ENTRIES: [u16; 10] = [0; 10];
     static SYMBOL_METADATA: [u8; 9] = [0; 9];
@@ -244,8 +244,8 @@ fn create_arithmetic_language() -> &'static TSLanguage {
         small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
         small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
         parse_actions: PARSE_ACTIONS.as_ptr(),
-        symbol_names: symbol_name_ptrs.as_ptr(),
-        field_names: field_name_ptrs.as_ptr(),
+        symbol_names: std::ptr::null(), // symbol_name_ptrs.as_ptr(),
+        field_names: std::ptr::null(), // field_name_ptrs.as_ptr(),
         field_map_slices: FIELD_MAP_SLICES.as_ptr(),
         field_map_entries: FIELD_MAP_ENTRIES.as_ptr(),
         symbol_metadata: SYMBOL_METADATA.as_ptr(),
@@ -266,6 +266,9 @@ fn create_arithmetic_language() -> &'static TSLanguage {
             deserialize: None,
         },
         primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
+        eof_symbol: 0,  // Add missing field
+        production_count: 6,  // Add missing field
+        production_lhs_index: std::ptr::null(),  // Add missing field
     };
 
     &LANGUAGE

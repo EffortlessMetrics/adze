@@ -91,6 +91,12 @@ mod simd_lexer_v2;
 // Tree-sitter compatibility API
 #[cfg(feature = "ts-compat")]
 pub mod ts_compat;
+
+// Re-export IR and GLR core for ts-compat language construction
+#[cfg(feature = "ts-compat")]
+pub use rust_sitter_glr_core;
+#[cfg(feature = "ts-compat")]
+pub use rust_sitter_ir;
 // TODO: Update parallel_parser for new Parser API
 // pub mod parallel_parser {
 //     pub use super::parallel_parser_v2::*;

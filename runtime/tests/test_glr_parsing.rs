@@ -226,6 +226,7 @@ fn create_conflicting_parse_table() -> ParseTable {
 
         // Symbol bookkeeping
         symbol_to_index,
+        index_to_symbol: vec![], // Add missing field
         nonterminal_to_index,
         symbol_metadata: vec![],
 

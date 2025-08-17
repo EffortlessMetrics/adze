@@ -5,10 +5,6 @@
 //! they are not intended to actually be called in any other circumstance.
 
 use crate::Extract;
-#[cfg(feature = "ts-compat")]
-use rust_sitter_glr_core::ParseTable;
-#[cfg(feature = "ts-compat")]
-use std::collections::BTreeMap;
 
 #[cfg(feature = "pure-rust")]
 use crate::pure_parser::ParsedNode;
@@ -258,36 +254,5 @@ pub fn parse<T: Extract<T>>(
             0,
             None,
         ))
-    }
-}
-
-/// Create an empty parse table for testing purposes
-/// DO NOT USE IN PRODUCTION CODE
-#[cfg(feature = "ts-compat")]
-pub fn create_empty_parse_table() -> ParseTable {
-    
-    ParseTable {
-        action_table: vec![],
-        goto_table: vec![],
-        symbol_metadata: vec![],
-        state_count: 0,
-        symbol_count: 0,
-        symbol_to_index: BTreeMap::new(),
-        index_to_symbol: vec![],
-        external_scanner_states: vec![],
-        rules: vec![],
-        nonterminal_to_index: BTreeMap::new(),
-        eof_symbol: rust_sitter_ir::SymbolId(0),
-        start_symbol: rust_sitter_ir::SymbolId(1),
-        grammar: Default::default(),
-        initial_state: rust_sitter_ir::StateId(0),
-        token_count: 0,
-        external_token_count: 0,
-        lex_modes: vec![],
-        extras: vec![],
-        dynamic_prec_by_rule: vec![],
-        alias_sequences: vec![],
-        field_names: vec![],
-        field_map: BTreeMap::new(),
     }
 }

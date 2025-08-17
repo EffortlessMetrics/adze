@@ -4,6 +4,7 @@
 
 mod common;
 
+use glr_test_support::make_minimal_table;
 use rust_sitter::parser::Parser;
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
 use rust_sitter_ir::*;
@@ -161,7 +162,7 @@ fn create_simple_parse_table() -> ParseTable {
         },
     ];
 
-    common::make_minimal_table(
+    make_minimal_table(
         action_table,
         goto_table,
         rules,

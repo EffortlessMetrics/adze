@@ -1,5 +1,5 @@
 //! Tree-sitter compatibility API
-//! 
+//!
 //! This module provides a compatibility layer that mimics the Tree-sitter API,
 //! allowing existing Tree-sitter code to work with rust-sitter with minimal changes.
 
@@ -89,7 +89,7 @@ pub struct Parser {
 impl Parser {
     /// Create a new parser.
     pub fn new() -> Self {
-        Self { 
+        Self {
             core: None,
             lang: None,
         }
@@ -109,21 +109,19 @@ impl Parser {
     /// Parse source code, optionally reusing an old tree for incremental parsing.
     pub fn parse(&mut self, source: &str, old: Option<&Tree>) -> Option<Tree> {
         let core_parser = self.core.as_mut()?;
-        
+        let lang = self.lang.as_ref()?;
+
         match old {
             #[cfg(feature = "incremental_glr")]
             Some(old_tree) if old_tree.last_edit.is_some() => {
                 // Try incremental parsing
                 if let Some(edit) = &old_tree.last_edit {
-                    match core_parser.reparse(
-                        source,
-                        &old_tree.core,
-                        edit,
-                    ) {
+                    match core_parser.reparse(source, &old_tree.core, edit) {
                         Some(new_tree) => {
                             return Some(Tree {
                                 core: new_tree,
                                 last_edit: None,
+                                language: Arc::clone(lang),
                             });
                         }
                         None => {
@@ -136,6 +134,7 @@ impl Parser {
                     Ok(t) => Some(Tree {
                         core: t,
                         last_edit: None,
+                        language: lang.clone(),
                     }),
                     Err(_) => None,
                 }
@@ -146,6 +145,7 @@ impl Parser {
                     Ok(t) => Some(Tree {
                         core: t,
                         last_edit: None,
+                        language: lang.clone(),
                     }),
                     Err(_) => None,
                 }
@@ -170,6 +170,7 @@ impl Default for Parser {
 pub struct Tree {
     pub(crate) core: CoreTree,
     pub(crate) last_edit: Option<CoreEdit>,
+    pub(crate) language: Arc<Language>,
 }
 
 impl Tree {
@@ -191,9 +192,16 @@ impl Tree {
 
     /// Get the root kind as a string.
     pub fn root_kind(&self) -> &str {
-        // TODO: Convert symbol ID to string name
-        // For now, return a placeholder
-        "expression"
+        // Get the symbol ID from the core tree
+        let symbol_id = self.core.root_kind();
+
+        // Look up the symbol name from the grammar's rule_names
+        self.language
+            .grammar
+            .rule_names
+            .get(&rust_sitter_ir::SymbolId(symbol_id))
+            .map(|s| s.as_str())
+            .unwrap_or("unknown")
     }
 
     /// Get the number of errors in this tree.
