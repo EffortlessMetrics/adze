@@ -589,8 +589,14 @@ impl Parser {
         let lexer = match self.lexer.as_mut() {
             Some(l) => l,
             None => {
+                debug_assert!(
+                    language.eof_symbol < language.token_count as u16,
+                    "EOF symbol {} must be within token range [0, {})",
+                    language.eof_symbol,
+                    language.token_count
+                );
                 return Token {
-                    symbol: 0,
+                    symbol: language.eof_symbol,
                     length: 0,
                     is_extra: false,
                 };
@@ -599,8 +605,14 @@ impl Parser {
 
         // Check for EOF (accounting for sentinel byte)
         if position >= lexer.input.len() - 1 {
+            debug_assert!(
+                language.eof_symbol < language.token_count as u16,
+                "EOF symbol {} must be within token range [0, {})",
+                language.eof_symbol,
+                language.token_count
+            );
             return Token {
-                symbol: 0,
+                symbol: language.eof_symbol,
                 length: 0,
                 is_extra: false,
             }; // EOF
@@ -701,9 +713,15 @@ impl Parser {
         // Fallback: simple character-by-character lexing
         // Safe access with bounds check (accounting for sentinel)
         if position >= lexer.input.len() - 1 {
-            // At EOF - return column 0 (Tree-sitter EOF convention)
+            // At EOF - return EOF symbol from language
+            debug_assert!(
+                language.eof_symbol < language.token_count as u16,
+                "EOF symbol {} must be within token range [0, {})",
+                language.eof_symbol,
+                language.token_count
+            );
             return Token {
-                symbol: 0, // EOF column index
+                symbol: language.eof_symbol, // EOF column index from language
                 length: 0,
                 is_extra: false,
             };

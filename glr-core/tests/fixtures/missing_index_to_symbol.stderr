@@ -1,0 +1,117 @@
+error[E0603]: struct `StateId` is private
+ --> tests/fixtures/missing_index_to_symbol.rs:4:48
+  |
+4 | use rust_sitter_glr_core::{ParseTable, Action, StateId, SymbolId, SymbolMetadata, Grammar, LexMode};
+  |                                                ^^^^^^^ private struct
+  |
+note: the struct `StateId` is defined here
+ --> src/lib.rs
+  |
+  | use rust_sitter_ir::*;
+  |     ^^^^^^^^^^^^^^
+help: import `StateId` directly
+  |
+4 | use rust_sitter_glr_core::{ParseTable, Action, rust_sitter_ir::StateId, SymbolId, SymbolMetadata, Grammar, LexMode};
+  |                                                ++++++++++++++++
+
+error[E0603]: struct `SymbolId` is private
+ --> tests/fixtures/missing_index_to_symbol.rs:4:57
+  |
+4 | use rust_sitter_glr_core::{ParseTable, Action, StateId, SymbolId, SymbolMetadata, Grammar, LexMode};
+  |                                                         ^^^^^^^^ private struct
+  |
+note: the struct `SymbolId` is defined here
+ --> src/lib.rs
+  |
+  | use rust_sitter_ir::*;
+  |     ^^^^^^^^^^^^^^
+help: import `SymbolId` directly
+  |
+4 | use rust_sitter_glr_core::{ParseTable, Action, StateId, rust_sitter_ir::SymbolId, SymbolMetadata, Grammar, LexMode};
+  |                                                         ++++++++++++++++
+
+error[E0603]: struct `Grammar` is private
+ --> tests/fixtures/missing_index_to_symbol.rs:4:83
+  |
+4 | use rust_sitter_glr_core::{ParseTable, Action, StateId, SymbolId, SymbolMetadata, Grammar, LexMode};
+  |                                                                                   ^^^^^^^ private struct
+  |
+note: the struct `Grammar` is defined here
+ --> src/lib.rs
+  |
+  | use rust_sitter_ir::*;
+  |     ^^^^^^^^^^^^^^
+help: import `Grammar` directly
+  |
+4 | use rust_sitter_glr_core::{ParseTable, Action, StateId, SymbolId, SymbolMetadata, rust_sitter_ir::Grammar, LexMode};
+  |                                                                                   ++++++++++++++++
+
+error[E0560]: struct `SymbolMetadata` has no field named `is_terminal`
+  --> tests/fixtures/missing_index_to_symbol.rs:25:17
+   |
+25 |                 is_terminal: true,
+   |                 ^^^^^^^^^^^ `SymbolMetadata` does not have this field
+   |
+   = note: available fields are: `visible`, `named`, `supertype`
+
+error[E0560]: struct `SymbolMetadata` has no field named `is_extra`
+  --> tests/fixtures/missing_index_to_symbol.rs:26:17
+   |
+26 |                 is_extra: false,
+   |                 ^^^^^^^^ `SymbolMetadata` does not have this field
+   |
+   = note: available fields are: `visible`, `named`, `supertype`
+
+error[E0560]: struct `SymbolMetadata` has no field named `is_fragile`
+  --> tests/fixtures/missing_index_to_symbol.rs:27:17
+   |
+27 |                 is_fragile: false,
+   |                 ^^^^^^^^^^ `SymbolMetadata` does not have this field
+   |
+   = note: available fields are: `visible`, `named`, `supertype`
+
+error[E0560]: struct `SymbolMetadata` has no field named `symbol_id`
+  --> tests/fixtures/missing_index_to_symbol.rs:28:17
+   |
+28 |                 symbol_id: SymbolId(0),
+   |                 ^^^^^^^^^ `SymbolMetadata` does not have this field
+   |
+   = note: available fields are: `visible`, `named`, `supertype`
+
+error[E0560]: struct `SymbolMetadata` has no field named `is_terminal`
+  --> tests/fixtures/missing_index_to_symbol.rs:32:17
+   |
+32 |                 is_terminal: false,
+   |                 ^^^^^^^^^^^ `SymbolMetadata` does not have this field
+   |
+   = note: available fields are: `visible`, `named`, `supertype`
+
+error[E0560]: struct `SymbolMetadata` has no field named `is_extra`
+  --> tests/fixtures/missing_index_to_symbol.rs:33:17
+   |
+33 |                 is_extra: false,
+   |                 ^^^^^^^^ `SymbolMetadata` does not have this field
+   |
+   = note: available fields are: `visible`, `named`, `supertype`
+
+error[E0560]: struct `SymbolMetadata` has no field named `is_fragile`
+  --> tests/fixtures/missing_index_to_symbol.rs:34:17
+   |
+34 |                 is_fragile: false,
+   |                 ^^^^^^^^^^ `SymbolMetadata` does not have this field
+   |
+   = note: available fields are: `visible`, `named`, `supertype`
+
+error[E0560]: struct `SymbolMetadata` has no field named `symbol_id`
+  --> tests/fixtures/missing_index_to_symbol.rs:35:17
+   |
+35 |                 symbol_id: SymbolId(1),
+   |                 ^^^^^^^^^ `SymbolMetadata` does not have this field
+   |
+   = note: available fields are: `visible`, `named`, `supertype`
+
+error[E0063]: missing field `index_to_symbol` in initializer of `ParseTable`
+  --> tests/fixtures/missing_index_to_symbol.rs:15:24
+   |
+15 |     let _parse_table = ParseTable {
+   |                        ^^^^^^^^^^ missing `index_to_symbol`

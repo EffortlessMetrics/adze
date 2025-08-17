@@ -1,0 +1,10 @@
+/home/steven/code/rust-sitter/glr-core/target/precommit/tests/trybuild/x86_64-unknown-linux-gnu/debug/deps/libthousands-ae4f0bba104b9822.rmeta: /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/lib.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/digits.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/policies.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/traits.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/display.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/helpers.rs
+
+/home/steven/code/rust-sitter/glr-core/target/precommit/tests/trybuild/x86_64-unknown-linux-gnu/debug/deps/thousands-ae4f0bba104b9822.d: /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/lib.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/digits.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/policies.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/traits.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/display.rs /home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/helpers.rs
+
+/home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/lib.rs:
+/home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/digits.rs:
+/home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/policies.rs:
+/home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/traits.rs:
+/home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/display.rs:
+/home/steven/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thousands-0.2.0/src/helpers.rs:

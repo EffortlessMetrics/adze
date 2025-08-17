@@ -36,6 +36,7 @@ rustc-hash = "2.1.1"
 default = []
 parallel = ["rayon"]
 strict_docs = []
+strict_api = []
 glr-trace = []
 test-helpers = []
 strict-invariants = []
@@ -43,6 +44,7 @@ memory-tests = []
 json-parity = []
 perf-counters = []
 test-api = []
+debug_glr = [] # Enable debug output for GLR parser
 
 [dev-dependencies]
 insta = "1.0"
@@ -50,6 +52,7 @@ criterion = "0.5"
 dhat = "0.3"
 serde_json = "1.0"
 glr-test-support = { path = "../glr-test-support" }
+trybuild = "1"
 
 [[bench]]
 name = "automaton"

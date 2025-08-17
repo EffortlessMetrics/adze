@@ -586,6 +586,7 @@ impl<'t> Driver<'t> {
 
         // EOF phase - use the table's EOF symbol instead of hardcoded 0
         let eof = self.tables.eof();
+        #[cfg(feature = "debug_glr")]
         eprintln!(
             "DEBUG: EOF phase starting with {} stack(s)",
             state.stacks.len()
@@ -644,11 +645,13 @@ impl<'t> Driver<'t> {
                         // Check if reduction produced start symbol
                         if let Some(&root_id) = s2.nodes.last() {
                             if let Some(root) = state.forest.nodes.get(&root_id) {
+                                #[cfg(feature = "debug_glr")]
                                 eprintln!(
                                     "DEBUG: After reduction, top symbol is {}",
                                     root.symbol.0
                                 );
                                 if root.symbol == self.tables.start_symbol() {
+                                    #[cfg(feature = "debug_glr")]
                                     eprintln!("DEBUG: Reduced to start symbol! Adding as root");
                                     state.forest.roots.push(root.clone());
                                 }

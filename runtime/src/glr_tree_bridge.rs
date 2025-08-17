@@ -17,9 +17,9 @@ use tree_sitter_runtime_c2rust as tree_sitter;
 #[cfg(not(any(feature = "tree-sitter-standard", feature = "tree-sitter-c2rust")))]
 mod tree_sitter {
     #[allow(dead_code)]
-    pub struct Node;
+    pub(super) struct Node;
     #[allow(dead_code)]
-    pub struct Tree;
+    pub(super) struct Tree;
 }
 
 /// A Tree-sitter compatible tree structure built from GLR Subtree
