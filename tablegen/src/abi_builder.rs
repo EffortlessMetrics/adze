@@ -291,6 +291,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
                 production_lhs_index: PRODUCTION_LHS_INDEX.as_ptr(),
                 production_count: #production_id_count as u16,
+                eof_symbol: 0, // EOF is always column 0 in Tree-sitter convention
             };
 
             // Export the language function for FFI
@@ -789,6 +790,15 @@ impl<'a> AbiLanguageBuilder<'a> {
                     for (symbol_idx, action) in non_error_actions {
                         // Key is the table column index, not symbol ID
                         let col_idx = symbol_idx as u16;
+
+                        // Debug guard: verify col_idx is a valid column index
+                        debug_assert!(
+                            col_idx < self.parse_table.symbol_count as u16,
+                            "col_idx {} must be less than symbol_count {}",
+                            col_idx,
+                            self.parse_table.symbol_count
+                        );
+
                         table_data.push(quote! { #col_idx });
 
                         if let Ok(encoded) = self.encode_action(&action) {
@@ -838,6 +848,21 @@ impl<'a> AbiLanguageBuilder<'a> {
                             state_idx, col, to
                         );
                         let col_idx = col as u16;
+
+                        // Debug guard: verify this is a nonterminal column
+                        debug_assert!(
+                            col_idx >= self.parse_table.token_count as u16,
+                            "goto entry col_idx {} must be >= token_count {} (nonterminal)",
+                            col_idx,
+                            self.parse_table.token_count
+                        );
+                        debug_assert!(
+                            col_idx < self.parse_table.symbol_count as u16,
+                            "goto entry col_idx {} must be < symbol_count {}",
+                            col_idx,
+                            self.parse_table.symbol_count
+                        );
+
                         table_data.push(quote! { #col_idx });
                         table_data.push(quote! { #to });
                         eprintln!(

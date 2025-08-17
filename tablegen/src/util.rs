@@ -1,5 +1,5 @@
 #[inline]
-pub fn unexpected_action(action: &rust_sitter_glr_core::Action, where_: &str) {
+pub(crate) fn unexpected_action(action: &rust_sitter_glr_core::Action, where_: &str) {
     debug_assert!(
         matches!(
             action,

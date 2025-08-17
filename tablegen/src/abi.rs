@@ -77,6 +77,7 @@ pub struct TSLanguage {
     pub primary_state_ids: *const TSStateId,
     pub production_lhs_index: *const u16, // LHS symbols in table index space
     pub production_count: u16,            // Number of productions
+    pub eof_symbol: u16,                  // Column index of EOF (usually 0)
 }
 
 /// External scanner structure

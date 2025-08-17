@@ -26,12 +26,17 @@ fn create_simple_grammar() -> (Grammar, ParseTable) {
     grammar.rules.insert(SymbolId(1), vec![rule]);
 
     // Create a minimal parse table
+    let mut symbol_to_index = std::collections::BTreeMap::new();
+    symbol_to_index.insert(SymbolId(0), 0);
+    symbol_to_index.insert(SymbolId(1), 1);
+
     let mut parse_table = ParseTable {
         action_table: vec![vec![vec![Action::Accept]; 2]; 2],
         goto_table: vec![vec![StateId(0); 2]; 2],
         state_count: 2,
         symbol_count: 2,
-        symbol_to_index: std::collections::BTreeMap::new(),
+        symbol_to_index: symbol_to_index.clone(),
+        index_to_symbol: vec![SymbolId(0), SymbolId(1)],
         symbol_metadata: vec![
             SymbolMetadata {
                 name: "token".to_string(),
@@ -42,6 +47,26 @@ fn create_simple_grammar() -> (Grammar, ParseTable) {
             2
         ],
         external_scanner_states: vec![],
+        rules: vec![],
+        nonterminal_to_index: std::collections::BTreeMap::new(),
+        eof_symbol: SymbolId(1),
+        start_symbol: SymbolId(0),
+        grammar: grammar.clone(),
+        initial_state: StateId(0),
+        token_count: 1,
+        external_token_count: 0,
+        lex_modes: vec![
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0
+            };
+            2
+        ],
+        extras: vec![],
+        dynamic_prec_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: std::collections::BTreeMap::new(),
     };
 
     // Set up a simple action table

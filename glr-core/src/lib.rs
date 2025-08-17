@@ -1,5 +1,8 @@
 // GLR core may need unsafe for performance-critical parser algorithms
 #![deny(unsafe_op_in_unsafe_fn)]
+#![warn(unreachable_pub)]
+#![deny(private_interfaces)]
+#![forbid(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 // Keep surface stable without big refactors:

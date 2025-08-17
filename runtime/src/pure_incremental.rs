@@ -267,6 +267,7 @@ mod tests {
                 primary_state_ids: std::ptr::null(),
                 production_lhs_index: std::ptr::null(),
                 production_count: 0,
+                eof_symbol: 0,
             }
         };
 

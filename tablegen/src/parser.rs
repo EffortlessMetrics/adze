@@ -302,6 +302,9 @@ mod tests {
             keyword_capture_token: TSSymbol(0),
             external_scanner: ExternalScanner::default(),
             primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            eof_symbol: 0,
         };
 
         // For testing, we'll use unsafe to extend the lifetime

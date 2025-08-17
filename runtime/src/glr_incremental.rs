@@ -446,7 +446,7 @@ struct ForkTracker {
 }
 
 impl ForkTracker {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             fork_parents: HashMap::new(),
             fork_merges: HashMap::new(),
@@ -456,7 +456,7 @@ impl ForkTracker {
     }
 
     /// Create a new fork from a parent
-    pub fn create_fork(&mut self, parent: Option<usize>) -> usize {
+    pub(crate) fn create_fork(&mut self, parent: Option<usize>) -> usize {
         let fork_id = self.next_fork_id;
         self.next_fork_id += 1;
 
@@ -470,14 +470,14 @@ impl ForkTracker {
 
     /// Record a fork merge
     #[allow(dead_code)]
-    pub fn merge_forks(&mut self, fork1: usize, fork2: usize, merge_point: usize) {
+    pub(crate) fn merge_forks(&mut self, fork1: usize, fork2: usize, merge_point: usize) {
         self.fork_merges.entry(fork1).or_default().push(merge_point);
         self.fork_merges.entry(fork2).or_default().push(merge_point);
     }
 
     /// Get all forks affected by an edit
     #[allow(dead_code)]
-    pub fn get_affected_forks(&self, _edit: &GLREdit) -> HashSet<usize> {
+    pub(crate) fn get_affected_forks(&self, _edit: &GLREdit) -> HashSet<usize> {
         // For now, conservatively mark all active forks as potentially affected
         self.active_forks.clone()
     }

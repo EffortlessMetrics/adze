@@ -254,6 +254,7 @@ fn test_invalid_language_version() {
         primary_state_ids: ptr::null(),
         production_count: 0,
         production_lhs_index: ptr::null(),
+        eof_symbol: 0,
     };
 
     assert!(parser.set_language(&INVALID_LANGUAGE).is_err());

@@ -84,6 +84,7 @@ pub struct TSLanguage {
     pub primary_state_ids: *const TSStateId,
     pub production_lhs_index: *const u16, // LHS symbols in table index space
     pub production_count: u16,            // Number of productions
+    pub eof_symbol: u16,                  // Column index of EOF (usually 0)
 }
 
 // SAFETY: TSLanguage is a read-only structure that doesn't contain any mutable state.
@@ -910,6 +911,15 @@ impl Parser {
                     if entry_col == symbol as usize {
                         // This entry is for a non-terminal (symbol >= token_count was checked above)
                         // The value is the goto state
+
+                        // Debug guard: verify this is a nonterminal column
+                        debug_assert!(
+                            symbol >= token_count,
+                            "get_goto should only find NT columns: {} >= {}",
+                            symbol,
+                            token_count
+                        );
+
                         eprintln!(
                             "    Found match for column {}! goto_state={}",
                             symbol, entry_val

@@ -20,14 +20,41 @@ fn test_language_generation_with_external_scanner() {
     });
 
     // Create a simple parse table
+    let mut symbol_to_index = std::collections::BTreeMap::new();
+    for i in 0..102 {
+        symbol_to_index.insert(SymbolId(i), i as usize);
+    }
+    let index_to_symbol: Vec<SymbolId> = (0..102).map(|i| SymbolId(i)).collect();
+
     let mut parse_table = ParseTable {
         state_count: 5,
         symbol_count: 102, // Must include external token IDs
-        symbol_to_index: std::collections::BTreeMap::new(),
+        symbol_to_index: symbol_to_index.clone(),
+        index_to_symbol,
         action_table: vec![vec![vec![Action::Error]; 102]; 5],
         goto_table: vec![vec![StateId(0); 102]; 5],
         symbol_metadata: vec![],
         external_scanner_states: vec![],
+        rules: vec![],
+        nonterminal_to_index: std::collections::BTreeMap::new(),
+        eof_symbol: SymbolId(0),
+        start_symbol: SymbolId(1),
+        grammar: grammar.clone(),
+        initial_state: StateId(0),
+        token_count: 50,
+        external_token_count: 2,
+        lex_modes: vec![
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0
+            };
+            5
+        ],
+        extras: vec![],
+        dynamic_prec_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: std::collections::BTreeMap::new(),
     };
 
     // Add symbol metadata for all symbols including externals
@@ -100,12 +127,39 @@ fn test_node_types_include_external_tokens() {
         symbol_id: SymbolId(51),
     });
 
+    let mut symbol_to_index = std::collections::BTreeMap::new();
+    for i in 0..52 {
+        symbol_to_index.insert(SymbolId(i), i as usize);
+    }
+    let index_to_symbol: Vec<SymbolId> = (0..52).map(|i| SymbolId(i)).collect();
+
     let parse_table = ParseTable {
         state_count: 1,
-        symbol_to_index: std::collections::BTreeMap::new(),
+        symbol_to_index: symbol_to_index.clone(),
+        index_to_symbol,
         symbol_count: 52,
         action_table: vec![vec![vec![Action::Error]; 52]; 1],
         goto_table: vec![vec![StateId(0); 52]; 1],
+        rules: vec![],
+        nonterminal_to_index: std::collections::BTreeMap::new(),
+        eof_symbol: SymbolId(0),
+        start_symbol: SymbolId(1),
+        grammar: grammar.clone(),
+        initial_state: StateId(0),
+        token_count: 49,
+        external_token_count: 2,
+        lex_modes: vec![
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0
+            };
+            1
+        ],
+        extras: vec![],
+        dynamic_prec_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: std::collections::BTreeMap::new(),
         symbol_metadata: vec![
             SymbolMetadata {
                 name: "EOF".to_string(),

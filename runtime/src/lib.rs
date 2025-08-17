@@ -1,5 +1,8 @@
 // Runtime crate needs unsafe for FFI bindings and performance-critical operations
 #![deny(unsafe_op_in_unsafe_fn)]
+#![warn(unreachable_pub)]
+#![deny(private_interfaces)]
+#![forbid(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 #![allow(clippy::missing_safety_doc)] // Many FFI functions - safety documented at module level

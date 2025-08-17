@@ -4,6 +4,9 @@
 
 // Table generation requires unsafe for FFI-compatible Language struct generation
 #![deny(unsafe_op_in_unsafe_fn)]
+#![warn(unreachable_pub)]
+#![deny(private_interfaces)]
+#![forbid(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]

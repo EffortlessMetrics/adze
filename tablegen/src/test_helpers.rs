@@ -88,6 +88,12 @@ pub mod test {
             state_count
         ];
 
+        // Build index_to_symbol from symbol_to_index
+        let mut index_to_symbol = vec![SymbolId(0); symbol_count];
+        for (symbol_id, index) in &symbol_to_index {
+            index_to_symbol[*index] = *symbol_id;
+        }
+
         ParseTable {
             // core grids
             action_table: actions,
@@ -99,6 +105,7 @@ pub mod test {
             symbol_count,
             // symbol bookkeeping
             symbol_to_index,
+            index_to_symbol,
             nonterminal_to_index,
             symbol_metadata: vec![], // tests don't need metadata
             // token layout / sentinels
