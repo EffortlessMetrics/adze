@@ -245,7 +245,7 @@ fn create_arithmetic_language() -> &'static TSLanguage {
         small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
         parse_actions: PARSE_ACTIONS.as_ptr(),
         symbol_names: std::ptr::null(), // symbol_name_ptrs.as_ptr(),
-        field_names: std::ptr::null(), // field_name_ptrs.as_ptr(),
+        field_names: std::ptr::null(),  // field_name_ptrs.as_ptr(),
         field_map_slices: FIELD_MAP_SLICES.as_ptr(),
         field_map_entries: FIELD_MAP_ENTRIES.as_ptr(),
         symbol_metadata: SYMBOL_METADATA.as_ptr(),
@@ -266,9 +266,9 @@ fn create_arithmetic_language() -> &'static TSLanguage {
             deserialize: None,
         },
         primary_state_ids: PRIMARY_STATE_IDS.as_ptr(),
-        eof_symbol: 0,  // Add missing field
-        production_count: 6,  // Add missing field
-        production_lhs_index: std::ptr::null(),  // Add missing field
+        eof_symbol: 0,                          // Add missing field
+        production_count: 6,                    // Add missing field
+        production_lhs_index: std::ptr::null(), // Add missing field
     };
 
     &LANGUAGE

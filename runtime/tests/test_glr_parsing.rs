@@ -216,7 +216,7 @@ fn create_conflicting_parse_table() -> ParseTable {
     nonterminal_to_index.insert(SYM_EXPR, SYM_EXPR.0 as usize);
 
     ParseTable {
-        action_table,
+        action_table: action_table.clone(),
         goto_table,
         rules,
 
