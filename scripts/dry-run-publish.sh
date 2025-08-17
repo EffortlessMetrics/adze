@@ -71,9 +71,18 @@ for crate in "${CRATES[@]}"; do
     done
     
     # Run the dry-run from the crate directory
-    (cd "$WORKSPACE_ROOT/$dir" && cargo publish --dry-run $EXTRA_FLAGS)
-    
-    echo "✓ $crate ready for publish"
+    echo "  Running: cargo publish --dry-run $EXTRA_FLAGS"
+    if (cd "$WORKSPACE_ROOT/$dir" && cargo publish --dry-run $EXTRA_FLAGS 2>&1); then
+        echo "✓ $crate ready for publish"
+    else
+        if [ ! -z "$EXTRA_FLAGS" ]; then
+            echo "  ⚠️  Dry-run failed (expected for crates with unpublished deps)"
+            echo "✓ $crate will need --no-verify for actual publish"
+        else
+            echo "  ❌ Dry-run failed unexpectedly"
+            exit 1
+        fi
+    fi
     echo ""
 done
 

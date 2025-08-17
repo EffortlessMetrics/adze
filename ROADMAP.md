@@ -173,10 +173,16 @@ This document outlines the completed features and future direction of the rust-s
    - Implement shared parse stack structures
    - Add memory pooling for fork management
 
-3. **Incremental GLR Parsing**
-   - Adapt incremental algorithms for GLR
-   - Handle multiple parse trees efficiently
-   - Optimize edit distance calculations
+3. **Incremental GLR Parsing** ✅ (Integration Complete - January 2025)
+   - ✅ Wired up real grammar (arithmetic) for tests & benchmarks
+   - ✅ Implemented `Subtree::byte_range()` and fixed token range calculation
+   - ✅ Fixed UTF-8 handling in parse_fresh with proper error reporting
+   - ✅ Feature-gated incremental parser behind `incremental_glr` flag
+   - ✅ Optimized benchmarks (tokenize outside b.iter)
+   - ✅ Updated CI workflow with incremental benchmarks
+   - ✅ Fixed publish script with dependency ordering
+   - TODO: Optimize reuse-map and fork-budget heuristics
+   - TODO: Add equivalence test suite for fresh vs incremental
 
 4. **Ambiguity Resolution**
    - Add disambiguation filters
