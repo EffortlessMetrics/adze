@@ -14,6 +14,7 @@ c-backend = [
   "dep:tree-sitter-c2rust"
 ]
 tree-sitter-standard = ["rust-sitter/tree-sitter-standard"]
+ts-compat = ["rust-sitter/ts-compat"]
 
 [dependencies]
 rust-sitter = { path = "../runtime", default-features = false }

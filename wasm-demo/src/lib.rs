@@ -1,4 +1,4 @@
-use rust_sitter::unified_parser::Parser;
+use rust_sitter::ts_compat::Parser;
 use wasm_bindgen::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
@@ -17,19 +17,23 @@ pub fn main() {
 
 /// Parse Python source code and return S-expression representation
 #[wasm_bindgen]
-pub fn parse_python(source: &str) -> String {
-    // Register the Python scanner
-    rust_sitter_python::register_scanner();
+pub fn parse_python(_source: &str) -> String {
+    // Temporarily disabled - Python ts_compat helper not yet implemented
+    "Python parser temporarily disabled - needs ts_compat implementation".to_string()
+}
 
+/// Parse arithmetic expressions and return S-expression representation
+#[wasm_bindgen]
+pub fn parse_arithmetic(source: &str) -> String {
     let mut parser = Parser::new();
-    match parser.set_language_with_name(rust_sitter_python::get_language(), "python") {
-        Ok(_) => {}
-        Err(e) => return format!("Failed to set language: {}", e),
+    let lang = rust_sitter_example::ts_langs::arithmetic();
+    
+    if parser.set_language(lang).is_err() {
+        return "Failed to set language".to_string();
     }
-
+    
     match parser.parse(source, None) {
         Some(tree) => {
-            // For now, just return basic info about the tree
             format!(
                 "Parse successful! Root kind: {}, Errors: {}",
                 tree.root_kind(),
@@ -38,13 +42,6 @@ pub fn parse_python(source: &str) -> String {
         }
         None => "Parse failed".to_string(),
     }
-}
-
-/// Parse arithmetic expressions and return S-expression representation
-#[wasm_bindgen]
-pub fn parse_arithmetic(_source: &str) -> String {
-    // Temporarily disabled - needs update for new API
-    "Arithmetic parser temporarily disabled - needs API update".to_string()
 }
 
 /// Get GLR statistics from the last parse

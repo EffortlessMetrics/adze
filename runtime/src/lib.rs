@@ -87,6 +87,10 @@ pub mod simd_lexer {
     pub use super::simd_lexer_v2::*;
 }
 mod simd_lexer_v2;
+
+// Tree-sitter compatibility API
+#[cfg(feature = "ts-compat")]
+pub mod ts_compat;
 // TODO: Update parallel_parser for new Parser API
 // pub mod parallel_parser {
 //     pub use super::parallel_parser_v2::*;

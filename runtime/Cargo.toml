@@ -24,6 +24,7 @@ serialization = ["serde", "serde_json"] # Enable tree serialization
 legacy-parsers = [] # Enable to access deprecated parser_v2 and parser_v3 modules
 incremental_glr = [] # Enable GLR incremental parsing support
 debug_glr = [] # Enable debug output for GLR parser
+ts-compat = [] # Enable Tree-sitter compatibility API
 debug_incremental = [] # Enable debug output for incremental parsing
 experimental_examples = [] # Enable experimental examples that use internal APIs
 external_scanners = [] # Enable external scanner support (feature-gated)
@@ -60,6 +61,7 @@ serde_json = "1.0.142"
 proptest = "1.4"
 hex = "0.4"
 glr-test-support = { path = "../glr-test-support" }
+rust-sitter-example = { path = "../example", features = ["ts-compat"] }
 
 [[bench]]
 name = "simple_bench"

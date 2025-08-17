@@ -186,6 +186,25 @@ jobs:
         run: |
           cargo miri test -p rust-sitter --features external_scanners external_scanner_ || true
 
+  ts-compat:
+    name: Tree-sitter Compatibility API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Build with ts-compat feature
+        run: |
+          cargo build -p rust-sitter --features "ts-compat pure-rust"
+          cargo build -p rust-sitter-example --features "ts-compat pure-rust"
+      
+      - name: Test ts-compat API
+        run: cargo test -p rust-sitter --features "ts-compat pure-rust" --test ts_compat_equiv
+      
+      - name: Test ts-compat with incremental GLR
+        run: cargo test -p rust-sitter --features "ts-compat pure-rust incremental_glr" --test ts_compat_equiv
+
   sanitizers:
     name: Sanitizers (ASAN/UBSAN)
     runs-on: ubuntu-latest
