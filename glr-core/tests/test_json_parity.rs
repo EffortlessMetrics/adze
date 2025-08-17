@@ -150,6 +150,7 @@ fn test_json_simple_object() {
         state_count,
         symbol_count,
         symbol_to_index,
+        index_to_symbol: vec![],
         external_scanner_states: vec![vec![false; symbol_count]; state_count],
         rules,
         nonterminal_to_index,

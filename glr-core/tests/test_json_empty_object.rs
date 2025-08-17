@@ -112,6 +112,7 @@ fn test_json_empty_object_parses() {
         state_count,
         symbol_count,
         symbol_to_index: BTreeMap::new(),
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),

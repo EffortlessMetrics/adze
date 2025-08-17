@@ -177,6 +177,7 @@ fn test_streaming_json_parser() {
         state_count,
         symbol_count,
         symbol_to_index: BTreeMap::new(),
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
         eof_symbol,

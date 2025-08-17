@@ -175,11 +175,14 @@ impl<'a> AbiLanguageBuilder<'a> {
         for (sym_id, idx) in &self.parse_table.symbol_to_index {
             if self.grammar.tokens.contains_key(sym_id) {
                 let token = &self.grammar.tokens[sym_id];
-                eprintln!("  Token '{}' (SymbolId {:?}) -> index {}", token.name, sym_id, idx);
+                eprintln!(
+                    "  Token '{}' (SymbolId {:?}) -> index {}",
+                    token.name, sym_id, idx
+                );
             }
         }
         eprintln!("DEBUG: token_count = {}", self.parse_table.token_count);
-        
+
         // Generate lexer function with symbol mapping
         let lexer_code =
             crate::lexer_gen::generate_lexer(self.grammar, &self.parse_table.symbol_to_index);
@@ -771,14 +774,15 @@ impl<'a> AbiLanguageBuilder<'a> {
                     // The LR construction in glr-core now handles EOF reduce actions properly
 
                     for (symbol_idx, action) in non_error_actions {
-                        // The parse table already uses indices, not symbol IDs
-                        let symbol_index = symbol_idx as u16;
-                        table_data.push(quote! { #symbol_index });
+                        // Convert table index back to symbol ID for runtime lookup
+                        // The runtime compares stored values with symbol IDs, not indices
+                        let symbol_id = self.parse_table.index_to_symbol[symbol_idx].0;
+                        table_data.push(quote! { #symbol_id });
 
                         if let Ok(encoded) = self.encode_action(&action) {
                             eprintln!(
-                                "DEBUG: State {} entry: symbol={}, action={:?}, encoded={}",
-                                state_idx, symbol_index, action, encoded
+                                "DEBUG: State {} entry: symbol_id={} (from idx={}), action={:?}, encoded={}",
+                                state_idx, symbol_id, symbol_idx, action, encoded
                             );
                             table_data.push(quote! { #encoded });
                         } else {
@@ -898,7 +902,6 @@ impl<'a> AbiLanguageBuilder<'a> {
                     );
                     symbol_id.0 as usize // Fallback to symbol ID
                 }) as u16;
-
 
             actions[index] = quote! {
                 TSParseAction {
@@ -1141,7 +1144,7 @@ impl<'a> AbiLanguageBuilder<'a> {
 
         // For each production, get its LHS symbol in table index space
         for rule in &rules {
-            let lhs_index = self
+            let lhs_idx = self
                 .parse_table
                 .symbol_to_index
                 .get(&rule.lhs)
@@ -1151,8 +1154,17 @@ impl<'a> AbiLanguageBuilder<'a> {
                         "LHS symbol {} not found in symbol_to_index for production {}",
                         rule.lhs.0, rule.production_id.0
                     );
-                }) as u16;
-            
+                });
+
+            // Guard rail: production LHS must be a non-terminal column
+            debug_assert!(
+                (lhs_idx as u32) >= self.parse_table.token_count as u32,
+                "production LHS must be a non-terminal column (lhs_idx={}, token_count={})",
+                lhs_idx,
+                self.parse_table.token_count
+            );
+
+            let lhs_index = lhs_idx as u16;
             lhs_indices.push(quote! { #lhs_index });
         }
 

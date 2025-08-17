@@ -20,6 +20,7 @@ fn test_eof_not_error_symbol() {
             map.insert(SymbolId(3), 0); // Map EOF to index 0
             map
         },
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
         eof_symbol: SymbolId(3), // token_count + external_token_count  // Critical: NOT 0!
@@ -99,6 +100,7 @@ fn test_error_stats_not_stubbed() {
             map.insert(SymbolId(3), 0); // Map EOF to index 0
             map
         },
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
         eof_symbol: SymbolId(3), // token_count + external_token_count

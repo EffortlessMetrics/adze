@@ -432,6 +432,12 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // External tokens now have their transitions in the main action_table
     // No separate map needed
 
+    // Build reverse map for index_to_symbol
+    let mut index_to_symbol = vec![SymbolId(u16::MAX); symbol_to_index.len()];
+    for (sym, &idx) in &symbol_to_index {
+        index_to_symbol[idx] = *sym;
+    }
+
     ParseTable {
         action_table,
         goto_table,
@@ -439,6 +445,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         state_count: lang.state_count as usize,
         symbol_count: lang.symbol_count as usize,
         symbol_to_index,
+        index_to_symbol,
         external_scanner_states,
         rules: Vec::new(),                     // TODO: Decode from language
         nonterminal_to_index: BTreeMap::new(), // TODO: Build from symbols

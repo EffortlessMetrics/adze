@@ -75,6 +75,7 @@ fn test_error_stats_not_stubbed() {
             map.insert(SymbolId(5), 0); // S (nonterminal, reuses index 0)
             map
         },
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: {
             let mut map = BTreeMap::new();
@@ -225,6 +226,7 @@ fn test_clean_parse_has_zero_errors() {
             map.insert(SymbolId(5), 0); // S (nonterminal, reuses index 0)
             map
         },
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: {
             let mut map = BTreeMap::new();

@@ -265,6 +265,8 @@ mod tests {
                     deserialize: None,
                 },
                 primary_state_ids: std::ptr::null(),
+                production_lhs_index: std::ptr::null(),
+                production_count: 0,
             }
         };
 

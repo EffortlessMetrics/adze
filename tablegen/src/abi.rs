@@ -75,8 +75,8 @@ pub struct TSLanguage {
     pub keyword_capture_token: TSSymbol,
     pub external_scanner: ExternalScanner,
     pub primary_state_ids: *const TSStateId,
-    pub production_lhs_index: *const u16,  // LHS symbols in table index space
-    pub production_count: u16,              // Number of productions
+    pub production_lhs_index: *const u16, // LHS symbols in table index space
+    pub production_count: u16,            // Number of productions
 }
 
 /// External scanner structure

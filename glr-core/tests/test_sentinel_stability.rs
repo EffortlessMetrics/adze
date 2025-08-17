@@ -48,6 +48,7 @@ fn eof_invariants() {
         state_count: 1,
         symbol_count: 4,
         symbol_to_index,
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
         eof_symbol: SymbolId(2),
@@ -87,6 +88,7 @@ fn eof_cannot_be_error() {
         state_count: 1,
         symbol_count: 4,
         symbol_to_index,
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
         eof_symbol: SymbolId(0), // Invalid: EOF = ERROR

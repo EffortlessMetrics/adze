@@ -163,6 +163,7 @@ mod tests {
             state_count: 1,
             symbol_count: 1,
             symbol_to_index: BTreeMap::new(),
+            index_to_symbol: vec![],
             external_scanner_states: vec![],
             rules: vec![],
             nonterminal_to_index: BTreeMap::new(),

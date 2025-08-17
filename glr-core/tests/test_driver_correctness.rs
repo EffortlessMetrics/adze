@@ -45,6 +45,7 @@ fn create_test_table(
         state_count,
         symbol_count,
         symbol_to_index,
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index,
         eof_symbol: eof,

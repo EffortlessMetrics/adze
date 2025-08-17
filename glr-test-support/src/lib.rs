@@ -94,6 +94,12 @@ pub fn make_minimal_table(
         state_count
     ];
 
+    // Build reverse map for index_to_symbol
+    let mut index_to_symbol = vec![SymbolId(u16::MAX); symbol_to_index.len()];
+    for (sym, &idx) in &symbol_to_index {
+        index_to_symbol[idx] = *sym;
+    }
+
     ParseTable {
         // core grids
         action_table: actions,
@@ -105,6 +111,7 @@ pub fn make_minimal_table(
         symbol_count,
         // symbol bookkeeping
         symbol_to_index,
+        index_to_symbol,
         nonterminal_to_index,
         symbol_metadata: vec![], // tests don't need metadata
         // token layout / sentinels
