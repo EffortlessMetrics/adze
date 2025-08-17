@@ -2161,21 +2161,30 @@ pub fn build_lr1_automaton(
                 // "DEBUG: Conflict resolution - symbol {} (id={}) shift_prec={:?}, reduce rule {} prec={:?}"
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
-                        // Precedence says shift wins - remove reduce from the action table
-                        // Keep only the shift action
-                        action_table[state_idx][symbol_idx] = vec![shift_action.clone().unwrap()];
+                        // For GLR, we still keep both actions but can mark preference
+                        eprintln!(
+                            "State {}: Precedence prefers shift over reduce for symbol {}",
+                            state_idx, symbol_idx
+                        );
                     }
                     PrecedenceComparison::PreferReduce => {
-                        // Precedence says reduce wins - remove shift from the action table  
-                        // Keep only the reduce action
-                        action_table[state_idx][symbol_idx] = vec![reduce.clone()];
+                        // For GLR, we still keep both actions but can mark preference
+                        eprintln!(
+                            "State {}: Precedence prefers reduce over shift for symbol {}",
+                            state_idx, symbol_idx
+                        );
                     }
                     PrecedenceComparison::Error => {
-                        // Non-associative - this should be an error
-                        // Keep both actions for GLR to handle
+                        eprintln!(
+                            "State {}: Non-associative conflict for symbol {}",
+                            state_idx, symbol_idx
+                        );
                     }
                     PrecedenceComparison::None => {
-                        // No precedence info - keep both for GLR
+                        eprintln!(
+                            "State {}: No precedence info for conflict at symbol {}",
+                            state_idx, symbol_idx
+                        );
                     }
                 }
             }
