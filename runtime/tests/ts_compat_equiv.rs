@@ -12,7 +12,7 @@ fn test_fresh_parse_simple() {
     parser.set_language(lang).expect("Failed to set language");
 
     let tree = parser.parse("1+2+3", None).expect("Parse failed");
-    assert_eq!(tree.root_kind(), "expression");
+    assert_eq!(tree.root_kind(), "source_file");
     assert_eq!(tree.error_count(), 0);
 }
 

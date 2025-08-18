@@ -163,6 +163,62 @@ pub fn arithmetic() -> Arc<Language> {
             rhs_len: 1,
         }, // source_file -> Expression
     ];
+    
+    // Also populate grammar.rules for parser_v4 compatibility
+    use rust_sitter::rust_sitter_ir::{Rule, Symbol, ProductionId};
+    
+    // Expression rules
+    let expr_rules = vec![
+        // Expression -> number
+        Rule {
+            lhs: SymbolId(11),
+            rhs: vec![Symbol::Terminal(SymbolId(1))], // number
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        },
+        // Expression -> Expression + Expression
+        Rule {
+            lhs: SymbolId(11),
+            rhs: vec![
+                Symbol::NonTerminal(SymbolId(11)), // Expression
+                Symbol::Terminal(SymbolId(2)),     // +
+                Symbol::NonTerminal(SymbolId(11)), // Expression
+            ],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        },
+        // Expression -> Expression - Expression
+        Rule {
+            lhs: SymbolId(11),
+            rhs: vec![
+                Symbol::NonTerminal(SymbolId(11)), // Expression
+                Symbol::Terminal(SymbolId(3)),     // -
+                Symbol::NonTerminal(SymbolId(11)), // Expression
+            ],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(2),
+        },
+    ];
+    grammar.rules.insert(SymbolId(11), expr_rules);
+    
+    // source_file rule
+    let source_file_rules = vec![
+        Rule {
+            lhs: SymbolId(8),
+            rhs: vec![Symbol::NonTerminal(SymbolId(11))], // Expression
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(3),
+        },
+    ];
+    grammar.rules.insert(SymbolId(8), source_file_rules);
 
     // Build index mappings
     let mut symbol_to_index = BTreeMap::new();
@@ -185,7 +241,7 @@ pub fn arithmetic() -> Arc<Language> {
         rules,
         nonterminal_to_index: BTreeMap::new(),
         eof_symbol: SymbolId(LANGUAGE.eof_symbol),
-        start_symbol: SymbolId(11), // Expression
+        start_symbol: SymbolId(8), // source_file - the actual start symbol
         grammar: grammar.clone(),
         initial_state: StateId(0),
         token_count,
