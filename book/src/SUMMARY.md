@@ -2,44 +2,36 @@
 
 [Introduction](README.md)
 
-# Getting Started
+# Tutorials
 
-- [Installation](getting-started/installation.md)
-- [Quick Start](getting-started/quickstart.md)
-- [Migration Guide](getting-started/migration.md)
+- [Installation](tutorials/01-installation.md)
+- [Your First Grammar](tutorials/02-your-first-grammar.md)
 
-# User Guide
+# How-To Guides
 
-- [Grammar Definition](guide/grammar-definition.md)
-- [Parser Generation](guide/parser-generation.md)
-- [Incremental Parsing](guide/incremental-parsing.md)
-- [Query and Pattern Matching](guide/query-patterns.md)
-- [Error Recovery](guide/error-recovery.md)
-- [Performance Optimization](guide/performance.md)
+- [Generating a Parser](how-to/01-generating-a-parser.md)
+- [Optimizing Grammars](how-to/02-optimizing-grammars.md)
+- [Migrating from Tree-sitter](how-to/migrating-from-tree-sitter.md)
+- [Performance Guide](how-to/performance-guide.md)
+- [Generate an LSP](how-to/generate-an-lsp.md)
+- [Use the Playground](how-to/use-the-playground.md)
+- [Test a Grammar](how-to/test-a-grammar.md)
+- [Visualizing Parses](how-to/visualizing-parses.md)
+- [Cookbook: C++ Templates](how-to/cookbook-cpp-templates.md)
+- [FAQ](how-to/faq.md)
 
-# Advanced Topics
 
-- [GLR Parsing](advanced/glr-parsing.md)
-- [Grammar Optimization](advanced/optimizer-usage.md)
-- [External Scanners](advanced/external-scanners.md)
-- [Predicate Evaluation](advanced/predicate-evaluation.md)
-- [Visualization Tools](advanced/visualization.md)
+# Explanation
+
+- [Defining Grammars](explanation/01-defining-grammars.md)
+- [Predicate Evaluation](explanation/02-predicate-evaluation.md)
+- [Incremental Parsing](explanation/03-incremental-parsing.md)
+- [GLR Internals](explanation/04-glr-internals.md)
+- [Empty Production Rules](explanation/05-empty-production-rules.md)
 
 # Reference
 
-- [API Documentation](reference/api.md)
-- [Grammar Examples](reference/grammar-examples.md)
+- [API Reference](reference/api-reference.md)
+- [Grammar Annotations](reference/grammar-annotations.md)
 - [Language Support](reference/language-support.md)
-- [Known Limitations](reference/known-limitations.md)
-
-# Development
-
-- [Contributing](development/contributing.md)
-- [Architecture](development/architecture.md)
-- [Testing](development/testing.md)
-- [Release Process](development/release.md)
-
-# Appendix
-
-- [Changelog](appendix/changelog.md)
-- [FAQ](appendix/faq.md)
+- [Changelog](reference/changelog.md)
