@@ -1,3 +1,6 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Integration tests for Tree-sitter runtime parity.
+
 use tree_sitter_json as ts_json;
 
 #[test]

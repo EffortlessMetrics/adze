@@ -1,3 +1,6 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Integration tests for exact cell verification between Tree-sitter and Rust-sitter.
+
 use std::fs;
 use std::path::Path;
 use std::process::Command;

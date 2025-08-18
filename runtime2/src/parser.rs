@@ -3,9 +3,7 @@
 #[cfg(feature = "glr-core")]
 use crate::builder::forest_to_tree;
 #[cfg(feature = "glr-core")]
-use crate::engine::{
-    parse_full as engine_parse_full, parse_incremental as engine_parse_incremental,
-};
+use crate::engine::parse_full as engine_parse_full;
 use crate::{error::ParseError, language::Language, tree::Tree};
 use std::time::Duration;
 

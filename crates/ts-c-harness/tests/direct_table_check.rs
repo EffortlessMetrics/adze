@@ -1,6 +1,8 @@
 // This test directly verifies the table extraction by using ts-bridge
 // to extract and examine the actual parse table cells
 #![cfg(all(feature = "runtime-parity", feature = "ts-ffi-raw"))]
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Integration tests for direct table extraction and verification.
 
 use std::fs;
 use std::process::Command;

@@ -1,4 +1,6 @@
 #![cfg(all(feature = "runtime-parity", feature = "ts-ffi-raw"))]
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Integration tests for raw FFI cell parity.
 
 use tree_sitter::ffi;
 

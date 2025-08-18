@@ -4,7 +4,7 @@
 #[cfg(test)]
 pub(crate) mod test {
     use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
-    use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+    use rust_sitter_ir::{Grammar, StateId, SymbolId};
     use std::collections::BTreeMap;
 
     /// Sentinel used throughout the tests for "no goto".

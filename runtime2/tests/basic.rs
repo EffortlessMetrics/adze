@@ -4,7 +4,7 @@ use rust_sitter_runtime::{Language, Parser, Tree};
 
 #[test]
 fn can_create_parser() {
-    let mut parser = Parser::new();
+    let parser = Parser::new();
     assert!(parser.language().is_none());
 }
 
@@ -42,7 +42,7 @@ fn node_text_extraction() {
 
 #[test]
 fn error_display() {
-    use rust_sitter_runtime::{ParseError, ParseErrorKind};
+    use rust_sitter_runtime::ParseError;
 
     let error = ParseError::no_language();
     assert_eq!(error.to_string(), "no language set");
