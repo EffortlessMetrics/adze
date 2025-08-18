@@ -268,6 +268,10 @@ impl<'a> IncrementalParserState<'a> {
                                 position: self.position,
                             });
                         }
+                        _ => {
+                            // Action is #[non_exhaustive] - required wildcard
+                            continue;
+                        }
                     }
                 }
             }

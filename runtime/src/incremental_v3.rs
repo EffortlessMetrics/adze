@@ -294,6 +294,10 @@ impl<'a> IncrementalParseSession<'a> {
                 Action::Fork(_) => {
                     anyhow::bail!("GLR forking not yet supported in incremental parsing");
                 }
+                _ => {
+                    // Action is #[non_exhaustive] - required wildcard
+                    anyhow::bail!("Unknown action type");
+                }
             }
         }
     }

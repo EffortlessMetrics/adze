@@ -238,6 +238,10 @@ impl Parser {
                     // Use GLR to handle ambiguous parse
                     self.handle_glr_fork(&actions, token)?
                 }
+                _ => {
+                    // Action is #[non_exhaustive] - required wildcard
+                    bail!("Unknown action type");
+                }
             }
         }
     }

@@ -393,7 +393,8 @@ impl GLRParser {
                             );
 
                             // Fork the stack for EACH action to explore all parse paths
-                            for fork_action in actions.iter() {
+                            #[allow(unused_variables)]
+                            for (i, fork_action) in actions.iter().enumerate() {
                                 match fork_action {
                                     Action::Shift(new_state) => {
                                         let mut forked = stack.fork(self.next_stack_id);
@@ -1106,10 +1107,11 @@ impl GLRParser {
             "DEBUG finish_all_alternatives: have {} stacks",
             self.stacks.len()
         );
-        for stack in self.stacks.iter() {
+        #[allow(unused_variables)]
+        for (i, stack) in self.stacks.iter().enumerate() {
             debug_glr!(
                 "  Stack {}: {} nodes, state {}",
-                _i,
+                i,
                 stack.nodes.len(),
                 stack.current_state().0
             );

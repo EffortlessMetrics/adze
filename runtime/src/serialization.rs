@@ -208,12 +208,12 @@ impl<'a> CompactSerializer<'a> {
         serde_json::to_string(&root)
     }
 
-    fn serialize_node(&self, node: Node) -> CompactNode {
+    fn serialize_node(&self, node: &Node) -> CompactNode {
         let mut compact = CompactNode {
             kind: node.kind().to_string(),
-            start: Some(node.start_byte()),
-            end: Some(node.end_byte()),
-            field: node.field_name().map(|s| s.to_string()),
+            start: Some(node.start_byte),
+            end: Some(node.end_byte),
+            field: node.field_name.as_ref().map(|s| s.to_string()),
             children: Vec::new(),
             text: None,
         };
@@ -228,7 +228,7 @@ impl<'a> CompactSerializer<'a> {
             if cursor.goto_first_child() {
                 loop {
                     let child = cursor.node();
-                    if child.is_named() {
+                    if child.is_named {
                         compact.children.push(self.serialize_node(child));
                     }
 
@@ -266,7 +266,7 @@ impl<'a> SExpressionSerializer<'a> {
         self.serialize_node(tree.root_node())
     }
 
-    fn serialize_node(&self, node: Node) -> String {
+    fn serialize_node(&self, node: &Node) -> String {
         let mut result = String::new();
 
         if node.child_count() == 0 {
@@ -278,7 +278,7 @@ impl<'a> SExpressionSerializer<'a> {
             // Internal node
             result.push('(');
 
-            if let Some(field_name) = node.field_name() {
+            if let Some(field_name) = node.field_name.as_ref() {
                 result.push_str(&format!("{}: ", field_name));
             }
 
@@ -287,10 +287,10 @@ impl<'a> SExpressionSerializer<'a> {
             if self.include_positions {
                 result.push_str(&format!(
                     " [{},{}-{},{}]",
-                    node.start_position().row,
-                    node.start_position().column,
-                    node.end_position().row,
-                    node.end_position().column
+                    node.start_point.row,
+                    node.start_point.column,
+                    node.end_point.row,
+                    node.end_point.column
                 ));
             }
 
@@ -375,36 +375,36 @@ impl BinarySerializer {
         }
     }
 
-    fn serialize_node_binary(&mut self, node: Node, output: &mut Vec<u8>) {
+    fn serialize_node_binary(&mut self, node: &Node, output: &mut Vec<u8>) {
         // Write node type ID (2 bytes)
         let type_id = self.get_node_type_id(node.kind());
         output.extend_from_slice(&type_id.to_le_bytes());
 
         // Write flags (1 byte)
         let mut flags = 0u8;
-        if node.is_named() {
+        if node.is_named {
             flags |= 0x01;
         }
-        if node.is_error() {
+        if node.is_error {
             flags |= 0x02;
         }
-        if node.is_missing() {
+        if node.is_missing {
             flags |= 0x04;
         }
-        if node.field_name().is_some() {
+        if node.field_name.is_some() {
             flags |= 0x08;
         }
         output.push(flags);
 
         // Write field name ID if present (2 bytes)
-        if let Some(field_name) = node.field_name() {
+        if let Some(field_name) = node.field_name.as_ref() {
             let field_id = self.get_field_name_id(field_name);
             output.extend_from_slice(&field_id.to_le_bytes());
         }
 
         // Write positions (4 bytes each)
-        output.extend_from_slice(&(node.start_byte() as u32).to_le_bytes());
-        output.extend_from_slice(&(node.end_byte() as u32).to_le_bytes());
+        output.extend_from_slice(&(node.start_byte as u32).to_le_bytes());
+        output.extend_from_slice(&(node.end_byte as u32).to_le_bytes());
 
         // Write child count (2 bytes)
         let child_count = node.child_count() as u16;

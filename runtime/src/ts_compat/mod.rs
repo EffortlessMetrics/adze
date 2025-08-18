@@ -116,18 +116,9 @@ impl Parser {
             Some(old_tree) if old_tree.last_edit.is_some() => {
                 // Try incremental parsing
                 if let Some(edit) = &old_tree.last_edit {
-                    match core_parser.reparse(source, &old_tree.core, edit) {
-                        Some(new_tree) => {
-                            return Some(Tree {
-                                core: new_tree,
-                                last_edit: None,
-                                language: Arc::clone(lang),
-                            });
-                        }
-                        None => {
-                            // Fall back to fresh parse
-                        }
-                    }
+                    // TODO: Implement incremental parsing in v4
+                    // For now, always fall back to fresh parse
+                    let _ = edit; // Suppress unused warning
                 }
                 // Fall back to fresh parse
                 match core_parser.parse(source) {

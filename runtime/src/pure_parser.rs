@@ -1519,6 +1519,25 @@ impl ParsedNode {
         self.is_named
     }
 
+    /// Get the text content of this node from the source
+    #[allow(invalid_from_utf8)]
+    pub fn utf8_text<'a>(&self, source: &'a [u8]) -> Result<&'a str, std::str::Utf8Error> {
+        let text = source.get(self.start_byte..self.end_byte).ok_or_else(|| {
+            // Create a valid Utf8Error by attempting to parse invalid UTF-8
+            let invalid = [0x80, 0x80]; // Invalid UTF-8 sequence  
+            std::str::from_utf8(&invalid).unwrap_err()
+        })?;
+        std::str::from_utf8(text)
+    }
+
+    /// Create a walker for this node's children
+    pub fn walk(&self) -> ChildWalker {
+        ChildWalker {
+            children: &self.children,
+            index: 0,
+        }
+    }
+
     /// Get node kind (symbol name)
     pub fn kind(&self) -> &str {
         if let Some(language) = self.language {
@@ -1553,6 +1572,32 @@ impl ParsedNode {
                 _ => "unknown",
             }
         }
+    }
+}
+
+/// Walker for node children
+pub struct ChildWalker<'a> {
+    children: &'a [ParsedNode],
+    index: usize,
+}
+
+impl<'a> ChildWalker<'a> {
+    pub fn goto_first_child(&mut self) -> bool {
+        self.index = 0;
+        !self.children.is_empty()
+    }
+
+    pub fn goto_next_sibling(&mut self) -> bool {
+        if self.index + 1 < self.children.len() {
+            self.index += 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn node(&self) -> &ParsedNode {
+        &self.children[self.index]
     }
 }
 
