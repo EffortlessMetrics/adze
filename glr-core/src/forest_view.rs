@@ -1,4 +1,5 @@
 //! Object-safe view over a GLR forest/SPPF used by downstream runtimes.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
 pub(crate) mod sealed {
     pub trait Sealed {}

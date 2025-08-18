@@ -1,4 +1,5 @@
 //! Tree-sitter FFI lexer wrapper for calling grammar's lex_fn
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
 use crate::LexMode;
 use std::ffi::c_void;

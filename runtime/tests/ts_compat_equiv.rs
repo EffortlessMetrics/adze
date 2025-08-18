@@ -11,7 +11,7 @@ fn test_fresh_parse_simple() {
 
     parser.set_language(lang).expect("Failed to set language");
 
-    let tree = parser.parse("1+2+3", None).expect("Parse failed");
+    let tree = parser.parse("1-2-3", None).expect("Parse failed");
     assert_eq!(tree.root_kind(), "source_file");
     assert_eq!(tree.error_count(), 0);
 }
@@ -24,7 +24,7 @@ fn test_fresh_equals_incremental_simple() {
     parser.set_language(lang).expect("Failed to set language");
 
     // Parse initial version
-    let src = "1+2+3";
+    let src = "1-2-3";
     let fresh = parser.parse(src, None).expect("Parse failed");
     assert_eq!(fresh.error_count(), 0);
 
@@ -40,7 +40,7 @@ fn test_fresh_equals_incremental_simple() {
     });
 
     // Parse incrementally
-    let new_src = "1+42+3";
+    let new_src = "1-42-3";
     let incremental = parser.parse(new_src, Some(&edited)).expect("Parse failed");
 
     // Parse fresh for comparison
@@ -59,10 +59,10 @@ fn test_deletion_edit() {
     parser.set_language(lang).expect("Failed to set language");
 
     // Parse initial version
-    let src = "1+2+3+4";
+    let src = "1-2-3-4";
     let tree = parser.parse(src, None).expect("Parse failed");
 
-    // Delete "+3"
+    // Delete "-3"
     let mut edited = tree.clone();
     edited.edit(&InputEdit {
         start_byte: 3,
@@ -73,7 +73,7 @@ fn test_deletion_edit() {
         new_end_position: Point { row: 0, column: 3 },
     });
 
-    let new_src = "1+2+4";
+    let new_src = "1-2-4";
     let incremental = parser.parse(new_src, Some(&edited)).expect("Parse failed");
     let fresh = parser.parse(new_src, None).expect("Parse failed");
 
@@ -89,10 +89,10 @@ fn test_insertion_edit() {
     parser.set_language(lang).expect("Failed to set language");
 
     // Parse initial version
-    let src = "1+2";
+    let src = "1-2";
     let tree = parser.parse(src, None).expect("Parse failed");
 
-    // Insert "+3" at the end
+    // Insert "-3" at the end
     let mut edited = tree.clone();
     edited.edit(&InputEdit {
         start_byte: 3,
@@ -103,7 +103,7 @@ fn test_insertion_edit() {
         new_end_position: Point { row: 0, column: 5 },
     });
 
-    let new_src = "1+2+3";
+    let new_src = "1-2-3";
     let incremental = parser.parse(new_src, Some(&edited)).expect("Parse failed");
     let fresh = parser.parse(new_src, None).expect("Parse failed");
 
@@ -118,7 +118,7 @@ fn test_multiple_edits() {
 
     parser.set_language(lang).expect("Failed to set language");
 
-    let src1 = "1+2";
+    let src1 = "1-2";
     let mut tree = parser.parse(src1, None).expect("Parse failed");
 
     // Edit 1: Insert *3
@@ -131,7 +131,7 @@ fn test_multiple_edits() {
         new_end_position: Point { row: 0, column: 5 },
     });
 
-    let src2 = "1+2*3";
+    let src2 = "1-2*3";
     tree = parser.parse(src2, Some(&tree)).expect("Parse failed");
     assert_eq!(tree.error_count(), 0);
 
@@ -145,7 +145,7 @@ fn test_multiple_edits() {
         new_end_position: Point { row: 0, column: 2 },
     });
 
-    let src3 = "10+2*3";
+    let src3 = "10-2*3";
     tree = parser.parse(src3, Some(&tree)).expect("Parse failed");
 
     let fresh = parser.parse(src3, None).expect("Parse failed");
@@ -162,7 +162,7 @@ fn test_incremental_glr_enabled() {
 
     parser.set_language(lang).expect("Failed to set language");
 
-    let src = "1+2+3";
+    let src = "1-2-3";
     let tree = parser.parse(src, None).expect("Parse failed");
 
     let mut edited = tree.clone();
@@ -176,7 +176,7 @@ fn test_incremental_glr_enabled() {
     });
 
     // With incremental_glr enabled, this should use the incremental path
-    let _incremental = parser.parse("1+99+3", Some(&edited)).expect("Parse failed");
+    let _incremental = parser.parse("1-99-3", Some(&edited)).expect("Parse failed");
 }
 
 // Property-based testing helpers
@@ -188,7 +188,7 @@ mod prop_tests {
             return (1..=9).collect::<Vec<_>>()[rand::random::<usize>() % 9].to_string();
         }
 
-        let op = if rand::random::<bool>() { "+" } else { "*" };
+        let op = if rand::random::<bool>() { "-" } else { "*" };
         let left = generate_arithmetic_expr(depth - 1);
         let right = generate_arithmetic_expr(depth - 1);
         format!("{}{}{}", left, op, right)

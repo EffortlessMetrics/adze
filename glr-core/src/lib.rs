@@ -87,11 +87,13 @@ pub mod forest_view;
 pub mod ts_lexer;
 
 // Trace macro for debugging GLR conflicts and decisions
+/// Internal tracing macro used by the GLR runtime in debug/test builds.
 #[cfg(feature = "glr-trace")]
 #[macro_export]
 macro_rules! glr_trace {
     ($($t:tt)*) => { eprintln!("[GLR] {}", format!($($t)*)); }
 }
+/// Internal tracing macro used by the GLR runtime in debug/test builds.
 #[cfg(not(feature = "glr-trace"))]
 #[macro_export]
 macro_rules! glr_trace {
@@ -337,8 +339,9 @@ fn decide_reduce_reduce(a: u16, b: u16, prec: &PrecTables) -> u16 {
 pub use driver::Driver;
 pub use forest_view::{Forest, ForestView, Span};
 
-// Performance counters module
+/// Internal performance counters (diagnostics only).
 #[cfg(feature = "perf-counters")]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub mod perf {
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -402,7 +405,9 @@ pub mod perf {
     }
 }
 
+/// Internal performance counters (diagnostics only).
 #[cfg(not(feature = "perf-counters"))]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub mod perf {
     #[derive(Clone, Debug, Default)]
     pub struct Counters {
@@ -872,6 +877,7 @@ impl ItemSet {
 
 /// Collection of all LR(1) item sets (parser states)
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ItemSetCollection {
     pub sets: Vec<ItemSet>,
     pub goto_table: IndexMap<(StateId, SymbolId), StateId>,
@@ -1345,6 +1351,7 @@ pub struct LexMode {
 
 /// GLR-compatible parse table supporting multiple actions per state
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseTable {
     pub action_table: Vec<Vec<ActionCell>>,
     pub goto_table: Vec<Vec<StateId>>,
@@ -1388,6 +1395,7 @@ pub struct ParseTable {
 
 /// Parse rule for reduction
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseRule {
     pub lhs: SymbolId,
     pub rhs_len: u16,
@@ -1619,6 +1627,7 @@ impl ParseTable {
 /// Actions in GLR parse table (supporting multiple actions per state)
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub enum Action {
     Shift(StateId),
     Reduce(RuleId),
@@ -1633,6 +1642,7 @@ pub type ActionCell = Vec<Action>;
 
 /// Symbol metadata for the parse table
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct SymbolMetadata {
     pub name: String,
     pub visible: bool,
@@ -1642,11 +1652,14 @@ pub struct SymbolMetadata {
 
 /// Conflict detection and resolution
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ConflictResolver {
     pub conflicts: Vec<Conflict>,
 }
 
+/// Conflict information for GLR parsing
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct Conflict {
     pub state: StateId,
     pub symbol: SymbolId,
@@ -1654,7 +1667,9 @@ pub struct Conflict {
     pub conflict_type: ConflictType,
 }
 
+/// Type of parser conflict
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub enum ConflictType {
     ShiftReduce,
     ReduceReduce,
@@ -1858,6 +1873,7 @@ impl ConflictResolver {
 
 /// Error types for GLR processing
 #[derive(Debug, thiserror::Error)]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub enum GLRError {
     #[error("Grammar error: {0}")]
     GrammarError(#[from] GrammarError),
@@ -1874,6 +1890,7 @@ pub enum GLRError {
 
 /// Errors related to parse table validation
 #[derive(Debug, thiserror::Error)]
+#[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub enum TableError {
     #[error("EOF symbol collides with ERROR")]
     EofIsError,

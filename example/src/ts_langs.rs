@@ -12,7 +12,8 @@ pub fn arithmetic() -> Arc<Language> {
     use std::collections::BTreeMap;
 
     // Basic sizes from generated language
-    let state_count = LANGUAGE.state_count as usize;
+    // Need at least 11 states for our manual parse table (states 0-10)
+    let state_count = std::cmp::max(11, LANGUAGE.state_count as usize);
     let symbol_count = LANGUAGE.symbol_count as usize;
     let token_count = LANGUAGE.token_count as usize;
 
@@ -29,18 +30,18 @@ pub fn arithmetic() -> Arc<Language> {
     // 5-10: intermediate non-terminals
     // 11: Expression
     let symbol_names = vec![
-        "end",
-        "number",
-        "+",
-        "-",
-        "_whitespace",
-        "Expression_Number",
-        "Expression_Add",
-        "Expression_Sub",
-        "source_file",
-        "Whitespace__whitespace",
-        "Whitespace",
-        "expression", // The root we want to return
+        "end",                    // 0
+        "*",                      // 1
+        "_whitespace",            // 2
+        "-",                      // 3
+        "number",                 // 4
+        "Expression",             // 5
+        "source_file",            // 6
+        "Expression_Mul",         // 7
+        "whitespace_pattern",     // 8
+        "Whitespace__whitespace", // 9
+        "Expression_Sub",         // 10
+        "Expression_Number",      // 11
     ];
 
     for (i, name) in symbol_names.iter().enumerate() {
@@ -53,8 +54,12 @@ pub fn arithmetic() -> Arc<Language> {
     use rust_sitter::rust_sitter_ir::{Token, TokenPattern};
 
     // Add the basic tokens that the lexer needs
+    // Symbols from generated parser:
+    // 1: * (multiplication)
+    // 3: - (subtraction)
+    // 4: number
     grammar.tokens.insert(
-        SymbolId(1),
+        SymbolId(4),
         Token {
             name: "number".to_string(),
             pattern: TokenPattern::Regex(r"\d+".to_string()),
@@ -62,10 +67,10 @@ pub fn arithmetic() -> Arc<Language> {
         },
     );
     grammar.tokens.insert(
-        SymbolId(2),
+        SymbolId(1),
         Token {
-            name: "+".to_string(),
-            pattern: TokenPattern::String("+".to_string()),
+            name: "*".to_string(),
+            pattern: TokenPattern::String("*".to_string()),
             fragile: false,
         },
     );
@@ -101,124 +106,129 @@ pub fn arithmetic() -> Arc<Language> {
     let mut goto_table: Vec<Vec<StateId>> = vec![vec![StateId(0); symbol_count]; state_count];
 
     // Create a more complete action table for arithmetic parsing
+    // Symbol IDs from generated parser:
+    // 0: EOF
+    // 1: * (multiplication)
+    // 2: whitespace (extra)
+    // 3: - (subtraction)
+    // 4: number
+    // 5: Expression
+    // 6: source_file
+    // 7: Expression_Mul
+    // 10: Expression_Sub
+    // 11: Expression_Number
+
     // State 0: initial state
-    action_table[0][1].push(Action::Shift(StateId(2))); // number -> shift to state 2
+    action_table[0][4].push(Action::Shift(StateId(2))); // number -> shift to state 2
 
     // State 2: after seeing a number
     action_table[2][0].push(Action::Reduce(RuleId(0))); // EOF -> reduce to Expression (rule 0: Expression -> number)
-    action_table[2][2].push(Action::Reduce(RuleId(0))); // + -> reduce to Expression
+    action_table[2][1].push(Action::Reduce(RuleId(0))); // * -> reduce to Expression
     action_table[2][3].push(Action::Reduce(RuleId(0))); // - -> reduce to Expression
 
     // State 3: after an Expression from state 0
     action_table[3][0].push(Action::Reduce(RuleId(3))); // EOF -> reduce to source_file (rule 3: source_file -> Expression)
-    action_table[3][2].push(Action::Shift(StateId(4))); // + -> shift to state 4
+    action_table[3][1].push(Action::Shift(StateId(4))); // * -> shift to state 4 (higher precedence)
     action_table[3][3].push(Action::Shift(StateId(5))); // - -> shift to state 5
 
-    // State 4: after Expression +
-    action_table[4][1].push(Action::Shift(StateId(6))); // number -> shift to state 6
+    // State 4: after Expression *
+    action_table[4][4].push(Action::Shift(StateId(2))); // number -> shift to state 2 (reuse number state)
 
     // State 5: after Expression -
-    action_table[5][1].push(Action::Shift(StateId(7))); // number -> shift to state 7
-
-    // State 6: after Expression + number
-    action_table[6][0].push(Action::Reduce(RuleId(0))); // EOF -> reduce to Expression (as number)
-    action_table[6][2].push(Action::Reduce(RuleId(0))); // + -> reduce to Expression
-    action_table[6][3].push(Action::Reduce(RuleId(0))); // - -> reduce to Expression
-
-    // State 7: after Expression - number
-    action_table[7][0].push(Action::Reduce(RuleId(0))); // EOF -> reduce to Expression (as number)
-    action_table[7][2].push(Action::Reduce(RuleId(0))); // + -> reduce to Expression
-    action_table[7][3].push(Action::Reduce(RuleId(0))); // - -> reduce to Expression
+    action_table[5][4].push(Action::Shift(StateId(2))); // number -> shift to state 2 (reuse number state)
 
     // State 8: after source_file (from state 0 via goto)
     action_table[8][0].push(Action::Accept); // EOF -> accept
 
-    // State 9: after Expression + Expression
-    action_table[9][0].push(Action::Reduce(RuleId(1))); // EOF -> reduce to Expression (rule 1: Expression -> Expression + Expression)
-    action_table[9][2].push(Action::Shift(StateId(4))); // + -> shift for left associativity
-    action_table[9][3].push(Action::Shift(StateId(5))); // - -> shift
+    // State 9: after Expression * Expression
+    action_table[9][0].push(Action::Reduce(RuleId(1))); // EOF -> reduce to Expression (rule 1: Expression -> Expression * Expression)
+    action_table[9][1].push(Action::Reduce(RuleId(1))); // * -> reduce first (left associativity)
+    action_table[9][3].push(Action::Reduce(RuleId(1))); // - -> reduce first (multiplication has higher precedence)
+
+    // State 10: after Expression - Expression
+    action_table[10][0].push(Action::Reduce(RuleId(2))); // EOF -> reduce to Expression (rule 2: Expression -> Expression - Expression)
+    action_table[10][1].push(Action::Shift(StateId(4))); // * -> shift (multiplication has higher precedence)
+    action_table[10][3].push(Action::Reduce(RuleId(2))); // - -> reduce first (left associativity)
 
     // Set up goto table
-    goto_table[0][11] = StateId(3); // After reducing to Expression in state 0, go to state 3
-    goto_table[0][8] = StateId(8); // After reducing to source_file in state 0, go to state 8 (accept)
-    goto_table[4][11] = StateId(9); // After reducing to Expression in state 4 (after +), go to state 9
-    goto_table[5][11] = StateId(9); // After reducing to Expression in state 5 (after -), go to state 9
+    goto_table[0][5] = StateId(3); // After reducing to Expression in state 0, go to state 3
+    goto_table[0][6] = StateId(8); // After reducing to source_file in state 0, go to state 8 (accept)
+    goto_table[4][5] = StateId(9); // After reducing to Expression in state 4 (after *), go to state 9
+    goto_table[5][5] = StateId(10); // After reducing to Expression in state 5 (after -), go to state 10
 
     // Create parse rules - minimal set for arithmetic
     let rules = vec![
         ParseRule {
-            lhs: SymbolId(11),
+            lhs: SymbolId(5), // Expression
             rhs_len: 1,
         }, // Expression -> number
         ParseRule {
-            lhs: SymbolId(11),
+            lhs: SymbolId(5), // Expression
             rhs_len: 3,
-        }, // Expression -> Expression + Expression
+        }, // Expression -> Expression * Expression
         ParseRule {
-            lhs: SymbolId(11),
+            lhs: SymbolId(5), // Expression
             rhs_len: 3,
         }, // Expression -> Expression - Expression
         ParseRule {
-            lhs: SymbolId(8),
+            lhs: SymbolId(6), // source_file
             rhs_len: 1,
         }, // source_file -> Expression
     ];
-    
+
     // Also populate grammar.rules for parser_v4 compatibility
-    use rust_sitter::rust_sitter_ir::{Rule, Symbol, ProductionId};
-    
+    use rust_sitter::rust_sitter_ir::{ProductionId, Rule, Symbol};
+
     // Expression rules
     let expr_rules = vec![
         // Expression -> number
         Rule {
-            lhs: SymbolId(11),
-            rhs: vec![Symbol::Terminal(SymbolId(1))], // number
+            lhs: SymbolId(5),                         // Expression
+            rhs: vec![Symbol::Terminal(SymbolId(4))], // number
             precedence: None,
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
         },
-        // Expression -> Expression + Expression
+        // Expression -> Expression * Expression
         Rule {
-            lhs: SymbolId(11),
+            lhs: SymbolId(5), // Expression
             rhs: vec![
-                Symbol::NonTerminal(SymbolId(11)), // Expression
-                Symbol::Terminal(SymbolId(2)),     // +
-                Symbol::NonTerminal(SymbolId(11)), // Expression
+                Symbol::NonTerminal(SymbolId(5)), // Expression
+                Symbol::Terminal(SymbolId(1)),    // *
+                Symbol::NonTerminal(SymbolId(5)), // Expression
             ],
-            precedence: None,
+            precedence: Some(rust_sitter::rust_sitter_ir::PrecedenceKind::Static(2)), // Higher precedence for multiplication
             associativity: None,
             fields: vec![],
             production_id: ProductionId(1),
         },
         // Expression -> Expression - Expression
         Rule {
-            lhs: SymbolId(11),
+            lhs: SymbolId(5), // Expression
             rhs: vec![
-                Symbol::NonTerminal(SymbolId(11)), // Expression
-                Symbol::Terminal(SymbolId(3)),     // -
-                Symbol::NonTerminal(SymbolId(11)), // Expression
+                Symbol::NonTerminal(SymbolId(5)), // Expression
+                Symbol::Terminal(SymbolId(3)),    // -
+                Symbol::NonTerminal(SymbolId(5)), // Expression
             ],
-            precedence: None,
+            precedence: Some(rust_sitter::rust_sitter_ir::PrecedenceKind::Static(1)), // Lower precedence for subtraction
             associativity: None,
             fields: vec![],
             production_id: ProductionId(2),
         },
     ];
-    grammar.rules.insert(SymbolId(11), expr_rules);
-    
+    grammar.rules.insert(SymbolId(5), expr_rules);
+
     // source_file rule
-    let source_file_rules = vec![
-        Rule {
-            lhs: SymbolId(8),
-            rhs: vec![Symbol::NonTerminal(SymbolId(11))], // Expression
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(3),
-        },
-    ];
-    grammar.rules.insert(SymbolId(8), source_file_rules);
+    let source_file_rules = vec![Rule {
+        lhs: SymbolId(6),                            // source_file
+        rhs: vec![Symbol::NonTerminal(SymbolId(5))], // Expression
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(3),
+    }];
+    grammar.rules.insert(SymbolId(6), source_file_rules);
 
     // Build index mappings
     let mut symbol_to_index = BTreeMap::new();
@@ -241,7 +251,7 @@ pub fn arithmetic() -> Arc<Language> {
         rules,
         nonterminal_to_index: BTreeMap::new(),
         eof_symbol: SymbolId(LANGUAGE.eof_symbol),
-        start_symbol: SymbolId(8), // source_file - the actual start symbol
+        start_symbol: SymbolId(6), // source_file - the actual start symbol
         grammar: grammar.clone(),
         initial_state: StateId(0),
         token_count,
