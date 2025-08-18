@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 // Enhanced external scanner generator with state-based validity computation
 use quote::quote;
 use rust_sitter_glr_core::ParseTable;

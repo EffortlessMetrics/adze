@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 // Pure-Rust parser implementation using compressed tables
 // This implements Tree-sitter's parsing algorithm with GLR support
 

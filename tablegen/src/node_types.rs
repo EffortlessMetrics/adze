@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 use rust_sitter_ir::{Grammar, Symbol, TokenPattern};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};

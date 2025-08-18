@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 use crate::compress::CompressedParseTable;
 
 /// Validates that a generated Language struct meets Tree-sitter ABI requirements

@@ -1,5 +1,6 @@
 // Tree-sitter ABI 15 compatibility layer
 // This module ensures our generated structures match Tree-sitter's ABI exactly
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
 use std::ffi::c_void;
 

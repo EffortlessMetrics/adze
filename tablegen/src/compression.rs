@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 // Table compression algorithms for parse tables
 use rust_sitter_glr_core::Action;
 use rust_sitter_ir::StateId;

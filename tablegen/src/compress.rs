@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 use crate::{Result, TableGenError};
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{StateId, SymbolId};

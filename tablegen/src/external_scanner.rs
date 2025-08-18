@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 use quote::quote;
 use rust_sitter_ir::{ExternalToken, Grammar, SymbolId};
 use std::collections::HashMap;

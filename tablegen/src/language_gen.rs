@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 // Proper TSLanguage structure generation
 // This module creates a valid Tree-sitter Language structure from our IR
 

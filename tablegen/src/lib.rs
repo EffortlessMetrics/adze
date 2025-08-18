@@ -21,12 +21,16 @@ pub mod abi;
 pub mod abi_builder;
 pub mod compress;
 pub mod compression;
+/// Error types for table generation
 pub mod error;
 pub mod external_scanner;
 pub mod external_scanner_v2;
+/// Language builder for generating static parsers
 pub mod generate;
+/// Helper utilities for table generation
 pub mod helpers;
 pub mod language_gen;
+/// Lexer generation utilities
 pub mod lexer_gen;
 pub mod node_types;
 pub mod parser;
@@ -59,9 +63,13 @@ use rust_sitter_ir::*;
 
 /// Static Language generator that produces Rust code
 pub struct StaticLanguageGenerator {
+    /// Grammar definition
     pub grammar: Grammar,
+    /// Parse table containing LR(1) action and goto tables
     pub parse_table: ParseTable,
+    /// Compressed versions of the parse tables for smaller binary size
     pub compressed_tables: Option<CompressedTables>,
+    /// Whether the start symbol can match empty input
     pub start_can_be_empty: bool,
 }
 

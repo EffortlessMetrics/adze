@@ -1,13 +1,14 @@
 // Test helpers for tablegen tests
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
 #[cfg(test)]
-pub mod test {
+pub(crate) mod test {
     use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
     use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
     use std::collections::BTreeMap;
 
     /// Sentinel used throughout the tests for "no goto".
-    pub const INVALID: StateId = StateId(u16::MAX);
+    pub(crate) const INVALID: StateId = StateId(u16::MAX);
 
     /// Build a minimal but fully-formed ParseTable suitable for unit tests.
     ///
