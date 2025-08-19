@@ -134,7 +134,8 @@ fn benchmark_simple_expression(c: &mut Criterion) {
             for token in &tokens {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            let total_bytes = tokens.last().map(|t| t.byte_offset + t.text.len()).unwrap_or(0);
+            parser.process_eof(total_bytes);
             parser.finish()
         })
     });
@@ -161,7 +162,8 @@ fn benchmark_deeply_nested_expression(c: &mut Criterion) {
             for token in &tokens {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            let total_bytes = tokens.last().map(|t| t.byte_offset + t.text.len()).unwrap_or(0);
+            parser.process_eof(total_bytes);
             parser.finish()
         })
     });
@@ -188,7 +190,8 @@ fn benchmark_highly_ambiguous_expression(c: &mut Criterion) {
             for token in &tokens {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            let total_bytes = tokens.last().map(|t| t.byte_offset + t.text.len()).unwrap_or(0);
+            parser.process_eof(total_bytes);
             parser.finish()
         })
     });
@@ -215,7 +218,8 @@ fn benchmark_fork_performance(c: &mut Criterion) {
             for token in &tokens {
                 parser.process_token(token.symbol_id, &token.text, token.byte_offset);
             }
-            parser.process_eof();
+            let total_bytes = tokens.last().map(|t| t.byte_offset + t.text.len()).unwrap_or(0);
+            parser.process_eof(total_bytes);
             parser.finish()
         })
     });

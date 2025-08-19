@@ -1,3 +1,6 @@
+//! Small stack pool used by the parser to amortize allocations.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;

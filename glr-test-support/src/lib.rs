@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 /// - `ERROR` lives at column 0; terminals occupy the next `token_count` columns.
 /// - `initial_state` is in range of `state_count`.
 /// - `start_symbol` is a nonterminal present in `nonterminal_to_index`.
-
+///
 /// Sentinel used throughout the tests for "no goto".
 pub const INVALID: StateId = StateId(u16::MAX);
 
@@ -33,7 +33,7 @@ pub fn make_minimal_table(
     assert!(state_count > 0, "need at least 1 state");
     // Keep columns in actions/gotos aligned
     let action_cols = actions[0].len();
-    let goto_cols = gotos.get(0).map(|r| r.len()).unwrap_or(0);
+    let goto_cols = gotos.first().map(|r| r.len()).unwrap_or(0);
     let symbol_count = action_cols.max(goto_cols);
     assert!(symbol_count > 0, "need at least 1 symbol column");
 
@@ -72,7 +72,7 @@ pub fn make_minimal_table(
     let mut actions = actions;
     for row in &mut actions {
         if row.len() < symbol_count {
-            row.resize_with(symbol_count, || Vec::new());
+            row.resize_with(symbol_count, Vec::new);
         }
     }
     let mut gotos = gotos;

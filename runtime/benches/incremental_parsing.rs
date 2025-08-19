@@ -1,6 +1,8 @@
+#![cfg(feature = "unstable-benches")]
+
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::{
-    glr_incremental::{Edit, IncrementalGLRParser, Position},
+    glr_incremental::{Edit, GLRToken, IncrementalGLRParser},
     glr_lexer::TokenWithPosition,
     glr_parser::GLRParser,
 };
@@ -42,16 +44,16 @@ fn create_test_grammar() -> Arc<Grammar> {
 }
 
 /// Generate tokens for a sequence of 'a' characters
-fn generate_tokens(count: usize) -> Vec<TokenWithPosition> {
+fn generate_tokens(count: usize) -> Vec<GLRToken> {
     let mut tokens = Vec::new();
     let mut byte_offset = 0;
 
     for i in 0..count {
-        tokens.push(TokenWithPosition {
-            symbol_id: SymbolId(1), // 'a' terminal
-            text: "a".to_string(),
-            byte_offset,
-            byte_length: 1,
+        tokens.push(GLRToken {
+            symbol: SymbolId(1), // 'a' terminal
+            text: b"a".to_vec(),
+            start_byte: byte_offset,
+            end_byte: byte_offset + 1,
         });
         byte_offset += 1;
 
@@ -89,9 +91,8 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
             &tokens,
             |b, tokens| {
                 b.iter(|| {
-                    let glr_parser = GLRParser::new(parse_table.clone(), (*grammar).clone());
-                    let mut incremental = IncrementalGLRParser::new(glr_parser, grammar.clone());
-                    incremental.parse_incremental(black_box(tokens), &[], None)
+                    let mut incremental = IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
+                    incremental.parse_incremental(black_box(tokens), &[])
                 });
             },
         );
@@ -108,18 +109,6 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
             start_byte: edit_pos * 2, // account for spaces
             old_end_byte: edit_pos * 2 + 1,
             new_end_byte: edit_pos * 2, // Deletion - end is same as start
-            start_position: Position {
-                line: 0,
-                column: edit_pos * 2,
-            },
-            old_end_position: Position {
-                line: 0,
-                column: edit_pos * 2 + 1,
-            },
-            new_end_position: Position {
-                line: 0,
-                column: edit_pos * 2,
-            }, // Same as start for deletion
         };
 
         group.bench_with_input(
@@ -129,11 +118,10 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
                 b.iter_batched(
                     || {
                         // Setup: parse the original
-                        let glr_parser = GLRParser::new(parse_table.clone(), (*grammar).clone());
                         let mut incremental =
-                            IncrementalGLRParser::new(glr_parser, grammar.clone());
+                            IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
                         let tree = incremental
-                            .parse_incremental(orig_tokens, &[], None)
+                            .parse_incremental(orig_tokens, &[])
                             .unwrap();
                         (incremental, tree)
                     },
@@ -153,11 +141,10 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
         // Measure reuse percentage
         if *size <= 100 {
             // Only for smaller sizes to avoid spam
-            let glr_parser = GLRParser::new(parse_table.clone(), (*grammar).clone());
-            let mut incremental = IncrementalGLRParser::new(glr_parser, grammar.clone());
-            let tree = incremental.parse_incremental(&tokens, &[], None).unwrap();
+            let mut incremental = IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
+            let tree = incremental.parse_incremental(&tokens, &[]).unwrap();
 
-            let _ = incremental.parse_incremental(&edited_tokens, &[edit.clone()], Some(tree));
+            let _ = incremental.parse_incremental(&edited_tokens, &[edit.clone()]);
             let stats = incremental.stats();
 
             println!(
@@ -216,18 +203,6 @@ fn benchmark_edit_location_impact(c: &mut Criterion) {
             start_byte: edit_pos * 2,
             old_end_byte: edit_pos * 2 + 1,
             new_end_byte: edit_pos * 2, // Deletion
-            start_position: Position {
-                line: 0,
-                column: edit_pos * 2,
-            },
-            old_end_position: Position {
-                line: 0,
-                column: edit_pos * 2 + 1,
-            },
-            new_end_position: Position {
-                line: 0,
-                column: edit_pos * 2,
-            }, // Deletion
         };
 
         group.bench_with_input(
@@ -236,11 +211,10 @@ fn benchmark_edit_location_impact(c: &mut Criterion) {
             |b, (orig_tokens, new_tokens, edit)| {
                 b.iter_batched(
                     || {
-                        let glr_parser = GLRParser::new(parse_table.clone(), (*grammar).clone());
                         let mut incremental =
-                            IncrementalGLRParser::new(glr_parser, grammar.clone());
+                            IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
                         let tree = incremental
-                            .parse_incremental(orig_tokens, &[], None)
+                            .parse_incremental(orig_tokens, &[])
                             .unwrap();
                         (incremental, tree)
                     },

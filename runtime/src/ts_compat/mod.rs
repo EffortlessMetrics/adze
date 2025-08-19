@@ -1,3 +1,6 @@
+//! Minimal Tree-sitter compatibility shims (edits, points, language wrapper).
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 //! Tree-sitter compatibility API
 //!
 //! This module provides a compatibility layer that mimics the Tree-sitter API,
@@ -177,7 +180,7 @@ impl Tree {
     pub fn root_node(&self) -> Node {
         Node {
             tree: &self.core,
-            index: 0,
+            _index: 0,
         }
     }
 
@@ -220,7 +223,7 @@ impl Tree {
 /// A node in a syntax tree.
 pub struct Node<'a> {
     tree: &'a CoreTree,
-    index: usize,
+    _index: usize,
 }
 
 impl<'a> Node<'a> {
@@ -263,7 +266,7 @@ impl<'a> Node<'a> {
         if index < self.child_count() {
             Some(Node {
                 tree: self.tree,
-                index: index + 1,
+                _index: index + 1,
             })
         } else {
             None

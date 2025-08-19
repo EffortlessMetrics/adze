@@ -1,3 +1,6 @@
+//! Version 4 parser implementation with GLR support.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Enhanced Pure-Rust parser with external scanner support
 // This module extends parser_v3 with full external scanner integration
 

@@ -1,3 +1,7 @@
+//! External scanner runtime for the pure-Rust Tree-sitter implementation.
+//! This module provides the runtime support for custom lexing logic.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // External scanner runtime for the pure-Rust Tree-sitter implementation
 // This module provides the runtime support for custom lexing logic
 

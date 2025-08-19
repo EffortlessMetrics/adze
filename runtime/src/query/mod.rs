@@ -1,3 +1,6 @@
+//! Query engine components (AST, compiler, matcher, highlighter, etc.).
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Tree-sitter query language support for rust-sitter
 // This module implements the S-expression based query language for pattern matching
 

@@ -1,0 +1,10 @@
+---
+source: runtime/tests/snapshot_tests.rs
+assertion_line: 121
+expression: expected_structure
+---
+        pub struct Parser { ... }
+        impl Parser {
+            pub fn new() -> Self { ... }
+            pub fn parse(&mut self, input: &str) -> Result<Tree, Error> { ... }
+        }

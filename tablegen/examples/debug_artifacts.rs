@@ -1,27 +1,27 @@
-use rust_sitter_glr_core::{ParseTable, generate_lr1_parse_table};
-use rust_sitter_ir::{Grammar, SymbolId};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_ir::{SymbolId, builder::GrammarBuilder};
 use rust_sitter_tablegen::{collect_token_indices, eof_accepts_or_reduces};
 use std::collections::BTreeMap;
 
 fn main() {
     // Create a simple test grammar with nullable start
-    let mut grammar = Grammar::new("test_grammar".to_string());
-
-    // Add some basic symbols
-    let start = grammar.add_rule("start", vec![]);
-    let expr = grammar.add_rule("expr", vec![]);
-    let term = grammar.add_rule("term", vec![]);
-
-    // Add some tokens
-    let plus = grammar.add_token("PLUS", "+");
-    let star = grammar.add_token("STAR", "*");
-    let num = grammar.add_token("NUM", r"\d+");
-
-    // Build a simple grammar: start -> expr*, expr -> term ('+' term)*, term -> NUM ('*' NUM)*
-    grammar.start_symbol = start;
+    let grammar = GrammarBuilder::new("test_grammar")
+        // Add some tokens
+        .token("PLUS", "+")
+        .token("STAR", "*")
+        .token("NUM", r"\d+")
+        // Build a simple grammar: start -> expr*, expr -> term ('+' term)*, term -> NUM ('*' NUM)*
+        .rule("start", vec![])  // Nullable start symbol (empty rule)
+        .rule("start", vec!["expr"])
+        .rule("expr", vec!["term"])
+        .rule("expr", vec!["expr", "PLUS", "term"])
+        .rule("term", vec!["NUM"])
+        .rule("term", vec!["term", "STAR", "NUM"])
+        .build();
 
     // Generate parse table
-    let parse_table = generate_lr1_parse_table(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar);
+    let parse_table = build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
     // Display symbol->col mappings (first 10)
     println!("=== Symbol → Column Mappings (first 10) ===");

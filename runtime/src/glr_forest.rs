@@ -1,3 +1,6 @@
+//! GLR parse forest representation and manipulation.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // GLR Parse Forest implementation
 // This module implements a Shared Packed Parse Forest (SPPF) for efficient
 // representation of ambiguous parse trees.

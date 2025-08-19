@@ -118,7 +118,7 @@ impl Parser {
             // TODO: Implement incremental parsing
             // For now, fall back to fresh parse
             let _ = old_tree;
-            let forest = engine_parse(language, input)?;
+            let forest = engine_parse_full(language, input)?;
             return Ok(forest_to_tree(forest));
         }
 

@@ -1,3 +1,7 @@
+//! Field-aware tree structures where field names are stored as edge properties.
+//! This design correctly models that field-ness is a property of parent→child relationships.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 /// Field-aware tree structures where field names are stored as edge properties
 /// This design correctly models that field-ness is a property of parent→child relationships
 use crate::ffi::TSSymbol;

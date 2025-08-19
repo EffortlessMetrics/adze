@@ -1,11 +1,18 @@
 // Performance benchmarks for rust-sitter optimizations
 // Compares standard vs SIMD lexing and single vs parallel parsing
+// NOTE: Temporarily disabled as parallel_parser and parser_v3 modules have been removed
+#![cfg(feature = "unstable-benches")]
 
+/*
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::lexer::GrammarLexer;
 use rust_sitter::parallel_parser::{ParallelConfig, ParallelParser};
 use rust_sitter::parser_v3::Parser;
 use rust_sitter::simd_lexer::SimdLexer;
+*/
+
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use rust_sitter::lexer::GrammarLexer;
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, SymbolId, TokenPattern};
 use std::time::Duration;

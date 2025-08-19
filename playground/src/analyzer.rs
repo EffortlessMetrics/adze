@@ -196,7 +196,7 @@ fn generate_ambiguous_example(rule_name: &str) -> String {
 fn generate_suggestions(
     _grammar: &Grammar,
     stats: &GrammarStats,
-    conflicts: &Vec<Conflict>,
+    conflicts: &[Conflict],
 ) -> Vec<Suggestion> {
     let mut suggestions = Vec::new();
 

@@ -2,7 +2,7 @@
 //!
 //! This module provides TRUE incremental parsing capabilities for GLR parsers,
 //! preserving ambiguities and efficiently handling edits to the input.
-//!
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 //! ## Key Concepts
 //!
 //! ### Subtree Reuse
@@ -43,6 +43,16 @@ impl Edit {
             start_byte,
             old_end_byte,
             new_end_byte,
+        }
+    }
+
+    /// Convenience helper for byte-range edits (start..old_end replaced by start..new_end).
+    /// Useful in benches/tests so they don't need to know additional internal fields.
+    pub fn bytes(start: usize, old_end: usize, new_end: usize) -> Self {
+        Self {
+            start_byte: start,
+            old_end_byte: old_end,
+            new_end_byte: new_end,
         }
     }
 }

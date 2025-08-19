@@ -1,3 +1,6 @@
+//! Unified parser interface for different backends.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Unified parser API - hides implementation complexity behind a clean interface
 // This is the main public-facing API for rust-sitter parsing
 

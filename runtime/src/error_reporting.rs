@@ -1,3 +1,6 @@
+//! Error reporting and diagnostics.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // User-friendly error reporting for the GLR parser
 use crate::glr_parser::GLRParser;
 use crate::subtree::Subtree;

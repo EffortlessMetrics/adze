@@ -5,7 +5,6 @@ members = [
   "runtime",
   "runtime2",
   "tool",
-  "example",
   "common",
   "ir",
   "glr-core",
@@ -26,9 +25,15 @@ members = [
   "test-mini",
   "golden-tests",
   "wasm-demo",
-  "tools/ts-bridge", "crates/ts-c-harness",
 ]
-exclude = ["runtime/fuzz"]
+# These crates are intentionally excluded from default workspace commands
+# due to mutually exclusive features. Build them explicitly with -p when needed.
+exclude = [
+  "runtime/fuzz",
+  "tools/ts-bridge",      # has mutually exclusive stub-ts/with-grammars features
+  "crates/ts-c-harness",   # relies on external C/TS libs
+  "example",               # has mutually exclusive pure-rust/c-backend features
+]
 
 [workspace.package]
 rust-version = "1.75"
@@ -37,3 +42,8 @@ rust-version = "1.75"
 unsafe_op_in_unsafe_fn = "deny"
 unused_must_use = "deny"
 missing_docs = "warn"
+
+[profile.ci]
+inherits = "dev"
+debug = 0
+lto = "off"

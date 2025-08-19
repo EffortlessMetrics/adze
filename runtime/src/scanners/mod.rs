@@ -1,7 +1,13 @@
+//! Common external scanners for rust-sitter.
+//! These are Rust implementations of common scanning patterns.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Common external scanners for rust-sitter
 // These are Rust implementations of common scanning patterns
 
+/// Heredoc scanner implementation.
 pub mod heredoc;
+/// Indentation-based scanner implementation.
 pub mod indentation;
 
 pub use heredoc::HeredocScanner;

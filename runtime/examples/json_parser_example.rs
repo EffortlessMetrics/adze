@@ -2,7 +2,6 @@
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use std::sync::Arc;
 
 /// Build a complete JSON grammar
 fn build_json_grammar() -> Grammar {
@@ -244,17 +243,14 @@ fn build_json_grammar() -> Grammar {
 
     // object → { } | { members }
     let prod_id = alloc_production();
-    grammar.add_rule(
-        object_id,
-        Rule {
-            lhs: object_id,
-            rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: prod_id,
-        },
-    );
+    grammar.add_rule(Rule {
+        lhs: object_id,
+        rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: prod_id,
+    });
 
     let prod_id = alloc_production();
     grammar.add_rule(Rule {
@@ -273,17 +269,14 @@ fn build_json_grammar() -> Grammar {
 
     // members → member | member , members
     let prod_id = alloc_production();
-    grammar.add_rule(
-        members_id,
-        Rule {
-            lhs: members_id,
-            rhs: vec![Symbol::NonTerminal(member_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: prod_id,
-        },
-    );
+    grammar.add_rule(Rule {
+        lhs: members_id,
+        rhs: vec![Symbol::NonTerminal(member_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: prod_id,
+    });
 
     let prod_id = alloc_production();
     grammar.add_rule(Rule {
@@ -302,35 +295,29 @@ fn build_json_grammar() -> Grammar {
 
     // member → string : value (with field names)
     let prod_id = alloc_production();
-    grammar.add_rule(
-        member_id,
-        Rule {
-            lhs: member_id,
-            rhs: vec![
-                Symbol::Terminal(string_id),
-                Symbol::Terminal(colon_id),
-                Symbol::NonTerminal(value_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![(key_field, 0), (value_field, 2)], // key at position 0, value at position 2
-            production_id: prod_id,
-        },
-    );
+    grammar.add_rule(Rule {
+        lhs: member_id,
+        rhs: vec![
+            Symbol::Terminal(string_id),
+            Symbol::Terminal(colon_id),
+            Symbol::NonTerminal(value_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![(key_field, 0), (value_field, 2)], // key at position 0, value at position 2
+        production_id: prod_id,
+    });
 
     // array → [ ] | [ elements ]
     let prod_id = alloc_production();
-    grammar.add_rule(
-        array_id,
-        Rule {
-            lhs: array_id,
-            rhs: vec![Symbol::Terminal(lbracket_id), Symbol::Terminal(rbracket_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: prod_id,
-        },
-    );
+    grammar.add_rule(Rule {
+        lhs: array_id,
+        rhs: vec![Symbol::Terminal(lbracket_id), Symbol::Terminal(rbracket_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: prod_id,
+    });
 
     let prod_id = alloc_production();
     grammar.add_rule(Rule {
@@ -349,17 +336,14 @@ fn build_json_grammar() -> Grammar {
 
     // elements → value | value , elements
     let prod_id = alloc_production();
-    grammar.add_rule(
-        elements_id,
-        Rule {
-            lhs: elements_id,
-            rhs: vec![Symbol::NonTerminal(value_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: prod_id,
-        },
-    );
+    grammar.add_rule(Rule {
+        lhs: elements_id,
+        rhs: vec![Symbol::NonTerminal(value_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: prod_id,
+    });
 
     let prod_id = alloc_production();
     grammar.add_rule(Rule {
@@ -380,7 +364,7 @@ fn build_json_grammar() -> Grammar {
 
 fn main() {
     println!("Building JSON grammar...");
-    let grammar = Arc::new(build_json_grammar());
+    let grammar = build_json_grammar();
 
     // Validate grammar
     match grammar.validate() {
@@ -401,7 +385,7 @@ fn main() {
             println!("- {} states", parse_table.state_count);
             println!("- {} symbols", parse_table.symbol_count);
 
-            // Create GLR parser
+            // Create GLR parser - clone the grammar since GLRParser takes ownership
             let mut parser = GLRParser::new(parse_table, grammar.clone());
 
             // Example: Parse a simple JSON value

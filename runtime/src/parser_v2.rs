@@ -35,7 +35,7 @@ impl ParseStack {
 }
 
 /// Enhanced parser that knows about grammar rules
-pub struct ParserV2 {
+pub(crate) struct ParserV2 {
     /// The grammar being parsed
     #[allow(dead_code)]
     grammar: Grammar,
@@ -143,7 +143,7 @@ pub enum ParseError {
 
 impl ParserV2 {
     /// Create a new parser
-    pub fn new(grammar: Grammar, parse_table: ParseTable) -> Self {
+    pub(crate) fn new(grammar: Grammar, parse_table: ParseTable) -> Self {
         // Build rule map for quick lookup
         let mut rule_map = HashMap::new();
         let mut rule_counter = 0u16;
@@ -170,7 +170,7 @@ impl ParserV2 {
     }
 
     /// Parse input tokens using GLR two-phase algorithm
-    pub fn parse(&mut self, tokens: Vec<Token>) -> Result<ParseNode, ParseError> {
+    pub(crate) fn parse(&mut self, tokens: Vec<Token>) -> Result<ParseNode, ParseError> {
         // Reset parser state
         self.stacks.clear();
         self.stacks.push(ParseStack::new(StateId(0), 0));

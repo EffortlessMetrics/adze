@@ -1,3 +1,7 @@
+//! FFI bridge for Tree-sitter C external scanners.
+//! This module provides the C ABI-compatible interface for external scanners.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // FFI bridge for Tree-sitter C external scanners
 // This module provides the C ABI-compatible interface for external scanners
 

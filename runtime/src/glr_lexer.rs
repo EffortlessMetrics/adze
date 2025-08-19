@@ -1,3 +1,6 @@
+//! Lexer specialized for GLR parsing.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Lexer integration for GLR parser
 // This module provides tokenization for GLR parsing
 

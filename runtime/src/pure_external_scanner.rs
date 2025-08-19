@@ -1,3 +1,6 @@
+//! Pure Rust external scanner implementation.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // External scanner support for pure-Rust parser
 use std::collections::HashMap;
 use std::ffi::c_void;

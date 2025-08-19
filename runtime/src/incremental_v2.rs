@@ -1,5 +1,6 @@
-// Enhanced incremental parsing with subtree reuse
-// This module provides efficient reparsing by reusing unchanged subtrees
+//! Incremental parsing v2: types for edits, positions and node changes.
+//! 
+//! This module provides efficient reparsing by reusing unchanged subtrees
 
 use crate::parser_v2::{ParseError, ParseNode, Token};
 use rust_sitter_glr_core::{Action, ParseTable};
@@ -10,22 +11,31 @@ use std::ops::Range;
 /// Edit operation on source text
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Edit {
+    /// Byte offset where the edit starts.
     pub start_byte: usize,
+    /// Byte offset where the edit ended in the old text.
     pub old_end_byte: usize,
+    /// Byte offset where the edit ends in the new text.
     pub new_end_byte: usize,
+    /// Position where the edit starts.
     pub start_position: Position,
+    /// Position where the edit ended in the old text.
     pub old_end_position: Position,
+    /// Position where the edit ends in the new text.
     pub new_end_position: Position,
 }
 
 /// Position in source text (line, column)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {
+    /// 0-based line number within the source.
     pub row: usize,
+    /// 0-based UTF-8 column offset within `row`.
     pub column: usize,
 }
 
 impl Position {
+    /// Creates a new [`Position`] from a 0-based `(row, column)` pair.
     pub fn new(row: usize, column: usize) -> Self {
         Position { row, column }
     }
@@ -34,10 +44,15 @@ impl Position {
 /// A reusable subtree from a previous parse
 #[derive(Debug, Clone)]
 pub struct ReusableNode {
+    /// The parse node affected by this change.
     pub node: ParseNode,
+    /// Half-open byte range `[start, end)` in the original source covered by `node`.
     pub byte_range: Range<usize>,
+    /// Half-open token index range `[start, end)` covered by `node`.
     pub token_range: Range<usize>,
+    /// Whether `node` represents a parse error.
     pub is_error: bool,
+    /// Whether `node` or any of its descendants changed relative to the previous tree.
     pub has_changes: bool,
 }
 
@@ -48,6 +63,7 @@ pub struct SubtreePool {
 }
 
 impl SubtreePool {
+    /// Creates an empty subtree pool.
     pub fn new() -> Self {
         SubtreePool {
             nodes: Vec::new(),
@@ -138,6 +154,7 @@ pub struct IncrementalParserV2 {
 }
 
 impl IncrementalParserV2 {
+    /// Creates a new incremental parser backed by `grammar` and `table`.
     pub fn new(grammar: Grammar, table: ParseTable) -> Self {
         IncrementalParserV2 {
             grammar,

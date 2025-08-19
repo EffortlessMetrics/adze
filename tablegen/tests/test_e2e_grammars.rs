@@ -30,8 +30,8 @@ fn test_python_like_nullable_start() {
         .expect("Failed to compress table");
 
     // Validate compressed table has proper structure
-    assert!(!compressed.action_table.is_empty());
-    assert!(!compressed.goto_table.is_empty());
+    assert!(!compressed.action_table.data.is_empty());
+    assert!(!compressed.goto_table.data.is_empty());
 
     // Check EOF handling
     assert!(token_indices.contains(&0), "EOF column should be included");
@@ -61,8 +61,8 @@ fn test_javascript_like_non_nullable_start() {
         .expect("Failed to compress table");
 
     // Validate compressed table has proper structure
-    assert!(!compressed.action_table.is_empty());
-    assert!(!compressed.goto_table.is_empty());
+    assert!(!compressed.action_table.data.is_empty());
+    assert!(!compressed.goto_table.data.is_empty());
 
     // Check EOF handling
     assert!(token_indices.contains(&0), "EOF column should be included");
@@ -123,7 +123,7 @@ fn test_precedence_handling() {
         .expect("Failed to compress table");
 
     // Validate the table was successfully built and compressed
-    assert!(!compressed.action_table.is_empty());
+    assert!(!compressed.action_table.data.is_empty());
 
     // Ensure we have the expected number of symbols (terminals + non-terminals)
     assert!(
@@ -159,8 +159,8 @@ fn test_empty_grammar_handling() {
         .expect("Failed to compress table");
 
     // Even an empty grammar should produce some structure
-    assert!(!compressed.action_table.is_empty());
-    assert!(!compressed.goto_table.is_empty());
+    assert!(!compressed.action_table.data.is_empty());
+    assert!(!compressed.goto_table.data.is_empty());
 }
 
 #[test]
@@ -193,9 +193,9 @@ fn test_recursive_grammar() {
         .expect("Failed to compress table");
 
     // Validate compression
-    assert!(!compressed.action_table.is_empty());
+    assert!(!compressed.action_table.data.is_empty());
     assert!(
-        compressed.action_table.len() >= 3,
+        compressed.action_table.data.len() >= 3,
         "Should have at least 3 actions"
     );
 }

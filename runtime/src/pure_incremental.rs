@@ -1,6 +1,12 @@
+//! Incremental parsing for pure Rust implementation.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Incremental parsing support for pure-Rust parser
-use crate::pure_parser::{ParseResult, ParsedNode, Parser, Point, TSLanguage};
+use crate::pure_parser::{ParseResult, ParsedNode, Parser, TSLanguage};
 use std::ops::Range;
+
+// Re-export Point so tests can keep using pure_incremental::Point
+pub use crate::pure_parser::Point;
 
 /// Edit operation for incremental parsing
 #[derive(Debug, Clone)]

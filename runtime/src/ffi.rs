@@ -1,4 +1,5 @@
-//! FFI types and functions for bridging between C and Rust interfaces
+//! FFI types and functions for bridging between C and Rust interfaces.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
 use crate::external_scanner_ffi::TSLexer;
 

@@ -199,6 +199,28 @@ When enabled, the counters track:
 - Forks: GLR parser fork points
 - Merges: GLR parser merge operations
 
+## Local benches & feature flags
+
+Some benches depend on evolving APIs and are **opt-in** behind a feature:
+
+```bash
+# run unstable benches locally
+cargo bench -p rust-sitter --features unstable-benches
+```
+
+To smoke-test the Tree-sitter compatibility layer:
+
+```bash
+# ts-compat runtime smoke (pure-Rust backend)
+cargo test -p rust-sitter --features "ts-compat pure-rust"
+```
+
+Strict interface/docs checks:
+
+```bash
+cargo check -p rust-sitter --features "strict_docs strict_api"
+```
+
 ## Benchmarking
 
 ### Quick Benchmarks (Development)

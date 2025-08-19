@@ -1,3 +1,6 @@
+//! Validation utilities for GLR parsing.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Enhanced grammar validation for GLR parser with detailed diagnostics
 // This module provides comprehensive validation with helpful error messages
 

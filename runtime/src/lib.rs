@@ -11,53 +11,81 @@
 
 //! rust-sitter runtime library for Tree-sitter parsing
 
+/// Private implementation details exposed for macro use only.
 pub mod __private;
+/// External scanner interface for custom tokenization.
 pub mod external_scanner;
+/// FFI bindings for external scanners.
 pub mod external_scanner_ffi;
+/// FFI bindings and types for Tree-sitter compatibility.
 pub mod ffi;
+/// Field mapping support for parse trees.
 pub mod field_tree;
+/// Line and column position tracking utilities.
 pub mod linecol;
 
 // Re-export commonly used types
 pub use ffi::TSSymbol;
+/// Type alias for symbol identifiers.
 pub type SymbolId = TSSymbol;
 
 // Legacy incremental modules - depend on deprecated parsers
+/// Incremental parsing façade used by older callers.
 #[cfg(feature = "legacy-parsers")]
 pub mod incremental;
+/// Incremental parser v2 (position- and range-centric editing).
 #[cfg(feature = "legacy-parsers")]
 pub mod incremental_v2;
+/// Incremental parser v3 (next-gen prototype).
 #[cfg(feature = "legacy-parsers")]
 pub mod incremental_v3;
+/// Lexer implementation and token types.
 pub mod lexer;
+/// Registry for managing external scanners.
 pub mod scanner_registry;
+/// Built-in scanner implementations.
 pub mod scanners;
 // Use parser_v4 (GLR) as the main parser implementation
+/// Main parser module.
 #[cfg(feature = "pure-rust")]
 pub mod parser {
     pub use super::parser_v4::*;
 }
+/// Error recovery strategies for parsing.
 pub mod error_recovery;
+/// Error reporting utilities.
 pub mod error_reporting;
+/// Legacy GLR module used by `parser_v3`.
 #[cfg(feature = "legacy-parsers")]
 pub mod glr; // Legacy GLR module that depends on parser_v3
+/// GLR parse forest representation.
 #[cfg(feature = "pure-rust")]
 pub mod glr_forest;
+/// Incremental parsing support for GLR.
 #[cfg(feature = "pure-rust")]
 pub mod glr_incremental;
 // pub mod glr_incremental_opt; // Temporarily disabled during chunk-based refactor
+/// Lexer specialized for GLR parsing.
 pub mod glr_lexer;
+/// GLR parser implementation.
 pub mod glr_parser;
+/// Query support for GLR parse forests.
 pub mod glr_query;
+/// Bridge between GLR parser and Tree-sitter trees.
 pub mod glr_tree_bridge;
+/// Validation utilities for GLR parsing.
 pub mod glr_validation;
+/// Bridge for converting between parse representations.
 #[cfg(feature = "pure-rust")]
 pub mod tree_bridge;
 // pub mod glr_visualization; // TODO: Update for new GLRStack structure
+/// Decoder for compressed parse tables.
 #[cfg(feature = "pure-rust")]
 pub mod decoder;
+/// JSON grammar format support.
 #[cfg(feature = "pure-rust")]
 pub mod grammar_json;
+/// Performance optimizations for parsing.
 pub mod optimizations;
 
 // Legacy parser versions - deprecated
@@ -67,22 +95,34 @@ mod parser_v2;
 mod parser_v3;
 
 // Current parser version
+/// Arena allocator for parse tree nodes.
 pub mod arena_allocator;
+/// Version 4 parser implementation (GLR).
 #[cfg(feature = "pure-rust")]
 pub mod parser_v4;
+/// Pure Rust external scanner support.
 pub mod pure_external_scanner;
+/// Pure Rust incremental parsing support.
 pub mod pure_incremental;
+/// Pure Rust parser implementation.
 pub mod pure_parser;
+/// Query language support for pattern matching.
 #[cfg(feature = "pure-rust")]
 pub mod query;
+/// Stack pooling for efficient parsing.
 pub mod stack_pool;
 // #[cfg(feature = "serialization")]
+/// Tree serialization utilities.
 #[cfg(feature = "serialization")]
 pub mod serialization;
+/// Subtree representation and utilities.
 pub mod subtree;
+/// Unified parser interface.
 #[cfg(feature = "pure-rust")]
 pub mod unified_parser;
+/// Tree visitor pattern implementations.
 pub mod visitor;
+/// SIMD-accelerated lexer module.
 pub mod simd_lexer {
     pub use super::simd_lexer_v2::*;
 }
@@ -120,6 +160,7 @@ pub use tree_sitter_runtime_standard as tree_sitter;
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
 pub use tree_sitter_runtime_c2rust as tree_sitter;
 
+/// Tree-sitter compatibility module for pure-Rust implementation.
 #[cfg(feature = "pure-rust")]
 pub mod tree_sitter {
     // Re-export pure-Rust types with Tree-sitter compatible names
@@ -129,14 +170,18 @@ pub mod tree_sitter {
     pub use crate::pure_parser::{Parser, TSLanguage as Language};
 
     // Re-export constants
+    /// Language ABI version this runtime targets (Tree-sitter compatible).
     pub const LANGUAGE_VERSION: u32 = 15;
+    /// Minimum compatible language ABI version.
     pub const MIN_COMPATIBLE_LANGUAGE_VERSION: u32 = 13;
 }
 
 /// Defines the logic used to convert a node in a Tree Sitter tree to
 /// the corresponding Rust type.
 pub trait Extract<Output> {
+    /// Associated function type for leaf node extraction.
     type LeafFn: ?Sized;
+    /// Extracts a Rust value from a Tree-sitter node.
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
         node: Option<tree_sitter::Node>,
@@ -145,6 +190,7 @@ pub trait Extract<Output> {
         leaf_fn: Option<&Self::LeafFn>,
     ) -> Output;
 
+    /// Extracts a Rust value from a pure-Rust parse node.
     #[cfg(feature = "pure-rust")]
     fn extract(
         node: Option<&crate::pure_parser::ParsedNode>,
@@ -154,6 +200,7 @@ pub trait Extract<Output> {
     ) -> Output;
 }
 
+/// Helper struct for specifying leaf extraction logic.
 pub struct WithLeaf<L> {
     _phantom: std::marker::PhantomData<L>,
 }
@@ -449,6 +496,7 @@ impl Extract<String> for String {
     }
 }
 
+/// Error types for parsing operations.
 pub mod errors {
     #[cfg(all(
         feature = "tree-sitter-standard",
@@ -475,6 +523,7 @@ pub mod errors {
     #[derive(Debug)]
     /// An error that occurred during parsing.
     pub struct ParseError {
+        /// The reason for the parse error.
         pub reason: ParseErrorReason,
         /// Inclusive start of the error.
         pub start: usize,

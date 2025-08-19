@@ -1,3 +1,10 @@
+//! Pure-Rust parser and AST types used by the runtime.
+//!
+//! This module mirrors parts of the Tree-sitter ABI and exposes low-level
+//! structures that are not intended to be stable public API.
+//! We allow missing per-item docs here under `strict_docs` to reduce churn.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Pure-Rust Tree-sitter compatible parser runtime
 // This implements the core parsing algorithm with GLR support
 

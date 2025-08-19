@@ -101,7 +101,7 @@ impl Tree {
     }
 
     /// Walk the tree with a callback
-    pub fn walk<F>(&self, mut callback: F)
+    pub(crate) fn walk<F>(&self, mut callback: F)
     where
         F: FnMut(&TreeNode),
     {

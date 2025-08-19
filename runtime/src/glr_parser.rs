@@ -3,7 +3,7 @@
 //! This module implements a GLR parser that can handle ambiguous grammars by maintaining
 //! multiple parse stacks simultaneously. When the parser encounters a shift/reduce or
 //! reduce/reduce conflict, it forks the parse stack and explores both possibilities.
-//!
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 //! ## Algorithm Overview
 //!
 //! The parser uses a two-phase approach for processing tokens:

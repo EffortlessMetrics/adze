@@ -1,3 +1,6 @@
+//! Lexer implementation and token processing.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Lexer implementation for the pure-Rust Tree-sitter runtime
 // This module provides lexical analysis capabilities
 

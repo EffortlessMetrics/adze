@@ -1,3 +1,6 @@
+//! Utilities for tracking line and column positions in text.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 /// Utilities for tracking line and column positions in text
 ///
 /// Track line and column position while iterating through text

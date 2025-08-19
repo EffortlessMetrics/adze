@@ -32,6 +32,8 @@ impl EditPattern {
                     new_text: b"x".to_vec(),
                     old_token_range: 0..0, // Would be computed from lexer
                     new_tokens: vec![],
+                    old_tokens: vec![],
+                    old_forest: None,
                 };
 
                 (new_text, vec![edit])
@@ -54,6 +56,8 @@ impl EditPattern {
                         new_text: new_word.as_bytes().to_vec(),
                         old_token_range: 1..2,
                         new_tokens: vec![],
+                        old_tokens: vec![],
+                        old_forest: None,
                     };
 
                     (new_text, vec![edit])
@@ -77,6 +81,8 @@ impl EditPattern {
                     new_text: b"    // New comment line\n".to_vec(),
                     old_token_range: 0..0,
                     new_tokens: vec![],
+                    old_tokens: vec![],
+                    old_forest: None,
                 };
 
                 (new_text, vec![edit])
@@ -96,6 +102,8 @@ impl EditPattern {
                     new_text: vec![],
                     old_token_range: 0..0,
                     new_tokens: vec![],
+                    old_tokens: vec![],
+                    old_forest: None,
                 };
 
                 (new_text, vec![edit])
@@ -114,6 +122,8 @@ impl EditPattern {
                     new_text: b"/* edit1 */".to_vec(),
                     old_token_range: 0..0,
                     new_tokens: vec![],
+                    old_tokens: vec![],
+                    old_forest: None,
                 });
 
                 // Edit 2: Delete at 50%
@@ -124,6 +134,8 @@ impl EditPattern {
                     new_text: vec![],
                     old_token_range: 0..0,
                     new_tokens: vec![],
+                    old_tokens: vec![],
+                    old_forest: None,
                 });
 
                 // Edit 3: Replace at 75%
@@ -134,6 +146,8 @@ impl EditPattern {
                     new_text: b"REPLACED".to_vec(),
                     old_token_range: 0..0,
                     new_tokens: vec![],
+                    old_tokens: vec![],
+                    old_forest: None,
                 });
 
                 (new_text, edits)
@@ -205,7 +219,8 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
                         let text_str = String::from_utf8_lossy(&token.text);
                         parser.process_token(token.symbol, &text_str, token.start_byte);
                     }
-                    parser.process_eof();
+                    let total_bytes = new_tokens.last().map(|t| t.start_byte + t.text.len()).unwrap_or(0);
+                    parser.process_eof(total_bytes);
                     parser.finish()
                 });
             });
@@ -247,6 +262,8 @@ fn benchmark_fork_preservation(c: &mut Criterion) {
                 new_text: b"X".to_vec(),
                 old_token_range: 2..3,
                 new_tokens: vec![],
+                old_tokens: vec![],
+                old_forest: None,
             };
 
             parser.parse_incremental(&tokens, &[edit])
@@ -278,6 +295,8 @@ fn benchmark_reuse_efficiency(c: &mut Criterion) {
                     new_text: b"EDITED".to_vec(),
                     old_token_range: 0..0,
                     new_tokens: vec![],
+                    old_tokens: vec![],
+                    old_forest: None,
                 };
 
                 parser.parse_incremental(&tokens, &[edit])

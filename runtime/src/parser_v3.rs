@@ -9,7 +9,7 @@ use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::fmt;
 
 // Re-export the lexer Token type for consistency
-pub use crate::lexer::Token;
+pub(crate) use crate::lexer::Token;
 
 /// Parser state during execution
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ pub struct ParseNode {
 }
 
 /// The main parser engine with Grammar awareness
-pub struct Parser {
+pub(crate) struct Parser {
     /// The grammar being used
     grammar: Grammar,
     /// Parse table for the grammar
@@ -61,7 +61,7 @@ pub struct Parser {
 
 /// Parse errors that can occur
 #[derive(Debug, Clone, PartialEq)]
-pub enum ParseError {
+pub(crate) enum ParseError {
     /// Unexpected token encountered
     UnexpectedToken {
         expected: Vec<SymbolId>,
@@ -98,7 +98,7 @@ impl std::error::Error for ParseError {}
 
 impl Parser {
     /// Create a new parser with the given grammar and parse table
-    pub fn new(grammar: Grammar, parse_table: ParseTable) -> Self {
+    pub(crate) fn new(grammar: Grammar, parse_table: ParseTable) -> Self {
         Self {
             grammar,
             parse_table,
@@ -116,13 +116,13 @@ impl Parser {
     }
 
     /// Set error recovery configuration
-    pub fn with_error_recovery(mut self, config: ErrorRecoveryConfig) -> Self {
+    pub(crate) fn with_error_recovery(mut self, config: ErrorRecoveryConfig) -> Self {
         self.error_recovery = Some(config);
         self
     }
 
     /// Parse the input string
-    pub fn parse(&mut self, input: &str) -> Result<ParseNode> {
+    pub(crate) fn parse(&mut self, input: &str) -> Result<ParseNode> {
         self.input = input.as_bytes().to_vec();
         self.position = 0;
         self.state_stack.clear();

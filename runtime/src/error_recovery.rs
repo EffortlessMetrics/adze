@@ -1,3 +1,6 @@
+//! Error recovery strategies for robust parsing.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Comprehensive error recovery strategies for the pure-Rust Tree-sitter implementation
 // This module implements various error recovery techniques to produce useful parse trees
 // even when the input contains syntax errors.

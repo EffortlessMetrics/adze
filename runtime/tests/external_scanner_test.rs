@@ -6,8 +6,6 @@
 #![cfg(test)]
 
 use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
-use rust_sitter::unified_parser::Parser;
-use std::sync::Arc;
 
 /// Python-style indentation scanner
 #[derive(Debug, Default)]

@@ -27,11 +27,13 @@ debug_glr = [] # Enable debug output for GLR parser
 ts-compat = [] # Enable Tree-sitter compatibility API
 debug_incremental = [] # Enable debug output for incremental parsing
 experimental_examples = [] # Enable experimental examples that use internal APIs
+json_example = [] # Enable JSON parser example (separate from other examples)
 external_scanners = [] # Enable external scanner support (feature-gated)
 query = [] # Enable query predicates support
 runtime-e2e = [] # Opt-in integration tests that exercise end-to-end parsing paths
 strict_docs = [] # Enable strict documentation requirements
 strict_api = [] # Enable strict API surface checking
+unstable-benches = [] # Enable benchmarks that depend on unstable APIs
 
 [dependencies]
 tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
@@ -62,6 +64,8 @@ proptest = "1.4"
 hex = "0.4"
 glr-test-support = { path = "../glr-test-support" }
 rust-sitter-example = { path = "../example", features = ["ts-compat"] }
+rust-sitter-python-simple = { path = "../grammars/python-simple" }
+rust-sitter-python = { path = "../grammars/python" }
 
 [[bench]]
 name = "simple_bench"
@@ -70,6 +74,7 @@ harness = false
 [[bench]]
 name = "parser_benchmark"
 harness = false
+required-features = ["unstable-benches"]
 
 [[bench]]
 name = "glr_parser_bench"
@@ -78,14 +83,27 @@ harness = false
 [[bench]]
 name = "incremental_parsing"
 harness = false
+required-features = ["unstable-benches"]
 
 [[bench]]
 name = "incremental_benchmark"
 harness = false
+required-features = ["unstable-benches"]
 
 [[bench]]
 name = "incremental_simple"
 harness = false
+required-features = ["unstable-benches"]
+
+[[bench]]
+name = "parser_bench"
+harness = false
+required-features = ["unstable-benches"]
+
+[[bench]]
+name = "perf_benchmark"
+harness = false
+required-features = ["unstable-benches"]
 
 [[example]]
 name = "external_scanner_demo"
@@ -105,7 +123,7 @@ required-features = ["experimental_examples"]
 
 [[example]]
 name = "json_parser_example"
-required-features = ["experimental_examples"]
+required-features = ["json_example"]
 
 [[example]]
 name = "predicate_demo"
@@ -116,5 +134,9 @@ name = "pure_parser_demo"
 required-features = ["experimental_examples", "pure-rust"]
 
 [[example]]
-name = "validation_demo"
+name = "lang_probe"
 required-features = ["experimental_examples"]
+
+# [[example]]
+# name = "validation_demo"
+# required-features = ["experimental_examples"]

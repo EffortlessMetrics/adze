@@ -1,3 +1,6 @@
+//! Arena allocation for efficient memory management.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::ptr;

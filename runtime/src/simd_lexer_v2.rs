@@ -1,3 +1,6 @@
+//! SIMD-accelerated tokenization helpers (experimental).
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // SIMD-accelerated lexer for rust-sitter (stable Rust version)
 // Uses manual vectorization techniques for better performance
 

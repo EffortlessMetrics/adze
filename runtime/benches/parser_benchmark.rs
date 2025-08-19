@@ -1,3 +1,5 @@
+#![cfg(feature = "unstable-benches")]
+
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::tree_sitter::Parser;
 

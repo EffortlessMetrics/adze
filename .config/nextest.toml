@@ -1,0 +1,6 @@
+[profile.ci]
+# CI profile for nextest
+retries = 0
+fail-fast = false
+status-level = "fail"
+final-status-level = "fail"

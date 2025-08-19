@@ -1,3 +1,6 @@
+//! Performance optimizations and caching strategies.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Performance optimizations for pure-Rust parser
 use std::sync::atomic::{AtomicU64, Ordering};
 

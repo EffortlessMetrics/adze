@@ -1,3 +1,6 @@
+//! Subtree representation and manipulation.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Subtree representation with dynamic precedence support
 
 use rust_sitter_ir::SymbolId;

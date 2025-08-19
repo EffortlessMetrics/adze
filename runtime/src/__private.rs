@@ -21,6 +21,7 @@ pub struct TreeCursor<'a> {
 
 #[cfg(feature = "pure-rust")]
 impl<'a> TreeCursor<'a> {
+    /// Creates a new tree cursor for the given node.
     pub fn new(node: &'a ParsedNode) -> Self {
         Self {
             node,
@@ -29,6 +30,7 @@ impl<'a> TreeCursor<'a> {
         }
     }
 
+    /// Moves the cursor to the first child node.
     pub fn goto_first_child(&mut self) -> bool {
         if !self.children.is_empty() {
             self.current_index = 0;
@@ -38,6 +40,7 @@ impl<'a> TreeCursor<'a> {
         }
     }
 
+    /// Moves the cursor to the next sibling node.
     pub fn goto_next_sibling(&mut self) -> bool {
         if self.current_index + 1 < self.children.len() {
             self.current_index += 1;
@@ -47,6 +50,7 @@ impl<'a> TreeCursor<'a> {
         }
     }
 
+    /// Returns the current node.
     pub fn node(&self) -> &'a ParsedNode {
         if self.current_index < self.children.len() {
             &self.children[self.current_index]
@@ -78,6 +82,7 @@ pub fn extract_struct_or_variant<T>(
     )
 }
 
+/// Extracts a struct or variant from a parsed node.
 #[cfg(feature = "pure-rust")]
 pub fn extract_struct_or_variant<T>(
     node: &ParsedNode,
@@ -137,6 +142,7 @@ pub fn extract_field<LT: Extract<T>, T>(
     }
 }
 
+/// Extracts a field from the current position in the tree.
 #[cfg(feature = "pure-rust")]
 pub fn extract_field<LT: Extract<T>, T>(
     cursor_opt: &mut Option<TreeCursor>,
@@ -203,6 +209,7 @@ pub fn parse<T: Extract<T>>(
     }
 }
 
+/// Parses an input string and extracts a value using the pure-rust parser.
 #[cfg(feature = "pure-rust")]
 pub fn parse<T: Extract<T>>(
     input: &str,

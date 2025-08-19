@@ -1,5 +1,6 @@
-// Enhanced incremental parsing with proper subtree reuse
-// This module implements efficient incremental parsing by reusing unchanged subtrees
+//! Incremental parsing v3: experimental engine and support types.
+//! 
+//! This module implements efficient incremental parsing by reusing unchanged subtrees
 
 use crate::parser_v3::ParseNode;
 use anyhow::Result;
@@ -27,7 +28,9 @@ pub struct Edit {
 /// Position in the source (line, column)
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Position {
+    /// 0-based line number within the source.
     pub row: usize,
+    /// 0-based UTF-8 column offset within `row`.
     pub column: usize,
 }
 

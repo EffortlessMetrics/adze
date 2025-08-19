@@ -1,3 +1,5 @@
+#![cfg(feature = "unstable-benches")]
+
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::{
     glr_incremental::{Edit, IncrementalGLRParser, Position},
@@ -158,7 +160,6 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
                         incremental.parse_incremental(
                             black_box(new_tokens),
                             black_box(&[edit.clone()]),
-                            Some(tree),
                         )
                     },
                     criterion::BatchSize::SmallInput,
@@ -268,7 +269,6 @@ fn benchmark_edit_location_impact(c: &mut Criterion) {
                         incremental.parse_incremental(
                             black_box(new_tokens),
                             black_box(&[edit.clone()]),
-                            Some(tree),
                         )
                     },
                     criterion::BatchSize::SmallInput,

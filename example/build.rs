@@ -25,8 +25,10 @@ fn main() {
 
     if edition == Some("2024") {
         println!("cargo:rustc-cfg=rust_sitter_unsafe_attrs");
-        println!("cargo:rustc-check-cfg=cfg(rust_sitter_unsafe_attrs)");
     }
+    
+    // Always tell rustc this cfg is intentional
+    println!("cargo:rustc-check-cfg=cfg(rust_sitter_unsafe_attrs)");
 
     // Use lib.rs as the root since that's where the grammar modules are defined
     eprintln!("DEBUG: Building parsers...");

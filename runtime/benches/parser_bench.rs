@@ -1,10 +1,11 @@
 // Benchmarks for the pure-Rust Tree-sitter parser
 // This measures performance of various parsing operations
+#![cfg(feature = "unstable-benches")]
 #![allow(unused_imports, dead_code)]
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::lexer::{ErrorRecoveringLexer, ErrorRecoveryMode, GrammarLexer};
-use rust_sitter::parser_v2::{ParserV2, Token};
+use rust_sitter::parser_v4::{ParserV4 as ParserV2, Token};
 // use rust_sitter::incremental::{IncrementalParser, Edit, IncrementalTree};
 use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{

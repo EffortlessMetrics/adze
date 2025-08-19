@@ -1,3 +1,6 @@
+//! Bridge between GLR forests and Tree-sitter trees.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Bridge between GLR Subtree and Tree-sitter Node/Tree structures
 // This module provides conversion and compatibility layer
 

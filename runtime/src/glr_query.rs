@@ -1,3 +1,6 @@
+//! Query processing for GLR parse forests.
+#![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+
 // Query support for GLR parse results
 // Implements Tree-sitter's query language for pattern matching on GLR trees
 

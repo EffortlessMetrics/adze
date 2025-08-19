@@ -14,9 +14,11 @@ fn main() {
     // Create a simple parse tree (normally this would come from a parser)
     let tree = ParseNode {
         symbol: SymbolId(0), // program
+        symbol_id: SymbolId(0), // program
         children: vec![
             ParseNode {
                 symbol: SymbolId(1), // identifier
+                symbol_id: SymbolId(1), // identifier
                 children: vec![],
                 start_byte: 0,
                 end_byte: 5,
@@ -24,6 +26,7 @@ fn main() {
             },
             ParseNode {
                 symbol: SymbolId(1), // identifier
+                symbol_id: SymbolId(1), // identifier
                 children: vec![],
                 start_byte: 6,
                 end_byte: 11,
@@ -31,6 +34,7 @@ fn main() {
             },
             ParseNode {
                 symbol: SymbolId(1), // identifier
+                symbol_id: SymbolId(1), // identifier
                 children: vec![],
                 start_byte: 12,
                 end_byte: 16,
@@ -38,6 +42,7 @@ fn main() {
             },
             ParseNode {
                 symbol: SymbolId(1), // identifier
+                symbol_id: SymbolId(1), // identifier
                 children: vec![],
                 start_byte: 17,
                 end_byte: 22,

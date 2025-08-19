@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
 fn main() {
+    // Tell rustc this cfg is intentional so it doesn't warn
+    println!("cargo::rustc-check-cfg=cfg(rust_sitter_unsafe_attrs)");
     println!("cargo:rerun-if-changed=src/lib.rs");
     println!("cargo:rerun-if-changed=src/scanner.rs");
 
