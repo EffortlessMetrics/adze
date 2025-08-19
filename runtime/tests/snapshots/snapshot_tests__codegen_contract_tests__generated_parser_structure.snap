@@ -1,6 +1,5 @@
 ---
 source: runtime/tests/snapshot_tests.rs
-assertion_line: 121
 expression: expected_structure
 ---
         pub struct Parser { ... }

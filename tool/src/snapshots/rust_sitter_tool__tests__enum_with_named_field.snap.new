@@ -1,6 +1,0 @@
----
-source: tool/src/lib.rs
-assertion_line: 360
-expression: grammar
----
-{"name":"test","word":null,"rules":{"source_file":{"type":"SYMBOL","name":"Expr"},"Expr_Number":{"type":"PATTERN","value":"\\d+"},"Expr_Neg__bang":{"type":"STRING","value":"!"},"Expr_Neg":{"type":"SEQ","members":[{"type":"FIELD","name":"_bang","content":{"type":"SYMBOL","name":"Expr_Neg__bang"}},{"type":"FIELD","name":"value","content":{"type":"SYMBOL","name":"Expr"}}]},"Expr":{"type":"CHOICE","members":[{"type":"SYMBOL","name":"Expr_Number"},{"type":"SYMBOL","name":"Expr_Neg"}]}},"extras":[]}

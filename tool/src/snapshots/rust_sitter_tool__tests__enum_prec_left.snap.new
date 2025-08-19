@@ -1,6 +1,0 @@
----
-source: tool/src/lib.rs
-assertion_line: 444
-expression: grammar
----
-{"name":"test","word":null,"rules":{"source_file":{"type":"SYMBOL","name":"Expression"},"Expression_Number":{"type":"PATTERN","value":"\\d+"},"Expression_Sub":{"type":"PREC_LEFT","value":1,"content":{"type":"SEQ","members":[{"type":"FIELD","name":"Expression_Sub_0","content":{"type":"SYMBOL","name":"Expression"}},{"type":"STRING","value":"-"},{"type":"FIELD","name":"Expression_Sub_2","content":{"type":"SYMBOL","name":"Expression"}}]}},"Expression":{"type":"CHOICE","members":[{"type":"SYMBOL","name":"Expression_Number"},{"type":"SYMBOL","name":"Expression_Sub"}]}},"extras":[]}

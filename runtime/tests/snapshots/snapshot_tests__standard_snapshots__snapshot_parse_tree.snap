@@ -1,0 +1,5 @@
+---
+source: runtime/tests/snapshot_tests.rs
+expression: input
+---
+1 + 2

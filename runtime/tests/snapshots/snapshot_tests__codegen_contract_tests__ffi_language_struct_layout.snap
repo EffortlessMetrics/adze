@@ -1,6 +1,5 @@
 ---
 source: runtime/tests/snapshot_tests.rs
-assertion_line: 58
-expression: input
+expression: layout
 ---
-1 + 2
+size=128, align=8
