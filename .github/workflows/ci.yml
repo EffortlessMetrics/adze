@@ -243,6 +243,39 @@ jobs:
       - name: Build with minimal versions
         run: cargo build --workspace --all-features -Z minimal-versions
 
+  semver-checks:
+    name: API Breaking Change Detection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Install cargo-semver-checks
+        run: cargo install cargo-semver-checks --locked
+      
+      - name: Check for breaking changes in rust-sitter
+        run: |
+          cargo semver-checks check-release \
+            -p rust-sitter \
+            --baseline-rev origin/${{ github.base_ref }}
+      
+      - name: Check for breaking changes in macro
+        run: |
+          cargo semver-checks check-release \
+            -p rust-sitter-macro \
+            --baseline-rev origin/${{ github.base_ref }}
+      
+      - name: Check for breaking changes in tool
+        run: |
+          cargo semver-checks check-release \
+            -p rust-sitter-tool \
+            --baseline-rev origin/${{ github.base_ref }}
+
   deterministic-codegen:
     name: Deterministic Codegen
     runs-on: ubuntu-latest
