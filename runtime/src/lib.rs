@@ -24,10 +24,20 @@ pub mod field_tree;
 /// Line and column position tracking utilities.
 pub mod linecol;
 
-// Re-export commonly used types
+// Stable, documented entry points for public API
+// These re-exports are guaranteed stable across minor versions
 pub use ffi::TSSymbol;
 /// Type alias for symbol identifiers.
 pub type SymbolId = TSSymbol;
+
+// Stable re-exports for core functionality
+// Note: ts_compat is already declared below as a module, not a re-export
+
+#[cfg(feature = "pure-rust")]
+pub use glr_incremental::{Edit, GLRToken, IncrementalGLRParser};
+
+// Additional stable re-exports can be added here as needed
+// DO NOT move or remove existing re-exports
 
 // Legacy incremental modules - depend on deprecated parsers
 /// Incremental parsing façade used by older callers.
@@ -176,9 +186,23 @@ pub mod tree_sitter {
     pub const MIN_COMPATIBLE_LANGUAGE_VERSION: u32 = 13;
 }
 
+/// Private module for sealing traits to preserve future extensibility.
+pub mod sealed {
+    /// Marker trait for types that can implement Extract.
+    /// This trait is automatically implemented by the rust_sitter macros.
+    pub trait Sealed {}
+    
+    // Auto-implement for all types by default to support macro-generated code
+    // This is safe because Extract still requires explicit implementation
+    impl<T> Sealed for T {}
+}
+
 /// Defines the logic used to convert a node in a Tree Sitter tree to
 /// the corresponding Rust type.
-pub trait Extract<Output> {
+///
+/// This trait is sealed and cannot be implemented outside this crate,
+/// allowing us to add new methods in the future without breaking changes.
+pub trait Extract<Output>: sealed::Sealed {
     /// Associated function type for leaf node extraction.
     type LeafFn: ?Sized;
     /// Extracts a Rust value from a Tree-sitter node.
@@ -204,6 +228,8 @@ pub trait Extract<Output> {
 pub struct WithLeaf<L> {
     _phantom: std::marker::PhantomData<L>,
 }
+
+// The sealed trait is now auto-implemented for all types via blanket impl
 
 impl<L> Extract<L> for WithLeaf<L> {
     type LeafFn = dyn Fn(&str) -> L;

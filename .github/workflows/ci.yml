@@ -262,19 +262,27 @@ jobs:
         run: |
           cargo semver-checks check-release \
             -p rust-sitter \
-            --baseline-rev origin/${{ github.base_ref }}
+            --baseline-rev v0.8.0-dev.api-freeze-1
       
       - name: Check for breaking changes in macro
         run: |
           cargo semver-checks check-release \
             -p rust-sitter-macro \
-            --baseline-rev origin/${{ github.base_ref }}
+            --baseline-rev v0.8.0-dev.api-freeze-1
       
       - name: Check for breaking changes in tool
         run: |
           cargo semver-checks check-release \
             -p rust-sitter-tool \
-            --baseline-rev origin/${{ github.base_ref }}
+            --baseline-rev v0.8.0-dev.api-freeze-1
+      
+      - name: Public API diff (heads-up only)
+        continue-on-error: true
+        run: |
+          cargo install cargo-public-api || true
+          cargo public-api -p rust-sitter > public-api.new.txt
+          git show v0.8.0-dev.api-freeze-1:public-api.txt > public-api.old.txt || echo "No baseline API file yet" > public-api.old.txt
+          diff -u public-api.old.txt public-api.new.txt || true
 
   deterministic-codegen:
     name: Deterministic Codegen
@@ -326,11 +334,11 @@ jobs:
         run: cargo test -p rust-sitter --examples --features experimental_examples
 
   msrv:
-    name: MSRV (1.75.0)
+    name: MSRV (1.89.0)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.75.0
+      - uses: dtolnay/rust-toolchain@1.89.0
       - uses: Swatinem/rust-cache@v2
       
       - name: Build on MSRV

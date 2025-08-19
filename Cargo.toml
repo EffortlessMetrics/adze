@@ -36,12 +36,14 @@ exclude = [
 ]
 
 [workspace.package]
-rust-version = "1.75"
+rust-version = "1.89"
+edition = "2024"
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 unused_must_use = "deny"
 missing_docs = "warn"
+unused_extern_crates = "deny"
 
 [profile.ci]
 inherits = "dev"
