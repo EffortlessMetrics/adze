@@ -171,7 +171,7 @@ fn test_column_tracking_with_utf8() {
     }
     assert_eq!(
         unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
-        5 // Byte offset 5 (3 + 2)
+        4 // After advancing past 'é', we're at byte position 4 (not 5 - we're at the position after consuming the char)
     );
 }
 

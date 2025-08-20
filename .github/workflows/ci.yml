@@ -48,6 +48,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Check for disabled test files
+        run: |
+          if git ls-files '*.disabled' | grep -q .; then
+            echo "❌ Found .disabled files in repo:"
+            git ls-files '*.disabled'
+            echo ""
+            echo "Please either:"
+            echo "  1. Re-enable these tests by removing .disabled suffix"
+            echo "  2. Mark tests with #[ignore] attribute instead"
+            echo "  3. Remove obsolete test files"
+            exit 1
+          fi
+      
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       
@@ -75,6 +89,9 @@ jobs:
       
       - name: Example (pure-rust) tests
         run: cargo test -p rust-sitter-example --features pure-rust
+      
+      - name: Compile pure-rust golden tests (no-run)
+        run: cargo test -p rust-sitter --test golden_tests --features pure-rust --no-run
 
   test-release:
     name: Test Release Mode (${{ matrix.features }})
@@ -202,6 +219,9 @@ jobs:
       - name: Test ts-compat API
         run: cargo test -p rust-sitter --features "ts-compat pure-rust" --test ts_compat_equiv
       
+      - name: Test ts-compat golden tests
+        run: cargo test -p rust-sitter --test golden_tests --features ts-compat
+      
       - name: Test ts-compat with incremental GLR
         run: cargo test -p rust-sitter --features "ts-compat pure-rust incremental_glr" --test ts_compat_equiv
 
@@ -282,7 +302,21 @@ jobs:
           cargo install cargo-public-api || true
           cargo public-api -p rust-sitter > public-api.new.txt
           git show v0.8.0-dev.api-freeze-1:public-api.txt > public-api.old.txt || echo "No baseline API file yet" > public-api.old.txt
-          diff -u public-api.old.txt public-api.new.txt || true
+          diff -u public-api.old.txt public-api.new.txt > api-diff.txt || true
+          echo "API Diff Summary:" >> $GITHUB_STEP_SUMMARY
+          echo '```diff' >> $GITHUB_STEP_SUMMARY
+          cat api-diff.txt >> $GITHUB_STEP_SUMMARY || echo "No changes" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload API diff artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-api-diff
+          path: |
+            public-api.old.txt
+            public-api.new.txt
+            api-diff.txt
 
   deterministic-codegen:
     name: Deterministic Codegen

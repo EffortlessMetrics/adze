@@ -1,9 +1,37 @@
-use rust_sitter_glr_core::{Action, ParseTable};
+use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
 use rust_sitter_ir::{FieldId, Grammar, StateId, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::validation::TSLanguage;
 use rust_sitter_tablegen::{
     CompressedParseTable, LanguageBuilder, LanguageValidator, ValidationError,
 };
+
+// Helper function to create a default ParseTable for testing
+fn create_test_parse_table(grammar: Grammar) -> ParseTable {
+    ParseTable {
+        action_table: vec![],
+        goto_table: vec![],
+        symbol_metadata: vec![],
+        state_count: 0,
+        symbol_count: 0,
+        symbol_to_index: std::collections::BTreeMap::new(),
+        index_to_symbol: vec![],
+        external_scanner_states: vec![],
+        rules: vec![],
+        nonterminal_to_index: std::collections::BTreeMap::new(),
+        eof_symbol: SymbolId(0),
+        start_symbol: SymbolId(1),
+        grammar,
+        initial_state: StateId(0),
+        token_count: 0,
+        external_token_count: 0,
+        lex_modes: vec![],
+        extras: vec![],
+        dynamic_prec_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: std::collections::BTreeMap::new(),
+    }
+}
 
 #[test]
 fn test_language_generation_and_validation() {
@@ -22,18 +50,14 @@ fn test_language_generation_and_validation() {
     grammar.fields.insert(FieldId(0), "value".to_string());
 
     // Create parse table
-    let parse_table = ParseTable {
-        action_table: vec![
-            vec![vec![Action::Shift(StateId(1))]],
-            vec![vec![Action::Accept]],
-        ],
-        goto_table: vec![vec![StateId(0)], vec![StateId(1)]],
-        symbol_metadata: vec![],
-        state_count: 2,
-        symbol_count: 2,
-        symbol_to_index: std::collections::BTreeMap::new(),
-        external_scanner_states: vec![],
-    };
+    let mut parse_table = create_test_parse_table(grammar.clone());
+    parse_table.action_table = vec![
+        vec![vec![Action::Shift(StateId(1))]],
+        vec![vec![Action::Accept]],
+    ];
+    parse_table.goto_table = vec![vec![StateId(0)], vec![StateId(1)]];
+    parse_table.state_count = 2;
+    parse_table.symbol_count = 2;
 
     // Create compressed table before moving parse_table
     let compressed = CompressedParseTable::from_parse_table(&parse_table);
@@ -138,15 +162,9 @@ fn test_language_validation_field_names_ordering() {
     grammar.fields.insert(FieldId(1), "beta".to_string());
     grammar.fields.insert(FieldId(2), "gamma".to_string());
 
-    let parse_table = ParseTable {
-        action_table: vec![],
-        goto_table: vec![],
-        symbol_metadata: vec![],
-        state_count: 1,
-        symbol_to_index: std::collections::BTreeMap::new(),
-        symbol_count: 1,
-        external_scanner_states: vec![],
-    };
+    let mut parse_table = create_test_parse_table(grammar.clone());
+    parse_table.state_count = 1;
+    parse_table.symbol_count = 1;
 
     let generator = LanguageBuilder::new(grammar, parse_table);
     let result = generator.generate_language();
@@ -190,15 +208,11 @@ fn test_symbol_metadata_validation() {
         },
     );
 
-    let parse_table = ParseTable {
-        action_table: vec![vec![vec![Action::Accept]]],
-        goto_table: vec![vec![StateId(0)]],
-        symbol_metadata: vec![],
-        symbol_to_index: std::collections::BTreeMap::new(),
-        state_count: 1,
-        symbol_count: 4, // EOF + 3 tokens
-        external_scanner_states: vec![],
-    };
+    let mut parse_table = create_test_parse_table(grammar.clone());
+    parse_table.action_table = vec![vec![vec![Action::Accept]]];
+    parse_table.goto_table = vec![vec![StateId(0)]];
+    parse_table.state_count = 1;
+    parse_table.symbol_count = 4; // EOF + 3 tokens
 
     let generator = LanguageBuilder::new(grammar, parse_table);
     let result = generator.generate_language();
@@ -234,15 +248,7 @@ fn test_symbol_metadata_validation() {
 fn test_empty_grammar_validation() {
     // Test that an empty grammar still produces a valid Language
     let grammar = Grammar::new("empty".to_string());
-    let parse_table = ParseTable {
-        action_table: vec![],
-        goto_table: vec![],
-        symbol_to_index: std::collections::BTreeMap::new(),
-        symbol_metadata: vec![],
-        state_count: 0,
-        symbol_count: 0,
-        external_scanner_states: vec![],
-    };
+    let parse_table = create_test_parse_table(grammar.clone());
 
     let generator = LanguageBuilder::new(grammar, parse_table);
     let result = generator.generate_language();

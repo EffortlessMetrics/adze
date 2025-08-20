@@ -223,12 +223,28 @@ fn test_complete_json_parser() {
 
     // 2. Build parse table (simplified for demo)
     let parse_table = ParseTable {
-        action_table: vec![vec![Action::Error; 30]; 50],
+        action_table: vec![vec![vec![Action::Error]; 30]; 50], // ActionCell model: Vec<Vec<Vec<Action>>>
         goto_table: vec![vec![StateId(0); 10]; 50],
         symbol_metadata: vec![],
         state_count: 50,
         symbol_count: 30,
         symbol_to_index: BTreeMap::new(),
+        index_to_symbol: vec![],
+        external_scanner_states: vec![],
+        rules: vec![],
+        nonterminal_to_index: BTreeMap::new(),
+        eof_symbol: SymbolId(0),
+        start_symbol: SymbolId(1),
+        grammar: grammar.clone(),
+        initial_state: StateId(0),
+        token_count: 20,
+        external_token_count: 0,
+        lex_modes: vec![],
+        extras: vec![],
+        dynamic_prec_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: BTreeMap::new(),
     };
     println!(
         "✅ Built parse table with {} states",

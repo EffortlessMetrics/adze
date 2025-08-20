@@ -33,6 +33,18 @@ pub struct ChildEdge {
 /// Constant representing "no field" for a child edge
 pub const FIELD_NONE: u16 = u16::MAX;
 
+impl ChildEdge {
+    /// Create a new ChildEdge
+    pub fn new(subtree: Arc<Subtree>, field_id: u16) -> Self {
+        Self { subtree, field_id }
+    }
+    
+    /// Create a ChildEdge without a field
+    pub fn new_without_field(subtree: Arc<Subtree>) -> Self {
+        Self { subtree, field_id: FIELD_NONE }
+    }
+}
+
 /// A subtree in the parse tree, potentially with dynamic precedence
 #[derive(Debug, Clone)]
 pub struct Subtree {

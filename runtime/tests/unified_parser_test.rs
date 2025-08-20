@@ -42,6 +42,9 @@ mod tests {
             deserialize: None,
         },
         primary_state_ids: std::ptr::null(),
+        eof_symbol: 0,
+        production_count: 0,
+        production_lhs_index: std::ptr::null(),
     };
 
     #[test]

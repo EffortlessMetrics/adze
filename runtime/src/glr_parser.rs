@@ -871,10 +871,7 @@ impl GLRParser {
                 // No fields, use FIELD_NONE for all children
                 children
                     .into_iter()
-                    .map(|subtree| crate::subtree::ChildEdge {
-                        subtree,
-                        field_id: crate::subtree::FIELD_NONE,
-                    })
+                    .map(|subtree| crate::subtree::ChildEdge::new_without_field(subtree))
                     .collect()
             } else {
                 // Apply field mappings based on rule.fields
@@ -888,10 +885,7 @@ impl GLRParser {
                         .map(|(field_id, _)| field_id.0)
                         .unwrap_or(crate::subtree::FIELD_NONE);
 
-                    result.push(crate::subtree::ChildEdge {
-                        subtree: child,
-                        field_id,
-                    });
+                    result.push(crate::subtree::ChildEdge::new(child, field_id));
                 }
                 result
             };

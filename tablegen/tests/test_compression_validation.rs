@@ -365,6 +365,7 @@ fn test_compression_with_fork_actions() {
                         Action::Reduce(_) => "Reduce",
                         Action::Accept => "Accept",
                         Action::Fork(_) => "Fork",
+                        _ => "Unknown",
                     };
                     *action_counts.entry(action_type).or_insert(0) += 1;
                 }
@@ -666,6 +667,7 @@ fn test_bit_packed_round_trip() {
                 Action::Reduce(_) => reduce_count += 1,
                 Action::Accept => accept_count += 1,
                 Action::Fork(_) => fork_count += 1,
+                _ => {}
             }
 
             assert_eq!(

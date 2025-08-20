@@ -233,6 +233,9 @@ fn create_test_language() -> &'static rust_sitter::pure_parser::TSLanguage {
             deserialize: None,
         },
         primary_state_ids: std::ptr::null(),
+        eof_symbol: 0,
+        production_count: 0,
+        production_lhs_index: std::ptr::null(),
     };
     &LANGUAGE
 }

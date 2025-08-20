@@ -1,7 +1,7 @@
 // Comprehensive tests for the pure-Rust Tree-sitter implementation
 // Tests the tablegen module's functionality
 
-use rust_sitter_glr_core::{Action, ParseTable};
+use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
 use rust_sitter_ir::{
     FieldId, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
     TokenPattern,
@@ -61,6 +61,7 @@ fn create_test_grammar() -> Grammar {
 
 /// Create a simple parse table for testing
 fn create_test_parse_table() -> ParseTable {
+    let grammar = create_test_grammar();
     let mut parse_table = ParseTable {
         action_table: vec![],
         goto_table: vec![],
@@ -68,7 +69,22 @@ fn create_test_parse_table() -> ParseTable {
         state_count: 0,
         symbol_count: 0,
         symbol_to_index: std::collections::BTreeMap::new(),
+        index_to_symbol: vec![],
         external_scanner_states: vec![],
+        rules: vec![],
+        nonterminal_to_index: std::collections::BTreeMap::new(),
+        eof_symbol: SymbolId(0),
+        start_symbol: SymbolId(10),
+        grammar,
+        initial_state: StateId(0),
+        token_count: 3,
+        external_token_count: 0,
+        lex_modes: vec![],
+        extras: vec![SymbolId(3)], // whitespace
+        dynamic_prec_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: std::collections::BTreeMap::new(),
     };
 
     // Add some basic states
