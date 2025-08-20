@@ -1,6 +1,6 @@
 /// Common test helper utilities for rust-sitter tests
 use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{Grammar, SymbolId, StateId};
+use rust_sitter_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 /// Creates a minimal ParseTable for testing purposes.
@@ -45,7 +45,7 @@ pub fn normalize_json(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_normalize_json() {
         let input = r#"{

@@ -26,7 +26,7 @@ fn main() {
     if edition == Some("2024") {
         println!("cargo:rustc-cfg=rust_sitter_unsafe_attrs");
     }
-    
+
     // Always tell rustc this cfg is intentional
     println!("cargo:rustc-check-cfg=cfg(rust_sitter_unsafe_attrs)");
 

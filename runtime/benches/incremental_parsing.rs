@@ -91,7 +91,8 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
             &tokens,
             |b, tokens| {
                 b.iter(|| {
-                    let mut incremental = IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
+                    let mut incremental =
+                        IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
                     incremental.parse_incremental(black_box(tokens), &[])
                 });
             },
@@ -120,9 +121,7 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
                         // Setup: parse the original
                         let mut incremental =
                             IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
-                        let tree = incremental
-                            .parse_incremental(orig_tokens, &[])
-                            .unwrap();
+                        let tree = incremental.parse_incremental(orig_tokens, &[]).unwrap();
                         (incremental, tree)
                     },
                     |(mut incremental, tree)| {
@@ -141,7 +140,8 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
         // Measure reuse percentage
         if *size <= 100 {
             // Only for smaller sizes to avoid spam
-            let mut incremental = IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
+            let mut incremental =
+                IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
             let tree = incremental.parse_incremental(&tokens, &[]).unwrap();
 
             let _ = incremental.parse_incremental(&edited_tokens, &[edit.clone()]);
@@ -213,9 +213,7 @@ fn benchmark_edit_location_impact(c: &mut Criterion) {
                     || {
                         let mut incremental =
                             IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
-                        let tree = incremental
-                            .parse_incremental(orig_tokens, &[])
-                            .unwrap();
+                        let tree = incremental.parse_incremental(orig_tokens, &[]).unwrap();
                         (incremental, tree)
                     },
                     |(mut incremental, tree)| {

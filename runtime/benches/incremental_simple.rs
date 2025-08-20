@@ -83,7 +83,8 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
         // Benchmark initial parse
         group.bench_with_input(BenchmarkId::new("initial", size), &tokens, |b, tokens| {
             b.iter(|| {
-                let mut incremental = IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
+                let mut incremental =
+                    IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
                 incremental.parse_incremental(black_box(tokens), &[])
             });
         });

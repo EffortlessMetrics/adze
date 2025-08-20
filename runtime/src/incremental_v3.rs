@@ -1,5 +1,5 @@
 //! Incremental parsing v3: experimental engine and support types.
-//! 
+//!
 //! This module implements efficient incremental parsing by reusing unchanged subtrees
 
 use crate::parser_v3::ParseNode;

@@ -191,7 +191,7 @@ pub mod sealed {
     /// Marker trait for types that can implement Extract.
     /// This trait is automatically implemented by the rust_sitter macros.
     pub trait Sealed {}
-    
+
     // Auto-implement for all types by default to support macro-generated code
     // This is safe because Extract still requires explicit implementation
     impl<T> Sealed for T {}

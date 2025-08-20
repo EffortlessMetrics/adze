@@ -157,10 +157,8 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
                     },
                     |(mut incremental, tree)| {
                         // Benchmark: reparse with edit
-                        incremental.parse_incremental(
-                            black_box(new_tokens),
-                            black_box(&[edit.clone()]),
-                        )
+                        incremental
+                            .parse_incremental(black_box(new_tokens), black_box(&[edit.clone()]))
                     },
                     criterion::BatchSize::SmallInput,
                 );
@@ -266,10 +264,8 @@ fn benchmark_edit_location_impact(c: &mut Criterion) {
                         (incremental, tree)
                     },
                     |(mut incremental, tree)| {
-                        incremental.parse_incremental(
-                            black_box(new_tokens),
-                            black_box(&[edit.clone()]),
-                        )
+                        incremental
+                            .parse_incremental(black_box(new_tokens), black_box(&[edit.clone()]))
                     },
                     criterion::BatchSize::SmallInput,
                 );

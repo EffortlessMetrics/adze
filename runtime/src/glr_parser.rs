@@ -871,7 +871,7 @@ impl GLRParser {
                 // No fields, use FIELD_NONE for all children
                 children
                     .into_iter()
-                    .map(|subtree| crate::subtree::ChildEdge::new_without_field(subtree))
+                    .map(crate::subtree::ChildEdge::new_without_field)
                     .collect()
             } else {
                 // Apply field mappings based on rule.fields

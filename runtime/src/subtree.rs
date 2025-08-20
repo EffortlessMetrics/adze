@@ -38,10 +38,13 @@ impl ChildEdge {
     pub fn new(subtree: Arc<Subtree>, field_id: u16) -> Self {
         Self { subtree, field_id }
     }
-    
+
     /// Create a ChildEdge without a field
     pub fn new_without_field(subtree: Arc<Subtree>) -> Self {
-        Self { subtree, field_id: FIELD_NONE }
+        Self {
+            subtree,
+            field_id: FIELD_NONE,
+        }
     }
 }
 

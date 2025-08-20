@@ -5,10 +5,14 @@ use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, Token
 
 // ---- shims so included ../src files compile when built as an example ----
 #[allow(dead_code, unused_imports)]
-mod subtree { pub use rust_sitter::subtree::*; }
+mod subtree {
+    pub use rust_sitter::subtree::*;
+}
 
 #[allow(dead_code, unused_imports)]
-mod error_recovery { pub use rust_sitter::error_recovery::*; }
+mod error_recovery {
+    pub use rust_sitter::error_recovery::*;
+}
 // -------------------------------------------------------------------------
 
 // Import internal modules (in real usage, these would be exported)

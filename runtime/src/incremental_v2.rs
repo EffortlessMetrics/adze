@@ -1,5 +1,5 @@
 //! Incremental parsing v2: types for edits, positions and node changes.
-//! 
+//!
 //! This module provides efficient reparsing by reusing unchanged subtrees
 
 use crate::parser_v2::{ParseError, ParseNode, Token};

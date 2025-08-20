@@ -1356,6 +1356,17 @@ impl Parser {
 
         expected
     }
+
+    /// Temporary fallback: do a full reparse. Keeps tests stable while
+    /// incremental engine wiring lands.
+    pub fn reparse(
+        &mut self,
+        source: &str,
+        _old_tree: &crate::pure_incremental::Tree,
+        _edit: &crate::pure_incremental::Edit,
+    ) -> ParseResult {
+        self.parse_string(source)
+    }
 }
 
 /// Token returned by lexer

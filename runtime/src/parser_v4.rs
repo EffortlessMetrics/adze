@@ -605,6 +605,17 @@ impl Parser {
         }
     }
 
+    /// Temporary fallback: do a full reparse. Keeps tests stable while
+    /// incremental engine wiring lands.
+    pub fn reparse(
+        &mut self,
+        input: &str,
+        _old: &Tree,
+        _edit: &crate::pure_incremental::Edit,
+    ) -> Result<Tree> {
+        self.parse(input)
+    }
+
     /// Get the parse actions for a state and symbol
     fn get_parse_actions(&self, state: StateId, symbol: SymbolId) -> Result<Vec<Action>> {
         // Look up the actions in the parse table

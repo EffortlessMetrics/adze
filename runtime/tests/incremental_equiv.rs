@@ -1,5 +1,5 @@
 //! Tests to verify that incremental parsing produces the same results as fresh parsing
-//! 
+//!
 //! These tests are currently disabled because Parser::reparse is not yet implemented.
 //! Once incremental parsing support is added, these tests should be re-enabled.
 

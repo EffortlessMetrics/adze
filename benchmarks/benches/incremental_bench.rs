@@ -219,7 +219,10 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
                         let text_str = String::from_utf8_lossy(&token.text);
                         parser.process_token(token.symbol, &text_str, token.start_byte);
                     }
-                    let total_bytes = new_tokens.last().map(|t| t.start_byte + t.text.len()).unwrap_or(0);
+                    let total_bytes = new_tokens
+                        .last()
+                        .map(|t| t.start_byte + t.text.len())
+                        .unwrap_or(0);
                     parser.process_eof(total_bytes);
                     parser.finish()
                 });

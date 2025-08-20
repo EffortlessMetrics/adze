@@ -1,4 +1,4 @@
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{SymbolId, builder::GrammarBuilder};
 use rust_sitter_tablegen::{collect_token_indices, eof_accepts_or_reduces};
 use std::collections::BTreeMap;
@@ -11,7 +11,7 @@ fn main() {
         .token("STAR", "*")
         .token("NUM", r"\d+")
         // Build a simple grammar: start -> expr*, expr -> term ('+' term)*, term -> NUM ('*' NUM)*
-        .rule("start", vec![])  // Nullable start symbol (empty rule)
+        .rule("start", vec![]) // Nullable start symbol (empty rule)
         .rule("start", vec!["expr"])
         .rule("expr", vec!["term"])
         .rule("expr", vec!["expr", "PLUS", "term"])
@@ -21,7 +21,8 @@ fn main() {
 
     // Generate parse table
     let first_follow = FirstFollowSets::compute(&grammar);
-    let parse_table = build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
+    let parse_table =
+        build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
     // Display symbol->col mappings (first 10)
     println!("=== Symbol → Column Mappings (first 10) ===");
