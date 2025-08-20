@@ -239,6 +239,32 @@ impl Parser {
             ));
         }
 
+        // Validate required pointers based on table type
+        if language.large_state_count > 0 {
+            // Large-table path requires parse_table + parse_actions
+            if language.parse_table.is_null() || language.parse_actions.is_null() {
+                return Err(
+                    "Invalid language: large_state_count > 0 but parse_table/parse_actions is null"
+                        .to_string(),
+                );
+            }
+        } else {
+            // Small-table path requires both small arrays
+            if language.small_parse_table.is_null() || language.small_parse_table_map.is_null() {
+                return Err("Invalid language: small table path missing small_parse_table/small_parse_table_map".to_string());
+            }
+        }
+
+        // Symbol metadata & names must be present
+        if language.symbol_names.is_null() || language.symbol_metadata.is_null() {
+            return Err("Invalid language: missing symbol_names or symbol_metadata".to_string());
+        }
+
+        // Field names can be null if field_count == 0
+        if language.field_count > 0 && language.field_names.is_null() {
+            return Err("Invalid language: field_count > 0 but field_names is null".to_string());
+        }
+
         self.language = Some(language);
         self.reset();
         Ok(())

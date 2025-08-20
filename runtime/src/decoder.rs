@@ -165,17 +165,24 @@ pub fn decode_grammar_with_patterns(
     let mut externals = Vec::new();
 
     // Read all symbol names
-    for i in 0..lang.symbol_count as usize {
-        unsafe {
-            let name_ptr = *lang.symbol_names.add(i);
-            let name = if name_ptr.is_null() {
-                format!("symbol_{}", i)
-            } else {
-                CStr::from_ptr(name_ptr as *const c_char)
-                    .to_string_lossy()
-                    .into_owned()
-            };
-            symbol_names.push(name);
+    if lang.symbol_names.is_null() {
+        // If symbol_names pointer is null, generate default names
+        for i in 0..lang.symbol_count as usize {
+            symbol_names.push(format!("symbol_{}", i));
+        }
+    } else {
+        for i in 0..lang.symbol_count as usize {
+            unsafe {
+                let name_ptr = *lang.symbol_names.add(i);
+                let name = if name_ptr.is_null() {
+                    format!("symbol_{}", i)
+                } else {
+                    CStr::from_ptr(name_ptr as *const c_char)
+                        .to_string_lossy()
+                        .into_owned()
+                };
+                symbol_names.push(name);
+            }
         }
     }
 

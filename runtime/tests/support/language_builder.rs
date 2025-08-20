@@ -7,7 +7,8 @@ use std::collections::HashMap;
 use std::ffi::CString;
 
 /// Build a stable action set and return a flat parse_table (indices into `ts_actions`)
-fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>) {
+/// GLR cells may contain multiple actions; we export the first one to the TS surface.
+pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>) {
     // 0 = Error
     let mut ts_actions: Vec<TSParseAction> = vec![TSParseAction {
         action_type: 0,
@@ -170,6 +171,10 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
     }
     let production_lhs = Box::leak(Box::new(production_lhs));
 
+    // Build primary_state_ids array (all states are primary in our simple implementation)
+    let primary_state_ids: Vec<u16> = (0..parse_table.state_count as u16).collect();
+    let primary_state_ids = Box::leak(Box::new(primary_state_ids));
+
     // If we have states, they should all be large states for simplicity
     // since we're not implementing compression
     TSLanguage {
@@ -201,7 +206,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         keyword_lex_fn: None,
         keyword_capture_token: 0,
         external_scanner: ExternalScanner::default(),
-        primary_state_ids: std::ptr::null(),
+        primary_state_ids: primary_state_ids.as_ptr(),
         production_lhs_index: production_lhs.as_ptr(),
         production_count: parse_table.rules.len() as u16,
         eof_symbol: parse_table.eof_symbol.0 as u16,
