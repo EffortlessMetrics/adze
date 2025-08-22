@@ -12,6 +12,7 @@ use std::fmt;
 /// The main parser struct - provides a unified interface for all parsing needs
 pub struct Parser {
     inner: Option<parser_v4::Parser>,
+    language: Option<&'static TSLanguage>,
     language_name: Option<String>,
     timeout_micros: Option<u64>,
 }
@@ -21,6 +22,7 @@ impl Parser {
     pub fn new() -> Self {
         Parser {
             inner: None,
+            language: None,
             language_name: None,
             timeout_micros: None,
         }
@@ -64,6 +66,7 @@ impl Parser {
         }
 
         self.inner = Some(v4_parser);
+        self.language = Some(language);
         self.language_name = Some(language_name);
 
         Ok(())
@@ -93,9 +96,24 @@ impl Parser {
         source: &str,
         _old_tree: Option<&parser_v4::Tree>,
     ) -> Option<parser_v4::Tree> {
-        if let Some(ref mut parser) = self.inner {
-            // For now, ignore old_tree (incremental parsing to be added)
-            parser.parse(source).ok()
+        if let (Some(parser), Some(language)) = (&mut self.inner, self.language) {
+            // Use the auto-lexer method that checks for lex_fn
+            match parser.parse_with_auto_lexer(source, language) {
+                Ok(tree) => Some(tree),
+                Err(e) => {
+                    eprintln!("Parse error with auto-lexer: {}", e);
+                    None
+                }
+            }
+        } else if let Some(parser) = &mut self.inner {
+            // Fallback to regular parse if no language stored
+            match parser.parse(source) {
+                Ok(tree) => Some(tree),
+                Err(e) => {
+                    eprintln!("Parse error: {}", e);
+                    None
+                }
+            }
         } else {
             None
         }

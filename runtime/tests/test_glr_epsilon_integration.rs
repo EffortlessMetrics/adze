@@ -117,7 +117,6 @@ fn parse_with_grammar(grammar: &Grammar, input: &str) -> Option<Arc<Subtree>> {
 }
 
 #[test]
-#[ignore = "GLR parser epsilon issue - needs investigation"]
 fn test_epsilon_productions() {
     let grammar = create_epsilon_grammar();
 
@@ -151,7 +150,6 @@ fn test_epsilon_productions() {
 }
 
 #[test]
-#[ignore = "GLR parser epsilon issue - needs investigation"]
 fn test_multiple_epsilon_paths() {
     let mut grammar = Grammar::new("multi_epsilon".to_string());
 
@@ -260,7 +258,6 @@ fn test_multiple_epsilon_paths() {
 }
 
 #[test]
-#[ignore = "GLR parser epsilon issue - needs investigation"]
 fn test_epsilon_with_recursion() {
     let mut grammar = Grammar::new("epsilon_recursion".to_string());
 

@@ -45,6 +45,9 @@ unused_must_use = "deny"
 missing_docs = "warn"
 unused_extern_crates = "deny"
 
+[workspace.dependencies]
+tree-sitter = "=0.25.8"
+
 [profile.ci]
 inherits = "dev"
 debug = 0

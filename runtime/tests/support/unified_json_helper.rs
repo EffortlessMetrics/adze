@@ -25,7 +25,7 @@ pub fn unified_json_language() -> &'static TSLanguage {
     let grammar = json_grammar::build_json_grammar();
 
     let ff = FirstFollowSets::compute(&grammar);
-    let table = build_lr1_automaton(&grammar, &ff).expect("build LR(1) automaton");
+    let mut table = build_lr1_automaton(&grammar, &ff).expect("build LR(1) automaton");
 
     // Fail fast if something drifts
     eprintln!(
@@ -60,7 +60,10 @@ pub fn unified_json_language() -> &'static TSLanguage {
         "symbol index too small"
     );
 
-    let lang = language_builder::build_ts_language(&grammar, &table);
+    // Normalize the table to Tree-sitter format before building the language
+    language_builder::normalize_table_for_ts(&mut table);
+
+    let lang = language_builder::build_json_ts_language(&grammar, &table);
     Box::leak(Box::new(lang))
 }
 

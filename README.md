@@ -15,6 +15,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference
 - [Migration Guide](./MIGRATION_GUIDE.md) - Migrating from Tree-sitter
 - [v0.6 Migration](./docs/migration-to-v0.6.md) - Upgrading from v0.5 to v0.6
+- [Tree-sitter Table Format Spec](./docs/ts_spec.md) - Tree-sitter compatibility layer specification
 - [Optimizer Usage](./docs/optimizer-usage.md) - Using the grammar optimizer for better performance
 - [Roadmap](./ROADMAP.md) - Project roadmap and future plans
 - [Testing Framework](./TESTING_FRAMEWORK.md) - Comprehensive testing guide

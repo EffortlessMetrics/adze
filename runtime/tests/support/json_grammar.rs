@@ -4,16 +4,17 @@ use rust_sitter_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Tok
 use std::collections::BTreeMap;
 
 // --- Terminals (tokens) -------------------------------------------------------
-const LBRACE: SymbolId = SymbolId(0);
-const RBRACE: SymbolId = SymbolId(1);
-const COLON: SymbolId = SymbolId(2);
-const COMMA: SymbolId = SymbolId(3);
-const STRING: SymbolId = SymbolId(4);
-const NUMBER: SymbolId = SymbolId(5);
+pub const LBRACE: SymbolId = SymbolId(0);
+pub const RBRACE: SymbolId = SymbolId(1);
+pub const COLON: SymbolId = SymbolId(2);
+pub const COMMA: SymbolId = SymbolId(3);
+pub const STRING: SymbolId = SymbolId(4);
+pub const NUMBER: SymbolId = SymbolId(5);
 // Optional (keeps lexer flexible)
 const WS: SymbolId = SymbolId(6);
 
 // --- Nonterminals -------------------------------------------------------------
+pub const DOCUMENT: SymbolId = SymbolId(99); // New direct start symbol
 const START: SymbolId = SymbolId(100);
 const VALUE: SymbolId = SymbolId(101);
 const OBJECT: SymbolId = SymbolId(102);
@@ -79,6 +80,19 @@ pub fn build_json_grammar() -> Grammar {
     // Optional whitespace token if you plan to use `extras` later:
     // g.tokens.insert(WS, Token { name: "WS".into(), pattern: TokenPattern::Regex(r"\s+".into()), fragile: false });
 
+    // DOCUMENT -> OBJECT (direct production for LR(1) shift on '{')
+    g.rules.insert(
+        DOCUMENT,
+        vec![Rule {
+            lhs: DOCUMENT,
+            rhs: vec![Symbol::NonTerminal(OBJECT)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        }],
+    );
+
     // START -> VALUE
     g.rules.insert(
         START,
@@ -88,7 +102,7 @@ pub fn build_json_grammar() -> Grammar {
             precedence: None,
             associativity: None,
             fields: vec![],
-            production_id: ProductionId(0),
+            production_id: ProductionId(1),
         }],
     );
 
@@ -102,7 +116,7 @@ pub fn build_json_grammar() -> Grammar {
                 precedence: None,
                 associativity: None,
                 fields: vec![],
-                production_id: ProductionId(0),
+                production_id: ProductionId(2),
             },
             Rule {
                 lhs: VALUE,
@@ -110,7 +124,7 @@ pub fn build_json_grammar() -> Grammar {
                 precedence: None,
                 associativity: None,
                 fields: vec![],
-                production_id: ProductionId(0),
+                production_id: ProductionId(3),
             },
             Rule {
                 lhs: VALUE,
@@ -118,7 +132,7 @@ pub fn build_json_grammar() -> Grammar {
                 precedence: None,
                 associativity: None,
                 fields: vec![],
-                production_id: ProductionId(0),
+                production_id: ProductionId(4),
             },
         ],
     );
@@ -133,7 +147,7 @@ pub fn build_json_grammar() -> Grammar {
                 precedence: None,
                 associativity: None,
                 fields: vec![],
-                production_id: ProductionId(0),
+                production_id: ProductionId(5),
             },
             Rule {
                 lhs: OBJECT,
@@ -145,7 +159,7 @@ pub fn build_json_grammar() -> Grammar {
                 precedence: None,
                 associativity: None,
                 fields: vec![],
-                production_id: ProductionId(0),
+                production_id: ProductionId(6),
             },
         ],
     );
@@ -160,7 +174,7 @@ pub fn build_json_grammar() -> Grammar {
                 precedence: None,
                 associativity: None,
                 fields: vec![],
-                production_id: ProductionId(0),
+                production_id: ProductionId(7),
             },
             Rule {
                 lhs: PAIRS,
@@ -172,7 +186,7 @@ pub fn build_json_grammar() -> Grammar {
                 precedence: None,
                 associativity: None,
                 fields: vec![],
-                production_id: ProductionId(0),
+                production_id: ProductionId(8),
             },
         ],
     );
@@ -190,7 +204,7 @@ pub fn build_json_grammar() -> Grammar {
             precedence: None,
             associativity: None,
             fields: vec![(F_KEY, 0), (F_VALUE, 2)],
-            production_id: ProductionId(0),
+            production_id: ProductionId(9),
         }],
     );
 
@@ -199,7 +213,8 @@ pub fn build_json_grammar() -> Grammar {
     g.fields.insert(F_VALUE, "value".to_string());
 
     // Add rule names so the grammar can identify the start symbol
-    g.rule_names.insert(START, "source_file".to_string()); // Use Tree-sitter convention
+    g.rule_names.insert(DOCUMENT, "source_file".to_string()); // Use Tree-sitter convention for start
+    g.rule_names.insert(START, "start".to_string()); // Old indirect start
     g.rule_names.insert(VALUE, "value".to_string());
     g.rule_names.insert(OBJECT, "object".to_string());
     g.rule_names.insert(PAIRS, "pairs".to_string());

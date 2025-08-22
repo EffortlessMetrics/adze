@@ -35,7 +35,7 @@ jobs:
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
   test:
-    name: Test (${{ matrix.os }} / ${{ matrix.features }})
+    name: Test (${{ matrix.os }} / ${{ matrix.features }} / ${{ matrix.toolchain }})
     strategy:
       fail-fast: false
       matrix:
@@ -45,6 +45,19 @@ jobs:
           - "--features external_scanners"
           - "--features incremental_glr"
           - "--all-features"
+        toolchain: [stable, beta]
+        exclude:
+          # Reduce CI load: only test beta on ubuntu with default features
+          - os: macos-latest
+            toolchain: beta
+          - os: windows-latest
+            toolchain: beta
+          - features: "--features external_scanners"
+            toolchain: beta
+          - features: "--features incremental_glr"
+            toolchain: beta
+          - features: "--all-features"
+            toolchain: beta
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +75,7 @@ jobs:
             exit 1
           fi
       
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@${{ matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
       
       - name: Install nextest
@@ -90,8 +103,26 @@ jobs:
       - name: Example (pure-rust) tests
         run: cargo test -p rust-sitter-example --features pure-rust
       
+      - name: Test tablegen (small-table)
+        run: cargo test -p rust-sitter-tablegen --features "small-table" -- --nocapture
+      
       - name: Compile pure-rust golden tests (no-run)
         run: cargo test -p rust-sitter --test golden_tests --features pure-rust --no-run
+
+  # Matrix smoke test to prevent feature drift
+  matrix-smoke:
+    name: Matrix Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Test (workspace, default features)
+        run: cargo test --workspace --locked --no-fail-fast
+      
+      - name: Test (workspace, all features)
+        run: cargo test --workspace --all-features --locked --no-fail-fast
 
   test-release:
     name: Test Release Mode (${{ matrix.features }})

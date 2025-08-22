@@ -53,5 +53,6 @@ default = ["tree-sitter-c2rust"]
 tree-sitter-standard = ["tree-sitter"]
 tree-sitter-c2rust = ["dep:tree-sitter-c2rust"]
 compression = [] # Feature for compression/decompression utilities
+small-table = [] # Feature for compressed table generation
 strict_docs = []  # Feature flag for strict documentation enforcement
 strict_api = []  # Feature flag for strict API surface checking

@@ -98,13 +98,13 @@ fn encode_actions_minimal() {
     let a01 = ts_actions[idx_01];
     let a12 = ts_actions[idx_12];
 
-    // action_type: 1=Shift, 2=Reduce, 3=Accept (per your encoder)
+    // action_type: 0=Error, 1=Shift, 3=Reduce, 4=Accept (per ts_spec.md)
     assert_eq!(a00.action_type, 1, "expected Shift at (0,0)");
-    assert_eq!(a01.action_type, 2, "expected Reduce at (0,1)");
+    assert_eq!(a01.action_type, 3, "expected Reduce at (0,1)");
     assert_eq!(
         a01.child_count, 2,
         "rhs_len should be encoded in child_count"
     );
-    assert_eq!(a01.symbol, 1, "reduce lhs must be S1");
-    assert_eq!(a12.action_type, 3, "expected Accept at (1,2)");
+    assert_eq!(a01.symbol, 0, "reduce encodes rule_id (0) in symbol field");
+    assert_eq!(a12.action_type, 4, "expected Accept at (1,2)");
 }

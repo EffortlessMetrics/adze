@@ -1,17 +1,208 @@
-#![cfg(feature = "pure-rust")]
-
-use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction};
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, StateId};
-use std::collections::HashMap;
+use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
+use rust_sitter::ts_format::{TSActionTag, choose_action};
+use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::CString;
+use std::os::raw::c_void;
+
+/// Normalize a ParseTable to Tree-sitter's expectations:
+/// - Dense columns 0..N-1
+/// - Columns [0..tcols) are terminals, [tcols..N) are nonterminals
+/// - NT gotos added as Shift actions in the action table
+/// - Accept injected at GOTO(I0, start) on EOF
+pub fn normalize_table_for_ts(table: &mut ParseTable) {
+    // === Step 1: Dense remap with terminals first, then nonterminals ===
+    let tcols = table.token_count + table.external_token_count;
+
+    // Classify by original column kinds (token vs NT) to preserve tcols split
+    let old_sym_to_col = table.symbol_to_index.clone();
+    let mut terms: Vec<(SymbolId, usize)> = Vec::new();
+    let mut nterms: Vec<(SymbolId, usize)> = Vec::new();
+
+    for (&sym, &col) in &old_sym_to_col {
+        if sym.0 == 65535 {
+            continue;
+        } // drop augmented sentinel
+        if col < tcols {
+            terms.push((sym, col));
+        } else {
+            nterms.push((sym, col));
+        }
+    }
+
+    // Stable deterministic order (by SymbolId)
+    terms.sort_by_key(|(s, _)| s.0);
+    nterms.sort_by_key(|(s, _)| s.0);
+
+    // Dense order = [terms..., nterms...]
+    let all_syms: Vec<SymbolId> = terms.iter().chain(&nterms).map(|(s, _)| *s).collect();
+
+    // Build dense col map
+    let mut dense_col: BTreeMap<SymbolId, usize> = BTreeMap::new();
+    for (i, &s) in all_syms.iter().enumerate() {
+        dense_col.insert(s, i);
+    }
+
+    // Rebuild symbol_to_index/index_to_symbol
+    let old_action_table = table.action_table.clone();
+    let old_goto_table = table.goto_table.clone();
+
+    table.symbol_to_index.clear();
+    table.index_to_symbol.clear();
+    for (i, &s) in all_syms.iter().enumerate() {
+        table.symbol_to_index.insert(s, i);
+        table.index_to_symbol.push(s);
+    }
+
+    // Allocate dense action/goto
+    let new_cols = table.index_to_symbol.len();
+    table.action_table = vec![vec![vec![]; new_cols]; table.state_count];
+    table.goto_table = vec![vec![StateId(0); new_cols]; table.state_count];
+    table.symbol_count = new_cols; // keep metadata consistent
+
+    // Copy old cells → new dense positions
+    for (sym, old_col) in old_sym_to_col {
+        if sym.0 == 65535 {
+            continue;
+        }
+        let Some(&new_col) = dense_col.get(&sym) else {
+            continue;
+        };
+        for st in 0..table.state_count {
+            if st < old_action_table.len() && old_col < old_action_table[st].len() {
+                table.action_table[st][new_col] = old_action_table[st][old_col].clone();
+            }
+            if st < old_goto_table.len() && old_col < old_goto_table[st].len() {
+                table.goto_table[st][new_col] = old_goto_table[st][old_col];
+            }
+        }
+    }
+
+    // === Step 2: Add NT gotos to action table (as Shifts) ===
+    for st in 0..table.state_count {
+        for nt_col in tcols..table.symbol_count {
+            let next = table.goto_table[st][nt_col];
+            if next != StateId(0) {
+                let cell = &mut table.action_table[st][nt_col];
+                if !cell
+                    .iter()
+                    .any(|a| matches!(a, Action::Shift(s) if *s == next))
+                {
+                    cell.push(Action::Shift(next));
+                }
+            }
+        }
+    }
+
+    // === Step 3: Compute start NT and Accept injection ===
+    // Candidates: NT columns in I0 that have a Shift
+    let mut start_candidates: Vec<SymbolId> = Vec::new();
+    for col in tcols..table.symbol_count {
+        if table.action_table[0][col]
+            .iter()
+            .any(|a| matches!(a, Action::Shift(_)))
+        {
+            start_candidates.push(table.index_to_symbol[col]);
+        }
+    }
+
+    // Prefer highest SymbolId (commonly augmented start)
+    let start_nt = if let Some(s) = start_candidates.iter().max_by_key(|s| s.0) {
+        *s
+    } else {
+        // Fallback: pick a LHS present in rules that's an NT
+        let lhs_nts: BTreeSet<_> = table.rules.iter().map(|r| r.lhs).collect();
+        lhs_nts
+            .iter()
+            .filter(|s| table.symbol_to_index.get(s).is_some_and(|&c| c >= tcols))
+            .max_by_key(|s| s.0)
+            .copied()
+            .unwrap_or_else(|| {
+                table
+                    .index_to_symbol
+                    .get(tcols)
+                    .copied()
+                    .unwrap_or(SymbolId(0))
+            })
+    };
+    table.start_symbol = start_nt;
+
+    // Accept state = goto(I0, start_nt)
+    let start_col = *table
+        .symbol_to_index
+        .get(&start_nt)
+        .expect("start_nt must be in symbol_to_index");
+    let accept_state = table.action_table[0][start_col]
+        .iter()
+        .find_map(|a| {
+            if let Action::Shift(s) = a {
+                Some(*s)
+            } else {
+                None
+            }
+        })
+        .or_else(|| {
+            // Fallback to goto_table if present
+            let s = table.goto_table[0][start_col];
+            (s != StateId(0)).then_some(s)
+        })
+        .unwrap_or(StateId(1)); // last resort (nonzero to avoid [0] row)
+
+    // Inject Accept on EOF at accept_state row
+    let eof_col = *table
+        .symbol_to_index
+        .get(&table.eof_symbol)
+        .expect("EOF must be in symbol_to_index");
+    let row = accept_state.0 as usize;
+    if !table.action_table[row][eof_col]
+        .iter()
+        .any(|a| matches!(a, Action::Accept))
+    {
+        table.action_table[row][eof_col].push(Action::Accept);
+    }
+
+    // === Step 4: Invariants (debug-only but cheap) ===
+    #[cfg(debug_assertions)]
+    {
+        // Dense property: col(i) == i
+        for i in 0..table.index_to_symbol.len() {
+            let sym = table.index_to_symbol[i];
+            let &mapped = table.symbol_to_index.get(&sym).unwrap();
+            assert_eq!(mapped, i, "Non-dense mapping at column {}", i);
+        }
+
+        // Token boundary preserved: all NTs must be in [tcols..)
+        for col in 0..tcols.min(table.index_to_symbol.len()) {
+            assert!(
+                table.index_to_symbol[col].0 != 65535,
+                "Sentinel leaked into token space"
+            );
+        }
+
+        // Accept exists on EOF somewhere
+        let has_accept = (0..table.state_count).any(|st| {
+            eof_col < table.action_table[st].len()
+                && table.action_table[st][eof_col]
+                    .iter()
+                    .any(|a| matches!(a, Action::Accept))
+        });
+        assert!(has_accept, "No Accept action present on EOF");
+
+        // No 65535 in column arrays
+        assert!(
+            !table.index_to_symbol.iter().any(|s| s.0 == 65535),
+            "Augmented sentinel leaked into index_to_symbol"
+        );
+    }
+}
 
 /// Build a stable action set and return a flat parse_table (indices into `ts_actions`)
 /// GLR cells may contain multiple actions; we export the first one to the TS surface.
 pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>) {
     // 0 = Error
     let mut ts_actions: Vec<TSParseAction> = vec![TSParseAction {
-        action_type: 0,
+        action_type: TSActionTag::Error as u8,
         extra: 0,
         child_count: 0,
         dynamic_precedence: 0,
@@ -20,7 +211,7 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
 
     // Intern identical actions so we reuse indices
     let mut intern: HashMap<(u8, u8, u8, u16), u16> = HashMap::new();
-    intern.insert((0, 0, 0, 0), 0);
+    intern.insert((TSActionTag::Error as u8, 0, 0, 0), 0);
 
     // Helper: intern and return index
     let mut push_action = |a: TSParseAction| -> u16 {
@@ -47,28 +238,39 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
                 .cloned()
                 .unwrap_or_default();
 
-            // Pick the first action as the representative (GLR cells may contain multiple)
-            let idx = if let Some(a) = cell.first() {
-                match *a {
+            // Use choose_action to pick the best action from GLR cells
+            let chosen = choose_action(&cell);
+            let idx = if let Some(a) = chosen {
+                match a {
                     Action::Shift(StateId(tgt)) => push_action(TSParseAction {
-                        action_type: 1, // Shift
+                        action_type: TSActionTag::Shift as u8,
                         extra: 0,
                         child_count: 0,
                         dynamic_precedence: 0,
                         symbol: tgt as u16,
                     }),
                     Action::Reduce(rule_idx) => {
-                        let pr = &parse_table.rules[rule_idx.0 as usize];
-                        push_action(TSParseAction {
-                            action_type: 2, // Reduce
-                            extra: 0,
-                            child_count: pr.rhs_len as u8, // RHS length
-                            dynamic_precedence: 0,
-                            symbol: pr.lhs.0 as u16, // LHS symbol
-                        })
+                        if rule_idx.0 as usize >= parse_table.rules.len() {
+                            // Skip invalid rule indices
+                            eprintln!(
+                                "WARNING: Invalid rule index {} at state {}, col {}",
+                                rule_idx.0, s, c
+                            );
+                            0
+                        } else {
+                            let pr = &parse_table.rules[rule_idx.0 as usize];
+                            let action_idx = push_action(TSParseAction {
+                                action_type: TSActionTag::Reduce as u8,
+                                extra: 0,
+                                child_count: pr.rhs_len as u8, // RHS length
+                                dynamic_precedence: 0,
+                                symbol: rule_idx.0, // Store the rule ID, not the LHS
+                            });
+                            action_idx
+                        }
                     }
                     Action::Accept => push_action(TSParseAction {
-                        action_type: 3,
+                        action_type: TSActionTag::Accept as u8,
                         extra: 0,
                         child_count: 0,
                         dynamic_precedence: 0,
@@ -85,6 +287,97 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
     }
 
     (ts_actions, flat)
+}
+
+/// JSON lexer function for Tree-sitter
+/// Handles: { } : , "string" number
+unsafe extern "C" fn json_lexer(lexer: *mut c_void, _state: TSLexState) -> bool {
+    use rust_sitter::lex::TsLexer;
+    let lex = &mut *(lexer as *mut TsLexer);
+
+    // Skip whitespace
+    loop {
+        let ch = (lex.lookahead)(lex);
+        if ch == 0 {
+            return false;
+        }
+        match ch as u8 as char {
+            ' ' | '\t' | '\n' | '\r' => (lex.advance)(lex, true),
+            _ => break,
+        }
+    }
+
+    let ch = (lex.lookahead)(lex) as u8 as char;
+    match ch {
+        '{' => {
+            (lex.advance)(lex, false);
+            (lex.mark_end)(lex);
+            lex.result_symbol = 0; // LBRACE
+            true
+        }
+        '}' => {
+            (lex.advance)(lex, false);
+            (lex.mark_end)(lex);
+            lex.result_symbol = 1; // RBRACE
+            true
+        }
+        ':' => {
+            (lex.advance)(lex, false);
+            (lex.mark_end)(lex);
+            lex.result_symbol = 2; // COLON
+            true
+        }
+        ',' => {
+            (lex.advance)(lex, false);
+            (lex.mark_end)(lex);
+            lex.result_symbol = 3; // COMMA
+            true
+        }
+        '"' => {
+            // STRING
+            (lex.advance)(lex, false);
+            loop {
+                let la = (lex.lookahead)(lex);
+                if la == 0 {
+                    break;
+                }
+                if la as u8 as char == '"' {
+                    (lex.advance)(lex, false);
+                    break;
+                } else if la as u8 as char == '\\' {
+                    (lex.advance)(lex, false);
+                    if (lex.lookahead)(lex) != 0 {
+                        (lex.advance)(lex, false);
+                    }
+                } else {
+                    (lex.advance)(lex, false);
+                }
+            }
+            (lex.mark_end)(lex);
+            lex.result_symbol = 4; // STRING
+            true
+        }
+        '-' | '0'..='9' => {
+            // NUMBER
+            (lex.advance)(lex, false);
+            loop {
+                let la = (lex.lookahead)(lex);
+                if la == 0 {
+                    break;
+                }
+                let c = la as u8 as char;
+                if c.is_ascii_digit() || matches!(c, '.' | 'e' | 'E' | '+' | '-') {
+                    (lex.advance)(lex, false);
+                } else {
+                    break;
+                }
+            }
+            (lex.mark_end)(lex);
+            lex.result_symbol = 5; // NUMBER
+            true
+        }
+        _ => false,
+    }
 }
 
 /// Build a TSLanguage from grammar and parse table
@@ -164,12 +457,44 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
     let parse_actions = Box::leak(Box::new(ts_actions));
     let full_parse_table = Box::leak(Box::new(full_parse_table));
 
-    // Build productions (lhs per rule)
+    // Build productions (lhs per rule) - must use column index not symbol ID
     let mut production_lhs = Vec::new();
-    for r in &parse_table.rules {
-        production_lhs.push(r.lhs.0 as u16);
+    for (i, r) in parse_table.rules.iter().enumerate() {
+        // Map the LHS symbol to its column index
+        let lhs_col = parse_table
+            .symbol_to_index
+            .get(&r.lhs)
+            .copied()
+            .unwrap_or_else(|| {
+                eprintln!(
+                    "WARNING: Rule {}: LHS symbol {:?} not found in symbol_to_index",
+                    i, r.lhs
+                );
+                0
+            }) as u16;
+        production_lhs.push(lhs_col);
     }
     let production_lhs = Box::leak(Box::new(production_lhs));
+
+    // Helper to create a TSRule from a rule and symbol_to_index
+    fn make_ts_rule(
+        r: &rust_sitter_glr_core::ParseRule,
+        symbol_to_index: &BTreeMap<SymbolId, usize>,
+    ) -> TSRule {
+        let lhs_col = symbol_to_index.get(&r.lhs).copied().unwrap_or(0) as u16;
+        TSRule {
+            lhs: lhs_col,
+            rhs_len: r.rhs_len as u8,
+            _pad: 0,
+        }
+    }
+
+    // Build TSRule array for the decoder to get rhs_len
+    let mut ts_rules = Vec::new();
+    for r in &parse_table.rules {
+        ts_rules.push(make_ts_rule(r, &parse_table.symbol_to_index));
+    }
+    let ts_rules = Box::leak(Box::new(ts_rules));
 
     // Build primary_state_ids array (all states are primary in our simple implementation)
     let primary_state_ids: Vec<u16> = (0..parse_table.state_count as u16).collect();
@@ -202,7 +527,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         alias_map: std::ptr::null(),
         alias_sequences: std::ptr::null(),
         lex_modes: lex_modes.as_ptr(),
-        lex_fn: None,
+        lex_fn: None, // Will be set per-grammar
         keyword_lex_fn: None,
         keyword_capture_token: 0,
         external_scanner: ExternalScanner::default(),
@@ -210,5 +535,102 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         production_lhs_index: production_lhs.as_ptr(),
         production_count: parse_table.rules.len() as u16,
         eof_symbol: parse_table.eof_symbol.0 as u16,
+        rules: ts_rules.as_ptr(),
+        rule_count: parse_table.rules.len() as u16,
     }
+}
+
+/// Helper to set lexer function safely
+#[inline]
+fn set_lex_fn(
+    lang: &mut TSLanguage,
+    f: unsafe extern "C" fn(*mut core::ffi::c_void, TSLexState) -> bool,
+) {
+    lang.lex_fn = Some(unsafe { std::mem::transmute(f) });
+}
+
+/// Build a TSLanguage for JSON grammar with its specific lexer
+pub fn build_json_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLanguage {
+    let mut lang = build_ts_language(grammar, parse_table);
+    // Set the JSON lexer using the safe helper
+    set_lex_fn(&mut lang, json_lexer);
+    lang
+}
+
+// Lex mode constants for external token testing
+const MODE_START: u16 = 0;
+const MODE_NORMAL: u16 = 1;
+
+/// INDENT lexer function for Tree-sitter
+/// Emits INDENT once at start, then WORD tokens
+unsafe extern "C" fn indent_lexer(lexer: *mut c_void, state: TSLexState) -> bool {
+    use rust_sitter::lex::TsLexer;
+    let lex = &mut *(lexer as *mut TsLexer);
+
+    // Skip whitespace
+    loop {
+        let ch = (lex.lookahead)(lex);
+        if ch == 0 {
+            return false;
+        }
+        match ch as u8 as char {
+            ' ' | '\t' | '\r' | '\n' => (lex.advance)(lex, true),
+            _ => break,
+        }
+    }
+
+    // Emit INDENT only once per parse: in START mode (state 0)
+    // We assume at BOL since we don't have get_column exposed
+    let at_bol = true; // Conservative: assume we're at beginning of line
+    if state.lex_state == MODE_START && at_bol {
+        (lex.mark_end)(lex);
+        lex.result_symbol = 1; // INDENT
+        return true;
+    }
+
+    // WORD
+    let ch = (lex.lookahead)(lex) as u8 as char;
+    if ch.is_ascii_alphabetic() {
+        (lex.advance)(lex, false);
+        while (lex.lookahead)(lex) != 0 {
+            let c = (lex.lookahead)(lex) as u8 as char;
+            if c.is_ascii_alphabetic() {
+                (lex.advance)(lex, false);
+            } else {
+                break;
+            }
+        }
+        (lex.mark_end)(lex);
+        lex.result_symbol = 2; // WORD
+        return true;
+    }
+    false
+}
+
+/// Build a TSLanguage for INDENT grammar with external token support
+pub fn build_indent_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLanguage {
+    let mut lang = build_ts_language(grammar, parse_table);
+
+    // IMPORTANT: mark there is 1 external token (INDENT)
+    lang.external_token_count = 1;
+
+    // Provide lex modes: state 0 => START, others => NORMAL
+    let mut modes = vec![
+        TSLexState {
+            lex_state: MODE_NORMAL,
+            external_lex_state: 0
+        };
+        parse_table.state_count
+    ];
+    if !modes.is_empty() {
+        modes[0] = TSLexState {
+            lex_state: MODE_START,
+            external_lex_state: 0,
+        };
+    }
+    let modes = Box::leak(modes.into_boxed_slice());
+    lang.lex_modes = modes.as_ptr();
+
+    set_lex_fn(&mut lang, indent_lexer);
+    lang
 }

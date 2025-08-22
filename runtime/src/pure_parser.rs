@@ -92,6 +92,17 @@ pub struct TSLanguage {
     pub production_lhs_index: *const u16, // LHS symbols in table index space
     pub production_count: u16,            // Number of productions
     pub eof_symbol: u16,                  // Column index of EOF (usually 0)
+    pub rules: *const TSRule,             // Rule metadata array
+    pub rule_count: u16,                  // Number of rules
+}
+
+/// Rule metadata for Tree-sitter grammars
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct TSRule {
+    pub lhs: u16,    // SymbolId of LHS
+    pub rhs_len: u8, // number of symbols on RHS
+    pub _pad: u8,    // keep alignment
 }
 
 // SAFETY: TSLanguage is a read-only structure that doesn't contain any mutable state.

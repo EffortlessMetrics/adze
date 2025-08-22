@@ -92,7 +92,6 @@ fn create_simple_grammar() -> Grammar {
 }
 
 #[test]
-#[ignore = "GLR parser depth test failing - needs investigation"]
 fn test_very_deep_parentheses() {
     let grammar = create_simple_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);

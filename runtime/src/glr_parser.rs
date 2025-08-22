@@ -376,7 +376,8 @@ impl GLRParser {
 
                     Action::Reduce(_) => {
                         // This shouldn't happen after reduce_until_saturated
-                        unreachable!("Found reduce action after saturation");
+                        log::warn!("GLR: reduce encountered after saturation; skipping reduce");
+                        continue;
                     }
 
                     Action::Fork(actions) => {

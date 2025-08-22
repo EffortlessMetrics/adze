@@ -4,7 +4,7 @@
 //! and decodes it into rust-sitter's native structures.
 
 use indexmap::IndexMap;
-use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
+use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{
     ExternalToken, Grammar, ProductionId, Rule, RuleId, StateId, SymbolId, Token, TokenPattern,
 };
@@ -13,6 +13,7 @@ use std::ffi::{CStr, c_char};
 use std::path::Path;
 
 use crate::pure_parser::{TSLanguage, TSParseAction};
+use crate::ts_format::TSActionTag;
 
 /// Load token patterns from a Tree-sitter grammar.json file
 /// For now, returns an empty map - will be implemented when serde_json is available
@@ -286,12 +287,70 @@ pub fn decode_grammar_with_patterns(
     }
 }
 
+/// Rule metadata decoded from TSLanguage
+#[derive(Clone, Copy, Debug)]
+pub struct RuleMeta {
+    pub lhs: SymbolId,
+    pub rhs_len: u8,
+}
+
+/// Decode rules from TSLanguage
+fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
+    const DEBUG_RULE_PRINT_LIMIT: usize = 5;
+    let n = lang.production_count as usize; // Use production_count, not rule_count
+    let mut rules = Vec::with_capacity(n);
+
+    if lang.production_lhs_index.is_null() {
+        // No rules available, return empty
+        eprintln!("WARNING: production_lhs_index is null");
+        return rules;
+    }
+
+    // Use production_lhs_index to get the correct LHS symbols
+    // and try to get RHS length from TSRule if available
+    for i in 0..n {
+        // Get LHS from production_lhs_index (which has correct symbol in table index space)
+        let lhs_idx = unsafe { *lang.production_lhs_index.add(i) };
+
+        // Try to get rhs_len from TSRule if available
+        let rhs_len = if !lang.rules.is_null() && i < lang.rule_count as usize {
+            let tsr = unsafe { *lang.rules.add(i) };
+            tsr.rhs_len as u16
+        } else {
+            // Fallback: we don't know the RHS length
+            0
+        };
+
+        if i < DEBUG_RULE_PRINT_LIMIT {
+            eprintln!(
+                "  decode_rules: rule {}: lhs_idx={} from production_lhs_index, rhs_len={}",
+                i, lhs_idx, rhs_len
+            );
+        }
+
+        rules.push(ParseRule {
+            lhs: SymbolId(lhs_idx), // Use the index from production_lhs_index
+            rhs_len,
+        });
+    }
+    rules
+}
+
 /// Decode a ParseTable from a TSLanguage struct
 pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     let mut action_table = Vec::new();
     let goto_table = Vec::new();
     let mut symbol_metadata = Vec::new();
     let mut symbol_to_index = BTreeMap::new();
+
+    // Decode rules from TSLanguage
+    let rules = decode_rules(lang);
+
+    // Build (lhs, rhs_len) -> rule_id map for normalizing Reduce actions
+    let mut rid_by_pair: HashMap<(u16, u8), u16> = HashMap::with_capacity(rules.len());
+    for (i, r) in rules.iter().enumerate() {
+        rid_by_pair.insert((r.lhs.0, r.rhs_len as u8), i as u16);
+    }
 
     eprintln!(
         "Decoding parse table: {} states ({} large, {} small), {} symbols",
@@ -340,7 +399,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                 // Decode the action from parse_actions array
                 if action_idx != 0 {
                     let action = &*lang.parse_actions.add(action_idx as usize);
-                    decode_action(action)
+                    decode_action(action, &rules, &rid_by_pair)
                 } else {
                     Action::Error
                 }
@@ -394,7 +453,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                 if action_index != 0 && symbol < lang.symbol_count as usize {
                     let action = unsafe {
                         let action_entry = &*lang.parse_actions.add(action_index);
-                        decode_action(action_entry)
+                        decode_action(action_entry, &rules, &rid_by_pair)
                     };
                     if !matches!(action, Action::Error) {
                         state_actions[symbol].push(action);
@@ -445,6 +504,30 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         index_to_symbol[idx] = *sym;
     }
 
+    // Build nonterminal_to_index for goto lookups
+    let tcols = (lang.token_count + lang.external_token_count) as usize;
+    let mut nonterminal_to_index = BTreeMap::new();
+    for (col, sym) in index_to_symbol.iter().enumerate() {
+        if col >= tcols {
+            nonterminal_to_index.insert(*sym, col);
+        }
+    }
+    eprintln!(
+        "Built nonterminal_to_index with {} entries",
+        nonterminal_to_index.len()
+    );
+    eprintln!(
+        "  tcols={}, index_to_symbol.len()={}",
+        tcols,
+        index_to_symbol.len()
+    );
+    for (sym, col) in &nonterminal_to_index {
+        eprintln!("  NT SymbolId({}) -> col {}", sym.0, col);
+    }
+
+    // Use lang.eof_symbol as a symbol id
+    let eof_symbol = SymbolId(lang.eof_symbol);
+
     ParseTable {
         action_table,
         goto_table,
@@ -454,14 +537,31 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         symbol_to_index,
         index_to_symbol,
         external_scanner_states,
-        rules: Vec::new(),                     // TODO: Decode from language
-        nonterminal_to_index: BTreeMap::new(), // TODO: Build from symbols
-        eof_symbol: SymbolId((lang.token_count + lang.external_token_count) as u16),
+        nonterminal_to_index,
+        eof_symbol,
         start_symbol: {
-            let s = SymbolId(1); // TODO: Derive from accept action row or grammar metadata
-            debug_assert_ne!(s, SymbolId(0), "start_symbol cannot be ERROR(0)");
-            s // FIXME: Hard-coded value will cause confusing behavior
+            // Compute start symbol from the rules
+            // The start symbol is typically the unique LHS that doesn't appear on any RHS
+            // or the NT with the highest symbol ID (often the augmented start)
+            let tcols = (lang.token_count + lang.external_token_count) as usize;
+            let is_nt = |sym: SymbolId| sym.0 as usize >= tcols;
+
+            // Collect all LHS symbols from rules (before moving rules)
+            let lhs_symbols: std::collections::BTreeSet<SymbolId> =
+                rules.iter().map(|r| r.lhs).collect();
+
+            // Filter to only non-terminals and pick the one with highest ID
+            // (often the augmented start symbol)
+            let start = lhs_symbols
+                .into_iter()
+                .filter(|s| is_nt(*s))
+                .max_by_key(|s| s.0)
+                .unwrap_or(SymbolId((tcols + 1) as u16));
+
+            debug_assert_ne!(start, SymbolId(0), "start_symbol cannot be ERROR(0)");
+            start
         },
+        rules,                       // Now move rules after computing start_symbol
         grammar: Grammar::default(), // TODO: Build from language
         initial_state: StateId(0),
         token_count: lang.token_count as usize,
@@ -524,35 +624,62 @@ fn is_hidden(metadata: u8) -> bool {
 }
 
 /// Decode a TSParseAction into our Action enum
-fn decode_action(action: &TSParseAction) -> Action {
+fn decode_action(
+    action: &TSParseAction,
+    rules: &[ParseRule],
+    rid_by_pair: &HashMap<(u16, u8), u16>,
+) -> Action {
     // Based on Tree-sitter's encoding, action_type determines the action
     // The TSParseAction struct contains different data depending on action type
 
-    // Tree-sitter action types:
-    // 0 = Shift
-    // 1 = Reduce
-    // 2 = Accept
-    // 3 = Recover (error recovery)
-
+    // Tree-sitter action types using shared constants
     match action.action_type {
-        0 => {
+        x if x == TSActionTag::Shift as u8 => {
             // Shift action: move to a new state
             // The symbol field contains the state to shift to
             // extra field indicates if this is an "extra" token (whitespace, etc.)
             Action::Shift(StateId(action.symbol))
         }
-        1 => {
-            // Reduce action: apply a production rule
-            // symbol field contains the rule ID to apply
-            // child_count is stored separately in the action struct
-            // For now, we use symbol as the rule ID
-            Action::Reduce(RuleId(action.symbol))
+        x if x == TSActionTag::Reduce as u8 => {
+            // Normalize Reduce action to proper rule index
+            let direct = action.symbol as usize;
+
+            // Fast path: symbol already a valid rule index and matches child_count
+            let rid: u16 =
+                if direct < rules.len() && (rules[direct].rhs_len as u8) == action.child_count {
+                    // Using rule ID directly from symbol field
+                    action.symbol
+                } else {
+                    // Fallback: legacy TS encoding (symbol = LHS, child_count = rhs_len)
+                    // This happens when symbol is the LHS column index
+                    let key = (action.symbol, action.child_count);
+                    match rid_by_pair.get(&key) {
+                        Some(&rid) => rid,
+                        None => {
+                            debug_assert!(
+                                false,
+                                "Reduce mapping failed: no rule for (lhs={}, rhs_len={})",
+                                action.symbol, action.child_count
+                            );
+                            // In release, use a distinct sentinel past rules.len()
+                            // so later bounds checks catch it deterministically.
+                            u16::MAX
+                        }
+                    }
+                };
+
+            // Short-circuit invalid rule IDs
+            if rid == u16::MAX || (rid as usize) >= rules.len() {
+                Action::Error // Invalid reduce rule
+            } else {
+                Action::Reduce(RuleId(rid))
+            }
         }
-        2 => {
+        x if x == TSActionTag::Accept as u8 => {
             // Accept action: parsing complete
             Action::Accept
         }
-        3 => {
+        x if x == TSActionTag::Error as u8 => {
             // Recover action: error recovery
             // For now, treat as error
             Action::Error
@@ -577,51 +704,63 @@ mod tests {
     #[test]
     fn test_action_decoding() {
         // Test that we can decode different action types correctly
+        let empty_rules = vec![];
+        let empty_map = HashMap::new();
 
         // Test Shift action
         let shift_action = TSParseAction {
-            action_type: 0,
+            action_type: TSActionTag::Shift as u8,
             extra: 0,
             child_count: 0,
             dynamic_precedence: 0,
             symbol: 42,
         };
-        match decode_action(&shift_action) {
+        match decode_action(&shift_action, &empty_rules, &empty_map) {
             Action::Shift(StateId(state)) => assert_eq!(state, 42),
             _ => panic!("Expected Shift action"),
         }
 
-        // Test Reduce action
+        // Test Reduce action with direct rule index
+        let rules = vec![ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 3,
+        }];
         let reduce_action = TSParseAction {
-            action_type: 1,
+            action_type: TSActionTag::Reduce as u8,
             extra: 0,
             child_count: 3,
             dynamic_precedence: 0,
-            symbol: 123,
+            symbol: 0,
         };
-        match decode_action(&reduce_action) {
-            Action::Reduce(RuleId(rule)) => assert_eq!(rule, 123),
+        match decode_action(&reduce_action, &rules, &empty_map) {
+            Action::Reduce(RuleId(rule)) => assert_eq!(rule, 0),
             _ => panic!("Expected Reduce action"),
         }
 
         // Test Accept action
         let accept_action = TSParseAction {
-            action_type: 2,
+            action_type: TSActionTag::Accept as u8,
             extra: 0,
             child_count: 0,
             dynamic_precedence: 0,
             symbol: 0,
         };
-        assert!(matches!(decode_action(&accept_action), Action::Accept));
+        assert!(matches!(
+            decode_action(&accept_action, &empty_rules, &empty_map),
+            Action::Accept
+        ));
 
         // Test Error/Recover action
         let recover_action = TSParseAction {
-            action_type: 3,
+            action_type: TSActionTag::Error as u8,
             extra: 0,
             child_count: 0,
             dynamic_precedence: 0,
             symbol: 0,
         };
-        assert!(matches!(decode_action(&recover_action), Action::Error));
+        assert!(matches!(
+            decode_action(&recover_action, &empty_rules, &empty_map),
+            Action::Error
+        ));
     }
 }

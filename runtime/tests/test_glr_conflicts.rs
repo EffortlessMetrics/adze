@@ -380,7 +380,6 @@ fn test_dangling_else() {
 }
 
 #[test]
-#[ignore = "GLR parser issue - needs investigation"]
 fn test_dynamic_precedence() {
     let grammar = build_dynamic_precedence_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);
