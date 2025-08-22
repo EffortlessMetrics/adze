@@ -1385,6 +1385,8 @@ pub struct ParseTable {
     pub extras: Vec<SymbolId>,
     /// Dynamic precedence for each rule (optional)
     pub dynamic_prec_by_rule: Vec<i16>,
+    /// Associativity for each rule: -1=Right, 0=None, +1=Left
+    pub rule_assoc_by_rule: Vec<i8>,
     /// Alias sequences for rules
     pub alias_sequences: Vec<Vec<Option<SymbolId>>>,
     /// Field names
@@ -2550,20 +2552,29 @@ pub fn build_lr1_automaton(
     // Build rules for reduction and collect precedence info
     let mut rules = Vec::new();
     let mut dynamic_prec_by_rule = Vec::new();
-    
+    let mut rule_assoc_by_rule = Vec::new();
+
     for rule in grammar.all_rules() {
         rules.push(ParseRule {
             lhs: rule.lhs,
             rhs_len: rule.rhs.len() as u16,
         });
-        
+
         // Extract precedence value for this rule
         let prec = match rule.precedence {
-            Some(rust_sitter_ir::PrecedenceKind::Static(p)) => p as i16,
-            Some(rust_sitter_ir::PrecedenceKind::Dynamic(p)) => p as i16,
+            Some(rust_sitter_ir::PrecedenceKind::Static(p)) => p,
+            Some(rust_sitter_ir::PrecedenceKind::Dynamic(p)) => p,
             None => 0,
         };
         dynamic_prec_by_rule.push(prec);
+
+        // Extract associativity for this rule
+        let assoc = match rule.associativity {
+            Some(rust_sitter_ir::Associativity::Left) => 1,
+            Some(rust_sitter_ir::Associativity::Right) => -1,
+            _ => 0,
+        };
+        rule_assoc_by_rule.push(assoc);
     }
 
     // Build nonterminal_to_index mapping
@@ -2579,7 +2590,7 @@ pub fn build_lr1_automaton(
         }
     }
 
-    let rule_count = rules.len();
+    let _rule_count = rules.len();
 
     // Calculate proper counts for EOF symbol
     let token_count = grammar.tokens.len();
@@ -2631,11 +2642,12 @@ pub fn build_lr1_automaton(
             };
             state_count
         ],
-        extras: vec![],          // TODO: Get from grammar metadata
-        dynamic_prec_by_rule,    // Now properly populated from grammar rules
-        alias_sequences: vec![],  // TODO: Get from grammar
-        field_names: vec![],                       // TODO: Get from grammar
-        field_map: BTreeMap::new(),                // TODO: Get from grammar
+        extras: vec![],             // TODO: Get from grammar metadata
+        dynamic_prec_by_rule,       // Now properly populated from grammar rules
+        rule_assoc_by_rule,         // Now properly populated from grammar rules
+        alias_sequences: vec![],    // TODO: Get from grammar
+        field_names: vec![],        // TODO: Get from grammar
+        field_map: BTreeMap::new(), // TODO: Get from grammar
     })
 }
 
@@ -3042,6 +3054,7 @@ mod tests {
             ],
             extras: vec![],
             dynamic_prec_by_rule: vec![],
+            rule_assoc_by_rule: vec![],
             alias_sequences: vec![],
             field_names: vec![],
             field_map: BTreeMap::new(),

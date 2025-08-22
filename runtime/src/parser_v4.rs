@@ -10,8 +10,8 @@ use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
 use anyhow::{Result, anyhow, bail};
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
-use rust_sitter_ir::{Associativity, Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
-use std::collections::{HashMap, HashSet};
+use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
+use std::collections::HashSet;
 use std::rc::Rc;
 
 // Define types directly in parser_v4 (no longer dependent on parser_v3)
@@ -108,12 +108,12 @@ impl Parser {
     #[inline]
     fn action_priority(&self, action: &Action) -> i32 {
         use Action::*;
-        
+
         // Highest: Accept
         if matches!(action, Accept) {
             return 3_000_000;
         }
-        
+
         // Pull dynamic precedence if this is a reduce
         let mut prec = 0i32;
         if let Reduce(rid) = action {
@@ -121,15 +121,17 @@ impl Parser {
             if (rid.0 as usize) < self.parse_table.dynamic_prec_by_rule.len() {
                 prec = self.parse_table.dynamic_prec_by_rule[rid.0 as usize] as i32;
             }
-            
-            // Get associativity from the rule (if we have it stored)
-            // For now, we'll check if the rule has associativity in the grammar
-            if let Some(rule) = self.find_rule_by_production_id_internal(*rid) {
-                // Check if this rule has associativity in the original grammar
-                // We'll need to map back to the original rule to get associativity
-                // For now, use precedence as proxy for priority
-            }
-            
+
+            // Get associativity from the rule: +1 left, -1 right, 0 none
+            let assoc_bias = if (rid.0 as usize) < self.parse_table.rule_assoc_by_rule.len() {
+                self.parse_table.rule_assoc_by_rule[rid.0 as usize] as i32
+            } else {
+                0
+            };
+
+            // Combine precedence and associativity
+            prec = prec.saturating_add(assoc_bias);
+
             // Bump reduces with positive precedence above plain shift
             if prec > 0 {
                 return 2_000_000 + prec;
@@ -137,16 +139,17 @@ impl Parser {
             // Neutral reduce (slightly below shift to prefer shift in S/R conflicts)
             return 1_500_000 + prec;
         }
-        
+
         // Plain Shift (default TS policy prefers shift over no-prec reduce)
         if matches!(action, Shift(_)) {
             return 2_000_000;
         }
-        
+
         0 // Error/other
     }
 
     /// Internal helper to find rule without Result wrapper
+    #[allow(dead_code)]
     fn find_rule_by_production_id_internal(&self, rule_id: RuleId) -> Option<&ParseRule> {
         self.parse_table.rules.get(rule_id.0 as usize)
     }
@@ -374,10 +377,10 @@ impl Parser {
 
             // Get the actions for this state and lookahead symbol
             let mut actions = self.get_parse_actions(current_state, lookahead)?;
-            
+
             // Sort actions by priority (highest first) to prefer better actions
             actions.sort_by_key(|a| -self.action_priority(a));
-            
+
             let _col = self
                 .parse_table
                 .symbol_to_index
@@ -601,10 +604,10 @@ impl Parser {
 
             // Get the actions for this state and lookahead symbol (works for both regular and external tokens)
             let mut actions = self.get_parse_actions(current_state, lookahead)?;
-            
+
             // Sort actions by priority (highest first) to prefer better actions
             actions.sort_by_key(|a| -self.action_priority(a));
-            
+
             let _col = self
                 .parse_table
                 .symbol_to_index
@@ -1571,6 +1574,7 @@ mod tests {
             lex_modes: vec![],
             extras: vec![],
             dynamic_prec_by_rule: vec![],
+            rule_assoc_by_rule: vec![],
             alias_sequences: vec![],
             field_names: vec![],
             field_map: std::collections::BTreeMap::new(),

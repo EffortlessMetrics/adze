@@ -242,6 +242,7 @@ fn test_complete_json_parser() {
         lex_modes: vec![],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),

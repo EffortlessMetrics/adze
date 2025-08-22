@@ -293,6 +293,7 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
 
         // Dynamic precedence
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
 
         // Aliasing
         alias_sequences: vec![],

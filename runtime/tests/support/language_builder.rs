@@ -260,11 +260,12 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
                         } else {
                             let pr = &parse_table.rules[rule_idx.0 as usize];
                             // Get the dynamic precedence for this rule
-                            let dyn_prec = if (rule_idx.0 as usize) < parse_table.dynamic_prec_by_rule.len() {
-                                parse_table.dynamic_prec_by_rule[rule_idx.0 as usize] as i8
-                            } else {
-                                0
-                            };
+                            let dyn_prec =
+                                if (rule_idx.0 as usize) < parse_table.dynamic_prec_by_rule.len() {
+                                    parse_table.dynamic_prec_by_rule[rule_idx.0 as usize] as i8
+                                } else {
+                                    0
+                                };
                             let action_idx = push_action(TSParseAction {
                                 action_type: TSActionTag::Reduce as u8,
                                 extra: 0,

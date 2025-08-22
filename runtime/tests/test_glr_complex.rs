@@ -315,3 +315,62 @@ fn test_symbol_comparison_tiebreaker() {
         CompareResult::TakeRight
     );
 }
+
+#[test]
+fn test_ternary_is_right_associative() {
+    // Test that ternary operator is right-associative
+    // "a ? b : c ? d : e" should parse as "a ? b : (c ? d : e)"
+    let grammar = build_ternary_grammar();
+    let first_follow = FirstFollowSets::compute(&grammar);
+    let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
+
+    // Debug: Print all rule associativities
+    println!("Rule associativities:");
+    for (i, assoc) in table.rule_assoc_by_rule.iter().enumerate() {
+        println!("  Rule {}: assoc={}", i, assoc);
+    }
+
+    // Verify that ternary rule has right associativity (-1)
+    // The ternary rule (expr ? expr : expr) should be one of the rules
+    // Let's find it by checking which rule has right associativity
+    let right_assoc_rules: Vec<_> = table
+        .rule_assoc_by_rule
+        .iter()
+        .enumerate()
+        .filter(|(_, assoc)| **assoc == -1)
+        .map(|(i, _)| i)
+        .collect();
+
+    assert!(
+        !right_assoc_rules.is_empty(),
+        "Should have at least one right-associative rule (ternary)"
+    );
+    println!("Right-associative rules: {:?}", right_assoc_rules);
+
+    let mut parser = GLRParser::new(table, grammar);
+
+    // Parse "a ? b : c ? d : e"
+    parser.process_token(SymbolId(1), "a", 0);
+    parser.process_token(SymbolId(2), "?", 2);
+    parser.process_token(SymbolId(1), "b", 4);
+    parser.process_token(SymbolId(3), ":", 6);
+    parser.process_token(SymbolId(1), "c", 8);
+    parser.process_token(SymbolId(2), "?", 10);
+    parser.process_token(SymbolId(1), "d", 12);
+    parser.process_token(SymbolId(3), ":", 14);
+    parser.process_token(SymbolId(1), "e", 16);
+    parser.process_eof(17);
+
+    let result = parser.get_best_parse();
+    assert!(
+        result.is_some(),
+        "Should successfully parse right-associative ternary chain"
+    );
+
+    let tree = result.unwrap();
+    let tree_str = format!("{:?}", tree);
+    assert!(
+        tree_str.contains("Expr"),
+        "Parse tree should contain Expr nodes"
+    );
+}

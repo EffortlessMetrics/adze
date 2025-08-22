@@ -187,6 +187,7 @@ fn create_simple_table() -> ParseTable {
         extras: vec![],
         grammar: Grammar::default(),
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),
     }

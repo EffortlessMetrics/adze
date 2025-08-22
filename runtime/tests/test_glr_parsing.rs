@@ -252,6 +252,7 @@ fn create_conflicting_parse_table() -> ParseTable {
 
         // Advanced features (unused in tests)
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),

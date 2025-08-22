@@ -27,6 +27,7 @@ fn extras_marked_correctly_in_parse_table() {
         lex_modes: vec![],
         extras: vec![SymbolId(2)], // Mark symbol 2 as an extra (whitespace)
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: Default::default(),
@@ -92,6 +93,7 @@ fn external_tokens_within_insertion_range() {
         lex_modes: vec![],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: Default::default(),

@@ -47,6 +47,7 @@ fn main() {
         lex_modes: vec![LexMode { lex_state: 0, external_lex_state: 0 }; 2],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),

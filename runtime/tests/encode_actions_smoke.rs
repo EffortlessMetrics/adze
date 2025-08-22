@@ -80,6 +80,7 @@ fn encode_actions_minimal() {
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![0],
+        rule_assoc_by_rule: vec![0],
         alias_sequences: vec![vec![]],
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),

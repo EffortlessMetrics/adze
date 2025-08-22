@@ -64,6 +64,7 @@ fn create_simple_grammar() -> (Grammar, ParseTable) {
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),

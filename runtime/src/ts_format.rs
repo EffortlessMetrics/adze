@@ -56,12 +56,12 @@ pub fn choose_action_with_precedence(cell: &[Action], parse_table: &ParseTable) 
 #[inline]
 fn action_priority(action: &Action, parse_table: &ParseTable) -> i32 {
     use Action::*;
-    
+
     // Highest: Accept
     if matches!(action, Accept) {
         return 3_000_000;
     }
-    
+
     // Pull dynamic precedence if this is a reduce
     let mut prec = 0i32;
     if let Reduce(rid) = action {
@@ -69,7 +69,17 @@ fn action_priority(action: &Action, parse_table: &ParseTable) -> i32 {
         if (rid.0 as usize) < parse_table.dynamic_prec_by_rule.len() {
             prec = parse_table.dynamic_prec_by_rule[rid.0 as usize] as i32;
         }
-        
+
+        // Get associativity from the rule: +1 left, -1 right, 0 none
+        let assoc_bias = if (rid.0 as usize) < parse_table.rule_assoc_by_rule.len() {
+            parse_table.rule_assoc_by_rule[rid.0 as usize] as i32
+        } else {
+            0
+        };
+
+        // Combine precedence and associativity
+        prec = prec.saturating_add(assoc_bias);
+
         // Bump reduces with positive precedence above plain shift
         if prec > 0 {
             return 2_000_000 + prec;
@@ -77,12 +87,12 @@ fn action_priority(action: &Action, parse_table: &ParseTable) -> i32 {
         // Neutral reduce (slightly below shift to prefer shift in S/R conflicts)
         return 1_500_000 + prec;
     }
-    
+
     // Plain Shift (default TS policy prefers shift over no-prec reduce)
     if matches!(action, Shift(_)) {
         return 2_000_000;
     }
-    
+
     0 // Error/other
 }
 

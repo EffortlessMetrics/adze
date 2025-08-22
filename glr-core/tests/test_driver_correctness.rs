@@ -64,6 +64,7 @@ fn create_test_table(
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![0; rules.len()],
+        rule_assoc_by_rule: vec![0; rules.len()],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),

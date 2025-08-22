@@ -259,6 +259,7 @@ pub fn arithmetic() -> Arc<Language> {
         lex_modes: vec![],
         extras: vec![SymbolId(4)], // whitespace
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),

@@ -569,6 +569,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         lex_modes: Vec::new(),            // TODO: Decode from language
         extras: Vec::new(),               // TODO: Decode from language
         dynamic_prec_by_rule: Vec::new(), // TODO: Decode from language
+        rule_assoc_by_rule: Vec::new(),   // TODO: Decode from language
         alias_sequences: Vec::new(),      // TODO: Decode from language
         field_names: Vec::new(),          // TODO: Decode from language
         field_map: BTreeMap::new(),       // TODO: Decode from language
