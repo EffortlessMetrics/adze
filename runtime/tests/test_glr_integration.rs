@@ -57,12 +57,26 @@ fn tokens_to_glr(tokens: &[TokenWithPosition]) -> Vec<GLRToken> {
 
 // Helper function to convert ForestNode to query Subtree
 fn convert_forest_to_query_subtree(forest: &Arc<ForestNode>) -> rust_sitter::glr_query::Subtree {
-    // This is a placeholder - need to implement proper conversion
-    rust_sitter::glr_query::Subtree {
-        symbol: rust_sitter_ir::SymbolId(0), // placeholder
-        children: vec![],
-        start_byte: 0,
-        end_byte: 0,
+    // For now, just use the first alternative if available
+    if let Some(first_alt) = forest.alternatives.first() {
+        rust_sitter::glr_query::Subtree {
+            symbol: forest.symbol,
+            children: first_alt
+                .children
+                .iter()
+                .map(|child| convert_forest_to_query_subtree(child))
+                .collect(),
+            start_byte: forest.byte_range.start,
+            end_byte: forest.byte_range.end,
+        }
+    } else {
+        // No alternatives, return empty node
+        rust_sitter::glr_query::Subtree {
+            symbol: forest.symbol,
+            children: vec![],
+            start_byte: forest.byte_range.start,
+            end_byte: forest.byte_range.end,
+        }
     }
 }
 

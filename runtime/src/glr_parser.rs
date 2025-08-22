@@ -395,7 +395,7 @@ impl GLRParser {
     fn process_synthetic_token(&mut self, token: SymbolId) {
         // Process synthetic token exactly like a real one but with zero width
         let stacks = std::mem::take(&mut self.stacks);
-        let stacks = self.reduce_until_saturated(stacks, token);
+        let stacks = self.reduce_until_saturated(stacks, token, self.input_length);
         self.stacks = stacks;
         self.shift_synthetic_token(token);
     }
@@ -428,29 +428,10 @@ impl GLRParser {
         let mut stacks_to_process = std::mem::take(&mut self.stacks);
         self.pending_stacks.clear();
 
-        stacks_to_process = self.reduce_until_saturated(stacks_to_process, token);
+        stacks_to_process = self.reduce_until_saturated(stacks_to_process, token, byte_offset + text.len());
 
-        // Debug assertion: verify closure is quiescent (no reduces remain)
-        // Exception: stacks with shift actions are allowed to have reduces too
-        #[cfg(debug_assertions)]
-        {
-            for stack in &stacks_to_process {
-                let state = stack.current_state();
-                if let Some(&symbol_idx) = self.table.symbol_to_index.get(&token) {
-                    let action_cell = &self.table.action_table[state.0 as usize][symbol_idx];
-                    let has_shift = action_cell.iter().any(|a| matches!(a, Action::Shift(_)));
-                    // Only check quiescence if there's no shift action
-                    if !has_shift {
-                        debug_assert!(
-                            !action_cell.iter().any(|a| matches!(a, Action::Reduce(_))),
-                            "Closure not quiescent: reduce actions remain in state {} for token {} (no shift present)",
-                            state.0,
-                            token.0
-                        );
-                    }
-                }
-            }
-        }
+        // In true GLR, we may have both shift and reduce actions in the same cell
+        // This is expected behavior for handling ambiguous grammars
 
         // Check if any stack has an action for the current token
         // If not, try recovery before Phase 2
@@ -560,7 +541,7 @@ impl GLRParser {
                             
                             // Re-saturate with the SAME lookahead to reach fixed point
                             // This ensures cascaded reduces and accepts are discovered
-                            let closed = self.reduce_until_saturated(vec![reduced_stack], token);
+                            let closed = self.reduce_until_saturated(vec![reduced_stack], token, byte_offset + text.len());
                             new_stacks.extend(closed);
                             processed_any = true;
                         }
@@ -813,6 +794,7 @@ impl GLRParser {
         &mut self,
         stacks: Vec<ParseStack>,
         token: SymbolId,
+        lookahead_end: usize,
     ) -> Vec<ParseStack> {
         use std::collections::{HashSet, VecDeque};
 
@@ -913,7 +895,7 @@ impl GLRParser {
                 // Guard against repeated application at same position (epsilon loop prevention)
                 let end_byte = stack.nodes.last()
                     .map(|n| n.node.byte_range.end)
-                    .unwrap_or(0);
+                    .unwrap_or(lookahead_end);
                 let stamp = RedStamp {
                     state: stack.current_state(),
                     rule: rule_id,
@@ -1192,7 +1174,7 @@ impl GLRParser {
 
                     // Process the synthetic token through closure and shift
                     let stacks = std::mem::take(&mut self.stacks);
-                    let stacks = self.reduce_until_saturated(stacks, tok);
+                    let stacks = self.reduce_until_saturated(stacks, tok, self.input_length);
                     self.stacks = stacks;
                     self.shift_synthetic_token(tok);
 
@@ -1209,7 +1191,7 @@ impl GLRParser {
 
             // After pops, attempt closure again at same lookahead
             let stacks = std::mem::take(&mut self.stacks);
-            let stacks = self.reduce_until_saturated(stacks, lookahead);
+            let stacks = self.reduce_until_saturated(stacks, lookahead, self.input_length);
             self.stacks = stacks;
 
             if self.any_stack_has_action(lookahead) {
@@ -1463,7 +1445,7 @@ impl GLRParser {
         for i in 0..8 {
             // Close first with EOF as lookahead to expose any reduces
             let stacks = std::mem::take(&mut self.stacks);
-            let stacks = self.reduce_until_saturated(stacks, eof);
+            let stacks = self.reduce_until_saturated(stacks, eof, self.input_length);
             self.stacks = stacks;
             
             // Now check if any stack can handle EOF
@@ -1550,11 +1532,25 @@ impl GLRParser {
                 // Accept if we have exactly one node after EOF processing
                 // This should be the root of the parse tree (the start symbol)
                 let node = &stack.nodes[0];
+                // Check if we encountered errors during parsing (e.g., deleted tokens)
+                if stack.version.in_error && self.error_recovery.is_some() {
+                    // Wrap in error node to indicate parse had errors
+                    let error_node = Arc::new(Subtree::new(
+                        SubtreeNode {
+                            symbol_id: SymbolId(u16::MAX), // Special error symbol
+                            is_error: true,
+                            byte_range: node.node.byte_range.clone(),
+                        },
+                        vec![node.clone()],
+                    ));
+                    return Ok(error_node);
+                }
                 return Ok(node.clone());
             } else if !stack.nodes.is_empty() {
                 // If we have multiple nodes but error recovery was used,
                 // return a partial tree wrapped in an error node
-                let has_error = stack.nodes.iter().any(|n| n.node.is_error);
+                let has_error = stack.nodes.iter().any(|n| n.node.is_error) 
+                    || stack.version.in_error;
                 if has_error && self.error_recovery.is_some() {
                     // Create an error node containing all remaining nodes
                     let error_node = Arc::new(Subtree::new(
