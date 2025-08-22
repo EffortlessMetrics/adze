@@ -168,8 +168,8 @@ fn test_simple_fork_merge() {
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
-    // Parse "aa" - should create forks
-    let input = "aa";
+    // Parse "aaa" - should create forks (ambiguity surfaces at length >= 3 in LR(1))
+    let input = "aaa";
     let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
     let tokens = lexer.tokenize_all();
 

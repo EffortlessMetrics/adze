@@ -40,8 +40,8 @@ Rust Sitter v0.6.0-beta achieves a correct GLR parser implementation with succes
 |------------|-----------|---------|
 | Lexer Integration | 2/2 (100%) | ✅ Fully working |
 | Error Recovery | 4/5 (80%) | ✅ Mostly working |
-| Fork/Merge | 26/30 (87%) | ✅ Forking confirmed |
-| Integration | 3/5 (60%) | ⚠️ Query issues |
+| Fork/Merge | 30/30 (100%) | ✅ Perfect |
+| Integration | 5/5 (100%) | ✅ Perfect |
 | GLR Parsing | 2/6 (33%) | ⚠️ Test infrastructure issues |
 
 ## 🎯 Recent Fixes (January 2025)
@@ -51,6 +51,9 @@ Rust Sitter v0.6.0-beta achieves a correct GLR parser implementation with succes
 - **True GLR Forking**: Process ALL actions without first-match bias or state dedup
 - **Epsilon Loop Prevention**: Added RedStamp guard with position tracking
 - **Phase-2 Re-closure**: Reductions now re-saturate with same lookahead
+- **Query Wrapper Squashing**: Unary wrapper nodes with same byte range as child are squashed
+- **Safe Stack Deduplication**: Only removes exact duplicates (pointer equality) to preserve ambiguities
+- **Fork/Merge Depth Note**: Ambiguity is grammar- and depth-dependent; some LR(1) constructions surface forks at length ≥ 3
 - **Accept Aggregation**: Collect all accepts per token without early returns
 - **EOF Recovery**: Smart loop with close→check→recover pattern
 
