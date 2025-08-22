@@ -101,7 +101,7 @@ impl Parser {
             match parser.parse_with_auto_lexer(source, language) {
                 Ok(tree) => Some(tree),
                 Err(e) => {
-                    eprintln!("Parse error with auto-lexer: {}", e);
+                    // eprintln!("Parse error with auto-lexer: {}", e);
                     None
                 }
             }
@@ -110,7 +110,7 @@ impl Parser {
             match parser.parse(source) {
                 Ok(tree) => Some(tree),
                 Err(e) => {
-                    eprintln!("Parse error: {}", e);
+                    // eprintln!("Parse error: {}", e);
                     None
                 }
             }

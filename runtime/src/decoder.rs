@@ -191,7 +191,7 @@ pub fn decode_grammar_with_patterns(
     for i in 0..lang.symbol_count as usize {
         if symbol_names[i] == "def" {
             let metadata = unsafe { *lang.symbol_metadata.add(i) };
-            eprintln!(
+            // eprintln!(
                 "Found 'def' at Symbol {}: '{}' (metadata: 0x{:02x})",
                 i, symbol_names[i], metadata
             );
@@ -200,7 +200,7 @@ pub fn decode_grammar_with_patterns(
     }
 
     // Debug: Show first few terminal mappings
-    eprintln!("\nFirst few terminals with their patterns:");
+    // eprintln!("\nFirst few terminals with their patterns:");
     let mut count = 0;
     for i in 0..lang.symbol_count as usize {
         let metadata = unsafe { *lang.symbol_metadata.add(i) };
@@ -209,7 +209,7 @@ pub fn decode_grammar_with_patterns(
                 .get(&symbol_names[i])
                 .map(|p| format!("{:?}", p))
                 .unwrap_or_else(|| "no pattern".to_string());
-            eprintln!("  Symbol {}: '{}' -> {}", i, symbol_names[i], pattern);
+            // eprintln!("  Symbol {}: '{}' -> {}", i, symbol_names[i], pattern);
             count += 1;
         }
     }
@@ -302,7 +302,7 @@ fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
 
     if lang.production_lhs_index.is_null() {
         // No rules available, return empty
-        eprintln!("WARNING: production_lhs_index is null");
+        // eprintln!("WARNING: production_lhs_index is null");
         return rules;
     }
 
@@ -322,7 +322,7 @@ fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
         };
 
         if i < DEBUG_RULE_PRINT_LIMIT {
-            eprintln!(
+            // eprintln!(
                 "  decode_rules: rule {}: lhs_idx={} from production_lhs_index, rhs_len={}",
                 i, lhs_idx, rhs_len
             );
@@ -352,7 +352,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         rid_by_pair.insert((r.lhs.0, r.rhs_len as u8), i as u16);
     }
 
-    eprintln!(
+    // eprintln!(
         "Decoding parse table: {} states ({} large, {} small), {} symbols",
         lang.state_count,
         lang.large_state_count,
@@ -417,13 +417,13 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     }
 
     // Decode small_parse_table for compressed states
-    eprintln!(
+    // eprintln!(
         "small_parse_table_map null: {}, small_parse_table null: {}",
         lang.small_parse_table_map.is_null(),
         lang.small_parse_table.is_null()
     );
     if !lang.small_parse_table_map.is_null() && !lang.small_parse_table.is_null() {
-        eprintln!(
+        // eprintln!(
             "Decoding {} compressed states",
             lang.state_count - lang.large_state_count
         );
@@ -465,9 +465,9 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         }
     }
 
-    eprintln!("Final action_table has {} states", action_table.len());
+    // eprintln!("Final action_table has {} states", action_table.len());
     if !action_table.is_empty() {
-        eprintln!("State 0 has {} actions", action_table[0].len());
+        // eprintln!("State 0 has {} actions", action_table[0].len());
     }
 
     // Decode external scanner states from the TSLanguage struct
@@ -512,17 +512,17 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             nonterminal_to_index.insert(*sym, col);
         }
     }
-    eprintln!(
+    // eprintln!(
         "Built nonterminal_to_index with {} entries",
         nonterminal_to_index.len()
     );
-    eprintln!(
+    // eprintln!(
         "  tcols={}, index_to_symbol.len()={}",
         tcols,
         index_to_symbol.len()
     );
     for (sym, col) in &nonterminal_to_index {
-        eprintln!("  NT SymbolId({}) -> col {}", sym.0, col);
+        // eprintln!("  NT SymbolId({}) -> col {}", sym.0, col);
     }
 
     // Use lang.eof_symbol as a symbol id

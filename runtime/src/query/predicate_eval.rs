@@ -59,7 +59,7 @@ impl<'a> PredicateContext<'a> {
 
             Predicate::Custom { name, args: _ } => {
                 // Custom predicates need external handlers
-                eprintln!("Warning: Custom predicate '{}' not implemented", name);
+                // eprintln!("Warning: Custom predicate '{}' not implemented", name);
                 true
             }
         }
@@ -106,7 +106,7 @@ impl<'a> PredicateContext<'a> {
                 match Regex::new(regex_str) {
                     Ok(re) => re,
                     Err(e) => {
-                        eprintln!("Invalid regex '{}': {}", regex_str, e);
+                        // eprintln!("Invalid regex '{}': {}", regex_str, e);
                         // Return a regex that never matches
                         // Using a character class that can never match
                         Regex::new(r"^\b$").unwrap()

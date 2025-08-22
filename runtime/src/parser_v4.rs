@@ -171,7 +171,7 @@ impl Parser {
                 let runtime = ExternalScannerRuntime::new(external_tokens);
                 (Some(scanner), Some(runtime))
             } else {
-                eprintln!(
+                // eprintln!(
                     "Warning: Grammar has external tokens but no scanner registered for language '{}'",
                     language
                 );
@@ -215,7 +215,7 @@ impl Parser {
         let grammar = crate::decoder::decode_grammar_with_patterns(language, token_patterns);
         let parse_table = crate::decoder::decode_parse_table(language);
         // #[cfg(feature = "debug")]
-        eprintln!(
+        // eprintln!(
             "Parser from_language: parse_table.rules has {} rules",
             parse_table.rules.len()
         );
@@ -233,7 +233,7 @@ impl Parser {
                 let runtime = ExternalScannerRuntime::new(external_tokens);
                 (Some(scanner), Some(runtime))
             } else {
-                eprintln!(
+                // eprintln!(
                     "Warning: Grammar has external tokens but no scanner registered for language '{}'",
                     language_name
                 );
@@ -272,11 +272,11 @@ impl Parser {
         // Decode the grammar and parse table from the TSLanguage struct
         self.grammar = crate::decoder::decode_grammar(language);
         // #[cfg(feature = "debug_parser")]
-        eprintln!(
+        // eprintln!(
             "Parser set_language: parse_table.rules has {} rules",
             self.parse_table.rules.len()
         );
-        eprintln!(
+        // eprintln!(
             "Parser set_language: parse_table.rules has {} rules",
             self.parse_table.rules.len()
         );
@@ -331,7 +331,7 @@ impl Parser {
     ) -> Result<Tree> {
         use crate::lex::{TokenSource, TsLexFnAdapter};
 
-        eprintln!("\nStarting parse with custom lexer for: {:?}", input);
+        // eprintln!("\nStarting parse with custom lexer for: {:?}", input);
 
         // Store the input
         self.input = input.as_bytes().to_vec();
@@ -355,7 +355,7 @@ impl Parser {
 
             // Get the next token from the token source
             let token = if let Some(tok) = token_source.peek() {
-                eprintln!(
+                // eprintln!(
                     "  Lexer returned token: symbol {} at pos {}-{}",
                     tok.sym,
                     tok.start,
@@ -365,7 +365,7 @@ impl Parser {
             } else {
                 // We're at EOF - use the table's EOF symbol
                 let eof_sym = self.parse_table.eof_symbol.0; // Extract u16 from SymbolId
-                eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
+                // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
                 crate::lex::Token {
                     sym: eof_sym,
                     start: token_source.offset(),
@@ -388,7 +388,7 @@ impl Parser {
                 .map(|c| format!("col {}", c))
                 .unwrap_or_else(|| "no col".to_string());
             // #[cfg(feature = "debug")]
-            eprintln!(
+            // eprintln!(
                 "State {}, Symbol {} ({}) -> Actions: {:?}",
                 current_state.0, lookahead.0, _col, actions
             );
@@ -403,13 +403,13 @@ impl Parser {
                     }
                     // Otherwise it's an error
                     error_count += 1;
-                    eprintln!("Parse error at EOF");
+                    // eprintln!("Parse error at EOF");
                     break;
                 }
 
                 // Skip this token and continue
                 error_count += 1;
-                eprintln!(
+                // eprintln!(
                     "Parse error: no action for symbol {} in state {}",
                     lookahead.0, current_state.0
                 );
@@ -421,7 +421,7 @@ impl Parser {
             let action = &actions[0];
             match action {
                 Action::Shift(next_state) => {
-                    eprintln!("  Shift to state {}", next_state.0);
+                    // eprintln!("  Shift to state {}", next_state.0);
                     state_stack.push(*next_state);
                     symbol_stack.push(lookahead);
                     node_stack.push(ParseNode {
@@ -435,7 +435,7 @@ impl Parser {
                     token_source.bump();
                 }
                 Action::Reduce(rule_idx) => {
-                    eprintln!("  Reduce by rule {}", rule_idx.0);
+                    // eprintln!("  Reduce by rule {}", rule_idx.0);
                     let rule =
                         self.parse_table
                             .rules
@@ -466,12 +466,12 @@ impl Parser {
                         .last()
                         .ok_or_else(|| anyhow!("State stack empty after reduce"))?;
 
-                    eprintln!(
+                    // eprintln!(
                         "    Looking for goto from state {} for symbol {}",
                         prev_state.0, rule.lhs.0
                     );
                     let goto_state = self.get_goto_state(prev_state, rule.lhs)?;
-                    eprintln!("    Goto state {} for symbol {}", goto_state.0, rule.lhs.0);
+                    // eprintln!("    Goto state {} for symbol {}", goto_state.0, rule.lhs.0);
 
                     // Push LHS and new state
                     state_stack.push(goto_state);
@@ -504,7 +504,7 @@ impl Parser {
             if state_stack.len() == 2 && symbol_stack.len() == 1 {
                 if let Some(start) = self.grammar.start_symbol() {
                     if symbol_stack[0] == start {
-                        eprintln!("Parse complete! Accepted.");
+                        // eprintln!("Parse complete! Accepted.");
                         break;
                     }
                 }
@@ -520,7 +520,7 @@ impl Parser {
 
     /// Parse the input string
     pub fn parse(&mut self, input: &str) -> Result<Tree> {
-        eprintln!("\nStarting parse of: {:?}", input);
+        // eprintln!("\nStarting parse of: {:?}", input);
         // Store the input
         self.input = input.as_bytes().to_vec();
         self.position = 0;
@@ -540,15 +540,15 @@ impl Parser {
             .collect();
 
         // Debug: print token count and check for "def"
-        eprintln!("Creating lexer with {} tokens", tokens.len());
+        // eprintln!("Creating lexer with {} tokens", tokens.len());
         for (i, (symbol_id, pattern, _)) in tokens.iter().take(10).enumerate() {
-            eprintln!("  Token {}: Symbol {} = {:?}", i, symbol_id.0, pattern);
+            // eprintln!("  Token {}: Symbol {} = {:?}", i, symbol_id.0, pattern);
         }
         // Check if "def" is in the token list
         for (symbol_id, pattern, _) in &tokens {
             if let TokenPattern::String(s) = pattern {
                 if s == "def" {
-                    eprintln!("Found 'def' pattern at symbol {}", symbol_id.0);
+                    // eprintln!("Found 'def' pattern at symbol {}", symbol_id.0);
                     break;
                 }
             }
@@ -614,7 +614,7 @@ impl Parser {
                 .get(&lookahead)
                 .map(|c| format!("col {}", c))
                 .unwrap_or_else(|| "no col".to_string());
-            eprintln!(
+            // eprintln!(
                 "State {}, Symbol {} ({}) -> Actions: {:?}",
                 current_state.0, lookahead.0, _col, actions
             );
@@ -622,21 +622,21 @@ impl Parser {
             if current_state.0 == 0 && actions.is_empty() {
                 // #[cfg(feature = "debug")]
                 {
-                    eprintln!("  Available actions in state 0:");
+                    // eprintln!("  Available actions in state 0:");
                     for (sym_idx, act_cell) in self.parse_table.action_table[0].iter().enumerate() {
                         if !act_cell.is_empty() {
-                            eprintln!("    Symbol {} -> {:?}", sym_idx, act_cell);
+                            // eprintln!("    Symbol {} -> {:?}", sym_idx, act_cell);
                         }
                     }
-                    eprintln!(
+                    // eprintln!(
                         "  Current token has symbol {}, looking for it in grammar...",
                         token.symbol.0
                     );
                     // Check what token we actually have
                     if let Some(tok) = self.grammar.tokens.get(&token.symbol) {
-                        eprintln!("    Token is '{}' in grammar", tok.name);
+                        // eprintln!("    Token is '{}' in grammar", tok.name);
                     } else {
-                        eprintln!(
+                        // eprintln!(
                             "    Token symbol {} not found in grammar tokens",
                             token.symbol.0
                         );
@@ -774,7 +774,7 @@ impl Parser {
                     // GLR fork point - multiple valid parse paths
                     // Quick implementation: try each action in sequence, use first successful one
                     // #[cfg(feature = "debug")]
-                    eprintln!(
+                    // eprintln!(
                         "Fork with {} actions at state {}",
                         actions.len(),
                         current_state.0
@@ -783,7 +783,7 @@ impl Parser {
                     let mut fork_succeeded = false;
                     for (_i, fork_action) in actions.iter().enumerate() {
                         // #[cfg(feature = "debug")]
-                        eprintln!("  Trying fork action {}: {:?}", _i, fork_action);
+                        // eprintln!("  Trying fork action {}: {:?}", _i, fork_action);
 
                         // Clone the current parser state for this fork
                         let saved_state_stack = state_stack.clone();
@@ -871,7 +871,7 @@ impl Parser {
 
                     if !fork_succeeded {
                         // #[cfg(feature = "debug")]
-                        eprintln!("All fork actions failed");
+                        // eprintln!("All fork actions failed");
                         error_count += 1;
                         current_position += 1;
                     }
@@ -923,7 +923,7 @@ impl Parser {
             None => {
                 // Unknown symbol - no actions available
                 // #[cfg(feature = "debug")]
-                eprintln!("Unknown symbol {} (no column mapping)", symbol.0);
+                // eprintln!("Unknown symbol {} (no column mapping)", symbol.0);
                 return Ok(vec![]);
             }
         };
@@ -944,18 +944,18 @@ impl Parser {
     /// Find a rule by its production ID
     fn find_rule_by_production_id(&self, rule_id: RuleId) -> Result<&ParseRule> {
         // #[cfg(feature = "debug")]
-        eprintln!(
+        // eprintln!(
             "Looking for rule ID {} in parse_table.rules (len={})",
             rule_id.0,
             self.parse_table.rules.len()
         );
         if self.parse_table.rules.is_empty() {
             // #[cfg(feature = "debug")]
-            eprintln!("ERROR: parse_table.rules is empty!");
+            // eprintln!("ERROR: parse_table.rules is empty!");
         } else {
             for (_i, _rule) in self.parse_table.rules.iter().take(5).enumerate() {
                 // #[cfg(feature = "debug")]
-                eprintln!(
+                // eprintln!(
                     "  Rule {}: lhs={}, rhs_len={}",
                     _i, _rule.lhs.0, _rule.rhs_len
                 );
@@ -1021,7 +1021,7 @@ impl Parser {
 
         let cell = &self.parse_table.action_table[row][col];
         // #[cfg(feature = "debug")]
-        eprintln!(
+        // eprintln!(
             "  Goto lookup: state {} col {} -> actions: {:?}",
             row, col, cell
         );
@@ -1049,21 +1049,21 @@ impl Parser {
         // Compute valid external tokens for this state first (before mutable borrow)
         let valid_externals = self.compute_valid_externals(current_state)?;
         // #[cfg(feature = "debug")]
-        eprintln!(
+        // eprintln!(
             "Valid externals for state {}: {:?}",
             current_state.0, valid_externals
         );
 
         if valid_externals.is_empty() {
             // #[cfg(feature = "debug")]
-            eprintln!("No valid externals for state {}", current_state.0);
+            // eprintln!("No valid externals for state {}", current_state.0);
             return Ok(None);
         }
 
         // Check if we have external scanner
         if self.external_scanner.is_none() || self.external_runtime.is_none() {
             // #[cfg(feature = "debug")]
-            eprintln!("No external scanner available");
+            // eprintln!("No external scanner available");
             return Ok(None);
         }
 

@@ -472,7 +472,7 @@ impl Parser {
                 } else {
                     "EOF".to_string()
                 };
-                eprintln!(
+                // eprintln!(
                     "DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}, stack_len={}",
                     position,
                     current_state,
@@ -481,7 +481,7 @@ impl Parser {
                     _byte_repr,
                     self.stack.len()
                 );
-                eprintln!(
+                // eprintln!(
                     "DEBUG: Stack size: {}, token.length={}",
                     self.stack.len(),
                     token.length
@@ -597,7 +597,7 @@ impl Parser {
                 Action::Error => {
                     // Record error and try to recover
                     let expected_symbols = self.get_expected_symbols(language, current_state);
-                    eprintln!(
+                    // eprintln!(
                         "ERROR: position={}, current_state={}, expected_symbols={:?}, token.symbol={}",
                         position, current_state, expected_symbols, token.symbol
                     );
@@ -858,8 +858,8 @@ impl Parser {
             let large_state_count = language.large_state_count as usize;
             let token_count = language.token_count as u16;
 
-            eprintln!("=== Dumping state {} ===", state);
-            eprintln!(
+            // eprintln!("=== Dumping state {} ===", state);
+            // eprintln!(
                 "token_count: {}, symbol_count: {}",
                 language.token_count, language.symbol_count
             );
@@ -869,7 +869,7 @@ impl Parser {
                 let start_offset = (*language.small_parse_table_map.add(map_index)) as usize;
                 let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
 
-                eprintln!(
+                // eprintln!(
                     "Small state: map_index={}, start={}, end={}",
                     map_index, start_offset, end_offset
                 );
@@ -881,10 +881,10 @@ impl Parser {
                     offset += 2;
 
                     let kind = if s < token_count { "TOK " } else { "GOTO" };
-                    eprintln!("  {:>4} {:>5} -> action {}", kind, s, v);
+                    // eprintln!("  {:>4} {:>5} -> action {}", kind, s, v);
                 }
             } else {
-                eprintln!("Large state - dense row in parse_table");
+                // eprintln!("Large state - dense row in parse_table");
             }
         }
     }
@@ -897,14 +897,14 @@ impl Parser {
         state: TSStateId,
         symbol: TSSymbol, // Actually a column index in table space
     ) -> Option<TSStateId> {
-        eprintln!(
+        // eprintln!(
             "DEBUG get_goto: state={}, col_idx={}, token_count={}, symbol_count={}",
             state, symbol, language.token_count, language.symbol_count
         );
         unsafe {
             // Check bounds
             if state >= language.state_count as u16 || symbol >= language.symbol_count as u16 {
-                eprintln!(
+                // eprintln!(
                     "  Bounds check failed: state >= {} or symbol >= {}",
                     language.state_count, language.symbol_count
                 );
@@ -917,17 +917,17 @@ impl Parser {
 
             // Only non-terminals have goto entries
             if symbol < token_count {
-                eprintln!(
+                // eprintln!(
                     "  Symbol {} is a token (< {}), no goto",
                     symbol, token_count
                 );
                 return None;
             }
-            eprintln!(
+            // eprintln!(
                 "  Column {} is a non-terminal (>= {}), checking goto",
                 symbol, token_count
             );
-            eprintln!(
+            // eprintln!(
                 "  large_state_count={}, state={}, is_large={}",
                 large_state_count,
                 state,
@@ -940,7 +940,7 @@ impl Parser {
                 let index = base + (symbol as usize);
                 let goto_state = *language.parse_table.add(index);
 
-                eprintln!(
+                // eprintln!(
                     "  Large state: base={}, index={}, goto_state={}",
                     base, index, goto_state
                 );
@@ -954,7 +954,7 @@ impl Parser {
                 let start_offset = (*language.small_parse_table_map.add(map_index)) as usize;
                 let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
 
-                eprintln!(
+                // eprintln!(
                     "  Small state: map_index={}, start_offset={}, end_offset={}",
                     map_index, start_offset, end_offset
                 );
@@ -963,7 +963,7 @@ impl Parser {
                 while offset + 1 < end_offset {
                     let entry_col = *language.small_parse_table.add(offset) as usize;
                     let entry_val = *language.small_parse_table.add(offset + 1);
-                    eprintln!(
+                    // eprintln!(
                         "    Entry at offset {}: col={}, val={}",
                         offset, entry_col, entry_val
                     );
@@ -982,7 +982,7 @@ impl Parser {
                             token_count
                         );
 
-                        eprintln!(
+                        // eprintln!(
                             "    Found match for column {}! goto_state={}",
                             symbol, entry_val
                         );
@@ -992,7 +992,7 @@ impl Parser {
                         return None;
                     }
                 }
-                eprintln!("    No match found for column {}", symbol);
+                // eprintln!("    No match found for column {}", symbol);
             }
             None
         }
@@ -1107,22 +1107,22 @@ impl Parser {
     /// Perform a reduction
     fn reduce(&mut self, language: &TSLanguage, production_id: u16, source: &[u8]) -> bool {
         if source.len() < 20 {
-            eprintln!(
+            // eprintln!(
                 "DEBUG reduce: Reducing with production_id={} (from parse table)",
                 production_id
             );
-            eprintln!(
+            // eprintln!(
                 "DEBUG reduce: Stack before reduction has {} entries",
                 self.stack.len()
             );
             for (i, entry) in self.stack.iter().enumerate() {
                 if let Some(ref subtree) = entry.subtree {
-                    eprintln!(
+                    // eprintln!(
                         "  Stack[{}]: state={}, symbol={}",
                         i, entry.state, subtree.symbol
                     );
                 } else {
-                    eprintln!("  Stack[{}]: state={}, no subtree", i, entry.state);
+                    // eprintln!("  Stack[{}]: state={}, no subtree", i, entry.state);
                 }
             }
         }
@@ -1164,13 +1164,13 @@ impl Parser {
 
             // Also check what parse_actions says for comparison
             let parse_action_symbol = action.symbol;
-            eprintln!(
+            // eprintln!(
                 "DEBUG: production_index={}, lhs_index={}, parse_action_symbol={}",
                 production_index, symbol, parse_action_symbol
             );
 
             if source.len() < 20 {
-                eprintln!(
+                // eprintln!(
                     "DEBUG reduce: Production {} (index {}) reduces to symbol {} with {} children (token_count={})",
                     production_id, production_index, symbol, child_count, language.token_count
                 );
@@ -1289,16 +1289,16 @@ impl Parser {
 
             // Debug: Show all gotos available from this state
             if source.len() < 20 && prev_state == 0 {
-                eprintln!("DEBUG reduce: Available gotos from state 0:");
+                // eprintln!("DEBUG reduce: Available gotos from state 0:");
                 for sym_idx in 0..12 {
                     if let Some(goto_state) = self.get_goto(language, 0, sym_idx) {
-                        eprintln!("  Symbol {} -> state {}", sym_idx, goto_state);
+                        // eprintln!("  Symbol {} -> state {}", sym_idx, goto_state);
                     }
                 }
             }
 
             // Look up goto state for the non-terminal we just reduced to
-            eprintln!(
+            // eprintln!(
                 "DEBUG reduce: About to call get_goto with prev_state={}, symbol={}",
                 prev_state, symbol
             );
@@ -1312,7 +1312,7 @@ impl Parser {
                 true
             } else {
                 // No goto found - this shouldn't happen in a valid parse table
-                eprintln!(
+                // eprintln!(
                     "DEBUG reduce: No goto for symbol {} from state {} (symbol >= token_count: {})",
                     symbol,
                     prev_state,
