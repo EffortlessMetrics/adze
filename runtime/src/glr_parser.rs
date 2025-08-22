@@ -362,11 +362,12 @@ impl GLRParser {
                 .filter(|&s| s.0 != 0); // StateId(0) often means no goto
         }
 
-        // Fallback: try looking in the action table for a shift action
-        // (some tables might store gotos as shifts in the action table)
+        // Fallback: try looking in the action table for Shift actions
+        // (some legacy/unified tables might store gotos as shifts in the action table)
         if let Some(&col) = self.table.symbol_to_index.get(&lhs) {
             if let Some(row) = self.table.action_table.get(state.0 as usize) {
                 if let Some(cell) = row.get(col) {
+                    // Try Shift action (some tables use Shift for gotos)
                     for action in cell {
                         if let Action::Shift(s) = action {
                             return Some(*s);
@@ -491,6 +492,8 @@ impl GLRParser {
 
         // Phase 2: Process shifts and other actions on all post-reduction stacks
         let mut new_stacks = Vec::new();
+        let mut accepted_any = false;
+        let mut accept_stacks = Vec::new();
 
         for stack in stacks_to_process {
             let state = stack.current_state();
@@ -544,8 +547,9 @@ impl GLRParser {
                         }
 
                         Action::Accept => {
-                            // Keep the accepting stack
-                            new_stacks.push(stack.clone());
+                            // Collect accepting stacks for aggregation
+                            accepted_any = true;
+                            accept_stacks.push(stack.clone());
                             processed_any = true;
                         }
 
@@ -553,7 +557,11 @@ impl GLRParser {
                             // Apply the reduction directly
                             let mut reduced_stack = stack.clone();
                             self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
-                            new_stacks.push(reduced_stack);
+                            
+                            // Re-saturate with the SAME lookahead to reach fixed point
+                            // This ensures cascaded reduces and accepts are discovered
+                            let closed = self.reduce_until_saturated(vec![reduced_stack], token);
+                            new_stacks.extend(closed);
                             processed_any = true;
                         }
 
@@ -763,6 +771,15 @@ impl GLRParser {
         // Skip merging to preserve all forks for true GLR behavior
         // This allows maintaining multiple parse paths even if they reach the same state
         // self.merge_stacks(&mut new_stacks);
+
+        // If we have accepting stacks, use only those
+        // This aggregates all accepts for the current token
+        if accepted_any {
+            self.stacks = accept_stacks;
+            // Don't process further for this token - we've accepted
+            self.pending_stacks.clear();
+            return;
+        }
 
         // Update active stacks
         self.stacks = new_stacks;
@@ -1433,7 +1450,7 @@ impl GLRParser {
     /// Try to reach a state that can accept EOF by repeatedly applying
     /// insertion/pop recovery. Never attempt deletion at EOF.
     fn drive_recovery_until_eof_action(&mut self) {
-        if self.error_recovery.is_none() {
+        if self.error_recovery.is_none() || self.stacks.is_empty() {
             return;
         }
         let eof = SymbolId(0); // EOF is always symbol 0
@@ -1441,9 +1458,15 @@ impl GLRParser {
             "drive_recovery_until_eof_action: starting with {} stacks",
             self.stacks.len()
         );
+        
         // Hard bound: at most a few iterations (guards infinite loops).
-        #[allow(unused_variables)]
         for i in 0..8 {
+            // Close first with EOF as lookahead to expose any reduces
+            let stacks = std::mem::take(&mut self.stacks);
+            let stacks = self.reduce_until_saturated(stacks, eof);
+            self.stacks = stacks;
+            
+            // Now check if any stack can handle EOF
             if self.any_stack_has_action(eof) {
                 debug_glr!(
                     "drive_recovery_until_eof_action: found action for EOF after {} iterations",
@@ -1451,11 +1474,14 @@ impl GLRParser {
                 );
                 break;
             }
+            
             debug_glr!(
                 "drive_recovery_until_eof_action: iteration {} with {} stacks",
                 i,
                 self.stacks.len()
             );
+            
+            // Try recovery (insert/pop only, never delete at EOF)
             match self.try_recover(eof, /*eof=*/ true) {
                 Some(RecoveryEvent::Insert(tok)) => {
                     debug_glr!("drive_recovery_until_eof_action: inserted {:?}", tok);
@@ -1463,7 +1489,6 @@ impl GLRParser {
                     while let Some(synthetic) = self.pending_synthetic_tokens.pop_front() {
                         self.process_synthetic_token(synthetic);
                     }
-                    // Loop to recheck after synthetic tokens / pops.
                     continue;
                 }
                 Some(RecoveryEvent::Pop(n)) => {
