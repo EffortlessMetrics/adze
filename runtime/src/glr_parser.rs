@@ -762,6 +762,22 @@ impl GLRParser {
             return;
         }
 
+        // Safe deduplication: remove exact duplicates (same state and same top node pointer)
+        // This keeps ambiguities intact while removing inflated stack counts
+        // NOTE: Only dedup if we have many stacks to avoid collapsing necessary ambiguity forks
+        if new_stacks.len() > 10 {
+            use std::ptr;
+            new_stacks.dedup_by(|a, b| {
+                a.current_state() == b.current_state()
+                    && a.nodes.last().is_some()
+                    && b.nodes.last().is_some()
+                    && ptr::eq(
+                        a.nodes.last().unwrap().as_ref(),
+                        b.nodes.last().unwrap().as_ref(),
+                    )
+            });
+        }
+        
         // Update active stacks
         self.stacks = new_stacks;
         self.pending_stacks = (0..self.stacks.len()).collect();
