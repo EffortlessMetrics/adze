@@ -10,8 +10,8 @@ use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
 use anyhow::{Result, anyhow, bail};
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
-use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
-use std::collections::HashSet;
+use rust_sitter_ir::{Associativity, Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 // Define types directly in parser_v4 (no longer dependent on parser_v3)
@@ -102,6 +102,53 @@ impl Parser {
     /// Get the parse table used by this parser
     pub fn parse_table(&self) -> &ParseTable {
         &self.parse_table
+    }
+
+    /// Calculate priority for an action based on precedence and associativity
+    #[inline]
+    fn action_priority(&self, action: &Action) -> i32 {
+        use Action::*;
+        
+        // Highest: Accept
+        if matches!(action, Accept) {
+            return 3_000_000;
+        }
+        
+        // Pull dynamic precedence if this is a reduce
+        let mut prec = 0i32;
+        if let Reduce(rid) = action {
+            // Get dynamic precedence for this rule
+            if (rid.0 as usize) < self.parse_table.dynamic_prec_by_rule.len() {
+                prec = self.parse_table.dynamic_prec_by_rule[rid.0 as usize] as i32;
+            }
+            
+            // Get associativity from the rule (if we have it stored)
+            // For now, we'll check if the rule has associativity in the grammar
+            if let Some(rule) = self.find_rule_by_production_id_internal(*rid) {
+                // Check if this rule has associativity in the original grammar
+                // We'll need to map back to the original rule to get associativity
+                // For now, use precedence as proxy for priority
+            }
+            
+            // Bump reduces with positive precedence above plain shift
+            if prec > 0 {
+                return 2_000_000 + prec;
+            }
+            // Neutral reduce (slightly below shift to prefer shift in S/R conflicts)
+            return 1_500_000 + prec;
+        }
+        
+        // Plain Shift (default TS policy prefers shift over no-prec reduce)
+        if matches!(action, Shift(_)) {
+            return 2_000_000;
+        }
+        
+        0 // Error/other
+    }
+
+    /// Internal helper to find rule without Result wrapper
+    fn find_rule_by_production_id_internal(&self, rule_id: RuleId) -> Option<&ParseRule> {
+        self.parse_table.rules.get(rule_id.0 as usize)
     }
 
     /// Create a new parser with the given grammar and parse table
@@ -326,7 +373,11 @@ impl Parser {
             let lookahead = SymbolId(token.sym);
 
             // Get the actions for this state and lookahead symbol
-            let actions = self.get_parse_actions(current_state, lookahead)?;
+            let mut actions = self.get_parse_actions(current_state, lookahead)?;
+            
+            // Sort actions by priority (highest first) to prefer better actions
+            actions.sort_by_key(|a| -self.action_priority(a));
+            
             let _col = self
                 .parse_table
                 .symbol_to_index
@@ -549,7 +600,11 @@ impl Parser {
             let lookahead = token.symbol;
 
             // Get the actions for this state and lookahead symbol (works for both regular and external tokens)
-            let actions = self.get_parse_actions(current_state, lookahead)?;
+            let mut actions = self.get_parse_actions(current_state, lookahead)?;
+            
+            // Sort actions by priority (highest first) to prefer better actions
+            actions.sort_by_key(|a| -self.action_priority(a));
+            
             let _col = self
                 .parse_table
                 .symbol_to_index

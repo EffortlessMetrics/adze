@@ -13,7 +13,7 @@ pub enum TSActionTag {
     Accept = 4, // Tree-sitter uses 4 for Accept (not 3)
 }
 
-use rust_sitter_glr_core::Action;
+use rust_sitter_glr_core::{Action, ParseTable};
 
 /// Choose a single action from a GLR cell deterministically
 /// Prefers Accept > Shift > Reduce > Error
@@ -37,6 +37,53 @@ pub fn choose_action(cell: &[Action]) -> Option<Action> {
     }
     // 4) Error
     Some(Action::Error)
+}
+
+/// Choose a single action from a GLR cell with precedence awareness
+/// Uses the same priority logic as the runtime parser
+pub fn choose_action_with_precedence(cell: &[Action], parse_table: &ParseTable) -> Option<Action> {
+    if cell.is_empty() {
+        return None;
+    }
+
+    // Sort by priority and take the best one
+    let mut sorted = cell.to_vec();
+    sorted.sort_by_key(|a| -action_priority(a, parse_table));
+    sorted.first().cloned()
+}
+
+/// Calculate priority for an action based on precedence
+#[inline]
+fn action_priority(action: &Action, parse_table: &ParseTable) -> i32 {
+    use Action::*;
+    
+    // Highest: Accept
+    if matches!(action, Accept) {
+        return 3_000_000;
+    }
+    
+    // Pull dynamic precedence if this is a reduce
+    let mut prec = 0i32;
+    if let Reduce(rid) = action {
+        // Get dynamic precedence for this rule
+        if (rid.0 as usize) < parse_table.dynamic_prec_by_rule.len() {
+            prec = parse_table.dynamic_prec_by_rule[rid.0 as usize] as i32;
+        }
+        
+        // Bump reduces with positive precedence above plain shift
+        if prec > 0 {
+            return 2_000_000 + prec;
+        }
+        // Neutral reduce (slightly below shift to prefer shift in S/R conflicts)
+        return 1_500_000 + prec;
+    }
+    
+    // Plain Shift (default TS policy prefers shift over no-prec reduce)
+    if matches!(action, Shift(_)) {
+        return 2_000_000;
+    }
+    
+    0 // Error/other
 }
 
 #[cfg(test)]

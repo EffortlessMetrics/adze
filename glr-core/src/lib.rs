@@ -2547,13 +2547,23 @@ pub fn build_lr1_automaton(
         }
     }
 
-    // Build rules for reduction
+    // Build rules for reduction and collect precedence info
     let mut rules = Vec::new();
+    let mut dynamic_prec_by_rule = Vec::new();
+    
     for rule in grammar.all_rules() {
         rules.push(ParseRule {
             lhs: rule.lhs,
             rhs_len: rule.rhs.len() as u16,
         });
+        
+        // Extract precedence value for this rule
+        let prec = match rule.precedence {
+            Some(rust_sitter_ir::PrecedenceKind::Static(p)) => p as i16,
+            Some(rust_sitter_ir::PrecedenceKind::Dynamic(p)) => p as i16,
+            None => 0,
+        };
+        dynamic_prec_by_rule.push(prec);
     }
 
     // Build nonterminal_to_index mapping
@@ -2621,9 +2631,9 @@ pub fn build_lr1_automaton(
             };
             state_count
         ],
-        extras: vec![],                            // TODO: Get from grammar metadata
-        dynamic_prec_by_rule: vec![0; rule_count], // TODO: Get from grammar
-        alias_sequences: vec![],                   // TODO: Get from grammar
+        extras: vec![],          // TODO: Get from grammar metadata
+        dynamic_prec_by_rule,    // Now properly populated from grammar rules
+        alias_sequences: vec![],  // TODO: Get from grammar
         field_names: vec![],                       // TODO: Get from grammar
         field_map: BTreeMap::new(),                // TODO: Get from grammar
     })

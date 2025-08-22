@@ -245,6 +245,40 @@ pub struct GLRParser {
 }
 
 impl GLRParser {
+    /// Calculate priority for an action based on precedence
+    #[inline]
+    fn action_priority(&self, action: &Action) -> i32 {
+        use Action::*;
+        
+        // Highest: Accept
+        if matches!(action, Accept) {
+            return 3_000_000;
+        }
+        
+        // Pull dynamic precedence if this is a reduce
+        let mut prec = 0i32;
+        if let Reduce(rid) = action {
+            // Get dynamic precedence for this rule
+            if (rid.0 as usize) < self.table.dynamic_prec_by_rule.len() {
+                prec = self.table.dynamic_prec_by_rule[rid.0 as usize] as i32;
+            }
+            
+            // Bump reduces with positive precedence above plain shift
+            if prec > 0 {
+                return 2_000_000 + prec;
+            }
+            // Neutral reduce (slightly below shift to prefer shift in S/R conflicts)
+            return 1_500_000 + prec;
+        }
+        
+        // Plain Shift (default TS policy prefers shift over no-prec reduce)
+        if matches!(action, Shift(_)) {
+            return 2_000_000;
+        }
+        
+        0 // Error/other
+    }
+
     /// Get a rule by its ID
     fn get_rule(&self, rule_id: RuleId) -> Option<&Rule> {
         let mut rule_counter = 0;
@@ -344,12 +378,16 @@ impl GLRParser {
                 // Check action for token
 
                 // Convert ActionCell to single action or Fork
+                // Sort actions by precedence to prefer better actions first
                 let action = if action_cell.is_empty() {
                     Action::Error
                 } else if action_cell.len() == 1 {
                     action_cell[0].clone()
                 } else {
-                    Action::Fork(action_cell.clone())
+                    // Sort actions by priority (highest precedence first)
+                    let mut sorted_actions = action_cell.clone();
+                    sorted_actions.sort_by_key(|a| -self.action_priority(a));
+                    Action::Fork(sorted_actions)
                 };
 
                 match &action {

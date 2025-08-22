@@ -1,5 +1,5 @@
 use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
-use rust_sitter::ts_format::{TSActionTag, choose_action};
+use rust_sitter::ts_format::{TSActionTag, choose_action, choose_action_with_precedence};
 use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -238,8 +238,8 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
                 .cloned()
                 .unwrap_or_default();
 
-            // Use choose_action to pick the best action from GLR cells
-            let chosen = choose_action(&cell);
+            // Use precedence-aware choose_action to pick the best action from GLR cells
+            let chosen = choose_action_with_precedence(&cell, parse_table);
             let idx = if let Some(a) = chosen {
                 match a {
                     Action::Shift(StateId(tgt)) => push_action(TSParseAction {
@@ -259,11 +259,17 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
                             0
                         } else {
                             let pr = &parse_table.rules[rule_idx.0 as usize];
+                            // Get the dynamic precedence for this rule
+                            let dyn_prec = if (rule_idx.0 as usize) < parse_table.dynamic_prec_by_rule.len() {
+                                parse_table.dynamic_prec_by_rule[rule_idx.0 as usize] as i8
+                            } else {
+                                0
+                            };
                             let action_idx = push_action(TSParseAction {
                                 action_type: TSActionTag::Reduce as u8,
                                 extra: 0,
                                 child_count: pr.rhs_len as u8, // RHS length
-                                dynamic_precedence: 0,
+                                dynamic_precedence: dyn_prec,
                                 symbol: rule_idx.0, // Store the rule ID, not the LHS
                             });
                             action_idx
