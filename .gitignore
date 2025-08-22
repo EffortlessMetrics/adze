@@ -1,2 +1,7 @@
 /target
 **/target/
+
+# Bench/fuzz artifacts
+bench-output.txt
+**/criterion/
+**/bench-reports/
