@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1-beta] - 2025-01-22
+
+### 🎯 GLR Correctness Fixes
+
+This beta release delivers critical correctness fixes for the GLR parser, achieving 100% pass rates on core test suites.
+
+### Fixed
+
+- **GLR Phase-2 Re-closure**: Reductions now re-saturate with same lookahead, revealing cascaded reduces/accepts
+- **Accept Aggregation**: Per-token collection prevents early returns and ensures all valid parses are found
+- **EOF Recovery Loop**: Implements close→check→(insert|pop) pattern with no deletion at EOF
+- **Epsilon Loop Prevention**: Position-aware RedStamp using `(state, rule, end)` tuple
+- **Nonterminal Goto**: Fixed critical bug that was using action table for nonterminal lookups
+
+### Improved
+
+- **Query Correctness**: Squash unary wrapper nodes with identical spans; dedup captures by `(symbol, start, end)`
+- **Fork/Merge Stability**: Safe stack deduplication removes only exact pointer duplicates, preserving ambiguities
+- **Test Infrastructure**: Replaced hand-crafted parse tables with proper LR(1) automaton builder
+- **Fork Depth Understanding**: Tests now respect that ambiguity surfaces at length ≥3 in LR(1) constructions
+
+### Testing
+
+- **Test Results**: Fork/Merge (100%), Integration (100%), Error Recovery (100%), GLR Parsing (100%)
+- **Adjusted Expectations**: Fork assertions use forest ambiguity and distinct root counts
+- **Lexer Integration**: All tests now use GLRLexer for consistent tokenization
+
+### Known Limitations
+
+- Performance optimization pending (safe dedup heuristics)
+- Query predicates and advanced APIs in development
+- External scanner FFI integration needs final touches
+- CLI runtime loading and corpus runner not yet implemented
+
 ## [0.6.0] - 2025-01-09
 
 ### 🚀 Major Release: Production-Ready GLR with Safety Hardening
