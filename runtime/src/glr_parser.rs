@@ -290,6 +290,7 @@ impl GLRParser {
     }
 
     /// Get a rule by its ID
+    #[allow(dead_code)]
     fn get_rule(&self, rule_id: RuleId) -> Option<&Rule> {
         let mut rule_counter = 0;
         for rules in self.grammar.rules.values() {
@@ -353,6 +354,28 @@ impl GLRParser {
         self.pending_stacks.clear();
 
         stacks_to_process = self.reduce_until_saturated(stacks_to_process, token);
+
+        // Debug assertion: verify closure is quiescent (no reduces remain)
+        // Exception: stacks with shift actions are allowed to have reduces too
+        #[cfg(debug_assertions)]
+        {
+            for stack in &stacks_to_process {
+                let state = stack.current_state();
+                if let Some(&symbol_idx) = self.table.symbol_to_index.get(&token) {
+                    let action_cell = &self.table.action_table[state.0 as usize][symbol_idx];
+                    let has_shift = action_cell.iter().any(|a| matches!(a, Action::Shift(_)));
+                    // Only check quiescence if there's no shift action
+                    if !has_shift {
+                        debug_assert!(
+                            !action_cell.iter().any(|a| matches!(a, Action::Reduce(_))),
+                            "Closure not quiescent: reduce actions remain in state {} for token {} (no shift present)",
+                            state.0,
+                            token.0
+                        );
+                    }
+                }
+            }
+        }
 
         // Phase 2: Process shifts and other actions on all post-reduction stacks
         let mut new_stacks = Vec::new();
@@ -423,8 +446,12 @@ impl GLRParser {
                     }
 
                     Action::Reduce(_) => {
-                        // This shouldn't happen after reduce_until_saturated
-                        log::warn!("GLR: reduce encountered after saturation; skipping reduce");
+                        // This should not happen after proper fixed-point saturation
+                        debug_assert!(
+                            false,
+                            "GLR: late reduce seen after saturation - this indicates a bug in reduce_until_saturated"
+                        );
+                        // In release mode, just skip it
                         continue;
                     }
 
@@ -635,255 +662,179 @@ impl GLRParser {
 
     /// Perform all possible reductions on the given stacks until no more reductions apply
     ///
-    /// This method implements the reduction saturation phase of GLR parsing. It repeatedly
-    /// applies all possible reductions to all stacks until no more reductions are available.
+    /// This method implements the reduction saturation phase of GLR parsing using a
+    /// fixed-point worklist algorithm. It repeatedly applies all possible reductions
+    /// until no new stack states are reachable for the given lookahead.
+    ///
     /// This is essential for correctness because:
     ///
-    /// 1. **Cascading Reductions**: One reduction may enable another. For example, reducing
-    ///    `E → E + E` might enable reducing `S → E` at a higher level.
+    /// 1. **Cascading Reductions**: One reduction may enable another. After a reduction
+    ///    and GOTO, the new state may have additional reductions for the same lookahead.
     ///
-    /// 2. **Completeness**: We must explore all reduction paths before shifting to ensure
-    ///    we don't miss valid parses.
+    /// 2. **Completeness**: We must reach a fixed point where no new reductions are
+    ///    possible before shifting, to ensure we don't miss valid parses.
     ///
     /// 3. **Fork Handling**: When a fork action contains both reduce and shift actions,
     ///    we process all reductions in this phase and defer shifts to phase 2.
-    ///
-    /// The method includes an iteration limit to prevent infinite loops in case of
-    /// grammar bugs.
     ///
     /// # Arguments
     /// * `stacks` - The parse stacks to process
     /// * `token` - The lookahead token (used to determine which reductions apply)
     ///
     /// # Returns
-    /// A vector of stacks with all reductions applied
+    /// A vector of stacks with all reductions applied to fixed point
     fn reduce_until_saturated(
         &mut self,
-        mut stacks: Vec<ParseStack>,
+        stacks: Vec<ParseStack>,
         token: SymbolId,
     ) -> Vec<ParseStack> {
-        // Track which reductions have been applied to prevent infinite loops on epsilon rules
-        // Key: (stack_id, top_state, rule_id, pop_length, predecessor_state)
-        // This allows legitimate reductions from different predecessor paths while preventing
-        // the same reduction from being applied infinitely
-        let mut applied_reductions: std::collections::HashSet<(
-            usize,
-            StateId,
-            RuleId,
-            usize,
-            StateId,
-        )> = std::collections::HashSet::new();
+        use std::collections::{HashSet, VecDeque};
 
-        let mut iteration = 0;
-        const MAX_ITERATIONS: usize = 100;
+        // Track which (stack_id, rule_id) reductions we've already applied
+        // to avoid infinite epsilon loops / duplicates.
+        let mut seen_reductions = HashSet::<(usize, RuleId)>::new();
 
-        loop {
-            iteration += 1;
-            if iteration > MAX_ITERATIONS {
-                debug_glr!(
-                    "ERROR: Exceeded {} reduction iterations with {} stacks - breaking to prevent infinite loop",
-                    MAX_ITERATIONS,
-                    stacks.len()
-                );
-                break;
-            }
+        // Track which (stack_id, state_id) tops we've already expanded for this lookahead.
+        // This bounds the worklist and prevents infinite exploration.
+        let mut seen_tops = HashSet::<(usize, StateId)>::new();
 
-            let mut any_reduction_performed = false;
-            let mut result_stacks = Vec::new();
+        // Worklist of stacks to try reduces from
+        let mut worklist = VecDeque::new();
 
-            for stack in stacks {
-                let state = stack.current_state();
+        // Result stacks that are fully saturated (no more reductions possible)
+        let mut saturated_stacks = Vec::new();
 
-                debug_glr!(
-                    "DEBUG reduce phase: Checking state {} for token {}",
-                    state.0,
-                    token.0
-                );
+        // Stacks that have shift actions (need to be preserved for phase 2)
+        let mut shift_stacks = Vec::new();
 
-                if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                    let action_cell =
-                        self.table.action_table[state.0 as usize][*symbol_idx].clone();
-
-                    // Handle multiple actions in the cell (GLR)
-                    if action_cell.is_empty() {
-                        // No action available, keep stack as is
-                        result_stacks.push(stack);
-                    } else if action_cell.len() == 1 {
-                        // Single action
-                        match &action_cell[0] {
-                            Action::Reduce(rule_id) => {
-                                // Get rule to determine pop length
-                                let pop_len = if let Some(rule) = self.get_rule(*rule_id) {
-                                    rule.rhs.len()
-                                } else {
-                                    0
-                                };
-
-                                // Get predecessor state (state after popping)
-                                let pred_state = if stack.states.len() > pop_len {
-                                    stack.states[stack.states.len() - pop_len - 1]
-                                } else {
-                                    StateId(0)
-                                };
-
-                                // Check if we've already applied this reduction to avoid infinite loops
-                                let reduction_key =
-                                    (stack.id, state, *rule_id, pop_len, pred_state);
-                                if !applied_reductions.contains(&reduction_key) {
-                                    applied_reductions.insert(reduction_key);
-                                    any_reduction_performed = true;
-                                    let mut reduced_stack = stack.clone();
-                                    self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
-                                    result_stacks.push(reduced_stack);
-                                } else {
-                                    // Already applied this reduction, skip to prevent infinite loop
-                                    result_stacks.push(stack);
-                                }
-                            }
-                            Action::Fork(actions) => {
-                                // Handle fork action
-                                let mut has_reduction = false;
-                                let mut fork_results = Vec::new();
-
-                                for fork_action in actions {
-                                    match fork_action {
-                                        Action::Reduce(rule_id) => {
-                                            let pop_len =
-                                                if let Some(rule) = self.get_rule(*rule_id) {
-                                                    rule.rhs.len()
-                                                } else {
-                                                    0
-                                                };
-                                            let pred_state = if stack.states.len() > pop_len {
-                                                stack.states[stack.states.len() - pop_len - 1]
-                                            } else {
-                                                StateId(0)
-                                            };
-
-                                            let reduction_key =
-                                                (stack.id, state, *rule_id, pop_len, pred_state);
-                                            if !applied_reductions.contains(&reduction_key) {
-                                                applied_reductions.insert(reduction_key);
-                                                has_reduction = true;
-                                                any_reduction_performed = true;
-                                                let mut forked = stack.fork(self.next_stack_id);
-                                                self.next_stack_id += 1;
-                                                self.perform_reduction_on_stack(
-                                                    &mut forked,
-                                                    *rule_id,
-                                                );
-                                                fork_results.push(forked);
-                                            }
-                                        }
-                                        _ => {
-                                            // Non-reduction fork branches will be handled in phase 2
-                                        }
-                                    }
-                                }
-
-                                if has_reduction {
-                                    result_stacks.extend(fork_results);
-                                } else {
-                                    result_stacks.push(stack);
-                                }
-                            }
-                            _ => {
-                                // Non-reduction action, keep stack
-                                result_stacks.push(stack);
-                            }
-                        }
-                    } else {
-                        // Multiple actions - need to fork
-                        debug_glr!(
-                            "DEBUG reduce: Found {} actions in state {} for token {}",
-                            action_cell.len(),
-                            state.0,
-                            token.0
-                        );
-                        let mut has_reduction = false;
-                        let mut has_shift = false;
-                        let mut fork_results = Vec::new();
-
-                        for action in &action_cell {
-                            match action {
-                                Action::Reduce(rule_id) => {
-                                    let pop_len = if let Some(rule) = self.get_rule(*rule_id) {
-                                        rule.rhs.len()
-                                    } else {
-                                        0
-                                    };
-                                    let pred_state = if stack.states.len() > pop_len {
-                                        stack.states[stack.states.len() - pop_len - 1]
-                                    } else {
-                                        StateId(0)
-                                    };
-
-                                    let reduction_key =
-                                        (stack.id, state, *rule_id, pop_len, pred_state);
-                                    if !applied_reductions.contains(&reduction_key) {
-                                        applied_reductions.insert(reduction_key);
-                                        has_reduction = true;
-                                        any_reduction_performed = true;
-                                        let mut forked = stack.fork(self.next_stack_id);
-                                        self.next_stack_id += 1;
-                                        debug_glr!("  Forking for reduce with rule {}", rule_id.0);
-                                        self.perform_reduction_on_stack(&mut forked, *rule_id);
-                                        fork_results.push(forked);
-                                    }
-                                }
-                                Action::Shift(_) => {
-                                    // Mark that we have a shift action
-                                    has_shift = true;
-                                    debug_glr!(
-                                        "  Found shift action - will preserve stack for phase 2"
-                                    );
-                                }
-                                _ => {
-                                    // Other non-reduction actions will be handled in phase 2
-                                }
-                            }
-                        }
-
-                        // CRITICAL: If we have both shift and reduce, we need to keep the original
-                        // stack for the shift action that will be processed in phase 2!
-                        if has_shift {
-                            debug_glr!("  Preserving original stack for shift action");
-                            result_stacks.push(stack.clone());
-                        }
-
-                        if has_reduction {
-                            result_stacks.extend(fork_results);
-                        }
-
-                        // If we have neither shift nor reduce, keep the original stack
-                        if !has_shift && !has_reduction {
-                            result_stacks.push(stack);
-                        }
-                    }
-                } else {
-                    // Token not in symbol table, keep stack
-                    result_stacks.push(stack);
-                }
-            }
-
-            // CRITICAL: Merge stacks with the same state to prevent exponential explosion
-            self.merge_stacks(&mut result_stacks);
-
-            if result_stacks.len() > 10 {
-                debug_glr!(
-                    "DEBUG reduce: After merging, have {} stacks",
-                    result_stacks.len()
-                );
-            }
-
-            stacks = result_stacks;
-
-            if !any_reduction_performed {
-                break;
+        // Initialize worklist with input stacks
+        for stack in stacks {
+            let state = stack.current_state();
+            if seen_tops.insert((stack.id, state)) {
+                worklist.push_back(stack);
             }
         }
 
-        stacks
+        // Get the column index for the lookahead token
+        let symbol_idx = match self.table.symbol_to_index.get(&token) {
+            Some(&idx) => idx,
+            None => {
+                // Token not in symbol table, return original stacks
+                return worklist.into_iter().collect();
+            }
+        };
+
+        // Fixed-point iteration: process stacks until no new tops appear
+        while let Some(stack) = worklist.pop_front() {
+            let state = stack.current_state();
+            let action_cell = self.table.action_table[state.0 as usize][symbol_idx].clone();
+
+            debug_glr!(
+                "DEBUG reduce_closure: Processing state {} for token {} ({} actions)",
+                state.0,
+                token.0,
+                action_cell.len()
+            );
+
+            // Extract and sort reduce actions by priority
+            let mut reduces: Vec<(Action, i32)> = action_cell
+                .iter()
+                .filter_map(|a| match a {
+                    Action::Reduce(_rid) => Some((a.clone(), self.action_priority(a))),
+                    _ => None,
+                })
+                .collect();
+
+            // Sort by priority (highest first)
+            reduces.sort_by_key(|(_, prio)| -prio);
+
+            // Check if this stack also has shift actions (needs to be preserved)
+            let has_shift = action_cell.iter().any(|a| matches!(a, Action::Shift(_)));
+            if has_shift {
+                debug_glr!("  Stack has shift action - preserving for phase 2");
+                shift_stacks.push(stack.clone());
+            }
+
+            // Check for other non-reduce actions
+            let has_accept = action_cell.iter().any(|a| matches!(a, Action::Accept));
+            if has_accept {
+                debug_glr!("  Stack has accept action - preserving");
+                saturated_stacks.push(stack.clone());
+            }
+
+            if reduces.is_empty() {
+                // No reduces available - this stack is saturated
+                if !has_shift && !has_accept {
+                    saturated_stacks.push(stack);
+                }
+                continue;
+            }
+
+            // Apply each reduce action
+            let mut any_reduction_applied = false;
+            for (reduce_action, _) in reduces {
+                let rule_id = match reduce_action {
+                    Action::Reduce(rid) => rid,
+                    _ => continue,
+                };
+
+                // Guard against repeated application on same stack
+                if !seen_reductions.insert((stack.id, rule_id)) {
+                    debug_glr!(
+                        "  Skipping duplicate reduction: stack {} rule {}",
+                        stack.id,
+                        rule_id.0
+                    );
+                    continue;
+                }
+
+                debug_glr!("  Applying reduction: rule {}", rule_id.0);
+
+                // Fork the stack for this reduction
+                let mut reduced_stack = stack.fork(self.next_stack_id);
+                self.next_stack_id += 1;
+
+                // Apply the reduction (this will pop symbols and push via GOTO)
+                self.perform_reduction_on_stack(&mut reduced_stack, rule_id);
+
+                // The new top state after GOTO might have more reduces for the same lookahead
+                let new_state = reduced_stack.current_state();
+                let key = (reduced_stack.id, new_state);
+
+                if seen_tops.insert(key) {
+                    // This is a new top we haven't explored - add to worklist
+                    debug_glr!(
+                        "  New top reached: state {} - adding to worklist",
+                        new_state.0
+                    );
+                    worklist.push_back(reduced_stack);
+                    any_reduction_applied = true;
+                } else {
+                    // We've already processed this top - it's saturated
+                    debug_glr!("  Top already seen: state {} - skipping", new_state.0);
+                }
+            }
+
+            // If no reductions were applied from this stack and it has no shift/accept,
+            // then this stack is fully saturated
+            if !any_reduction_applied && !has_shift && !has_accept {
+                saturated_stacks.push(stack);
+            }
+        }
+
+        // Combine saturated stacks and shift stacks
+        let mut result = saturated_stacks;
+        result.extend(shift_stacks);
+
+        // Merge stacks with the same state to prevent exponential explosion
+        self.merge_stacks(&mut result);
+
+        debug_glr!(
+            "DEBUG reduce_closure: Fixed point reached with {} stacks",
+            result.len()
+        );
+
+        result
     }
 
     /// Perform a reduction on a specific stack
@@ -893,6 +844,8 @@ impl GLRParser {
             rule_id.0,
             stack.current_state().0
         );
+        debug_glr!("  Stack has {} nodes before reduction", stack.nodes.len());
+
         // Perform reduction
         // Find the rule in the grammar
         if let Some(rule) = self
@@ -902,7 +855,18 @@ impl GLRParser {
             .flat_map(|rules| rules.iter())
             .find(|r| r.production_id.0 == rule_id.0)
         {
+            debug_glr!(
+                "  Rule: {:?} -> {:?} ({} symbols)",
+                rule.lhs,
+                rule.rhs,
+                rule.rhs.len()
+            );
             let children = stack.pop(rule.rhs.len());
+            debug_glr!(
+                "  Popped {} children, stack now has {} nodes",
+                children.len(),
+                stack.nodes.len()
+            );
 
             // Create new subtree for the reduction
             let node = SubtreeNode {
@@ -963,20 +927,40 @@ impl GLRParser {
 
                 if let Some(Action::Shift(goto_state)) = shift_action {
                     // Goto state after reduction
+                    debug_glr!(
+                        "  GOTO via action table: state {} -> state {} for symbol {}",
+                        current_state.0,
+                        goto_state.0,
+                        rule.lhs.0
+                    );
                     stack.push(*goto_state, subtree);
                 } else {
                     // Fall back to goto table if action table doesn't have a shift
                     let goto_state = self.table.goto_table[current_state.0 as usize][*symbol_idx];
                     if goto_state.0 != 0 {
                         // Goto state from goto table
+                        debug_glr!(
+                            "  GOTO via goto table: state {} -> state {} for symbol {}",
+                            current_state.0,
+                            goto_state.0,
+                            rule.lhs.0
+                        );
                         stack.push(goto_state, subtree);
                     } else {
                         // No goto state found - error condition
+                        debug_glr!(
+                            "  ERROR: No GOTO found for symbol {} from state {}",
+                            rule.lhs.0,
+                            current_state.0
+                        );
                     }
                 }
             } else {
                 // No symbol index found - error condition
+                debug_glr!("  ERROR: Symbol {} not in symbol_to_index map", rule.lhs.0);
             }
+        } else {
+            debug_glr!("  ERROR: Rule {} not found in grammar", rule_id.0);
         }
     }
 
@@ -1062,6 +1046,8 @@ impl GLRParser {
 
     /// Get the best parse tree from active stacks
     pub fn get_best_parse(&self) -> Option<Arc<Subtree>> {
+        debug_glr!("get_best_parse: {} stacks available", self.stacks.len());
+
         // Get best parse from available stacks
         if self.stacks.is_empty() {
             return None;
@@ -1077,6 +1063,12 @@ impl GLRParser {
                 _ => {}
             }
         }
+
+        debug_glr!(
+            "Best stack has {} nodes, current state: {}",
+            self.stacks[best_idx].nodes.len(),
+            self.stacks[best_idx].current_state().0
+        );
 
         // Return best parse
         self.stacks[best_idx].nodes.last().cloned()

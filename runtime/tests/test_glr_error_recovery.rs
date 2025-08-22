@@ -75,7 +75,7 @@ fn create_test_grammar() -> Grammar {
     // statement → expression ';'
     grammar
         .rules
-        .entry(SymbolId(20))
+        .entry(stmt_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: stmt_id,
@@ -89,7 +89,7 @@ fn create_test_grammar() -> Grammar {
     // expression → expression '+' expression
     grammar
         .rules
-        .entry(SymbolId(21))
+        .entry(expr_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -107,7 +107,7 @@ fn create_test_grammar() -> Grammar {
     // expression → '(' expression ')'
     grammar
         .rules
-        .entry(SymbolId(22))
+        .entry(expr_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -125,7 +125,7 @@ fn create_test_grammar() -> Grammar {
     // expression → number
     grammar
         .rules
-        .entry(SymbolId(23))
+        .entry(expr_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,

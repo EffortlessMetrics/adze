@@ -91,7 +91,7 @@ fn build_arithmetic_grammar() -> Grammar {
     // expr -> expr + expr
     grammar
         .rules
-        .entry(SymbolId(11))
+        .entry(expr_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -109,7 +109,7 @@ fn build_arithmetic_grammar() -> Grammar {
     // expr -> expr - expr
     grammar
         .rules
-        .entry(SymbolId(12))
+        .entry(expr_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -127,7 +127,7 @@ fn build_arithmetic_grammar() -> Grammar {
     // expr -> expr * expr
     grammar
         .rules
-        .entry(SymbolId(13))
+        .entry(expr_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -145,7 +145,7 @@ fn build_arithmetic_grammar() -> Grammar {
     // expr -> expr / expr
     grammar
         .rules
-        .entry(SymbolId(14))
+        .entry(expr_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -220,7 +220,7 @@ fn build_dangling_else_grammar() -> Grammar {
     // stmt -> if expr then stmt
     grammar
         .rules
-        .entry(SymbolId(11))
+        .entry(stmt_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: stmt_id,
@@ -239,7 +239,7 @@ fn build_dangling_else_grammar() -> Grammar {
     // stmt -> if expr then stmt else stmt
     grammar
         .rules
-        .entry(SymbolId(12))
+        .entry(stmt_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: stmt_id,
@@ -260,7 +260,7 @@ fn build_dangling_else_grammar() -> Grammar {
     // stmt -> simple_stmt
     grammar
         .rules
-        .entry(SymbolId(13))
+        .entry(stmt_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: stmt_id,
@@ -304,7 +304,7 @@ fn build_dynamic_precedence_grammar() -> Grammar {
     // S -> a (dynamic precedence 1)
     grammar
         .rules
-        .entry(SymbolId(11))
+        .entry(s_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: s_id,
@@ -318,7 +318,7 @@ fn build_dynamic_precedence_grammar() -> Grammar {
     // S -> b (dynamic precedence 2)
     grammar
         .rules
-        .entry(SymbolId(12))
+        .entry(s_id) // Key should be the LHS non-terminal
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: s_id,
