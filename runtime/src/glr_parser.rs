@@ -504,7 +504,7 @@ impl GLRParser {
             );
 
             if let Some(symbol_idx) = self.table.symbol_to_index.get(&token) {
-                let action_cell = &self.table.action_table[state.0 as usize][*symbol_idx];
+                let action_cell = self.table.action_table[state.0 as usize][*symbol_idx].clone();
 
                 // Debug: Print action cell contents
                 if action_cell.len() > 1 {
@@ -520,58 +520,46 @@ impl GLRParser {
                     }
                 }
 
-                // Check action for token
+                // Process ALL actions in the cell without collapsing
+                // This ensures true GLR behavior by exploring all alternatives
+                let mut processed_any = false;
+                
+                for action in &action_cell {
+                    match action {
+                        Action::Shift(new_state) => {
+                            let mut new_stack = stack.clone();
+                            new_stack.push(
+                                *new_state,
+                                Arc::new(Subtree::new(
+                                    SubtreeNode {
+                                        symbol_id: token,
+                                        is_error: false,
+                                        byte_range: byte_offset..byte_offset + text.len(),
+                                    },
+                                    vec![],
+                                )),
+                            );
+                            new_stacks.push(new_stack);
+                            processed_any = true;
+                        }
 
-                // Convert ActionCell to single action or Fork
-                // Sort actions by precedence to prefer better actions first
-                let action = if action_cell.is_empty() {
-                    Action::Error
-                } else if action_cell.len() == 1 {
-                    action_cell[0].clone()
-                } else {
-                    // Sort actions by priority (highest precedence first)
-                    let mut sorted_actions = action_cell.clone();
-                    sorted_actions.sort_by_key(|a| -self.action_priority(a));
-                    Action::Fork(sorted_actions)
-                };
+                        Action::Accept => {
+                            // Keep the accepting stack
+                            new_stacks.push(stack.clone());
+                            processed_any = true;
+                        }
 
-                match &action {
-                    Action::Shift(new_state) => {
-                        let mut new_stack = stack.clone();
-                        new_stack.push(
-                            *new_state,
-                            Arc::new(Subtree::new(
-                                SubtreeNode {
-                                    symbol_id: token,
-                                    is_error: false,
-                                    byte_range: byte_offset..byte_offset + text.len(),
-                                },
-                                vec![],
-                            )),
-                        );
-                        new_stacks.push(new_stack);
-                    }
+                        Action::Reduce(rule_id) => {
+                            // Apply the reduction directly
+                            let mut reduced_stack = stack.clone();
+                            self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
+                            new_stacks.push(reduced_stack);
+                            processed_any = true;
+                        }
 
-                    Action::Accept => {
-                        // Keep the accepting stack
-                        new_stacks.push(stack);
-                    }
-
-                    Action::Reduce(_) => {
-                        // This should not happen after proper fixed-point saturation
-                        debug_assert!(
-                            false,
-                            "GLR: late reduce seen after saturation - this indicates a bug in reduce_until_saturated"
-                        );
-                        // In release mode, just skip it
-                        continue;
-                    }
-
-                    Action::Fork(actions) => {
-                        // TRUE GLR FORKING! Always fork for ambiguity preservation
-                        // Note: we ignore the conflict resolver to maintain all parse alternatives
-                        {
-                            // No resolution - TRUE GLR FORKING!
+                        Action::Fork(actions) => {
+                            // TRUE GLR FORKING! Always fork for ambiguity preservation
+                            // Note: we ignore the conflict resolver to maintain all parse alternatives
                             // This is the critical part where we maintain ambiguity by forking stacks
                             debug_glr!(
                                 "DEBUG: GLR Fork! Creating {} stacks for state {} with token {}",
@@ -660,22 +648,19 @@ impl GLRParser {
                                 }
                             }
 
-                            // If no valid forks were created, keep the original stack
-                            if new_stacks.is_empty() {
-                                new_stacks.push(stack);
-                            }
+                            processed_any = true;
                         }
-                    }
 
-                    Action::Recover => {
-                        // Handle Recover action - similar to Error but with specific recovery
-                        // For now, treat it as an error
-                        let mut error_stack = stack.clone();
-                        error_stack.version.enter_error();
-                        new_stacks.push(error_stack);
-                    }
+                        Action::Recover => {
+                            // Handle Recover action - similar to Error but with specific recovery
+                            // For now, treat it as an error
+                            let mut error_stack = stack.clone();
+                            error_stack.version.enter_error();
+                            new_stacks.push(error_stack);
+                            processed_any = true;
+                        }
 
-                    Action::Error => {
+                        Action::Error => {
                         // println!("    Action: Error");
 
                         // Try error recovery if enabled
@@ -748,24 +733,36 @@ impl GLRParser {
                             }
                         }
 
-                        // Default error handling - mark stack as errored
-                        let mut error_stack = stack.clone();
-                        error_stack.version.enter_error();
-                        new_stacks.push(error_stack);
-                    }
+                            // Default error handling - mark stack as errored
+                            let mut error_stack = stack.clone();
+                            error_stack.version.enter_error();
+                            new_stacks.push(error_stack);
+                            processed_any = true;
+                        }
 
-                    _ => {
-                        // Unknown action type - treat as error
-                        let mut error_stack = stack.clone();
-                        error_stack.version.enter_error();
-                        new_stacks.push(error_stack);
+                        _ => {
+                            // Unknown action type - treat as error
+                            let mut error_stack = stack.clone();
+                            error_stack.version.enter_error();
+                            new_stacks.push(error_stack);
+                            processed_any = true;
+                        }
                     }
                 }
+                
+                // If no actions were processed, keep the original stack
+                if !processed_any {
+                    new_stacks.push(stack);
+                }
+            } else {
+                // No symbol in index - keep the stack
+                new_stacks.push(stack);
             }
         }
 
-        // Merge stacks that reach the same state
-        self.merge_stacks(&mut new_stacks);
+        // Skip merging to preserve all forks for true GLR behavior
+        // This allows maintaining multiple parse paths even if they reach the same state
+        // self.merge_stacks(&mut new_stacks);
 
         // Update active stacks
         self.stacks = new_stacks;
@@ -802,9 +799,15 @@ impl GLRParser {
     ) -> Vec<ParseStack> {
         use std::collections::{HashSet, VecDeque};
 
-        // Track which (stack_id, rule_id) reductions we've already applied
-        // to avoid infinite epsilon loops / duplicates.
-        let mut seen_reductions = HashSet::<(usize, RuleId)>::new();
+        // Track which reductions we've already applied at a given position
+        // to avoid infinite epsilon loops
+        #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+        struct RedStamp {
+            state: StateId,
+            rule: RuleId,
+            end: usize,  // byte position to prevent epsilon re-fires at same position
+        }
+        let mut seen_reductions = HashSet::<RedStamp>::new();
 
         // Track which (stack_id, state_id) tops we've already expanded for this lookahead.
         // This bounds the worklist and prevents infinite exploration.
@@ -890,12 +893,22 @@ impl GLRParser {
                     _ => continue,
                 };
 
-                // Guard against repeated application on same stack
-                if !seen_reductions.insert((stack.id, rule_id)) {
+                // Guard against repeated application at same position (epsilon loop prevention)
+                let end_byte = stack.nodes.last()
+                    .map(|n| n.node.byte_range.end)
+                    .unwrap_or(0);
+                let stamp = RedStamp {
+                    state: stack.current_state(),
+                    rule: rule_id,
+                    end: end_byte,
+                };
+                
+                if !seen_reductions.insert(stamp) {
                     debug_glr!(
-                        "  Skipping duplicate reduction: stack {} rule {}",
-                        stack.id,
-                        rule_id.0
+                        "  Skipping epsilon re-fire: state {} rule {} at byte {}",
+                        stamp.state.0,
+                        rule_id.0,
+                        end_byte
                     );
                     continue;
                 }
@@ -938,8 +951,8 @@ impl GLRParser {
         let mut result = saturated_stacks;
         result.extend(shift_stacks);
 
-        // Merge stacks with the same state to prevent exponential explosion
-        self.merge_stacks(&mut result);
+        // Skip merging to preserve all reduction paths for true GLR behavior
+        // self.merge_stacks(&mut result);
 
         debug_glr!(
             "DEBUG reduce_closure: Fixed point reached with {} stacks",
