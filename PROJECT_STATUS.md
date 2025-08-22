@@ -1,35 +1,29 @@
 # Rust Sitter Project Status
 
-## 🎉 v0.6.0 - Production-Ready Core with Advanced Features in Progress
+## 📦 v0.6.0-beta - GLR Core Complete, Advanced Features In Development
 
-Rust Sitter v0.6.0 delivers a production-ready GLR parser core with ongoing development of advanced features. The parser successfully handles complex grammars like Python while maintaining a clear roadmap for remaining features.
+Rust Sitter v0.6.0-beta achieves a correct GLR parser implementation with successful Python grammar compilation. While the core parsing algorithm is solid, several features remain experimental or in development.
 
 ## ✅ Completed Features
 
 ### Core Implementation
 - **Pure-Rust Parser Generator**: Zero C dependencies, compile-time generation
-- **GLR Parsing**: Full support for ambiguous grammars with advanced conflict resolution
-- **Tree-sitter Compatibility**: 99% compatible with existing grammars
-- **Performance**: 20-30% faster than Tree-sitter with SIMD acceleration
-- **WASM Support**: First-class WebAssembly support for browser deployment
-- **Incremental Parsing**: O(log n) complexity with efficient tree reuse
-- **Error Recovery**: Advanced strategies with context-aware recovery
-- **External Scanners**: Both FFI and native Rust scanner support
-- **Python Grammar Support**: Successfully compiles Python grammar (273 symbols, 57 fields) with full external scanner
+- **GLR Parsing**: True GLR with multi-action cells, proper fork/merge behavior
+- **Python Grammar Compilation**: Successfully compiles Python (273 symbols, 57 fields)
+- **Error Recovery**: Basic error recovery with insertion/deletion/pop strategies
+- **External Scanner Interface**: FFI-compatible struct definitions
+- **Nonterminal Goto Handling**: Correct LR semantics for goto transitions
+- **Epsilon Loop Prevention**: Re-fire guards prevent infinite reduction loops
 
 ### Developer Tools
-- **Testing Framework**: Property-based testing, fuzzing, and benchmarking
-- **LSP Generator**: Automatic language server generation from grammars
-- **Interactive Playground**: Web-based grammar development at play.rust-sitter.dev
-- **Performance Profiler**: Built-in profiling and optimization tools
-- **Grammar Visualization**: Interactive parse tree and state machine viewers
-- **CLI Tools**: Comprehensive command-line interface for all operations
+- **Basic CLI**: `generate` command for parser generation
+- **Test Framework**: Unit tests with snapshot testing via insta
+- **Grammar Examples**: Arithmetic, JSON-like, and expression grammars
 
-### Language Support
-- **150+ Languages**: Validated with production grammars
-- **Migration Tools**: Automatic conversion from Tree-sitter
-- **Grammar Templates**: Quick-start templates for common patterns
-- **Example Repository**: Extensive examples with test suites
+### Language Support (Experimental)
+- **Python**: Compiles but runtime parsing needs validation
+- **JSON**: Basic support in tests
+- **Arithmetic**: Full support with precedence
 
 ### Documentation
 - **API Reference**: Complete documentation of all APIs
@@ -40,53 +34,57 @@ Rust Sitter v0.6.0 delivers a production-ready GLR parser core with ongoing deve
 - **LSP Generator Guide**: Creating language servers
 - **Playground Guide**: Using the interactive playground
 
-## 📊 Performance Metrics
+## 📊 Test Results (January 2025)
 
-| Metric | Tree-sitter | Rust Sitter | Improvement |
-|--------|-------------|-------------|-------------|
-| Parse Time (100KB) | 3.0ms | 2.1ms | 30% faster |
-| Memory Usage | 50MB | 35MB | 30% less |
-| Incremental Parse | 5ms | 2ms | 60% faster |
-| WASM Bundle Size | 2.5MB | 1.8MB | 28% smaller |
-| Startup Time | 50ms | 10ms | 80% faster |
+| Test Suite | Pass Rate | Status |
+|------------|-----------|---------|
+| Lexer Integration | 2/2 (100%) | ✅ Fully working |
+| Error Recovery | 4/5 (80%) | ✅ Mostly working |
+| Fork/Merge | 26/30 (87%) | ✅ Forking confirmed |
+| Integration | 3/5 (60%) | ⚠️ Query issues |
+| GLR Parsing | 2/6 (33%) | ⚠️ Test infrastructure issues |
 
-## 🎯 Recent Improvements (January 2025)
+## 🎯 Recent Fixes (January 2025)
 
-### Major Achievements
-- **GLR Parser Completion**: Full GLR implementation with multi-action cells for ambiguous grammars
-- **Python Grammar Success**: Compiles and parses Python's 273 symbols with external scanner
-- **FFI Safety Hardening**: Added compile-time ABI validation and proper cleanup functions
-- **CLI Transparency**: Honest error messages clearly communicate current capabilities
+### End-Game Correctness Fixes
+- **Nonterminal Goto**: Fixed critical bug using action table for nonterminal lookups
+- **True GLR Forking**: Process ALL actions without first-match bias or state dedup
+- **Epsilon Loop Prevention**: Added RedStamp guard with position tracking
+- **Phase-2 Re-closure**: Reductions now re-saturate with same lookahead
+- **Accept Aggregation**: Collect all accepts per token without early returns
+- **EOF Recovery**: Smart loop with close→check→recover pattern
 
-### Technical Hardening
-- **External Scanner FFI**: Proper `#[repr(C)]` structs with size assertions
-- **Memory Safety**: Added `destroy_lexer()` for proper resource cleanup
-- **Error Handling**: Replaced silent stubs with explicit panic messages
-- **Line/Column Tracking**: Unified CRLF handling across the codebase
-- **Documentation**: Comprehensive "Known Limitations" section in README
+### Test Infrastructure
+- **Grammar Construction**: Fixed LHS grouping in test grammars
+- **Symbol Mapping**: Corrected symbol-to-index issues
+- **Start Symbol**: Proper initialization in test helpers
 
-## 🚧 Features in Active Development
+## 🚧 Known Limitations
 
-### High Priority (v0.6.x)
-- **Dynamic Parser Loading**: CLI ability to load compiled parsers at runtime
-- **Corpus Testing**: Full Tree-sitter compatible test runner
-- **Query System Completion**: Predicates, alternations, and anchors
-- **Table Compression**: Large-table optimization for memory efficiency
+### Not Yet Implemented
+- **Query System**: Tree-sitter queries partially work (predicates missing)
+- **Incremental Parsing**: Experimental flag required, not fully tested
+- **CLI parse/test**: Commands exist but need runtime parser loading
+- **External Scanners**: Interface defined but linking not automatic
+- **WASM Support**: Builds but needs validation
 
-### Medium Priority (v0.7.0)
-- **Incremental Parsing Stabilization**: Public API for GLR incremental updates
-- **Error Recovery Enhancement**: Cost-based recovery with diagnostics
-- **External Scanner Integration**: Automatic C scanner linking
-- **Serialization API**: Stable tree serialization to JSON/S-exp
+### Test Infrastructure Issues
+- Some test grammars have incomplete parse tables
+- Query tests expect specific tree structures
+- EOF handling edge cases in some helpers
 
-## 🏢 Production Usage
+## ⚠️ Current Usage Recommendations
 
-The core parsing functionality is production-ready and being used for:
-- Grammar development and testing
-- Static analysis tools
-- Code generation projects
-- Research applications
-- WASM-based browser tools
+The GLR parser core is solid for:
+- Research and experimentation
+- Grammar development (compile-time)
+- Understanding GLR algorithms
+- Contributing to development
+
+Not recommended yet for:
+- Production parsing workloads
+- Drop-in Tree-sitter replacement
+- Performance-critical applications
 
 ## 🔄 Migration from Previous Versions
 
@@ -99,55 +97,52 @@ If you're using the older implementation status documents:
 ## 🚀 Getting Started
 
 ```bash
-# Install Rust Sitter
-cargo install rust-sitter-cli
+# Clone and build from source
+git clone https://github.com/rust-sitter/rust-sitter
+cd rust-sitter
+cargo build --release
 
-# Create a new grammar
-rust-sitter new my-language
-
-# Test interactively
-rust-sitter playground
-
-# Generate LSP
-rust-sitter generate-lsp
+# Run the generate command (main working feature)
+cargo run -p rust-sitter-tool -- generate
 
 # Run tests
-rust-sitter test
+cargo test -p rust-sitter
 ```
 
 ## 📚 Resources
 
 ### Documentation
-- [Comprehensive Docs](https://docs.rust-sitter.dev)
-- [API Reference](./API_DOCUMENTATION.md)
-- [Examples](https://github.com/rust-sitter/examples)
+- [README](./README.md) - Project overview
+- [CLAUDE.md](./CLAUDE.md) - Development instructions
+- [Example Grammars](./example/src/) - Working examples
 
-### Community
-- [Discord](https://discord.gg/rust-sitter)
-- [Forum](https://discuss.rust-sitter.dev)
+### Repository
 - [GitHub](https://github.com/rust-sitter/rust-sitter)
+- [Issues](https://github.com/rust-sitter/rust-sitter/issues)
 
-### Tools
-- [Playground](https://play.rust-sitter.dev)
-- [Grammar Gallery](https://grammars.rust-sitter.dev)
-- [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=rust-sitter)
+## 🎯 Next Steps
 
-## 🎯 Future Plans
+### Immediate (Correctness)
+- Fix remaining test infrastructure issues
+- Complete query system implementation
+- Validate Python parsing end-to-end
 
-While v1.0 is feature-complete, we continue to innovate:
-- Machine learning-based error recovery
-- GPU-accelerated parsing for massive files
-- Cloud-based grammar repository
-- Advanced IDE integration features
-- Formal verification tools
+### Near-term (Usability)
+- Runtime parser loading for CLI
+- Tree-sitter corpus test compatibility
+- External scanner linking
 
-See [ROADMAP.md](./ROADMAP.md) for detailed future plans.
+### Long-term (Performance)
+- Memory optimization with safe deduplication
+- Incremental parsing stabilization
+- WASM validation and optimization
 
-## 📈 Success Metrics
+## 📈 Current Metrics
 
-- **Grammar Compatibility**: 99% with Tree-sitter
-- **Test Coverage**: 95%+ across all modules
-- **Performance**: Consistently faster than Tree-sitter
+- **Core GLR Algorithm**: ✅ Correct
+- **Test Coverage**: ~70% passing
+- **Python Grammar**: Compiles successfully
+- **Performance**: Not yet benchmarked
 - **Stability**: Zero panics in production
 - **Community**: Active and growing
 
