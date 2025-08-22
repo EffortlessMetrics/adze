@@ -213,6 +213,18 @@ impl ParseStack {
     }
 }
 
+/// Recovery event for tracking what recovery actions were taken
+#[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
+enum RecoveryEvent {
+    /// Synthesized a token (zero-width insertion)
+    Insert(SymbolId),
+    /// Dropped the current lookahead
+    Delete(SymbolId),
+    /// Popped N symbols from stacks
+    Pop(usize),
+}
+
 /// GLR parser engine
 pub struct GLRParser {
     /// Parse table
@@ -242,6 +254,15 @@ pub struct GLRParser {
 
     /// Total input length in bytes (set when process_eof is called)
     input_length: usize,
+
+    /// Number of tokens deleted in a row for recovery
+    deleted_in_row: usize,
+
+    /// Number of tokens inserted in a row for recovery
+    inserted_in_row: usize,
+
+    /// Pending synthetic tokens to process
+    pending_synthetic_tokens: VecDeque<SymbolId>,
 }
 
 impl GLRParser {
@@ -321,13 +342,61 @@ impl GLRParser {
             recovery_state: None,
             vec_wrapper_resolver,
             input_length: 0,
+            deleted_in_row: 0,
+            inserted_in_row: 0,
+            pending_synthetic_tokens: VecDeque::new(),
         }
+    }
+
+    /// Get the goto state for a nonterminal after a reduction
+    #[inline]
+    fn goto_next_state(&self, state: StateId, lhs: SymbolId) -> Option<StateId> {
+        // Use the nonterminal_to_index mapping to find the column in goto_table
+        if let Some(&col) = self.table.nonterminal_to_index.get(&lhs) {
+            return self
+                .table
+                .goto_table
+                .get(state.0 as usize)?
+                .get(col)
+                .copied()
+                .filter(|&s| s.0 != 0); // StateId(0) often means no goto
+        }
+
+        // Fallback: try looking in the action table for a shift action
+        // (some tables might store gotos as shifts in the action table)
+        if let Some(&col) = self.table.symbol_to_index.get(&lhs) {
+            if let Some(row) = self.table.action_table.get(state.0 as usize) {
+                if let Some(cell) = row.get(col) {
+                    for action in cell {
+                        if let Action::Shift(s) = action {
+                            return Some(*s);
+                        }
+                    }
+                }
+            }
+        }
+        None
     }
 
     /// Enable error recovery with the given configuration
     pub fn enable_error_recovery(&mut self, config: ErrorRecoveryConfig) {
         self.recovery_state = Some(ErrorRecoveryState::new(config.clone()));
         self.error_recovery = Some(config);
+    }
+
+    /// Builder method to enable error recovery with the given configuration
+    pub fn with_error_recovery(mut self, config: ErrorRecoveryConfig) -> Self {
+        self.enable_error_recovery(config);
+        self
+    }
+
+    /// Process a synthetic token (from recovery)
+    fn process_synthetic_token(&mut self, token: SymbolId) {
+        // Process synthetic token exactly like a real one but with zero width
+        let stacks = std::mem::take(&mut self.stacks);
+        let stacks = self.reduce_until_saturated(stacks, token);
+        self.stacks = stacks;
+        self.shift_synthetic_token(token);
     }
 
     /// Process one token through all active stacks
@@ -348,6 +417,11 @@ impl GLRParser {
     /// * `byte_offset` - The byte position of the token in the input
     pub fn process_token(&mut self, token: SymbolId, text: &str, byte_offset: usize) {
         // Processing token
+
+        // First process any pending synthetic tokens from recovery
+        while let Some(synthetic) = self.pending_synthetic_tokens.pop_front() {
+            self.process_synthetic_token(synthetic);
+        }
 
         // Phase 1: Perform all possible reductions until saturation
         let mut stacks_to_process = std::mem::take(&mut self.stacks);
@@ -374,6 +448,44 @@ impl GLRParser {
                         );
                     }
                 }
+            }
+        }
+
+        // Check if any stack has an action for the current token
+        // If not, try recovery before Phase 2
+        if self.error_recovery.is_some()
+            && !stacks_to_process.is_empty()
+            && !self.any_stack_has_action_in(&stacks_to_process, token)
+        {
+            // Restore stacks before attempting recovery
+            self.stacks = stacks_to_process;
+            if let Some(evt) = self.try_recover(token, false) {
+                // Recovery performed: it modified stacks and/or input
+                debug_glr!("Recovery performed: {:?}", evt);
+                // For deletion, we should just skip this token and continue
+                if matches!(evt, RecoveryEvent::Delete(_)) {
+                    // Mark all stacks as having encountered an error
+                    for stack in &mut self.stacks {
+                        stack.version.enter_error();
+                    }
+                    // Token was deleted, caller should advance input
+                    return;
+                }
+                // For insertion or pop, continue processing
+                return;
+            } else if self.stacks.is_empty() {
+                // No stacks left, parsing failed
+                debug_glr!("Recovery failed: no stacks remaining");
+                return;
+            } else {
+                // Recovery couldn't help but we still have stacks
+                // Create error node and continue
+                debug_glr!("Recovery failed but stacks remain, creating error node");
+                // Keep stacks but mark as error
+                for stack in &mut self.stacks {
+                    stack.version.enter_error();
+                }
+                return;
             }
         }
 
@@ -837,6 +949,261 @@ impl GLRParser {
         result
     }
 
+    // ================================================================================
+    // GLR-aware error recovery helpers
+    // ================================================================================
+
+    /// Check if any active stack has an action for the given token
+    #[inline]
+    fn any_stack_has_action(&self, lookahead: SymbolId) -> bool {
+        let Some(&col) = self.table.symbol_to_index.get(&lookahead) else {
+            return false;
+        };
+        self.stacks.iter().any(|stack| {
+            let s = stack.current_state();
+            !self.table.action_table[s.0 as usize][col].is_empty()
+        })
+    }
+
+    fn any_stack_has_action_in(&self, stacks: &[ParseStack], lookahead: SymbolId) -> bool {
+        let Some(&col) = self.table.symbol_to_index.get(&lookahead) else {
+            return false;
+        };
+        stacks.iter().any(|stack| {
+            let s = stack.current_state();
+            !self.table.action_table[s.0 as usize][col].is_empty()
+        })
+    }
+
+    /// Check if any stack can shift or reduce for the given terminal symbol
+    /// Note: This only checks terminals, not nonterminals (which use goto_table)
+    #[inline]
+    fn can_shift_or_reduce(&self, sym: SymbolId) -> bool {
+        // symbol_to_index should only contain terminals
+        let Some(&col) = self.table.symbol_to_index.get(&sym) else {
+            debug_glr!("  Terminal {:?} not in symbol_to_index map", sym);
+            return false;
+        };
+        let result = self.stacks.iter().any(|stack| {
+            let s = stack.current_state();
+            if s.0 as usize >= self.table.action_table.len() {
+                debug_glr!("  State {} is out of bounds!", s.0);
+                return false;
+            }
+            if col >= self.table.action_table[s.0 as usize].len() {
+                debug_glr!("  Column {} is out of bounds for state {}!", col, s.0);
+                return false;
+            }
+            let cell = &self.table.action_table[s.0 as usize][col];
+            if !cell.is_empty() {
+                debug_glr!(
+                    "  State {} has action for symbol {:?}: {:?}",
+                    s.0,
+                    sym,
+                    cell
+                );
+            } else {
+                debug_glr!("  State {} has NO action for symbol {:?}", s.0, sym);
+            }
+            !cell.is_empty()
+        });
+        if !result {
+            debug_glr!(
+                "  No stack has action for symbol {:?} (checked {} stacks)",
+                sym,
+                self.stacks.len()
+            );
+        }
+        result
+    }
+
+    /// Insert a synthetic token with zero width into the input stream
+    fn insert_token_zero_width(&mut self, sym: SymbolId) {
+        self.pending_synthetic_tokens.push_back(sym);
+    }
+
+    /// Perform shifts for a synthetic token across all GLR stacks
+    fn shift_synthetic_token(&mut self, sym: SymbolId) {
+        let mut new_stacks = Vec::new();
+
+        for stack in self.stacks.drain(..) {
+            let state = stack.current_state();
+            let mut shifted = false;
+
+            if let Some(&symbol_idx) = self.table.symbol_to_index.get(&sym) {
+                let action_cell = &self.table.action_table[state.0 as usize][symbol_idx];
+
+                // Handle shift actions for the synthetic token
+                for action in action_cell {
+                    if let Action::Shift(new_state) = action {
+                        let mut new_stack = stack.clone();
+                        // Create synthetic node with zero-width range
+                        new_stack.push(
+                            *new_state,
+                            Arc::new(Subtree::new(
+                                SubtreeNode {
+                                    symbol_id: sym,
+                                    is_error: true, // Mark synthetic tokens as error nodes
+                                    byte_range: 0..0, // Zero-width synthetic token
+                                },
+                                Vec::new(), // No children for synthetic token
+                            )),
+                        );
+                        new_stacks.push(new_stack);
+                        shifted = true;
+                        break; // Take first shift
+                    }
+                }
+            }
+
+            // If we couldn't shift on this stack, keep the original stack
+            // so we don't lose all paths
+            if !shifted {
+                new_stacks.push(stack);
+            }
+        }
+
+        self.stacks = new_stacks;
+    }
+
+    /// Pop symbols from stacks towards sync tokens (panic-mode recovery)
+    fn pop_towards_sync(&mut self, lookahead: SymbolId) -> Option<usize> {
+        let config = self.error_recovery.as_ref()?;
+
+        let mut target_set = config.sync_tokens.clone().into_vec();
+        target_set.push(lookahead);
+
+        const POP_BOUND: usize = 8;
+        let mut max_popped = 0usize;
+        let mut progress = false;
+
+        // Try popping from each stack
+        let mut modified_stacks = Vec::new();
+        for stack in self.stacks.iter() {
+            let mut test_stack = stack.clone();
+            let mut pops = 0usize;
+
+            while pops < POP_BOUND && test_stack.states.len() > 1 {
+                let state = test_stack.current_state();
+
+                // Check if any target token has an action in this state
+                let has_action = target_set.iter().any(|&sym| {
+                    self.table.symbol_to_index.get(&sym).is_some_and(|&col| {
+                        !self.table.action_table[state.0 as usize][col].is_empty()
+                    })
+                });
+
+                if has_action {
+                    progress = true;
+                    max_popped = max_popped.max(pops);
+                    modified_stacks.push(test_stack);
+                    break;
+                }
+
+                // Pop one symbol
+                if test_stack.states.len() > 1 {
+                    test_stack.states.pop();
+                    test_stack.nodes.pop();
+                    pops += 1;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        if progress {
+            if !modified_stacks.is_empty() {
+                self.stacks = modified_stacks;
+            }
+            Some(max_popped)
+        } else {
+            None
+        }
+    }
+
+    /// Main GLR-aware recovery driver
+    fn try_recover(&mut self, lookahead: SymbolId, _eof: bool) -> Option<RecoveryEvent> {
+        // Check if recovery is configured and we have stacks to recover
+        if self.error_recovery.is_none() || self.stacks.is_empty() {
+            debug_glr!(
+                "try_recover: no recovery (config={:?}, stacks={})",
+                self.error_recovery.is_some(),
+                self.stacks.len()
+            );
+            return None;
+        }
+
+        // 1) Try synthesizing an insertion if it unlocks progress
+        let max_insertions = self.error_recovery.as_ref().unwrap().max_token_insertions;
+        if self.inserted_in_row < max_insertions {
+            let candidates = self
+                .error_recovery
+                .as_ref()
+                .unwrap()
+                .insert_candidates
+                .clone();
+            debug_glr!(
+                "recovery: checking {} insert candidates with {} stacks (eof={})",
+                candidates.len(),
+                self.stacks.len(),
+                _eof
+            );
+            #[allow(unused_variables)]
+            for stack in &self.stacks {
+                debug_glr!("  Stack in state {}", stack.current_state().0);
+            }
+            for tok in candidates {
+                debug_glr!("recovery: checking if {:?} would help (eof={})", tok, _eof);
+                if self.can_shift_or_reduce(tok) {
+                    debug_glr!("recovery: INSERT {:?} would help", tok);
+                    self.insert_token_zero_width(tok);
+                    self.inserted_in_row += 1;
+                    self.deleted_in_row = 0;
+
+                    // Process the synthetic token through closure and shift
+                    let stacks = std::mem::take(&mut self.stacks);
+                    let stacks = self.reduce_until_saturated(stacks, tok);
+                    self.stacks = stacks;
+                    self.shift_synthetic_token(tok);
+
+                    return Some(RecoveryEvent::Insert(tok));
+                }
+            }
+        }
+
+        // 2) Try popping towards sync tokens
+        if let Some(popped) = self.pop_towards_sync(lookahead) {
+            debug_glr!("recovery: POP {} symbols towards sync", popped);
+            self.deleted_in_row = 0;
+            self.inserted_in_row = 0;
+
+            // After pops, attempt closure again at same lookahead
+            let stacks = std::mem::take(&mut self.stacks);
+            let stacks = self.reduce_until_saturated(stacks, lookahead);
+            self.stacks = stacks;
+
+            if self.any_stack_has_action(lookahead) {
+                return Some(RecoveryEvent::Pop(popped));
+            }
+            // Fall through to try deletion
+        }
+
+        // 3) Token deletion: skip current token
+        let max_deletions = self.error_recovery.as_ref().unwrap().max_token_deletions;
+        if !_eof && self.deleted_in_row < max_deletions {
+            debug_glr!("recovery: DELETE {:?}", lookahead);
+            self.deleted_in_row += 1;
+            self.inserted_in_row = 0;
+
+            // Create error node for the deleted token
+            // In real use, advance input cursor here
+
+            return Some(RecoveryEvent::Delete(lookahead));
+        }
+
+        None
+    }
+
     /// Perform a reduction on a specific stack
     fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
         debug_glr!(
@@ -917,47 +1284,23 @@ impl GLRParser {
                 dynamic_prec,
             ));
 
-            // Look up goto state from the unified action table
-            if let Some(symbol_idx) = self.table.symbol_to_index.get(&rule.lhs) {
-                let current_state = stack.current_state();
-                let action_cell = &self.table.action_table[current_state.0 as usize][*symbol_idx];
-
-                // Find shift action in the cell
-                let shift_action = action_cell.iter().find(|a| matches!(a, Action::Shift(_)));
-
-                if let Some(Action::Shift(goto_state)) = shift_action {
-                    // Goto state after reduction
-                    debug_glr!(
-                        "  GOTO via action table: state {} -> state {} for symbol {}",
-                        current_state.0,
-                        goto_state.0,
-                        rule.lhs.0
-                    );
-                    stack.push(*goto_state, subtree);
-                } else {
-                    // Fall back to goto table if action table doesn't have a shift
-                    let goto_state = self.table.goto_table[current_state.0 as usize][*symbol_idx];
-                    if goto_state.0 != 0 {
-                        // Goto state from goto table
-                        debug_glr!(
-                            "  GOTO via goto table: state {} -> state {} for symbol {}",
-                            current_state.0,
-                            goto_state.0,
-                            rule.lhs.0
-                        );
-                        stack.push(goto_state, subtree);
-                    } else {
-                        // No goto state found - error condition
-                        debug_glr!(
-                            "  ERROR: No GOTO found for symbol {} from state {}",
-                            rule.lhs.0,
-                            current_state.0
-                        );
-                    }
-                }
+            // Look up goto state for the nonterminal after reduction
+            let current_state = stack.current_state();
+            if let Some(new_state) = self.goto_next_state(current_state, rule.lhs) {
+                debug_glr!(
+                    "  GOTO: state {} -> state {} for symbol {}",
+                    current_state.0,
+                    new_state.0,
+                    rule.lhs.0
+                );
+                stack.push(new_state, subtree);
             } else {
-                // No symbol index found - error condition
-                debug_glr!("  ERROR: Symbol {} not in symbol_to_index map", rule.lhs.0);
+                debug_glr!(
+                    "  ERROR: No GOTO found for symbol {} from state {}",
+                    rule.lhs.0,
+                    current_state.0
+                );
+                // Can't continue with this reduction path
             }
         } else {
             debug_glr!("  ERROR: Rule {} not found in grammar", rule_id.0);
@@ -1074,10 +1417,62 @@ impl GLRParser {
         self.stacks[best_idx].nodes.last().cloned()
     }
 
+    /// Try to reach a state that can accept EOF by repeatedly applying
+    /// insertion/pop recovery. Never attempt deletion at EOF.
+    fn drive_recovery_until_eof_action(&mut self) {
+        if self.error_recovery.is_none() {
+            return;
+        }
+        let eof = SymbolId(0); // EOF is always symbol 0
+        debug_glr!(
+            "drive_recovery_until_eof_action: starting with {} stacks",
+            self.stacks.len()
+        );
+        // Hard bound: at most a few iterations (guards infinite loops).
+        #[allow(unused_variables)]
+        for i in 0..8 {
+            if self.any_stack_has_action(eof) {
+                debug_glr!(
+                    "drive_recovery_until_eof_action: found action for EOF after {} iterations",
+                    i
+                );
+                break;
+            }
+            debug_glr!(
+                "drive_recovery_until_eof_action: iteration {} with {} stacks",
+                i,
+                self.stacks.len()
+            );
+            match self.try_recover(eof, /*eof=*/ true) {
+                Some(RecoveryEvent::Insert(tok)) => {
+                    debug_glr!("drive_recovery_until_eof_action: inserted {:?}", tok);
+                    // Process pending synthetic tokens
+                    while let Some(synthetic) = self.pending_synthetic_tokens.pop_front() {
+                        self.process_synthetic_token(synthetic);
+                    }
+                    // Loop to recheck after synthetic tokens / pops.
+                    continue;
+                }
+                Some(RecoveryEvent::Pop(n)) => {
+                    debug_glr!("drive_recovery_until_eof_action: popped {} symbols", n);
+                    continue;
+                }
+                _ => {
+                    debug_glr!("drive_recovery_until_eof_action: no recovery possible");
+                    break;
+                }
+            }
+        }
+    }
+
     /// Process EOF to complete parsing
     pub fn process_eof(&mut self, total_bytes: usize) {
         // Store the total input length for validation in finish_all_alternatives
         self.input_length = total_bytes;
+
+        // Give recovery a chance to make EOF shiftable/reduceable
+        self.drive_recovery_until_eof_action();
+
         // Process EOF token (symbol ID 0)
         self.process_token(SymbolId(0), "", total_bytes);
     }
@@ -1112,11 +1507,28 @@ impl GLRParser {
         // 2. That node represents the start symbol (we'll accept any non-terminal for now)
 
         for stack in &self.stacks {
+            debug_glr!("finish: stack has {} nodes", stack.nodes.len());
             if stack.nodes.len() == 1 {
                 // Accept if we have exactly one node after EOF processing
                 // This should be the root of the parse tree (the start symbol)
                 let node = &stack.nodes[0];
                 return Ok(node.clone());
+            } else if !stack.nodes.is_empty() {
+                // If we have multiple nodes but error recovery was used,
+                // return a partial tree wrapped in an error node
+                let has_error = stack.nodes.iter().any(|n| n.node.is_error);
+                if has_error && self.error_recovery.is_some() {
+                    // Create an error node containing all remaining nodes
+                    let error_node = Arc::new(Subtree::new(
+                        SubtreeNode {
+                            symbol_id: SymbolId(u16::MAX), // Special error symbol
+                            is_error: true,
+                            byte_range: 0..self.input_length,
+                        },
+                        stack.nodes.clone(),
+                    ));
+                    return Ok(error_node);
+                }
             }
         }
 

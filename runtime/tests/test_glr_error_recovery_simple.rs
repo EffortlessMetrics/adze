@@ -40,7 +40,7 @@ fn create_simple_grammar() -> Grammar {
     // expression → expression '+' expression
     grammar
         .rules
-        .entry(SymbolId(20))
+        .entry(expr_id) // Rules are grouped by LHS
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -58,7 +58,7 @@ fn create_simple_grammar() -> Grammar {
     // expression → number
     grammar
         .rules
-        .entry(SymbolId(21))
+        .entry(expr_id) // Rules are grouped by LHS
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,

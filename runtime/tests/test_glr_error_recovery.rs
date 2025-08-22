@@ -247,20 +247,10 @@ fn test_panic_mode_recovery() {
     let grammar = create_test_grammar();
 
     // Create recovery config with sync tokens
-    let mut sync_tokens = HashSet::new();
-    sync_tokens.insert(5); // semicolon
-
-    let config = ErrorRecoveryConfig {
-        max_panic_skip: 10,
-        sync_tokens,
-        insertable_tokens: HashSet::new(),
-        deletable_tokens: HashSet::new(),
-        max_consecutive_errors: 3,
-        enable_phrase_recovery: false,
-        enable_scope_recovery: false,
-        scope_delimiters: vec![],
-        enable_indentation_recovery: false,
-    };
+    let config = ErrorRecoveryConfigBuilder::new()
+        .max_panic_skip(10)
+        .add_sync_token(5) // semicolon
+        .build();
 
     // Test input with multiple errors
     let tree = parse_with_recovery(&grammar, "1 + @ # $ 2 + 3;", config);

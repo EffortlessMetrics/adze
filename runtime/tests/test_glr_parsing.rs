@@ -6,7 +6,7 @@
 
 mod common;
 
-use rust_sitter::error_recovery::ErrorRecoveryConfig;
+use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
 use rust_sitter::glr_parser::{GLRParser, ParseStack};
 use rust_sitter::parser_v4::{Parser, Tree};
 use rust_sitter::subtree::Subtree;
@@ -14,7 +14,7 @@ use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token, TokenPattern,
 };
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 // Local symbol constants to avoid magic numbers
@@ -374,17 +374,12 @@ fn test_glr_error_recovery() {
     let mut parser = GLRParser::new(parse_table, grammar);
 
     // Enable error recovery with correct field names
-    let recovery_config = ErrorRecoveryConfig {
-        max_panic_skip: 3,
-        sync_tokens: HashSet::new(),
-        insertable_tokens: HashSet::new(),
-        deletable_tokens: HashSet::new(),
-        max_consecutive_errors: 2,
-        enable_phrase_recovery: true,
-        enable_scope_recovery: false,
-        scope_delimiters: vec![],
-        enable_indentation_recovery: false,
-    };
+    let recovery_config = ErrorRecoveryConfigBuilder::new()
+        .max_panic_skip(3)
+        .max_consecutive_errors(2)
+        .enable_phrase_recovery(true)
+        .enable_scope_recovery(false)
+        .build();
     parser.enable_error_recovery(recovery_config);
 
     // Parse with an error: "1 + + 3" (missing number)

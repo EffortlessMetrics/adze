@@ -1860,6 +1860,7 @@ dependencies = [
  "rust-sitter-tablegen",
  "serde",
  "serde_json",
+ "smallvec",
  "tempfile",
  "thiserror 2.0.12",
  "tree-sitter 0.25.8",
