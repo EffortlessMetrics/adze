@@ -42,6 +42,7 @@ fn create_simple_test_table() -> ParseTable {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(1),
         start_symbol: SymbolId(2),
         grammar: Grammar::default(),

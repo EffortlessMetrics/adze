@@ -51,6 +51,7 @@ fn eof_invariants() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(2),
         start_symbol: SymbolId(3),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
@@ -92,6 +93,7 @@ fn eof_cannot_be_error() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0), // Invalid: EOF = ERROR
         start_symbol: SymbolId(1),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),

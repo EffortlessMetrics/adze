@@ -23,6 +23,7 @@ fn test_eof_not_error_symbol() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(3), // token_count + external_token_count  // Critical: NOT 0!
         start_symbol: SymbolId(10),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
@@ -104,6 +105,7 @@ fn test_error_stats_not_stubbed() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(3), // token_count + external_token_count
         start_symbol: SymbolId(10),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),

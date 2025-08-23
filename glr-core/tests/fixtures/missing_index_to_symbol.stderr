@@ -110,8 +110,8 @@ error[E0560]: struct `SymbolMetadata` has no field named `symbol_id`
    |
    = note: available fields are: `visible`, `named`, `supertype`
 
-error[E0063]: missing field `index_to_symbol` in initializer of `ParseTable`
+error[E0063]: missing fields `goto_indexing` and `index_to_symbol` in initializer of `ParseTable`
   --> tests/fixtures/missing_index_to_symbol.rs:15:24
    |
 15 |     let _parse_table = ParseTable {
-   |                        ^^^^^^^^^^ missing `index_to_symbol`
+   |                        ^^^^^^^^^^ missing `goto_indexing` and `index_to_symbol`

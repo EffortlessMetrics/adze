@@ -183,6 +183,7 @@ fn create_simple_table() -> ParseTable {
         symbol_metadata: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         alias_sequences: vec![],
         extras: vec![],
         grammar: Grammar::default(),

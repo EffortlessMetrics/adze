@@ -73,6 +73,7 @@ fn accept_via_insertion_at_eof_cost_is_one() {
             map.insert(SymbolId(4), 0); // start symbol at index 0
             map
         },
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(3), // EOF = token_count + external_token_count
         start_symbol: SymbolId(4),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),

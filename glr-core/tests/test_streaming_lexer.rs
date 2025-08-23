@@ -180,6 +180,7 @@ fn test_streaming_json_parser() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol,
         start_symbol,
         grammar: rust_sitter_ir::Grammar::new("json".to_string()),

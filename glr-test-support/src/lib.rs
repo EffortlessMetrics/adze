@@ -113,6 +113,7 @@ pub fn make_minimal_table(
         symbol_to_index,
         index_to_symbol,
         nonterminal_to_index,
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         symbol_metadata: vec![], // tests don't need metadata
         // token layout / sentinels
         token_count,

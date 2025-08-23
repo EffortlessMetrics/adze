@@ -170,6 +170,7 @@ fn create_parse_table() -> ParseTable {
         field_names: vec![],
         field_map: BTreeMap::new(),
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         grammar: rust_sitter_ir::Grammar::default(),
     }
 }

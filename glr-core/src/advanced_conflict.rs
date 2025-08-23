@@ -167,6 +167,7 @@ mod tests {
             external_scanner_states: vec![],
             rules: vec![],
             nonterminal_to_index: BTreeMap::new(),
+            goto_indexing: crate::GotoIndexing::NonterminalMap,
             eof_symbol: SymbolId(0),
             start_symbol: SymbolId(1),
             grammar: Grammar::new("test".to_string()),

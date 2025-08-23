@@ -7,7 +7,9 @@ use std::sync::Arc;
 /// Creates a minimal working parse table that will parse arithmetic expressions.
 pub fn arithmetic() -> Arc<Language> {
     use crate::arithmetic::generated::{LANGUAGE, SMALL_PARSE_TABLE, SMALL_PARSE_TABLE_MAP};
-    use rust_sitter::rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
+    use rust_sitter::rust_sitter_glr_core::{
+        Action, GotoIndexing, ParseRule, ParseTable, SymbolMetadata,
+    };
     use rust_sitter::rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
     use std::collections::BTreeMap;
 
@@ -239,7 +241,7 @@ pub fn arithmetic() -> Arc<Language> {
     }
 
     // Assemble the parse table
-    let table = ParseTable {
+    let mut table = ParseTable {
         action_table,
         goto_table,
         symbol_metadata,
@@ -250,6 +252,7 @@ pub fn arithmetic() -> Arc<Language> {
         external_scanner_states: vec![],
         rules,
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(LANGUAGE.eof_symbol),
         start_symbol: SymbolId(6), // source_file - the actual start symbol
         grammar: grammar.clone(),
@@ -264,6 +267,9 @@ pub fn arithmetic() -> Arc<Language> {
         field_names: vec![],
         field_map: BTreeMap::new(),
     };
+
+    // Auto-detect GOTO indexing mode
+    table.detect_goto_indexing();
 
     Arc::new(Language::new("arithmetic", grammar, table))
 }

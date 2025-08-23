@@ -195,6 +195,7 @@ fn create_arithmetic_parse_table() -> ParseTable {
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),
         nonterminal_to_index: std::collections::BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         grammar: Grammar::default(),
     };
 

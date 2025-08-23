@@ -1349,15 +1349,27 @@ pub struct LexMode {
     pub external_lex_state: u16,
 }
 
+/// How GOTO table columns are indexed
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GotoIndexing {
+    /// Use nonterminal_to_index mapping (standard)
+    NonterminalMap,
+    /// Use SymbolId.0 directly as column index (some table generators)
+    DirectSymbolId,
+}
+
 /// GLR-compatible parse table supporting multiple actions per state
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseTable {
+    /// ACTION table: indexed by [state][terminal] using symbol_to_index
     pub action_table: Vec<Vec<ActionCell>>,
+    /// GOTO table: indexed by [state][nonterminal] using nonterminal_to_index or direct ID
     pub goto_table: Vec<Vec<StateId>>,
     pub symbol_metadata: Vec<SymbolMetadata>,
     pub state_count: usize,
     pub symbol_count: usize,
+    /// Maps terminal symbols to ACTION table column indices
     pub symbol_to_index: BTreeMap<SymbolId, usize>,
     /// Index -> SymbolId, perfectly mirroring `symbol_to_index`.
     pub index_to_symbol: Vec<SymbolId>,
@@ -1365,8 +1377,10 @@ pub struct ParseTable {
     pub external_scanner_states: Vec<Vec<bool>>,
     /// Grammar rules for reduction
     pub rules: Vec<ParseRule>,
-    /// Mapping from nonterminal symbols to goto table columns
+    /// Maps nonterminal symbols to GOTO table column indices
     pub nonterminal_to_index: BTreeMap<SymbolId, usize>,
+    /// How GOTO table columns are indexed
+    pub goto_indexing: GotoIndexing,
     /// EOF symbol ID
     pub eof_symbol: SymbolId,
     /// Start symbol ID
@@ -1404,6 +1418,33 @@ pub struct ParseRule {
 }
 
 impl ParseTable {
+    /// Auto-detect the GOTO indexing mode based on table contents
+    pub fn detect_goto_indexing(&mut self) {
+        // Try to determine if the start symbol has a valid GOTO from state 0
+        let start_nt = self.start_symbol;
+
+        // Check if start symbol has entry via nonterminal_to_index
+        let col_map = self
+            .nonterminal_to_index
+            .get(&start_nt)
+            .and_then(|&c| self.goto_table.first().and_then(|row| row.get(c)))
+            .copied();
+
+        // Check if start symbol has entry via direct symbol ID
+        let col_direct = self
+            .goto_table
+            .first()
+            .and_then(|row| row.get(start_nt.0 as usize))
+            .copied();
+
+        self.goto_indexing = match (col_map, col_direct) {
+            (Some(s), _) if s.0 != 0 => GotoIndexing::NonterminalMap,
+            (_, Some(s)) if s.0 != 0 => GotoIndexing::DirectSymbolId,
+            // Default to nonterminal map; unit tests will catch a mismatch
+            _ => GotoIndexing::NonterminalMap,
+        };
+    }
+
     /// Get the terminal boundary (tokens + external tokens)
     #[inline]
     pub fn terminal_boundary(&self) -> usize {
@@ -2618,7 +2659,7 @@ pub fn build_lr1_automaton(
         index_to_symbol[idx] = *sym;
     }
 
-    Ok(ParseTable {
+    let mut table = ParseTable {
         action_table,
         goto_table,
         symbol_metadata,
@@ -2629,6 +2670,7 @@ pub fn build_lr1_automaton(
         external_scanner_states,
         rules,
         nonterminal_to_index,
+        goto_indexing: GotoIndexing::NonterminalMap, // Will be auto-detected
         eof_symbol,
         start_symbol: original_start,
         grammar: grammar.clone(),
@@ -2648,7 +2690,12 @@ pub fn build_lr1_automaton(
         alias_sequences: vec![],    // TODO: Get from grammar
         field_names: vec![],        // TODO: Get from grammar
         field_map: BTreeMap::new(), // TODO: Get from grammar
-    })
+    };
+
+    // Auto-detect GOTO indexing mode
+    table.detect_goto_indexing();
+
+    Ok(table)
 }
 
 /// Sanity check parse table for correctness
@@ -3039,6 +3086,7 @@ mod tests {
             external_scanner_states: vec![],
             rules: vec![],
             nonterminal_to_index: BTreeMap::new(),
+            goto_indexing: GotoIndexing::NonterminalMap,
             eof_symbol: SymbolId(0),
             start_symbol: SymbolId(1),
             grammar: Grammar::new("test".to_string()),

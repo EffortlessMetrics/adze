@@ -116,6 +116,7 @@ fn test_json_empty_object_parses() {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol,
         start_symbol,
         grammar: rust_sitter_ir::Grammar::new("json".to_string()),

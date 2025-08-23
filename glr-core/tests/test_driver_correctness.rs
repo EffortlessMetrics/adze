@@ -67,6 +67,7 @@ fn create_test_table(
         rule_assoc_by_rule: vec![0; rules.len()],
         alias_sequences: vec![],
         field_names: vec![],
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         field_map: BTreeMap::new(),
     }
 }

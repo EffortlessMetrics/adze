@@ -68,6 +68,7 @@ fn encode_actions_minimal() {
         goto_table: vec![vec![], vec![]],
         external_scanner_states: vec![vec![], vec![]],
         nonterminal_to_index: std::collections::BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         initial_state: StateId(0),
         token_count: 2,
         external_token_count: 0,

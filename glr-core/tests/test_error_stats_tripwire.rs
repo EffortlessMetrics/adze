@@ -82,6 +82,7 @@ fn test_error_stats_not_stubbed() {
             map.insert(SymbolId(5), 0); // S
             map
         },
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(4),
         start_symbol: SymbolId(5),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
@@ -234,6 +235,7 @@ fn test_clean_parse_has_zero_errors() {
             map.insert(SymbolId(5), 0); // S
             map
         },
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(4),
         start_symbol: SymbolId(5),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),

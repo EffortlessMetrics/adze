@@ -528,7 +528,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // Use lang.eof_symbol as a symbol id
     let eof_symbol = SymbolId(lang.eof_symbol);
 
-    ParseTable {
+    let mut table = ParseTable {
         action_table,
         goto_table,
         symbol_metadata,
@@ -538,6 +538,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         index_to_symbol,
         external_scanner_states,
         nonterminal_to_index,
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol,
         start_symbol: {
             // Compute start symbol from the rules
@@ -573,7 +574,12 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         alias_sequences: Vec::new(),      // TODO: Decode from language
         field_names: Vec::new(),          // TODO: Decode from language
         field_map: BTreeMap::new(),       // TODO: Decode from language
-    }
+    };
+
+    // Auto-detect GOTO indexing mode
+    table.detect_goto_indexing();
+
+    table
 }
 
 /// Determine if a symbol is a terminal based on metadata and name

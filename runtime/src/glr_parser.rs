@@ -377,46 +377,28 @@ impl GLRParser {
     /// Get the goto state for a nonterminal after a reduction
     #[inline]
     fn goto_next_state(&self, state: StateId, lhs: SymbolId) -> Option<StateId> {
-        // First try the nonterminal_to_index mapping (preferred for GOTO table)
-        if let Some(&col) = self.table.nonterminal_to_index.get(&lhs) {
-            if let Some(goto_row) = self.table.goto_table.get(state.0 as usize) {
-                if let Some(&next_state) = goto_row.get(col) {
-                    if next_state.0 != 0 {  // StateId(0) often means no goto
-                        return Some(next_state);
-                    }
-                }
+        let row = self.table.goto_table.get(state.0 as usize)?;
+        let col = match self.table.goto_indexing {
+            rust_sitter_glr_core::GotoIndexing::NonterminalMap => {
+                *self.table.nonterminal_to_index.get(&lhs)?
             }
-        }
-        
-        // Special handling: Some table generators use the LHS symbol ID directly as the column
-        // This happens especially for the start symbol (often SymbolId(0))
-        if lhs.0 < 10 {  // Only try for low symbol IDs to avoid out-of-bounds
-            if let Some(goto_row) = self.table.goto_table.get(state.0 as usize) {
-                let col = lhs.0 as usize;
-                if col < goto_row.len() {
-                    let next_state = goto_row[col];
-                    if next_state.0 != 0 {
-                        return Some(next_state);
-                    }
-                }
-            }
-        }
+            rust_sitter_glr_core::GotoIndexing::DirectSymbolId => lhs.0 as usize,
+        };
+        row.get(col).copied().filter(|&s| s.0 != 0)
+    }
 
-        // Fallback: For unified tables, nonterminals might be in symbol_to_index
-        // with GOTOs stored as shifts in the action table or in the goto table
-        if let Some(&col) = self.table.symbol_to_index.get(&lhs) {
-            if let Some(row) = self.table.action_table.get(state.0 as usize) {
-                if let Some(cell) = row.get(col) {
-                    // Try Shift action (some tables use Shift for gotos)
-                    for action in cell {
-                        if let Action::Shift(s) = action {
-                            return Some(*s);
-                        }
-                    }
-                }
-            }
-        }
-        None
+    /// Get the start symbol from the grammar
+    /// This is the LHS of the first production (production_id 0), or the grammar's start symbol
+    #[inline]
+    fn start_symbol(&self) -> SymbolId {
+        self.grammar
+            .rules
+            .values()
+            .flat_map(|rules| rules.iter())
+            .find(|r| r.production_id.0 == 0)
+            .map(|r| r.lhs)
+            .or_else(|| self.grammar.start_symbol())
+            .unwrap_or(SymbolId(1)) // Neutral fallback, not EOF(0)
     }
 
     /// Enable error recovery with the given configuration
@@ -839,39 +821,29 @@ impl GLRParser {
             // EOF processing - prefer stacks that have Accept action or start symbol
             if let Some(&eof_idx) = self.table.symbol_to_index.get(&token) {
                 // First, prefer stacks with Accept action
-                let (accepted, rest): (Vec<_>, Vec<_>) = new_stacks
-                    .into_iter()
-                    .partition(|st| {
-                        let state_idx = st.current_state().0 as usize;
-                        self.table.action_table[state_idx][eof_idx]
-                            .iter()
-                            .any(|a| matches!(a, Action::Accept))
-                    });
-                
+                let (accepted, rest): (Vec<_>, Vec<_>) = new_stacks.into_iter().partition(|st| {
+                    let state_idx = st.current_state().0 as usize;
+                    self.table.action_table[state_idx][eof_idx]
+                        .iter()
+                        .any(|a| matches!(a, Action::Accept))
+                });
+
                 new_stacks = if !accepted.is_empty() {
                     accepted
                 } else {
                     // Otherwise, prefer stacks whose top symbol is the start symbol
-                    // Get the actual start symbol from the grammar
-                    // The start symbol is typically the LHS of the first production (production_id 0)
-                    let start_symbol = self.grammar.rules.values()
-                        .flat_map(|rules| rules.iter())
-                        .find(|r| r.production_id.0 == 0)
-                        .map(|r| r.lhs)
-                        .or_else(|| self.grammar.start_symbol())
-                        .unwrap_or(SymbolId(1));
-                    
-                    let (start_tops, others): (Vec<_>, Vec<_>) = rest
-                        .into_iter()
-                        .partition(|st| {
-                            st.nodes.last().map_or(false, |n| n.node.symbol_id == start_symbol)
-                        });
-                    
-                    
-                    if !start_tops.is_empty() { 
-                        start_tops 
-                    } else { 
-                        others 
+                    let start_symbol = self.start_symbol();
+
+                    let (start_tops, others): (Vec<_>, Vec<_>) = rest.into_iter().partition(|st| {
+                        st.nodes
+                            .last()
+                            .is_some_and(|n| n.node.symbol_id == start_symbol)
+                    });
+
+                    if !start_tops.is_empty() {
+                        start_tops
+                    } else {
+                        others
                     }
                 };
             }
@@ -941,7 +913,9 @@ impl GLRParser {
         for stack in stacks {
             let state = stack.current_state();
             // For empty stacks, use stack ID as discriminator to avoid collapsing all empty stacks
-            let top_ptr = stack.nodes.last()
+            let top_ptr = stack
+                .nodes
+                .last()
                 .map(|n| Arc::as_ptr(n) as usize)
                 .unwrap_or(stack.id);
             if seen_tops.insert((state.0, top_ptr)) {
@@ -967,7 +941,7 @@ impl GLRParser {
             }
             steps += 1;
             let state = stack.current_state();
-            
+
             // Get actions for this state and lookahead
             // If symbol_idx is None (e.g. EOF not in table), still check for epsilon reductions
             let action_cell = if let Some(idx) = symbol_idx {
@@ -1005,29 +979,28 @@ impl GLRParser {
                     _ => None,
                 })
                 .collect();
-            
+
             // At EOF, if column lacks epsilon reductions, also pull them from entire row
             // This ensures cascading epsilon reductions complete to the start symbol
-            let is_eof = token == SymbolId(0);
+            let is_eof = token == self.table.eof_symbol;
             if is_eof {
                 let has_eps_in_col = reduces.iter().any(|(a, _)| {
                     matches!(a, Action::Reduce(rid) if self.table.rules[rid.0 as usize].rhs_len == 0)
                 });
-                
-                
+
                 if !has_eps_in_col {
                     // Include row-wide epsilon reductions, dedup by rule id
-                    let mut added_count = 0;
+                    let mut _added_count = 0;
                     for actions in &self.table.action_table[state.0 as usize] {
                         for a in actions {
                             if let Action::Reduce(rid) = a {
                                 if self.table.rules[rid.0 as usize].rhs_len == 0
-                                    && !reduces.iter().any(|(b, _)| {
-                                        matches!(b, Action::Reduce(r2) if r2.0 == rid.0)
-                                    })
+                                    && !reduces.iter().any(
+                                        |(b, _)| matches!(b, Action::Reduce(r2) if r2.0 == rid.0),
+                                    )
                                 {
-                                                    reduces.push((a.clone(), self.action_priority(a)));
-                                    added_count += 1;
+                                    reduces.push((a.clone(), self.action_priority(a)));
+                                    _added_count += 1;
                                 }
                             }
                         }
@@ -1071,7 +1044,7 @@ impl GLRParser {
                 // Guard against repeated application at same position (epsilon loop prevention)
                 // Use the parse table to check if this is an epsilon reduction
                 let rhs_len = self.table.rules[rule_id.0 as usize].rhs_len as usize;
-                
+
                 // Only stamp epsilon reductions to prevent loops
                 if rhs_len == 0 {
                     let (start_byte, end_byte) = if let Some(n) = stack.nodes.last() {
@@ -1110,7 +1083,7 @@ impl GLRParser {
 
                 // The new top state after GOTO might have more reduces for the same lookahead
                 let new_state = reduced_stack.current_state();
-                
+
                 // Use pointer-based key to match closure-local dedup
                 // For empty stacks, use stack ID to avoid collapsing them
                 let top_ptr = reduced_stack
@@ -1532,26 +1505,6 @@ impl GLRParser {
                     rule.lhs.0
                 );
                 stack.push(new_state, subtree);
-                
-                // Debug: Check if we reached an accepting state after reducing to start symbol
-                #[cfg(debug_assertions)]
-                {
-                    let start_symbol = self.grammar.rules.values()
-                        .flat_map(|rules| rules.iter())
-                        .find(|r| r.production_id.0 == 0)
-                        .map(|r| r.lhs);
-                    
-                    if Some(rule.lhs) == start_symbol {
-                        if let Some(&eof_idx) = self.table.symbol_to_index.get(&SymbolId(0)) {
-                            let st = new_state.0 as usize;
-                            if st < self.table.action_table.len() && eof_idx < self.table.action_table[st].len() {
-                                let has_accept = self.table.action_table[st][eof_idx]
-                                    .iter().any(|a| matches!(a, Action::Accept));
-                                debug_glr!("  After reducing to start symbol: state {}, accept_on_eof={}", st, has_accept);
-                            }
-                        }
-                    }
-                }
             } else {
                 debug_glr!(
                     "  ERROR: No GOTO found for symbol {} from state {}",
@@ -1740,8 +1693,9 @@ impl GLRParser {
         // Give recovery a chance to make EOF shiftable/reduceable
         self.drive_recovery_until_eof_action();
 
-        // Process EOF token (symbol ID 0)
-        self.process_token(SymbolId(0), "", total_bytes);
+        // Process EOF token using the table's EOF symbol
+        let eof_symbol = self.table.eof_symbol;
+        self.process_token(eof_symbol, "", total_bytes);
     }
 
     /// Get number of active stacks (for debugging)
