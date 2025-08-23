@@ -457,48 +457,6 @@ impl GLRParser {
         stacks_to_process =
             self.reduce_until_saturated(stacks_to_process, token, byte_offset + text.len());
 
-        // EOF finalization: prefer Accept or start symbol stacks
-        if token == SymbolId(0) && !stacks_to_process.is_empty() {
-            // EOF processing - prefer stacks that have Accept action or start symbol
-            if let Some(&eof_idx) = self.table.symbol_to_index.get(&token) {
-                // First, prefer stacks with Accept action
-                let (accepted, rest): (Vec<_>, Vec<_>) = stacks_to_process
-                    .into_iter()
-                    .partition(|st| {
-                        let state_idx = st.current_state().0 as usize;
-                        self.table.action_table[state_idx][eof_idx]
-                            .iter()
-                            .any(|a| matches!(a, Action::Accept))
-                    });
-                
-                stacks_to_process = if !accepted.is_empty() {
-                    accepted
-                } else if !rest.is_empty() {
-                    // Otherwise, prefer stacks whose top symbol is the start symbol
-                    // The start symbol is typically SymbolId(0) but we should get it from grammar
-                    let start_symbol = self.grammar.rules.values()
-                        .flat_map(|rules| rules.iter())
-                        .find(|r| r.production_id.0 == 0)
-                        .map(|r| r.lhs)
-                        .unwrap_or(SymbolId(0));
-                    
-                    let (start_tops, others): (Vec<_>, Vec<_>) = rest
-                        .into_iter()
-                        .partition(|st| {
-                            st.nodes.last().map_or(false, |n| n.node.symbol_id == start_symbol)
-                        });
-                    
-                    if !start_tops.is_empty() { 
-                        start_tops 
-                    } else { 
-                        others 
-                    }
-                } else {
-                    rest
-                };
-            }
-        }
-
         // In true GLR, we may have both shift and reduce actions in the same cell
         // This is expected behavior for handling ambiguous grammars
 
@@ -862,6 +820,49 @@ impl GLRParser {
             });
         }
 
+        // EOF finalization: prefer Accept or start symbol stacks
+        if token == SymbolId(0) && !new_stacks.is_empty() {
+            // EOF processing - prefer stacks that have Accept action or start symbol
+            if let Some(&eof_idx) = self.table.symbol_to_index.get(&token) {
+                // First, prefer stacks with Accept action
+                let (accepted, rest): (Vec<_>, Vec<_>) = new_stacks
+                    .into_iter()
+                    .partition(|st| {
+                        let state_idx = st.current_state().0 as usize;
+                        self.table.action_table[state_idx][eof_idx]
+                            .iter()
+                            .any(|a| matches!(a, Action::Accept))
+                    });
+                
+                new_stacks = if !accepted.is_empty() {
+                    accepted
+                } else {
+                    // Otherwise, prefer stacks whose top symbol is the start symbol
+                    // Get the actual start symbol from the grammar
+                    // The start symbol is typically the LHS of the first production (production_id 0)
+                    let start_symbol = self.grammar.rules.values()
+                        .flat_map(|rules| rules.iter())
+                        .find(|r| r.production_id.0 == 0)
+                        .map(|r| r.lhs)
+                        .or_else(|| self.grammar.start_symbol())
+                        .unwrap_or(SymbolId(1));
+                    
+                    let (start_tops, others): (Vec<_>, Vec<_>) = rest
+                        .into_iter()
+                        .partition(|st| {
+                            st.nodes.last().map_or(false, |n| n.node.symbol_id == start_symbol)
+                        });
+                    
+                    
+                    if !start_tops.is_empty() { 
+                        start_tops 
+                    } else { 
+                        others 
+                    }
+                };
+            }
+        }
+
         // Update active stacks
         self.stacks = new_stacks;
         self.pending_stacks = (0..self.stacks.len()).collect();
@@ -991,6 +992,34 @@ impl GLRParser {
                 })
                 .collect();
             
+            // At EOF, if column lacks epsilon reductions, also pull them from entire row
+            // This ensures cascading epsilon reductions complete to the start symbol
+            let is_eof = token == SymbolId(0);
+            if is_eof {
+                let has_eps_in_col = reduces.iter().any(|(a, _)| {
+                    matches!(a, Action::Reduce(rid) if self.table.rules[rid.0 as usize].rhs_len == 0)
+                });
+                
+                
+                if !has_eps_in_col {
+                    // Include row-wide epsilon reductions, dedup by rule id
+                    let mut added_count = 0;
+                    for actions in &self.table.action_table[state.0 as usize] {
+                        for a in actions {
+                            if let Action::Reduce(rid) = a {
+                                if self.table.rules[rid.0 as usize].rhs_len == 0
+                                    && !reduces.iter().any(|(b, _)| {
+                                        matches!(b, Action::Reduce(r2) if r2.0 == rid.0)
+                                    })
+                                {
+                                                    reduces.push((a.clone(), self.action_priority(a)));
+                                    added_count += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // Sort by priority (highest first)
             reduces.sort_by_key(|(_, prio)| -prio);
