@@ -1,4 +1,4 @@
-use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
 use rust_sitter_ir::{FieldId, Grammar, StateId, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::validation::TSLanguage;
 use rust_sitter_tablegen::{
@@ -31,6 +31,7 @@ fn create_test_parse_table(grammar: Grammar) -> ParseTable {
         alias_sequences: vec![],
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
     }
 }
 
@@ -125,11 +126,9 @@ fn test_language_validation_catches_symbol_count_mismatch() {
     assert!(result.is_err());
 
     let errors = result.unwrap_err();
-    assert!(
-        errors
-            .iter()
-            .any(|e| matches!(e, ValidationError::SymbolCountMismatch { .. }))
-    );
+    assert!(errors
+        .iter()
+        .any(|e| matches!(e, ValidationError::SymbolCountMismatch { .. })));
 }
 
 #[test]
@@ -146,11 +145,9 @@ fn test_language_validation_catches_state_count_mismatch() {
     assert!(result.is_err());
 
     let errors = result.unwrap_err();
-    assert!(
-        errors
-            .iter()
-            .any(|e| matches!(e, ValidationError::StateCountMismatch { .. }))
-    );
+    assert!(errors
+        .iter()
+        .any(|e| matches!(e, ValidationError::StateCountMismatch { .. })));
 }
 
 #[test]

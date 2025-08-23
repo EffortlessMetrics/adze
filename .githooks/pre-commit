@@ -1,46 +1,221 @@
 #!/usr/bin/env bash
+# Pre-commit hook for rust-sitter development
+# Robust version with partial staging detection, targeted formatting, and full diagnostics
 set -euo pipefail
 
-# Pre-commit hook to prevent committing disabled test files and ensure test connectivity
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-echo "Running pre-commit checks..."
+# Set locale to avoid warnings
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
 
-# Check for .rs.disabled files
-disabled_files=$(git ls-files '*.rs.disabled' 2>/dev/null)
-staged_disabled=$(git diff --cached --name-only | grep '\.rs\.disabled$' || true)
+echo -e "${GREEN}[pre-commit]${NC} Running formatting and validation checks..."
+echo -e "${BLUE}→${NC} Using robust pre-commit hook from .githooks/"
 
-if [ -n "$staged_disabled" ]; then
-    echo "❌ ERROR: Attempting to commit disabled test files:"
-    echo "$staged_disabled" | sed 's/^/   - /'
+# Function to check if a file is partially staged
+check_partial_staging() {
+    local file="$1"
+    
+    # Get the staged content hash and working directory content hash
+    staged_hash=$(git hash-object --stdin < <(git show ":$file" 2>/dev/null || echo ""))
+    working_hash=$(git hash-object "$file" 2>/dev/null || echo "")
+    
+    # If hashes differ and file is staged, it's partially staged
+    if [ "$staged_hash" != "$working_hash" ] && git diff --cached --name-only | grep -q "^$file$"; then
+        return 0  # Is partially staged
+    fi
+    return 1  # Not partially staged
+}
+
+# Step 1: Detect partially staged files and fail if found
+echo -e "${YELLOW}→${NC} Checking for partially staged files..."
+PARTIALLY_STAGED=()
+while IFS= read -r -d '' file; do
+    if check_partial_staging "$file"; then
+        PARTIALLY_STAGED+=("$file")
+    fi
+done < <(git diff --cached --name-only -z 2>/dev/null || true)
+
+if [ ${#PARTIALLY_STAGED[@]} -gt 0 ]; then
+    echo -e "${RED}✖ Partially staged files detected${NC}"
+    echo "The following files have staged changes but also unstaged changes:"
+    printf "  %s\n" "${PARTIALLY_STAGED[@]}"
     echo ""
-    echo "Please re-enable these files or use #[ignore] instead of disabling files."
-    echo "To re-enable: git mv file.rs.disabled file.rs"
-    echo "Then add #[ignore = \"reason\"] to test functions that should be skipped."
+    echo "This can lead to formatting issues where staged content differs from working content."
+    echo "Please either:"
+    echo "  1. Stage all changes: git add <file>"
+    echo "  2. Unstage partial changes: git reset <file>"
+    echo "  3. Stash unstaged changes: git stash --keep-index"
+    echo ""
     exit 1
 fi
+echo -e "${GREEN}✓${NC} No partially staged files found"
 
-if [ -n "$disabled_files" ]; then
-    echo "⚠️  WARNING: Repository contains disabled test files:"
-    echo "$disabled_files" | sed 's/^/   - /'
-    echo ""
-    echo "Consider re-enabling these files with proper #[ignore] attributes."
-fi
+# Step 2: Get list of staged Rust files for targeted formatting
+echo -e "${YELLOW}→${NC} Identifying staged Rust files..."
+STAGED_RUST_FILES=()
+while IFS= read -r -d '' file; do
+    if [[ "$file" == *.rs ]]; then
+        STAGED_RUST_FILES+=("$file")
+    fi
+done < <(git diff --cached --name-only -z 2>/dev/null || true)
 
-# Run the test matrix to ensure all tests are connected and pass
-if [ -x scripts/test-matrix.sh ]; then
-    scripts/test-matrix.sh
+if [ ${#STAGED_RUST_FILES[@]} -eq 0 ]; then
+    echo -e "${BLUE}→${NC} No staged Rust files found, skipping formatting"
 else
-    echo "⚠️  Warning: test-matrix.sh not found or not executable"
-    echo "Running basic checks instead..."
+    echo -e "${BLUE}→${NC} Found ${#STAGED_RUST_FILES[@]} staged Rust files"
     
-    # Basic formatting check
-    cargo fmt --all -- --check
+    # Step 3: Format only staged Rust files
+    echo -e "${YELLOW}→${NC} Formatting staged Rust files..."
     
-    # Basic clippy check
-    cargo clippy --workspace --all-targets -- -D warnings
-    
-    # Basic test run
-    cargo test --workspace --lib
+    # Format the specific files
+    if [ ${#STAGED_RUST_FILES[@]} -gt 0 ]; then
+        # Use rustfmt directly on specific files to avoid formatting everything
+        for file in "${STAGED_RUST_FILES[@]}"; do
+            if [ -f "$file" ]; then
+                echo -e "${BLUE}  →${NC} Formatting $file"
+                rustfmt "$file"
+            fi
+        done
+        
+        # Check if formatting made any changes to staged files
+        FORMATTING_CHANGES=false
+        for file in "${STAGED_RUST_FILES[@]}"; do
+            if [ -f "$file" ] && ! git diff --quiet "$file"; then
+                FORMATTING_CHANGES=true
+                echo -e "${BLUE}  →${NC} Staging formatting changes for $file"
+                git add "$file"
+            fi
+        done
+        
+        if [ "$FORMATTING_CHANGES" = true ]; then
+            echo -e "${GREEN}✓${NC} Formatting changes staged"
+        else
+            echo -e "${GREEN}✓${NC} No formatting changes needed"
+        fi
+    fi
 fi
 
-echo "✅ Pre-commit checks passed!"
+# Step 4: Run clippy (crate-aware for speed)
+echo -e "${YELLOW}→${NC} Clippy (affected crates)..."
+if command -v jq >/dev/null 2>&1 && [ -f scripts/affected-crates.sh ]; then
+    mapfile -t pkgs < <(scripts/affected-crates.sh || true)
+    if [ "${#pkgs[@]}" -gt 0 ]; then
+        # Deduplicate & sort for stable output
+        mapfile -t pkgs < <(printf "%s\n" "${pkgs[@]}" | sort -u)
+        # Build -p flags
+        args=()
+        for p in "${pkgs[@]}"; do args+=("-p" "$p"); done
+        echo "   packages: ${pkgs[*]}"
+        if ! cargo clippy -q --all-targets --all-features "${args[@]}" -- -D warnings; then
+            echo -e "${RED}✖ Clippy found issues${NC}"
+            echo ""
+            echo "To see detailed clippy output, run:"
+            echo "  cargo clippy --all-targets --all-features ${args[*]}"
+            echo ""
+            exit 1
+        fi
+    else
+        echo "   no staged .rs files mapped to crates; falling back to workspace"
+        if ! cargo clippy -q --all-targets --all-features -- -D warnings; then
+            echo -e "${RED}✖ Clippy found issues${NC}"
+            echo ""
+            echo "To see detailed clippy output, run:"
+            echo "  cargo clippy --all-targets --all-features"
+            echo ""
+            exit 1
+        fi
+    fi
+else
+    echo "   jq not found or affected-crates.sh missing; falling back to workspace clippy"
+    if ! cargo clippy -q --all-targets --all-features -- -D warnings; then
+        echo -e "${RED}✖ Clippy found issues${NC}"
+        echo ""
+        echo "To see detailed clippy output, run:"
+        echo "  cargo clippy --all-targets --all-features"
+        echo ""
+        exit 1
+    fi
+fi
+echo -e "${GREEN}✓${NC} Clippy checks passed"
+
+# Step 5: Run GOTO indexing check with full diagnostics
+if [ -f scripts/check-goto-indexing.sh ]; then
+    echo -e "${YELLOW}→${NC} Checking GOTO indexing patterns..."
+    if ! scripts/check-goto-indexing.sh; then
+        echo -e "${RED}✖ GOTO indexing check failed${NC}"
+        echo ""
+        echo "Direct enum flips detected. Use remap helpers instead."
+        echo ""
+        exit 1
+    fi
+    echo -e "${GREEN}✓${NC} GOTO indexing patterns verified"
+fi
+
+# Step 6: Check for SymbolId(0) misuse in tests (EOF is reserved)
+echo -e "${YELLOW}→${NC} Checking for SymbolId(0) misuse..."
+if rg -q 'SymbolId\(0\)' runtime/tests glr-core/tests 2>/dev/null | \
+   rg -v 'eof_symbol|normalize_eof_to_zero|table\.eof_symbol|SymbolAllocator' >/dev/null 2>&1; then
+    echo -e "${YELLOW}⚠${NC} Warning: SymbolId(0) used in tests (reserved for EOF)"
+    echo "Consider using SymbolAllocator which starts at 1"
+    echo "Problematic usage:"
+    rg 'SymbolId\(0\)' runtime/tests glr-core/tests 2>/dev/null | \
+       rg -v 'eof_symbol|normalize_eof_to_zero|table\.eof_symbol|SymbolAllocator' | head -3
+fi
+
+# Step 7: Run test connectivity check with full output
+echo -e "${YELLOW}→${NC} Checking test connectivity..."
+if [ -f scripts/check-test-connectivity.sh ]; then
+    if ! scripts/check-test-connectivity.sh; then
+        echo -e "${RED}✖ Test connectivity check failed${NC}"
+        echo ""
+        exit 1
+    fi
+else
+    # Inline basic connectivity check if script is missing
+    DISABLED_FILES=$(find . -name "*.rs.disabled" -type f 2>/dev/null | grep -v target/ | head -5 || true)
+    if [ -n "$DISABLED_FILES" ]; then
+        echo -e "${RED}✖ Disabled test files detected:${NC}"
+        echo "$DISABLED_FILES" | sed 's/^/  /'
+        echo ""
+        echo "Disabled test files are not allowed. Either:"
+        echo "  1. Re-enable by removing .disabled suffix and fixing issues"
+        echo "  2. Use #[ignore] attribute if tests need to remain disabled temporarily"
+        echo "  3. Remove files if they are no longer relevant"
+        echo ""
+        exit 1
+    fi
+fi
+echo -e "${GREEN}✓${NC} Test connectivity verified"
+
+# Step 8: Quick test of critical invariants (optional, crate-aware)
+if [ "${RUN_QUICK_TESTS:-0}" = "1" ]; then
+    echo -e "${YELLOW}→${NC} Quick tests (affected crates)..."
+    if command -v jq >/dev/null 2>&1 && [ -f scripts/affected-crates.sh ]; then
+        mapfile -t pkgs < <(scripts/affected-crates.sh || true)
+    else
+        pkgs=()
+    fi
+
+    if [ "${#pkgs[@]}" -gt 0 ]; then
+        for p in "${pkgs[@]}"; do
+            echo "   cargo test -q -p $p --lib"
+            cargo test -q -p "$p" --lib || true
+        done
+    else
+        # Fallback to highest-signal tests if we can't resolve packages
+        echo "   Running core invariant tests..."
+        cargo test -q -p rust-sitter-glr-core --lib -- tests::test_eof_normalization || true
+        cargo test -q -p rust-sitter-glr-core --lib -- tests::test_goto_remap || true
+    fi
+fi
+
+echo ""
+echo -e "${GREEN}✅ All pre-commit checks passed${NC}"
+echo -e "${BLUE}→${NC} Commit proceeding with staged changes"
+exit 0

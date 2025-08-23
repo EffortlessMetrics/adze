@@ -1,7 +1,7 @@
 // Comprehensive tests for the pure-Rust Tree-sitter implementation
 // Tests the tablegen module's functionality
 
-use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
 use rust_sitter_ir::{
     FieldId, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
     TokenPattern,
@@ -86,6 +86,7 @@ fn create_test_parse_table() -> ParseTable {
         alias_sequences: vec![],
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
     };
 
     // Add some basic states
@@ -296,7 +297,9 @@ fn test_symbol_metadata_generation() {
 
     // Should contain symbol metadata
     assert!(code_str.contains("SYMBOL_METADATA"));
-    assert!(code_str.contains("visible"));
+    // Symbol metadata is generated as raw bytes, not field names
+    // The bytes encode visibility, named status, etc as bit flags
+    assert!(code_str.contains("static SYMBOL_METADATA : & [u8]"));
 }
 
 #[test]

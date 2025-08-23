@@ -57,13 +57,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// Error types and Result alias for GLR operations.
 pub mod error;
+pub use error::Result as GlrResult;
 /// Back-compat alias: prefer `GlrError`; `GLRError` remains for now.
 pub use GLRError as GlrError;
-pub use error::Result as GlrResult;
 
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {
-    pub use crate::{FirstFollowSets, ParseTable, build_lr1_automaton};
+    pub use crate::{build_lr1_automaton, FirstFollowSets, ParseTable};
 }
 
 // Keep available, but don't promise public docs yet:
@@ -109,6 +109,12 @@ pub mod symbol_comparison;
 #[doc(hidden)]
 pub mod version_info;
 
+#[cfg(test)]
+pub mod test_helpers;
+
+#[cfg(test)]
+pub mod test_symbol_alloc;
+
 #[doc(hidden)]
 pub use advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
@@ -116,7 +122,7 @@ pub use advanced_conflict::{
 #[doc(hidden)]
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
 #[doc(hidden)]
-pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
+pub use conflict_visualizer::{generate_dot_graph, ConflictVisualizer};
 #[doc(hidden)]
 pub use gss::{GSSStats, GraphStructuredStack, StackNode};
 #[doc(hidden)]
@@ -125,12 +131,12 @@ pub use parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
 #[doc(hidden)]
 pub use precedence_compare::{
-    PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
+    compare_precedences, PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver,
 };
 #[doc(hidden)]
 pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
 #[doc(hidden)]
-pub use version_info::{CompareResult, VersionInfo, compare_versions};
+pub use version_info::{compare_versions, CompareResult, VersionInfo};
 
 // Precedence resolution structures
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -1723,6 +1729,77 @@ impl ParseTable {
         }
 
         Ok(())
+    }
+
+    /// Remap GOTO table from NonterminalMap layout to DirectSymbolId layout.
+    /// No-op if already DirectSymbolId.
+    pub fn remap_goto_to_direct_symbol_id(mut self) -> Self {
+        if matches!(self.goto_indexing, GotoIndexing::DirectSymbolId) {
+            return self;
+        }
+        // Establish the max symbol id we need to size rows
+        let max_sym = self
+            .nonterminal_to_index
+            .keys()
+            .map(|s| s.0 as usize)
+            .max()
+            .unwrap_or(0);
+        let new_width = max_sym + 1;
+
+        for row in &mut self.goto_table {
+            // Defensive check: ensure all column indices are valid
+            debug_assert!(
+                self.nonterminal_to_index.values().all(|&c| c < row.len()),
+                "nonterminal_to_index contains a column >= row width"
+            );
+
+            let mut new_row = vec![StateId(0); new_width];
+            // Move each mapped nonterminal from its old column into the col = symbol id
+            for (sym, &old_col) in &self.nonterminal_to_index {
+                if old_col < row.len() {
+                    new_row[sym.0 as usize] = row[old_col];
+                }
+            }
+            *row = new_row;
+        }
+        self.goto_indexing = GotoIndexing::DirectSymbolId;
+        self
+    }
+
+    /// Remap GOTO table from DirectSymbolId layout to NonterminalMap layout.
+    /// No-op if already NonterminalMap.
+    pub fn remap_goto_to_nonterminal_map(mut self) -> Self {
+        if matches!(self.goto_indexing, GotoIndexing::NonterminalMap) {
+            return self;
+        }
+        // Compute width for the map layout
+        let width = self
+            .nonterminal_to_index
+            .values()
+            .copied()
+            .max()
+            .unwrap_or(0)
+            + 1;
+        for row in &mut self.goto_table {
+            // Defensive check: ensure source indices are valid
+            debug_assert!(
+                self.nonterminal_to_index
+                    .keys()
+                    .all(|s| (s.0 as usize) < row.len()),
+                "nonterminal_to_index contains a symbol id >= row width"
+            );
+
+            let mut new_row = vec![StateId(0); width];
+            for (sym, &col) in &self.nonterminal_to_index {
+                let src = sym.0 as usize;
+                if src < row.len() && col < new_row.len() {
+                    new_row[col] = row[src];
+                }
+            }
+            *row = new_row;
+        }
+        self.goto_indexing = GotoIndexing::NonterminalMap;
+        self
     }
 }
 

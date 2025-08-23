@@ -279,8 +279,8 @@ fn test_rr_conflict_multiple_paths_preserved() {
 
     // Parse "ab" - should maintain both derivations
     parser.reset();
-    parser.process_token(SymbolId(5), "a", 1); // 'a' token
-    parser.process_token(SymbolId(6), "b", 1); // 'b' token
+    parser.process_token(SymbolId(6), "a", 1); // 'a' token
+    parser.process_token(SymbolId(7), "b", 1); // 'b' token
 
     parser.process_eof(2); // Input length 2 for "ab"
 
@@ -468,12 +468,10 @@ fn test_goto_indexing_direct_symbol_id() {
     );
 
     let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
-    let mut table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
+    let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
-        .normalize_eof_to_zero();
-
-    // Force DirectSymbolId mode to test that code path
-    table.goto_indexing = rust_sitter_glr_core::GotoIndexing::DirectSymbolId;
+        .normalize_eof_to_zero()
+        .remap_goto_to_direct_symbol_id(); // Force DirectSymbolId mode to test that code path
 
     let mut parser = GLRParser::new(table, grammar);
     parser.reset();

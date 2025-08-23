@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 pub(crate) mod test {
-    use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
+    use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
     use rust_sitter_ir::{Grammar, StateId, SymbolId};
     use std::collections::BTreeMap;
 
@@ -128,6 +128,8 @@ pub(crate) mod test {
             field_map: BTreeMap::new(),
             // display / provenance (defaults are fine for tests)
             grammar: Grammar::default(),
+            // GOTO indexing mode
+            goto_indexing: GotoIndexing::NonterminalMap,
         }
     }
 
