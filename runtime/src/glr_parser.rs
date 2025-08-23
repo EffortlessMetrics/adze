@@ -36,6 +36,21 @@
 //! - Token insertion (insert missing tokens)
 //! - Panic mode (skip to synchronization points)
 //!
+//! ## Configuration Constants
+//!
+//! ### Safe Deduplication Threshold
+//! Only perform pointer-based deduplication when new_stacks.len() exceeds this threshold.
+//! This prevents performance overhead for small stack sets while ensuring correctness
+//! for larger sets where duplicate stacks could impact performance.
+//! Default: 10. Override with env var RUST_SITTER_SAFE_DEDUP_N for testing.
+pub const SAFE_DEDUP_THRESHOLD: usize = match option_env!("RUST_SITTER_SAFE_DEDUP_N") {
+    Some(s) => match s.parse::<usize>() {
+        Ok(n) => n,
+        Err(_) => 10usize,
+    },
+    None => 10usize,
+};
+
 //! ## Example Usage
 //!
 //! ```rust,no_run
@@ -765,7 +780,7 @@ impl GLRParser {
         // Safe deduplication: remove exact duplicates (same state and same top node pointer)
         // This keeps ambiguities intact while removing inflated stack counts
         // NOTE: Only dedup if we have many stacks to avoid collapsing necessary ambiguity forks
-        if new_stacks.len() > 10 {
+        if new_stacks.len() > SAFE_DEDUP_THRESHOLD {
             use std::ptr;
             new_stacks.dedup_by(|a, b| {
                 a.current_state() == b.current_state()
