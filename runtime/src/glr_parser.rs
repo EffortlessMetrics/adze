@@ -869,7 +869,7 @@ impl GLRParser {
 
         // Track which (stack_id, state_id) tops we've already expanded for this lookahead.
         // This bounds the worklist and prevents infinite exploration.
-        let mut seen_tops = HashSet::<(usize, StateId)>::new();
+        let mut seen_tops = HashSet::<(u16, usize)>::new(); // (state, top_ptr)
 
         // Worklist of stacks to try reduces from
         let mut worklist = VecDeque::new();
@@ -883,19 +883,18 @@ impl GLRParser {
         // Initialize worklist with input stacks
         for stack in stacks {
             let state = stack.current_state();
-            if seen_tops.insert((stack.id, state)) {
+            // For empty stacks, use stack ID as discriminator to avoid collapsing all empty stacks
+            let top_ptr = stack.nodes.last()
+                .map(|n| Arc::as_ptr(n) as usize)
+                .unwrap_or(stack.id);
+            if seen_tops.insert((state.0, top_ptr)) {
                 worklist.push_back(stack);
             }
         }
 
         // Get the column index for the lookahead token
-        let symbol_idx = match self.table.symbol_to_index.get(&token) {
-            Some(&idx) => idx,
-            None => {
-                // Token not in symbol table, return original stacks
-                return worklist.into_iter().collect();
-            }
-        };
+        // For epsilon reductions, we still need to process even if token is not in table
+        let symbol_idx = self.table.symbol_to_index.get(&token).copied();
 
         // Fixed-point iteration: process stacks until no new tops appear
         // Add iteration cap to prevent pathological grammars from hanging
@@ -911,7 +910,28 @@ impl GLRParser {
             }
             steps += 1;
             let state = stack.current_state();
-            let action_cell = self.table.action_table[state.0 as usize][symbol_idx].clone();
+            
+            // Get actions for this state and lookahead
+            // If symbol_idx is None (e.g. EOF not in table), still check for epsilon reductions
+            let action_cell = if let Some(idx) = symbol_idx {
+                self.table.action_table[state.0 as usize][idx].clone()
+            } else {
+                // No specific lookahead - check for epsilon reductions across all columns
+                // This handles EOF and other unmapped symbols
+                let mut all_reduces = Vec::new();
+                for actions in &self.table.action_table[state.0 as usize] {
+                    for action in actions {
+                        if let Action::Reduce(rid) = action {
+                            // Check if this is an epsilon reduction
+                            let rhs_len = self.table.rules[rid.0 as usize].rhs_len as usize;
+                            if rhs_len == 0 && !all_reduces.contains(action) {
+                                all_reduces.push(action.clone());
+                            }
+                        }
+                    }
+                }
+                all_reduces
+            };
 
             debug_glr!(
                 "DEBUG reduce_closure: Processing state {} for token {} ({} actions)",
@@ -963,27 +983,35 @@ impl GLRParser {
                 };
 
                 // Guard against repeated application at same position (epsilon loop prevention)
-                let (start_byte, end_byte) = if let Some(n) = stack.nodes.last() {
-                    (n.node.byte_range.start, n.node.byte_range.end)
-                } else {
-                    (lookahead_end, lookahead_end)
-                };
-                let stamp = RedStamp {
-                    state: stack.current_state(),
-                    rule: rule_id,
-                    start: start_byte,
-                    end: end_byte,
-                };
+                // Use the parse table to check if this is an epsilon reduction
+                let rhs_len = self.table.rules[rule_id.0 as usize].rhs_len as usize;
+                
+                // Only stamp epsilon reductions to prevent loops
+                if rhs_len == 0 {
+                    let (start_byte, end_byte) = if let Some(n) = stack.nodes.last() {
+                        (n.node.byte_range.start, n.node.byte_range.end)
+                    } else {
+                        (lookahead_end, lookahead_end)
+                    };
+                    let stamp = RedStamp {
+                        state: stack.current_state(),
+                        rule: rule_id,
+                        start: start_byte,
+                        end: end_byte,
+                    };
 
-                if !seen_reductions.insert(stamp) {
-                    debug_glr!(
-                        "  Skipping epsilon re-fire: state {} rule {} at byte {}",
-                        stamp.state.0,
-                        rule_id.0,
-                        end_byte
-                    );
-                    continue;
+                    if !seen_reductions.insert(stamp) {
+                        debug_glr!(
+                            "  Skipping epsilon re-fire: state {} rule {} at {}..{}",
+                            stamp.state.0,
+                            rule_id.0,
+                            stamp.start,
+                            stamp.end
+                        );
+                        continue;
+                    }
                 }
+                // No stamping for non-epsilon reductions
 
                 debug_glr!("  Applying reduction: rule {}", rule_id.0);
 
@@ -996,20 +1024,31 @@ impl GLRParser {
 
                 // The new top state after GOTO might have more reduces for the same lookahead
                 let new_state = reduced_stack.current_state();
-                let key = (reduced_stack.id, new_state);
+                
+                // Use pointer-based key to match closure-local dedup
+                // For empty stacks, use stack ID to avoid collapsing them
+                let top_ptr = reduced_stack
+                    .nodes
+                    .last()
+                    .map(|n| Arc::as_ptr(n) as usize)
+                    .unwrap_or(reduced_stack.id);
+                let key = (new_state.0, top_ptr);
 
                 if seen_tops.insert(key) {
-                    // This is a new top we haven't explored - add to worklist
+                    // This is a new top we haven't explored - add to worklist for cascading
                     debug_glr!(
                         "  New top reached: state {} - adding to worklist",
                         new_state.0
                     );
-                    worklist.push_back(reduced_stack);
+                    worklist.push_back(reduced_stack.clone());
                     any_reduction_applied = true;
                 } else {
                     // We've already processed this top - it's saturated
-                    debug_glr!("  Top already seen: state {} - skipping", new_state.0);
+                    debug_glr!("  Top already seen: state {} - saturated", new_state.0);
                 }
+                
+                // Always save the reduced stack to preserve all reduction paths
+                saturated_stacks.push(reduced_stack);
             }
 
             // If no reductions were applied from this stack and it has no shift/accept,

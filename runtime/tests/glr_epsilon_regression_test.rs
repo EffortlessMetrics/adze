@@ -242,7 +242,6 @@ fn create_rr_conflict_grammar() -> (Grammar, ParseTable) {
 }
 
 #[test]
-#[ignore = "Partial fix applied - epsilon cascading not complete"]
 fn test_epsilon_epsilon_reductions_preserved() {
     let (grammar, table) = create_epsilon_grammar();
     let mut parser = GLRParser::new(table, grammar);
@@ -271,7 +270,6 @@ fn test_epsilon_epsilon_reductions_preserved() {
 }
 
 #[test]
-#[ignore = "Partial fix applied - epsilon cascading not complete"]
 fn test_rr_conflict_multiple_paths_preserved() {
     let (grammar, table) = create_rr_conflict_grammar();
     let mut parser = GLRParser::new(table, grammar);
