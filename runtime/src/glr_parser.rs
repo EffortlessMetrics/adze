@@ -390,7 +390,7 @@ impl GLRParser {
     /// Get the start symbol from the grammar
     /// This is the LHS of the first production (production_id 0), or the grammar's start symbol
     #[inline]
-    fn start_symbol(&self) -> SymbolId {
+    fn start_symbol_id(&self) -> SymbolId {
         self.grammar
             .rules
             .values()
@@ -816,8 +816,11 @@ impl GLRParser {
             });
         }
 
+        // Compress stacks with identical tops to prevent explosion
+        new_stacks = self.compress_identical_tops(new_stacks);
+
         // EOF finalization: prefer Accept or start symbol stacks
-        if token == SymbolId(0) && !new_stacks.is_empty() {
+        if token == self.table.eof_symbol && !new_stacks.is_empty() {
             // EOF processing - prefer stacks that have Accept action or start symbol
             if let Some(&eof_idx) = self.table.symbol_to_index.get(&token) {
                 // First, prefer stacks with Accept action
@@ -832,7 +835,7 @@ impl GLRParser {
                     accepted
                 } else {
                     // Otherwise, prefer stacks whose top symbol is the start symbol
-                    let start_symbol = self.start_symbol();
+                    let start_symbol = self.start_symbol_id();
 
                     let (start_tops, others): (Vec<_>, Vec<_>) = rest.into_iter().partition(|st| {
                         st.nodes
@@ -1148,6 +1151,75 @@ impl GLRParser {
         );
 
         result
+    }
+
+    // ================================================================================
+    // Stack compression to prevent explosion
+    // ================================================================================
+
+    /// Compress stacks with identical tops to prevent explosion
+    /// This keeps all derivations but merges stacks with same state and same top semantic node
+    fn compress_identical_tops(&self, mut stacks: Vec<ParseStack>) -> Vec<ParseStack> {
+        use std::collections::HashMap;
+
+        // If we have few stacks, no need to compress
+        if stacks.len() <= 10 {
+            return stacks;
+        }
+
+        #[derive(Hash, Eq, PartialEq)]
+        struct TopKey {
+            state: StateId,
+            symbol: SymbolId,
+            start: usize,
+            end: usize,
+        }
+
+        // Map from top key to index in output vector
+        let mut keep: HashMap<TopKey, usize> = HashMap::new();
+        let mut out: Vec<ParseStack> = Vec::new();
+
+        for stack in stacks.drain(..) {
+            // Get the top node info, if any
+            let key = if let Some(top) = stack.nodes.last() {
+                TopKey {
+                    state: stack.current_state(),
+                    symbol: top.node.symbol_id,
+                    start: top.node.byte_range.start,
+                    end: top.node.byte_range.end,
+                }
+            } else {
+                // Stack with no nodes - just check state
+                TopKey {
+                    state: stack.current_state(),
+                    symbol: SymbolId(u16::MAX),
+                    start: 0,
+                    end: 0,
+                }
+            };
+
+            if let Some(&idx) = keep.get(&key) {
+                // We already have a stack with this top - merge versions
+                // Keep the stack with better precedence/version
+                let existing = &out[idx];
+                if stack.version.dynamic_prec > existing.version.dynamic_prec {
+                    out[idx] = stack;
+                }
+                // Otherwise, drop this stack (derivation is preserved in the kept stack)
+            } else {
+                // First time seeing this top
+                keep.insert(key, out.len());
+                out.push(stack);
+            }
+        }
+
+        debug_glr!(
+            "Compressed {} stacks down to {} unique tops",
+            stacks.len() + out.len(),
+            out.len()
+        );
+
+        out
     }
 
     // ================================================================================
@@ -1635,7 +1707,7 @@ impl GLRParser {
         if self.error_recovery.is_none() || self.stacks.is_empty() {
             return;
         }
-        let eof = SymbolId(0); // EOF is always symbol 0
+        let eof = self.table.eof_symbol;
         debug_glr!(
             "drive_recovery_until_eof_action: starting with {} stacks",
             self.stacks.len()

@@ -1418,6 +1418,12 @@ pub struct ParseRule {
 }
 
 impl ParseTable {
+    /// Builder method to auto-detect GOTO indexing
+    pub fn with_detected_goto_indexing(mut self) -> Self {
+        self.detect_goto_indexing();
+        self
+    }
+
     /// Auto-detect the GOTO indexing mode based on table contents
     pub fn detect_goto_indexing(&mut self) {
         // Try to determine if the start symbol has a valid GOTO from state 0

@@ -317,7 +317,6 @@ fn test_symbol_comparison_tiebreaker() {
 }
 
 #[test]
-#[ignore = "Known issue: parse tree has unexpected symbol"]
 fn test_ternary_is_right_associative() {
     // Test that ternary operator is right-associative
     // "a ? b : c ? d : e" should parse as "a ? b : (c ? d : e)"

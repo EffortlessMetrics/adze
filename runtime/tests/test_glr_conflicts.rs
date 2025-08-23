@@ -380,7 +380,7 @@ fn test_dangling_else() {
 }
 
 #[test]
-#[ignore = "Known issue: dynamic precedence not working as expected"]
+#[ignore = "Dynamic precedence propagation needs fixing"]
 fn test_dynamic_precedence() {
     let grammar = build_dynamic_precedence_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);
