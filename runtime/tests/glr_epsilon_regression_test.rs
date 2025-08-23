@@ -18,13 +18,13 @@ fn create_epsilon_grammar() -> (Grammar, ParseTable) {
     let mut grammar = Grammar::default();
     grammar.name = "EpsilonTest".to_string();
 
-    // Symbol IDs
-    let s_id = SymbolId(0);
-    let a_id = SymbolId(1);
-    let b_id = SymbolId(2);
-    let a_token = SymbolId(3);
-    let b_token = SymbolId(4);
-    let ws_token = SymbolId(5); // Add whitespace token to satisfy GLR requirements
+    // Symbol IDs (start at 1 to avoid EOF=0)
+    let s_id = SymbolId(1);
+    let a_id = SymbolId(2);
+    let b_id = SymbolId(3);
+    let a_token = SymbolId(4);
+    let b_token = SymbolId(5);
+    let ws_token = SymbolId(6); // Add whitespace token to satisfy GLR requirements
 
     // Add a whitespace token as an extra so the grammar has >=1 token
     // This keeps it epsilon-equivalent while satisfying the parser requirements
@@ -116,7 +116,8 @@ fn create_epsilon_grammar() -> (Grammar, ParseTable) {
     // Build parse table using the GLR core
     let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
-        .expect("Failed to build parse table");
+        .expect("Failed to build parse table")
+        .normalize_eof_to_zero();
 
     (grammar, table)
 }
@@ -137,14 +138,14 @@ fn create_rr_conflict_grammar() -> (Grammar, ParseTable) {
     let mut grammar = Grammar::default();
     grammar.name = "RRConflictTest".to_string();
 
-    // Symbol IDs
-    let s_id = SymbolId(0);
-    let x_id = SymbolId(1);
-    let y_id = SymbolId(2);
-    let z_id = SymbolId(3);
-    let w_id = SymbolId(4);
-    let a_token = SymbolId(5);
-    let b_token = SymbolId(6);
+    // Symbol IDs (start at 1 to avoid EOF=0)
+    let s_id = SymbolId(1);
+    let x_id = SymbolId(2);
+    let y_id = SymbolId(3);
+    let z_id = SymbolId(4);
+    let w_id = SymbolId(5);
+    let a_token = SymbolId(6);
+    let b_token = SymbolId(7);
 
     // Register symbols
     grammar.rule_names.insert(s_id, "S".to_string());
@@ -236,7 +237,8 @@ fn create_rr_conflict_grammar() -> (Grammar, ParseTable) {
     // Build parse table using the GLR core
     let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
-        .expect("Failed to build parse table");
+        .expect("Failed to build parse table")
+        .normalize_eof_to_zero();
 
     (grammar, table)
 }
@@ -341,10 +343,11 @@ fn test_epsilon_cycle_no_infinite_loop() {
     let mut grammar = Grammar::default();
     grammar.name = "EpsilonCycle".to_string();
 
-    let s_id = SymbolId(0);
-    let a_id = SymbolId(1);
-    let b_id = SymbolId(2);
-    let ws_token = SymbolId(3); // Add whitespace token to satisfy GLR requirements
+    // Symbol IDs (start at 1 to avoid EOF=0)
+    let s_id = SymbolId(1);
+    let a_id = SymbolId(2);
+    let b_id = SymbolId(3);
+    let ws_token = SymbolId(4); // Add whitespace token to satisfy GLR requirements
 
     grammar.rule_names.insert(s_id, "S".to_string());
     grammar.rule_names.insert(a_id, "A".to_string());
@@ -403,7 +406,8 @@ fn test_epsilon_cycle_no_infinite_loop() {
 
     let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
-        .expect("Failed to build parse table");
+        .expect("Failed to build parse table")
+        .normalize_eof_to_zero();
     let mut parser = GLRParser::new(table, grammar);
 
     // This used to cause infinite loop - now should complete
@@ -434,9 +438,9 @@ fn test_goto_indexing_direct_symbol_id() {
     let mut grammar = Grammar::default();
     grammar.name = "DirectGotoTest".to_string();
 
-    // S -> 'x'
-    let s_id = SymbolId(0);
-    let x_token = SymbolId(1);
+    // S -> 'x' (start at 1 to avoid EOF=0)
+    let s_id = SymbolId(1);
+    let x_token = SymbolId(2);
 
     grammar.rule_names.insert(s_id, "S".to_string());
     grammar.rule_names.insert(x_token, "'x'".to_string());
@@ -465,7 +469,8 @@ fn test_goto_indexing_direct_symbol_id() {
 
     let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
     let mut table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
-        .expect("Failed to build parse table");
+        .expect("Failed to build parse table")
+        .normalize_eof_to_zero();
 
     // Force DirectSymbolId mode to test that code path
     table.goto_indexing = rust_sitter_glr_core::GotoIndexing::DirectSymbolId;
@@ -544,9 +549,10 @@ fn test_goto_indexing_auto_detection() {
     grammar.name = "AutoDetectTest".to_string();
 
     // Create a simple grammar where we can control the table structure
-    let s_id = SymbolId(0);
-    let a_id = SymbolId(1);
-    let x_token = SymbolId(2);
+    // Symbol IDs (start at 1 to avoid EOF=0)
+    let s_id = SymbolId(1);
+    let a_id = SymbolId(2);
+    let x_token = SymbolId(3);
 
     grammar.rule_names.insert(s_id, "S".to_string());
     grammar.rule_names.insert(a_id, "A".to_string());
@@ -590,7 +596,8 @@ fn test_goto_indexing_auto_detection() {
 
     let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
     let mut table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
-        .expect("Failed to build parse table");
+        .expect("Failed to build parse table")
+        .normalize_eof_to_zero();
 
     // The auto-detection should have been called during table construction
     // Verify it picked a reasonable mode
