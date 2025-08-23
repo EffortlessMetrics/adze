@@ -1,28 +1,56 @@
 #!/usr/bin/env python3
 """
-Fail if a commented eprintln!/println! block has an uncommented closing ');'.
-Idempotent: no writes, just exits non-zero on violation.
+Check for half-commented debug blocks where eprintln!/println! is commented
+but the closing ); is not. Only checks blocks that start with // eprintln!( or // println!(
 """
 import sys, re, pathlib
 
 OPEN  = re.compile(r'^\s*//\s*(eprintln|println)!\s*\(')
-# Only match closing ); that are not preceded by non-comment content
-CLOSE = re.compile(r'^\s*\);\s*$')
+COMMENTED_CLOSE = re.compile(r'^\s*//\s*\);\s*$')
 
 def check_file(path: pathlib.Path) -> list[tuple[int,str]]:
     violations = []
     lines = path.read_text(encoding='utf-8').splitlines()
-    in_block = False
-    for i, line in enumerate(lines, 1):
-        if not in_block and OPEN.match(line):
-            # If opener has inline close on same line, it's fine.
-            in_block = not line.rstrip().endswith(');')
-        elif in_block:
-            if CLOSE.match(line) and not line.lstrip().startswith('//'):
-                violations.append((i, "closing ');' not commented"))
-                in_block = False
-            elif CLOSE.match(line):
-                in_block = False
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        
+        # Check if this line starts a commented debug print block
+        if OPEN.match(line):
+            # Skip one-liners like: // eprintln!("msg");
+            if line.rstrip().endswith(');'):
+                i += 1
+                continue
+                
+            # Multi-line commented block found
+            block_start_line = i + 1  # Line numbers are 1-based
+            i += 1
+            
+            # Look for the closing of this block
+            found_closing = False
+            while i < len(lines):
+                line = lines[i]
+                
+                # If we hit a non-commented line, the block ended without proper closing
+                if not line.lstrip().startswith('//'):
+                    violations.append((block_start_line, "unterminated commented debug block (missing '// );')"))
+                    break
+                    
+                # Check if this is the commented closing
+                if COMMENTED_CLOSE.match(line):
+                    found_closing = True
+                    i += 1
+                    break
+                    
+                i += 1
+            
+            # If we hit EOF without finding a closing
+            if i >= len(lines) and not found_closing:
+                violations.append((block_start_line, "unterminated commented debug block at EOF (missing '// );')"))
+        else:
+            i += 1
+    
     return violations
 
 def main(files: list[str]) -> int:

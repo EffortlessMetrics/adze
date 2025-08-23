@@ -556,7 +556,8 @@ impl Parser {
                                         // fn print_subtree(subtree: &Subtree, indent: usize) {
                                         //     eprintln!("{}symbol={}, children={}, bytes={}..{}",
                                         //         "  ".repeat(indent), subtree.symbol, subtree.children.len(),
-                                        //         subtree.start_byte, subtree.end_byte);
+                                        //         subtree.start_byte, subtree.end_byte
+                                        //     );
                                         //     for child in &subtree.children {
                                         //         print_subtree(child, indent + 1);
                                         //     }
