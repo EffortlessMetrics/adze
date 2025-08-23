@@ -43,14 +43,7 @@
 //! This prevents performance overhead for small stack sets while ensuring correctness
 //! for larger sets where duplicate stacks could impact performance.
 //! Default: 10. Override with env var RUST_SITTER_SAFE_DEDUP_N for testing.
-pub const SAFE_DEDUP_THRESHOLD: usize = match option_env!("RUST_SITTER_SAFE_DEDUP_N") {
-    Some(s) => match s.parse::<usize>() {
-        Ok(n) => n,
-        Err(_) => 10usize,
-    },
-    None => 10usize,
-};
-
+//!
 //! ## Example Usage
 //!
 //! ```rust,no_run
@@ -80,6 +73,8 @@ pub const SAFE_DEDUP_THRESHOLD: usize = match option_env!("RUST_SITTER_SAFE_DEDU
 //!     Err(e) => println!("Parse failed: {}", e),
 //! }
 //! ```
+
+pub const SAFE_DEDUP_THRESHOLD: usize = 10;
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
