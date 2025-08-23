@@ -67,11 +67,10 @@ fn test_error_stats_not_stubbed() {
         symbol_count: 6,
         symbol_to_index: {
             let mut map = BTreeMap::new();
-            map.insert(SymbolId(0), 0); // ERROR
+            map.insert(SymbolId(0), 4); // EOF (normalized to 0)
             map.insert(SymbolId(1), 1); // 'a'
             map.insert(SymbolId(2), 2); // 'b'
             map.insert(SymbolId(3), 3); // 'c'
-            map.insert(SymbolId(4), 4); // EOF
             map.insert(SymbolId(5), 0); // S (nonterminal, reuses index 0)
             map
         },
@@ -83,7 +82,7 @@ fn test_error_stats_not_stubbed() {
             map
         },
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(4),
+        eof_symbol: SymbolId(0),
         start_symbol: SymbolId(5),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
@@ -110,7 +109,7 @@ fn test_error_stats_not_stubbed() {
     // Parse "a" EOF - missing 'b' should trigger recovery
     let result = driver.parse_tokens([
         (1u32, 0u32, 1u32), // 'a'
-        (4u32, 1u32, 1u32), // EOF
+        (0u32, 1u32, 1u32), // EOF (normalized to 0)
     ]);
 
     match result {
@@ -220,11 +219,10 @@ fn test_clean_parse_has_zero_errors() {
         symbol_count: 6,
         symbol_to_index: {
             let mut map = BTreeMap::new();
-            map.insert(SymbolId(0), 0); // ERROR
+            map.insert(SymbolId(0), 4); // EOF (normalized to 0)
             map.insert(SymbolId(1), 1); // 'a'
             map.insert(SymbolId(2), 2); // 'b'
             map.insert(SymbolId(3), 3); // 'c'
-            map.insert(SymbolId(4), 4); // EOF
             map.insert(SymbolId(5), 0); // S (nonterminal, reuses index 0)
             map
         },
@@ -236,7 +234,7 @@ fn test_clean_parse_has_zero_errors() {
             map
         },
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(4),
+        eof_symbol: SymbolId(0),
         start_symbol: SymbolId(5),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
@@ -264,7 +262,7 @@ fn test_clean_parse_has_zero_errors() {
     let result = driver.parse_tokens([
         (1u32, 0u32, 1u32), // 'a'
         (2u32, 1u32, 1u32), // 'b'
-        (4u32, 2u32, 1u32), // EOF
+        (0u32, 2u32, 1u32), // EOF (normalized to 0)
     ]);
 
     match result {

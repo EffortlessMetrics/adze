@@ -2,11 +2,26 @@
 //! Tests epsilon spans, fork handling, EOF acceptance, and root selection
 #![cfg(not(feature = "strict-invariants"))]
 
-use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
+use rust_sitter_glr_core::{Action, Driver, GotoIndexing, LexMode, ParseRule, ParseTable};
 use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 type ActionCell = Vec<Action>;
+
+// Symbol-aware test helpers that work across EOF normalization and both indexing modes
+fn actions_for(t: &ParseTable, state: usize, sym: SymbolId) -> &[Action] {
+    let idx = t.symbol_to_index[&sym];
+    &t.action_table[state][idx]
+}
+
+fn goto_for(t: &ParseTable, state: usize, lhs: SymbolId) -> Option<StateId> {
+    let row = &t.goto_table[state];
+    let col = match t.goto_indexing {
+        GotoIndexing::NonterminalMap => *t.nonterminal_to_index.get(&lhs)?,
+        GotoIndexing::DirectSymbolId => lhs.0 as usize,
+    };
+    row.get(col).copied().filter(|s| s.0 != 0)
+}
 
 /// Helper to create a minimal ParseTable for testing
 fn create_test_table(
@@ -67,9 +82,10 @@ fn create_test_table(
         rule_assoc_by_rule: vec![0; rules.len()],
         alias_sequences: vec![],
         field_names: vec![],
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: GotoIndexing::NonterminalMap,
         field_map: BTreeMap::new(),
     }
+    // Don't normalize here - let tests control their symbol mappings
 }
 
 #[test]
@@ -79,13 +95,13 @@ fn test_epsilon_reduce_span() {
     // Expected: A has span (0,0), S has span (0,1)
 
     // Symbol layout: terminals first, then EOF, then non-terminals
-    // 0: ERROR (reserved)
+    // 0: EOF (normalized)
     // 1: 'x' (terminal)
-    // 2: EOF
+    // 2: (unused)
     // 3: S (non-terminal)
     // 4: A (non-terminal)
     let x_sym = SymbolId(1);
-    let eof = SymbolId(2);
+    let eof = SymbolId(0);
     let s_sym = SymbolId(3);
     let a_sym = SymbolId(4);
 
@@ -115,17 +131,17 @@ fn test_epsilon_reduce_span() {
     actions[1][1].push(Action::Shift(StateId(2))); // on 'x', shift to state 2
 
     // State 2 (after shifting 'x')
-    actions[2][2].push(Action::Reduce(RuleId(1))); // on EOF, reduce S -> A 'x'
+    actions[2][0].push(Action::Reduce(RuleId(1))); // on EOF, reduce S -> A 'x'
 
     // State 3 (after S reduction)
-    actions[3][2].push(Action::Accept); // on EOF, accept
+    actions[3][0].push(Action::Accept); // on EOF, accept
 
     let invalid = StateId(65535);
     let mut gotos = vec![vec![invalid; 5]; 4];
     gotos[0][4] = StateId(1); // goto state 1 after reducing to A (symbol 4)
     gotos[0][3] = StateId(3); // goto state 3 after reducing to S (symbol 3)
 
-    let table = create_test_table(actions, gotos, rules, s_sym, eof).normalize_eof_to_zero();
+    let table = create_test_table(actions, gotos, rules, s_sym, eof);
 
     // Create token stream for 'x' at position 0-1
     let tokens = vec![(x_sym, 0, 1)];
@@ -177,7 +193,7 @@ fn test_fork_sanity() {
     // 3: S (non-terminal)
     // 4: T (non-terminal)
     let a_sym = SymbolId(1);
-    let eof = SymbolId(2);
+    let eof = SymbolId(0);
     let s_sym = SymbolId(3);
     let t_sym = SymbolId(4);
 
@@ -211,16 +227,16 @@ fn test_fork_sanity() {
     actions[1][2].push(Action::Reduce(RuleId(0)));
 
     // State 2: after second 'a', reduce S -> 'a'
-    actions[2][2].push(Action::Reduce(RuleId(0)));
+    actions[2][0].push(Action::Reduce(RuleId(0)));
 
     // State 3: after reducing to T, shift 'a'
     actions[3][1].push(Action::Shift(StateId(4)));
 
     // State 4: after T 'a', reduce S -> T 'a'
-    actions[4][2].push(Action::Reduce(RuleId(1)));
+    actions[4][0].push(Action::Reduce(RuleId(1)));
 
     // State 5: accept
-    actions[5][2].push(Action::Accept);
+    actions[5][0].push(Action::Accept);
 
     let invalid = StateId(65535);
     let mut gotos = vec![vec![invalid; 5]; 6];
@@ -231,7 +247,7 @@ fn test_fork_sanity() {
     gotos[3][3] = StateId(5); // goto accept after S (symbol 3)
     gotos[4][3] = StateId(5); // goto accept after S (symbol 3)
 
-    let table = create_test_table(actions, gotos, rules, s_sym, eof).normalize_eof_to_zero();
+    let table = create_test_table(actions, gotos, rules, s_sym, eof);
 
     // Token stream for "a a"
     let tokens = vec![(a_sym, 0, 1), (a_sym, 2, 3)];
@@ -266,7 +282,7 @@ fn test_eof_accept() {
     // 2: EOF
     // 3: S (non-terminal)
     let t_sym = SymbolId(1);
-    let eof = SymbolId(2);
+    let eof = SymbolId(0);
     let s_sym = SymbolId(3);
 
     let rules = vec![
@@ -282,16 +298,16 @@ fn test_eof_accept() {
     actions[0][1].push(Action::Shift(StateId(1)));
 
     // State 1: reduce S -> 't' on EOF (not on regular lookahead!)
-    actions[1][2].push(Action::Reduce(RuleId(0)));
+    actions[1][0].push(Action::Reduce(RuleId(0)));
 
     // State 2: accept on EOF
-    actions[2][2].push(Action::Accept);
+    actions[2][0].push(Action::Accept);
 
     let invalid = StateId(65535);
     let mut gotos = vec![vec![invalid; 4]; 3];
     gotos[0][3] = StateId(2); // goto state 2 after S (symbol 3)
 
-    let table = create_test_table(actions, gotos, rules, s_sym, eof).normalize_eof_to_zero();
+    let table = create_test_table(actions, gotos, rules, s_sym, eof);
 
     let tokens = vec![(t_sym, 0, 1)];
 
@@ -326,7 +342,7 @@ fn test_root_selection_deterministic() {
     // 2: EOF
     // 3: S (non-terminal)
     let a_sym = SymbolId(1);
-    let eof = SymbolId(2);
+    let eof = SymbolId(0);
     let s_sym = SymbolId(3);
 
     let rules = vec![
@@ -344,10 +360,10 @@ fn test_root_selection_deterministic() {
     // For now we just verify the root sorting logic compiles and runs
     let mut actions = vec![vec![vec![]; 4]; 4];
     actions[0][1].push(Action::Shift(StateId(1)));
-    actions[1][2].push(Action::Reduce(RuleId(0)));
+    actions[1][0].push(Action::Reduce(RuleId(0)));
     actions[1][1].push(Action::Shift(StateId(2)));
-    actions[2][2].push(Action::Reduce(RuleId(1)));
-    actions[3][2].push(Action::Accept);
+    actions[2][0].push(Action::Reduce(RuleId(1)));
+    actions[3][0].push(Action::Accept);
 
     let invalid = StateId(65535);
     let mut gotos = vec![vec![invalid; 4]; 4];
@@ -355,7 +371,7 @@ fn test_root_selection_deterministic() {
     gotos[1][3] = StateId(3); // goto state 3 after S (symbol 3)
     gotos[2][3] = StateId(3); // goto state 3 after S (symbol 3)
 
-    let table = create_test_table(actions, gotos, rules, s_sym, eof).normalize_eof_to_zero();
+    let table = create_test_table(actions, gotos, rules, s_sym, eof);
 
     let tokens = vec![(a_sym, 0, 1), (a_sym, 1, 2)];
 

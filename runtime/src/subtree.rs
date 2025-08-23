@@ -224,7 +224,7 @@ impl Subtree {
 
     /// Create a new subtree with the given alternative
     pub fn with_alts(mut self, alt: Arc<Subtree>) -> Self {
-        if !Arc::ptr_eq(&Arc::new(self.clone()), &alt) {
+        if !self.alternatives.iter().any(|a| Arc::ptr_eq(a, &alt)) {
             self.alternatives.push(alt);
         }
         self

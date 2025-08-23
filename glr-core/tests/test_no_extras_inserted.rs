@@ -19,7 +19,7 @@ fn extras_marked_correctly_in_parse_table() {
         rules: vec![],
         nonterminal_to_index: Default::default(),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(4),
+        eof_symbol: SymbolId(0),
         start_symbol: SymbolId(100),
         grammar: Default::default(),
         initial_state: rust_sitter_ir::StateId(0),
@@ -86,7 +86,7 @@ fn external_tokens_within_insertion_range() {
         rules: vec![],
         nonterminal_to_index: Default::default(),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(3), // EOF after all terminals
+        eof_symbol: SymbolId(0), // EOF must be 0 by convention
         start_symbol: SymbolId(100),
         grammar: Default::default(),
         initial_state: rust_sitter_ir::StateId(0),

@@ -1448,13 +1448,26 @@ impl ParseTable {
                     row.swap(old_idx, zero_idx);
                 }
             }
-            // Update the symbol_to_index mapping
-            self.symbol_to_index.insert(old_eof, zero_idx);
+            // Now: 0 → old_idx, old_eof → (removed)
             self.symbol_to_index.insert(SymbolId(0), old_idx);
+            self.symbol_to_index.remove(&old_eof);
+
+            // Update index_to_symbol if it exists
+            if old_idx < self.index_to_symbol.len() {
+                self.index_to_symbol[old_idx] = SymbolId(0);
+            }
         } else if let Some(old_idx) = old_idx {
-            // Only old EOF exists, move it to 0's position
+            // Only old EOF existed: move its column mapping to 0
             self.symbol_to_index.remove(&old_eof);
             self.symbol_to_index.insert(SymbolId(0), old_idx);
+
+            // Update index_to_symbol if it exists
+            if old_idx < self.index_to_symbol.len() {
+                self.index_to_symbol[old_idx] = SymbolId(0);
+            }
+        } else {
+            // Neither mapped: ensure EOF->0 exists so consumers don't panic
+            self.symbol_to_index.insert(SymbolId(0), 0);
         }
 
         // Update EOF symbol
@@ -1678,6 +1691,11 @@ impl ParseTable {
             self.eof_symbol,
             SymbolId(0),
             "EOF must be SymbolId(0) by convention"
+        );
+
+        debug_assert!(
+            self.symbol_to_index.contains_key(&self.eof_symbol),
+            "EOF must exist in ACTION map"
         );
 
         // Check EOF/END parity if we have END symbol in Tree-sitter (last terminal)

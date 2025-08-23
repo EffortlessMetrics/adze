@@ -272,6 +272,7 @@ fn test_epsilon_epsilon_reductions_preserved() {
 #[test]
 fn test_rr_conflict_multiple_paths_preserved() {
     let (grammar, table) = create_rr_conflict_grammar();
+    let table_start_symbol = table.start_symbol;
     let mut parser = GLRParser::new(table, grammar);
 
     // Parse "ab" - should maintain both derivations
@@ -299,7 +300,7 @@ fn test_rr_conflict_multiple_paths_preserved() {
                 trees
                     .iter()
                     .any(|t| t.node.symbol_id == start_symbol
-                        || t.node.symbol_id == table.start_symbol),
+                        || t.node.symbol_id == table_start_symbol),
                 "At least one tree should be rooted at the start symbol"
             );
 

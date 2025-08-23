@@ -1246,7 +1246,7 @@ impl GLRParser {
         // Map from top key to index in output vector
         let mut keep: HashMap<TopKey, usize> = HashMap::new();
         let mut out: Vec<ParseStack> = Vec::new();
-        #[allow(unused_variables)]
+        #[cfg_attr(not(feature = "glr_telemetry"), allow(unused_variables))]
         let mut packed_count = 0usize;
 
         for mut stack in stacks.drain(..) {

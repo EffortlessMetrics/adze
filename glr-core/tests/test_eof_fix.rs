@@ -1,4 +1,4 @@
-//! Test that EOF symbol is correctly handled (not 0/ERROR)
+//! Test that EOF symbol normalization works correctly
 #![cfg(not(feature = "strict-invariants"))]
 
 use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
@@ -6,9 +6,9 @@ use rust_sitter_ir::{RuleId, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 #[test]
-fn test_eof_not_error_symbol() {
-    // Create a minimal parse table with EOF != 0
-    // The key assertion here is that EOF is not 0 (the ERROR symbol)
+fn test_eof_normalization() {
+    // Create a minimal parse table with EOF initially != 0
+    // After normalization, EOF should be SymbolId(0)
     let parse_table = ParseTable {
         action_table: vec![], // Minimal table
         goto_table: vec![],
@@ -17,14 +17,14 @@ fn test_eof_not_error_symbol() {
         symbol_count: 6,
         symbol_to_index: {
             let mut map = BTreeMap::new();
-            map.insert(SymbolId(3), 0); // Map EOF to index 0
+            map.insert(SymbolId(3), 0); // Initial EOF mapping
             map
         },
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(3), // token_count + external_token_count  // Critical: NOT 0!
+        eof_symbol: SymbolId(3), // Initial EOF (will be normalized)
         start_symbol: SymbolId(10),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
@@ -41,12 +41,16 @@ fn test_eof_not_error_symbol() {
         field_names: vec![],
         field_map: BTreeMap::new(),
         symbol_metadata: vec![],
-    };
+    }
+    .normalize_eof_to_zero(); // Normalize EOF to 0
 
-    // This should NOT panic with our assertion that EOF != 0
+    // After normalization, EOF should be 0
+    assert_eq!(parse_table.eof_symbol, SymbolId(0));
+
+    // Driver should accept the normalized table
     let _driver = Driver::new(&parse_table);
     println!(
-        "✓ Driver created successfully with EOF={} (not 0)",
+        "✓ Driver created successfully with normalized EOF={}",
         parse_table.eof_symbol.0
     );
 }
@@ -99,14 +103,16 @@ fn test_error_stats_not_stubbed() {
         symbol_count: 11,
         symbol_to_index: {
             let mut map = BTreeMap::new();
-            map.insert(SymbolId(3), 0); // Map EOF to index 0
+            map.insert(SymbolId(0), 5); // Map EOF to column 5
+            map.insert(SymbolId(1), 1); // LBRACE
+            map.insert(SymbolId(2), 2); // RBRACE
             map
         },
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(3), // token_count + external_token_count
+        eof_symbol: SymbolId(0), // EOF must be 0 by convention
         start_symbol: SymbolId(10),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),

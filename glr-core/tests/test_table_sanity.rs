@@ -26,10 +26,10 @@ fn create_simple_test_table() -> ParseTable {
     ];
 
     let mut symbol_to_index = BTreeMap::new();
-    symbol_to_index.insert(SymbolId(0), 0); // token 'a'
-    symbol_to_index.insert(SymbolId(1), 1); // EOF
+    symbol_to_index.insert(SymbolId(1), 0); // token 'a'
+    symbol_to_index.insert(SymbolId(0), 1); // EOF (normalized to 0)
 
-    let index_to_symbol = vec![SymbolId(0), SymbolId(1)];
+    let index_to_symbol = vec![SymbolId(1), SymbolId(0)];
 
     ParseTable {
         action_table,
@@ -43,7 +43,7 @@ fn create_simple_test_table() -> ParseTable {
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(1),
+        eof_symbol: SymbolId(0),
         start_symbol: SymbolId(2),
         grammar: Grammar::default(),
         initial_state: StateId(0),

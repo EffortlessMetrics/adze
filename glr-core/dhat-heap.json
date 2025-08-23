@@ -7,10 +7,10 @@
 "tu": "µs",
 "Mtu": "s",
 "tuth": 10,
-"cmd": "/home/steven/.rust-build/target/debug/deps/memory_automaton-5496e10aabfd7c8d",
-"pid": 505439,
+"cmd": "/home/steven/.rust-build/target/debug/deps/memory_automaton-37ee6836344f85fd",
+"pid": 79556,
 "tg": 0,
-"te": 100,
+"te": 83,
 "pps": [],
 "ftbl": [
 "[root]"
