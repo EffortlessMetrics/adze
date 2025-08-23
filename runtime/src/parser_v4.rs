@@ -172,9 +172,9 @@ impl Parser {
                 (Some(scanner), Some(runtime))
             } else {
                 // eprintln!(
-                    "Warning: Grammar has external tokens but no scanner registered for language '{}'",
-                    language
-                );
+                // "Warning: Grammar has external tokens but no scanner registered for language '{}'",
+                // language
+                // );
                 (None, None)
             }
         } else {
@@ -216,9 +216,9 @@ impl Parser {
         let parse_table = crate::decoder::decode_parse_table(language);
         // #[cfg(feature = "debug")]
         // eprintln!(
-            "Parser from_language: parse_table.rules has {} rules",
-            parse_table.rules.len()
-        );
+        // "Parser from_language: parse_table.rules has {} rules",
+        // parse_table.rules.len()
+        // );
 
         // Check for external scanner
         let (external_scanner, external_runtime) = if language.external_token_count > 0 {
@@ -234,9 +234,9 @@ impl Parser {
                 (Some(scanner), Some(runtime))
             } else {
                 // eprintln!(
-                    "Warning: Grammar has external tokens but no scanner registered for language '{}'",
-                    language_name
-                );
+                // "Warning: Grammar has external tokens but no scanner registered for language '{}'",
+                // language_name
+                // );
                 (None, None)
             }
         } else {
@@ -273,13 +273,13 @@ impl Parser {
         self.grammar = crate::decoder::decode_grammar(language);
         // #[cfg(feature = "debug_parser")]
         // eprintln!(
-            "Parser set_language: parse_table.rules has {} rules",
-            self.parse_table.rules.len()
-        );
+        // "Parser set_language: parse_table.rules has {} rules",
+        // self.parse_table.rules.len()
+        // );
         // eprintln!(
-            "Parser set_language: parse_table.rules has {} rules",
-            self.parse_table.rules.len()
-        );
+        // "Parser set_language: parse_table.rules has {} rules",
+        // self.parse_table.rules.len()
+        // );
         self.language = language_name.clone();
 
         // Update external scanner if needed
@@ -356,11 +356,11 @@ impl Parser {
             // Get the next token from the token source
             let token = if let Some(tok) = token_source.peek() {
                 // eprintln!(
-                    "  Lexer returned token: symbol {} at pos {}-{}",
-                    tok.sym,
-                    tok.start,
-                    tok.start + tok.len
-                );
+                // "  Lexer returned token: symbol {} at pos {}-{}",
+                // tok.sym,
+                // tok.start,
+                // tok.start + tok.len
+                // );
                 tok
             } else {
                 // We're at EOF - use the table's EOF symbol
@@ -389,9 +389,9 @@ impl Parser {
                 .unwrap_or_else(|| "no col".to_string());
             // #[cfg(feature = "debug")]
             // eprintln!(
-                "State {}, Symbol {} ({}) -> Actions: {:?}",
-                current_state.0, lookahead.0, _col, actions
-            );
+            // "State {}, Symbol {} ({}) -> Actions: {:?}",
+            // current_state.0, lookahead.0, _col, actions
+            // );
 
             if actions.is_empty() {
                 // No valid action - error recovery needed
@@ -410,9 +410,9 @@ impl Parser {
                 // Skip this token and continue
                 error_count += 1;
                 // eprintln!(
-                    "Parse error: no action for symbol {} in state {}",
-                    lookahead.0, current_state.0
-                );
+                // "Parse error: no action for symbol {} in state {}",
+                // lookahead.0, current_state.0
+                // );
                 token_source.bump();
                 continue;
             }
@@ -467,9 +467,9 @@ impl Parser {
                         .ok_or_else(|| anyhow!("State stack empty after reduce"))?;
 
                     // eprintln!(
-                        "    Looking for goto from state {} for symbol {}",
-                        prev_state.0, rule.lhs.0
-                    );
+                    // "    Looking for goto from state {} for symbol {}",
+                    // prev_state.0, rule.lhs.0
+                    // );
                     let goto_state = self.get_goto_state(prev_state, rule.lhs)?;
                     // eprintln!("    Goto state {} for symbol {}", goto_state.0, rule.lhs.0);
 
@@ -541,11 +541,11 @@ impl Parser {
 
         // Debug: print token count and check for "def"
         // eprintln!("Creating lexer with {} tokens", tokens.len());
-        for (i, (symbol_id, pattern, _)) in tokens.iter().take(10).enumerate() {
+        for (_symbol_id, _pattern, _) in tokens.iter().take(10) {
             // eprintln!("  Token {}: Symbol {} = {:?}", i, symbol_id.0, pattern);
         }
         // Check if "def" is in the token list
-        for (symbol_id, pattern, _) in &tokens {
+        for (_symbol_id, pattern, _) in &tokens {
             if let TokenPattern::String(s) = pattern {
                 if s == "def" {
                     // eprintln!("Found 'def' pattern at symbol {}", symbol_id.0);
@@ -615,31 +615,31 @@ impl Parser {
                 .map(|c| format!("col {}", c))
                 .unwrap_or_else(|| "no col".to_string());
             // eprintln!(
-                "State {}, Symbol {} ({}) -> Actions: {:?}",
-                current_state.0, lookahead.0, _col, actions
-            );
+            // "State {}, Symbol {} ({}) -> Actions: {:?}",
+            // current_state.0, lookahead.0, _col, actions
+            // );
             // Debug: print what actions are available in state 0
             if current_state.0 == 0 && actions.is_empty() {
                 // #[cfg(feature = "debug")]
                 {
                     // eprintln!("  Available actions in state 0:");
-                    for (sym_idx, act_cell) in self.parse_table.action_table[0].iter().enumerate() {
+                    for act_cell in self.parse_table.action_table[0].iter() {
                         if !act_cell.is_empty() {
                             // eprintln!("    Symbol {} -> {:?}", sym_idx, act_cell);
                         }
                     }
                     // eprintln!(
-                        "  Current token has symbol {}, looking for it in grammar...",
-                        token.symbol.0
-                    );
+                    // "  Current token has symbol {}, looking for it in grammar...",
+                    // token.symbol.0
+                    // );
                     // Check what token we actually have
-                    if let Some(tok) = self.grammar.tokens.get(&token.symbol) {
+                    if let Some(_tok) = self.grammar.tokens.get(&token.symbol) {
                         // eprintln!("    Token is '{}' in grammar", tok.name);
                     } else {
                         // eprintln!(
-                            "    Token symbol {} not found in grammar tokens",
-                            token.symbol.0
-                        );
+                        // "    Token symbol {} not found in grammar tokens",
+                        // token.symbol.0
+                        // );
                     }
                 }
             }
@@ -775,13 +775,13 @@ impl Parser {
                     // Quick implementation: try each action in sequence, use first successful one
                     // #[cfg(feature = "debug")]
                     // eprintln!(
-                        "Fork with {} actions at state {}",
-                        actions.len(),
-                        current_state.0
-                    );
+                    // "Fork with {} actions at state {}",
+                    // actions.len(),
+                    // current_state.0
+                    // );
 
                     let mut fork_succeeded = false;
-                    for (_i, fork_action) in actions.iter().enumerate() {
+                    for fork_action in actions.iter() {
                         // #[cfg(feature = "debug")]
                         // eprintln!("  Trying fork action {}: {:?}", _i, fork_action);
 
@@ -945,20 +945,20 @@ impl Parser {
     fn find_rule_by_production_id(&self, rule_id: RuleId) -> Result<&ParseRule> {
         // #[cfg(feature = "debug")]
         // eprintln!(
-            "Looking for rule ID {} in parse_table.rules (len={})",
-            rule_id.0,
-            self.parse_table.rules.len()
-        );
+        // "Looking for rule ID {} in parse_table.rules (len={})",
+        // rule_id.0,
+        // self.parse_table.rules.len()
+        // );
         if self.parse_table.rules.is_empty() {
             // #[cfg(feature = "debug")]
             // eprintln!("ERROR: parse_table.rules is empty!");
         } else {
-            for (_i, _rule) in self.parse_table.rules.iter().take(5).enumerate() {
+            for _rule in self.parse_table.rules.iter().take(5) {
                 // #[cfg(feature = "debug")]
                 // eprintln!(
-                    "  Rule {}: lhs={}, rhs_len={}",
-                    _i, _rule.lhs.0, _rule.rhs_len
-                );
+                // "  Rule {}: lhs={}, rhs_len={}",
+                // _i, _rule.lhs.0, _rule.rhs_len
+                // );
             }
         }
         // Get the rule from the parse table
@@ -1022,9 +1022,9 @@ impl Parser {
         let cell = &self.parse_table.action_table[row][col];
         // #[cfg(feature = "debug")]
         // eprintln!(
-            "  Goto lookup: state {} col {} -> actions: {:?}",
-            row, col, cell
-        );
+        // "  Goto lookup: state {} col {} -> actions: {:?}",
+        // row, col, cell
+        // );
 
         // Prefer/require Shift action for goto
         cell.iter()
@@ -1050,9 +1050,9 @@ impl Parser {
         let valid_externals = self.compute_valid_externals(current_state)?;
         // #[cfg(feature = "debug")]
         // eprintln!(
-            "Valid externals for state {}: {:?}",
-            current_state.0, valid_externals
-        );
+        // "Valid externals for state {}: {:?}",
+        // current_state.0, valid_externals
+        // );
 
         if valid_externals.is_empty() {
             // #[cfg(feature = "debug")]

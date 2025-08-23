@@ -473,19 +473,19 @@ impl Parser {
                     "EOF".to_string()
                 };
                 // eprintln!(
-                    "DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}, stack_len={}",
-                    position,
-                    current_state,
-                    token.symbol,
-                    action,
-                    _byte_repr,
-                    self.stack.len()
-                );
+                // "DEBUG: Position={}, State={}, token symbol={}, action={:?}, current_byte={}, stack_len={}",
+                // position,
+                // current_state,
+                // token.symbol,
+                // action,
+                // _byte_repr,
+                // self.stack.len()
+                // );
                 // eprintln!(
-                    "DEBUG: Stack size: {}, token.length={}",
-                    self.stack.len(),
-                    token.length
-                );
+                // "DEBUG: Stack size: {}, token.length={}",
+                // self.stack.len(),
+                // token.length
+                // );
             }
             match action {
                 Action::Shift(next_state) => {
@@ -598,9 +598,9 @@ impl Parser {
                     // Record error and try to recover
                     let expected_symbols = self.get_expected_symbols(language, current_state);
                     // eprintln!(
-                        "ERROR: position={}, current_state={}, expected_symbols={:?}, token.symbol={}",
-                        position, current_state, expected_symbols, token.symbol
-                    );
+                    // "ERROR: position={}, current_state={}, expected_symbols={:?}, token.symbol={}",
+                    // position, current_state, expected_symbols, token.symbol
+                    // );
                     errors.push(ParseError {
                         position,
                         point,
@@ -860,9 +860,9 @@ impl Parser {
 
             // eprintln!("=== Dumping state {} ===", state);
             // eprintln!(
-                "token_count: {}, symbol_count: {}",
-                language.token_count, language.symbol_count
-            );
+            // "token_count: {}, symbol_count: {}",
+            // language.token_count, language.symbol_count
+            // );
 
             if (state as usize) >= large_state_count {
                 let map_index = (state as usize) - large_state_count;
@@ -870,17 +870,17 @@ impl Parser {
                 let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
 
                 // eprintln!(
-                    "Small state: map_index={}, start={}, end={}",
-                    map_index, start_offset, end_offset
-                );
+                // "Small state: map_index={}, start={}, end={}",
+                // map_index, start_offset, end_offset
+                // );
 
                 let mut offset = start_offset;
                 while offset + 1 < end_offset {
                     let s = *language.small_parse_table.add(offset);
-                    let v = *language.small_parse_table.add(offset + 1);
+                    let _v = *language.small_parse_table.add(offset + 1);
                     offset += 2;
 
-                    let kind = if s < token_count { "TOK " } else { "GOTO" };
+                    let _kind = if s < token_count { "TOK " } else { "GOTO" };
                     // eprintln!("  {:>4} {:>5} -> action {}", kind, s, v);
                 }
             } else {
@@ -898,16 +898,16 @@ impl Parser {
         symbol: TSSymbol, // Actually a column index in table space
     ) -> Option<TSStateId> {
         // eprintln!(
-            "DEBUG get_goto: state={}, col_idx={}, token_count={}, symbol_count={}",
-            state, symbol, language.token_count, language.symbol_count
-        );
+        // "DEBUG get_goto: state={}, col_idx={}, token_count={}, symbol_count={}",
+        // state, symbol, language.token_count, language.symbol_count
+        // );
         unsafe {
             // Check bounds
             if state >= language.state_count as u16 || symbol >= language.symbol_count as u16 {
                 // eprintln!(
-                    "  Bounds check failed: state >= {} or symbol >= {}",
-                    language.state_count, language.symbol_count
-                );
+                // "  Bounds check failed: state >= {} or symbol >= {}",
+                // language.state_count, language.symbol_count
+                // );
                 return None;
             }
 
@@ -918,21 +918,21 @@ impl Parser {
             // Only non-terminals have goto entries
             if symbol < token_count {
                 // eprintln!(
-                    "  Symbol {} is a token (< {}), no goto",
-                    symbol, token_count
-                );
+                // "  Symbol {} is a token (< {}), no goto",
+                // symbol, token_count
+                // );
                 return None;
             }
             // eprintln!(
-                "  Column {} is a non-terminal (>= {}), checking goto",
-                symbol, token_count
-            );
+            // "  Column {} is a non-terminal (>= {}), checking goto",
+            // symbol, token_count
+            // );
             // eprintln!(
-                "  large_state_count={}, state={}, is_large={}",
-                large_state_count,
-                state,
-                (state as usize) < large_state_count
-            );
+            // "  large_state_count={}, state={}, is_large={}",
+            // large_state_count,
+            // state,
+            // (state as usize) < large_state_count
+            // );
 
             if (state as usize) < large_state_count {
                 // LARGE STATE: Dense row in parse_table
@@ -941,9 +941,9 @@ impl Parser {
                 let goto_state = *language.parse_table.add(index);
 
                 // eprintln!(
-                    "  Large state: base={}, index={}, goto_state={}",
-                    base, index, goto_state
-                );
+                // "  Large state: base={}, index={}, goto_state={}",
+                // base, index, goto_state
+                // );
 
                 if goto_state != 0 {
                     return Some(goto_state);
@@ -955,18 +955,18 @@ impl Parser {
                 let end_offset = (*language.small_parse_table_map.add(map_index + 1)) as usize;
 
                 // eprintln!(
-                    "  Small state: map_index={}, start_offset={}, end_offset={}",
-                    map_index, start_offset, end_offset
-                );
+                // "  Small state: map_index={}, start_offset={}, end_offset={}",
+                // map_index, start_offset, end_offset
+                // );
 
                 let mut offset = start_offset;
                 while offset + 1 < end_offset {
                     let entry_col = *language.small_parse_table.add(offset) as usize;
                     let entry_val = *language.small_parse_table.add(offset + 1);
                     // eprintln!(
-                        "    Entry at offset {}: col={}, val={}",
-                        offset, entry_col, entry_val
-                    );
+                    // "    Entry at offset {}: col={}, val={}",
+                    // offset, entry_col, entry_val
+                    // );
                     offset += 2;
 
                     // Check if this is the column we're looking for
@@ -983,9 +983,9 @@ impl Parser {
                         );
 
                         // eprintln!(
-                            "    Found match for column {}! goto_state={}",
-                            symbol, entry_val
-                        );
+                        // "    Found match for column {}! goto_state={}",
+                        // symbol, entry_val
+                        // );
                         if entry_val != 0 {
                             return Some(entry_val);
                         }
@@ -1108,19 +1108,19 @@ impl Parser {
     fn reduce(&mut self, language: &TSLanguage, production_id: u16, source: &[u8]) -> bool {
         if source.len() < 20 {
             // eprintln!(
-                "DEBUG reduce: Reducing with production_id={} (from parse table)",
-                production_id
-            );
+            // "DEBUG reduce: Reducing with production_id={} (from parse table)",
+            // production_id
+            // );
             // eprintln!(
-                "DEBUG reduce: Stack before reduction has {} entries",
-                self.stack.len()
-            );
-            for (i, entry) in self.stack.iter().enumerate() {
-                if let Some(ref subtree) = entry.subtree {
+            // "DEBUG reduce: Stack before reduction has {} entries",
+            // self.stack.len()
+            // );
+            for entry in self.stack.iter() {
+                if let Some(ref _subtree) = entry.subtree {
                     // eprintln!(
-                        "  Stack[{}]: state={}, symbol={}",
-                        i, entry.state, subtree.symbol
-                    );
+                    // "  Stack[{}]: state={}, symbol={}",
+                    // i, entry.state, subtree.symbol
+                    // );
                 } else {
                     // eprintln!("  Stack[{}]: state={}, no subtree", i, entry.state);
                 }
@@ -1163,17 +1163,17 @@ impl Parser {
             let symbol = self.lhs_index_of(language, production_index);
 
             // Also check what parse_actions says for comparison
-            let parse_action_symbol = action.symbol;
+            let _parse_action_symbol = action.symbol;
             // eprintln!(
-                "DEBUG: production_index={}, lhs_index={}, parse_action_symbol={}",
-                production_index, symbol, parse_action_symbol
-            );
+            // "DEBUG: production_index={}, lhs_index={}, parse_action_symbol={}",
+            // production_index, symbol, parse_action_symbol
+            // );
 
             if source.len() < 20 {
                 // eprintln!(
-                    "DEBUG reduce: Production {} (index {}) reduces to symbol {} with {} children (token_count={})",
-                    production_id, production_index, symbol, child_count, language.token_count
-                );
+                // "DEBUG reduce: Production {} (index {}) reduces to symbol {} with {} children (token_count={})",
+                // production_id, production_index, symbol, child_count, language.token_count
+                // );
                 debug_assert!(
                     symbol >= language.token_count as u16,
                     "LHS symbol {} should be a non-terminal (>= token_count {})",
@@ -1291,7 +1291,7 @@ impl Parser {
             if source.len() < 20 && prev_state == 0 {
                 // eprintln!("DEBUG reduce: Available gotos from state 0:");
                 for sym_idx in 0..12 {
-                    if let Some(goto_state) = self.get_goto(language, 0, sym_idx) {
+                    if let Some(_goto_state) = self.get_goto(language, 0, sym_idx) {
                         // eprintln!("  Symbol {} -> state {}", sym_idx, goto_state);
                     }
                 }
@@ -1299,9 +1299,9 @@ impl Parser {
 
             // Look up goto state for the non-terminal we just reduced to
             // eprintln!(
-                "DEBUG reduce: About to call get_goto with prev_state={}, symbol={}",
-                prev_state, symbol
-            );
+            // "DEBUG reduce: About to call get_goto with prev_state={}, symbol={}",
+            // prev_state, symbol
+            // );
             if let Some(goto_state) = self.get_goto(language, prev_state, symbol) {
                 // Push the reduced node with the goto state
                 self.stack.push(StackEntry {
@@ -1313,11 +1313,11 @@ impl Parser {
             } else {
                 // No goto found - this shouldn't happen in a valid parse table
                 // eprintln!(
-                    "DEBUG reduce: No goto for symbol {} from state {} (symbol >= token_count: {})",
-                    symbol,
-                    prev_state,
-                    symbol >= language.token_count as u16
-                );
+                // "DEBUG reduce: No goto for symbol {} from state {} (symbol >= token_count: {})",
+                // symbol,
+                // prev_state,
+                // symbol >= language.token_count as u16
+                // );
                 false
             }
         }

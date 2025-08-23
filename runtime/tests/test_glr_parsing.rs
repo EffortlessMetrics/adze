@@ -7,14 +7,14 @@
 mod common;
 
 use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
+use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::{GLRParser, ParseStack};
 use rust_sitter::parser_v4::{Parser, Tree};
 use rust_sitter::subtree::Subtree;
-use rust_sitter_glr_core::{Action, ParseTable, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token, TokenPattern,
 };
-use rust_sitter::glr_lexer::GLRLexer;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -144,14 +144,16 @@ fn test_glr_fork_creation() {
 
     let mut stack_count_before = 0;
     let mut stack_count_after = 0;
-    
+
     // Process tokens
     for (i, token) in tokens.iter().enumerate() {
-        if i == 2 { // Before processing "*"
+        if i == 2 {
+            // Before processing "*"
             stack_count_before = parser.stack_count();
         }
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
-        if i == 2 { // After processing "*"
+        if i == 2 {
+            // After processing "*"
             stack_count_after = parser.stack_count();
         }
     }
@@ -182,7 +184,7 @@ fn test_glr_merge() {
     let input = "1+2*3";
     let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
     let tokens = lexer.tokenize_all();
-    
+
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
@@ -222,7 +224,7 @@ fn test_ambiguous_expression_parsing() {
     let input = "1+2*3";
     let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
     let tokens = lexer.tokenize_all();
-    
+
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
@@ -263,7 +265,7 @@ fn test_glr_error_recovery() {
     let input = "1++3";
     let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
     let tokens = lexer.tokenize_all();
-    
+
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
@@ -286,7 +288,7 @@ fn test_glr_expected_symbols() {
     let input = "1+";
     let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
     let tokens = lexer.tokenize_all();
-    
+
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
@@ -314,7 +316,7 @@ fn test_glr_state_management() {
     let input_partial = "1+";
     let mut lexer = GLRLexer::new(&grammar, input_partial.to_string()).unwrap();
     let tokens = lexer.tokenize_all();
-    
+
     for token in &tokens {
         parser1.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
@@ -335,7 +337,7 @@ fn test_glr_state_management() {
         let input_continue = "2";
         let mut lexer2 = GLRLexer::new(&grammar, input_continue.to_string()).unwrap();
         let tokens2 = lexer2.tokenize_all();
-        
+
         for token in &tokens2 {
             parser2.process_token(token.symbol_id, &token.text, 2 + token.byte_offset);
         }
@@ -354,7 +356,7 @@ fn test_glr_state_management() {
         let input_continue = "2";
         let mut lexer2 = GLRLexer::new(&grammar, input_continue.to_string()).unwrap();
         let tokens2 = lexer2.tokenize_all();
-        
+
         for token in &tokens2 {
             parser1.process_token(token.symbol_id, &token.text, 2 + token.byte_offset);
         }

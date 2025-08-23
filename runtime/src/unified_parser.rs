@@ -98,22 +98,10 @@ impl Parser {
     ) -> Option<parser_v4::Tree> {
         if let (Some(parser), Some(language)) = (&mut self.inner, self.language) {
             // Use the auto-lexer method that checks for lex_fn
-            match parser.parse_with_auto_lexer(source, language) {
-                Ok(tree) => Some(tree),
-                Err(e) => {
-                    // eprintln!("Parse error with auto-lexer: {}", e);
-                    None
-                }
-            }
+            parser.parse_with_auto_lexer(source, language).ok()
         } else if let Some(parser) = &mut self.inner {
             // Fallback to regular parse if no language stored
-            match parser.parse(source) {
-                Ok(tree) => Some(tree),
-                Err(e) => {
-                    // eprintln!("Parse error: {}", e);
-                    None
-                }
-            }
+            parser.parse(source).ok()
         } else {
             None
         }

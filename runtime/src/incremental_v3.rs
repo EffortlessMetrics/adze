@@ -283,9 +283,9 @@ impl<'a> IncrementalParseSession<'a> {
                 }
                 Action::Accept => {
                     // println!(
-                        "Incremental parse complete. Reused {} subtrees",
-                        self.reused_count
-                    );
+                    //     "Incremental parse complete. Reused {} subtrees",
+                    //     self.reused_count
+                    // );
                     return self
                         .node_stack
                         .pop()

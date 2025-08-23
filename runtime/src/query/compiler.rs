@@ -121,10 +121,10 @@ mod tests {
             Err(QueryError::SyntaxError { position, message }) => {
                 // println!("Query string: '{}'", query_str);
                 // println!(
-                    "Error at position {}: '{}'",
-                    position,
-                    &query_str[..position]
-                );
+                //     "Error at position {}: '{}'",
+                //     position,
+                //     &query_str[..position]
+                // );
                 // println!("Rest of query: '{}'", &query_str[position..]);
                 panic!(
                     "Query compilation failed at position {}: {}",
@@ -151,18 +151,18 @@ mod tests {
             Err(QueryError::SyntaxError { position, message }) => {
                 // println!("Query string: '{}'", query_str);
                 // println!(
-                    "Error at position {}: '{}'",
-                    position,
-                    &query_str[..position.min(query_str.len())]
-                );
+                // "Error at position {}: '{}'",
+                // position,
+                // &query_str[..position.min(query_str.len())]
+                // );
                 // println!(
-                    "Rest of query: '{}'",
-                    &query_str[position.min(query_str.len())..]
-                );
+                // "Rest of query: '{}'",
+                // &query_str[position.min(query_str.len())..]
+                // );
                 // println!(
-                    "Character at position: {:?}",
-                    query_str.chars().nth(position)
-                );
+                // "Character at position: {:?}",
+                // query_str.chars().nth(position)
+                // );
                 panic!(
                     "Query compilation failed at position {}: {}",
                     position, message
@@ -182,15 +182,15 @@ mod tests {
             Err(QueryError::SyntaxError { position, message }) => {
                 // println!("Query string: '{}'", query_str);
                 // println!(
-                    "Error at position {}: '{}'",
-                    position,
-                    &query_str[..position]
-                );
+                //     "Error at position {}: '{}'",
+                //     position,
+                //     &query_str[..position]
+                // );
                 // println!("Rest of query: '{}'", &query_str[position..]);
                 // println!(
-                    "Character at position: {:?}",
-                    query_str.chars().nth(position)
-                );
+                // "Character at position: {:?}",
+                // query_str.chars().nth(position)
+                // );
                 panic!(
                     "Query compilation failed at position {}: {}",
                     position, message
