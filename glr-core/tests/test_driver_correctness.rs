@@ -125,7 +125,7 @@ fn test_epsilon_reduce_span() {
     gotos[0][4] = StateId(1); // goto state 1 after reducing to A (symbol 4)
     gotos[0][3] = StateId(3); // goto state 3 after reducing to S (symbol 3)
 
-    let table = create_test_table(actions, gotos, rules, s_sym, eof);
+    let table = create_test_table(actions, gotos, rules, s_sym, eof).normalize_eof_to_zero();
 
     // Create token stream for 'x' at position 0-1
     let tokens = vec![(x_sym, 0, 1)];
@@ -231,7 +231,7 @@ fn test_fork_sanity() {
     gotos[3][3] = StateId(5); // goto accept after S (symbol 3)
     gotos[4][3] = StateId(5); // goto accept after S (symbol 3)
 
-    let table = create_test_table(actions, gotos, rules, s_sym, eof);
+    let table = create_test_table(actions, gotos, rules, s_sym, eof).normalize_eof_to_zero();
 
     // Token stream for "a a"
     let tokens = vec![(a_sym, 0, 1), (a_sym, 2, 3)];
@@ -291,7 +291,7 @@ fn test_eof_accept() {
     let mut gotos = vec![vec![invalid; 4]; 3];
     gotos[0][3] = StateId(2); // goto state 2 after S (symbol 3)
 
-    let table = create_test_table(actions, gotos, rules, s_sym, eof);
+    let table = create_test_table(actions, gotos, rules, s_sym, eof).normalize_eof_to_zero();
 
     let tokens = vec![(t_sym, 0, 1)];
 
@@ -355,7 +355,7 @@ fn test_root_selection_deterministic() {
     gotos[1][3] = StateId(3); // goto state 3 after S (symbol 3)
     gotos[2][3] = StateId(3); // goto state 3 after S (symbol 3)
 
-    let table = create_test_table(actions, gotos, rules, s_sym, eof);
+    let table = create_test_table(actions, gotos, rules, s_sym, eof).normalize_eof_to_zero();
 
     let tokens = vec![(a_sym, 0, 1), (a_sym, 1, 2)];
 

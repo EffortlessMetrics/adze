@@ -291,10 +291,17 @@ pub struct GLRParser {
     pending_synthetic_tokens: VecDeque<SymbolId>,
 
     /// Telemetry counters for performance monitoring
+    #[cfg(feature = "glr_telemetry")]
     telemetry: TelemetryCounters,
 }
 
+/// Dummy telemetry type when feature is disabled
+#[cfg(not(feature = "glr_telemetry"))]
+#[allow(dead_code)]
+struct TelemetryCounters;
+
 /// Telemetry counters for GLR performance monitoring
+#[cfg(feature = "glr_telemetry")]
 #[derive(Debug, Default, Clone)]
 struct TelemetryCounters {
     /// Number of reduce operations performed
@@ -318,7 +325,8 @@ struct TelemetryCounters {
 }
 
 impl GLRParser {
-    /// Get telemetry summary (only in debug builds)
+    /// Get telemetry summary (only when telemetry feature is enabled)
+    #[cfg(feature = "glr_telemetry")]
     pub fn telemetry_summary(&self) -> String {
         format!(
             "GLR Telemetry:\n  Shifts: {}\n  Reduces: {} (epsilon: {})\n  Forks: {}\n  Compression: {}/{} -> {} (packed: {})\n  Max stacks: {}\n  Accepts: {}",
@@ -333,6 +341,20 @@ impl GLRParser {
             self.telemetry.max_active_stacks,
             self.telemetry.accept_count
         )
+    }
+
+    /// Helper to update telemetry counters (no-op when feature disabled)
+    #[cfg(feature = "glr_telemetry")]
+    #[inline]
+    fn bump_telemetry(&mut self, f: impl FnOnce(&mut TelemetryCounters)) {
+        f(&mut self.telemetry);
+    }
+
+    #[cfg(not(feature = "glr_telemetry"))]
+    #[inline]
+    #[allow(dead_code)]
+    fn bump_telemetry(&mut self, _f: impl FnOnce(&mut TelemetryCounters)) {
+        // No-op when telemetry is disabled
     }
 
     /// Calculate priority for an action based on precedence
@@ -414,6 +436,7 @@ impl GLRParser {
             deleted_in_row: 0,
             inserted_in_row: 0,
             pending_synthetic_tokens: VecDeque::new(),
+            #[cfg(feature = "glr_telemetry")]
             telemetry: TelemetryCounters::default(),
         }
     }
@@ -434,7 +457,7 @@ impl GLRParser {
     /// Get the start symbol from the grammar
     /// This is the LHS of the first production (production_id 0), or the grammar's start symbol
     #[inline]
-    fn start_symbol_id(&self) -> SymbolId {
+    pub fn start_symbol_id(&self) -> SymbolId {
         self.grammar
             .rules
             .values()
@@ -1223,6 +1246,7 @@ impl GLRParser {
         // Map from top key to index in output vector
         let mut keep: HashMap<TopKey, usize> = HashMap::new();
         let mut out: Vec<ParseStack> = Vec::new();
+        #[allow(unused_variables)]
         let mut packed_count = 0usize;
 
         for mut stack in stacks.drain(..) {
@@ -1273,10 +1297,15 @@ impl GLRParser {
         }
 
         // Update telemetry
-        let input_count = stacks.len() + out.len();
-        self.telemetry.tops_before_compress += input_count;
-        self.telemetry.tops_after_compress += out.len();
-        self.telemetry.alts_packed += packed_count;
+        #[cfg(feature = "glr_telemetry")]
+        {
+            let input_count = stacks.len() + out.len();
+            self.bump_telemetry(|t| {
+                t.tops_before_compress += input_count;
+                t.tops_after_compress += out.len();
+                t.alts_packed += packed_count;
+            });
+        }
 
         debug_glr!(
             "Compressed {} stacks down to {} unique tops ({} packed)",

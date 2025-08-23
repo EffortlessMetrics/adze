@@ -182,6 +182,11 @@ impl Subtree {
         !self.alternatives.is_empty()
     }
 
+    /// Check if this subtree has alternatives
+    pub fn has_alts(&self) -> bool {
+        !self.alternatives.is_empty()
+    }
+
     /// Get all alternatives (not including the primary tree)
     pub fn alternatives_iter(&self) -> impl Iterator<Item = &Arc<Subtree>> {
         self.alternatives.iter()
@@ -212,6 +217,39 @@ impl Subtree {
         } else {
             // Still update precedence even if not adding
             self.dynamic_prec = self.dynamic_prec.max(other.dynamic_prec);
+        }
+
+        self
+    }
+
+    /// Create a new subtree with the given alternative
+    pub fn with_alts(mut self, alt: Arc<Subtree>) -> Self {
+        if !Arc::ptr_eq(&Arc::new(self.clone()), &alt) {
+            self.alternatives.push(alt);
+        }
+        self
+    }
+
+    /// Add an alternative to this subtree (deduplicating by pointer)
+    pub fn push_alt(mut self, alt: Arc<Subtree>) -> Self {
+        let alt_ptr = Arc::as_ptr(&alt);
+        if !self.alternatives.iter().any(|a| Arc::as_ptr(a) == alt_ptr) {
+            self.dynamic_prec = self.dynamic_prec.max(alt.dynamic_prec);
+            self.alternatives.push(alt);
+        }
+        self
+    }
+
+    /// Concatenate alternatives from two subtrees (deduplicating)
+    pub fn concat_alts(mut self, other: Arc<Subtree>) -> Self {
+        // First add the other tree as an alternative
+        self = self.push_alt(other.clone());
+
+        // Then add all of its alternatives
+        for alt in &other.alternatives {
+            if !self.alternatives.iter().any(|a| Arc::ptr_eq(a, alt)) {
+                self.alternatives.push(alt.clone());
+            }
         }
 
         self

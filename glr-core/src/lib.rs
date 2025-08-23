@@ -1424,6 +1424,44 @@ impl ParseTable {
         self
     }
 
+    /// Normalize EOF symbol to SymbolId(0) for consistency
+    /// This ensures compatibility with various table producers
+    pub fn normalize_eof_to_zero(mut self) -> Self {
+        // If EOF is already 0, nothing to do
+        if self.eof_symbol == SymbolId(0) {
+            return self;
+        }
+
+        let old_eof = self.eof_symbol;
+        // Log the normalization for debugging
+        #[cfg(debug_assertions)]
+        eprintln!("Normalizing EOF from {:?} to SymbolId(0)", old_eof);
+
+        // Get the indices for remapping
+        let old_idx = self.symbol_to_index.get(&old_eof).copied();
+        let zero_idx = self.symbol_to_index.get(&SymbolId(0)).copied();
+
+        // Swap columns in ACTION table if both indices exist
+        if let (Some(old_idx), Some(zero_idx)) = (old_idx, zero_idx) {
+            for row in &mut self.action_table {
+                if old_idx < row.len() && zero_idx < row.len() {
+                    row.swap(old_idx, zero_idx);
+                }
+            }
+            // Update the symbol_to_index mapping
+            self.symbol_to_index.insert(old_eof, zero_idx);
+            self.symbol_to_index.insert(SymbolId(0), old_idx);
+        } else if let Some(old_idx) = old_idx {
+            // Only old EOF exists, move it to 0's position
+            self.symbol_to_index.remove(&old_eof);
+            self.symbol_to_index.insert(SymbolId(0), old_idx);
+        }
+
+        // Update EOF symbol
+        self.eof_symbol = SymbolId(0);
+        self
+    }
+
     /// Auto-detect the GOTO indexing mode based on table contents
     pub fn detect_goto_indexing(&mut self) {
         // Try to determine if the start symbol has a valid GOTO from state 0
