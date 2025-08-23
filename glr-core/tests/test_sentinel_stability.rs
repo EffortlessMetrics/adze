@@ -36,9 +36,9 @@ fn eof_invariants() {
     // Create a minimal ParseTable to test invariants
     use std::collections::BTreeMap;
     let mut symbol_to_index = BTreeMap::new();
-    symbol_to_index.insert(SymbolId(0), 0); // ERROR
+    symbol_to_index.insert(SymbolId(0), 0); // EOF (by convention)
     symbol_to_index.insert(SymbolId(1), 1); // terminal
-    symbol_to_index.insert(SymbolId(2), 2); // EOF
+    symbol_to_index.insert(SymbolId(2), 2); // terminal
     symbol_to_index.insert(SymbolId(3), 3); // start symbol
 
     let tables = ParseTable {
@@ -52,7 +52,7 @@ fn eof_invariants() {
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(2),
+        eof_symbol: SymbolId(0),
         start_symbol: SymbolId(3),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),

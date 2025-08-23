@@ -1577,8 +1577,9 @@ impl ParseTable {
         // Check EOF equals terminal_boundary exactly
         let terminal_boundary = self.token_count + self.external_token_count;
         debug_assert_eq!(
-            self.eof_symbol.0 as usize, terminal_boundary,
-            "EOF must equal terminal_boundary (token_count + external_token_count)"
+            self.eof_symbol,
+            SymbolId(0),
+            "EOF must be SymbolId(0) by convention"
         );
 
         // Check EOF is not the internal ERROR sentinel
@@ -1588,13 +1589,8 @@ impl ParseTable {
             "EOF symbol cannot be the ERROR sentinel"
         );
 
-        // Legacy check: EOF is not 0
-        if self.eof_symbol.0 == 0 {
-            return Err(TableError::EofIsError);
-        }
-
-        // Check EOF equals terminal_boundary
-        if (self.eof_symbol.0 as usize) != terminal_boundary {
+        // Check EOF is SymbolId(0) by convention
+        if self.eof_symbol != SymbolId(0) {
             return Err(TableError::EofNotSentinel {
                 eof: self.eof_symbol.0,
                 token_count: self.token_count as u32,
@@ -1641,8 +1637,9 @@ impl ParseTable {
         }
 
         debug_assert_eq!(
-            self.eof_symbol.0 as usize, tb,
-            "EOF must equal terminal_boundary"
+            self.eof_symbol,
+            SymbolId(0),
+            "EOF must be SymbolId(0) by convention"
         );
 
         // Check EOF/END parity if we have END symbol in Tree-sitter (last terminal)
@@ -2643,10 +2640,9 @@ pub fn build_lr1_automaton(
     let token_count = grammar.tokens.len();
     let external_token_count = grammar.externals.len();
 
-    // EOF should be outside the normal symbol space
-    // The internal parser uses SymbolId(0) for EOF during construction,
-    // but we expose a proper EOF symbol that's outside the token space
-    let eof_symbol = SymbolId((token_count + external_token_count) as u16);
+    // EOF is always SymbolId(0) - this is the standard convention
+    // Using 0 avoids collisions with regular tokens and matches Tree-sitter
+    let eof_symbol = SymbolId(0);
 
     // Add EOF to symbol_to_index if not present
     // Map our EOF symbol to the same index as SymbolId(0) for compatibility

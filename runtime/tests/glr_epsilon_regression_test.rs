@@ -292,6 +292,17 @@ fn test_rr_conflict_multiple_paths_preserved() {
                 !trees.is_empty(),
                 "Parser should produce parse trees for 'ab'"
             );
+
+            // Verify at least one tree is rooted at the start symbol
+            let start_symbol = parser.start_symbol_id();
+            assert!(
+                trees
+                    .iter()
+                    .any(|t| t.node.symbol_id == start_symbol
+                        || t.node.symbol_id == table.start_symbol),
+                "At least one tree should be rooted at the start symbol"
+            );
+
             println!("Successfully parsed with {} trees", trees.len());
         }
         Err(ref msg) => {

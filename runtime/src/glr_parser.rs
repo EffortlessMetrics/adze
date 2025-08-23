@@ -289,9 +289,52 @@ pub struct GLRParser {
 
     /// Pending synthetic tokens to process
     pending_synthetic_tokens: VecDeque<SymbolId>,
+
+    /// Telemetry counters for performance monitoring
+    telemetry: TelemetryCounters,
+}
+
+/// Telemetry counters for GLR performance monitoring
+#[derive(Debug, Default, Clone)]
+struct TelemetryCounters {
+    /// Number of reduce operations performed
+    reduce_steps: usize,
+    /// Number of epsilon reductions
+    epsilon_reduces: usize,
+    /// Number of shift operations performed
+    shift_steps: usize,
+    /// Number of times parser forked
+    fork_count: usize,
+    /// Total stacks before compression
+    tops_before_compress: usize,
+    /// Total stacks after compression
+    tops_after_compress: usize,
+    /// Number of ambiguity packs created
+    alts_packed: usize,
+    /// Maximum active stacks at any point
+    max_active_stacks: usize,
+    /// Number of accept actions at EOF
+    accept_count: usize,
 }
 
 impl GLRParser {
+    /// Get telemetry summary (only in debug builds)
+    pub fn telemetry_summary(&self) -> String {
+        format!(
+            "GLR Telemetry:\n  Shifts: {}\n  Reduces: {} (epsilon: {})\n  Forks: {}\n  Compression: {}/{} -> {} (packed: {})\n  Max stacks: {}\n  Accepts: {}",
+            self.telemetry.shift_steps,
+            self.telemetry.reduce_steps,
+            self.telemetry.epsilon_reduces,
+            self.telemetry.fork_count,
+            self.telemetry.tops_before_compress,
+            self.telemetry.tops_after_compress,
+            self.telemetry.tops_after_compress,
+            self.telemetry.alts_packed,
+            self.telemetry.max_active_stacks,
+            self.telemetry.accept_count
+        )
+    }
+
     /// Calculate priority for an action based on precedence
     #[inline]
     fn action_priority(&self, action: &Action) -> i32 {
@@ -371,6 +414,7 @@ impl GLRParser {
             deleted_in_row: 0,
             inserted_in_row: 0,
             pending_synthetic_tokens: VecDeque::new(),
+            telemetry: TelemetryCounters::default(),
         }
     }
 
@@ -747,6 +791,7 @@ impl GLRParser {
                                                 },
                                                 dynamic_prec: 0,
                                                 children: vec![],
+                                                alternatives: smallvec::SmallVec::new(),
                                             });
                                             let mut error_stack = stack.clone();
                                             // Just add the error node without changing state
@@ -1158,8 +1203,8 @@ impl GLRParser {
     // ================================================================================
 
     /// Compress stacks with identical tops to prevent explosion
-    /// This keeps all derivations but merges stacks with same state and same top semantic node
-    fn compress_identical_tops(&self, mut stacks: Vec<ParseStack>) -> Vec<ParseStack> {
+    /// This preserves all derivations by packing alternatives at the top
+    fn compress_identical_tops(&mut self, mut stacks: Vec<ParseStack>) -> Vec<ParseStack> {
         use std::collections::HashMap;
 
         // If we have few stacks, no need to compress
@@ -1178,8 +1223,9 @@ impl GLRParser {
         // Map from top key to index in output vector
         let mut keep: HashMap<TopKey, usize> = HashMap::new();
         let mut out: Vec<ParseStack> = Vec::new();
+        let mut packed_count = 0usize;
 
-        for stack in stacks.drain(..) {
+        for mut stack in stacks.drain(..) {
             // Get the top node info, if any
             let key = if let Some(top) = stack.nodes.last() {
                 TopKey {
@@ -1199,13 +1245,26 @@ impl GLRParser {
             };
 
             if let Some(&idx) = keep.get(&key) {
-                // We already have a stack with this top - merge versions
-                // Keep the stack with better precedence/version
-                let existing = &out[idx];
-                if stack.version.dynamic_prec > existing.version.dynamic_prec {
-                    out[idx] = stack;
+                // We already have a stack with this top - merge ambiguity
+                let kept = &mut out[idx];
+
+                // Pop the tops from both stacks
+                if let (Some(new_top), Some(kept_top)) = (stack.nodes.pop(), kept.nodes.pop()) {
+                    // Merge the two tops, preserving all alternatives
+                    let merged_subtree = Arc::try_unwrap(kept_top)
+                        .unwrap_or_else(|arc| (*arc).clone())
+                        .merge_ambiguous(new_top);
+
+                    // Push the merged top back
+                    kept.nodes.push(Arc::new(merged_subtree));
+                    packed_count += 1;
+
+                    // Keep the highest dynamic precedence
+                    if stack.version.dynamic_prec > kept.version.dynamic_prec {
+                        kept.version.dynamic_prec = stack.version.dynamic_prec;
+                    }
                 }
-                // Otherwise, drop this stack (derivation is preserved in the kept stack)
+                // Otherwise stack has no nodes, just drop it
             } else {
                 // First time seeing this top
                 keep.insert(key, out.len());
@@ -1213,10 +1272,17 @@ impl GLRParser {
             }
         }
 
+        // Update telemetry
+        let input_count = stacks.len() + out.len();
+        self.telemetry.tops_before_compress += input_count;
+        self.telemetry.tops_after_compress += out.len();
+        self.telemetry.alts_packed += packed_count;
+
         debug_glr!(
-            "Compressed {} stacks down to {} unique tops",
-            stacks.len() + out.len(),
-            out.len()
+            "Compressed {} stacks down to {} unique tops ({} packed)",
+            input_count,
+            out.len(),
+            packed_count
         );
 
         out
