@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Gather staged candidates (zero-delimited for safety)
 mapfile -d '' -t changed < <(git diff --cached --name-only -z --diff-filter=ACMR \
-  -- '*.rs' '*/build.rs' '*/Cargo.toml' 'Cargo.toml' 2>/dev/null || true)
+  -- '*.rs' 'build.rs' '*/build.rs' 'Cargo.toml' '*/Cargo.toml' 2>/dev/null || true)
 if [ "${#changed[@]}" -eq 0 ]; then exit 0; fi
 
 # cargo metadata + jq are required for precise mapping.

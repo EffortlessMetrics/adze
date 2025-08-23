@@ -74,10 +74,12 @@ fn test_unresolved_symbol() {
     let result = validator.validate(&grammar);
 
     assert!(!result.errors.is_empty());
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. })));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. }))
+    );
 }
 
 #[test]
@@ -98,10 +100,12 @@ fn test_unresolved_external() {
     let result = validator.validate(&grammar);
 
     assert!(!result.errors.is_empty());
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. })));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. }))
+    );
 }
 
 #[test]

@@ -1,7 +1,7 @@
 // Test that the optimizer preserves grammar semantics
 // This test ensures that optimizations don't break parsing behavior
 
-use rust_sitter_ir::optimizer::{optimize_grammar, GrammarOptimizer};
+use rust_sitter_ir::optimizer::{GrammarOptimizer, optimize_grammar};
 use rust_sitter_ir::*;
 
 /// Create a simple grammar with unit rules for testing

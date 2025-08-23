@@ -17,6 +17,15 @@ export LANG=C.UTF-8
 echo -e "${GREEN}[pre-commit]${NC} Running formatting and validation checks..."
 echo -e "${BLUE}→${NC} Using robust pre-commit hook from .githooks/"
 
+# Step 0: Fast fail if conflict markers are present
+if command -v rg >/dev/null 2>&1; then
+    if rg -n --hidden --glob '!.git' '^(<<<<<<<|=======|>>>>>>>)' . >/dev/null 2>&1; then
+        echo -e "${RED}✖ Merge conflict markers found. Please resolve them before committing.${NC}"
+        rg -n --hidden --glob '!.git' '^(<<<<<<<|=======|>>>>>>>)' . || true
+        exit 1
+    fi
+fi
+
 # Function to check if a file is partially staged
 check_partial_staging() {
     local file="$1"
