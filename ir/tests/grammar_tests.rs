@@ -2,8 +2,10 @@ use rust_sitter_ir::*;
 
 #[test]
 fn test_grammar_creation() {
-    let mut grammar = Grammar::default();
-    grammar.name = "TestGrammar".to_string();
+    let mut grammar = Grammar {
+        name: "TestGrammar".to_string(),
+        ..Default::default()
+    };
 
     // Add a simple rule
     let rule = Rule {
@@ -164,9 +166,10 @@ fn test_grammar_with_fields() {
 
 #[test]
 fn test_grammar_with_supertypes() {
-    let mut grammar = Grammar::default();
-
-    grammar.supertypes = vec![SymbolId(10), SymbolId(11), SymbolId(12)];
+    let grammar = Grammar {
+        supertypes: vec![SymbolId(10), SymbolId(11), SymbolId(12)],
+        ..Default::default()
+    };
 
     assert_eq!(grammar.supertypes.len(), 3);
     assert_eq!(grammar.supertypes[0], SymbolId(10));

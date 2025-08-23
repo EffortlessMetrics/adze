@@ -2,8 +2,10 @@ use rust_sitter_ir::optimizer::{GrammarOptimizer, OptimizationStats};
 use rust_sitter_ir::*;
 
 fn create_test_grammar() -> Grammar {
-    let mut grammar = Grammar::default();
-    grammar.name = "TestGrammar".to_string();
+    let mut grammar = Grammar {
+        name: "TestGrammar".to_string(),
+        ..Default::default()
+    };
 
     // Add some rules with different patterns
     // A -> B
@@ -102,8 +104,10 @@ fn test_optimize_simple_grammar() {
 
 #[test]
 fn test_optimize_grammar_with_duplicates() {
-    let mut grammar = Grammar::default();
-    grammar.name = "DuplicateTest".to_string();
+    let mut grammar = Grammar {
+        name: "DuplicateTest".to_string(),
+        ..Default::default()
+    };
 
     // Add duplicate rules
     for i in 0..3 {
@@ -123,8 +127,10 @@ fn test_optimize_grammar_with_duplicates() {
 
 #[test]
 fn test_optimize_with_precedence() {
-    let mut grammar = Grammar::default();
-    grammar.name = "PrecedenceTest".to_string();
+    let mut grammar = Grammar {
+        name: "PrecedenceTest".to_string(),
+        ..Default::default()
+    };
 
     // Add rules with different precedence
     grammar.add_rule(Rule {

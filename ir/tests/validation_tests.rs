@@ -2,8 +2,10 @@ use rust_sitter_ir::validation::{GrammarValidator, ValidationError};
 use rust_sitter_ir::*;
 
 fn create_valid_grammar() -> Grammar {
-    let mut grammar = Grammar::default();
-    grammar.name = "ValidGrammar".to_string();
+    let mut grammar = Grammar {
+        name: "ValidGrammar".to_string(),
+        ..Default::default()
+    };
 
     // Add token
     grammar.tokens.insert(
@@ -72,12 +74,10 @@ fn test_unresolved_symbol() {
     let result = validator.validate(&grammar);
 
     assert!(!result.errors.is_empty());
-    assert!(
-        result
-            .errors
-            .iter()
-            .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. }))
-    );
+    assert!(result
+        .errors
+        .iter()
+        .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. })));
 }
 
 #[test]
@@ -98,12 +98,10 @@ fn test_unresolved_external() {
     let result = validator.validate(&grammar);
 
     assert!(!result.errors.is_empty());
-    assert!(
-        result
-            .errors
-            .iter()
-            .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. }))
-    );
+    assert!(result
+        .errors
+        .iter()
+        .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. })));
 }
 
 #[test]
@@ -147,7 +145,7 @@ fn test_empty_grammar() {
     let result = validator.validate(&grammar);
 
     // Empty grammar should have warnings or errors
-    assert!(!result.errors.is_empty() || result.warnings.len() > 0);
+    assert!(!result.errors.is_empty() || !result.warnings.is_empty());
 }
 
 #[test]
@@ -181,7 +179,7 @@ fn test_cyclic_inline_rules() {
     let result = validator.validate(&grammar);
 
     // Should warn about cyclic inline rules
-    assert!(result.warnings.len() > 0 || !result.errors.is_empty());
+    assert!(!result.warnings.is_empty() || !result.errors.is_empty());
 }
 
 #[test]

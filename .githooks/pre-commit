@@ -101,43 +101,68 @@ else
     fi
 fi
 
-# Step 4: Run clippy (crate-aware for speed)
-echo -e "${YELLOW}→${NC} Clippy (affected crates)..."
+# Step 4: Run clippy (crate-aware for speed, feature-matrix safe)
+echo -e "${YELLOW}→${NC} Clippy (affected crates, feature-safe)..."
+
+# Build package arguments if we have affected crates
+pkg_args=()
 if command -v jq >/dev/null 2>&1 && [ -f scripts/affected-crates.sh ]; then
     mapfile -t pkgs < <(scripts/affected-crates.sh || true)
     if [ "${#pkgs[@]}" -gt 0 ]; then
         # Deduplicate & sort for stable output
         mapfile -t pkgs < <(printf "%s\n" "${pkgs[@]}" | sort -u)
-        # Build -p flags
-        args=()
-        for p in "${pkgs[@]}"; do args+=("-p" "$p"); done
+        for p in "${pkgs[@]}"; do pkg_args+=("-p" "$p"); done
         echo "   packages: ${pkgs[*]}"
-        if ! cargo clippy -q --all-targets --all-features "${args[@]}" -- -D warnings; then
-            echo -e "${RED}✖ Clippy found issues${NC}"
-            echo ""
-            echo "To see detailed clippy output, run:"
-            echo "  cargo clippy --all-targets --all-features ${args[*]}"
-            echo ""
-            exit 1
-        fi
     else
-        echo "   no staged .rs files mapped to crates; falling back to workspace"
-        if ! cargo clippy -q --all-targets --all-features -- -D warnings; then
-            echo -e "${RED}✖ Clippy found issues${NC}"
-            echo ""
-            echo "To see detailed clippy output, run:"
-            echo "  cargo clippy --all-targets --all-features"
-            echo ""
-            exit 1
-        fi
+        echo "   no staged .rs files mapped to crates; using workspace"
     fi
 else
-    echo "   jq not found or affected-crates.sh missing; falling back to workspace clippy"
-    if ! cargo clippy -q --all-targets --all-features -- -D warnings; then
-        echo -e "${RED}✖ Clippy found issues${NC}"
+    echo "   jq not found or affected-crates.sh missing; using workspace"
+fi
+
+# Function to run clippy with specific feature set
+run_clippy_set() {
+    local mode="$1"   # "default" or feature string
+    if [ "$mode" = "default" ]; then
+        if ! cargo clippy -q --all-targets ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
+            return 1
+        fi
+    else
+        if ! cargo clippy -q --all-targets --no-default-features \
+             --features "$mode" ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
+            return 1
+        fi
+    fi
+    return 0
+}
+
+# Always run baseline (default features)
+echo "   clippy: default features"
+if ! run_clippy_set "default"; then
+    echo -e "${RED}✖ Clippy (default) failed${NC}"
+    echo ""
+    echo "To see detailed clippy output, run:"
+    if [ "${#pkg_args[@]}" -gt 0 ]; then
+        echo "  cargo clippy --all-targets ${pkg_args[*]}"
+    else
+        echo "  cargo clippy --all-targets"
+    fi
+    echo ""
+    exit 1
+fi
+
+# Optional extended feature set at commit time (keeps commit fast by default)
+if [ "${RUN_EXTENDED:-0}" = "1" ]; then
+    echo "   clippy: tree-sitter-c2rust (no-default-features)"
+    if ! run_clippy_set "tree-sitter-c2rust"; then
+        echo -e "${RED}✖ Clippy (tree-sitter-c2rust) failed${NC}"
         echo ""
         echo "To see detailed clippy output, run:"
-        echo "  cargo clippy --all-targets --all-features"
+        if [ "${#pkg_args[@]}" -gt 0 ]; then
+            echo "  cargo clippy --all-targets --no-default-features --features tree-sitter-c2rust ${pkg_args[*]}"
+        else
+            echo "  cargo clippy --all-targets --no-default-features --features tree-sitter-c2rust"
+        fi
         echo ""
         exit 1
     fi
