@@ -1,0 +1,24 @@
+#!/bin/sh
+# Pre-push hook for rust-sitter
+# 
+# This hook runs the fast lint suite before pushing to ensure code quality.
+# To enable this hook, copy it to your git hooks directory:
+#   cp hooks/pre-push.sample .git/hooks/pre-push
+#   chmod +x .git/hooks/pre-push
+
+# Run fast lint comparing against origin/main
+echo "Running pre-push lint checks..."
+env cargo xtask lint --fast --since origin/main || {
+    echo ""
+    echo "❌ Lint checks failed. Push aborted."
+    echo ""
+    echo "To fix issues automatically:"
+    echo "  cargo xtask lint --fix --since origin/main"
+    echo ""
+    echo "To bypass this check (not recommended):"
+    echo "  git push --no-verify"
+    echo ""
+    exit 1
+}
+
+echo "✅ All lint checks passed!"

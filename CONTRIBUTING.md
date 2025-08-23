@@ -139,6 +139,15 @@ cargo test --all-features
 4. **Security** - Never commit secrets or expose sensitive data
 5. **Prefer editing over creating** - Modify existing files when possible
 
+### Debug Print Hygiene
+
+- Prefer `debugln!(...)` (feature-gated) over raw `eprintln!/println!/dbg!`
+- If you temporarily comment a multi-line debug macro, close with `// );`
+- Check locally: `python3 tools/check_debug_blocks.py`
+- Auto-fix: `python3 tools/check_debug_blocks.py --fix`
+- Check only staged files: `python3 tools/check_debug_blocks.py --changed-only`
+- Check changes since a commit: `python3 tools/check_debug_blocks.py --since main`
+
 ## Submitting Changes
 
 1. Run the pre-commit hook to ensure code quality

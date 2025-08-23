@@ -1,4 +1,5 @@
 # Rust Sitter
+[![CI](https://github.com/hydro-project/rust-sitter/actions/workflows/ci.yml/badge.svg)](https://github.com/hydro-project/rust-sitter/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/rust-sitter)](https://crates.io/crates/rust-sitter)
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
@@ -23,6 +24,11 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [Language Support](./LANGUAGE_SUPPORT.md) - Supported language grammars
 - [LSP Generator](./LSP_GENERATOR.md) - Generate language servers
 - [Playground](./PLAYGROUND.md) - Interactive grammar development
+
+### Development
+
+- 🚀 [Developer Workflow](./docs/dev-workflow.md) - Linting, testing, and development commands
+- 📋 [Quick Reference](./QUICK_REFERENCE.md) - Handy command cheatsheet
 
 ## Key Features (v0.6.1-beta)
 
@@ -658,3 +664,14 @@ rust-sitter generate-lsp
 ```
 
 For detailed guides, see our comprehensive documentation above.
+
+## Contributing
+
+We welcome contributions! Before submitting a PR:
+
+1. **Read the [Developer Workflow](./docs/dev-workflow.md)** - Learn about our linting and testing setup
+2. **Check the [Quick Reference](./QUICK_REFERENCE.md)** - Handy command cheatsheet for development
+3. **Run the fast lint**: `cargo lint --fast --since origin/main`
+4. **Run tests**: `cargo test`
+
+For bug reports and feature requests, please use the [GitHub issue tracker](https://github.com/hydro-project/rust-sitter/issues).

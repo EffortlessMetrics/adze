@@ -6,6 +6,7 @@ mod corpus;
 mod dashboard;
 mod golden;
 mod grammar_json;
+mod lint;
 mod test_grammars;
 mod test_local_grammars;
 
@@ -103,6 +104,30 @@ enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+    /// Run all lint checks (fmt -> no-mangle -> debug-block validator -> clippy)
+    ///
+    /// Examples:
+    ///   cargo xtask lint --fast               # 3-5s: fmt/validator/no-mangle + clippy on core crates
+    ///   cargo xtask lint --changed-only       # pre-commit mirror (staged .rs)
+    ///   cargo xtask lint --since origin/main  # PR-diff mirror
+    ///   cargo xtask lint --fix                # auto-fix formatting and debug blocks
+    Lint {
+        /// Auto-fix debug blocks (adds `// );` where missing) and run `cargo fmt` write-mode
+        #[arg(long)]
+        fix: bool,
+        /// Only scan staged .rs files (uses Git index)
+        #[arg(long)]
+        changed_only: bool,
+        /// Scan diff since a Git rev/range (e.g. `main`, `origin/main`, `abc123..HEAD`)
+        #[arg(long, value_name = "REV")]
+        since: Option<String>,
+        /// Fast mode: skip self-tests and limit clippy to core crates (3-5s checks)
+        #[arg(long)]
+        fast: bool,
+        /// Extra args passed to `cargo clippy` after `--`
+        #[arg(last = true)]
+        clippy_args: Vec<String>,
+    },
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
@@ -193,6 +218,15 @@ fn main() -> Result<()> {
         }
         Commands::TestPureRust { grammar, verbose } => {
             test_grammars::test_pure_rust(&sh, grammar, verbose)?;
+        }
+        Commands::Lint {
+            fix,
+            changed_only,
+            since,
+            fast,
+            clippy_args,
+        } => {
+            lint::lint(&sh, fix, changed_only, since, fast, clippy_args)?;
         }
     }
 

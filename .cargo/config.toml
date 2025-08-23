@@ -47,6 +47,7 @@ overflow-checks = false
 [alias]
 # Useful aliases
 xtask = "run --package xtask --"
+lint = "xtask lint"
 ci = "clippy --workspace --all-targets --all-features -- -D warnings"
 test-all = "test --workspace --all-features"
 # Fixed recursive alias - renamed to 'nxt' to avoid shadowing

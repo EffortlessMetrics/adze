@@ -28,6 +28,20 @@ jobs:
       - name: Check for bare #[no_mangle]
         run: scripts/check-no-mangle.sh
       
+      - name: Check commented debug blocks
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # For PRs, only check files changed in the diff
+            git fetch --no-tags --prune --depth=1 origin "${{ github.base_ref }}"
+            python3 tools/check_debug_blocks.py --since "origin/${{ github.base_ref }}"
+          else
+            # For push to main, check all tracked files
+            python3 tools/check_debug_blocks.py
+          fi
+      
+      - name: Validator self-test
+        run: python3 tools/test_debug_blocks.py
+      
       - name: Check formatting
         run: cargo fmt --all -- --check
       
