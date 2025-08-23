@@ -564,7 +564,11 @@ impl GLRParser {
                         Action::Reduce(rule_id) => {
                             // Apply the reduction directly
                             let mut reduced_stack = stack.clone();
-                            self.perform_reduction_on_stack(&mut reduced_stack, *rule_id);
+                            self.perform_reduction_on_stack(
+                                &mut reduced_stack,
+                                *rule_id,
+                                byte_offset + text.len(),
+                            );
 
                             // Re-saturate with the SAME lookahead to reach fixed point
                             // This ensures cascaded reduces and accepts are discovered
@@ -616,7 +620,11 @@ impl GLRParser {
                                         // Reductions should have been handled in phase 1, but if not, handle them
                                         let mut forked = stack.fork(self.next_stack_id);
                                         self.next_stack_id += 1;
-                                        self.perform_reduction_on_stack(&mut forked, *rule_id);
+                                        self.perform_reduction_on_stack(
+                                            &mut forked,
+                                            *rule_id,
+                                            byte_offset + text.len(),
+                                        );
                                         debug_glr!("  Fork {}: Reduce by rule {}", i, rule_id.0);
                                         new_stacks.push(forked);
                                     }
@@ -652,6 +660,7 @@ impl GLRParser {
                                                     self.perform_reduction_on_stack(
                                                         &mut nested_fork,
                                                         *rule_id,
+                                                        byte_offset + text.len(),
                                                     );
                                                     new_stacks.push(nested_fork);
                                                 }
@@ -853,7 +862,8 @@ impl GLRParser {
         struct RedStamp {
             state: StateId,
             rule: RuleId,
-            end: usize, // byte position to prevent epsilon re-fires at same position
+            start: usize, // start byte position for precise stamping
+            end: usize,   // end byte position to prevent epsilon re-fires at same position
         }
         let mut seen_reductions = HashSet::<RedStamp>::new();
 
@@ -888,7 +898,18 @@ impl GLRParser {
         };
 
         // Fixed-point iteration: process stacks until no new tops appear
+        // Add iteration cap to prevent pathological grammars from hanging
+        let mut steps = 0usize;
+        const MAX_STEPS: usize = 64; // very conservative; never reached in sane grammars
         while let Some(stack) = worklist.pop_front() {
+            if steps >= MAX_STEPS {
+                debug_glr!(
+                    "  Warning: Reached max epsilon closure steps ({})",
+                    MAX_STEPS
+                );
+                break;
+            }
+            steps += 1;
             let state = stack.current_state();
             let action_cell = self.table.action_table[state.0 as usize][symbol_idx].clone();
 
@@ -942,14 +963,15 @@ impl GLRParser {
                 };
 
                 // Guard against repeated application at same position (epsilon loop prevention)
-                let end_byte = stack
-                    .nodes
-                    .last()
-                    .map(|n| n.node.byte_range.end)
-                    .unwrap_or(lookahead_end);
+                let (start_byte, end_byte) = if let Some(n) = stack.nodes.last() {
+                    (n.node.byte_range.start, n.node.byte_range.end)
+                } else {
+                    (lookahead_end, lookahead_end)
+                };
                 let stamp = RedStamp {
                     state: stack.current_state(),
                     rule: rule_id,
+                    start: start_byte,
                     end: end_byte,
                 };
 
@@ -970,7 +992,7 @@ impl GLRParser {
                 self.next_stack_id += 1;
 
                 // Apply the reduction (this will pop symbols and push via GOTO)
-                self.perform_reduction_on_stack(&mut reduced_stack, rule_id);
+                self.perform_reduction_on_stack(&mut reduced_stack, rule_id, lookahead_end);
 
                 // The new top state after GOTO might have more reduces for the same lookahead
                 let new_state = reduced_stack.current_state();
@@ -1003,6 +1025,26 @@ impl GLRParser {
 
         // Skip merging to preserve all reduction paths for true GLR behavior
         // self.merge_stacks(&mut result);
+
+        // Closure-local deduplication: drop exact duplicates by (state, top-node pointer)
+        // This prevents epsilon chains from blowing up
+        use std::ptr;
+        // Don't remove stacks with no nodes - they may be valid initial states
+        result.sort_by_key(|s| {
+            (
+                s.current_state().0,
+                s.nodes.last().map(|n| Arc::as_ptr(n) as usize).unwrap_or(0),
+            )
+        });
+        result.dedup_by(|a, b| {
+            // Only dedup if both stacks have the same state AND the same top node
+            a.current_state() == b.current_state()
+                && match (a.nodes.last(), b.nodes.last()) {
+                    (Some(node_a), Some(node_b)) => ptr::eq(node_a.as_ref(), node_b.as_ref()),
+                    (None, None) => true, // Two stacks with no nodes and same state are duplicates
+                    _ => false,           // Different node counts means different stacks
+                }
+        });
 
         debug_glr!(
             "DEBUG reduce_closure: Fixed point reached with {} stacks",
@@ -1268,7 +1310,12 @@ impl GLRParser {
     }
 
     /// Perform a reduction on a specific stack
-    fn perform_reduction_on_stack(&mut self, stack: &mut ParseStack, rule_id: RuleId) {
+    fn perform_reduction_on_stack(
+        &mut self,
+        stack: &mut ParseStack,
+        rule_id: RuleId,
+        lookahead_end: usize,
+    ) {
         debug_glr!(
             "DEBUG: Performing reduction with rule {} on stack in state {}",
             rule_id.0,
@@ -1299,14 +1346,19 @@ impl GLRParser {
             );
 
             // Create new subtree for the reduction
+            // For epsilon reductions (empty RHS), use lookahead_end as the position
+            let byte_range = if children.is_empty() {
+                // Epsilon: zero-width span at the current lookahead end
+                lookahead_end..lookahead_end
+            } else {
+                // Normal: span from first child start to last child end
+                children[0].node.byte_range.start..children.last().unwrap().node.byte_range.end
+            };
+
             let node = SubtreeNode {
                 symbol_id: rule.lhs,
                 is_error: false,
-                byte_range: if children.is_empty() {
-                    0..0
-                } else {
-                    children[0].node.byte_range.start..children.last().unwrap().node.byte_range.end
-                },
+                byte_range,
             };
 
             // Apply field mappings to children
