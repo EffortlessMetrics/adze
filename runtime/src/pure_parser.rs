@@ -256,7 +256,7 @@ impl Parser {
             if language.parse_table.is_null() || language.parse_actions.is_null() {
                 return Err(
                     "Invalid language: large_state_count > 0 but parse_table/parse_actions is null"
-                        .to_string(),
+                        .to_string()
                 );
             }
         } else {
