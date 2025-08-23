@@ -377,19 +377,33 @@ impl GLRParser {
     /// Get the goto state for a nonterminal after a reduction
     #[inline]
     fn goto_next_state(&self, state: StateId, lhs: SymbolId) -> Option<StateId> {
-        // Use the nonterminal_to_index mapping to find the column in goto_table
+        // First try the nonterminal_to_index mapping (preferred for GOTO table)
         if let Some(&col) = self.table.nonterminal_to_index.get(&lhs) {
-            return self
-                .table
-                .goto_table
-                .get(state.0 as usize)?
-                .get(col)
-                .copied()
-                .filter(|&s| s.0 != 0); // StateId(0) often means no goto
+            if let Some(goto_row) = self.table.goto_table.get(state.0 as usize) {
+                if let Some(&next_state) = goto_row.get(col) {
+                    if next_state.0 != 0 {  // StateId(0) often means no goto
+                        return Some(next_state);
+                    }
+                }
+            }
+        }
+        
+        // Special handling: Some table generators use the LHS symbol ID directly as the column
+        // This happens especially for the start symbol (often SymbolId(0))
+        if lhs.0 < 10 {  // Only try for low symbol IDs to avoid out-of-bounds
+            if let Some(goto_row) = self.table.goto_table.get(state.0 as usize) {
+                let col = lhs.0 as usize;
+                if col < goto_row.len() {
+                    let next_state = goto_row[col];
+                    if next_state.0 != 0 {
+                        return Some(next_state);
+                    }
+                }
+            }
         }
 
-        // Fallback: try looking in the action table for Shift actions
-        // (some legacy/unified tables might store gotos as shifts in the action table)
+        // Fallback: For unified tables, nonterminals might be in symbol_to_index
+        // with GOTOs stored as shifts in the action table or in the goto table
         if let Some(&col) = self.table.symbol_to_index.get(&lhs) {
             if let Some(row) = self.table.action_table.get(state.0 as usize) {
                 if let Some(cell) = row.get(col) {
@@ -1518,6 +1532,26 @@ impl GLRParser {
                     rule.lhs.0
                 );
                 stack.push(new_state, subtree);
+                
+                // Debug: Check if we reached an accepting state after reducing to start symbol
+                #[cfg(debug_assertions)]
+                {
+                    let start_symbol = self.grammar.rules.values()
+                        .flat_map(|rules| rules.iter())
+                        .find(|r| r.production_id.0 == 0)
+                        .map(|r| r.lhs);
+                    
+                    if Some(rule.lhs) == start_symbol {
+                        if let Some(&eof_idx) = self.table.symbol_to_index.get(&SymbolId(0)) {
+                            let st = new_state.0 as usize;
+                            if st < self.table.action_table.len() && eof_idx < self.table.action_table[st].len() {
+                                let has_accept = self.table.action_table[st][eof_idx]
+                                    .iter().any(|a| matches!(a, Action::Accept));
+                                debug_glr!("  After reducing to start symbol: state {}, accept_on_eof={}", st, has_accept);
+                            }
+                        }
+                    }
+                }
             } else {
                 debug_glr!(
                     "  ERROR: No GOTO found for symbol {} from state {}",
@@ -1912,8 +1946,8 @@ impl GLRParser {
                             0
                         };
 
-                        // Get the symbol index for the LHS non-terminal
-                        if let Some(&lhs_idx) = self.table.symbol_to_index.get(&rule.lhs) {
+                        // Get the nonterminal index for the LHS non-terminal
+                        if let Some(&lhs_idx) = self.table.nonterminal_to_index.get(&rule.lhs) {
                             // Look up the goto state
                             if base_state_idx < self.table.goto_table.len()
                                 && lhs_idx < self.table.goto_table[base_state_idx].len()
