@@ -457,6 +457,48 @@ impl GLRParser {
         stacks_to_process =
             self.reduce_until_saturated(stacks_to_process, token, byte_offset + text.len());
 
+        // EOF finalization: prefer Accept or start symbol stacks
+        if token == SymbolId(0) && !stacks_to_process.is_empty() {
+            // EOF processing - prefer stacks that have Accept action or start symbol
+            if let Some(&eof_idx) = self.table.symbol_to_index.get(&token) {
+                // First, prefer stacks with Accept action
+                let (accepted, rest): (Vec<_>, Vec<_>) = stacks_to_process
+                    .into_iter()
+                    .partition(|st| {
+                        let state_idx = st.current_state().0 as usize;
+                        self.table.action_table[state_idx][eof_idx]
+                            .iter()
+                            .any(|a| matches!(a, Action::Accept))
+                    });
+                
+                stacks_to_process = if !accepted.is_empty() {
+                    accepted
+                } else if !rest.is_empty() {
+                    // Otherwise, prefer stacks whose top symbol is the start symbol
+                    // The start symbol is typically SymbolId(0) but we should get it from grammar
+                    let start_symbol = self.grammar.rules.values()
+                        .flat_map(|rules| rules.iter())
+                        .find(|r| r.production_id.0 == 0)
+                        .map(|r| r.lhs)
+                        .unwrap_or(SymbolId(0));
+                    
+                    let (start_tops, others): (Vec<_>, Vec<_>) = rest
+                        .into_iter()
+                        .partition(|st| {
+                            st.nodes.last().map_or(false, |n| n.node.symbol_id == start_symbol)
+                        });
+                    
+                    if !start_tops.is_empty() { 
+                        start_tops 
+                    } else { 
+                        others 
+                    }
+                } else {
+                    rest
+                };
+            }
+        }
+
         // In true GLR, we may have both shift and reduce actions in the same cell
         // This is expected behavior for handling ambiguous grammars
 
@@ -940,7 +982,7 @@ impl GLRParser {
                 action_cell.len()
             );
 
-            // Extract and sort reduce actions by priority
+            // Extract reduce actions from the specific column
             let mut reduces: Vec<(Action, i32)> = action_cell
                 .iter()
                 .filter_map(|a| match a {
@@ -948,6 +990,7 @@ impl GLRParser {
                     _ => None,
                 })
                 .collect();
+            
 
             // Sort by priority (highest first)
             reduces.sort_by_key(|(_, prio)| -prio);
@@ -1040,15 +1083,13 @@ impl GLRParser {
                         "  New top reached: state {} - adding to worklist",
                         new_state.0
                     );
-                    worklist.push_back(reduced_stack.clone());
+                    worklist.push_back(reduced_stack);
                     any_reduction_applied = true;
                 } else {
                     // We've already processed this top - it's saturated
                     debug_glr!("  Top already seen: state {} - saturated", new_state.0);
+                    saturated_stacks.push(reduced_stack);
                 }
-                
-                // Always save the reduced stack to preserve all reduction paths
-                saturated_stacks.push(reduced_stack);
             }
 
             // If no reductions were applied from this stack and it has no shift/accept,
