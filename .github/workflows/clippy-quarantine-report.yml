@@ -1,0 +1,49 @@
+name: Weekly Clippy Quarantine Report
+
+on:
+  schedule:
+    # Weekly at 00:00 UTC on Monday
+    - cron: '0 0 * * 1'
+  workflow_dispatch: {}
+
+jobs:
+  quarantine-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Show quarantine and count
+        id: count
+        shell: bash
+        run: |
+          echo "=== .clippy-quarantine contents ==="
+          if [ -f .clippy-quarantine ]; then
+            awk '!/^#/ && NF' .clippy-quarantine || true
+            COUNT=$(awk '!/^#/ && NF' .clippy-quarantine | wc -l | tr -d ' ')
+          else
+            echo "(no .clippy-quarantine file found)"
+            COUNT=0
+          fi
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "Quarantined packages: $COUNT"
+
+      - name: Create small report
+        shell: bash
+        run: |
+          mkdir -p quarantine-report
+          echo "clippy-quarantine report" > quarantine-report/README.txt
+          echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%SZ")" >> quarantine-report/README.txt
+          echo "Quarantined count: ${{ steps.count.outputs.count }}" >> quarantine-report/README.txt
+          if [ -f .clippy-quarantine ]; then
+            awk '!/^#/ && NF' .clippy-quarantine > quarantine-report/quarantined-packages.txt || true
+          fi
+
+      - name: Upload quarantine artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clippy-quarantine-report
+          path: quarantine-report

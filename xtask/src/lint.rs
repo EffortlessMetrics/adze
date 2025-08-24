@@ -201,7 +201,7 @@ fn run(bin: &str, args: &[&str]) -> Result<()> {
     Ok(())
 }
 
-fn run_script(sh: &Shell, script: &str, args: &[&str]) -> Result<()> {
+fn run_script(_sh: &Shell, script: &str, args: &[&str]) -> Result<()> {
     #[cfg(windows)]
     {
         // Run bash scripts via sh if available; otherwise rely on Git Bash in PATH

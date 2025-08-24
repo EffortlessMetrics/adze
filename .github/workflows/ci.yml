@@ -25,6 +25,12 @@ jobs:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
       
+      - name: Install jq
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y jq
+          fi
+      
       - name: Check for bare #[no_mangle]
         run: scripts/check-no-mangle.sh
       
@@ -46,68 +52,23 @@ jobs:
         run: cargo fmt --all -- --check
       
       - name: Clippy (default features, per-package)
-        shell: bash
-        run: |
-          set -e
-          # Get all workspace packages
-          PKGS=$(cargo metadata --format-version 1 | jq -r '.workspace_members[] | split("#")[1] | split("@")[0]')
-          
-          # Read quarantine list from file
-          Q=""
-          if [ -f .clippy-quarantine ]; then
-            F=$(grep -v '^#' .clippy-quarantine 2>/dev/null | grep -v '^[[:space:]]*$' | tr '\n' ',' | sed 's/,$//')
-            Q="${Q:+$Q,}$F"
-          fi
-          
-          # Build quarantine map
-          declare -A QMAP
-          IFS=',' read -ra ARR <<< "${Q}"
-          for P in "${ARR[@]}"; do
-            [[ -n "$P" ]] && QMAP["$P"]=1
-          done
-          
-          # Check each package
-          echo "Checking packages with default features..."
-          for P in $PKGS; do
-            if [[ -n "${QMAP[$P]}" ]]; then
-              echo "  skip (quarantined): $P"
-              continue
-            fi
-            echo "  clippy: $P"
-            cargo clippy -q -p "$P" --all-targets --no-deps -- -D warnings
-          done
+        run: scripts/clippy-per-package.sh default
         
       - name: Clippy (tree-sitter-c2rust, per-package)
+        run: scripts/clippy-per-package.sh c2rust
+      
+      - name: Clippy - collect per-package outputs
         shell: bash
+        continue-on-error: true
         run: |
-          set -e
-          # Get all workspace packages
-          PKGS=$(cargo metadata --format-version 1 | jq -r '.workspace_members[] | split("#")[1] | split("@")[0]')
-          
-          # Read quarantine list from file
-          Q=""
-          if [ -f .clippy-quarantine ]; then
-            F=$(grep -v '^#' .clippy-quarantine 2>/dev/null | grep -v '^[[:space:]]*$' | tr '\n' ',' | sed 's/,$//')
-            Q="${Q:+$Q,}$F"
-          fi
-          
-          # Build quarantine map
-          declare -A QMAP
-          IFS=',' read -ra ARR <<< "${Q}"
-          for P in "${ARR[@]}"; do
-            [[ -n "$P" ]] && QMAP["$P"]=1
-          done
-          
-          # Check each package
-          echo "Checking packages with tree-sitter-c2rust..."
-          for P in $PKGS; do
-            if [[ -n "${QMAP[$P]}" ]]; then
-              echo "  skip (quarantined): $P"
-              continue
-            fi
-            echo "  clippy: $P"
-            cargo clippy -q -p "$P" --all-targets --no-default-features --features tree-sitter-c2rust --no-deps -- -D warnings
-          done
+          chmod +x ./scripts/clippy-collect.sh
+          ./scripts/clippy-collect.sh || true
+      
+      - name: Upload Clippy reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: clippy-report
+          path: clippy-report
 
   test:
     name: Test (${{ matrix.os }} / ${{ matrix.features }} / ${{ matrix.toolchain }})
@@ -694,6 +655,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      
+      - name: Install jq
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y jq
+          fi
 
       # 1) Block silently disabled tests (files renamed to .disabled)
       - name: Fail on disabled test files

@@ -460,11 +460,12 @@ fn find_grammar_json(_sh: &Shell, grammar_name: &str) -> Result<PathBuf> {
         grammar_name
     );
 
-    for entry in glob::glob(&pattern).context("Failed to glob for grammar JSON")? {
-        if let Ok(path) = entry {
-            if path.exists() {
-                return Ok(path);
-            }
+    for path in glob::glob(&pattern)
+        .context("Failed to glob for grammar JSON")?
+        .flatten()
+    {
+        if path.exists() {
+            return Ok(path);
         }
     }
 

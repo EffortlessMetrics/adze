@@ -14,8 +14,42 @@ NC='\033[0m' # No Color
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
+# Function to check if jq is available
+check_jq() {
+    if ! command -v jq >/dev/null 2>&1; then
+        echo -e "${RED}✖ jq is required but not installed${NC}"
+        echo "Please install jq to run comprehensive checks"
+        echo "  Ubuntu/Debian: sudo apt-get install jq"
+        echo "  macOS: brew install jq"
+        echo "  Or download from: https://stedolan.github.io/jq/download/"
+        exit 1
+    fi
+}
+
+# Function to get packages with tree-sitter-c2rust feature
+get_c2rust_packages() {
+    cargo metadata --format-version 1 2>/dev/null | \
+        jq -r '.packages[] | select(.features["tree-sitter-c2rust"] != null) | .name' 2>/dev/null || true
+}
+
+# Function to check if a package has tree-sitter-c2rust feature
+has_c2rust_feature() {
+    local pkg="$1"
+    local c2rust_packages
+    
+    c2rust_packages=$(get_c2rust_packages)
+    if [ -z "$c2rust_packages" ]; then
+        return 1  # No packages found
+    fi
+    
+    echo "$c2rust_packages" | grep -q "^${pkg}$"
+}
+
 echo -e "${GREEN}[pre-push]${NC} Running comprehensive checks before push..."
 echo -e "${BLUE}→${NC} Using robust pre-push hook from .githooks/"
+
+# Check jq availability early
+check_jq
 
 # Read the push details (remote and URL are passed as arguments)
 remote="${1:-origin}"
@@ -72,66 +106,18 @@ echo -e "${GREEN}✓${NC} Code formatting verified"
 # Step 3: Run comprehensive clippy check (per-package with --no-deps)
 echo -e "${YELLOW}→${NC} Running comprehensive clippy analysis (per-package, feature matrix)..."
 
-# Compose quarantine from env and file
-Q="${CLIPPY_EXCLUDE:-}"
-if [ -f .clippy-quarantine ]; then
-    # Skip comment lines and empty lines
-    F=$(grep -v '^#' .clippy-quarantine 2>/dev/null | grep -v '^[[:space:]]*$' | tr '\n' ',' | sed 's/,$//')
-    Q="${Q:+$Q,}${F}"
-fi
-[ -n "$Q" ] && echo "   (quarantined: $Q)"
-
-# Build quarantine lookup function
-IFS=',' read -ra QARR <<< "${Q}"
-is_quarantined() {
-    local target="$1"
-    for x in "${QARR[@]}"; do
-        [ -n "$x" ] && [ "$x" = "$target" ] && return 0
-    done
-    return 1
-}
-
-# Get workspace package names
-mapfile -t PKGS < <(cargo metadata --format-version 1 2>/dev/null \
-    | jq -r '.workspace_members[] | split("#")[1] | split("@")[0]')
-
-if [ ${#PKGS[@]} -eq 0 ]; then
-    echo -e "${RED}✖ Failed to get workspace packages${NC}"
+# Run clippy checks using centralized script
+echo "   Running clippy checks (default features)..."
+if ! scripts/clippy-per-package.sh default; then
+    echo -e "${RED}✖ Clippy failed (default features)${NC}"
     exit 1
 fi
 
-fail_clippy() {
-    echo -e "${RED}✖ Clippy failed for package: $1 (${2})${NC}"
-    echo ""
-    echo "Please fix clippy warnings before pushing"
-    echo "To reproduce:"
-    echo "  $3"
-    echo ""
+echo "   Running clippy checks (tree-sitter-c2rust)..."
+if ! scripts/clippy-per-package.sh c2rust; then
+    echo -e "${RED}✖ Clippy failed (tree-sitter-c2rust)${NC}"
     exit 1
-}
-
-# Check each non-quarantined package with --no-deps
-echo "   Checking ${#PKGS[@]} workspace packages..."
-for p in "${PKGS[@]}"; do
-    if is_quarantined "$p"; then
-        echo "   clippy: skip (quarantined) $p"
-        continue
-    fi
-
-    # Check with default features
-    echo "   clippy: default features  → $p"
-    cmd="cargo clippy -q -p \"$p\" --all-targets --no-deps -- -D warnings"
-    if ! eval "$cmd" 2>&1 | head -20; then
-        fail_clippy "$p" "default features" "$cmd"
-    fi
-
-    # Check with tree-sitter-c2rust feature
-    echo "   clippy: tree-sitter-c2rust → $p"
-    cmd="cargo clippy -q -p \"$p\" --all-targets --no-default-features --features tree-sitter-c2rust --no-deps -- -D warnings"
-    if ! eval "$cmd" 2>&1 | head -20; then
-        fail_clippy "$p" "tree-sitter-c2rust" "$cmd"
-    fi
-done
+fi
 
 echo -e "${GREEN}✓${NC} Clippy analysis passed (all non-quarantined packages)"
 

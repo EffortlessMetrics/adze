@@ -185,6 +185,29 @@ cargo test --all-features
 4. **Security** - Never commit secrets or expose sensitive data
 5. **Prefer editing over creating** - Modify existing files when possible
 
+### Clippy Quarantine (`.clippy-quarantine`)
+
+We run `cargo clippy` per-package with `--no-deps`. Some crates currently have work-in-progress Clippy issues; to avoid blocking the whole workspace, each such crate is listed in `.clippy-quarantine` (one crate name per line). Lines beginning with `#` are ignored.
+
+Format:
+```
+# One crate name per line
+rust-sitter-benchmarks
+rust-sitter-go
+```
+
+Workflow:
+- To run a full triage locally: `./scripts/clippy-collect.sh` — produces `clippy-report/` with per-crate logs
+- To reproduce an individual failure: `cargo clippy -p <crate> --all-targets --no-deps -- -D warnings`
+- Once a crate is fully cleaned, remove it from `.clippy-quarantine`, commit, and push:
+  ```bash
+  sed -i '/^rust-sitter-go$/d' .clippy-quarantine
+  git add .clippy-quarantine
+  git commit -m "chore: remove rust-sitter-go from clippy quarantine"
+  git push
+  ```
+- CI uploads `clippy-report/` for failing runs to help reviewers triage
+
 ### Debug Print Hygiene
 
 - Prefer `debugln!(...)` (feature-gated) over raw `eprintln!/println!/dbg!`

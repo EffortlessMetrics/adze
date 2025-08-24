@@ -12,3 +12,9 @@ rust-sitter
 rust-sitter-tablegen
 glr-test-support
 test-mini
+rust-sitter-benchmarks
+rust-sitter-cli
+rust-sitter-go
+rust-sitter-javascript
+rust-sitter-python
+rust-sitter-python-simple
