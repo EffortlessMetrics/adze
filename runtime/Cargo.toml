@@ -24,6 +24,7 @@ serialization = ["serde", "serde_json"] # Enable tree serialization
 legacy-parsers = [] # Enable to access deprecated parser_v2 and parser_v3 modules
 incremental_glr = [] # Enable GLR incremental parsing support
 debug_glr = [] # Enable debug output for GLR parser
+glr_telemetry = [] # Enable GLR telemetry counters for performance monitoring
 ts-compat = [] # Enable Tree-sitter compatibility API
 debug_incremental = [] # Enable debug output for incremental parsing
 experimental_examples = [] # Enable experimental examples that use internal APIs
@@ -52,6 +53,7 @@ thiserror = "2.0.12"
 rayon = "1.10.0"
 ahash = "0.8.12"
 log = "0.4.27"
+smallvec = "1.13"
 wasm-bindgen = { version = "0.2.100", optional = true }
 
 [dev-dependencies]

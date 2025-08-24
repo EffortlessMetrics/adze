@@ -4,11 +4,57 @@ Thank you for your interest in contributing to rust-sitter! This guide will help
 
 ## Setup
 
+### Prerequisites
+- `jq` - JSON processor (required for crate-aware checks)
+- `rg` (ripgrep) - Fast text search (optional but recommended)
+- Git with bash support (Git Bash on Windows)
+
 ### Enable Git Hooks
-First, configure git to use the repository's pre-commit hooks:
+Configure git to use the repository's pre-commit and pre-push hooks:
 
 ```bash
-git config --local core.hooksPath .githooks
+# Set hooks path
+git config core.hooksPath .githooks
+
+# Ensure scripts are executable (after clone)
+git update-index --chmod=+x .githooks/pre-commit .githooks/pre-push \
+  scripts/affected-crates.sh scripts/check-goto-indexing.sh
+
+# Recommended: Set locale for consistent formatting
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+```
+
+### Hook Behavior
+The git hooks provide fast, crate-aware quality checks:
+
+**Pre-commit (fast path)**
+- Formats only staged files with `rustfmt`
+- Runs clippy on affected crates only
+- Blocks commits with conflict markers
+- Guards against partial staging issues
+- Uses default features for speed
+
+**Pre-push (full validation)**
+- Runs clippy across entire workspace
+- Tests with feature matrix (default + tree-sitter-c2rust)
+- Ensures code is merge-ready
+
+### Environment Variables
+Control hook behavior with these flags:
+
+```bash
+# Normal commit (fast, affected crates only)
+git commit -m "fix: parser logic"
+
+# Extended checks at commit time
+RUN_EXTENDED=1 git commit -m "feat: new feature"
+
+# Include quick per-crate tests
+RUN_QUICK_TESTS=1 git commit -m "test: add coverage"
+
+# Skip hooks temporarily (use sparingly)
+git commit --no-verify -m "WIP: debugging"
 ```
 
 ## Daily Development Commands
@@ -138,6 +184,38 @@ cargo test --all-features
 3. **No unnecessary comments** - Code should be self-documenting
 4. **Security** - Never commit secrets or expose sensitive data
 5. **Prefer editing over creating** - Modify existing files when possible
+
+### Clippy Quarantine (`.clippy-quarantine`)
+
+We run `cargo clippy` per-package with `--no-deps`. Some crates currently have work-in-progress Clippy issues; to avoid blocking the whole workspace, each such crate is listed in `.clippy-quarantine` (one crate name per line). Lines beginning with `#` are ignored.
+
+Format:
+```
+# One crate name per line
+rust-sitter-benchmarks
+rust-sitter-go
+```
+
+Workflow:
+- To run a full triage locally: `./scripts/clippy-collect.sh` — produces `clippy-report/` with per-crate logs
+- To reproduce an individual failure: `cargo clippy -p <crate> --all-targets --no-deps -- -D warnings`
+- Once a crate is fully cleaned, remove it from `.clippy-quarantine`, commit, and push:
+  ```bash
+  sed -i '/^rust-sitter-go$/d' .clippy-quarantine
+  git add .clippy-quarantine
+  git commit -m "chore: remove rust-sitter-go from clippy quarantine"
+  git push
+  ```
+- CI uploads `clippy-report/` for failing runs to help reviewers triage
+
+### Debug Print Hygiene
+
+- Prefer `debugln!(...)` (feature-gated) over raw `eprintln!/println!/dbg!`
+- If you temporarily comment a multi-line debug macro, close with `// );`
+- Check locally: `python3 tools/check_debug_blocks.py`
+- Auto-fix: `python3 tools/check_debug_blocks.py --fix`
+- Check only staged files: `python3 tools/check_debug_blocks.py --changed-only`
+- Check changes since a commit: `python3 tools/check_debug_blocks.py --since main`
 
 ## Submitting Changes
 

@@ -21,8 +21,12 @@ pub mod external_scanner_ffi;
 pub mod ffi;
 /// Field mapping support for parse trees.
 pub mod field_tree;
+/// Lexer abstraction for TokenSource trait
+pub mod lex;
 /// Line and column position tracking utilities.
 pub mod linecol;
+/// Tree-sitter format constants and helpers
+pub mod ts_format;
 
 // Stable, documented entry points for public API
 // These re-exports are guaranteed stable across minor versions

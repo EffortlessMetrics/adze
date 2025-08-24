@@ -18,7 +18,8 @@ fn extras_marked_correctly_in_parse_table() {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: Default::default(),
-        eof_symbol: SymbolId(4),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        eof_symbol: SymbolId(0),
         start_symbol: SymbolId(100),
         grammar: Default::default(),
         initial_state: rust_sitter_ir::StateId(0),
@@ -27,6 +28,7 @@ fn extras_marked_correctly_in_parse_table() {
         lex_modes: vec![],
         extras: vec![SymbolId(2)], // Mark symbol 2 as an extra (whitespace)
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: Default::default(),
@@ -83,7 +85,8 @@ fn external_tokens_within_insertion_range() {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: Default::default(),
-        eof_symbol: SymbolId(3), // EOF after all terminals
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        eof_symbol: SymbolId(0), // EOF must be 0 by convention
         start_symbol: SymbolId(100),
         grammar: Default::default(),
         initial_state: rust_sitter_ir::StateId(0),
@@ -92,6 +95,7 @@ fn external_tokens_within_insertion_range() {
         lex_modes: vec![],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: Default::default(),

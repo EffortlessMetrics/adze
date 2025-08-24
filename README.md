@@ -1,9 +1,10 @@
 # Rust Sitter
+[![CI](https://github.com/hydro-project/rust-sitter/actions/workflows/ci.yml/badge.svg)](https://github.com/hydro-project/rust-sitter/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/rust-sitter)](https://crates.io/crates/rust-sitter)
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
-> **v0.6.0 Status (January 2025)**: The project features a **production-ready GLR (Generalized LR) parser** with full support for ambiguous grammars. **Major Achievement**: Successfully compiles and parses the Python grammar (273 symbols, 57 fields) with external scanner support. Recent hardening includes improved FFI safety, honest CLI error messages, and comprehensive documentation of current capabilities and limitations.
+> **v0.6.1-beta Status (January 2025)**: The GLR parser is now **algorithmically correct** with 100% pass rates on all core test suites. Six critical correctness fixes ensure proper handling of ambiguous grammars, EOF recovery, and query stability. The parser successfully handles complex grammars like Python (273 symbols) with true GLR semantics.
 
 ## Documentation
 
@@ -15,6 +16,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference
 - [Migration Guide](./MIGRATION_GUIDE.md) - Migrating from Tree-sitter
 - [v0.6 Migration](./docs/migration-to-v0.6.md) - Upgrading from v0.5 to v0.6
+- [Tree-sitter Table Format Spec](./docs/ts_spec.md) - Tree-sitter compatibility layer specification
 - [Optimizer Usage](./docs/optimizer-usage.md) - Using the grammar optimizer for better performance
 - [Roadmap](./ROADMAP.md) - Project roadmap and future plans
 - [Testing Framework](./TESTING_FRAMEWORK.md) - Comprehensive testing guide
@@ -23,14 +25,20 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [LSP Generator](./LSP_GENERATOR.md) - Generate language servers
 - [Playground](./PLAYGROUND.md) - Interactive grammar development
 
-## Key Features (v0.6.0)
+### Development
+
+- 🚀 [Developer Workflow](./docs/dev-workflow.md) - Linting, testing, and development commands
+- 📋 [Quick Reference](./QUICK_REFERENCE.md) - Handy command cheatsheet
+
+## Key Features (v0.6.1-beta)
 
 ### ✅ Production-Ready
-- **GLR Parsing**: True GLR parser with multi-action cells for ambiguous grammars
+- **GLR Parsing**: Algorithmically correct GLR with multi-action cells (100% test pass rate)
+- **Correctness Fixes**: Phase-2 re-closure, accept aggregation, EOF recovery, epsilon guards
 - **Python Grammar Support**: Successfully parses Python with 273 symbols and external scanner
 - **Pure-Rust Implementation**: Generate static parsers at compile-time without C dependencies
 - **WASM Support**: Full WebAssembly compatibility with the pure-Rust backend
-- **FFI Safety**: Hardened external scanner interface with compile-time ABI validation
+- **Query Stability**: Wrapper squashing and capture deduplication for predictable results
 
 ### 🚧 Advanced Features (In Progress)
 - **Incremental Parsing**: GLR incremental algorithm implemented (feature-gated for testing)
@@ -656,3 +664,14 @@ rust-sitter generate-lsp
 ```
 
 For detailed guides, see our comprehensive documentation above.
+
+## Contributing
+
+We welcome contributions! Before submitting a PR:
+
+1. **Read the [Developer Workflow](./docs/dev-workflow.md)** - Learn about our linting and testing setup
+2. **Check the [Quick Reference](./QUICK_REFERENCE.md)** - Handy command cheatsheet for development
+3. **Run the fast lint**: `cargo lint --fast --since origin/main`
+4. **Run tests**: `cargo test`
+
+For bug reports and feature requests, please use the [GitHub issue tracker](https://github.com/hydro-project/rust-sitter/issues).

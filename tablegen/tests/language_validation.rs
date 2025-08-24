@@ -1,4 +1,4 @@
-use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
 use rust_sitter_ir::{FieldId, Grammar, StateId, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::validation::TSLanguage;
 use rust_sitter_tablegen::{
@@ -27,9 +27,11 @@ fn create_test_parse_table(grammar: Grammar) -> ParseTable {
         lex_modes: vec![],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
     }
 }
 

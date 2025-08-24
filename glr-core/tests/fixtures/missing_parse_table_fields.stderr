@@ -30,8 +30,8 @@ help: import `SymbolId` directly
 4 | use rust_sitter_glr_core::{ParseTable, Action, StateId, rust_sitter_ir::SymbolId};
   |                                                         ++++++++++++++++
 
-error[E0063]: missing fields `alias_sequences`, `dynamic_prec_by_rule`, `eof_symbol` and 14 other fields in initializer of `ParseTable`
+error[E0063]: missing fields `alias_sequences`, `dynamic_prec_by_rule`, `eof_symbol` and 16 other fields in initializer of `ParseTable`
  --> tests/fixtures/missing_parse_table_fields.rs:9:24
   |
 9 |     let _parse_table = ParseTable {
-  |                        ^^^^^^^^^^ missing `alias_sequences`, `dynamic_prec_by_rule`, `eof_symbol` and 14 other fields
+  |                        ^^^^^^^^^^ missing `alias_sequences`, `dynamic_prec_by_rule`, `eof_symbol` and 16 other fields

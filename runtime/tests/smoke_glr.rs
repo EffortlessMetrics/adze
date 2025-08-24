@@ -45,10 +45,12 @@ fn glr_smoke_table_construction() {
             2
         ],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),
         nonterminal_to_index: BTreeMap::from([(SymbolId(3), 3)]),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         symbol_metadata: vec![],
     };
 

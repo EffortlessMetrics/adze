@@ -61,10 +61,9 @@ fn accept_via_insertion_at_eof_cost_is_one() {
         symbol_count: 5,
         symbol_to_index: {
             let mut map = BTreeMap::new();
-            map.insert(SymbolId(0), 0); // ERROR at index 0
+            map.insert(SymbolId(0), 3); // EOF at index 3 (normalized to 0)
             map.insert(SymbolId(1), 1); // LBRACE at index 1  
             map.insert(SymbolId(2), 2); // RBRACE at index 2
-            map.insert(SymbolId(3), 3); // EOF at index 3
             map
         },
         external_scanner_states: vec![],
@@ -73,7 +72,8 @@ fn accept_via_insertion_at_eof_cost_is_one() {
             map.insert(SymbolId(4), 0); // start symbol at index 0
             map
         },
-        eof_symbol: SymbolId(3), // EOF = token_count + external_token_count
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        eof_symbol: SymbolId(0), // EOF must be 0 by convention
         start_symbol: SymbolId(4),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),

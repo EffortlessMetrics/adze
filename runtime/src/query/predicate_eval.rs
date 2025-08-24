@@ -57,9 +57,9 @@ impl<'a> PredicateContext<'a> {
                 true
             }
 
-            Predicate::Custom { name, args: _ } => {
+            Predicate::Custom { name: _, args: _ } => {
                 // Custom predicates need external handlers
-                eprintln!("Warning: Custom predicate '{}' not implemented", name);
+                // eprintln!("Warning: Custom predicate '{}' not implemented", name);
                 true
             }
         }
@@ -105,8 +105,8 @@ impl<'a> PredicateContext<'a> {
             let regex = cache.entry(regex_str.to_string()).or_insert_with(|| {
                 match Regex::new(regex_str) {
                     Ok(re) => re,
-                    Err(e) => {
-                        eprintln!("Invalid regex '{}': {}", regex_str, e);
+                    Err(_e) => {
+                        // eprintln!("Invalid regex '{}': {}", regex_str, e);
                         // Return a regex that never matches
                         // Using a character class that can never match
                         Regex::new(r"^\b$").unwrap()

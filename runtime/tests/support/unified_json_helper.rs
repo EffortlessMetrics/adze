@@ -25,7 +25,7 @@ pub fn unified_json_language() -> &'static TSLanguage {
     let grammar = json_grammar::build_json_grammar();
 
     let ff = FirstFollowSets::compute(&grammar);
-    let table = build_lr1_automaton(&grammar, &ff).expect("build LR(1) automaton");
+    let mut table = build_lr1_automaton(&grammar, &ff).expect("build LR(1) automaton");
 
     // Fail fast if something drifts
     eprintln!(
@@ -60,7 +60,10 @@ pub fn unified_json_language() -> &'static TSLanguage {
         "symbol index too small"
     );
 
-    let lang = language_builder::build_ts_language(&grammar, &table);
+    // Normalize the table to Tree-sitter format before building the language
+    language_builder::normalize_table_for_ts(&mut table);
+
+    let lang = language_builder::build_json_ts_language(&grammar, &table);
     Box::leak(Box::new(lang))
 }
 
@@ -145,6 +148,7 @@ fn make_minimal_parse_table(grammar: Grammar) -> ParseTable {
         external_scanner_states: vec![],
         rules: vec![], // Fill with real rules when ready
         nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(1),
         grammar,
@@ -154,6 +158,7 @@ fn make_minimal_parse_table(grammar: Grammar) -> ParseTable {
         lex_modes: vec![],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),

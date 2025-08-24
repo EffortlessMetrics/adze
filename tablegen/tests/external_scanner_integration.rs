@@ -1,4 +1,4 @@
-use rust_sitter_glr_core::{Action, LexMode, ParseTable, SymbolMetadata};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{ExternalToken, Grammar, StateId, SymbolId};
 use rust_sitter_tablegen::StaticLanguageGenerator;
 use rust_sitter_tablegen::external_scanner::ExternalScannerGenerator;
@@ -52,9 +52,11 @@ fn test_language_generation_with_external_scanner() {
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
     };
 
     // Add symbol metadata for all symbols including externals
@@ -157,6 +159,7 @@ fn test_node_types_include_external_tokens() {
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),
@@ -170,6 +173,7 @@ fn test_node_types_include_external_tokens() {
             52
         ],
         external_scanner_states: vec![],
+        goto_indexing: GotoIndexing::NonterminalMap,
     };
     let generator = StaticLanguageGenerator::new(grammar, parse_table);
 

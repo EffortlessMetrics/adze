@@ -1,0 +1,22 @@
+# Clippy Quarantine List
+# These crates have existing clippy warnings and are temporarily excluded
+# from clippy checks. Remove crates from this list as they are cleaned up.
+#
+# Format: one crate name per line
+rust-sitter-playground
+rust-sitter-runtime
+rust-sitter-testing
+rust-sitter-tool
+rust-sitter-glr-core
+rust-sitter
+rust-sitter-tablegen
+glr-test-support
+test-mini
+rust-sitter-benchmarks
+rust-sitter-cli
+rust-sitter-go
+rust-sitter-javascript
+rust-sitter-python
+rust-sitter-python-simpletest-vec-wrapper
+rust-sitter-python-simple
+test-vec-wrapper

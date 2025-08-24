@@ -1,5 +1,5 @@
-use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable, sanity_check_tables};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use rust_sitter_glr_core::{Action, LexMode, ParseTable, sanity_check_tables};
+use rust_sitter_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 #[test]
@@ -15,7 +15,7 @@ fn create_simple_test_table() -> ParseTable {
     // State 0: a -> shift 1, EOF -> error
     // State 1: EOF -> accept
 
-    let mut action_table = vec![
+    let action_table = vec![
         vec![vec![Action::Shift(StateId(1))], vec![Action::Error]], // State 0
         vec![vec![Action::Error], vec![Action::Accept]],            // State 1
     ];
@@ -26,10 +26,10 @@ fn create_simple_test_table() -> ParseTable {
     ];
 
     let mut symbol_to_index = BTreeMap::new();
-    symbol_to_index.insert(SymbolId(0), 0); // token 'a'
-    symbol_to_index.insert(SymbolId(1), 1); // EOF
+    symbol_to_index.insert(SymbolId(1), 0); // token 'a'
+    symbol_to_index.insert(SymbolId(0), 1); // EOF (normalized to 0)
 
-    let index_to_symbol = vec![SymbolId(0), SymbolId(1)];
+    let index_to_symbol = vec![SymbolId(1), SymbolId(0)];
 
     ParseTable {
         action_table,
@@ -42,7 +42,8 @@ fn create_simple_test_table() -> ParseTable {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        eof_symbol: SymbolId(1),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        eof_symbol: SymbolId(0),
         start_symbol: SymbolId(2),
         grammar: Grammar::default(),
         initial_state: StateId(0),
@@ -57,6 +58,7 @@ fn create_simple_test_table() -> ParseTable {
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),

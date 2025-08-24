@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
+use rust_sitter_glr_core::{Action, GotoIndexing, ParseTable, SymbolMetadata};
 /// Test grammars for benchmarking incremental parsing
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
@@ -293,6 +293,7 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
 
         // Dynamic precedence
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
 
         // Aliasing
         alias_sequences: vec![],
@@ -303,6 +304,9 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
 
         // Grammar metadata
         grammar: Grammar::new("arithmetic".to_string()),
+
+        // GOTO indexing mode
+        goto_indexing: GotoIndexing::NonterminalMap,
     };
 
     (grammar, table)

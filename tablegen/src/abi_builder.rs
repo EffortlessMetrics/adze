@@ -94,6 +94,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let primary_state_ids = self.generate_primary_state_ids();
         let production_id_map = self.generate_production_id_map();
         let production_lhs_index = self.generate_production_lhs_index();
+        let ts_rules = self.generate_ts_rules();
         let variant_symbol_map = self.generate_variant_symbol_map();
 
         // Generate external scanner data if needed
@@ -253,6 +254,9 @@ impl<'a> AbiLanguageBuilder<'a> {
             // Production LHS index (maps production IDs to LHS symbols in table index space)
             static PRODUCTION_LHS_INDEX: &[u16] = &[#(#production_lhs_index),*];
 
+            // Rule metadata for GLR parsing
+            static TS_RULES: &[TSRule] = &[#(#ts_rules),*];
+
             // Variant symbol map (for Extract trait to use)
             #variant_symbol_map
 
@@ -293,6 +297,8 @@ impl<'a> AbiLanguageBuilder<'a> {
                 production_lhs_index: PRODUCTION_LHS_INDEX.as_ptr(),
                 production_count: #production_id_count as u16,
                 eof_symbol: 0, // EOF is always column 0 in Tree-sitter convention
+                rules: TS_RULES.as_ptr(),
+                rule_count: TS_RULES.len() as u16,
             };
 
             // Export the language function for FFI
@@ -1252,6 +1258,35 @@ impl<'a> AbiLanguageBuilder<'a> {
         }
 
         lhs_indices
+    }
+
+    fn generate_ts_rules(&self) -> Vec<TokenStream> {
+        // Generate TSRule structs for each production
+        let mut ts_rules = Vec::new();
+
+        // Get all rules sorted by production ID
+        let mut rules: Vec<_> = self
+            .grammar
+            .rules
+            .iter()
+            .flat_map(|(_, rules)| rules.iter())
+            .collect();
+        rules.sort_by_key(|rule| rule.production_id.0);
+
+        // For each production, create a TSRule
+        for rule in &rules {
+            let lhs = rule.lhs.0;
+            let rhs_len = rule.rhs.len() as u8;
+            ts_rules.push(quote! {
+                TSRule {
+                    lhs: #lhs,
+                    rhs_len: #rhs_len,
+                    _pad: 0,
+                }
+            });
+        }
+
+        ts_rules
     }
 
     /// Calculate counts for the language structure

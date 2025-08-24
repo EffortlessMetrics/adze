@@ -4,6 +4,7 @@
 // Subtree representation with dynamic precedence support
 
 use rust_sitter_ir::SymbolId;
+use smallvec::SmallVec;
 use std::sync::Arc;
 
 /// Node information for a subtree
@@ -60,6 +61,10 @@ pub struct Subtree {
 
     /// Child subtrees with optional field information
     pub children: Vec<ChildEdge>,
+
+    /// Alternative parse trees for ambiguous nodes
+    /// Empty = single parse, non-empty = ambiguity pack
+    pub alternatives: SmallVec<[Arc<Subtree>; 2]>,
 }
 
 impl Subtree {
@@ -85,6 +90,7 @@ impl Subtree {
             node,
             dynamic_prec: max_child_prec,
             children: children_with_fields,
+            alternatives: SmallVec::new(),
         }
     }
 
@@ -101,6 +107,7 @@ impl Subtree {
             node,
             dynamic_prec: max_child_prec,
             children,
+            alternatives: SmallVec::new(),
         }
     }
 
@@ -130,6 +137,7 @@ impl Subtree {
             node,
             dynamic_prec: dynamic_prec.max(max_child_prec),
             children: children_with_fields,
+            alternatives: SmallVec::new(),
         }
     }
 
@@ -150,6 +158,7 @@ impl Subtree {
             node,
             dynamic_prec: dynamic_prec.max(max_child_prec),
             children,
+            alternatives: SmallVec::new(),
         }
     }
 
@@ -166,5 +175,83 @@ impl Subtree {
     /// Get the byte range for this subtree
     pub fn byte_range(&self) -> std::ops::Range<usize> {
         self.node.byte_range.clone()
+    }
+
+    /// Check if this subtree has ambiguous alternatives
+    pub fn is_ambiguous(&self) -> bool {
+        !self.alternatives.is_empty()
+    }
+
+    /// Check if this subtree has alternatives
+    pub fn has_alts(&self) -> bool {
+        !self.alternatives.is_empty()
+    }
+
+    /// Get all alternatives (not including the primary tree)
+    pub fn alternatives_iter(&self) -> impl Iterator<Item = &Arc<Subtree>> {
+        self.alternatives.iter()
+    }
+
+    /// Merge two subtrees with the same top, preserving all alternatives
+    pub fn merge_ambiguous(mut self, other: Arc<Subtree>) -> Self {
+        // If the other tree also has alternatives, merge them all
+        if !other.alternatives.is_empty() {
+            for alt in &other.alternatives {
+                if !self.alternatives.iter().any(|a| Arc::ptr_eq(a, alt)) {
+                    self.alternatives.push(alt.clone());
+                }
+            }
+        }
+
+        // Add the other tree itself as an alternative (if not already present)
+        // Need to check by pointer equality since we're moving other
+        let other_ptr = Arc::as_ptr(&other);
+        if !self
+            .alternatives
+            .iter()
+            .any(|a| Arc::as_ptr(a) == other_ptr)
+        {
+            // Keep the highest dynamic precedence before moving
+            self.dynamic_prec = self.dynamic_prec.max(other.dynamic_prec);
+            self.alternatives.push(other);
+        } else {
+            // Still update precedence even if not adding
+            self.dynamic_prec = self.dynamic_prec.max(other.dynamic_prec);
+        }
+
+        self
+    }
+
+    /// Create a new subtree with the given alternative
+    pub fn with_alts(mut self, alt: Arc<Subtree>) -> Self {
+        if !self.alternatives.iter().any(|a| Arc::ptr_eq(a, &alt)) {
+            self.alternatives.push(alt);
+        }
+        self
+    }
+
+    /// Add an alternative to this subtree (deduplicating by pointer)
+    pub fn push_alt(mut self, alt: Arc<Subtree>) -> Self {
+        let alt_ptr = Arc::as_ptr(&alt);
+        if !self.alternatives.iter().any(|a| Arc::as_ptr(a) == alt_ptr) {
+            self.dynamic_prec = self.dynamic_prec.max(alt.dynamic_prec);
+            self.alternatives.push(alt);
+        }
+        self
+    }
+
+    /// Concatenate alternatives from two subtrees (deduplicating)
+    pub fn concat_alts(mut self, other: Arc<Subtree>) -> Self {
+        // First add the other tree as an alternative
+        self = self.push_alt(other.clone());
+
+        // Then add all of its alternatives
+        for alt in &other.alternatives {
+            if !self.alternatives.iter().any(|a| Arc::ptr_eq(a, alt)) {
+                self.alternatives.push(alt.clone());
+            }
+        }
+
+        self
     }
 }

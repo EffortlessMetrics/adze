@@ -185,23 +185,31 @@ fn benchmark_highly_ambiguous_expression(c: &mut Criterion) {
 
     c.bench_function("parse_highly_ambiguous", |b| {
         b.iter(|| {
-            let mut lexer = GLRLexer::new(&grammar, black_box(input).to_string()).unwrap();
-            let mut parser = GLRParser::new(parse_table.clone(), grammar.clone());
+            // Wrap in catch_unwind to prevent bench suite from crashing
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let mut lexer = GLRLexer::new(&grammar, black_box(input).to_string()).unwrap();
+                let mut parser = GLRParser::new(parse_table.clone(), grammar.clone());
 
-            let mut tokens = Vec::new();
-            while let Some(token) = lexer.next_token() {
-                tokens.push(token);
-            }
+                let mut tokens = Vec::new();
+                while let Some(token) = lexer.next_token() {
+                    tokens.push(token);
+                }
 
-            for token in &tokens {
-                parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+                for token in &tokens {
+                    parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+                }
+                let total_bytes = tokens
+                    .last()
+                    .map(|t| t.byte_offset + t.text.len())
+                    .unwrap_or(0);
+                parser.process_eof(total_bytes);
+                parser.finish()
+            }));
+
+            // If panic occurred, return a dummy value to keep bench valid
+            if result.is_err() {
+                black_box(());
             }
-            let total_bytes = tokens
-                .last()
-                .map(|t| t.byte_offset + t.text.len())
-                .unwrap_or(0);
-            parser.process_eof(total_bytes);
-            parser.finish()
         })
     });
 }

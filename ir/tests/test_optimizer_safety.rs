@@ -181,9 +181,12 @@ fn test_unit_rule_elimination_preserves_semantics() {
     );
 
     // Just verify the grammar is still functional
-    assert!(optimized.rules.len() > 0, "Grammar should still have rules");
     assert!(
-        optimized.tokens.len() > 0,
+        !optimized.rules.is_empty(),
+        "Grammar should still have rules"
+    );
+    assert!(
+        !optimized.tokens.is_empty(),
         "Grammar should still have tokens"
     );
 
@@ -268,7 +271,7 @@ fn test_optimizer_handles_left_recursion() {
 
     // Verify grammar is still valid
     assert!(
-        grammar.rules.len() > 0,
+        !grammar.rules.is_empty(),
         "Grammar should still have rules after optimization"
     );
 }

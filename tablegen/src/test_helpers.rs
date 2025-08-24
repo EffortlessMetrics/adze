@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 pub(crate) mod test {
-    use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
+    use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
     use rust_sitter_ir::{Grammar, StateId, SymbolId};
     use std::collections::BTreeMap;
 
@@ -122,11 +122,14 @@ pub(crate) mod test {
             external_scanner_states: vec![],
             // advanced features (unused in hand tests)
             dynamic_prec_by_rule: vec![],
+            rule_assoc_by_rule: vec![],
             alias_sequences: vec![],
             field_names: vec![],
             field_map: BTreeMap::new(),
             // display / provenance (defaults are fine for tests)
             grammar: Grammar::default(),
+            // GOTO indexing mode
+            goto_indexing: GotoIndexing::NonterminalMap,
         }
     }
 

@@ -169,8 +169,10 @@ fn test_json_simple_object() {
         ],
         extras: vec![], // TODO: Extract from tree-sitter
         dynamic_prec_by_rule: vec![0; rule_count],
+        rule_assoc_by_rule: vec![0; rule_count],
         alias_sequences: vec![],
         field_names: vec![],
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         field_map: BTreeMap::new(),
     };
 

@@ -1,5 +1,5 @@
 // Test helper functions for creating valid ParseTable instances
-use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable, SymbolMetadata};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
@@ -37,9 +37,11 @@ pub fn create_minimal_parse_table(grammar: Grammar) -> ParseTable {
         }],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
     }
 }
 
@@ -92,8 +94,10 @@ pub fn create_test_parse_table_with_content(
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
     }
 }

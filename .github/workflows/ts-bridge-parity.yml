@@ -1,0 +1,41 @@
+name: ts-bridge-parity
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *' # nightly
+
+concurrency:
+  group: ts-bridge-parity
+  cancel-in-progress: true
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    continue-on-error: true # Non-blocking job
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Build ts-bridge
+        run: cargo build -p ts-bridge --release
+      - name: Run parity cases
+        run: |
+          set -e
+          # Example grammars - adjust to your examples
+          for g in json python; do
+            echo "=== Parity: $g ==="
+            # ts-bridge is expected to produce a JSON report with stats
+            ./target/release/ts-bridge --grammar examples/$g --out /tmp/tsb-report-$g.json || true
+            echo "Report: /tmp/tsb-report-$g.json"
+            jq -C '.summary' /tmp/tsb-report-$g.json || true
+          done
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: ts-bridge-reports
+          path: /tmp/tsb-report-*.json
+          if-no-files-found: ignore

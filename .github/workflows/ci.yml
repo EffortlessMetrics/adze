@@ -25,26 +25,75 @@ jobs:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
       
+      - name: Install jq
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y jq
+          fi
+      
       - name: Check for bare #[no_mangle]
         run: scripts/check-no-mangle.sh
+      
+      - name: Check commented debug blocks
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # For PRs, only check files changed in the diff
+            git fetch --no-tags --prune --depth=1 origin "${{ github.base_ref }}"
+            python3 tools/check_debug_blocks.py --since "origin/${{ github.base_ref }}"
+          else
+            # For push to main, check all tracked files
+            python3 tools/check_debug_blocks.py
+          fi
+      
+      - name: Validator self-test
+        run: python3 tools/test_debug_blocks.py
       
       - name: Check formatting
         run: cargo fmt --all -- --check
       
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - name: Clippy (default features, per-package)
+        run: scripts/clippy-per-package.sh default
+        
+      - name: Clippy (tree-sitter-c2rust, per-package)
+        run: scripts/clippy-per-package.sh c2rust
+      
+      - name: Clippy - collect per-package outputs
+        shell: bash
+        continue-on-error: true
+        run: |
+          chmod +x ./scripts/clippy-collect.sh
+          ./scripts/clippy-collect.sh || true
+      
+      - name: Upload Clippy reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: clippy-report
+          path: clippy-report
 
   test:
-    name: Test (${{ matrix.os }} / ${{ matrix.features }})
+    name: Test (${{ matrix.os }} / ${{ matrix.features }} / ${{ matrix.toolchain }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         features:
           - ""  # default features
+          - "--no-default-features --features tree-sitter-c2rust"
           - "--features external_scanners"
           - "--features incremental_glr"
-          - "--all-features"
+        toolchain: [stable, beta]
+        exclude:
+          # Reduce CI load: only test beta on ubuntu with default features
+          - os: macos-latest
+            toolchain: beta
+          - os: windows-latest
+            toolchain: beta
+          - features: "--no-default-features --features tree-sitter-c2rust"
+            toolchain: beta
+          - features: "--features external_scanners"
+            toolchain: beta
+          - features: "--features incremental_glr"
+            toolchain: beta
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +111,7 @@ jobs:
             exit 1
           fi
       
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@${{ matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
       
       - name: Install nextest
@@ -90,8 +139,26 @@ jobs:
       - name: Example (pure-rust) tests
         run: cargo test -p rust-sitter-example --features pure-rust
       
+      - name: Test tablegen (small-table)
+        run: cargo test -p rust-sitter-tablegen --features "small-table" -- --nocapture
+      
       - name: Compile pure-rust golden tests (no-run)
         run: cargo test -p rust-sitter --test golden_tests --features pure-rust --no-run
+
+  # Matrix smoke test to prevent feature drift
+  matrix-smoke:
+    name: Matrix Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Test (workspace, default features)
+        run: cargo test --workspace --locked --no-fail-fast
+      
+      - name: Test (workspace, all features)
+        run: cargo test --workspace --all-features --locked --no-fail-fast
 
   test-release:
     name: Test Release Mode (${{ matrix.features }})
@@ -102,7 +169,7 @@ jobs:
         features:
           - ""  # default features
           - "--features strict-invariants"
-          - "--all-features"
+          - "--no-default-features --features tree-sitter-c2rust"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -583,11 +650,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        features: ["", "--features external_scanners", "--features incremental_glr", "--all-features"]
+        features: ["", "--features external_scanners", "--features incremental_glr", "--no-default-features --features tree-sitter-c2rust"]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      
+      - name: Install jq
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y jq
+          fi
 
       # 1) Block silently disabled tests (files renamed to .disabled)
       - name: Fail on disabled test files

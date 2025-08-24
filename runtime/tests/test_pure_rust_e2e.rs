@@ -269,6 +269,8 @@ fn create_arithmetic_language() -> &'static TSLanguage {
         eof_symbol: 0,                          // Add missing field
         production_count: 6,                    // Add missing field
         production_lhs_index: std::ptr::null(), // Add missing field
+        rules: std::ptr::null(),                // Add missing field
+        rule_count: 0,                          // Add missing field
     };
 
     &LANGUAGE

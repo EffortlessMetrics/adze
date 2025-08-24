@@ -89,7 +89,7 @@ fn test_arithmetic_with_lexer() {
     // expr → term
     grammar
         .rules
-        .entry(SymbolId(9))
+        .entry(expr_id)
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: expr_id,
@@ -121,7 +121,7 @@ fn test_arithmetic_with_lexer() {
     // term → factor
     grammar
         .rules
-        .entry(SymbolId(10))
+        .entry(term_id)
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: term_id,
@@ -149,7 +149,7 @@ fn test_arithmetic_with_lexer() {
     // factor → ( expr )
     grammar
         .rules
-        .entry(SymbolId(11))
+        .entry(factor_id)
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: factor_id,
@@ -251,7 +251,7 @@ fn test_json_with_lexer() {
 
     grammar
         .rules
-        .entry(SymbolId(6))
+        .entry(value_id)
         .or_insert_with(Vec::new)
         .push(Rule {
             lhs: value_id,

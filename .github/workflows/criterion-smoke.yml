@@ -1,0 +1,27 @@
+name: criterion-smoke
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 3 * * 1' # weekly
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    continue-on-error: true # Non-blocking job
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Run small benchmarks
+        run: |
+          # Run a small subset / faster flag for CI
+          RUSTFLAGS='-C target-cpu=native' cargo bench -p rust-sitter -- --warm-up-time 0 --measurement-time 1 || true
+      - name: Upload bench output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: criterion-smoke
+          path: target/criterion/
+          if-no-files-found: ignore

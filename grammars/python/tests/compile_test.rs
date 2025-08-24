@@ -8,7 +8,7 @@ fn test_language_struct_compiles() {
     // Check that some basic fields exist
     assert!(LANGUAGE.version > 0);
     assert!(LANGUAGE.symbol_count > 0);
-    assert!(LANGUAGE.field_count >= 0);
+    // field_count can be 0 for grammars without fields
 
     println!("Language version: {}", LANGUAGE.version);
     println!("Symbol count: {}", LANGUAGE.symbol_count);

@@ -36,9 +36,9 @@ fn eof_invariants() {
     // Create a minimal ParseTable to test invariants
     use std::collections::BTreeMap;
     let mut symbol_to_index = BTreeMap::new();
-    symbol_to_index.insert(SymbolId(0), 0); // ERROR
+    symbol_to_index.insert(SymbolId(0), 0); // EOF (by convention)
     symbol_to_index.insert(SymbolId(1), 1); // terminal
-    symbol_to_index.insert(SymbolId(2), 2); // EOF
+    symbol_to_index.insert(SymbolId(2), 2); // terminal
     symbol_to_index.insert(SymbolId(3), 3); // start symbol
 
     let tables = ParseTable {
@@ -51,7 +51,8 @@ fn eof_invariants() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        eof_symbol: SymbolId(2),
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        eof_symbol: SymbolId(0),
         start_symbol: SymbolId(3),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
@@ -63,6 +64,7 @@ fn eof_invariants() {
         }],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),
@@ -75,11 +77,11 @@ fn eof_invariants() {
 
 #[test]
 #[cfg(debug_assertions)]
-#[should_panic(expected = "EOF symbol cannot be ERROR symbol")]
-fn eof_cannot_be_error() {
+fn eof_must_be_zero() {
+    // Test that EOF is normalized to SymbolId(0) by convention
     use std::collections::BTreeMap;
     let mut symbol_to_index = BTreeMap::new();
-    symbol_to_index.insert(SymbolId(0), 0); // EOF at symbol 0 (ERROR)
+    symbol_to_index.insert(SymbolId(0), 0); // EOF at symbol 0 (by convention)
 
     let tables = ParseTable {
         action_table: vec![vec![vec![]; 4]],
@@ -91,7 +93,8 @@ fn eof_cannot_be_error() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        eof_symbol: SymbolId(0), // Invalid: EOF = ERROR
+        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        eof_symbol: SymbolId(0), // Valid: EOF = 0 by convention
         start_symbol: SymbolId(1),
         grammar: rust_sitter_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
@@ -103,12 +106,16 @@ fn eof_cannot_be_error() {
         }],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),
         symbol_metadata: vec![],
     };
 
-    // This should panic with our invariant check
+    // This should NOT panic - EOF=0 is now the convention
     let _driver = Driver::new(&tables);
+
+    // Verify the driver accepts EOF=0
+    assert_eq!(tables.eof_symbol, SymbolId(0));
 }

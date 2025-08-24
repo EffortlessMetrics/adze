@@ -109,6 +109,12 @@ pub mod symbol_comparison;
 #[doc(hidden)]
 pub mod version_info;
 
+#[cfg(test)]
+pub mod test_helpers;
+
+#[cfg(test)]
+pub mod test_symbol_alloc;
+
 #[doc(hidden)]
 pub use advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
@@ -1349,15 +1355,27 @@ pub struct LexMode {
     pub external_lex_state: u16,
 }
 
+/// How GOTO table columns are indexed
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GotoIndexing {
+    /// Use nonterminal_to_index mapping (standard)
+    NonterminalMap,
+    /// Use SymbolId.0 directly as column index (some table generators)
+    DirectSymbolId,
+}
+
 /// GLR-compatible parse table supporting multiple actions per state
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseTable {
+    /// ACTION table: indexed by [state][terminal] using symbol_to_index
     pub action_table: Vec<Vec<ActionCell>>,
+    /// GOTO table: indexed by [state][nonterminal] using nonterminal_to_index or direct ID
     pub goto_table: Vec<Vec<StateId>>,
     pub symbol_metadata: Vec<SymbolMetadata>,
     pub state_count: usize,
     pub symbol_count: usize,
+    /// Maps terminal symbols to ACTION table column indices
     pub symbol_to_index: BTreeMap<SymbolId, usize>,
     /// Index -> SymbolId, perfectly mirroring `symbol_to_index`.
     pub index_to_symbol: Vec<SymbolId>,
@@ -1365,8 +1383,10 @@ pub struct ParseTable {
     pub external_scanner_states: Vec<Vec<bool>>,
     /// Grammar rules for reduction
     pub rules: Vec<ParseRule>,
-    /// Mapping from nonterminal symbols to goto table columns
+    /// Maps nonterminal symbols to GOTO table column indices
     pub nonterminal_to_index: BTreeMap<SymbolId, usize>,
+    /// How GOTO table columns are indexed
+    pub goto_indexing: GotoIndexing,
     /// EOF symbol ID
     pub eof_symbol: SymbolId,
     /// Start symbol ID
@@ -1385,6 +1405,8 @@ pub struct ParseTable {
     pub extras: Vec<SymbolId>,
     /// Dynamic precedence for each rule (optional)
     pub dynamic_prec_by_rule: Vec<i16>,
+    /// Associativity for each rule: -1=Right, 0=None, +1=Left
+    pub rule_assoc_by_rule: Vec<i8>,
     /// Alias sequences for rules
     pub alias_sequences: Vec<Vec<Option<SymbolId>>>,
     /// Field names
@@ -1402,6 +1424,90 @@ pub struct ParseRule {
 }
 
 impl ParseTable {
+    /// Builder method to auto-detect GOTO indexing
+    pub fn with_detected_goto_indexing(mut self) -> Self {
+        self.detect_goto_indexing();
+        self
+    }
+
+    /// Normalize EOF symbol to SymbolId(0) for consistency
+    /// This ensures compatibility with various table producers
+    pub fn normalize_eof_to_zero(mut self) -> Self {
+        // If EOF is already 0, nothing to do
+        if self.eof_symbol == SymbolId(0) {
+            return self;
+        }
+
+        let old_eof = self.eof_symbol;
+        // Log the normalization for debugging
+        #[cfg(debug_assertions)]
+        eprintln!("Normalizing EOF from {:?} to SymbolId(0)", old_eof);
+
+        // Get the indices for remapping
+        let old_idx = self.symbol_to_index.get(&old_eof).copied();
+        let zero_idx = self.symbol_to_index.get(&SymbolId(0)).copied();
+
+        // Swap columns in ACTION table if both indices exist
+        if let (Some(old_idx), Some(zero_idx)) = (old_idx, zero_idx) {
+            for row in &mut self.action_table {
+                if old_idx < row.len() && zero_idx < row.len() {
+                    row.swap(old_idx, zero_idx);
+                }
+            }
+            // Now: 0 → old_idx, old_eof → (removed)
+            self.symbol_to_index.insert(SymbolId(0), old_idx);
+            self.symbol_to_index.remove(&old_eof);
+
+            // Update index_to_symbol if it exists
+            if old_idx < self.index_to_symbol.len() {
+                self.index_to_symbol[old_idx] = SymbolId(0);
+            }
+        } else if let Some(old_idx) = old_idx {
+            // Only old EOF existed: move its column mapping to 0
+            self.symbol_to_index.remove(&old_eof);
+            self.symbol_to_index.insert(SymbolId(0), old_idx);
+
+            // Update index_to_symbol if it exists
+            if old_idx < self.index_to_symbol.len() {
+                self.index_to_symbol[old_idx] = SymbolId(0);
+            }
+        } else {
+            // Neither mapped: ensure EOF->0 exists so consumers don't panic
+            self.symbol_to_index.insert(SymbolId(0), 0);
+        }
+
+        // Update EOF symbol
+        self.eof_symbol = SymbolId(0);
+        self
+    }
+
+    /// Auto-detect the GOTO indexing mode based on table contents
+    pub fn detect_goto_indexing(&mut self) {
+        // Try to determine if the start symbol has a valid GOTO from state 0
+        let start_nt = self.start_symbol;
+
+        // Check if start symbol has entry via nonterminal_to_index
+        let col_map = self
+            .nonterminal_to_index
+            .get(&start_nt)
+            .and_then(|&c| self.goto_table.first().and_then(|row| row.get(c)))
+            .copied();
+
+        // Check if start symbol has entry via direct symbol ID
+        let col_direct = self
+            .goto_table
+            .first()
+            .and_then(|row| row.get(start_nt.0 as usize))
+            .copied();
+
+        self.goto_indexing = match (col_map, col_direct) {
+            (Some(s), _) if s.0 != 0 => GotoIndexing::NonterminalMap,
+            (_, Some(s)) if s.0 != 0 => GotoIndexing::DirectSymbolId,
+            // Default to nonterminal map; unit tests will catch a mismatch
+            _ => GotoIndexing::NonterminalMap,
+        };
+    }
+
     /// Get the terminal boundary (tokens + external tokens)
     #[inline]
     pub fn terminal_boundary(&self) -> usize {
@@ -1528,8 +1634,9 @@ impl ParseTable {
         // Check EOF equals terminal_boundary exactly
         let terminal_boundary = self.token_count + self.external_token_count;
         debug_assert_eq!(
-            self.eof_symbol.0 as usize, terminal_boundary,
-            "EOF must equal terminal_boundary (token_count + external_token_count)"
+            self.eof_symbol,
+            SymbolId(0),
+            "EOF must be SymbolId(0) by convention"
         );
 
         // Check EOF is not the internal ERROR sentinel
@@ -1539,13 +1646,8 @@ impl ParseTable {
             "EOF symbol cannot be the ERROR sentinel"
         );
 
-        // Legacy check: EOF is not 0
-        if self.eof_symbol.0 == 0 {
-            return Err(TableError::EofIsError);
-        }
-
-        // Check EOF equals terminal_boundary
-        if (self.eof_symbol.0 as usize) != terminal_boundary {
+        // Check EOF is SymbolId(0) by convention
+        if self.eof_symbol != SymbolId(0) {
             return Err(TableError::EofNotSentinel {
                 eof: self.eof_symbol.0,
                 token_count: self.token_count as u32,
@@ -1592,8 +1694,14 @@ impl ParseTable {
         }
 
         debug_assert_eq!(
-            self.eof_symbol.0 as usize, tb,
-            "EOF must equal terminal_boundary"
+            self.eof_symbol,
+            SymbolId(0),
+            "EOF must be SymbolId(0) by convention"
+        );
+
+        debug_assert!(
+            self.symbol_to_index.contains_key(&self.eof_symbol),
+            "EOF must exist in ACTION map"
         );
 
         // Check EOF/END parity if we have END symbol in Tree-sitter (last terminal)
@@ -1621,6 +1729,77 @@ impl ParseTable {
         }
 
         Ok(())
+    }
+
+    /// Remap GOTO table from NonterminalMap layout to DirectSymbolId layout.
+    /// No-op if already DirectSymbolId.
+    pub fn remap_goto_to_direct_symbol_id(mut self) -> Self {
+        if matches!(self.goto_indexing, GotoIndexing::DirectSymbolId) {
+            return self;
+        }
+        // Establish the max symbol id we need to size rows
+        let max_sym = self
+            .nonterminal_to_index
+            .keys()
+            .map(|s| s.0 as usize)
+            .max()
+            .unwrap_or(0);
+        let new_width = max_sym + 1;
+
+        for row in &mut self.goto_table {
+            // Defensive check: ensure all column indices are valid
+            debug_assert!(
+                self.nonterminal_to_index.values().all(|&c| c < row.len()),
+                "nonterminal_to_index contains a column >= row width"
+            );
+
+            let mut new_row = vec![StateId(0); new_width];
+            // Move each mapped nonterminal from its old column into the col = symbol id
+            for (sym, &old_col) in &self.nonterminal_to_index {
+                if old_col < row.len() {
+                    new_row[sym.0 as usize] = row[old_col];
+                }
+            }
+            *row = new_row;
+        }
+        self.goto_indexing = GotoIndexing::DirectSymbolId;
+        self
+    }
+
+    /// Remap GOTO table from DirectSymbolId layout to NonterminalMap layout.
+    /// No-op if already NonterminalMap.
+    pub fn remap_goto_to_nonterminal_map(mut self) -> Self {
+        if matches!(self.goto_indexing, GotoIndexing::NonterminalMap) {
+            return self;
+        }
+        // Compute width for the map layout
+        let width = self
+            .nonterminal_to_index
+            .values()
+            .copied()
+            .max()
+            .unwrap_or(0)
+            + 1;
+        for row in &mut self.goto_table {
+            // Defensive check: ensure source indices are valid
+            debug_assert!(
+                self.nonterminal_to_index
+                    .keys()
+                    .all(|s| (s.0 as usize) < row.len()),
+                "nonterminal_to_index contains a symbol id >= row width"
+            );
+
+            let mut new_row = vec![StateId(0); width];
+            for (sym, &col) in &self.nonterminal_to_index {
+                let src = sym.0 as usize;
+                if src < row.len() && col < new_row.len() {
+                    new_row[col] = row[src];
+                }
+            }
+            *row = new_row;
+        }
+        self.goto_indexing = GotoIndexing::NonterminalMap;
+        self
     }
 }
 
@@ -2547,13 +2726,32 @@ pub fn build_lr1_automaton(
         }
     }
 
-    // Build rules for reduction
+    // Build rules for reduction and collect precedence info
     let mut rules = Vec::new();
+    let mut dynamic_prec_by_rule = Vec::new();
+    let mut rule_assoc_by_rule = Vec::new();
+
     for rule in grammar.all_rules() {
         rules.push(ParseRule {
             lhs: rule.lhs,
             rhs_len: rule.rhs.len() as u16,
         });
+
+        // Extract precedence value for this rule
+        let prec = match rule.precedence {
+            Some(rust_sitter_ir::PrecedenceKind::Static(p)) => p,
+            Some(rust_sitter_ir::PrecedenceKind::Dynamic(p)) => p,
+            None => 0,
+        };
+        dynamic_prec_by_rule.push(prec);
+
+        // Extract associativity for this rule
+        let assoc = match rule.associativity {
+            Some(rust_sitter_ir::Associativity::Left) => 1,
+            Some(rust_sitter_ir::Associativity::Right) => -1,
+            _ => 0,
+        };
+        rule_assoc_by_rule.push(assoc);
     }
 
     // Build nonterminal_to_index mapping
@@ -2569,16 +2767,15 @@ pub fn build_lr1_automaton(
         }
     }
 
-    let rule_count = rules.len();
+    let _rule_count = rules.len();
 
     // Calculate proper counts for EOF symbol
     let token_count = grammar.tokens.len();
     let external_token_count = grammar.externals.len();
 
-    // EOF should be outside the normal symbol space
-    // The internal parser uses SymbolId(0) for EOF during construction,
-    // but we expose a proper EOF symbol that's outside the token space
-    let eof_symbol = SymbolId((token_count + external_token_count) as u16);
+    // EOF is always SymbolId(0) - this is the standard convention
+    // Using 0 avoids collisions with regular tokens and matches Tree-sitter
+    let eof_symbol = SymbolId(0);
 
     // Add EOF to symbol_to_index if not present
     // Map our EOF symbol to the same index as SymbolId(0) for compatibility
@@ -2597,7 +2794,7 @@ pub fn build_lr1_automaton(
         index_to_symbol[idx] = *sym;
     }
 
-    Ok(ParseTable {
+    let mut table = ParseTable {
         action_table,
         goto_table,
         symbol_metadata,
@@ -2608,6 +2805,7 @@ pub fn build_lr1_automaton(
         external_scanner_states,
         rules,
         nonterminal_to_index,
+        goto_indexing: GotoIndexing::NonterminalMap, // Will be auto-detected
         eof_symbol,
         start_symbol: original_start,
         grammar: grammar.clone(),
@@ -2621,12 +2819,18 @@ pub fn build_lr1_automaton(
             };
             state_count
         ],
-        extras: vec![],                            // TODO: Get from grammar metadata
-        dynamic_prec_by_rule: vec![0; rule_count], // TODO: Get from grammar
-        alias_sequences: vec![],                   // TODO: Get from grammar
-        field_names: vec![],                       // TODO: Get from grammar
-        field_map: BTreeMap::new(),                // TODO: Get from grammar
-    })
+        extras: vec![],             // TODO: Get from grammar metadata
+        dynamic_prec_by_rule,       // Now properly populated from grammar rules
+        rule_assoc_by_rule,         // Now properly populated from grammar rules
+        alias_sequences: vec![],    // TODO: Get from grammar
+        field_names: vec![],        // TODO: Get from grammar
+        field_map: BTreeMap::new(), // TODO: Get from grammar
+    };
+
+    // Auto-detect GOTO indexing mode
+    table.detect_goto_indexing();
+
+    Ok(table)
 }
 
 /// Sanity check parse table for correctness
@@ -3017,6 +3221,7 @@ mod tests {
             external_scanner_states: vec![],
             rules: vec![],
             nonterminal_to_index: BTreeMap::new(),
+            goto_indexing: GotoIndexing::NonterminalMap,
             eof_symbol: SymbolId(0),
             start_symbol: SymbolId(1),
             grammar: Grammar::new("test".to_string()),
@@ -3032,6 +3237,7 @@ mod tests {
             ],
             extras: vec![],
             dynamic_prec_by_rule: vec![],
+            rule_assoc_by_rule: vec![],
             alias_sequences: vec![],
             field_names: vec![],
             field_map: BTreeMap::new(),

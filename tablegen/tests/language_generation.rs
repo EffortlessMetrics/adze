@@ -1,4 +1,4 @@
-use rust_sitter_glr_core::{Action, LexMode, ParseTable, SymbolMetadata};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::{LanguageBuilder, StaticLanguageGenerator};
 
@@ -64,9 +64,11 @@ fn create_simple_grammar() -> (Grammar, ParseTable) {
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
         alias_sequences: vec![],
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
     };
 
     // Set up a simple action table

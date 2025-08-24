@@ -8,6 +8,7 @@
 use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::StateId;
 use rust_sitter_ir::{Grammar, SymbolId};
+use smallvec::SmallVec;
 use std::collections::{HashSet, VecDeque};
 
 /// Error recovery strategies that can be applied during parsing
@@ -47,12 +48,16 @@ pub enum RecoveryAction {
 pub struct ErrorRecoveryConfig {
     /// Maximum number of tokens to skip during panic mode
     pub max_panic_skip: usize,
-    /// Synchronization tokens for panic mode recovery
-    pub sync_tokens: HashSet<u16>,
-    /// Tokens that can be auto-inserted
-    pub insertable_tokens: HashSet<u16>,
+    /// Synchronization tokens for panic mode recovery (GLR-aware)
+    pub sync_tokens: SmallVec<[SymbolId; 8]>,
+    /// Tokens that can be auto-inserted during recovery
+    pub insert_candidates: SmallVec<[SymbolId; 8]>,
     /// Tokens that can be deleted during error recovery
     pub deletable_tokens: HashSet<u16>,
+    /// Maximum number of tokens to delete in a row
+    pub max_token_deletions: usize,
+    /// Maximum number of tokens to insert in a row
+    pub max_token_insertions: usize,
     /// Maximum number of consecutive errors before giving up
     pub max_consecutive_errors: usize,
     /// Enable phrase-level recovery
@@ -69,13 +74,13 @@ impl ErrorRecoveryConfig {
     /// Check if a token can be deleted
     pub fn can_delete_token(&self, token: rust_sitter_ir::SymbolId) -> bool {
         // Check if token is explicitly marked as deletable, or if it's not a sync token
-        self.deletable_tokens.contains(&token.0) || !self.sync_tokens.contains(&token.0)
+        self.deletable_tokens.contains(&token.0) || !self.sync_tokens.contains(&token)
     }
 
     /// Check if a token can be replaced
     pub fn can_replace_token(&self, token: rust_sitter_ir::SymbolId) -> bool {
         // Allow replacing if it's not a sync token
-        !self.sync_tokens.contains(&token.0)
+        !self.sync_tokens.contains(&token)
     }
 }
 
@@ -83,9 +88,11 @@ impl Default for ErrorRecoveryConfig {
     fn default() -> Self {
         Self {
             max_panic_skip: 50,
-            sync_tokens: HashSet::new(),
-            insertable_tokens: HashSet::new(),
+            sync_tokens: SmallVec::new(),
+            insert_candidates: SmallVec::new(),
             deletable_tokens: HashSet::new(),
+            max_token_deletions: 3,
+            max_token_insertions: 2,
             max_consecutive_errors: 10,
             enable_phrase_recovery: true,
             enable_scope_recovery: true,
@@ -269,20 +276,20 @@ impl ErrorRecoveryState {
     fn can_insert_token(&self, expected: &[u16]) -> bool {
         expected
             .iter()
-            .any(|s| self.config.insertable_tokens.contains(s))
+            .any(|s| self.config.insert_candidates.iter().any(|t| t.0 == *s))
     }
 
     fn find_insertable_token(&self, expected: &[u16]) -> Option<u16> {
         expected
             .iter()
-            .find(|s| self.config.insertable_tokens.contains(s))
+            .find(|s| self.config.insert_candidates.iter().any(|t| t.0 == **s))
             .copied()
     }
 
     fn is_clearly_wrong(&self, token: u16, expected: &[u16]) -> bool {
         // Token is clearly wrong if it's not in expected set
         // and it's not a sync token
-        !expected.contains(&token) && !self.config.sync_tokens.contains(&token)
+        !expected.contains(&token) && !self.config.sync_tokens.iter().any(|t| t.0 == token)
     }
 
     fn can_substitute_token(&self, _actual: u16, expected: &[u16]) -> bool {
@@ -381,12 +388,22 @@ impl ErrorRecoveryConfigBuilder {
     }
 
     pub fn add_sync_token(mut self, token: u16) -> Self {
-        self.config.sync_tokens.insert(token);
+        self.config.sync_tokens.push(SymbolId(token));
+        self
+    }
+
+    pub fn add_sync_token_sym(mut self, token: SymbolId) -> Self {
+        self.config.sync_tokens.push(token);
         self
     }
 
     pub fn add_insertable_token(mut self, token: u16) -> Self {
-        self.config.insertable_tokens.insert(token);
+        self.config.insert_candidates.push(SymbolId(token));
+        self
+    }
+
+    pub fn add_insertable_token_sym(mut self, token: SymbolId) -> Self {
+        self.config.insert_candidates.push(token);
         self
     }
 
@@ -464,9 +481,9 @@ mod tests {
             .build();
 
         assert_eq!(config.max_panic_skip, 100);
-        assert!(config.sync_tokens.contains(&1));
-        assert!(config.sync_tokens.contains(&2));
-        assert!(config.insertable_tokens.contains(&3));
+        assert!(config.sync_tokens.iter().any(|t| t.0 == 1));
+        assert!(config.sync_tokens.iter().any(|t| t.0 == 2));
+        assert!(config.insert_candidates.iter().any(|t| t.0 == 3));
         assert_eq!(config.scope_delimiters, vec![(4, 5)]);
         assert!(config.enable_indentation_recovery);
     }
@@ -474,8 +491,8 @@ mod tests {
     #[test]
     fn test_recovery_strategy_selection() {
         let mut config = ErrorRecoveryConfig::default();
-        config.insertable_tokens.insert(10);
-        config.sync_tokens.insert(20);
+        config.insert_candidates.push(SymbolId(10));
+        config.sync_tokens.push(SymbolId(20));
 
         let mut state = ErrorRecoveryState::new(config);
 
@@ -577,7 +594,7 @@ impl ErrorRecoveryState {
         // 1. Token insertion - check if any expected token is insertable
         if let Some(insertable) = expected_tokens
             .iter()
-            .find(|&&token| self.config.insertable_tokens.contains(&token.0))
+            .find(|&&token| self.config.insert_candidates.iter().any(|t| t == &token))
         {
             self.consecutive_errors = 0; // Reset on successful recovery
             return Some(RecoveryAction::InsertToken(*insertable));
@@ -625,7 +642,7 @@ mod tests2 {
 
         assert_eq!(config.max_panic_skip, 50);
         assert!(config.sync_tokens.is_empty());
-        assert!(config.insertable_tokens.is_empty());
+        assert!(config.insert_candidates.is_empty());
         assert_eq!(config.max_consecutive_errors, 10);
         assert!(config.enable_phrase_recovery);
         assert!(config.enable_scope_recovery);
@@ -636,8 +653,8 @@ mod tests2 {
     #[test]
     fn test_error_recovery_config_can_delete() {
         let mut config = ErrorRecoveryConfig::default();
-        config.sync_tokens.insert(10);
-        config.sync_tokens.insert(20);
+        config.sync_tokens.push(SymbolId(10));
+        config.sync_tokens.push(SymbolId(20));
 
         // Can delete non-sync tokens
         assert!(config.can_delete_token(SymbolId(5)));
@@ -651,7 +668,7 @@ mod tests2 {
     #[test]
     fn test_error_recovery_config_can_replace() {
         let mut config = ErrorRecoveryConfig::default();
-        config.sync_tokens.insert(30);
+        config.sync_tokens.push(SymbolId(30));
 
         // Can replace non-sync tokens
         assert!(config.can_replace_token(SymbolId(25)));

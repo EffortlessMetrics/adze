@@ -282,10 +282,10 @@ impl<'a> IncrementalParseSession<'a> {
                     self.reduce(rule_id)?;
                 }
                 Action::Accept => {
-                    println!(
-                        "Incremental parse complete. Reused {} subtrees",
-                        self.reused_count
-                    );
+                    // println!(
+                    //     "Incremental parse complete. Reused {} subtrees",
+                    //     self.reused_count
+                    // );
                     return self
                         .node_stack
                         .pop()

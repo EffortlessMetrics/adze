@@ -193,6 +193,21 @@ mod pure_rust_golden {
         // TODO: Check for error nodes when the parser is fully implemented
         assert!(tree.is_some() || tree.is_none()); // Parser may or may not produce tree with errors
     }
+
+    #[test]
+    fn json_nested_pure_rust() {
+        // Test nested objects and arrays with pure-Rust parser
+        let language = unified_json_helper::unified_json_language();
+        let mut parser = Parser::new();
+        parser.set_language(language).expect("set language");
+
+        let src = r#"{"outer": {"inner": true}, "n": null}"#;
+        let tree = parser.parse(src, None);
+
+        // For now, just verify the parser can handle nested structures
+        // More detailed assertions can be added as the parser matures
+        assert!(tree.is_some());
+    }
 }
 
 // --- Test fixture support (optional) -----------------------------------------

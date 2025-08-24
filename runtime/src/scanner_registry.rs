@@ -128,17 +128,17 @@ impl ScannerRegistry {
     where
         S: ExternalScanner + Default + Send + Sync + 'static,
     {
-        eprintln!("Registering scanner for language: {}", language);
+        // eprintln!("Registering scanner for language: {}", language);
         let factory: ScannerFactory = Box::new(|| {
             Box::new(RustScannerWrapper {
                 scanner: S::default(),
             })
         });
         self.scanners.insert(language.to_string(), factory);
-        eprintln!(
-            "Scanner registered. Total scanners: {}",
-            self.scanners.len()
-        );
+        // eprintln!(
+        //     "Scanner registered. Total scanners: {}",
+        //     self.scanners.len()
+        // );
     }
 
     /// Register a C external scanner
@@ -170,11 +170,11 @@ impl ScannerRegistry {
 
     /// Create a scanner instance for a language
     pub fn create_scanner(&self, language: &str) -> Option<Box<dyn DynExternalScanner>> {
-        eprintln!(
-            "Looking for scanner for language: '{}'. Available: {:?}",
-            language,
-            self.scanners.keys().collect::<Vec<_>>()
-        );
+        // eprintln!(
+        //     "Looking for scanner for language: '{}'. Available: {:?}",
+        //     language,
+        //     self.scanners.keys().collect::<Vec<_>>()
+        // );
         self.scanners.get(language).map(|factory| factory())
     }
 }

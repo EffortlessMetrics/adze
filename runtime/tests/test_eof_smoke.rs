@@ -48,6 +48,8 @@ fn eof_column_is_in_token_range() {
         production_count: 0,
         production_lhs_index: ptr::null(),
         eof_symbol: 0, // EOF is column 0 in Tree-sitter convention
+        rules: ptr::null(),
+        rule_count: 0,
     };
 
     // Verify EOF is in token range

@@ -97,6 +97,8 @@ fn create_test_language() -> &'static TSLanguage {
         field_count: 0,
         max_alias_sequence_length: 0,
         eof_symbol: 0,
+        rules: std::ptr::null(),
+        rule_count: 0,
         production_count: 3,
         production_lhs_index: ptr::null(),
         production_id_map: PRODUCTION_ID_MAP.as_ptr(),
@@ -258,6 +260,8 @@ fn test_invalid_language_version() {
         production_count: 0,
         production_lhs_index: ptr::null(),
         eof_symbol: 0,
+        rules: std::ptr::null(),
+        rule_count: 0,
     };
 
     assert!(parser.set_language(&INVALID_LANGUAGE).is_err());
