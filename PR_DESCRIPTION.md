@@ -7,15 +7,16 @@
 
 This PR completes the production-ready git hooks implementation with the following improvements:
 
-> **Note**: This PR includes a temporary **Clippy quarantine** for crates with existing warnings. These crates (`rust-sitter-playground`, `rust-sitter-runtime`, `rust-sitter-testing`, `rust-sitter-tool`, `rust-sitter-glr-core`, `rust-sitter`, `rust-sitter-tablegen`, `glr-test-support`, `test-mini`) are excluded from Clippy checks in both pre-push and CI. Clean crates remain protected by `-D warnings`. These will be cleaned up in follow-up PRs.
+> **Note**: This PR includes a temporary **Clippy quarantine** system for crates with existing warnings. Quarantined crates are listed in `.clippy-quarantine` and are excluded from Clippy checks in both pre-push and CI. Clean crates remain protected by `-D warnings`. These will be cleaned up in follow-up PRs.
 
 ### Key Changes
 
 **5. Clippy Quarantine System**
-   - Implemented `CLIPPY_EXCLUDE` environment variable for both hooks and CI
-   - Quarantined crates with existing warnings to keep PR green
+   - Single source of truth in `.clippy-quarantine` file
+   - Per-package clippy with `--no-deps` prevents dependency lint leakage
    - Clean crates remain protected with `-D warnings`
    - Easy to remove crates from quarantine as they're cleaned
+   - No false failures from quarantined dependencies
 
 ### Other Changes
 
@@ -71,9 +72,10 @@ git push origin main
 
 ## Files Changed
 
-- `.githooks/pre-commit` - Added conflict marker detection
-- `.githooks/pre-push` - Updated feature matrix  
-- `.github/workflows/ci.yml` - Replaced `--all-features` with feature matrix
+- `.githooks/pre-commit` - Added conflict marker detection, `--no-deps` flag
+- `.githooks/pre-push` - Per-package clippy with `--no-deps`
+- `.github/workflows/ci.yml` - Per-package clippy loops
+- `.clippy-quarantine` - New file with quarantined crates list
 - `scripts/affected-crates.sh` - Added root build.rs detection
 - `rust-toolchain.toml` - Added `profile = "minimal"`
 - `CONTRIBUTING.md` - Added comprehensive git hooks documentation

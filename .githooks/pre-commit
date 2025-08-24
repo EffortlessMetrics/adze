@@ -133,12 +133,12 @@ fi
 run_clippy_set() {
     local mode="$1"   # "default" or feature string
     if [ "$mode" = "default" ]; then
-        if ! cargo clippy -q --all-targets ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
+        if ! cargo clippy -q --all-targets --no-deps ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
             return 1
         fi
     else
         if ! cargo clippy -q --all-targets --no-default-features \
-             --features "$mode" ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
+             --features "$mode" --no-deps ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
             return 1
         fi
     fi

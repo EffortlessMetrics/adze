@@ -13,8 +13,6 @@ env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
   COVERAGE_THRESHOLD: 80
-  # Temporary quarantine list - will be removed as crates are cleaned
-  CLIPPY_EXCLUDE: rust-sitter-playground,rust-sitter-runtime,rust-sitter-testing,rust-sitter-tool,rust-sitter-glr-core,rust-sitter,rust-sitter-tablegen,glr-test-support,test-mini
 
 jobs:
   lint:
@@ -47,27 +45,69 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
       
-      - name: Clippy (default features)
+      - name: Clippy (default features, per-package)
         shell: bash
         run: |
-          EX_ARGS=""
-          IFS=',' read -ra ARR <<< "${CLIPPY_EXCLUDE:-}"
+          set -e
+          # Get all workspace packages
+          PKGS=$(cargo metadata --format-version 1 | jq -r '.workspace_members[] | split("#")[1] | split("@")[0]')
+          
+          # Read quarantine list from file
+          Q=""
+          if [ -f .clippy-quarantine ]; then
+            F=$(grep -v '^#' .clippy-quarantine 2>/dev/null | grep -v '^[[:space:]]*$' | tr '\n' ',' | sed 's/,$//')
+            Q="${Q:+$Q,}$F"
+          fi
+          
+          # Build quarantine map
+          declare -A QMAP
+          IFS=',' read -ra ARR <<< "${Q}"
           for P in "${ARR[@]}"; do
-            [[ -n "$P" ]] && EX_ARGS="$EX_ARGS --exclude $P"
+            [[ -n "$P" ]] && QMAP["$P"]=1
           done
-          echo "Running clippy with exclusions: $EX_ARGS"
-          cargo clippy --workspace --all-targets $EX_ARGS -- -D warnings
+          
+          # Check each package
+          echo "Checking packages with default features..."
+          for P in $PKGS; do
+            if [[ -n "${QMAP[$P]}" ]]; then
+              echo "  skip (quarantined): $P"
+              continue
+            fi
+            echo "  clippy: $P"
+            cargo clippy -q -p "$P" --all-targets --no-deps -- -D warnings
+          done
         
-      - name: Clippy (tree-sitter-c2rust features)
+      - name: Clippy (tree-sitter-c2rust, per-package)
         shell: bash
         run: |
-          EX_ARGS=""
-          IFS=',' read -ra ARR <<< "${CLIPPY_EXCLUDE:-}"
+          set -e
+          # Get all workspace packages
+          PKGS=$(cargo metadata --format-version 1 | jq -r '.workspace_members[] | split("#")[1] | split("@")[0]')
+          
+          # Read quarantine list from file
+          Q=""
+          if [ -f .clippy-quarantine ]; then
+            F=$(grep -v '^#' .clippy-quarantine 2>/dev/null | grep -v '^[[:space:]]*$' | tr '\n' ',' | sed 's/,$//')
+            Q="${Q:+$Q,}$F"
+          fi
+          
+          # Build quarantine map
+          declare -A QMAP
+          IFS=',' read -ra ARR <<< "${Q}"
           for P in "${ARR[@]}"; do
-            [[ -n "$P" ]] && EX_ARGS="$EX_ARGS --exclude $P"
+            [[ -n "$P" ]] && QMAP["$P"]=1
           done
-          echo "Running clippy with exclusions: $EX_ARGS"
-          cargo clippy --workspace --all-targets --no-default-features --features tree-sitter-c2rust $EX_ARGS -- -D warnings
+          
+          # Check each package
+          echo "Checking packages with tree-sitter-c2rust..."
+          for P in $PKGS; do
+            if [[ -n "${QMAP[$P]}" ]]; then
+              echo "  skip (quarantined): $P"
+              continue
+            fi
+            echo "  clippy: $P"
+            cargo clippy -q -p "$P" --all-targets --no-default-features --features tree-sitter-c2rust --no-deps -- -D warnings
+          done
 
   test:
     name: Test (${{ matrix.os }} / ${{ matrix.features }} / ${{ matrix.toolchain }})
