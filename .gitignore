@@ -5,3 +5,49 @@
 bench-output.txt
 **/criterion/
 **/bench-reports/
+
+# Temporary & build logs (scoped to avoid hiding test fixtures)
+**/*.log
+**/*.err
+/build*.log
+/build*.err
+/build*.txt
+/debug_*.log
+/debug_*.txt
+/test_*.log
+/test_*.txt
+
+# Keep repository text resources (fixtures, docs) tracked
+!xtask/fixtures/**/*.txt
+!docs/**/*.txt
+
+# Backup files
+*.orig
+*~
+*.bak
+*.swp
+*.swo
+.DS_Store
+
+# Debug and test scripts (root only)
+/debug_*.sh
+/test_*.sh
+/build_*.sh
+/check_*.sh
+/run_*.sh
+/verify_*.sh
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Build directories
+/build/
+/dist/
+/out/

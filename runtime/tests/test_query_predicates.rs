@@ -2,13 +2,12 @@
 #![allow(unused_imports, dead_code)]
 // TODO: This test file needs to be updated to work with the new Grammar API
 // The old API had get_or_add_symbol and different Rule structure
-#![allow(unexpected_cfgs)]
 #![cfg(skip_outdated_tests)]
 
 mod tests {
     use rust_sitter::{
         parser_v3::{ParseNode, Parser},
-        query::{Query, QueryCursor, compile_query},
+        query::{compile_query, Query, QueryCursor},
     };
     use rust_sitter_ir::{Grammar, Rule, RuleExpr, Symbol, SymbolId};
     use std::collections::HashMap;

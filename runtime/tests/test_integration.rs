@@ -2,7 +2,6 @@
 // These tests verify that all components work together correctly
 
 // TODO: These tests need to be updated to match the new API
-#![allow(unexpected_cfgs)]
 #![cfg(skip_integration_tests)]
 
 use anyhow::Result;

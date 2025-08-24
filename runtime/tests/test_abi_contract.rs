@@ -105,31 +105,31 @@ mod tests {
 
         // Accept beats Shift
         assert_eq!(
-            choose_action(&vec![accept.clone(), shift.clone()]),
+            choose_action(&[accept.clone(), shift.clone()]),
             Some(accept.clone())
         );
         assert_eq!(
-            choose_action(&vec![shift.clone(), accept.clone()]),
+            choose_action(&[shift.clone(), accept.clone()]),
             Some(accept.clone())
         );
 
         // Accept beats Reduce
         assert_eq!(
-            choose_action(&vec![accept.clone(), reduce.clone()]),
+            choose_action(&[accept.clone(), reduce.clone()]),
             Some(accept.clone())
         );
         assert_eq!(
-            choose_action(&vec![reduce.clone(), accept.clone()]),
+            choose_action(&[reduce.clone(), accept.clone()]),
             Some(accept.clone())
         );
 
         // Shift beats Reduce
         assert_eq!(
-            choose_action(&vec![shift.clone(), reduce.clone()]),
+            choose_action(&[shift.clone(), reduce.clone()]),
             Some(shift.clone())
         );
         assert_eq!(
-            choose_action(&vec![reduce.clone(), shift.clone()]),
+            choose_action(&[reduce.clone(), shift.clone()]),
             Some(shift.clone())
         );
     }
@@ -140,8 +140,8 @@ mod tests {
         let total_symbols = 80;
         let mut seen = vec![false; total_symbols];
 
-        for col in 0..total_symbols {
-            seen[col] = true;
+        for item in seen.iter_mut().take(total_symbols) {
+            *item = true;
         }
 
         for (i, &present) in seen.iter().enumerate() {
@@ -181,7 +181,7 @@ mod tests {
             rhs_len: usize,
         }
 
-        let rules = vec![
+        let rules = [
             Rule { rhs_len: 0 }, // Empty rule
             Rule { rhs_len: 1 }, // Single element
             Rule { rhs_len: 3 }, // Multiple elements

@@ -9,6 +9,7 @@ edition = "2024"
 license = "MIT"
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
+build = "build.rs"
 
 [lib]
 path = "src/lib.rs"
