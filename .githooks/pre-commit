@@ -201,38 +201,37 @@ run_clippy_set() {
     return 0
 }
 
-# Always run baseline (default features)
-echo "   clippy: default features"
-if ! run_clippy_set "default"; then
-    echo -e "${RED}✖ Clippy (default) failed${NC}"
-    echo ""
-    echo "To see detailed clippy output, run:"
-    if [ "${#pkg_args[@]}" -gt 0 ]; then
+# Check if we have any affected crates to lint
+if [ ${#pkg_args[@]} -eq 0 ]; then
+    echo "   no affected crates; skipping clippy in pre-commit"
+else
+    # Always run baseline (default features)
+    echo "   clippy: default features"
+    if ! run_clippy_set "default"; then
+        echo -e "${RED}✖ Clippy (default) failed${NC}"
+        echo ""
+        echo "To see detailed clippy output, run:"
         echo "  cargo clippy --all-targets ${pkg_args[*]}"
-    else
-        echo "  cargo clippy --all-targets"
+        echo ""
+        exit 1
     fi
-    echo ""
-    exit 1
 fi
 
 # Optional extended feature set at commit time (keeps commit fast by default)
-if [ "${RUN_EXTENDED:-0}" = "1" ]; then
+if [ "${RUN_EXTENDED:-0}" = "1" ] && [ ${#pkg_args[@]} -gt 0 ]; then
     echo "   clippy: tree-sitter-c2rust (no-default-features)"
     if ! run_clippy_set "tree-sitter-c2rust"; then
         echo -e "${RED}✖ Clippy (tree-sitter-c2rust) failed${NC}"
         echo ""
         echo "To see detailed clippy output, run:"
-        if [ "${#pkg_args[@]}" -gt 0 ]; then
-            echo "  cargo clippy --all-targets --no-default-features --features tree-sitter-c2rust ${pkg_args[*]}"
-        else
-            echo "  cargo clippy --all-targets --no-default-features --features tree-sitter-c2rust"
-        fi
+        echo "  cargo clippy --all-targets --no-default-features --features tree-sitter-c2rust ${pkg_args[*]}"
         echo ""
         exit 1
     fi
 fi
-echo -e "${GREEN}✓${NC} Clippy checks passed"
+if [ ${#pkg_args[@]} -gt 0 ]; then
+    echo -e "${GREEN}✓${NC} Clippy checks passed"
+fi
 
 # Step 5: Run GOTO indexing check with full diagnostics
 if [ -f scripts/check-goto-indexing.sh ]; then
