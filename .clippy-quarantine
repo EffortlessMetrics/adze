@@ -18,3 +18,5 @@ rust-sitter-go
 rust-sitter-javascript
 rust-sitter-python
 rust-sitter-python-simpletest-vec-wrapper
+rust-sitter-python-simple
+test-vec-wrapper
