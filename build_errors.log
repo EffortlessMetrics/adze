@@ -1,4 +1,0 @@
-    Blocking waiting for file lock on build directory
-   Compiling rust-sitter-tool v1.0.0 (/home/steven/code/rust-sitter/tool)
-   Compiling rust-sitter-example v1.0.0 (/home/steven/code/rust-sitter/example)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 12.14s
