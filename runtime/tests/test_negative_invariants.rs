@@ -3,7 +3,6 @@
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     // Test that wrong action tags are caught
     #[test]
@@ -13,6 +12,7 @@ mod tests {
         // We can't actually change the const, but we can test the assertion logic
         #[repr(u8)]
         #[derive(Debug, PartialEq, Clone, Copy)]
+        #[allow(dead_code)]
         enum BadActionTag {
             Error = 0,
             Shift = 1,
@@ -81,10 +81,10 @@ mod tests {
     #[test]
     #[should_panic(expected = "Sentinel detected")]
     fn test_sentinel_detection() {
-        let mut symbols = vec![1, 2, 3, 65535, 5]; // 65535 is the sentinel
+        let symbols = [1, 2, 3, 65535, 5]; // 65535 is the sentinel
 
         // Our sentinel check
-        if symbols.iter().any(|&s| s == 65535) {
+        if symbols.contains(&65535) {
             panic!("Sentinel detected in symbol table");
         }
 

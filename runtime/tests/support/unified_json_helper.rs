@@ -1,4 +1,3 @@
-#![cfg(feature = "pure-rust")]
 
 // Minimal "tablegen → unified parser" glue for tests.
 // This keeps the pure-Rust golden tests compileable, and lets you flip them on
@@ -10,11 +9,8 @@ mod language_builder;
 use std::collections::BTreeMap;
 
 use rust_sitter::pure_parser::TSLanguage;
-use rust_sitter_glr_core::{
-    build_lr1_automaton, ActionCell, FirstFollowSets, LexMode, ParseRule, ParseTable,
-    SymbolMetadata,
-};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId, Token, TokenPattern};
+use rust_sitter_glr_core::ParseTable;
+use rust_sitter_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
 
 /// Return a language when the pipeline is wired. Until then, fail fast.
 /// This preserves the type so tests compile, but avoids UB if someone

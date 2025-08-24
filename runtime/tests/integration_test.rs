@@ -1,5 +1,5 @@
 // Integration tests for the pure-Rust Tree-sitter implementation
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use rust_sitter::external_scanner::ScanResult;
 use rust_sitter::unified_parser::Parser;
 
 // Include the unified_json_helper module directly
@@ -235,7 +235,7 @@ fn test_table_compression() {
     // Compression is handled transparently by the runtime
     parser.set_timeout_micros(0);
     // If we can create a parser, basic functionality works
-    assert!(true);
+    // If we can create a parser, basic functionality works
 }
 
 #[test]
@@ -289,8 +289,6 @@ fn test_field_names_infrastructure() {
     // The ParsedNode structure has a field_name field
     // The extract_field_name function exists as a placeholder
     // Full implementation requires tracking child indices
-
-    use rust_sitter::pure_parser::ParsedNode;
 
     // Verify the field exists in the structure
     // This is a compile-time test - if it compiles, the field exists

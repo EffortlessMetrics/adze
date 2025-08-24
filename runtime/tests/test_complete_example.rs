@@ -250,7 +250,7 @@ fn test_complete_json_parser() {
     );
 
     // 3. Test with sample JSON
-    let test_cases = vec![
+    let test_cases = [
         r#"{"name": "rust-sitter", "version": "0.5.0"}"#,
         r#"[1, 2, 3, true, false, null]"#,
         r#"{"nested": {"array": [1, 2, 3]}, "empty": {}}"#,

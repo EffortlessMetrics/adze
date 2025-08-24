@@ -146,3 +146,6 @@ required-features = ["experimental_examples"]
 # [[example]]
 # name = "validation_demo"
 # required-features = ["experimental_examples"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(skip_integration_tests)', 'cfg(skip_outdated_tests)'] }

@@ -3,6 +3,7 @@ use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
 use rust_sitter_ir::Grammar;
 
 /// Build a parse table from a grammar - centralizes the construction logic
+#[allow(dead_code)]
 pub fn build_table(grammar: &Grammar) -> ParseTable {
     let ff = FirstFollowSets::compute(grammar);
     build_lr1_automaton(grammar, &ff).expect("Failed to build automaton")

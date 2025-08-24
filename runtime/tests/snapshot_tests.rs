@@ -3,8 +3,7 @@
 //! These tests ensure that changes to the parser generator don't accidentally
 //! break the output format or introduce subtle bugs in table encoding.
 
-use insta::{assert_debug_snapshot, assert_snapshot};
-use rust_sitter::*;
+use insta::assert_snapshot;
 
 #[cfg(feature = "incremental_glr")]
 mod glr_snapshots {
@@ -82,7 +81,7 @@ mod property_tests {
         #[test]
         fn parse_reparse_equivalence(tokens in arbitrary_tokens()) {
             // Property: parsing then reparsing should yield same result
-            let input = tokens.join(" ");
+            let _input = tokens.join(" ");
             // let result1 = parse(&input);
             // let result2 = parse(&input);
             // prop_assert_eq!(result1, result2);
@@ -124,7 +123,6 @@ mod codegen_contract_tests {
     #[test]
     fn ffi_language_struct_layout() {
         // Ensure FFI Language struct matches Tree-sitter ABI
-        use std::mem;
 
         // These sizes must match Tree-sitter's C ABI exactly
         // assert_eq!(mem::size_of::<Language>(), expected_size);

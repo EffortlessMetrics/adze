@@ -89,8 +89,6 @@ fn test_very_deep_parentheses() {
     let grammar = create_simple_grammar();
     let first_follow = FirstFollowSets::compute(&grammar);
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
-    let mut parser = GLRParser::new(parse_table.clone(), grammar.clone());
-
     // Test various depths
     let depths = vec![1, 5, 10, 20, 50, 100, 200, 500];
 
@@ -115,8 +113,8 @@ fn test_very_deep_parentheses() {
             }
         );
 
-        // Reset parser for new parse
-        parser = GLRParser::new(parse_table.clone(), grammar.clone());
+        // Create parser for new parse
+        let mut parser = GLRParser::new(parse_table.clone(), grammar.clone());
         let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
         let tokens = lexer.tokenize_all();
 
