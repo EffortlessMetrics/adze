@@ -10,10 +10,12 @@ pub struct Tree {
     /// Language used to parse this tree
     language: Option<Language>,
     /// Source text (optional, for convenience)
+    #[allow(dead_code)]
     source: Option<Vec<u8>>,
 }
 
 /// Internal tree node representation
+#[allow(dead_code)]
 pub(crate) struct TreeNode {
     /// Symbol type
     symbol: u32,
@@ -101,6 +103,7 @@ impl Tree {
     }
 
     /// Walk the tree with a callback
+    #[allow(dead_code)]
     pub(crate) fn walk<F>(&self, mut callback: F)
     where
         F: FnMut(&TreeNode),
@@ -109,6 +112,7 @@ impl Tree {
     }
 }
 
+#[allow(dead_code)]
 fn walk_tree_node<F>(node: &TreeNode, callback: &mut F)
 where
     F: FnMut(&TreeNode),

@@ -1,82 +1,85 @@
-# feat: Implement 16x Faster Incremental GLR Parsing with Direct Forest Splicing
+# PR: Production-Ready Git Hooks with Feature Matrix
 
-## 🚀 Overview
+## Title
+`dev(hooks): crate-aware Clippy + feature matrix; robust affected-crates`
 
-This PR lands the **Direct Forest Splicing** algorithm for incremental GLR parsing, delivering a **16.34x performance improvement** on incremental edits while correctly preserving parse ambiguity.
+## Summary
 
-## 📊 Performance Metrics
+This PR completes the production-ready git hooks implementation with the following improvements:
 
-**Benchmark Results** (1000 tokens, single edit):
-- **Before**: 3.53ms per incremental parse
-- **After**: 0.216ms per incremental parse  
-- **Speedup**: **16.34x faster**
-- **Subtree Reuse**: 999/1000 (99.9%)
-- **O(edit size)** complexity achieved
+### Key Changes
 
-## 🎯 Key Technical Achievements
+1. **Feature Matrix Instead of `--all-features`**
+   - Replaced problematic `--all-features` flag with explicit feature matrix
+   - Avoids duplicate `tree-sitter` alias collision
+   - Tests both default and `tree-sitter-c2rust` feature sets
 
-### 1. Direct Forest Splicing Algorithm
-- Replaces flawed GSS snapshot/restore with direct subtree reuse
-- Preserves **100% of parse ambiguity** for ambiguous grammars
-- Achieves O(edit size) performance characteristics
+2. **Enhanced Pre-commit Hook**
+   - Added conflict marker detection (fails fast)
+   - Staged-only rustfmt formatting
+   - Partial-staging guard
+   - Crate-aware Clippy (only affected crates)
+   - Locale normalization for consistency
 
-### 2. GLR Parser Architecture Enhancement
-- Action table now supports multiple actions per cell: `Vec<Vec<Vec<Action>>>`
-- Runtime fork/merge for shift/reduce and reduce/reduce conflicts
-- All 273 Python grammar symbols with 57 fields compile correctly
+3. **Robust Scripts**
+   - `affected-crates.sh`: TAB-safe `jq` parsing, portable `abspath`, includes root `build.rs`
+   - `check-goto-indexing.sh`: Graceful fallback when ripgrep missing
+   - All scripts show diagnostics for debugging
 
-### 3. Comprehensive Test Coverage
-- **999/1000 subtree reuse** on large edits
-- **Deep splicing** for nested function edits
-- **Ambiguous grammar preservation** verified
-- **Multi-token edit resilience** tested
+4. **CI Updates**
+   - Mirrors the same feature matrix as hooks
+   - Ensures local/CI parity
+   - Removed all `--all-features` usage
 
-## 🛠️ Workspace Stabilization
+5. **Documentation**
+   - Updated CONTRIBUTING.md with comprehensive git hooks guide
+   - Added prerequisites, setup instructions, and usage examples
+   - Documented environment variables for hook control
 
-Fixed compilation errors across 8 test files caused by recent API changes:
-- `process_eof()` now requires `total_bytes` parameter
-- `ParseNode.symbol` renamed to `symbol_id`
-- Complete refactor of `integration_test.rs` to modern API
-- External scanner imports updated
+## Developer Experience
 
-## 📋 Breaking Changes
+- **Fast commits**: Only affected crates are checked
+- **Deterministic**: Pinned toolchain, consistent formatting
+- **Team-friendly**: Clear error messages, graceful fallbacks
+- **CI parity**: Same checks locally and in CI
 
-### API Changes (with migration path):
-```rust
-// Before
-parser.process_eof();
-ParseNode { symbol: SymbolId(3), .. }
+## Usage
 
-// After  
-parser.process_eof(input.len());
-ParseNode { symbol_id: SymbolId(3), .. }
+```bash
+# Normal commit (fast path, default features)
+git commit -m "fix: parser logic"
+
+# Extended checks at commit time
+RUN_EXTENDED=1 git commit -m "feat: new feature"
+
+# Include quick per-crate tests
+RUN_QUICK_TESTS=1 git commit -m "test: add coverage"
+
+# Full validation on push (automatic)
+git push origin main
 ```
 
-## ✅ Testing Status
+## Files Changed
 
-- ✅ All workspace tests compile and pass
-- ✅ Incremental GLR comprehensive test suite passing
-- ✅ Python grammar compilation verified
-- ✅ Ambiguous grammar handling confirmed
+- `.githooks/pre-commit` - Added conflict marker detection
+- `.githooks/pre-push` - Updated feature matrix  
+- `.github/workflows/ci.yml` - Replaced `--all-features` with feature matrix
+- `scripts/affected-crates.sh` - Added root build.rs detection
+- `rust-toolchain.toml` - Added `profile = "minimal"`
+- `CONTRIBUTING.md` - Added comprehensive git hooks documentation
+- Various test files - Applied rustfmt and fixed clippy issues
 
-## 📚 Documentation
+## Testing
 
-- `GLR_INCREMENTAL_DESIGN.md` - Algorithm details and implementation notes
-- Extensive inline documentation for splicing logic
-- Test suite demonstrates usage patterns
+The hooks have been tested locally with:
+- Staged-only formatting
+- Crate-aware clippy checks
+- Feature matrix validation
+- Conflict marker detection
 
-## 🔄 Migration Guide
+## Next Steps
 
-For users upgrading:
-1. Update `process_eof()` calls to include byte length
-2. Rename `symbol` field accesses to `symbol_id`
-3. Update external scanner imports if using custom scanners
-
-## 🎉 Impact
-
-This feature makes rust-sitter's incremental parsing competitive with hand-optimized C implementations while maintaining the safety and correctness guarantees of Rust. The Direct Forest Splicing algorithm is a novel approach that could benefit other GLR parser implementations.
-
----
-
-**Closes**: #[issue-number]
-**Related**: Previous incremental parsing attempts (#xxx, #yyy)
+After merging this PR:
+1. Team members should update their local git config
+2. Consider a separate PR to address existing clippy warnings
+3. Monitor CI for any edge cases with the new feature matrix

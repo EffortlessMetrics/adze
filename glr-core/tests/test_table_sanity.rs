@@ -1,5 +1,5 @@
-use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable, sanity_check_tables};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use rust_sitter_glr_core::{Action, LexMode, ParseTable, sanity_check_tables};
+use rust_sitter_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 #[test]
@@ -15,7 +15,7 @@ fn create_simple_test_table() -> ParseTable {
     // State 0: a -> shift 1, EOF -> error
     // State 1: EOF -> accept
 
-    let mut action_table = vec![
+    let action_table = vec![
         vec![vec![Action::Shift(StateId(1))], vec![Action::Error]], // State 0
         vec![vec![Action::Error], vec![Action::Accept]],            // State 1
     ];

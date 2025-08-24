@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 mod parse;
 mod test;
@@ -141,7 +141,7 @@ pub fn run_generate(
 }
 
 pub fn run_parse(
-    file: &PathBuf,
+    file: &Path,
     parser: &Option<PathBuf>,
     format: &OutputFormat,
     fields: bool,
@@ -158,7 +158,7 @@ pub fn run_parse(
     parse::parse_file(file, parser.as_deref(), parse_format, fields, stats)
 }
 
-pub fn run_test(path: &PathBuf, filter: &Option<String>, update: bool) -> Result<()> {
+pub fn run_test(path: &Path, filter: &Option<String>, update: bool) -> Result<()> {
     test::run_tests(Some(path), None, filter.as_deref(), update, true)
 }
 
