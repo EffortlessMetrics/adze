@@ -1,7 +1,7 @@
 // Simple test to debug GLR parse table generation
 
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{ConflictResolver, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, ConflictResolver, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 #[test]
@@ -20,18 +20,14 @@ fn test_minimal_grammar() {
 
     // Single rule: S -> a
     let s_id = SymbolId(10);
-    grammar
-        .rules
-        .entry(s_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: s_id,
-            rhs: vec![Symbol::Terminal(SymbolId(0))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(s_id).or_default().push(Rule {
+        lhs: s_id,
+        rhs: vec![Symbol::Terminal(SymbolId(0))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
 
     println!(
         "Grammar created with {} rules and {} tokens",
@@ -93,36 +89,28 @@ fn test_simple_expression() {
     let expr_id = SymbolId(10);
 
     // expr -> num
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(SymbolId(0))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(SymbolId(0))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
 
     // expr -> expr + expr
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(SymbolId(1)),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(SymbolId(1)),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
 
     println!("\nExpression grammar:");
     println!("  Rules: {}", grammar.rules.len());

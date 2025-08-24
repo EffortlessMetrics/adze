@@ -17,8 +17,8 @@ fn create_simple_grammar() -> Grammar {
     let rparen = SymbolId(7);
     let lbrace = SymbolId(8);
     let rbrace = SymbolId(9);
-    let semicolon = SymbolId(10);
-    let equals = SymbolId(11);
+    let _semicolon = SymbolId(10);
+    let _equals = SymbolId(11);
 
     // Add tokens
     grammar.tokens.insert(
@@ -122,37 +122,29 @@ fn create_simple_grammar() -> Grammar {
         .insert(expression, "expression".to_string());
 
     // Add rules
-    grammar
-        .rules
-        .entry(program)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: program,
-            rhs: vec![Symbol::NonTerminal(statement)],
-            fields: vec![],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(program).or_default().push(Rule {
+        lhs: program,
+        rhs: vec![Symbol::NonTerminal(statement)],
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+    });
 
-    grammar
-        .rules
-        .entry(if_statement)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: if_statement,
-            rhs: vec![
-                Symbol::Terminal(keyword_if),
-                Symbol::Terminal(lparen),
-                Symbol::NonTerminal(expression),
-                Symbol::Terminal(rparen),
-                Symbol::NonTerminal(statement),
-            ],
-            fields: vec![],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(1),
-        });
+    grammar.rules.entry(if_statement).or_default().push(Rule {
+        lhs: if_statement,
+        rhs: vec![
+            Symbol::Terminal(keyword_if),
+            Symbol::Terminal(lparen),
+            Symbol::NonTerminal(expression),
+            Symbol::Terminal(rparen),
+            Symbol::NonTerminal(statement),
+        ],
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(1),
+    });
 
     grammar
 }
@@ -271,9 +263,7 @@ fn test_highlight_overlap_removal() {
 
     // Should keep the more specific highlight (identifier)
     // The overlap removal logic ensures we don't have overlapping ranges
-    assert!(
-        highlights
-            .iter()
-            .all(|h| h.highlight == "variable" || h.highlight == "expression")
-    );
+    assert!(highlights
+        .iter()
+        .all(|h| h.highlight == "variable" || h.highlight == "expression"));
 }

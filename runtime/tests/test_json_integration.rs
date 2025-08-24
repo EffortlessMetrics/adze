@@ -1,5 +1,5 @@
 // Integration test for JSON parsing with GLR parser
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -35,32 +35,24 @@ fn test_simple_json_grammar() {
     );
 
     // Add rules: value → number
-    grammar
-        .rules
-        .entry(value_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: value_id,
-            rhs: vec![Symbol::Terminal(number_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(value_id).or_default().push(Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
 
     // Add another rule: value → string
-    grammar
-        .rules
-        .entry(value_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: value_id,
-            rhs: vec![Symbol::Terminal(string_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
+    grammar.rules.entry(value_id).or_default().push(Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::Terminal(string_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
 
     // Add rule name
     grammar.rule_names.insert(value_id, "value".to_string());
@@ -114,18 +106,14 @@ fn test_json_object_grammar() {
     );
 
     // Add rule: object → { }
-    grammar
-        .rules
-        .entry(object_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: object_id,
-            rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(object_id).or_default().push(Rule {
+        lhs: object_id,
+        rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
 
     grammar.rule_names.insert(object_id, "object".to_string());
 
@@ -201,54 +189,42 @@ fn test_json_array_with_numbers() {
     );
 
     // Rule: array → [ elements ]
-    grammar
-        .rules
-        .entry(array_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: array_id,
-            rhs: vec![
-                Symbol::Terminal(lbracket_id),
-                Symbol::NonTerminal(elements_id),
-                Symbol::Terminal(rbracket_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(array_id).or_default().push(Rule {
+        lhs: array_id,
+        rhs: vec![
+            Symbol::Terminal(lbracket_id),
+            Symbol::NonTerminal(elements_id),
+            Symbol::Terminal(rbracket_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
 
     // Rule: elements → number
-    grammar
-        .rules
-        .entry(elements_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: elements_id,
-            rhs: vec![Symbol::Terminal(number_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
+    grammar.rules.entry(elements_id).or_default().push(Rule {
+        lhs: elements_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
 
     // Rule: elements → number , elements
-    grammar
-        .rules
-        .entry(elements_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: elements_id,
-            rhs: vec![
-                Symbol::Terminal(number_id),
-                Symbol::Terminal(comma_id),
-                Symbol::NonTerminal(elements_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(2),
-        });
+    grammar.rules.entry(elements_id).or_default().push(Rule {
+        lhs: elements_id,
+        rhs: vec![
+            Symbol::Terminal(number_id),
+            Symbol::Terminal(comma_id),
+            Symbol::NonTerminal(elements_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(2),
+    });
 
     grammar.rule_names.insert(array_id, "array".to_string());
     grammar

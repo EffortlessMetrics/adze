@@ -188,8 +188,7 @@ mod tests {
 
         // Release more stacks than the pool can hold
         for i in 0..5 {
-            let mut stack = Vec::new();
-            stack.push(i);
+            let stack = vec![i];
             pool.release(stack);
         }
 

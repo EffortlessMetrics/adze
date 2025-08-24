@@ -558,7 +558,7 @@ mod tests {
         let mut new_scanner = StringScanner::new();
         new_scanner.deserialize(&buffer);
 
-        assert_eq!(new_scanner.in_string, true);
+        assert!(new_scanner.in_string);
         assert_eq!(new_scanner.quote_char, Some(b'\''));
     }
 }

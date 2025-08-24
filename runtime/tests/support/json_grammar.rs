@@ -1,7 +1,7 @@
 #![cfg(feature = "pure-rust")]
+#![allow(dead_code)]
 
 use rust_sitter_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use std::collections::BTreeMap;
 
 // --- Terminals (tokens) -------------------------------------------------------
 pub const LBRACE: SymbolId = SymbolId(0);
@@ -11,6 +11,7 @@ pub const COMMA: SymbolId = SymbolId(3);
 pub const STRING: SymbolId = SymbolId(4);
 pub const NUMBER: SymbolId = SymbolId(5);
 // Optional (keeps lexer flexible)
+#[allow(dead_code)]
 const WS: SymbolId = SymbolId(6);
 
 // --- Nonterminals -------------------------------------------------------------

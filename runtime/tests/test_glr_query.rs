@@ -87,100 +87,76 @@ fn create_test_grammar() -> Grammar {
         .insert(number_expr_id, "number_expression".to_string());
 
     // expression → expression + term (add_expression)
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(plus_id),
-                Symbol::NonTerminal(term_id),
-            ],
-            precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-            associativity: Some(rust_sitter_ir::Associativity::Left),
-            production_id: ProductionId(0),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(plus_id),
+            Symbol::NonTerminal(term_id),
+        ],
+        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
+        associativity: Some(rust_sitter_ir::Associativity::Left),
+        production_id: ProductionId(0),
+        fields: vec![],
+    });
 
     // expression → term
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::NonTerminal(term_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(1),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::NonTerminal(term_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(1),
+        fields: vec![],
+    });
 
     // term → term * factor (mul_expression)
-    grammar
-        .rules
-        .entry(term_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: term_id,
-            rhs: vec![
-                Symbol::NonTerminal(term_id),
-                Symbol::Terminal(times_id),
-                Symbol::NonTerminal(factor_id),
-            ],
-            precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)),
-            associativity: Some(rust_sitter_ir::Associativity::Left),
-            production_id: ProductionId(2),
-            fields: vec![],
-        });
+    grammar.rules.entry(term_id).or_default().push(Rule {
+        lhs: term_id,
+        rhs: vec![
+            Symbol::NonTerminal(term_id),
+            Symbol::Terminal(times_id),
+            Symbol::NonTerminal(factor_id),
+        ],
+        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)),
+        associativity: Some(rust_sitter_ir::Associativity::Left),
+        production_id: ProductionId(2),
+        fields: vec![],
+    });
 
     // term → factor
-    grammar
-        .rules
-        .entry(term_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: term_id,
-            rhs: vec![Symbol::NonTerminal(factor_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(3),
-            fields: vec![],
-        });
+    grammar.rules.entry(term_id).or_default().push(Rule {
+        lhs: term_id,
+        rhs: vec![Symbol::NonTerminal(factor_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(3),
+        fields: vec![],
+    });
 
     // factor → ( expression ) (paren_expression)
-    grammar
-        .rules
-        .entry(factor_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: factor_id,
-            rhs: vec![
-                Symbol::Terminal(lparen_id),
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(rparen_id),
-            ],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(4),
-            fields: vec![],
-        });
+    grammar.rules.entry(factor_id).or_default().push(Rule {
+        lhs: factor_id,
+        rhs: vec![
+            Symbol::Terminal(lparen_id),
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(rparen_id),
+        ],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(4),
+        fields: vec![],
+    });
 
     // factor → number (number_expression)
-    grammar
-        .rules
-        .entry(factor_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: factor_id,
-            rhs: vec![Symbol::Terminal(number_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(5),
-            fields: vec![],
-        });
+    grammar.rules.entry(factor_id).or_default().push(Rule {
+        lhs: factor_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(5),
+        fields: vec![],
+    });
 
     // The parser will determine the starting symbol
     grammar

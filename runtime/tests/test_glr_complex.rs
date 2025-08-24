@@ -2,7 +2,7 @@
 
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_glr_core::{
-    CompareResult, FirstFollowSets, VersionInfo, build_lr1_automaton, compare_versions_with_symbols,
+    build_lr1_automaton, compare_versions_with_symbols, CompareResult, FirstFollowSets, VersionInfo,
 };
 use rust_sitter_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
@@ -72,7 +72,7 @@ fn build_ternary_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(SymbolId(1))],
@@ -86,7 +86,7 @@ fn build_ternary_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -106,7 +106,7 @@ fn build_ternary_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -169,7 +169,7 @@ fn build_reduce_reduce_grammar() -> Grammar {
     grammar
         .rules
         .entry(s_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: s_id,
             rhs: vec![Symbol::NonTerminal(x_id), Symbol::Terminal(SymbolId(3))],
@@ -183,7 +183,7 @@ fn build_reduce_reduce_grammar() -> Grammar {
     grammar
         .rules
         .entry(s_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: s_id,
             rhs: vec![Symbol::NonTerminal(y_id), Symbol::Terminal(SymbolId(3))],
@@ -197,7 +197,7 @@ fn build_reduce_reduce_grammar() -> Grammar {
     grammar
         .rules
         .entry(x_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: x_id,
             rhs: vec![Symbol::Terminal(SymbolId(1)), Symbol::Terminal(SymbolId(2))],
@@ -211,7 +211,7 @@ fn build_reduce_reduce_grammar() -> Grammar {
     grammar
         .rules
         .entry(y_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: y_id,
             rhs: vec![Symbol::Terminal(SymbolId(1)), Symbol::Terminal(SymbolId(2))],

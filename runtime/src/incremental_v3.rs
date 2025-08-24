@@ -97,14 +97,14 @@ impl SubtreePool {
             // Index by start position
             self.subtrees_by_start
                 .entry(byte_range.start)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(subtree.clone());
 
             // Index by symbol and size
             let key = (node.symbol, byte_range.end - byte_range.start);
             self.subtrees_by_symbol
                 .entry(key)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(subtree);
         }
 

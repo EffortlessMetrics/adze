@@ -1,7 +1,7 @@
 // Enhanced parser with full reduction support
 // This implements a complete LR parser with grammar-aware reductions
 
-use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
+use rust_sitter_glr_core::{compare_versions, Action, CompareResult, ParseTable, VersionInfo};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -566,22 +566,18 @@ mod tests {
 
         // Add rules
         // E -> E + T (symbol 10)
-        grammar
-            .rules
-            .entry(SymbolId(10))
-            .or_insert_with(Vec::new)
-            .push(Rule {
-                lhs: SymbolId(10), // E
-                rhs: vec![
-                    Symbol::NonTerminal(SymbolId(10)), // E
-                    Symbol::Terminal(SymbolId(2)),     // +
-                    Symbol::NonTerminal(SymbolId(11)), // T
-                ],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(0),
-                fields: Default::default(),
-            });
+        grammar.rules.entry(SymbolId(10)).or_default().push(Rule {
+            lhs: SymbolId(10), // E
+            rhs: vec![
+                Symbol::NonTerminal(SymbolId(10)), // E
+                Symbol::Terminal(SymbolId(2)),     // +
+                Symbol::NonTerminal(SymbolId(11)), // T
+            ],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: Default::default(),
+        });
 
         grammar
     }

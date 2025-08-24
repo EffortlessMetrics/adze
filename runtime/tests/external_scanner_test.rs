@@ -110,13 +110,11 @@ impl ExternalScanner for NestedCommentScanner {
         }
 
         // Look for (* to start
-        if self.depth == 0 {
-            if lexer.lookahead() == Some(b'(') {
+        if self.depth == 0 && lexer.lookahead() == Some(b'(') {
+            lexer.advance(1);
+            if lexer.lookahead() == Some(b'*') {
                 lexer.advance(1);
-                if lexer.lookahead() == Some(b'*') {
-                    lexer.advance(1);
-                    self.depth = 1;
-                }
+                self.depth = 1;
             }
         }
 

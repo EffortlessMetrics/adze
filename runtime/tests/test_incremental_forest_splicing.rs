@@ -1,7 +1,7 @@
 //! Test for the new forest splicing incremental parsing approach
 
 use rust_sitter::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser};
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -37,28 +37,28 @@ fn create_test_grammar() -> Grammar {
     );
 
     // Rules for expr: expr PLUS expr | NUM
-    let mut expr_rules = Vec::new();
-    expr_rules.push(Rule {
-        lhs: expr_id,
-        rhs: vec![
-            Symbol::NonTerminal(expr_id),
-            Symbol::Terminal(plus_id),
-            Symbol::NonTerminal(expr_id),
-        ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
-        fields: vec![],
-        production_id: ProductionId(0),
-    });
-
-    expr_rules.push(Rule {
-        lhs: expr_id,
-        rhs: vec![Symbol::Terminal(num_id)],
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-        production_id: ProductionId(1),
-    });
+    let expr_rules = vec![
+        Rule {
+            lhs: expr_id,
+            rhs: vec![
+                Symbol::NonTerminal(expr_id),
+                Symbol::Terminal(plus_id),
+                Symbol::NonTerminal(expr_id),
+            ],
+            precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
+            associativity: Some(rust_sitter_ir::Associativity::Left),
+            fields: vec![],
+            production_id: ProductionId(0),
+        },
+        Rule {
+            lhs: expr_id,
+            rhs: vec![Symbol::Terminal(num_id)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        },
+    ];
 
     grammar.rules.insert(expr_id, expr_rules);
 

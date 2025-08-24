@@ -4,7 +4,7 @@ use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilde
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -76,7 +76,7 @@ fn create_test_grammar() -> Grammar {
     grammar
         .rules
         .entry(stmt_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: stmt_id,
             rhs: vec![Symbol::NonTerminal(expr_id), Symbol::Terminal(semicolon_id)],
@@ -90,7 +90,7 @@ fn create_test_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -108,7 +108,7 @@ fn create_test_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -126,7 +126,7 @@ fn create_test_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(num_id)],

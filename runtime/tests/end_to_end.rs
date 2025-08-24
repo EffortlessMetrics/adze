@@ -99,61 +99,45 @@ fn create_arithmetic_grammar() -> Grammar {
     // factor -> ( expression ) (rule 120)
     // factor -> number (rule 121)
 
-    grammar
-        .rules
-        .entry(SymbolId(100))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: SymbolId(10), // expression
-            rhs: vec![
-                Symbol::NonTerminal(SymbolId(10)), // expression
-                Symbol::Terminal(SymbolId(2)),     // +
-                Symbol::NonTerminal(SymbolId(11)), // term
-            ],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-            fields: Default::default(),
-        });
+    grammar.rules.entry(SymbolId(100)).or_default().push(Rule {
+        lhs: SymbolId(10), // expression
+        rhs: vec![
+            Symbol::NonTerminal(SymbolId(10)), // expression
+            Symbol::Terminal(SymbolId(2)),     // +
+            Symbol::NonTerminal(SymbolId(11)), // term
+        ],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+        fields: Default::default(),
+    });
 
-    grammar
-        .rules
-        .entry(SymbolId(102))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: SymbolId(10),                            // expression
-            rhs: vec![Symbol::NonTerminal(SymbolId(11))], // term
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-            fields: Default::default(),
-        });
+    grammar.rules.entry(SymbolId(102)).or_default().push(Rule {
+        lhs: SymbolId(10),                            // expression
+        rhs: vec![Symbol::NonTerminal(SymbolId(11))], // term
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+        fields: Default::default(),
+    });
 
-    grammar
-        .rules
-        .entry(SymbolId(111))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: SymbolId(11),                            // term
-            rhs: vec![Symbol::NonTerminal(SymbolId(12))], // factor
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-            fields: Default::default(),
-        });
+    grammar.rules.entry(SymbolId(111)).or_default().push(Rule {
+        lhs: SymbolId(11),                            // term
+        rhs: vec![Symbol::NonTerminal(SymbolId(12))], // factor
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+        fields: Default::default(),
+    });
 
-    grammar
-        .rules
-        .entry(SymbolId(121))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: SymbolId(12),                        // factor
-            rhs: vec![Symbol::Terminal(SymbolId(1))], // number
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-            fields: Default::default(),
-        });
+    grammar.rules.entry(SymbolId(121)).or_default().push(Rule {
+        lhs: SymbolId(12),                        // factor
+        rhs: vec![Symbol::Terminal(SymbolId(1))], // number
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+        fields: Default::default(),
+    });
 
     grammar
 }
@@ -313,7 +297,7 @@ fn test_simple_parse() {
     }
 }
 
-/// Test the parse node structure
+// Test the parse node structure
 // TODO: Fix this test - ParseNode no longer has terminal/non_terminal constructors
 // #[test]
 // fn test_parse_node_structure() {
@@ -369,14 +353,10 @@ fn test_lexer_error_recovery() {
 
     // Should have: number, space, error(@), space, number
     assert!(tokens.iter().any(|t| t.symbol == SymbolId(999))); // Has error token
-    assert!(
-        tokens
-            .iter()
-            .any(|t| t.symbol == SymbolId(1) && t.text == b"123")
-    );
-    assert!(
-        tokens
-            .iter()
-            .any(|t| t.symbol == SymbolId(1) && t.text == b"456")
-    );
+    assert!(tokens
+        .iter()
+        .any(|t| t.symbol == SymbolId(1) && t.text == b"123"));
+    assert!(tokens
+        .iter()
+        .any(|t| t.symbol == SymbolId(1) && t.text == b"456"));
 }

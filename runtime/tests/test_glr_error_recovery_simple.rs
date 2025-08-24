@@ -4,7 +4,7 @@ use rust_sitter::error_recovery::ErrorRecoveryConfigBuilder;
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_simple_grammar() -> Grammar {
@@ -41,7 +41,7 @@ fn create_simple_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Rules are grouped by LHS
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -59,7 +59,7 @@ fn create_simple_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Rules are grouped by LHS
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![Symbol::Terminal(num_id)],

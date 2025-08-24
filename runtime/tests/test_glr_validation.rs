@@ -72,34 +72,28 @@ fn test_comprehensive_validation() {
     let expr_id = SymbolId(10);
     grammar.rule_names.insert(expr_id, "expr".to_string());
 
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(plus_id),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(plus_id),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
 
     let mut validator = GLRGrammarValidator::new();
     let result = validator.validate(&grammar);
 
     // Should detect left recursion
     assert!(result.stats.has_left_recursion);
-    assert!(
-        result
-            .warnings
-            .iter()
-            .any(|w| w.message.contains("left recursion"))
-    );
+    assert!(result
+        .warnings
+        .iter()
+        .any(|w| w.message.contains("left recursion")));
 
     // Should have helpful suggestions
     assert!(!result.suggestions.is_empty());
@@ -140,18 +134,14 @@ fn test_undefined_symbol_with_typo() {
     let expr_id = SymbolId(10);
     let identifer_typo_id = SymbolId(99);
 
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(identifer_typo_id)], // typo
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(identifer_typo_id)], // typo
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
     grammar.rule_names.insert(expr_id, "expr".to_string());
     grammar
         .rule_names
@@ -170,12 +160,10 @@ fn test_undefined_symbol_with_typo() {
 
     // Should suggest "identifier" as a correction
     assert!(!undefined_error.related.is_empty());
-    assert!(
-        undefined_error
-            .related
-            .iter()
-            .any(|r| r.message.contains("identifier"))
-    );
+    assert!(undefined_error
+        .related
+        .iter()
+        .any(|r| r.message.contains("identifier")));
 
     // Error should have helpful location info
     assert!(undefined_error.location.description.contains("expr"));
@@ -190,46 +178,34 @@ fn test_non_productive_cycle_detection() {
     let b_id = SymbolId(2);
     let c_id = SymbolId(3);
 
-    grammar
-        .rules
-        .entry(a_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: a_id,
-            rhs: vec![Symbol::NonTerminal(b_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(a_id).or_default().push(Rule {
+        lhs: a_id,
+        rhs: vec![Symbol::NonTerminal(b_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
     grammar.rule_names.insert(a_id, "A".to_string());
 
-    grammar
-        .rules
-        .entry(b_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: b_id,
-            rhs: vec![Symbol::NonTerminal(c_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
+    grammar.rules.entry(b_id).or_default().push(Rule {
+        lhs: b_id,
+        rhs: vec![Symbol::NonTerminal(c_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
     grammar.rule_names.insert(b_id, "B".to_string());
 
-    grammar
-        .rules
-        .entry(c_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: c_id,
-            rhs: vec![Symbol::NonTerminal(a_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(2),
-        });
+    grammar.rules.entry(c_id).or_default().push(Rule {
+        lhs: c_id,
+        rhs: vec![Symbol::NonTerminal(a_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(2),
+    });
     grammar.rule_names.insert(c_id, "C".to_string());
 
     let mut validator = GLRGrammarValidator::new();
@@ -237,12 +213,10 @@ fn test_non_productive_cycle_detection() {
 
     // Should detect non-productive symbols
     assert!(!result.is_valid);
-    assert!(
-        result
-            .errors
-            .iter()
-            .any(|e| e.kind == ErrorKind::NonProductiveSymbol)
-    );
+    assert!(result
+        .errors
+        .iter()
+        .any(|e| e.kind == ErrorKind::NonProductiveSymbol));
 
     // Should identify all symbols in the cycle
     let non_prod_errors: Vec<_> = result
@@ -312,60 +286,48 @@ fn test_ambiguous_grammar_detection() {
 
     // Rules that create ambiguity
     // stmt → if_stmt
-    grammar
-        .rules
-        .entry(stmt_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: stmt_id,
-            rhs: vec![Symbol::NonTerminal(if_stmt_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(stmt_id).or_default().push(Rule {
+        lhs: stmt_id,
+        rhs: vec![Symbol::NonTerminal(if_stmt_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
     grammar.rule_names.insert(stmt_id, "stmt".to_string());
 
     // if_stmt → if expr then stmt
-    grammar
-        .rules
-        .entry(if_stmt_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: if_stmt_id,
-            rhs: vec![
-                Symbol::Terminal(if_id),
-                Symbol::Terminal(expr_id),
-                Symbol::Terminal(then_id),
-                Symbol::NonTerminal(stmt_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
+    grammar.rules.entry(if_stmt_id).or_default().push(Rule {
+        lhs: if_stmt_id,
+        rhs: vec![
+            Symbol::Terminal(if_id),
+            Symbol::Terminal(expr_id),
+            Symbol::Terminal(then_id),
+            Symbol::NonTerminal(stmt_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
     grammar.rule_names.insert(if_stmt_id, "if_stmt".to_string());
 
     // Also allow: if_stmt → if expr then stmt else stmt (creates ambiguity)
-    grammar
-        .rules
-        .entry(if_stmt_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: if_stmt_id,
-            rhs: vec![
-                Symbol::Terminal(if_id),
-                Symbol::Terminal(expr_id),
-                Symbol::Terminal(then_id),
-                Symbol::NonTerminal(stmt_id),
-                Symbol::Terminal(else_id),
-                Symbol::NonTerminal(stmt_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(2),
-        });
+    grammar.rules.entry(if_stmt_id).or_default().push(Rule {
+        lhs: if_stmt_id,
+        rhs: vec![
+            Symbol::Terminal(if_id),
+            Symbol::Terminal(expr_id),
+            Symbol::Terminal(then_id),
+            Symbol::NonTerminal(stmt_id),
+            Symbol::Terminal(else_id),
+            Symbol::NonTerminal(stmt_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(2),
+    });
 
     let mut validator = GLRGrammarValidator::new();
     let result = validator.validate(&grammar);
@@ -374,12 +336,10 @@ fn test_ambiguous_grammar_detection() {
     assert!(result.stats.requires_glr);
 
     // Should have warnings about ambiguity
-    assert!(
-        result
-            .warnings
-            .iter()
-            .any(|w| w.message.contains("ambiguity"))
-    );
+    assert!(result
+        .warnings
+        .iter()
+        .any(|w| w.message.contains("ambiguity")));
 
     // Should suggest GLR parsing
     assert!(result.suggestions.iter().any(|s| s.contains("GLR")));
@@ -440,44 +400,34 @@ fn test_token_validation() {
 
     // Add a rule to make grammar non-empty
     let expr_id = SymbolId(10);
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(word1_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(word1_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
     grammar.rule_names.insert(expr_id, "expr".to_string());
 
     let mut validator = GLRGrammarValidator::new();
     let result = validator.validate(&grammar);
 
     // Should have errors for invalid tokens
-    assert!(
-        result
-            .errors
-            .iter()
-            .any(|e| e.kind == ErrorKind::InvalidToken && e.message.contains("regex"))
-    );
-    assert!(
-        result
-            .errors
-            .iter()
-            .any(|e| e.kind == ErrorKind::InvalidToken && e.message.contains("empty"))
-    );
+    assert!(result
+        .errors
+        .iter()
+        .any(|e| e.kind == ErrorKind::InvalidToken && e.message.contains("regex")));
+    assert!(result
+        .errors
+        .iter()
+        .any(|e| e.kind == ErrorKind::InvalidToken && e.message.contains("empty")));
 
     // Should warn about overlapping tokens
-    assert!(
-        result
-            .warnings
-            .iter()
-            .any(|w| w.message.contains("overlapping"))
-    );
+    assert!(result
+        .warnings
+        .iter()
+        .any(|w| w.message.contains("overlapping")));
 }
 
 #[test]
@@ -488,18 +438,14 @@ fn test_helpful_error_formatting() {
     let expr_id = SymbolId(1);
     let undefined_id = SymbolId(99);
 
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(undefined_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(undefined_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
     grammar.rule_names.insert(expr_id, "expression".to_string());
     grammar
         .rule_names
@@ -558,18 +504,14 @@ fn test_unreachable_symbol_warning() {
 
     // Create a rule that only uses one token
     let expr_id = SymbolId(10);
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(used_token)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(used_token)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
     grammar.rule_names.insert(expr_id, "expr".to_string());
 
     // Create an unreachable rule
@@ -577,7 +519,7 @@ fn test_unreachable_symbol_warning() {
     grammar
         .rules
         .entry(unreachable_rule)
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: unreachable_rule,
             rhs: vec![Symbol::Terminal(unused_token)],
@@ -594,18 +536,14 @@ fn test_unreachable_symbol_warning() {
     let result = validator.validate(&grammar);
 
     // Should warn about unused token and unreachable rule
-    assert!(
-        result
-            .warnings
-            .iter()
-            .any(|w| w.message.contains("unused") && w.message.contains("never used"))
-    );
-    assert!(
-        result
-            .warnings
-            .iter()
-            .any(|w| w.message.contains("unreachable_rule") && w.message.contains("not reachable"))
-    );
+    assert!(result
+        .warnings
+        .iter()
+        .any(|w| w.message.contains("unused") && w.message.contains("never used")));
+    assert!(result
+        .warnings
+        .iter()
+        .any(|w| w.message.contains("unreachable_rule") && w.message.contains("not reachable")));
 
     // Should still be valid (warnings don't make grammar invalid)
     assert!(result.is_valid);

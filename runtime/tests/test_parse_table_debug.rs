@@ -1,5 +1,5 @@
 // Debug parse table generation for ambiguous grammars
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_ambiguous_grammar() -> Grammar {
@@ -29,11 +29,7 @@ fn create_ambiguous_grammar() -> Grammar {
         production_id: ProductionId(0),
         fields: vec![],
     };
-    grammar
-        .rules
-        .entry(SymbolId(20))
-        .or_insert_with(Vec::new)
-        .push(rule1);
+    grammar.rules.entry(SymbolId(20)).or_default().push(rule1);
 
     // Rule 2: E → E E
     let rule2 = Rule {
@@ -44,11 +40,7 @@ fn create_ambiguous_grammar() -> Grammar {
         production_id: ProductionId(1),
         fields: vec![],
     };
-    grammar
-        .rules
-        .entry(SymbolId(21))
-        .or_insert_with(Vec::new)
-        .push(rule2);
+    grammar.rules.entry(SymbolId(21)).or_default().push(rule2);
 
     println!(
         "\n=== Checking Grammar ===\nRules count: {}\nTokens count: {}\nRule names count: {}",

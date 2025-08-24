@@ -27,6 +27,7 @@ pub enum RecoveryStrategy {
     /// Use scope-based recovery (e.g., balance brackets)
     ScopeRecovery,
     /// Use indentation-based recovery for languages like Python
+    #[allow(dead_code)]
     IndentationRecovery,
 }
 
@@ -38,8 +39,10 @@ pub enum RecoveryAction {
     /// Delete the current token
     DeleteToken,
     /// Replace the current token with another
+    #[allow(dead_code)]
     ReplaceToken(rust_sitter_ir::SymbolId),
     /// Create an error node containing problematic tokens
+    #[allow(dead_code)]
     CreateErrorNode(Vec<rust_sitter_ir::SymbolId>),
 }
 
@@ -127,8 +130,10 @@ pub struct ErrorNode {
     /// End byte position of the error
     pub end_byte: usize,
     /// Start position (row, column)
+    #[allow(dead_code)]
     pub start_position: (usize, usize),
     /// End position (row, column)
+    #[allow(dead_code)]
     pub end_position: (usize, usize),
     /// Expected symbols at this position
     pub expected: Vec<u16>,
@@ -137,6 +142,7 @@ pub struct ErrorNode {
     /// Recovery strategy used
     pub recovery: RecoveryStrategy,
     /// Skipped tokens during recovery
+    #[allow(dead_code)]
     pub skipped_tokens: Vec<u16>,
 }
 
@@ -262,11 +268,13 @@ impl ErrorRecoveryState {
     }
 
     /// Reset consecutive error count (called on successful parse)
+    #[allow(dead_code)]
     pub fn reset_consecutive_errors(&mut self) {
         self.consecutive_errors = 0;
     }
 
     /// Clear all error nodes
+    #[allow(dead_code)]
     pub fn clear_errors(&mut self) {
         self.error_nodes.clear();
     }
@@ -375,6 +383,7 @@ impl Default for ErrorRecoveryConfigBuilder {
     }
 }
 
+#[allow(dead_code)]
 impl ErrorRecoveryConfigBuilder {
     pub fn new() -> Self {
         Self {
@@ -712,8 +721,10 @@ mod tests2 {
 
     #[test]
     fn test_error_recovery_state_should_give_up() {
-        let mut config = ErrorRecoveryConfig::default();
-        config.max_consecutive_errors = 3;
+        let config = ErrorRecoveryConfig {
+            max_consecutive_errors: 3,
+            ..Default::default()
+        };
         let mut state = ErrorRecoveryState::new(config);
 
         assert!(!state.should_give_up());
@@ -727,9 +738,10 @@ mod tests2 {
 
     #[test]
     fn test_error_recovery_state_scope_operations() {
-        let mut config = ErrorRecoveryConfig::default();
-        // Set up scope delimiters for the test
-        config.scope_delimiters = vec![(100, 101), (200, 201)];
+        let config = ErrorRecoveryConfig {
+            scope_delimiters: vec![(100, 101), (200, 201)],
+            ..Default::default()
+        };
         let mut state = ErrorRecoveryState::new(config);
 
         // Push scope

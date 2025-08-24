@@ -2,7 +2,7 @@
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::glr_tree_bridge::subtree_to_tree;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -111,125 +111,88 @@ fn create_json_grammar() -> Grammar {
         .insert(elements_id, "elements".to_string());
 
     // Rules: value → number | string | object | array
-    let mut rule_id = 15;
 
-    grammar
-        .rules
-        .entry(value_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: value_id,
-            rhs: vec![Symbol::Terminal(number_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(value_id).or_default().push(Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
 
-    grammar
-        .rules
-        .entry(value_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: value_id,
-            rhs: vec![Symbol::Terminal(string_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
-    rule_id += 1;
+    grammar.rules.entry(value_id).or_default().push(Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::Terminal(string_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
 
-    grammar
-        .rules
-        .entry(value_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: value_id,
-            rhs: vec![Symbol::NonTerminal(object_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(2),
-        });
-    rule_id += 1;
+    grammar.rules.entry(value_id).or_default().push(Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::NonTerminal(object_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(2),
+    });
 
-    grammar
-        .rules
-        .entry(value_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: value_id,
-            rhs: vec![Symbol::NonTerminal(array_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(3),
-        });
-    rule_id += 1;
+    grammar.rules.entry(value_id).or_default().push(Rule {
+        lhs: value_id,
+        rhs: vec![Symbol::NonTerminal(array_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(3),
+    });
 
     // object → { members } | { }
-    grammar
-        .rules
-        .entry(object_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: object_id,
-            rhs: vec![
-                Symbol::Terminal(lbrace_id),
-                Symbol::NonTerminal(members_id),
-                Symbol::Terminal(rbrace_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(4),
-        });
+    grammar.rules.entry(object_id).or_default().push(Rule {
+        lhs: object_id,
+        rhs: vec![
+            Symbol::Terminal(lbrace_id),
+            Symbol::NonTerminal(members_id),
+            Symbol::Terminal(rbrace_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(4),
+    });
 
-    grammar
-        .rules
-        .entry(value_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: object_id,
-            rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(5),
-        });
-    rule_id += 1;
+    grammar.rules.entry(value_id).or_default().push(Rule {
+        lhs: object_id,
+        rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(5),
+    });
 
     // array → [ elements ] | [ ]
-    grammar
-        .rules
-        .entry(array_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: array_id,
-            rhs: vec![
-                Symbol::Terminal(lbracket_id),
-                Symbol::NonTerminal(elements_id),
-                Symbol::Terminal(rbracket_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(6),
-        });
+    grammar.rules.entry(array_id).or_default().push(Rule {
+        lhs: array_id,
+        rhs: vec![
+            Symbol::Terminal(lbracket_id),
+            Symbol::NonTerminal(elements_id),
+            Symbol::Terminal(rbracket_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(6),
+    });
 
-    grammar
-        .rules
-        .entry(value_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: array_id,
-            rhs: vec![Symbol::Terminal(lbracket_id), Symbol::Terminal(rbracket_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(7),
-        });
+    grammar.rules.entry(value_id).or_default().push(Rule {
+        lhs: array_id,
+        rhs: vec![Symbol::Terminal(lbracket_id), Symbol::Terminal(rbracket_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(7),
+    });
 
     grammar
 }
@@ -302,7 +265,7 @@ fn test_tree_bridge_json_object() {
             assert!(root.child_count() >= 2); // At least { and }
 
             // Use cursor to traverse
-            let cursor = root.walk();
+            let _cursor = root.walk();
 
             // Check we can access text
             let text = root.utf8_text(tree.text()).unwrap();

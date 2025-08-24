@@ -1,5 +1,5 @@
 // Test deep parentheses nesting
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // Import internal modules for testing
@@ -57,36 +57,28 @@ fn create_simple_grammar() -> Grammar {
 
     // Rules
     // Rule 1: expr → number
-    grammar
-        .rules
-        .entry(SymbolId(20))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(num_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-            fields: vec![],
-        });
+    grammar.rules.entry(SymbolId(20)).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(num_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+        fields: vec![],
+    });
 
     // Rule 2: expr → ( expr )
-    grammar
-        .rules
-        .entry(SymbolId(21))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::Terminal(lparen_id),
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(rparen_id),
-            ],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(1),
-            fields: vec![],
-        });
+    grammar.rules.entry(SymbolId(21)).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::Terminal(lparen_id),
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(rparen_id),
+        ],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(1),
+        fields: vec![],
+    });
 
     grammar
 }

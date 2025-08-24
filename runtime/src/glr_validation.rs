@@ -1262,12 +1262,10 @@ mod tests {
         let result = validator.validate(&grammar);
 
         assert!(!result.is_valid);
-        assert!(
-            result
-                .errors
-                .iter()
-                .any(|e| e.kind == ErrorKind::EmptyGrammar)
-        );
+        assert!(result
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::EmptyGrammar));
     }
 
     #[test]
@@ -1363,11 +1361,9 @@ mod tests {
         let result = validator.validate(&grammar);
 
         assert!(result.stats.has_left_recursion);
-        assert!(
-            result
-                .warnings
-                .iter()
-                .any(|w| w.message.contains("left recursion"))
-        );
+        assert!(result
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("left recursion")));
     }
 }

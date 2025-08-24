@@ -11,7 +11,6 @@ use rust_sitter_ir::Grammar;
 
 /// Helper to create a simple test grammar
 fn create_test_grammar() -> (Grammar, ParseTable) {
-    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
     use rust_sitter_ir::{ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     let mut grammar = Grammar::new("test".to_string());

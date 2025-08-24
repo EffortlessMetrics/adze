@@ -7,7 +7,7 @@ use rust_sitter::subtree::Subtree;
 // This test demonstrates parsing a complete grammar from definition to tree output
 
 use rust_sitter::glr_validation::GLRGrammarValidator;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
@@ -196,108 +196,84 @@ fn create_expression_grammar() -> Grammar {
     // Define rules with proper precedence
 
     // expression → expression + expression (left associative, precedence 1)
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(plus_id),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: Some(PrecedenceKind::Static(1)),
-            associativity: Some(Associativity::Left),
-            production_id: ProductionId(0),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(plus_id),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: Some(PrecedenceKind::Static(1)),
+        associativity: Some(Associativity::Left),
+        production_id: ProductionId(0),
+        fields: vec![],
+    });
 
     // expression → expression - expression (left associative, precedence 1)
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(minus_id),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: Some(PrecedenceKind::Static(1)),
-            associativity: Some(Associativity::Left),
-            production_id: ProductionId(1),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(minus_id),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: Some(PrecedenceKind::Static(1)),
+        associativity: Some(Associativity::Left),
+        production_id: ProductionId(1),
+        fields: vec![],
+    });
 
     // expression → expression * expression (left associative, precedence 2)
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(times_id),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: Some(PrecedenceKind::Static(2)),
-            associativity: Some(Associativity::Left),
-            production_id: ProductionId(2),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(times_id),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: Some(PrecedenceKind::Static(2)),
+        associativity: Some(Associativity::Left),
+        production_id: ProductionId(2),
+        fields: vec![],
+    });
 
     // expression → expression / expression (left associative, precedence 2)
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(divide_id),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: Some(PrecedenceKind::Static(2)),
-            associativity: Some(Associativity::Left),
-            production_id: ProductionId(3),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(divide_id),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: Some(PrecedenceKind::Static(2)),
+        associativity: Some(Associativity::Left),
+        production_id: ProductionId(3),
+        fields: vec![],
+    });
 
     // expression → ( expression )
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::Terminal(lparen_id),
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(rparen_id),
-            ],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(4),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::Terminal(lparen_id),
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(rparen_id),
+        ],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(4),
+        fields: vec![],
+    });
 
     // expression → number
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(number_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(5),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(5),
+        fields: vec![],
+    });
 
     grammar
 }
@@ -444,32 +420,24 @@ fn test_glr_with_ambiguous_grammar() {
     grammar.rule_names.insert(e_id, "E".to_string());
 
     // E → E E (ambiguous concatenation)
-    grammar
-        .rules
-        .entry(e_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: e_id,
-            rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-            fields: vec![],
-        });
+    grammar.rules.entry(e_id).or_default().push(Rule {
+        lhs: e_id,
+        rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+        fields: vec![],
+    });
 
     // E → 'a'
-    grammar
-        .rules
-        .entry(e_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: e_id,
-            rhs: vec![Symbol::Terminal(a_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(1),
-            fields: vec![],
-        });
+    grammar.rules.entry(e_id).or_default().push(Rule {
+        lhs: e_id,
+        rhs: vec![Symbol::Terminal(a_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(1),
+        fields: vec![],
+    });
 
     // Validate - should detect ambiguity
     let mut validator = GLRGrammarValidator::new();

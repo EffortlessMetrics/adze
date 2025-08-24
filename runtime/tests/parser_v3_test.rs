@@ -78,16 +78,8 @@ fn create_simple_arithmetic_grammar() -> Grammar {
         production_id: ProductionId(1),
     };
 
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(rule0);
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(rule1);
+    grammar.rules.entry(expr_id).or_default().push(rule0);
+    grammar.rules.entry(expr_id).or_default().push(rule1);
 
     grammar.production_ids.insert(RuleId(0), ProductionId(0));
     grammar.production_ids.insert(RuleId(1), ProductionId(1));
@@ -183,9 +175,9 @@ fn test_parse_number() {
     match parser.parse("42") {
         Ok(tree) => {
             assert_eq!(tree.root_kind, 3); // expr
-            // Tree structure no longer has children field
-            // assert_eq!(tree.children.len(), 1);
-            // assert_eq!(tree.children[0].symbol, SymbolId(1)); // number
+                                           // Tree structure no longer has children field
+                                           // assert_eq!(tree.children.len(), 1);
+                                           // assert_eq!(tree.children[0].symbol, SymbolId(1)); // number
         }
         Err(e) => panic!("Parse failed: {}", e),
     }
@@ -202,10 +194,10 @@ fn test_parse_addition() {
     match parser.parse("1+2") {
         Ok(tree) => {
             assert_eq!(tree.root_kind, 3); // expr
-            // Tree structure no longer has children field - skip child assertions
-            // assert_eq!(tree.children[0].symbol, SymbolId(3)); // expr (left)
-            // assert_eq!(tree.children[1].symbol, SymbolId(2)); // +
-            // assert_eq!(tree.children[2].symbol, SymbolId(3)); // expr (right)
+                                           // Tree structure no longer has children field - skip child assertions
+                                           // assert_eq!(tree.children[0].symbol, SymbolId(3)); // expr (left)
+                                           // assert_eq!(tree.children[1].symbol, SymbolId(2)); // +
+                                           // assert_eq!(tree.children[2].symbol, SymbolId(3)); // expr (right)
         }
         Err(e) => panic!("Parse failed: {}", e),
     }
@@ -223,7 +215,7 @@ fn test_parse_with_whitespace() {
     match parser.parse("1 + 2") {
         Ok(tree) => {
             assert_eq!(tree.root_kind, 3); // expr
-            // Tree structure no longer has children field - skip child assertions
+                                           // Tree structure no longer has children field - skip child assertions
         }
         Err(e) => panic!("Parse failed: {}", e),
     }

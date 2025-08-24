@@ -6,10 +6,6 @@
 rust-sitter-playground
 rust-sitter-runtime
 rust-sitter-testing
-rust-sitter-tool
-rust-sitter-glr-core
-rust-sitter
-rust-sitter-tablegen
 glr-test-support
 test-mini
 rust-sitter-benchmarks

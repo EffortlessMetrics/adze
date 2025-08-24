@@ -13,6 +13,7 @@ pub struct TokenWithPosition {
     pub symbol_id: SymbolId,
     pub text: String,
     pub byte_offset: usize,
+    #[allow(dead_code)]
     pub byte_length: usize,
 }
 
@@ -50,7 +51,11 @@ impl TokenMatcher {
             TokenMatcher::Regex(re) => {
                 // Ensure regex matches at start of string slice
                 if let Some(m) = re.find(&input[pos..]) {
-                    if m.start() == 0 { Some(m.len()) } else { None }
+                    if m.start() == 0 {
+                        Some(m.len())
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -177,6 +182,7 @@ impl GLRLexer {
     }
 
     /// Reset lexer to beginning
+    #[allow(dead_code)]
     pub fn reset(&mut self) {
         self.position = 0;
     }
@@ -192,6 +198,7 @@ impl GLRLexer {
 }
 
 /// Helper to tokenize input and feed to GLR parser
+#[allow(dead_code)]
 pub fn tokenize_and_parse<F>(grammar: &Grammar, input: &str, mut parse_fn: F) -> Result<(), String>
 where
     F: FnMut(SymbolId, &str, usize),

@@ -3,7 +3,7 @@ use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
 // Test for nested parentheses issue in GLR parser
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
@@ -67,54 +67,42 @@ fn create_expression_grammar() -> Grammar {
     let number_rule_id = SymbolId(25);
 
     // expression → expression + expression
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(plus_id),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: Some(PrecedenceKind::Static(1)),
-            associativity: Some(Associativity::Left),
-            production_id: ProductionId(0),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(plus_id),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: Some(PrecedenceKind::Static(1)),
+        associativity: Some(Associativity::Left),
+        production_id: ProductionId(0),
+        fields: vec![],
+    });
 
     // expression → ( expression )
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::Terminal(lparen_id),
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(rparen_id),
-            ],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(1),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::Terminal(lparen_id),
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(rparen_id),
+        ],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(1),
+        fields: vec![],
+    });
 
     // expression → number
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(number_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(2),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(2),
+        fields: vec![],
+    });
 
     grammar
 }

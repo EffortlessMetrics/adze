@@ -2,6 +2,7 @@
 // These tests verify that all components work together correctly
 
 // TODO: These tests need to be updated to match the new API
+#![allow(unexpected_cfgs)]
 #![cfg(skip_integration_tests)]
 
 use anyhow::Result;
@@ -9,7 +10,7 @@ use indexmap::IndexMap;
 use rust_sitter::error_recovery::ErrorRecoveryConfigBuilder;
 // use rust_sitter::external_scanner::ExternalScanner; // Unused
 // use rust_sitter::incremental_v3::{Edit, IncrementalParser, Position}; // Feature-gated
-use rust_sitter::query::{QueryCursor, compile_query};
+use rust_sitter::query::{compile_query, QueryCursor};
 use rust_sitter::scanner_registry::ExternalScannerBuilder;
 use rust_sitter::scanners::IndentationScanner;
 use rust_sitter::tree_sitter::Point as Position;
@@ -106,18 +107,14 @@ fn create_python_like_grammar() -> Grammar {
 
     // Rules
     // program -> function*
-    grammar
-        .rules
-        .entry(program)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: program,
-            rhs: vec![Symbol::NonTerminal(function)],
-            production_id: ProductionId(0),
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-        });
+    grammar.rules.entry(program).or_default().push(Rule {
+        lhs: program,
+        rhs: vec![Symbol::NonTerminal(function)],
+        production_id: ProductionId(0),
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+    });
 
     // function -> def identifier : newline indent block dedent
     let mut function_fields = IndexMap::new();
@@ -127,26 +124,22 @@ fn create_python_like_grammar() -> Grammar {
     // Convert IndexMap to Vec for fields
     let function_fields_vec = vec![(FieldId(0), 1), (FieldId(1), 5)];
 
-    grammar
-        .rules
-        .entry(function)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: function,
-            rhs: vec![
-                Symbol::Terminal(def_keyword),
-                Symbol::Terminal(identifier),
-                Symbol::Terminal(colon),
-                Symbol::Terminal(newline),
-                Symbol::Terminal(indent),
-                Symbol::NonTerminal(block),
-                Symbol::Terminal(dedent),
-            ],
-            production_id: ProductionId(1),
-            precedence: None,
-            associativity: None,
-            fields: function_fields_vec,
-        });
+    grammar.rules.entry(function).or_default().push(Rule {
+        lhs: function,
+        rhs: vec![
+            Symbol::Terminal(def_keyword),
+            Symbol::Terminal(identifier),
+            Symbol::Terminal(colon),
+            Symbol::Terminal(newline),
+            Symbol::Terminal(indent),
+            Symbol::NonTerminal(block),
+            Symbol::Terminal(dedent),
+        ],
+        production_id: ProductionId(1),
+        precedence: None,
+        associativity: None,
+        fields: function_fields_vec,
+    });
 
     // Add field names
     grammar.fields.insert(FieldId(0), "name".to_string());

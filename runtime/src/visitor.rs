@@ -460,6 +460,7 @@ mod tests {
 
     // Mock Node for testing
     #[derive(Debug, Clone, Copy)]
+    #[allow(dead_code)]
     struct MockNode {
         kind: &'static str,
         is_named: bool,
@@ -521,6 +522,7 @@ mod tests2 {
     }
 
     #[derive(Default)]
+    #[allow(dead_code)]
     struct TestVisitor {
         entered_nodes: Vec<String>,
         left_nodes: Vec<String>,

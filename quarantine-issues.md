@@ -3,10 +3,10 @@
 The following crates are currently in the clippy quarantine and need to be cleaned up:
 
 ## Core Crates (High Priority)
-- [ ] rust-sitter - Main runtime crate
-- [ ] rust-sitter-tool - Build tool
-- [ ] rust-sitter-tablegen - Table generation
-- [ ] rust-sitter-glr-core - GLR parser core
+- [x] rust-sitter - Main runtime crate ✅ (Fixed 2025-01-24)
+- [x] rust-sitter-tool - Build tool ✅ (Fixed 2025-01-24)
+- [x] rust-sitter-tablegen - Table generation ✅ (Fixed 2025-01-24)
+- [x] rust-sitter-glr-core - GLR parser core ✅ (Fixed 2025-01-24)
 - [ ] rust-sitter-runtime - Runtime implementation
 
 ## Test/Example Crates (Medium Priority)

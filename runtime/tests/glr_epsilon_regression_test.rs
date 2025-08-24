@@ -435,8 +435,10 @@ fn test_goto_indexing_direct_symbol_id() {
     // Test GOTO indexing with DirectSymbolId mode
     // This verifies that the start symbol can be found even when not in nonterminal_to_index
 
-    let mut grammar = Grammar::default();
-    grammar.name = "DirectGotoTest".to_string();
+    let mut grammar = Grammar {
+        name: "DirectGotoTest".to_string(),
+        ..Default::default()
+    };
 
     // S -> 'x' (start at 1 to avoid EOF=0)
     let s_id = SymbolId(1);
@@ -543,8 +545,10 @@ fn test_epsilon_cascade_completion() {
 fn test_goto_indexing_auto_detection() {
     // Test that auto-detection correctly identifies the GOTO indexing mode
 
-    let mut grammar = Grammar::default();
-    grammar.name = "AutoDetectTest".to_string();
+    let mut grammar = Grammar {
+        name: "AutoDetectTest".to_string(),
+        ..Default::default()
+    };
 
     // Create a simple grammar where we can control the table structure
     // Symbol IDs (start at 1 to avoid EOF=0)
@@ -593,7 +597,7 @@ fn test_goto_indexing_auto_detection() {
     );
 
     let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
-    let mut table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
+    let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
 

@@ -11,8 +11,8 @@ use std::collections::BTreeMap;
 
 use rust_sitter::pure_parser::TSLanguage;
 use rust_sitter_glr_core::{
-    ActionCell, FirstFollowSets, LexMode, ParseRule, ParseTable, SymbolMetadata,
-    build_lr1_automaton,
+    build_lr1_automaton, ActionCell, FirstFollowSets, LexMode, ParseRule, ParseTable,
+    SymbolMetadata,
 };
 use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId, Token, TokenPattern};
 
@@ -20,7 +20,7 @@ use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId, Token, TokenPattern};
 /// This preserves the type so tests compile, but avoids UB if someone
 /// runs `--ignored` prematurely.
 pub fn unified_json_language() -> &'static TSLanguage {
-    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 
     let grammar = json_grammar::build_json_grammar();
 

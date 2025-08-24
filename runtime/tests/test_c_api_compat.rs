@@ -99,7 +99,9 @@ fn test_parse_table_format() {
     // Tree-sitter parse tables use specific bit patterns
     const ACTIONS_SHIFT: u16 = 0;
     const ACTIONS_REDUCE: u16 = 1;
+    #[allow(dead_code)]
     const ACTIONS_ACCEPT: u16 = 2;
+    #[allow(dead_code)]
     const ACTIONS_RECOVER: u16 = 3;
 
     // Action encoding uses top 2 bits for type
@@ -158,8 +160,11 @@ fn test_subtree_compatibility() {
 
     const SUBTREE_BITS_SYMBOL: u32 = 0xFFFF;
     const SUBTREE_BITS_IS_NAMED: u32 = 1 << 16;
+    #[allow(dead_code)]
     const SUBTREE_BITS_IS_HIDDEN: u32 = 1 << 17;
+    #[allow(dead_code)]
     const SUBTREE_BITS_IS_KEYWORD: u32 = 1 << 18;
+    #[allow(dead_code)]
     const SUBTREE_BITS_HAS_CHANGES: u32 = 1 << 19;
 
     // Test packing a symbol ID with flags

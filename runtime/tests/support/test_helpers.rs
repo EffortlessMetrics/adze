@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 /// Creates a minimal ParseTable for testing purposes.
 /// This helper provides all required fields with default values that satisfy
 /// the struct shape requirements. Tests can override specific fields as needed.
+#[allow(dead_code)]
 pub fn make_test_table(grammar: Grammar) -> ParseTable {
     ParseTable {
         action_table: vec![],

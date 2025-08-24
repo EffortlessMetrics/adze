@@ -3,7 +3,7 @@
 
 use crate::error_recovery::{ErrorRecoveryConfig, RecoveryAction};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::fmt;
@@ -703,12 +703,12 @@ mod tests {
         grammar
             .rules
             .entry(expr_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(rule0.clone());
         grammar
             .rules
             .entry(expr_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(rule1.clone());
 
         grammar.production_ids.insert(RuleId(0), ProductionId(0));

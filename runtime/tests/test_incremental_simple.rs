@@ -1,5 +1,5 @@
 // Simple test for incremental parsing with subtree reuse
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_simple_grammar() -> Grammar {
@@ -21,18 +21,14 @@ fn create_simple_grammar() -> Grammar {
     grammar.rule_names.insert(s_id, "S".to_string());
 
     // Rule: S -> identifier
-    grammar
-        .rules
-        .entry(s_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: s_id,
-            rhs: vec![Symbol::Terminal(id_token)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-            fields: vec![],
-        });
+    grammar.rules.entry(s_id).or_default().push(Rule {
+        lhs: s_id,
+        rhs: vec![Symbol::Terminal(id_token)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+        fields: vec![],
+    });
 
     grammar
 }

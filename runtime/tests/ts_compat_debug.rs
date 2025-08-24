@@ -6,7 +6,7 @@ use rust_sitter::ts_compat::Parser;
 fn debug_parse_flow() {
     let lang = rust_sitter_example::ts_langs::arithmetic();
     let mut parser = Parser::new();
-    parser.set_language(lang.clone());
+    parser.set_language(lang.clone()).unwrap();
 
     println!("=== Language Info ===");
     println!("Start symbol: {:?}", lang.table.start_symbol);

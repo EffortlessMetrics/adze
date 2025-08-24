@@ -71,68 +71,52 @@ fn create_python_grammar() -> Grammar {
 
     // Add rules
     // program -> statement*
-    grammar
-        .rules
-        .entry(program)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: program,
-            rhs: vec![], // Simplified - would normally have repetition
-            fields: vec![],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(program).or_default().push(Rule {
+        lhs: program,
+        rhs: vec![], // Simplified - would normally have repetition
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+    });
 
     // function_def -> 'def' identifier '(' ')' ':' newline indent block dedent
-    grammar
-        .rules
-        .entry(function_def)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: function_def,
-            rhs: vec![
-                Symbol::Terminal(def_keyword),
-                Symbol::Terminal(identifier),
-                Symbol::Terminal(colon),
-                Symbol::External(newline),
-                Symbol::External(indent),
-                Symbol::NonTerminal(block),
-                Symbol::External(dedent),
-            ],
-            fields: vec![],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(1),
-        });
+    grammar.rules.entry(function_def).or_default().push(Rule {
+        lhs: function_def,
+        rhs: vec![
+            Symbol::Terminal(def_keyword),
+            Symbol::Terminal(identifier),
+            Symbol::Terminal(colon),
+            Symbol::External(newline),
+            Symbol::External(indent),
+            Symbol::NonTerminal(block),
+            Symbol::External(dedent),
+        ],
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(1),
+    });
 
     // block -> statement+
-    grammar
-        .rules
-        .entry(block)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: block,
-            rhs: vec![Symbol::NonTerminal(statement)],
-            fields: vec![],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(2),
-        });
+    grammar.rules.entry(block).or_default().push(Rule {
+        lhs: block,
+        rhs: vec![Symbol::NonTerminal(statement)],
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(2),
+    });
 
     // statement -> identifier newline
-    grammar
-        .rules
-        .entry(statement)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: statement,
-            rhs: vec![Symbol::Terminal(identifier), Symbol::External(newline)],
-            fields: vec![],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(3),
-        });
+    grammar.rules.entry(statement).or_default().push(Rule {
+        lhs: statement,
+        rhs: vec![Symbol::Terminal(identifier), Symbol::External(newline)],
+        fields: vec![],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(3),
+    });
 
     grammar
 }
@@ -185,10 +169,10 @@ fn test_python_indentation_scanner() {
     let parse_table = create_parse_table();
 
     // Create parser
-    let mut parser = Parser::new(grammar, parse_table, "python_test".to_string());
+    let _parser = Parser::new(grammar, parse_table, "python_test".to_string());
 
     // Test input with indentation
-    let input = r#"def hello():
+    let _input = r#"def hello():
     print("Hello")
     print("World")
 "#;

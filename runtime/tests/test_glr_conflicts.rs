@@ -1,7 +1,7 @@
 // Test GLR conflict resolution with classic ambiguous grammars
 
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
     Token, TokenPattern,
@@ -75,24 +75,20 @@ fn build_arithmetic_grammar() -> Grammar {
 
     // Rules
     // expr -> number
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(SymbolId(1))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(SymbolId(1))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
 
     // expr -> expr + expr
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -110,7 +106,7 @@ fn build_arithmetic_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -128,7 +124,7 @@ fn build_arithmetic_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -146,7 +142,7 @@ fn build_arithmetic_grammar() -> Grammar {
     grammar
         .rules
         .entry(expr_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -221,7 +217,7 @@ fn build_dangling_else_grammar() -> Grammar {
     grammar
         .rules
         .entry(stmt_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: stmt_id,
             rhs: vec![
@@ -240,7 +236,7 @@ fn build_dangling_else_grammar() -> Grammar {
     grammar
         .rules
         .entry(stmt_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: stmt_id,
             rhs: vec![
@@ -261,7 +257,7 @@ fn build_dangling_else_grammar() -> Grammar {
     grammar
         .rules
         .entry(stmt_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: stmt_id,
             rhs: vec![Symbol::Terminal(SymbolId(5))], // s
@@ -305,7 +301,7 @@ fn build_dynamic_precedence_grammar() -> Grammar {
     grammar
         .rules
         .entry(s_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: s_id,
             rhs: vec![Symbol::Terminal(SymbolId(1))],
@@ -319,7 +315,7 @@ fn build_dynamic_precedence_grammar() -> Grammar {
     grammar
         .rules
         .entry(s_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: s_id,
             rhs: vec![Symbol::Terminal(SymbolId(2))],

@@ -1,7 +1,7 @@
 // Simple integration test for GLR parser
 // This demonstrates basic GLR parsing functionality
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -40,36 +40,28 @@ fn create_number_grammar() -> Grammar {
 
     // Define rules (use ProductionId for rule IDs, not SymbolId)
     // Rule 0: expression → number
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(number_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(number_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+        fields: vec![],
+    });
 
     // Rule 1: expression → expression + expression
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(plus_id),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(1),
-            fields: vec![],
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(plus_id),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(1),
+        fields: vec![],
+    });
 
     grammar
 }
@@ -209,32 +201,24 @@ fn test_glr_ambiguity() {
     grammar.rule_names.insert(e_id, "E".to_string());
 
     // Rule 1: E → a
-    grammar
-        .rules
-        .entry(e_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: e_id,
-            rhs: vec![Symbol::Terminal(a_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(0),
-            fields: vec![],
-        });
+    grammar.rules.entry(e_id).or_default().push(Rule {
+        lhs: e_id,
+        rhs: vec![Symbol::Terminal(a_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(0),
+        fields: vec![],
+    });
 
     // Rule 2: E → E E (ambiguous concatenation)
-    grammar
-        .rules
-        .entry(e_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: e_id,
-            rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
-            precedence: None,
-            associativity: None,
-            production_id: ProductionId(1),
-            fields: vec![],
-        });
+    grammar.rules.entry(e_id).or_default().push(Rule {
+        lhs: e_id,
+        rhs: vec![Symbol::NonTerminal(e_id), Symbol::NonTerminal(e_id)],
+        precedence: None,
+        associativity: None,
+        production_id: ProductionId(1),
+        fields: vec![],
+    });
 
     // Build parse table
     let first_follow = FirstFollowSets::compute(&grammar);

@@ -67,6 +67,7 @@ pub struct Subtree {
     pub alternatives: SmallVec<[Arc<Subtree>; 2]>,
 }
 
+#[allow(dead_code)]
 impl Subtree {
     /// Create a new subtree with the given node and children (no field info)
     pub fn new(node: SubtreeNode, children: Vec<Arc<Subtree>>) -> Self {

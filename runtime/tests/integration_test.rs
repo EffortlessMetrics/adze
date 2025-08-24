@@ -93,8 +93,8 @@ fn test_error_recovery() {
 #[test]
 #[cfg(feature = "pure-rust")]
 fn test_cancellation() {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
 
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();
@@ -123,7 +123,8 @@ fn test_cancellation() {
     if let Some(tree) = tree {
         // If parsing completed, check for potential timeout/cancellation indicators
         // For now, we just check that parsing completes
-        assert!(tree.error_count() >= 0, "Parse completed");
+        // Parse completed successfully - tree exists
+        let _ = tree.error_count(); // Just verify we can get the error count
     }
 }
 
@@ -147,10 +148,8 @@ fn test_timeout() {
     // Note: timeout support is not yet implemented in parser_v4
     if let Some(tree) = tree {
         // If parsing completed despite timeout, that's acceptable for now
-        assert!(
-            tree.error_count() >= 0,
-            "Parse completed despite timeout setting"
-        );
+        // Parse completed despite timeout setting - that's acceptable for now
+        let _ = tree.error_count(); // Just verify we can get the error count
     }
 }
 

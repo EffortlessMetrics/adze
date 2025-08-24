@@ -2,6 +2,7 @@
 #![allow(unused_imports, dead_code)]
 // TODO: This test file needs to be updated to work with the new Grammar API
 // The old API had get_or_add_symbol and different Rule structure
+#![allow(unexpected_cfgs)]
 #![cfg(skip_outdated_tests)]
 
 mod tests {

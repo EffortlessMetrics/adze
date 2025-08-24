@@ -3,7 +3,7 @@
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -44,7 +44,7 @@ fn create_epsilon_grammar() -> Grammar {
     grammar
         .rules
         .entry(s_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: s_id,
             rhs: vec![
@@ -63,7 +63,7 @@ fn create_epsilon_grammar() -> Grammar {
     grammar
         .rules
         .entry(opt_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: opt_id,
             rhs: vec![Symbol::Terminal(a_id)],
@@ -77,7 +77,7 @@ fn create_epsilon_grammar() -> Grammar {
     grammar
         .rules
         .entry(opt_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: opt_id,
             rhs: vec![], // Empty production
@@ -179,7 +179,7 @@ fn test_multiple_epsilon_paths() {
     grammar
         .rules
         .entry(s_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: s_id,
             rhs: vec![Symbol::NonTerminal(a_id), Symbol::NonTerminal(b_id)],
@@ -193,7 +193,7 @@ fn test_multiple_epsilon_paths() {
     grammar
         .rules
         .entry(a_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: a_id,
             rhs: vec![Symbol::Terminal(x_id)],
@@ -207,7 +207,7 @@ fn test_multiple_epsilon_paths() {
     grammar
         .rules
         .entry(a_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: a_id,
             rhs: vec![],
@@ -221,7 +221,7 @@ fn test_multiple_epsilon_paths() {
     grammar
         .rules
         .entry(b_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: b_id,
             rhs: vec![Symbol::Terminal(x_id)],
@@ -235,7 +235,7 @@ fn test_multiple_epsilon_paths() {
     grammar
         .rules
         .entry(b_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: b_id,
             rhs: vec![],
@@ -283,7 +283,7 @@ fn test_epsilon_with_recursion() {
     grammar
         .rules
         .entry(list_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: list_id,
             rhs: vec![Symbol::NonTerminal(list_id), Symbol::Terminal(a_id)],
@@ -297,7 +297,7 @@ fn test_epsilon_with_recursion() {
     grammar
         .rules
         .entry(list_id) // Key should be the LHS non-terminal
-        .or_insert_with(Vec::new)
+        .or_default()
         .push(Rule {
             lhs: list_id,
             rhs: vec![],

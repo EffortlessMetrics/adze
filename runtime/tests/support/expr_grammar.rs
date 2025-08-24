@@ -1,4 +1,3 @@
-use indexmap::IndexMap;
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
@@ -77,7 +76,7 @@ pub fn build_expr_grammar() -> Grammar {
 
     // expr rules (left-recursive)
     // expr → expr + expr
-    g.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
+    g.rules.entry(expr).or_default().push(Rule {
         lhs: expr,
         rhs: vec![
             Symbol::NonTerminal(expr),
@@ -91,7 +90,7 @@ pub fn build_expr_grammar() -> Grammar {
     });
 
     // expr → expr * expr
-    g.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
+    g.rules.entry(expr).or_default().push(Rule {
         lhs: expr,
         rhs: vec![
             Symbol::NonTerminal(expr),
@@ -105,7 +104,7 @@ pub fn build_expr_grammar() -> Grammar {
     });
 
     // expr → ( expr )
-    g.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
+    g.rules.entry(expr).or_default().push(Rule {
         lhs: expr,
         rhs: vec![
             Symbol::Terminal(lparen),
@@ -119,7 +118,7 @@ pub fn build_expr_grammar() -> Grammar {
     });
 
     // expr → NUM
-    g.rules.entry(expr).or_insert_with(Vec::new).push(Rule {
+    g.rules.entry(expr).or_default().push(Rule {
         lhs: expr,
         rhs: vec![Symbol::Terminal(num)],
         precedence: None,

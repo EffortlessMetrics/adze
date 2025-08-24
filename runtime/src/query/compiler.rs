@@ -40,31 +40,23 @@ mod tests {
         );
 
         // Add actual rules
-        grammar
-            .rules
-            .entry(SymbolId(10))
-            .or_insert_with(Vec::new)
-            .push(Rule {
-                lhs: SymbolId(10),
-                rhs: vec![Symbol::NonTerminal(SymbolId(1))],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: rust_sitter_ir::ProductionId(0),
-            });
+        grammar.rules.entry(SymbolId(10)).or_default().push(Rule {
+            lhs: SymbolId(10),
+            rhs: vec![Symbol::NonTerminal(SymbolId(1))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: rust_sitter_ir::ProductionId(0),
+        });
 
-        grammar
-            .rules
-            .entry(SymbolId(11))
-            .or_insert_with(Vec::new)
-            .push(Rule {
-                lhs: SymbolId(11),
-                rhs: vec![Symbol::NonTerminal(SymbolId(10))],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: rust_sitter_ir::ProductionId(1),
-            });
+        grammar.rules.entry(SymbolId(11)).or_default().push(Rule {
+            lhs: SymbolId(11),
+            rhs: vec![Symbol::NonTerminal(SymbolId(10))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: rust_sitter_ir::ProductionId(1),
+        });
 
         // Add rule names
         grammar

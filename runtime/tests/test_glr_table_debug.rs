@@ -1,5 +1,5 @@
 // Debug parse table generation
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
     Token, TokenPattern,
@@ -73,90 +73,70 @@ fn build_arithmetic_grammar() -> Grammar {
 
     // Rules
     // expr -> number
-    grammar
-        .rules
-        .entry(expr_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(SymbolId(1))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
+    grammar.rules.entry(expr_id).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![Symbol::Terminal(SymbolId(1))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
 
     // expr -> expr + expr
-    grammar
-        .rules
-        .entry(SymbolId(11))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(SymbolId(2)),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: Some(PrecedenceKind::Static(1)),
-            associativity: Some(Associativity::Left),
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
+    grammar.rules.entry(SymbolId(11)).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(SymbolId(2)),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: Some(PrecedenceKind::Static(1)),
+        associativity: Some(Associativity::Left),
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
 
     // expr -> expr - expr
-    grammar
-        .rules
-        .entry(SymbolId(12))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(SymbolId(3)),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: Some(PrecedenceKind::Static(1)),
-            associativity: Some(Associativity::Left),
-            fields: vec![],
-            production_id: ProductionId(2),
-        });
+    grammar.rules.entry(SymbolId(12)).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(SymbolId(3)),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: Some(PrecedenceKind::Static(1)),
+        associativity: Some(Associativity::Left),
+        fields: vec![],
+        production_id: ProductionId(2),
+    });
 
     // expr -> expr * expr
-    grammar
-        .rules
-        .entry(SymbolId(13))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(SymbolId(4)),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: Some(PrecedenceKind::Static(2)),
-            associativity: Some(Associativity::Left),
-            fields: vec![],
-            production_id: ProductionId(3),
-        });
+    grammar.rules.entry(SymbolId(13)).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(SymbolId(4)),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: Some(PrecedenceKind::Static(2)),
+        associativity: Some(Associativity::Left),
+        fields: vec![],
+        production_id: ProductionId(3),
+    });
 
     // expr -> expr / expr
-    grammar
-        .rules
-        .entry(SymbolId(14))
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(SymbolId(5)),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: Some(PrecedenceKind::Static(2)),
-            associativity: Some(Associativity::Left),
-            fields: vec![],
-            production_id: ProductionId(4),
-        });
+    grammar.rules.entry(SymbolId(14)).or_default().push(Rule {
+        lhs: expr_id,
+        rhs: vec![
+            Symbol::NonTerminal(expr_id),
+            Symbol::Terminal(SymbolId(5)),
+            Symbol::NonTerminal(expr_id),
+        ],
+        precedence: Some(PrecedenceKind::Static(2)),
+        associativity: Some(Associativity::Left),
+        fields: vec![],
+        production_id: ProductionId(4),
+    });
 
     grammar
 }

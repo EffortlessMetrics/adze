@@ -92,8 +92,8 @@ fn encode_actions_minimal() {
 
     // 0 = error, others are interned, so just assert the shape & the key cases:
     // (0,0) Shift, (0,1) Reduce(lhs=S1, rhs_len=2), (1,2) Accept
-    let idx_00 = flat[0 * table.symbol_count + 0] as usize;
-    let idx_01 = flat[0 * table.symbol_count + 1] as usize;
+    let idx_00 = flat[0] as usize; // Row 0, column 0
+    let idx_01 = flat[1] as usize; // Row 0, column 1
     let idx_12 = flat[1 * table.symbol_count + 2] as usize;
 
     let a00 = ts_actions[idx_00];

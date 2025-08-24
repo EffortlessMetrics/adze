@@ -1,7 +1,7 @@
 use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
-use rust_sitter::ts_format::{TSActionTag, choose_action, choose_action_with_precedence};
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use rust_sitter::ts_format::{choose_action_with_precedence, TSActionTag};
+use rust_sitter_glr_core::{Action, ParseTable};
+use rust_sitter_ir::{Grammar, StateId, SymbolId};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::CString;
 use std::os::raw::c_void;
@@ -247,7 +247,7 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
                         extra: 0,
                         child_count: 0,
                         dynamic_precedence: 0,
-                        symbol: tgt as u16,
+                        symbol: tgt,
                     }),
                     Action::Reduce(rule_idx) => {
                         if rule_idx.0 as usize >= parse_table.rules.len() {
@@ -266,14 +266,13 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
                                 } else {
                                     0
                                 };
-                            let action_idx = push_action(TSParseAction {
+                            push_action(TSParseAction {
                                 action_type: TSActionTag::Reduce as u8,
                                 extra: 0,
                                 child_count: pr.rhs_len as u8, // RHS length
                                 dynamic_precedence: dyn_prec,
                                 symbol: rule_idx.0, // Store the rule ID, not the LHS
-                            });
-                            action_idx
+                            })
                         }
                     }
                     Action::Accept => push_action(TSParseAction {
@@ -298,88 +297,89 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
 
 /// JSON lexer function for Tree-sitter
 /// Handles: { } : , "string" number
+#[allow(dead_code)]
 unsafe extern "C" fn json_lexer(lexer: *mut c_void, _state: TSLexState) -> bool {
     use rust_sitter::lex::TsLexer;
-    let lex = &mut *(lexer as *mut TsLexer);
+    let lex = unsafe { &mut *(lexer as *mut TsLexer) };
 
     // Skip whitespace
     loop {
-        let ch = (lex.lookahead)(lex);
+        let ch = unsafe { (lex.lookahead)(lex) };
         if ch == 0 {
             return false;
         }
         match ch as u8 as char {
-            ' ' | '\t' | '\n' | '\r' => (lex.advance)(lex, true),
+            ' ' | '\t' | '\n' | '\r' => unsafe { (lex.advance)(lex, true) },
             _ => break,
         }
     }
 
-    let ch = (lex.lookahead)(lex) as u8 as char;
+    let ch = unsafe { (lex.lookahead)(lex) } as u8 as char;
     match ch {
         '{' => {
-            (lex.advance)(lex, false);
-            (lex.mark_end)(lex);
+            unsafe { (lex.advance)(lex, false) };
+            unsafe { (lex.mark_end)(lex) };
             lex.result_symbol = 0; // LBRACE
             true
         }
         '}' => {
-            (lex.advance)(lex, false);
-            (lex.mark_end)(lex);
+            unsafe { (lex.advance)(lex, false) };
+            unsafe { (lex.mark_end)(lex) };
             lex.result_symbol = 1; // RBRACE
             true
         }
         ':' => {
-            (lex.advance)(lex, false);
-            (lex.mark_end)(lex);
+            unsafe { (lex.advance)(lex, false) };
+            unsafe { (lex.mark_end)(lex) };
             lex.result_symbol = 2; // COLON
             true
         }
         ',' => {
-            (lex.advance)(lex, false);
-            (lex.mark_end)(lex);
+            unsafe { (lex.advance)(lex, false) };
+            unsafe { (lex.mark_end)(lex) };
             lex.result_symbol = 3; // COMMA
             true
         }
         '"' => {
             // STRING
-            (lex.advance)(lex, false);
+            unsafe { (lex.advance)(lex, false) };
             loop {
-                let la = (lex.lookahead)(lex);
+                let la = unsafe { (lex.lookahead)(lex) };
                 if la == 0 {
                     break;
                 }
                 if la as u8 as char == '"' {
-                    (lex.advance)(lex, false);
+                    unsafe { (lex.advance)(lex, false) };
                     break;
                 } else if la as u8 as char == '\\' {
-                    (lex.advance)(lex, false);
-                    if (lex.lookahead)(lex) != 0 {
-                        (lex.advance)(lex, false);
+                    unsafe { (lex.advance)(lex, false) };
+                    if unsafe { (lex.lookahead)(lex) } != 0 {
+                        unsafe { (lex.advance)(lex, false) };
                     }
                 } else {
-                    (lex.advance)(lex, false);
+                    unsafe { (lex.advance)(lex, false) };
                 }
             }
-            (lex.mark_end)(lex);
+            unsafe { (lex.mark_end)(lex) };
             lex.result_symbol = 4; // STRING
             true
         }
         '-' | '0'..='9' => {
             // NUMBER
-            (lex.advance)(lex, false);
+            unsafe { (lex.advance)(lex, false) };
             loop {
-                let la = (lex.lookahead)(lex);
+                let la = unsafe { (lex.lookahead)(lex) };
                 if la == 0 {
                     break;
                 }
                 let c = la as u8 as char;
                 if c.is_ascii_digit() || matches!(c, '.' | 'e' | 'E' | '+' | '-') {
-                    (lex.advance)(lex, false);
+                    unsafe { (lex.advance)(lex, false) };
                 } else {
                     break;
                 }
             }
-            (lex.mark_end)(lex);
+            unsafe { (lex.mark_end)(lex) };
             lex.result_symbol = 5; // NUMBER
             true
         }
@@ -409,7 +409,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
     }
 
     // Leak the data to get static references
-    let symbol_names_c = Box::leak(Box::new(symbol_names_c));
+    let _symbol_names_c = Box::leak(Box::new(symbol_names_c));
     let symbol_names_ptrs = Box::leak(Box::new(symbol_names_ptrs));
 
     // Build field names as C strings (*const u8)
@@ -430,7 +430,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         field_names_c.push(c_string);
     }
 
-    let field_names_c = Box::leak(Box::new(field_names_c));
+    let _field_names_c = Box::leak(Box::new(field_names_c));
     let field_names_ptrs = Box::leak(Box::new(field_names_ptrs));
 
     // Build symbol metadata
@@ -525,8 +525,8 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         small_parse_table: std::ptr::null(),
         small_parse_table_map: std::ptr::null(),
         parse_actions: parse_actions.as_ptr(),
-        symbol_names: symbol_names_ptrs.as_ptr() as *const *const u8,
-        field_names: field_names_ptrs.as_ptr() as *const *const u8,
+        symbol_names: symbol_names_ptrs.as_ptr(),
+        field_names: field_names_ptrs.as_ptr(),
         field_map_slices: std::ptr::null(),
         field_map_entries: std::ptr::null(),
         symbol_metadata: symbol_metadata.as_ptr(),
@@ -541,7 +541,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         primary_state_ids: primary_state_ids.as_ptr(),
         production_lhs_index: production_lhs.as_ptr(),
         production_count: parse_table.rules.len() as u16,
-        eof_symbol: parse_table.eof_symbol.0 as u16,
+        eof_symbol: parse_table.eof_symbol.0,
         rules: ts_rules.as_ptr(),
         rule_count: parse_table.rules.len() as u16,
     }
@@ -549,14 +549,16 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
 
 /// Helper to set lexer function safely
 #[inline]
+#[allow(dead_code)]
 fn set_lex_fn(
     lang: &mut TSLanguage,
     f: unsafe extern "C" fn(*mut core::ffi::c_void, TSLexState) -> bool,
 ) {
-    lang.lex_fn = Some(unsafe { std::mem::transmute(f) });
+    lang.lex_fn = Some(f);
 }
 
 /// Build a TSLanguage for JSON grammar with its specific lexer
+#[allow(dead_code)]
 pub fn build_json_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLanguage {
     let mut lang = build_ts_language(grammar, parse_table);
     // Set the JSON lexer using the safe helper
@@ -565,23 +567,26 @@ pub fn build_json_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TS
 }
 
 // Lex mode constants for external token testing
+#[allow(dead_code)]
 const MODE_START: u16 = 0;
+#[allow(dead_code)]
 const MODE_NORMAL: u16 = 1;
 
 /// INDENT lexer function for Tree-sitter
 /// Emits INDENT once at start, then WORD tokens
+#[allow(dead_code)]
 unsafe extern "C" fn indent_lexer(lexer: *mut c_void, state: TSLexState) -> bool {
     use rust_sitter::lex::TsLexer;
-    let lex = &mut *(lexer as *mut TsLexer);
+    let lex = unsafe { &mut *(lexer as *mut TsLexer) };
 
     // Skip whitespace
     loop {
-        let ch = (lex.lookahead)(lex);
+        let ch = unsafe { (lex.lookahead)(lex) };
         if ch == 0 {
             return false;
         }
         match ch as u8 as char {
-            ' ' | '\t' | '\r' | '\n' => (lex.advance)(lex, true),
+            ' ' | '\t' | '\r' | '\n' => unsafe { (lex.advance)(lex, true) },
             _ => break,
         }
     }
@@ -590,24 +595,24 @@ unsafe extern "C" fn indent_lexer(lexer: *mut c_void, state: TSLexState) -> bool
     // We assume at BOL since we don't have get_column exposed
     let at_bol = true; // Conservative: assume we're at beginning of line
     if state.lex_state == MODE_START && at_bol {
-        (lex.mark_end)(lex);
+        unsafe { (lex.mark_end)(lex) };
         lex.result_symbol = 1; // INDENT
         return true;
     }
 
     // WORD
-    let ch = (lex.lookahead)(lex) as u8 as char;
+    let ch = unsafe { (lex.lookahead)(lex) } as u8 as char;
     if ch.is_ascii_alphabetic() {
-        (lex.advance)(lex, false);
-        while (lex.lookahead)(lex) != 0 {
-            let c = (lex.lookahead)(lex) as u8 as char;
+        unsafe { (lex.advance)(lex, false) };
+        while unsafe { (lex.lookahead)(lex) } != 0 {
+            let c = unsafe { (lex.lookahead)(lex) } as u8 as char;
             if c.is_ascii_alphabetic() {
-                (lex.advance)(lex, false);
+                unsafe { (lex.advance)(lex, false) };
             } else {
                 break;
             }
         }
-        (lex.mark_end)(lex);
+        unsafe { (lex.mark_end)(lex) };
         lex.result_symbol = 2; // WORD
         return true;
     }
@@ -615,6 +620,7 @@ unsafe extern "C" fn indent_lexer(lexer: *mut c_void, state: TSLexState) -> bool
 }
 
 /// Build a TSLanguage for INDENT grammar with external token support
+#[allow(dead_code)]
 pub fn build_indent_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLanguage {
     let mut lang = build_ts_language(grammar, parse_table);
 

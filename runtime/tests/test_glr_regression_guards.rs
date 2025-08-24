@@ -5,7 +5,7 @@
 
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Create a grammar that requires reduce→re-closure to find accepts
@@ -30,46 +30,34 @@ fn create_reduce_reclosure_grammar() -> Grammar {
     );
 
     // S → A
-    grammar
-        .rules
-        .entry(s_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: s_id,
-            rhs: vec![Symbol::NonTerminal(a_id)],
-            production_id: ProductionId(0),
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-        });
+    grammar.rules.entry(s_id).or_default().push(Rule {
+        lhs: s_id,
+        rhs: vec![Symbol::NonTerminal(a_id)],
+        production_id: ProductionId(0),
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+    });
 
     // A → a
-    grammar
-        .rules
-        .entry(a_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: a_id,
-            rhs: vec![Symbol::Terminal(term_a_id)],
-            production_id: ProductionId(1),
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-        });
+    grammar.rules.entry(a_id).or_default().push(Rule {
+        lhs: a_id,
+        rhs: vec![Symbol::Terminal(term_a_id)],
+        production_id: ProductionId(1),
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+    });
 
     // A → ε
-    grammar
-        .rules
-        .entry(a_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: a_id,
-            rhs: vec![],
-            production_id: ProductionId(2),
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-        });
+    grammar.rules.entry(a_id).or_default().push(Rule {
+        lhs: a_id,
+        rhs: vec![],
+        production_id: ProductionId(2),
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+    });
 
     // Start symbol is determined by first rule's LHS
     grammar
@@ -124,18 +112,14 @@ fn test_eof_recovery_no_delete_guard() {
         },
     );
 
-    grammar
-        .rules
-        .entry(s_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: s_id,
-            rhs: vec![Symbol::Terminal(a_id), Symbol::Terminal(b_id)],
-            production_id: ProductionId(0),
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-        });
+    grammar.rules.entry(s_id).or_default().push(Rule {
+        lhs: s_id,
+        rhs: vec![Symbol::Terminal(a_id), Symbol::Terminal(b_id)],
+        production_id: ProductionId(0),
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+    });
 
     // Start symbol is determined by first rule's LHS
 
@@ -189,32 +173,24 @@ fn test_accept_aggregation_guard() {
     );
 
     // S → a
-    grammar
-        .rules
-        .entry(s_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: s_id,
-            rhs: vec![Symbol::Terminal(a_id)],
-            production_id: ProductionId(0),
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-        });
+    grammar.rules.entry(s_id).or_default().push(Rule {
+        lhs: s_id,
+        rhs: vec![Symbol::Terminal(a_id)],
+        production_id: ProductionId(0),
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+    });
 
     // S → a a
-    grammar
-        .rules
-        .entry(s_id)
-        .or_insert_with(Vec::new)
-        .push(Rule {
-            lhs: s_id,
-            rhs: vec![Symbol::Terminal(a_id), Symbol::Terminal(a_id)],
-            production_id: ProductionId(1),
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-        });
+    grammar.rules.entry(s_id).or_default().push(Rule {
+        lhs: s_id,
+        rhs: vec![Symbol::Terminal(a_id), Symbol::Terminal(a_id)],
+        production_id: ProductionId(1),
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+    });
 
     // Start symbol is determined by first rule's LHS
 

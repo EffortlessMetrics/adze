@@ -11,7 +11,7 @@ use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::{GLRParser, ParseStack};
 use rust_sitter::parser_v4::{Parser, Tree};
 use rust_sitter::subtree::Subtree;
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets, ParseTable};
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token, TokenPattern,
 };
@@ -97,21 +97,9 @@ fn create_ambiguous_grammar() -> Grammar {
         fields: vec![],
     };
 
-    grammar
-        .rules
-        .entry(SYM_EXPR)
-        .or_insert_with(Vec::new)
-        .push(rule1);
-    grammar
-        .rules
-        .entry(SYM_EXPR)
-        .or_insert_with(Vec::new)
-        .push(rule2);
-    grammar
-        .rules
-        .entry(SYM_EXPR)
-        .or_insert_with(Vec::new)
-        .push(rule3);
+    grammar.rules.entry(SYM_EXPR).or_default().push(rule1);
+    grammar.rules.entry(SYM_EXPR).or_default().push(rule2);
+    grammar.rules.entry(SYM_EXPR).or_default().push(rule3);
 
     // Add rule names
     grammar
@@ -272,7 +260,7 @@ fn test_glr_error_recovery() {
     parser.process_eof(input.len());
 
     // Should still get a result due to error recovery
-    let result = parser.finish();
+    let _result = parser.finish();
     // May or may not succeed depending on recovery strategy
     // Just verify it doesn't panic
 }
