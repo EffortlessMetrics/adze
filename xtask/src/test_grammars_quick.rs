@@ -3,11 +3,11 @@ use anyhow::Result;
 use std::path::PathBuf;
 
 pub fn run_quick_test() -> Result<()> {
-    use crate::test_grammars::{GrammarTest, TestStatus, download_grammar, test_grammar};
-    
+    use crate::test_grammars::{download_grammar, test_grammar, GrammarTest, TestStatus};
+
     let corpus_dir = PathBuf::from("corpus");
     std::fs::create_dir_all(&corpus_dir)?;
-    
+
     let quick_tests = vec![
         GrammarTest {
             name: "json".to_string(),
@@ -24,31 +24,32 @@ pub fn run_quick_test() -> Result<()> {
             notes: Some("Uses precedence, should work now".to_string()),
         },
     ];
-    
-    println!("Running quick test with {} grammars...\n", quick_tests.len());
-    
+
+    println!(
+        "Running quick test with {} grammars...\n",
+        quick_tests.len()
+    );
+
     for test in &quick_tests {
         println!("Testing {}...", test.name);
-        
+
         match download_grammar(test, &corpus_dir) {
-            Ok(grammar_dir) => {
-                match test_grammar(test, &grammar_dir) {
-                    Ok(result) => {
-                        println!("  Result: {:?}", result.status);
-                        if let Some(err) = &result.error_message {
-                            println!("  Error: {}", err);
-                        }
-                    }
-                    Err(e) => {
-                        println!("  Test error: {}", e);
+            Ok(grammar_dir) => match test_grammar(test, &grammar_dir) {
+                Ok(result) => {
+                    println!("  Result: {:?}", result.status);
+                    if let Some(err) = &result.error_message {
+                        println!("  Error: {}", err);
                     }
                 }
-            }
+                Err(e) => {
+                    println!("  Test error: {}", e);
+                }
+            },
             Err(e) => {
                 println!("  Download error: {}", e);
             }
         }
     }
-    
+
     Ok(())
 }

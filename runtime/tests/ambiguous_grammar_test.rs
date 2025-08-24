@@ -4,10 +4,10 @@
 #[cfg(feature = "incremental_glr")]
 mod ambiguous_incremental_tests {
     use rust_sitter::glr_incremental::{
-        GLREdit, GLRToken, IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
+        get_reuse_count, reset_reuse_counter, GLREdit, GLRToken, IncrementalGLRParser,
     };
     use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
-    use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
     use rust_sitter_ir::{
         Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
     };
@@ -480,7 +480,7 @@ mod ambiguous_incremental_tests {
             new_text: b"other".to_vec(),
             old_token_range: 4..10, // Tokens for "if b then c else d"
             new_tokens: if new_glr_tokens.len() > 4 {
-                vec![new_glr_tokens[4].clone()] // Just "other" token  
+                vec![new_glr_tokens[4].clone()] // Just "other" token
             } else {
                 vec![new_glr_tokens[new_glr_tokens.len() - 1].clone()]
             },

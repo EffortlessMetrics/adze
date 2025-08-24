@@ -62,7 +62,7 @@ fn accept_via_insertion_at_eof_cost_is_one() {
         symbol_to_index: {
             let mut map = BTreeMap::new();
             map.insert(SymbolId(0), 3); // EOF at index 3 (normalized to 0)
-            map.insert(SymbolId(1), 1); // LBRACE at index 1  
+            map.insert(SymbolId(1), 1); // LBRACE at index 1
             map.insert(SymbolId(2), 2); // RBRACE at index 2
             map
         },

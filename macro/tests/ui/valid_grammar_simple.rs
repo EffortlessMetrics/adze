@@ -12,10 +12,10 @@ pub struct Arithmetic {
 pub enum Expr {
     #[rust_sitter::leaf(text = r"[0-9]+")]
     Number(String),
-    
+
     #[rust_sitter::prec_left(1)]
     Add(Box<Expr>, #[rust_sitter::leaf(text = "+")] (), Box<Expr>),
-    
+
     #[rust_sitter::prec_left(2)]
     Mul(Box<Expr>, #[rust_sitter::leaf(text = "*")] (), Box<Expr>),
 }

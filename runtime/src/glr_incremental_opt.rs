@@ -3,7 +3,7 @@
 //! This module provides specialized optimizations for common edit patterns
 //! to minimize reparsing overhead in GLR incremental parsing.
 
-use crate::glr_incremental::{GLREdit, GLRToken, ForestNode};
+use crate::glr_incremental::{ForestNode, GLREdit, GLRToken};
 use crate::subtree::Subtree;
 use rust_sitter_ir::SymbolId;
 use std::collections::{HashMap, VecDeque};
@@ -33,44 +33,44 @@ impl EditClass {
     pub fn classify(edit: &GLREdit) -> Self {
         let old_len = edit.old_range.len();
         let new_len = edit.new_text.len();
-        
+
         // Single character insertion
         if old_len == 0 && new_len == 1 {
             return EditClass::SingleCharInsertion;
         }
-        
+
         // Single character deletion
         if old_len == 1 && new_len == 0 {
             return EditClass::SingleCharDeletion;
         }
-        
+
         // Check if it's whitespace only
         if Self::is_whitespace_change(&edit.new_text) {
             return EditClass::WhitespaceOnly;
         }
-        
+
         // Check if it's a comment
         if Self::is_comment_change(&edit.new_text) {
             return EditClass::CommentOnly;
         }
-        
+
         // Token replacement (similar size, single token affected)
         if edit.old_token_range.len() == 1 && edit.new_tokens.len() == 1 {
             return EditClass::TokenReplacement;
         }
-        
+
         // Default to structural change for larger edits
         if old_len > 50 || new_len > 50 {
             return EditClass::StructuralChange;
         }
-        
+
         EditClass::Multiple
     }
-    
+
     fn is_whitespace_change(text: &[u8]) -> bool {
         text.iter().all(|&b| b.is_ascii_whitespace())
     }
-    
+
     fn is_comment_change(text: &[u8]) -> bool {
         // Simple heuristic for common comment patterns
         let text_str = String::from_utf8_lossy(text);
@@ -104,7 +104,7 @@ impl ParseCache {
             max_size,
         }
     }
-    
+
     fn get(&mut self, tokens: &[SymbolId]) -> Option<Arc<Subtree>> {
         if let Some(subtree) = self.token_cache.get(tokens) {
             // Move to front of LRU queue
@@ -115,7 +115,7 @@ impl ParseCache {
             None
         }
     }
-    
+
     fn insert(&mut self, tokens: Vec<SymbolId>, subtree: Arc<Subtree>) {
         // Evict if at capacity
         if self.token_cache.len() >= self.max_size {
@@ -123,7 +123,7 @@ impl ParseCache {
                 self.token_cache.remove(&old_tokens);
             }
         }
-        
+
         self.token_cache.insert(tokens.clone(), subtree);
         self.lru_queue.push_front(tokens);
     }
@@ -147,7 +147,7 @@ impl OptimizedReparser {
             stats: ReparseStats::default(),
         }
     }
-    
+
     /// Optimize reparse based on edit classification
     pub fn optimize_reparse(
         &mut self,
@@ -156,25 +156,15 @@ impl OptimizedReparser {
         reuse_map: &ReuseMap,
     ) -> Option<Arc<ForestNode>> {
         self.stats.total_reparses += 1;
-        
+
         let edit_class = EditClass::classify(edit);
-        
+
         match edit_class {
-            EditClass::SingleCharInsertion => {
-                self.handle_char_insertion(edit, tokens, reuse_map)
-            }
-            EditClass::SingleCharDeletion => {
-                self.handle_char_deletion(edit, tokens, reuse_map)
-            }
-            EditClass::TokenReplacement => {
-                self.handle_token_replacement(edit, tokens, reuse_map)
-            }
-            EditClass::WhitespaceOnly => {
-                self.handle_whitespace_change(edit, tokens, reuse_map)
-            }
-            EditClass::CommentOnly => {
-                self.handle_comment_change(edit, tokens, reuse_map)
-            }
+            EditClass::SingleCharInsertion => self.handle_char_insertion(edit, tokens, reuse_map),
+            EditClass::SingleCharDeletion => self.handle_char_deletion(edit, tokens, reuse_map),
+            EditClass::TokenReplacement => self.handle_token_replacement(edit, tokens, reuse_map),
+            EditClass::WhitespaceOnly => self.handle_whitespace_change(edit, tokens, reuse_map),
+            EditClass::CommentOnly => self.handle_comment_change(edit, tokens, reuse_map),
             _ => {
                 // Fall back to standard incremental parsing
                 self.stats.full_reparses += 1;
@@ -182,7 +172,7 @@ impl OptimizedReparser {
             }
         }
     }
-    
+
     /// Handle single character insertion optimization
     fn handle_char_insertion(
         &mut self,
@@ -191,25 +181,25 @@ impl OptimizedReparser {
         reuse_map: &ReuseMap,
     ) -> Option<Arc<ForestNode>> {
         // Check if we're in the middle of a token
-        let affected_token_idx = tokens
-            .iter()
-            .position(|t| t.start_byte <= edit.old_range.start && t.end_byte > edit.old_range.start)?;
-        
+        let affected_token_idx = tokens.iter().position(|t| {
+            t.start_byte <= edit.old_range.start && t.end_byte > edit.old_range.start
+        })?;
+
         let _affected_token = &tokens[affected_token_idx];
-        
+
         // Try to use cached result for similar token
         let token_symbols: Vec<SymbolId> = tokens.iter().map(|t| t.symbol).collect();
-        
+
         if let Some(cached) = self.parse_cache.get(&token_symbols) {
             self.stats.cache_hits += 1;
             self.stats.optimized_reparses += 1;
-            
+
             // Adjust byte offsets in cached result
             return Some(self.adjust_forest_offsets(cached, edit));
         }
-        
+
         self.stats.cache_misses += 1;
-        
+
         // Try to reuse surrounding subtrees
         if self.can_reuse_surrounding_subtrees(edit, reuse_map) {
             self.stats.subtrees_reused += 1;
@@ -217,10 +207,10 @@ impl OptimizedReparser {
             // Reparse only the affected token and merge with reused subtrees
             return self.reparse_minimal_region(edit, tokens, reuse_map);
         }
-        
+
         None
     }
-    
+
     /// Handle single character deletion optimization
     fn handle_char_deletion(
         &mut self,
@@ -231,7 +221,7 @@ impl OptimizedReparser {
         // Similar to insertion but in reverse
         self.handle_char_insertion(edit, tokens, reuse_map)
     }
-    
+
     /// Handle token replacement optimization
     fn handle_token_replacement(
         &mut self,
@@ -241,24 +231,23 @@ impl OptimizedReparser {
     ) -> Option<Arc<ForestNode>> {
         // If only one token is affected, we can often reuse the entire parse tree structure
         // and just replace the single token node
-        
+
         if edit.old_token_range.len() != 1 || edit.new_tokens.len() != 1 {
             return None;
         }
-        
+
         let token_idx = edit.old_token_range.start;
-        
+
         // Check if the token has the same symbol type (e.g., both identifiers)
-        if token_idx < tokens.len() && 
-           tokens[token_idx].symbol == edit.new_tokens[0].symbol {
+        if token_idx < tokens.len() && tokens[token_idx].symbol == edit.new_tokens[0].symbol {
             self.stats.optimized_reparses += 1;
             // Can directly replace the token in the tree
             return self.replace_single_token(token_idx, &edit.new_tokens[0], tokens, reuse_map);
         }
-        
+
         None
     }
-    
+
     /// Handle whitespace-only changes
     fn handle_whitespace_change(
         &mut self,
@@ -270,11 +259,11 @@ impl OptimizedReparser {
         // We can often reuse the entire tree with adjusted positions
         self.stats.optimized_reparses += 1;
         self.stats.subtrees_reused += tokens.len();
-        
+
         // Return existing forest with adjusted positions
         self.get_existing_forest(reuse_map)
     }
-    
+
     /// Handle comment-only changes
     fn handle_comment_change(
         &mut self,
@@ -286,16 +275,16 @@ impl OptimizedReparser {
         // Similar to whitespace handling
         self.handle_whitespace_change(edit, tokens, reuse_map)
     }
-    
+
     /// Check if we can reuse surrounding subtrees
     fn can_reuse_surrounding_subtrees(&self, edit: &GLREdit, reuse_map: &ReuseMap) -> bool {
         // Check if there are reusable subtrees before and after the edit
         let before_range = 0..edit.old_range.start;
         let after_range = edit.old_range.end..usize::MAX;
-        
+
         !reuse_map.is_affected(&before_range) && !reuse_map.is_affected(&after_range)
     }
-    
+
     /// Reparse only the minimal affected region
     fn reparse_minimal_region(
         &self,
@@ -307,7 +296,7 @@ impl OptimizedReparser {
         // For now, return None to fall back to standard incremental
         None
     }
-    
+
     /// Replace a single token in the forest
     fn replace_single_token(
         &self,
@@ -320,7 +309,7 @@ impl OptimizedReparser {
         // For now, return None to fall back to standard incremental
         None
     }
-    
+
     /// Adjust forest node offsets after an edit
     fn adjust_forest_offsets(&self, _subtree: Arc<Subtree>, _edit: &GLREdit) -> Arc<ForestNode> {
         // This would adjust byte offsets in the forest
@@ -333,19 +322,19 @@ impl OptimizedReparser {
             cached_subtree: None,
         })
     }
-    
+
     /// Get existing forest from reuse map
     fn get_existing_forest(&self, _reuse_map: &ReuseMap) -> Option<Arc<ForestNode>> {
         // This would retrieve the existing forest
         // For now, return None
         None
     }
-    
+
     /// Get optimization statistics
     pub fn stats(&self) -> &ReparseStats {
         &self.stats
     }
-    
+
     /// Reset statistics
     pub fn reset_stats(&mut self) {
         self.stats = ReparseStats::default();
@@ -378,44 +367,48 @@ impl BoundaryDetector {
             },
         }
     }
-    
+
     /// Find optimal reparse boundaries around an edit
-    pub fn find_boundaries(
-        &self,
-        edit: &GLREdit,
-        tokens: &[GLRToken],
-    ) -> (usize, usize) {
+    pub fn find_boundaries(&self, edit: &GLREdit, tokens: &[GLRToken]) -> (usize, usize) {
         let mut start_boundary = edit.old_token_range.start;
         let mut end_boundary = edit.old_token_range.end;
-        
+
         // Expand to nearest statement boundaries
         start_boundary = self.find_statement_start(start_boundary, tokens);
         end_boundary = self.find_statement_end(end_boundary, tokens);
-        
+
         // Ensure balanced delimiters
         self.balance_delimiters(start_boundary, end_boundary, tokens)
     }
-    
+
     fn find_statement_start(&self, from: usize, tokens: &[GLRToken]) -> usize {
         // Search backwards for a statement starter
         for i in (0..from.min(tokens.len())).rev() {
-            if self.grammar_info.statement_starters.contains(&tokens[i].symbol) {
+            if self
+                .grammar_info
+                .statement_starters
+                .contains(&tokens[i].symbol)
+            {
                 return i;
             }
         }
         0
     }
-    
+
     fn find_statement_end(&self, from: usize, tokens: &[GLRToken]) -> usize {
         // Search forwards for a statement ender
         for i in from..tokens.len() {
-            if self.grammar_info.statement_enders.contains(&tokens[i].symbol) {
+            if self
+                .grammar_info
+                .statement_enders
+                .contains(&tokens[i].symbol)
+            {
                 return i + 1;
             }
         }
         tokens.len()
     }
-    
+
     fn balance_delimiters(
         &self,
         mut start: usize,
@@ -424,10 +417,10 @@ impl BoundaryDetector {
     ) -> (usize, usize) {
         // Ensure we have balanced delimiters in the reparse region
         let mut delimiter_stack = Vec::new();
-        
+
         for i in start..end.min(tokens.len()) {
             let symbol = tokens[i].symbol;
-            
+
             // Check for opening delimiter
             for (open, close) in &self.grammar_info.delimiter_pairs {
                 if symbol == *open {
@@ -442,15 +435,17 @@ impl BoundaryDetector {
                 }
             }
         }
-        
+
         // If we have unclosed delimiters, expand to include their closers
         if !delimiter_stack.is_empty() {
-            end = self.find_closers(end, &delimiter_stack, tokens).unwrap_or(tokens.len());
+            end = self
+                .find_closers(end, &delimiter_stack, tokens)
+                .unwrap_or(tokens.len());
         }
-        
+
         (start, end)
     }
-    
+
     fn find_matching_opener(
         &self,
         from: usize,
@@ -464,7 +459,7 @@ impl BoundaryDetector {
         }
         None
     }
-    
+
     fn find_closers(
         &self,
         from: usize,
@@ -472,7 +467,7 @@ impl BoundaryDetector {
         tokens: &[GLRToken],
     ) -> Option<usize> {
         let mut remaining = closers.to_vec();
-        
+
         for i in from..tokens.len() {
             if let Some(pos) = remaining.iter().position(|&c| c == tokens[i].symbol) {
                 remaining.remove(pos);
@@ -481,7 +476,7 @@ impl BoundaryDetector {
                 }
             }
         }
-        
+
         None
     }
 }
@@ -502,7 +497,7 @@ mod tests {
             old_forest: None,
         };
         assert_eq!(EditClass::classify(&edit), EditClass::SingleCharInsertion);
-        
+
         // Single char deletion
         let edit = GLREdit {
             old_range: 5..6,
@@ -513,7 +508,7 @@ mod tests {
             old_forest: None,
         };
         assert_eq!(EditClass::classify(&edit), EditClass::SingleCharDeletion);
-        
+
         // Whitespace change
         let edit = GLREdit {
             old_range: 5..10,
@@ -524,7 +519,7 @@ mod tests {
             old_forest: None,
         };
         assert_eq!(EditClass::classify(&edit), EditClass::WhitespaceOnly);
-        
+
         // Comment change
         let edit = GLREdit {
             old_range: 5..10,
@@ -540,11 +535,11 @@ mod tests {
     #[test]
     fn test_parse_cache() {
         let mut cache = ParseCache::new(2);
-        
+
         let tokens1 = vec![SymbolId(1), SymbolId(2)];
         let tokens2 = vec![SymbolId(3), SymbolId(4)];
         let tokens3 = vec![SymbolId(5), SymbolId(6)];
-        
+
         let node1 = SubtreeNode {
             symbol_id: SymbolId(1),
             is_error: false,
@@ -563,17 +558,17 @@ mod tests {
         let subtree1 = Arc::new(Subtree::new(node1, vec![]));
         let subtree2 = Arc::new(Subtree::new(node2, vec![]));
         let subtree3 = Arc::new(Subtree::new(node3, vec![]));
-        
+
         // Insert first two
         cache.insert(tokens1.clone(), subtree1.clone());
         cache.insert(tokens2.clone(), subtree2.clone());
-        
+
         // Access first to make it most recently used
         assert!(cache.get(&tokens1).is_some());
-        
+
         // Insert third - should evict tokens2
         cache.insert(tokens3.clone(), subtree3.clone());
-        
+
         // Check cache contents
         assert!(cache.get(&tokens1).is_some());
         assert!(cache.get(&tokens2).is_none()); // Evicted
@@ -583,7 +578,7 @@ mod tests {
     #[test]
     fn test_boundary_detector() {
         let detector = BoundaryDetector::new();
-        
+
         let tokens = vec![
             GLRToken {
                 symbol: SymbolId(1),
@@ -610,7 +605,7 @@ mod tests {
                 end_byte: 6,
             },
         ];
-        
+
         let edit = GLREdit {
             old_range: 4..5,
             new_text: b"y".to_vec(),
@@ -619,9 +614,9 @@ mod tests {
             old_tokens: vec![],
             old_forest: None,
         };
-        
+
         let (start, end) = detector.find_boundaries(&edit, &tokens);
-        
+
         // Should expand to include the whole if statement
         assert!(start <= 2);
         assert!(end >= 3);

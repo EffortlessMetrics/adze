@@ -11,7 +11,7 @@ mod grammar {
 
 fn main() {
     println!("Test example for rust-sitter");
-    
+
     // Try to parse a simple number
     match grammar::parse("42") {
         Ok(expr) => println!("Parsed: {:?}", expr.value),

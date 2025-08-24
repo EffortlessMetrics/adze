@@ -30,18 +30,18 @@ match node.symbol {
 impl Extract<PrimaryExpression> for PrimaryExpression {
     fn extract(node: Option<&ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
         let node = node.unwrap();
-        
+
         // Get the actual node (might be wrapped)
         let actual_node = if node.children.len() == 1 {
             &node.children[0]
         } else {
             node
         };
-        
+
         // Use the symbol name to determine the variant
         // The parser generator ensures each variant gets a unique symbol
         let symbol_name = actual_node.kind();
-        
+
         match symbol_name {
             "number_literal" => Self::Number(NumberLiteral::extract(Some(actual_node), source, _last_idx, None)),
             "string_literal" => Self::String(StringLiteral::extract(Some(actual_node), source, _last_idx, None)),
@@ -57,7 +57,7 @@ impl Extract<PrimaryExpression> for PrimaryExpression {
 // In the generated parser file, we have:
 pub const PRIMARY_EXPRESSION_VARIANTS: &[(&str, u16)] = &[
     ("Number", 57),      // symbol ID for number_literal
-    ("String", 58),      // symbol ID for string_literal  
+    ("String", 58),      // symbol ID for string_literal
     ("Identifier", 56),  // symbol ID for identifier
 ];
 

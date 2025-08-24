@@ -8,7 +8,7 @@ pub mod grammar {
         #[rust_sitter::repeat]
         pub items: Vec<Item>,
     }
-    
+
     /// Top-level items in the program
     #[rust_sitter::language]
     pub enum Item {
@@ -16,7 +16,7 @@ pub mod grammar {
         Struct(Struct),
         Variable(Variable),
     }
-    
+
     /// Function definition
     #[rust_sitter::language]
     pub struct Function {
@@ -27,7 +27,7 @@ pub mod grammar {
         pub return_type: Option<ReturnType>,
         pub body: Block,
     }
-    
+
     /// Function parameters
     #[rust_sitter::language]
     pub struct Parameters {
@@ -38,7 +38,7 @@ pub mod grammar {
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
-    
+
     /// A single parameter
     #[rust_sitter::language]
     pub struct Parameter {
@@ -47,7 +47,7 @@ pub mod grammar {
         _colon: (),
         pub type_annotation: Type,
     }
-    
+
     /// Return type annotation
     #[rust_sitter::language]
     pub struct ReturnType {
@@ -55,7 +55,7 @@ pub mod grammar {
         _arrow: (),
         pub type_annotation: Type,
     }
-    
+
     /// Struct definition
     #[rust_sitter::language]
     pub struct Struct {
@@ -69,7 +69,7 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "}")]
         _close: (),
     }
-    
+
     /// Struct field
     #[rust_sitter::language]
     pub struct Field {
@@ -80,7 +80,7 @@ pub mod grammar {
         #[rust_sitter::leaf(text = ",")]
         _comma: (),
     }
-    
+
     /// Variable declaration
     #[rust_sitter::language]
     pub struct Variable {
@@ -93,26 +93,26 @@ pub mod grammar {
         #[rust_sitter::leaf(text = ";")]
         _semicolon: (),
     }
-    
+
     /// Variable kind (let or const)
     #[rust_sitter::language]
     pub enum VarKind {
         Let(LetKeyword),
         Const(ConstKeyword),
     }
-    
+
     #[rust_sitter::language]
     pub struct LetKeyword {
         #[rust_sitter::leaf(text = "let")]
         _let: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct ConstKeyword {
         #[rust_sitter::leaf(text = "const")]
         _const: (),
     }
-    
+
     /// Optional type annotation
     #[rust_sitter::language]
     pub struct TypeAnnotation {
@@ -120,7 +120,7 @@ pub mod grammar {
         _colon: (),
         pub type_expr: Type,
     }
-    
+
     /// Type expressions
     #[rust_sitter::language]
     pub enum Type {
@@ -128,12 +128,12 @@ pub mod grammar {
         Array(ArrayType),
         Optional(OptionalType),
     }
-    
+
     #[rust_sitter::language]
     pub struct NamedType {
         pub name: Identifier,
     }
-    
+
     #[rust_sitter::language]
     pub struct ArrayType {
         #[rust_sitter::leaf(text = "[")]
@@ -142,14 +142,14 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "]")]
         _close: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct OptionalType {
         pub inner: Box<Type>,
         #[rust_sitter::leaf(text = "?")]
         _question: (),
     }
-    
+
     /// Block of statements
     #[rust_sitter::language]
     pub struct Block {
@@ -160,7 +160,7 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "}")]
         _close: (),
     }
-    
+
     /// Statements
     #[rust_sitter::language]
     pub enum Statement {
@@ -171,14 +171,14 @@ pub mod grammar {
         Assignment(AssignmentStatement),
         LocalVariable(Variable),
     }
-    
+
     #[rust_sitter::language]
     pub struct ExpressionStatement {
         pub expression: Expression,
         #[rust_sitter::leaf(text = ";")]
         _semicolon: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct ReturnStatement {
         #[rust_sitter::leaf(text = "return")]
@@ -187,7 +187,7 @@ pub mod grammar {
         #[rust_sitter::leaf(text = ";")]
         _semicolon: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct IfStatement {
         #[rust_sitter::leaf(text = "if")]
@@ -196,14 +196,14 @@ pub mod grammar {
         pub then_block: Block,
         pub else_clause: Option<ElseClause>,
     }
-    
+
     #[rust_sitter::language]
     pub struct ElseClause {
         #[rust_sitter::leaf(text = "else")]
         _else: (),
         pub block: Block,
     }
-    
+
     #[rust_sitter::language]
     pub struct WhileStatement {
         #[rust_sitter::leaf(text = "while")]
@@ -211,7 +211,7 @@ pub mod grammar {
         pub condition: Expression,
         pub body: Block,
     }
-    
+
     #[rust_sitter::language]
     pub struct AssignmentStatement {
         pub target: Expression,
@@ -221,7 +221,7 @@ pub mod grammar {
         #[rust_sitter::leaf(text = ";")]
         _semicolon: (),
     }
-    
+
     /// Expressions
     #[rust_sitter::language]
     pub enum Expression {
@@ -232,14 +232,14 @@ pub mod grammar {
         Index(Box<IndexExpression>),
         Primary(PrimaryExpression),
     }
-    
+
     #[rust_sitter::language]
     pub struct BinaryExpression {
         pub left: Expression,
         pub operator: BinaryOperator,
         pub right: Expression,
     }
-    
+
     #[rust_sitter::language]
     pub enum BinaryOperator {
         // Arithmetic
@@ -256,91 +256,91 @@ pub mod grammar {
         And(AndOp),
         Or(OrOp),
     }
-    
+
     #[rust_sitter::language]
     pub struct AddOp {
         #[rust_sitter::leaf(text = "+")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct SubOp {
         #[rust_sitter::leaf(text = "-")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct MulOp {
         #[rust_sitter::leaf(text = "*")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct DivOp {
         #[rust_sitter::leaf(text = "/")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct EqOp {
         #[rust_sitter::leaf(text = "==")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct NeOp {
         #[rust_sitter::leaf(text = "!=")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct LtOp {
         #[rust_sitter::leaf(text = "<")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct GtOp {
         #[rust_sitter::leaf(text = ">")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct AndOp {
         #[rust_sitter::leaf(text = "&&")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct OrOp {
         #[rust_sitter::leaf(text = "||")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct UnaryExpression {
         pub operator: UnaryOperator,
         pub operand: Expression,
     }
-    
+
     #[rust_sitter::language]
     pub enum UnaryOperator {
         Not(NotOp),
         Minus(MinusOp),
     }
-    
+
     #[rust_sitter::language]
     pub struct NotOp {
         #[rust_sitter::leaf(text = "!")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct MinusOp {
         #[rust_sitter::leaf(text = "-")]
         _op: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct CallExpression {
         pub function: Expression,
@@ -351,7 +351,7 @@ pub mod grammar {
         #[rust_sitter::leaf(text = ")")]
         _close: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct AccessExpression {
         pub object: Expression,
@@ -359,7 +359,7 @@ pub mod grammar {
         _dot: (),
         pub field: Identifier,
     }
-    
+
     #[rust_sitter::language]
     pub struct IndexExpression {
         pub object: Expression,
@@ -369,7 +369,7 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "]")]
         _close: (),
     }
-    
+
     #[rust_sitter::language]
     pub enum PrimaryExpression {
         Identifier(Identifier),
@@ -378,43 +378,43 @@ pub mod grammar {
         Boolean(Boolean),
         Array(ArrayLiteral),
     }
-    
+
     #[rust_sitter::language]
     pub struct Identifier {
         #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
         pub name: String,
     }
-    
+
     #[rust_sitter::language]
     pub struct Number {
         #[rust_sitter::leaf(pattern = r"\d+(?:\.\d+)?", transform = |s| s.parse::<f64>().unwrap())]
         pub value: f64,
     }
-    
+
     #[rust_sitter::language]
     pub struct StringLiteral {
         #[rust_sitter::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = |s| s[1..s.len()-1].to_string())]
         pub value: String,
     }
-    
+
     #[rust_sitter::language]
     pub enum Boolean {
         True(TrueLiteral),
         False(FalseLiteral),
     }
-    
+
     #[rust_sitter::language]
     pub struct TrueLiteral {
         #[rust_sitter::leaf(text = "true")]
         _true: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct FalseLiteral {
         #[rust_sitter::leaf(text = "false")]
         _false: (),
     }
-    
+
     #[rust_sitter::language]
     pub struct ArrayLiteral {
         #[rust_sitter::leaf(text = "[")]

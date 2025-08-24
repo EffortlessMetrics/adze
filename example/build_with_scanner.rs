@@ -5,11 +5,11 @@ use anyhow::Result;
 fn main() -> Result<()> {
     // Build the parser using rust-sitter
     rust_sitter_tool::build_parsers()?;
-    
+
     // Build external scanner if present
     // This will look for scanner.c, scanner.cc, or scanner.rs in the src directory
     rust_sitter_tool::scanner_build::build_scanner("my_language")?;
-    
+
     Ok(())
 }
 
@@ -34,7 +34,7 @@ fn init_scanner() {
         SymbolId(101), // DEDENT
         SymbolId(102), // NEWLINE
     ]);
-    
+
     // For Rust scanner - registration is automatic
     register_scanner();
 }

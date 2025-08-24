@@ -43,7 +43,7 @@ mod tests {
             op: BinaryOp::Add(()),
             right: Box::new(Expression::Number(2)),
         };
-        
+
         // The parser should be able to use field names when parsing
         match expr {
             Expression::Binary { left, op, right } => {

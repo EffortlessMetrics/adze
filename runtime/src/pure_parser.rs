@@ -1580,7 +1580,7 @@ impl ParsedNode {
     pub fn utf8_text<'a>(&self, source: &'a [u8]) -> Result<&'a str, std::str::Utf8Error> {
         let text = source.get(self.start_byte..self.end_byte).ok_or_else(|| {
             // Create a valid Utf8Error by attempting to parse invalid UTF-8
-            let invalid = [0x80, 0x80]; // Invalid UTF-8 sequence  
+            let invalid = [0x80, 0x80]; // Invalid UTF-8 sequence
             std::str::from_utf8(&invalid).unwrap_err()
         })?;
         std::str::from_utf8(text)

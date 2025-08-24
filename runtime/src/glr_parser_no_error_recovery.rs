@@ -24,9 +24,16 @@ impl GLRParser {
     /// Get actions for a state and symbol (new GLR structure)
     pub fn get_actions(&self, state: StateId, symbol: SymbolId) -> Vec<Action> {
         let state_idx = state.0 as usize;
-        let symbol_idx = self.table.symbol_to_index.get(&symbol).copied().unwrap_or(0);
-        
-        if state_idx < self.table.action_table.len() && symbol_idx < self.table.action_table[0].len() {
+        let symbol_idx = self
+            .table
+            .symbol_to_index
+            .get(&symbol)
+            .copied()
+            .unwrap_or(0);
+
+        if state_idx < self.table.action_table.len()
+            && symbol_idx < self.table.action_table[0].len()
+        {
             self.table.action_table[state_idx][symbol_idx].clone()
         } else {
             vec![]

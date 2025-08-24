@@ -1,5 +1,5 @@
 //! External Scanner Adapter Implementation Sketch
-//! 
+//!
 //! Implementation plan for wiring external scanners into the parse loop.
 
 use std::sync::Arc;
@@ -10,22 +10,22 @@ use std::sync::Arc;
 pub struct TSLexerAdapter<'a> {
     /// Source text being parsed
     source: &'a [u8],
-    
+
     /// Current byte position
     cursor: usize,
-    
+
     /// End of current token (set by mark_end)
     mark_end_pos: usize,
-    
+
     /// Current position as row/column
     point: Point,
-    
+
     /// Precomputed line starts for efficient column calculation
     line_starts: &'a [usize],
-    
+
     /// Included ranges (for multi-language parsing)
     ranges: Option<&'a [Range<usize>]>,
-    
+
     /// Current range index
     current_range: usize,
 }
@@ -54,10 +54,11 @@ impl<'a> TSLexerAdapter<'a> {
             current_range: 0,
         }
     }
-    
+
     fn byte_to_point(byte_idx: usize, line_starts: &[usize]) -> Point {
         // Binary search for line
-        let row = line_starts.partition_point(|&start| start <= byte_idx)
+        let row = line_starts
+            .partition_point(|&start| start <= byte_idx)
             .saturating_sub(1);
         let line_start = line_starts[row];
         let column = byte_idx - line_start;
@@ -66,7 +67,7 @@ impl<'a> TSLexerAdapter<'a> {
             column: column as u32,
         }
     }
-    
+
     pub fn consumed_bytes(&self) -> usize {
         self.mark_end_pos - self.cursor
     }
@@ -82,14 +83,14 @@ impl TSLexer for TSLexerAdapter<'_> {
                 }
             }
         }
-        
+
         if self.cursor >= self.source.len() {
             return false;
         }
-        
+
         let ch = self.source[self.cursor];
         self.cursor += 1;
-        
+
         // Update row/column
         if ch == b'\n' {
             self.point.row += 1;
@@ -104,32 +105,33 @@ impl TSLexer for TSLexerAdapter<'_> {
         } else {
             self.point.column += 1;
         }
-        
+
         if !skip {
             self.mark_end_pos = self.cursor;
         }
-        
+
         true
     }
-    
+
     fn mark_end(&mut self) {
         self.mark_end_pos = self.cursor;
     }
-    
+
     fn get_column(&self) -> u32 {
         self.point.column
     }
-    
+
     fn is_at_included_range_start(&self) -> bool {
         if let Some(ranges) = self.ranges {
-            ranges.get(self.current_range)
+            ranges
+                .get(self.current_range)
                 .map(|r| r.start == self.cursor)
                 .unwrap_or(false)
         } else {
             false
         }
     }
-    
+
     fn lookahead(&self) -> char {
         if self.cursor < self.source.len() {
             self.source[self.cursor] as char
@@ -144,22 +146,16 @@ impl TSLexer for TSLexerAdapter<'_> {
 /// In parser_v4.rs or equivalent
 pub struct ParserV4 {
     // ... existing fields ...
-    
     /// External scanner for custom lexing
     external_scanner: Option<Arc<dyn ExternalScanner + Send + Sync>>,
 }
 
 impl ParserV4 {
     /// Main lexing step with external scanner support
-    fn lex_step(
-        &mut self,
-        state: TSStateId,
-        source: &[u8],
-        cursor: usize,
-    ) -> Token {
+    fn lex_step(&mut self, state: TSStateId, source: &[u8], cursor: usize) -> Token {
         // Get valid external symbols for current state
         let valid_external = self.get_valid_external_symbols(state);
-        
+
         // Try external scanner first if we have one and valid symbols
         if !valid_external.is_empty() {
             if let Some(scanner) = &self.external_scanner {
@@ -169,14 +165,14 @@ impl ParserV4 {
                     &self.line_starts,
                     self.included_ranges.as_deref(),
                 );
-                
+
                 // Clone scanner for thread safety (or use mutex)
                 let mut scanner = scanner.clone();
-                
+
                 if scanner.scan(&mut adapter, &valid_external) {
                     let token_len = adapter.consumed_bytes();
                     let token_type = self.find_external_token_type(&valid_external);
-                    
+
                     return Token {
                         kind: TokenKind::External(token_type),
                         start: cursor,
@@ -185,17 +181,17 @@ impl ParserV4 {
                 }
             }
         }
-        
+
         // Fall back to normal lexer
         self.lex_internal(state, source, cursor)
     }
-    
+
     fn get_valid_external_symbols(&self, state: TSStateId) -> Vec<bool> {
         // Look up in language data which external symbols are valid
         // for the current parse state
         self.language.valid_external_symbols(state)
     }
-    
+
     fn find_external_token_type(&self, valid_symbols: &[bool]) -> TSSymbol {
         // Map from valid symbol index to actual symbol ID
         for (idx, &valid) in valid_symbols.iter().enumerate() {
@@ -242,18 +238,18 @@ impl ExternalScanner for CExternalScannerWrapper {
             (self.vtable.scan)(self.scanner, c_lexer, valid_symbols.as_ptr())
         }
     }
-    
+
     fn serialize(&self, buffer: &mut Vec<u8>) -> usize {
         let start_len = buffer.len();
         buffer.resize(start_len + 1024, 0); // Reserve space
-        
+
         unsafe {
             let size = (self.vtable.serialize)(self.scanner, buffer.as_mut_ptr().add(start_len));
             buffer.truncate(start_len + size as usize);
             size as usize
         }
     }
-    
+
     fn deserialize(&mut self, buffer: &[u8]) -> usize {
         unsafe {
             (self.vtable.deserialize)(self.scanner, buffer.as_ptr(), buffer.len() as u32);

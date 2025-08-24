@@ -158,7 +158,7 @@ fn test_empty_object_with_recovery() {
 }
 
 #[test]
-#[ignore] // Grammar setup needs work  
+#[ignore] // Grammar setup needs work
 fn test_incomplete_object_recovery() {
     let (_grammar, mut table) = create_test_grammar();
 

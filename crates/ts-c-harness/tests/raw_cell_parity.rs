@@ -20,7 +20,7 @@ extern "C" {
 fn test_raw_lookup_parity() {
     // Force link of tree-sitter-json crate to ensure symbol is available
     let _ = tree_sitter_json::language();
-    
+
     let lptr = unsafe { tree_sitter_json() };
 
     // Test a few state/symbol pairs - these are internal details
@@ -44,7 +44,7 @@ fn test_raw_lookup_parity() {
 fn test_raw_next_state_parity() {
     // Force link of tree-sitter-json crate to ensure symbol is available
     let _ = tree_sitter_json::language();
-    
+
     let lptr = unsafe { tree_sitter_json() };
 
     // Test a few state/symbol pairs
