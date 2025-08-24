@@ -1,6 +1,5 @@
 // Simple test to debug GLR parse table generation
 
-use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_glr_core::{build_lr1_automaton, ConflictResolver, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 

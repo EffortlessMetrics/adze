@@ -1,4 +1,3 @@
-
 // Minimal "tablegen → unified parser" glue for tests.
 // This keeps the pure-Rust golden tests compileable, and lets you flip them on
 // once you define a real grammar + table.

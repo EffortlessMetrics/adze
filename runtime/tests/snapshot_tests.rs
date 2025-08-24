@@ -88,7 +88,7 @@ mod property_tests {
         }
 
         #[test]
-        fn no_unreachable_forest_nodes(tokens in arbitrary_tokens()) {
+        fn no_unreachable_forest_nodes(_tokens in arbitrary_tokens()) {
             // Property: all nodes in parse forest should be reachable from root
             // let forest = parse_to_forest(&tokens.join(" "));
             // if let Ok(forest) = forest {
