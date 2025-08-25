@@ -37,6 +37,12 @@ impl Telemetry {
         self.forks.fetch_add(1, Ordering::Relaxed);
     }
 
+    /// Increment fork counter by n
+    #[inline(always)]
+    pub fn inc_fork_by(&self, n: u64) {
+        self.forks.fetch_add(n, Ordering::Relaxed);
+    }
+
     /// Increment merge counter
     #[inline(always)]
     pub fn inc_merge(&self) {
@@ -137,6 +143,8 @@ impl Telemetry {
     }
     #[inline(always)]
     pub fn inc_fork(&self) {}
+    #[inline(always)]
+    pub fn inc_fork_by(&self, _n: u64) {}
     #[inline(always)]
     pub fn inc_merge(&self) {}
     #[inline(always)]

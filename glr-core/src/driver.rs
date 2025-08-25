@@ -8,6 +8,9 @@ use std::collections::HashMap;
 #[cfg(feature = "perf-counters")]
 use crate::perf;
 
+#[cfg(feature = "glr_telemetry")]
+use crate::telemetry::Telemetry;
+
 /// Helper function to safely convert usize spans to u32, avoiding overflow on giant buffers
 #[inline]
 fn u32_span(start: usize, end: usize) -> (u32, u32) {
@@ -36,6 +39,9 @@ pub struct Driver<'t> {
     /// LR tables used by the driver
     #[allow(dead_code)]
     tables: &'t ParseTable,
+    /// Telemetry instance for performance monitoring
+    #[cfg(feature = "glr_telemetry")]
+    telemetry: Option<&'t Telemetry>,
 }
 
 /// A GLR parse stack
@@ -86,14 +92,15 @@ impl<'t> Driver<'t> {
         Self {
             tables,
             #[cfg(feature = "glr_telemetry")]
-            telemetry: Box::leak(Box::new(Telemetry::new())),
+            telemetry: None,
         }
     }
 
-    /// Creates a new GLR driver with telemetry
+    /// Set telemetry instance for performance monitoring
     #[cfg(feature = "glr_telemetry")]
-    pub fn with_telemetry(tables: &'t ParseTable, telemetry: &'t Telemetry) -> Self {
-        Self { tables, telemetry }
+    pub fn with_telemetry(mut self, telemetry: &'t Telemetry) -> Self {
+        self.telemetry = Some(telemetry);
+        self
     }
 
     /// Build union of valid external symbols across all active stacks
@@ -259,7 +266,9 @@ impl<'t> Driver<'t> {
                             #[cfg(feature = "perf-counters")]
                             perf::inc_reductions(1);
                             #[cfg(feature = "glr_telemetry")]
-                            self.telemetry.inc_reduce();
+                            if let Some(t) = self.telemetry {
+                                t.inc_reduce();
+                            }
                             // Handle reduce+shift conflicts
                             let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
                             let mut s2_clone = s2.clone();
@@ -314,9 +323,9 @@ impl<'t> Driver<'t> {
             } else {
                 // Track forks when we have multiple stacks from a single parent
                 #[cfg(feature = "glr_telemetry")]
-                if new_stacks.len() > 1 {
-                    for _ in 1..new_stacks.len() {
-                        self.telemetry.inc_fork();
+                if let Some(t) = self.telemetry {
+                    if new_stacks.len() > 1 {
+                        t.inc_fork_by((new_stacks.len() - 1) as u64);
                     }
                 }
                 // Commit the new frontier
@@ -496,7 +505,9 @@ impl<'t> Driver<'t> {
                             #[cfg(feature = "perf-counters")]
                             perf::inc_reductions(1);
                             #[cfg(feature = "glr_telemetry")]
-                            self.telemetry.inc_reduce();
+                            if let Some(t) = self.telemetry {
+                                t.inc_reduce();
+                            }
                             // If your table encodes reduce+shift conflicts, we still need to try the reduce path
                             let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
                             // After a single reduce, we can still be able to shift this lookahead

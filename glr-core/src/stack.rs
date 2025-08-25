@@ -25,7 +25,7 @@ impl GlrStack for Vec<u16> {
         Vec::pop(self)
     }
     fn last(&self) -> Option<u16> {
-        <[u16]>::last(self).cloned()
+        <[u16]>::last(self.as_slice()).copied()
     }
     fn len(&self) -> usize {
         Vec::len(self)
@@ -57,7 +57,7 @@ impl GlrStack for StackNode {
         self.pop().map(|(state, _)| state)
     }
     fn last(&self) -> Option<u16> {
-        self.last()
+        self.top()
     }
     fn len(&self) -> usize {
         self.depth()
@@ -144,13 +144,10 @@ impl StackNode {
 
     /// Get the current top state without popping (alias for last)
     pub fn top(&self) -> Option<u16> {
-        // Check the head first, then fallback to state
-        if self.head.is_empty() {
-            Some(self.state)
-        } else {
-            // Get the last element from the Vec<u16>
-            Some(self.head[self.head.len() - 1])
-        }
+        // Use the slice method explicitly to avoid trait-method shadowing
+        <[u16]>::last(self.head.as_slice())
+            .copied()
+            .or(Some(self.state))
     }
 
     /// Get the last state without popping
