@@ -41,11 +41,33 @@ impl GlrStack for Vec<u16> {
 }
 
 /// Small vector optimization: number of state/symbol pairs before spilling
-const SMALL_VEC_PAIR_CAP: usize = 4; // 4 pairs => 8 entries total
+const SMALL_VEC_PAIR_CAP: usize = 4;
+/// Total entry capacity (pairs * 2)
+const ENTRY_CAP: usize = SMALL_VEC_PAIR_CAP * 2;
 
 /// Sentinel value for "no symbol" in head pairs.
 /// Symbol IDs are guaranteed to be less than u16::MAX.
 const NO_SYM: u16 = u16::MAX;
+
+// Helper functions for pair operations
+#[inline]
+fn push_pair(head: &mut Vec<u16>, state: u16, sym: Option<u16>) {
+    debug_assert!(head.len() % 2 == 0, "head must contain pairs before push");
+    head.push(state);
+    head.push(sym.unwrap_or(NO_SYM));
+    debug_assert!(head.len() % 2 == 0, "head must contain pairs after push");
+}
+
+#[inline]
+fn pop_pair(head: &mut Vec<u16>) -> Option<(u16, Option<u16>)> {
+    debug_assert!(head.len() % 2 == 0, "head must contain pairs");
+    if head.len() < 2 {
+        return None;
+    }
+    let sym = head.pop().unwrap();
+    let state = head.pop().unwrap();
+    Some((state, (sym != NO_SYM).then_some(sym)))
+}
 
 /// A persistent stack node with shared tail
 #[derive(Clone, Debug)]
@@ -82,7 +104,7 @@ impl StackNode {
         Self {
             state: 0,
             symbol: None,
-            head: Vec::with_capacity(SMALL_VEC_PAIR_CAP * 2),
+            head: Vec::with_capacity(ENTRY_CAP),
             tail: None,
         }
     }
@@ -92,32 +114,27 @@ impl StackNode {
         Self {
             state,
             symbol: None,
-            head: Vec::with_capacity(SMALL_VEC_PAIR_CAP * 2),
+            head: Vec::with_capacity(ENTRY_CAP),
             tail: None,
         }
     }
 
     /// Push a new state onto the stack
     pub fn push(&mut self, state: u16, symbol: Option<u16>) {
-        debug_assert!(self.head.len() % 2 == 0, "head must contain pairs");
-
-        // Always store pairs to avoid ambiguity
         // Check if we need to spill (need room for 1 more pair = 2 entries)
-        let entry_cap = SMALL_VEC_PAIR_CAP * 2;
-        if self.head.len() + 2 > entry_cap {
+        if self.head.len() + 2 > ENTRY_CAP {
             // Spill to a new node with shared tail
             let old_node = Self {
                 state: self.state,
                 symbol: self.symbol,
-                head: std::mem::replace(&mut self.head, Vec::with_capacity(SMALL_VEC_PAIR_CAP * 2)),
+                head: std::mem::replace(&mut self.head, Vec::with_capacity(ENTRY_CAP)),
                 tail: self.tail.take(),
             };
             self.tail = Some(Arc::new(old_node));
         }
 
-        // Always push as a pair: state, then symbol (NO_SYM means no symbol)
-        self.head.push(state);
-        self.head.push(symbol.unwrap_or(NO_SYM));
+        // Always push as a pair using helper
+        push_pair(&mut self.head, state, symbol);
 
         #[cfg(debug_assertions)]
         self.assert_well_formed();
@@ -125,18 +142,10 @@ impl StackNode {
 
     /// Pop a state from the stack
     pub fn pop(&mut self) -> Option<(u16, Option<u16>)> {
-        debug_assert!(self.head.len() % 2 == 0, "head must contain pairs");
-
-        if self.head.len() >= 2 {
-            // Pop the pair (symbol first, then state)
-            let sym = self.head.pop().unwrap();
-            let state = self.head.pop().unwrap();
-            let symbol = if sym == NO_SYM { None } else { Some(sym) };
-
+        if let Some(pair) = pop_pair(&mut self.head) {
             #[cfg(debug_assertions)]
             self.assert_well_formed();
-
-            return Some((state, symbol));
+            return Some(pair);
         }
 
         // Need to restore from tail
