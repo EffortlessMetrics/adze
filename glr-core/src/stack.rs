@@ -172,15 +172,15 @@ impl StackNode {
     /// Get the depth of the stack (number of states pushed)
     pub fn depth(&self) -> usize {
         let mut count = 0;
-        
+
         // Count states in current node
         if self.state != 0 {
             count += 1;
         }
-        
+
         // Count pairs in head (each pair is one state)
         count += self.head.len() / 2;
-        
+
         // Count states in tail nodes
         let mut tail = &self.tail;
         while let Some(node) = tail {
@@ -190,7 +190,7 @@ impl StackNode {
             count += node.head.len() / 2;
             tail = &node.tail;
         }
-        
+
         count
     }
 
