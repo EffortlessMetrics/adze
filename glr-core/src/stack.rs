@@ -35,6 +35,9 @@ impl GlrStack for Vec<u16> {
 /// Small vector optimization size for stack heads
 const SMALL_VEC_SIZE: usize = 8;
 
+/// Sentinel value for "no symbol" in head pairs
+const NO_SYM: u16 = u16::MAX;
+
 /// A persistent stack node with shared tail
 #[derive(Clone, Debug)]
 pub struct StackNode {
@@ -87,6 +90,8 @@ impl StackNode {
 
     /// Push a new state onto the stack
     pub fn push(&mut self, state: u16, symbol: Option<u16>) {
+        debug_assert!(self.head.len() % 2 == 0, "head must contain pairs");
+        
         // Always store pairs to avoid ambiguity
         // Check if we need to spill (now checking for pairs)
         if self.head.len() >= SMALL_VEC_SIZE - 1 {
@@ -100,18 +105,20 @@ impl StackNode {
             self.tail = Some(Arc::new(old_node));
         }
 
-        // Always push as a pair: state, then symbol (u16::MAX means no symbol)
+        // Always push as a pair: state, then symbol (NO_SYM means no symbol)
         self.head.push(state);
-        self.head.push(symbol.unwrap_or(u16::MAX));
+        self.head.push(symbol.unwrap_or(NO_SYM));
     }
 
     /// Pop a state from the stack
     pub fn pop(&mut self) -> Option<(u16, Option<u16>)> {
+        debug_assert!(self.head.len() % 2 == 0, "head must contain pairs");
+        
         if self.head.len() >= 2 {
             // Pop the pair (symbol first, then state)
             let sym = self.head.pop().unwrap();
             let state = self.head.pop().unwrap();
-            let symbol = if sym == u16::MAX { None } else { Some(sym) };
+            let symbol = if sym == NO_SYM { None } else { Some(sym) };
             return Some((state, symbol));
         }
 
@@ -151,16 +158,19 @@ impl StackNode {
     /// Get the current top state without popping
     #[inline]
     pub fn top(&self) -> Option<u16> {
-        // Get the state from the last pair (state is at even indices)
-        if self.head.len() >= 2 {
-            Some(self.head[self.head.len() - 2])
-        } else if let Some(tail) = &self.tail {
-            tail.top()
-        } else if self.state != 0 {
-            Some(self.state)
-        } else {
-            None
+        // Iterative to avoid deep recursion on long tails
+        let mut node: Option<&StackNode> = Some(self);
+        while let Some(n) = node {
+            debug_assert!(n.head.len() % 2 == 0, "head must contain pairs");
+            if n.head.len() >= 2 {
+                return Some(n.head[n.head.len() - 2]);
+            }
+            if n.state != 0 {
+                return Some(n.state);
+            }
+            node = n.tail.as_deref();
         }
+        None
     }
 
     /// Get the last state without popping
@@ -172,25 +182,15 @@ impl StackNode {
     /// Get the depth of the stack (number of states pushed)
     pub fn depth(&self) -> usize {
         let mut count = 0;
-
-        // Count states in current node
-        if self.state != 0 {
-            count += 1;
-        }
-
-        // Count pairs in head (each pair is one state)
-        count += self.head.len() / 2;
-
-        // Count states in tail nodes
-        let mut tail = &self.tail;
-        while let Some(node) = tail {
-            if node.state != 0 {
+        let mut cur: Option<&StackNode> = Some(self);
+        while let Some(n) = cur {
+            if n.state != 0 {
                 count += 1;
             }
-            count += node.head.len() / 2;
-            tail = &node.tail;
+            debug_assert!(n.head.len() % 2 == 0, "head must contain pairs");
+            count += n.head.len() / 2;
+            cur = n.tail.as_deref();
         }
-
         count
     }
 
@@ -202,16 +202,29 @@ impl StackNode {
 
     /// Convert to a vector for debugging (returns only states, not symbols)
     pub fn to_vec(&self) -> Vec<u16> {
-        let mut result = Vec::new();
-        let mut stack = self.clone();
-
-        // Pop everything to get states in order
-        while let Some((state, _symbol)) = stack.pop() {
-            result.push(state);
+        // O(n) walk: accumulate tail→head states in order
+        let mut out = Vec::with_capacity(self.depth());
+        
+        // Walk tails first to build chain from root to head
+        let mut chain: Vec<&StackNode> = Vec::new();
+        let mut cur: Option<&StackNode> = Some(self);
+        while let Some(n) = cur {
+            chain.push(n);
+            cur = n.tail.as_deref();
         }
-
-        result.reverse();
-        result
+        
+        // Process nodes in reverse order (root to head)
+        for n in chain.iter().rev() {
+            if n.state != 0 {
+                out.push(n.state);
+            }
+            debug_assert!(n.head.len() % 2 == 0, "head must contain pairs");
+            // Extract states from pairs (at even indices)
+            for i in (0..n.head.len()).step_by(2) {
+                out.push(n.head[i]);
+            }
+        }
+        out
     }
 
     /// Fork this stack (cheap due to structural sharing)
@@ -224,6 +237,16 @@ impl StackNode {
         // For simplicity, check if they have the same depth and top state
         // In a real implementation, we'd check more of the suffix
         self.depth() == other.depth() && self.top() == other.top()
+    }
+    
+    /// Assert that the stack structure is well-formed (for debugging)
+    #[inline]
+    pub fn assert_well_formed(&self) {
+        let mut cur: Option<&StackNode> = Some(self);
+        while let Some(n) = cur {
+            debug_assert!(n.head.len() % 2 == 0, "head must contain pairs");
+            cur = n.tail.as_deref();
+        }
     }
 }
 

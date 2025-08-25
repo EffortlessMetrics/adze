@@ -160,6 +160,32 @@ jobs:
       - name: Test (workspace, all features)
         run: cargo test --workspace --all-features --locked --no-fail-fast
 
+  # Test with debug assertions enabled to catch invariant violations
+  test-debug-assertions:
+    name: Test with Debug Assertions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Test glr-core with debug assertions
+        env:
+          RUSTFLAGS: '-C debug-assertions'
+        run: |
+          cargo test -p rust-sitter-glr-core --lib
+          cargo test -p rust-sitter-glr-core --tests
+      
+      - name: Test runtime with debug assertions
+        env:
+          RUSTFLAGS: '-C debug-assertions'
+        run: cargo test -p rust-sitter --lib
+      
+      - name: Test tablegen with debug assertions
+        env:
+          RUSTFLAGS: '-C debug-assertions'
+        run: cargo test -p rust-sitter-tablegen --lib
+
   test-release:
     name: Test Release Mode (${{ matrix.features }})
     runs-on: ubuntu-latest

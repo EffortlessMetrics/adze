@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### ⚠️ Breaking Changes
+
+- **API**: Renamed `GlrStack::last()` to `GlrStack::peek()` to avoid trait method shadowing with `Vec::last()`
+  - This prevents confusing behavior where the trait method shadowed the slice method
+  - Migration: Replace all calls to `stack.last()` with `stack.peek()`
+
+### Fixed
+
+- **Memory Safety**: Fixed memory leak in telemetry by removing `Box::leak`, replaced with safe `Option<&'t Telemetry>` pattern
+- **Stack Implementation**: Corrected push/pop behavior to properly handle state/symbol pairs
+  - Now uses sentinel value (`u16::MAX`) to distinguish "no symbol" in pairs
+  - Fixed depth calculation to count only states, not symbols
+  - Fixed `to_vec()` to correctly extract states from interleaved pairs
+
+### Improved
+
+- **Stack Performance**: Added `#[inline]` hints to hot path methods (`top()`, `peek()`, `is_empty()`)
+- **Code Robustness**: Added debug assertions to verify stack invariants (even-length head vectors)
+- **Stack Efficiency**: Rewrote `top()`, `depth()`, and `to_vec()` to use iterative algorithms instead of recursion
+- **Telemetry**: Added `inc_fork_by(n)` for efficient bulk fork counting
+
+### Testing
+
+- **Stack Tests**: Added comprehensive invariant tests to ensure stack correctness
+  - Depth equals states length invariant
+  - Top equals last state in to_vec invariant
+  - Push/pop round-trip correctness
+  - Fork preservation of invariants
+
 ## [0.6.1-beta] - 2025-01-22
 
 ### 🎯 GLR Correctness Fixes
