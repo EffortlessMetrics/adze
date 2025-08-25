@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::errors::IteratorExt as _;
 use proc_macro2::Span;
-use quote::{ToTokens, quote};
+use quote::{quote, ToTokens};
 use rust_sitter_common::*;
 use syn::{parse::Parse, punctuated::Punctuated, *};
 
@@ -30,6 +30,7 @@ impl ToTokens for ParamOrField {
 }
 
 fn gen_field(ident_str: String, leaf: Field) -> Expr {
+    let leaf_type_original = leaf.ty.clone();
     let leaf_type = leaf.ty;
 
     let leaf_attr = leaf
@@ -48,6 +49,8 @@ fn gen_field(ident_str: String, leaf: Field) -> Expr {
             .map(|p| p.expr.clone())
     });
 
+    let uses_with_leaf = transform_param.is_some();
+
     let (leaf_type, closure_expr): (Type, Expr) = match transform_param {
         Some(closure) => {
             let mut non_leaf = HashSet::new();
@@ -61,9 +64,35 @@ fn gen_field(ident_str: String, leaf: Field) -> Expr {
         None => (leaf_type, syn::parse_quote!(None)),
     };
 
-    syn::parse_quote!({
+    let mut expr: Expr = syn::parse_quote! {
         ::rust_sitter::__private::extract_field::<#leaf_type,_>(cursor, source, last_idx, #ident_str, #closure_expr)
-    })
+    };
+
+    if uses_with_leaf {
+        let mut skip = HashSet::new();
+        skip.insert("Spanned");
+        skip.insert("Box");
+        skip.insert("Option");
+        skip.insert("Vec");
+
+        let (_, is_option) = try_extract_inner_type(&leaf_type_original, "Option", &skip);
+        let (_, is_vec) = try_extract_inner_type(&leaf_type_original, "Vec", &skip);
+
+        expr = if is_vec {
+            syn::parse_quote! {
+                #expr
+                    .into_iter()
+                    .map(|v| v.expect("leaf extraction failed"))
+                    .collect()
+            }
+        } else if is_option {
+            syn::parse_quote! { #expr.map(|v| v.expect("leaf extraction failed")) }
+        } else {
+            syn::parse_quote! { #expr.expect("leaf extraction failed") }
+        };
+    }
+
+    syn::parse_quote!({ #expr })
 }
 
 fn gen_struct_or_variant(
@@ -100,6 +129,7 @@ fn gen_struct_or_variant(
                         .map(|p| p.expr.clone())
                 });
 
+                let uses_with_leaf = transform_param.is_some();
                 let (leaf_type, closure_expr): (Type, Expr) = match transform_param {
                     Some(closure) => {
                         let mut non_leaf = HashSet::new();
@@ -117,8 +147,19 @@ fn gen_struct_or_variant(
                     #containing_type::#variant_name
                 };
 
+                let unwrap_expr = if uses_with_leaf {
+                    quote! { .expect("leaf extraction failed") }
+                } else {
+                    quote! {}
+                };
+
                 return Ok(syn::parse_quote!({
-                    let value = <#leaf_type as ::rust_sitter::Extract<_>>::extract(Some(node), source, 0, #closure_expr);
+                    let value = <#leaf_type as ::rust_sitter::Extract<_>>::extract(
+                        Some(node),
+                        source,
+                        0,
+                        #closure_expr,
+                    ) #unwrap_expr;
                     #construct_name(value)
                 }));
             }

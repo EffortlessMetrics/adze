@@ -237,7 +237,7 @@ pub struct WithLeaf<L> {
 
 // The sealed trait is now auto-implemented for all types via blanket impl
 
-impl<L> Extract<L> for WithLeaf<L> {
+impl<L> Extract<Option<L>> for WithLeaf<L> {
     type LeafFn = dyn Fn(&str) -> L;
 
     #[cfg(not(feature = "pure-rust"))]
@@ -246,10 +246,12 @@ impl<L> Extract<L> for WithLeaf<L> {
         source: &[u8],
         _last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
-    ) -> L {
-        node.and_then(|n| n.utf8_text(source).ok())
-            .map(|s| leaf_fn.unwrap()(s))
-            .unwrap()
+    ) -> Option<L> {
+        let text = node.and_then(|n| n.utf8_text(source).ok());
+        match (text, leaf_fn) {
+            (Some(s), Some(f)) => Some(f(s)),
+            _ => None,
+        }
     }
 
     #[cfg(feature = "pure-rust")]
@@ -258,14 +260,16 @@ impl<L> Extract<L> for WithLeaf<L> {
         source: &[u8],
         _last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
-    ) -> L {
-        node.and_then(|n| {
+    ) -> Option<L> {
+        let text = node.and_then(|n| {
             // Extract text from node's byte range
             let text = &source[n.start_byte..n.end_byte];
             std::str::from_utf8(text).ok()
-        })
-        .map(|s| leaf_fn.unwrap()(s))
-        .unwrap()
+        });
+        match (text, leaf_fn) {
+            (Some(s), Some(f)) => Some(f(s)),
+            _ => None,
+        }
     }
 }
 
