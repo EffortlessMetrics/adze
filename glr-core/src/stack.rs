@@ -1,8 +1,16 @@
-/// Persistent stack implementation for GLR parser
-///
-/// This module provides a memory-efficient stack structure that shares
-/// common tails between forked stacks, reducing memory allocation and
-/// copy overhead during GLR parsing.
+//! Persistent stack implementation for GLR parser
+//!
+//! This module provides a memory-efficient stack structure that shares
+//! common tails between forked stacks, reducing memory allocation and
+//! copy overhead during GLR parsing.
+//!
+//! # Invariants
+//! 
+//! - `head` stores pairs `[state, symbol_or_NO_SYM]`
+//! - Head vector always has even length
+//! - `top()` returns the last state in the last pair (unless `head` is empty, then returns `state`)
+//! - `depth()` counts states only, not symbols
+
 use std::sync::Arc;
 
 /// Minimal trait the engine uses. Implemented by the old Vec-based stack and the new persistent one.
@@ -35,7 +43,8 @@ impl GlrStack for Vec<u16> {
 /// Small vector optimization size for stack heads
 const SMALL_VEC_SIZE: usize = 8;
 
-/// Sentinel value for "no symbol" in head pairs
+/// Sentinel value for "no symbol" in head pairs.
+/// Symbol IDs are guaranteed to be less than u16::MAX.
 const NO_SYM: u16 = u16::MAX;
 
 /// A persistent stack node with shared tail
@@ -93,8 +102,8 @@ impl StackNode {
         debug_assert!(self.head.len() % 2 == 0, "head must contain pairs");
 
         // Always store pairs to avoid ambiguity
-        // Check if we need to spill (now checking for pairs)
-        if self.head.len() >= SMALL_VEC_SIZE - 1 {
+        // Check if we need to spill (need room for 2 entries)
+        if self.head.len() + 2 > SMALL_VEC_SIZE {
             // Spill to a new node with shared tail
             let old_node = Self {
                 state: self.state,
