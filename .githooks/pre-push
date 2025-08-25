@@ -92,7 +92,17 @@ if git log --name-only --pretty=format: "@{u}.." | grep -q '\.rs\.disabled$'; th
 fi
 echo -e "${GREEN}✓${NC} No disabled test files in push"
 
-# Step 2: Run full formatting check
+# Step 2: Ensure no unstaged changes before format check
+if ! git diff --quiet; then
+    echo -e "${RED}✖ Unstaged changes present${NC}"
+    echo "You have unstaged changes that could affect formatting checks."
+    echo "Please commit or stash all changes before pushing."
+    echo ""
+    git --no-pager status -s
+    exit 1
+fi
+
+# Step 3: Run full formatting check
 echo -e "${YELLOW}→${NC} Verifying code formatting..."
 if ! cargo fmt --all -- --check; then
     echo -e "${RED}✖ Code formatting issues detected${NC}"
@@ -103,7 +113,7 @@ if ! cargo fmt --all -- --check; then
 fi
 echo -e "${GREEN}✓${NC} Code formatting verified"
 
-# Step 3: Run comprehensive clippy check (per-package with --no-deps)
+# Step 4: Run comprehensive clippy check (per-package with --no-deps)
 echo -e "${YELLOW}→${NC} Running comprehensive clippy analysis (per-package, feature matrix)..."
 
 # Run clippy checks using centralized script
@@ -121,7 +131,7 @@ fi
 
 echo -e "${GREEN}✓${NC} Clippy analysis passed (all non-quarantined packages)"
 
-# Step 4: Run GOTO indexing check with full diagnostics
+# Step 5: Run GOTO indexing check with full diagnostics
 if [ -f scripts/check-goto-indexing.sh ]; then
     echo -e "${YELLOW}→${NC} Checking GOTO indexing patterns..."
     if ! scripts/check-goto-indexing.sh; then
@@ -131,7 +141,7 @@ if [ -f scripts/check-goto-indexing.sh ]; then
     echo -e "${GREEN}✓${NC} GOTO indexing patterns verified"
 fi
 
-# Step 5: Run test connectivity check
+# Step 6: Run test connectivity check
 if [ -f scripts/check-test-connectivity.sh ]; then
     echo -e "${YELLOW}→${NC} Verifying test connectivity..."
     if ! scripts/check-test-connectivity.sh; then
@@ -141,7 +151,7 @@ if [ -f scripts/check-test-connectivity.sh ]; then
     echo -e "${GREEN}✓${NC} Test connectivity verified"
 fi
 
-# Step 6: Run core tests to ensure basic functionality
+# Step 7: Run core tests to ensure basic functionality
 echo -e "${YELLOW}→${NC} Running core test suite..."
 if ! cargo test -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablegen --lib; then
     echo -e "${RED}✖ Core tests failed${NC}"
@@ -152,7 +162,7 @@ if ! cargo test -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablege
 fi
 echo -e "${GREEN}✓${NC} Core tests passed"
 
-# Step 7: Optional comprehensive test run (can be enabled with environment variable)
+# Step 8: Optional comprehensive test run (can be enabled with environment variable)
 if [ "${RUN_FULL_TESTS:-0}" = "1" ]; then
     echo -e "${YELLOW}→${NC} Running full test suite (RUN_FULL_TESTS=1)..."
     if ! cargo test --workspace; then
@@ -165,7 +175,7 @@ if [ "${RUN_FULL_TESTS:-0}" = "1" ]; then
     echo -e "${GREEN}✓${NC} Full test suite passed"
 fi
 
-# Step 8: Check for breaking changes in public API (if applicable)
+# Step 9: Check for breaking changes in public API (if applicable)
 if [ -f scripts/check-breaking-changes.sh ]; then
     echo -e "${YELLOW}→${NC} Checking for breaking changes..."
     if ! scripts/check-breaking-changes.sh; then
@@ -176,7 +186,7 @@ if [ -f scripts/check-breaking-changes.sh ]; then
     fi
 fi
 
-# Step 9: Validate commit messages for the commits being pushed
+# Step 10: Validate commit messages for the commits being pushed
 echo -e "${YELLOW}→${NC} Validating commit messages..."
 INVALID_COMMITS=0
 while IFS= read -r commit; do

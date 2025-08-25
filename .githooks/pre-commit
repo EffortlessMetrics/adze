@@ -61,27 +61,34 @@ check_partial_staging() {
     return 1  # Not partially staged
 }
 
-# Step 1: Detect partially staged files and fail if found
+# Step 1: Detect partially staged Rust files (exclude deletions and non-Rust files)
 echo -e "${YELLOW}→${NC} Checking for partially staged files..."
-PARTIALLY_STAGED=()
-while IFS= read -r -d '' file; do
-    if check_partial_staging "$file"; then
-        PARTIALLY_STAGED+=("$file")
-    fi
-done < <(git diff --cached --name-only -z 2>/dev/null || true)
 
-if [ ${#PARTIALLY_STAGED[@]} -gt 0 ]; then
-    echo -e "${RED}✖ Partially staged files detected${NC}"
-    echo "The following files have staged changes but also unstaged changes:"
-    printf "  %s\n" "${PARTIALLY_STAGED[@]}"
-    echo ""
-    echo "This can lead to formatting issues where staged content differs from working content."
-    echo "Please either:"
-    echo "  1. Stage all changes: git add <file>"
-    echo "  2. Unstage partial changes: git reset <file>"
-    echo "  3. Stash unstaged changes: git stash --keep-index"
-    echo ""
-    exit 1
+# Collect staged & unstaged Rust files (exclude deletions with --diff-filter)
+mapfile -t staged_rs < <(git diff --name-only --cached --diff-filter=ACMRT -- '*.rs' 2>/dev/null || true)
+mapfile -t unstaged_rs < <(git diff --name-only --diff-filter=ACMRT -- '*.rs' 2>/dev/null || true)
+
+if ((${#staged_rs[@]})) && ((${#unstaged_rs[@]})); then
+    # Find intersection
+    declare -A set=()
+    for f in "${unstaged_rs[@]}"; do set["$f"]=1; done
+    partial=()
+    for f in "${staged_rs[@]}"; do
+        [[ -n "${set[$f]:-}" ]] && partial+=("$f")
+    done
+    if ((${#partial[@]})); then
+        echo -e "${RED}✖ Partially-staged Rust files detected${NC}"
+        echo "The following Rust files have both staged and unstaged changes:"
+        printf "  • %s\n" "${partial[@]}"
+        echo ""
+        echo "This can lead to formatting issues where staged content differs from working content."
+        echo "Please either:"
+        echo "  1. Stage all changes: git add <file>"
+        echo "  2. Unstage partial changes: git reset <file>"
+        echo "  3. Stash unstaged changes: git stash --keep-index"
+        echo ""
+        exit 1
+    fi
 fi
 echo -e "${GREEN}✓${NC} No partially staged files found"
 
