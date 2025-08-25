@@ -28,12 +28,12 @@ fn stacknode_top_reads_head() {
     let s = StackNode {
         state: 5,
         symbol: None,
-        head: vec![7, 11],
+        head: vec![7, 11], // 7 is state, 11 is symbol (or NO_SYM)
         tail: None,
     };
-    assert_eq!(s.top(), Some(11));
+    assert_eq!(s.top(), Some(7)); // top() returns the state, not the symbol
     // GlrStack impl calls .top() for peek()
-    assert_eq!(<StackNode as GlrStack>::peek(&s), Some(11));
+    assert_eq!(<StackNode as GlrStack>::peek(&s), Some(7));
     // Length delegates to depth()
     assert!(<StackNode as GlrStack>::len(&s) >= 2);
 }
