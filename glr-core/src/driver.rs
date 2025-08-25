@@ -83,7 +83,17 @@ impl<'t> Driver<'t> {
             }
         }
 
-        Self { tables }
+        Self {
+            tables,
+            #[cfg(feature = "glr_telemetry")]
+            telemetry: Box::leak(Box::new(Telemetry::new())),
+        }
+    }
+
+    /// Creates a new GLR driver with telemetry
+    #[cfg(feature = "glr_telemetry")]
+    pub fn with_telemetry(tables: &'t ParseTable, telemetry: &'t Telemetry) -> Self {
+        Self { tables, telemetry }
     }
 
     /// Build union of valid external symbols across all active stacks
@@ -248,6 +258,8 @@ impl<'t> Driver<'t> {
                         Action::Reduce(rid) => {
                             #[cfg(feature = "perf-counters")]
                             perf::inc_reductions(1);
+                            #[cfg(feature = "glr_telemetry")]
+                            self.telemetry.inc_reduce();
                             // Handle reduce+shift conflicts
                             let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
                             let mut s2_clone = s2.clone();
@@ -300,6 +312,13 @@ impl<'t> Driver<'t> {
                     "input not accepted: no valid parse and recovery failed".to_string(),
                 ));
             } else {
+                // Track forks when we have multiple stacks from a single parent
+                #[cfg(feature = "glr_telemetry")]
+                if new_stacks.len() > 1 {
+                    for _ in 1..new_stacks.len() {
+                        self.telemetry.inc_fork();
+                    }
+                }
                 // Commit the new frontier
                 state.stacks = new_stacks;
                 inserts_at_pos = 0; // Reset counter on successful real token
@@ -476,6 +495,8 @@ impl<'t> Driver<'t> {
                         Action::Reduce(rid) => {
                             #[cfg(feature = "perf-counters")]
                             perf::inc_reductions(1);
+                            #[cfg(feature = "glr_telemetry")]
+                            self.telemetry.inc_reduce();
                             // If your table encodes reduce+shift conflicts, we still need to try the reduce path
                             let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
                             // After a single reduce, we can still be able to shift this lookahead

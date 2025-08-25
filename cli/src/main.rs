@@ -54,6 +54,9 @@ enum Commands {
         /// Use dynamic loader to load compiled grammar from shared library
         #[arg(long)]
         dynamic: bool,
+        /// Optional exported symbol (default: "language")
+        #[arg(long, default_value = "language")]
+        symbol: String,
     },
 
     /// Test grammar against test files
@@ -118,7 +121,8 @@ fn main() -> Result<()> {
             input,
             format,
             dynamic,
-        } => parse_file(&grammar, &input, format, dynamic)?,
+            symbol,
+        } => parse_file(&grammar, &input, format, dynamic, &symbol)?,
         Commands::Test { path, update } => test_grammar(&path, update)?,
         Commands::Doc { grammar, output } => generate_docs(&grammar, output)?,
         Commands::Check { grammar } => check_grammar(&grammar)?,
@@ -362,11 +366,17 @@ fn watch_and_build(path: &Path) -> Result<()> {
     }
 }
 
-fn parse_file(grammar: &Path, input: &Path, format: OutputFormat, dynamic: bool) -> Result<()> {
+fn parse_file(
+    grammar: &Path,
+    input: &Path,
+    format: OutputFormat,
+    dynamic: bool,
+    symbol: &str,
+) -> Result<()> {
     if dynamic {
         #[cfg(feature = "dynamic")]
         {
-            return parse_file_dynamic(grammar, input, format);
+            return parse_file_dynamic(grammar, input, format, symbol);
         }
         #[cfg(not(feature = "dynamic"))]
         {
@@ -404,7 +414,12 @@ fn parse_file(grammar: &Path, input: &Path, format: OutputFormat, dynamic: bool)
 }
 
 #[cfg(feature = "dynamic")]
-fn parse_file_dynamic(grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> {
+fn parse_file_dynamic(
+    grammar: &Path,
+    input: &Path,
+    format: OutputFormat,
+    symbol: &str,
+) -> Result<()> {
     use libloading::Library;
 
     println!(
@@ -415,12 +430,22 @@ fn parse_file_dynamic(grammar: &Path, input: &Path, format: OutputFormat) -> Res
     let input_content = fs::read_to_string(input)?;
 
     unsafe {
+        // Check if file exists
+        if !grammar.exists() {
+            anyhow::bail!("dynamic grammar not found: {}", grammar.display());
+        }
+
         let lib = Library::new(grammar)?;
-        // Tree-sitter grammars export a function like `tree_sitter_<lang>()`
-        // that returns a pointer to the Language struct
-        // TODO: Adjust the symbol name based on the actual grammar
+        // Build symbol name with null terminator
+        let sym_name = {
+            let mut s = symbol.as_bytes().to_vec();
+            if !s.ends_with(b"\0") {
+                s.push(0);
+            }
+            s
+        };
         let get_language: libloading::Symbol<unsafe extern "C" fn() -> *const u8> =
-            lib.get(b"language\0")?;
+            lib.get(&sym_name)?;
         let lang_ptr = get_language();
 
         // TODO: Bridge to rust-sitter's pure parser using the language pointer

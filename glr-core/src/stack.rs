@@ -5,6 +5,33 @@
 /// copy overhead during GLR parsing.
 use std::sync::Arc;
 
+/// Minimal trait the engine uses. Implemented by the old Vec-based stack and the new persistent one.
+pub trait GlrStack: Clone {
+    fn push(&mut self, state: u16);
+    fn pop(&mut self) -> Option<u16>;
+    fn last(&self) -> Option<u16>;
+    fn len(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+// Implement GlrStack for Vec<u16> for backwards compatibility
+impl GlrStack for Vec<u16> {
+    fn push(&mut self, state: u16) {
+        Vec::push(self, state)
+    }
+    fn pop(&mut self) -> Option<u16> {
+        Vec::pop(self)
+    }
+    fn last(&self) -> Option<u16> {
+        <[u16]>::last(self).map(|&x| x)
+    }
+    fn len(&self) -> usize {
+        Vec::len(self)
+    }
+}
+
 /// Small vector optimization size for stack heads
 const SMALL_VEC_SIZE: usize = 8;
 
@@ -19,6 +46,22 @@ pub struct StackNode {
     pub head: Vec<u16>,
     /// Shared tail with other stacks
     pub tail: Option<Arc<StackNode>>,
+}
+
+// Implement GlrStack for StackNode
+impl GlrStack for StackNode {
+    fn push(&mut self, state: u16) {
+        self.push(state, None)
+    }
+    fn pop(&mut self) -> Option<u16> {
+        self.pop().map(|(state, _)| state)
+    }
+    fn last(&self) -> Option<u16> {
+        self.last()
+    }
+    fn len(&self) -> usize {
+        self.len()
+    }
 }
 
 impl StackNode {
@@ -99,9 +142,17 @@ impl StackNode {
         }
     }
 
-    /// Get the current top state without popping
+    /// Get the current top state without popping (alias for last)
     pub fn top(&self) -> Option<u16> {
-        self.head.last().copied().or(Some(self.state))
+        match self.head.last() {
+            Some(x) => Some(*x),
+            None => Some(self.state),
+        }
+    }
+    
+    /// Get the last state without popping
+    pub fn last(&self) -> Option<u16> {
+        self.top()
     }
 
     /// Get the depth of the stack
