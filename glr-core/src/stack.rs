@@ -40,8 +40,8 @@ impl GlrStack for Vec<u16> {
     }
 }
 
-/// Small vector optimization size for stack heads
-const SMALL_VEC_SIZE: usize = 8;
+/// Small vector optimization: number of state/symbol pairs before spilling
+const SMALL_VEC_PAIR_CAP: usize = 4; // 4 pairs => 8 entries total
 
 /// Sentinel value for "no symbol" in head pairs.
 /// Symbol IDs are guaranteed to be less than u16::MAX.
@@ -82,7 +82,7 @@ impl StackNode {
         Self {
             state: 0,
             symbol: None,
-            head: Vec::with_capacity(SMALL_VEC_SIZE),
+            head: Vec::with_capacity(SMALL_VEC_PAIR_CAP * 2),
             tail: None,
         }
     }
@@ -92,7 +92,7 @@ impl StackNode {
         Self {
             state,
             symbol: None,
-            head: Vec::with_capacity(SMALL_VEC_SIZE),
+            head: Vec::with_capacity(SMALL_VEC_PAIR_CAP * 2),
             tail: None,
         }
     }
@@ -102,13 +102,14 @@ impl StackNode {
         debug_assert!(self.head.len() % 2 == 0, "head must contain pairs");
 
         // Always store pairs to avoid ambiguity
-        // Check if we need to spill (need room for 2 entries)
-        if self.head.len() + 2 > SMALL_VEC_SIZE {
+        // Check if we need to spill (need room for 1 more pair = 2 entries)
+        let entry_cap = SMALL_VEC_PAIR_CAP * 2;
+        if self.head.len() + 2 > entry_cap {
             // Spill to a new node with shared tail
             let old_node = Self {
                 state: self.state,
                 symbol: self.symbol,
-                head: std::mem::replace(&mut self.head, Vec::with_capacity(SMALL_VEC_SIZE)),
+                head: std::mem::replace(&mut self.head, Vec::with_capacity(SMALL_VEC_PAIR_CAP * 2)),
                 tail: self.tail.take(),
             };
             self.tail = Some(Arc::new(old_node));
@@ -117,6 +118,9 @@ impl StackNode {
         // Always push as a pair: state, then symbol (NO_SYM means no symbol)
         self.head.push(state);
         self.head.push(symbol.unwrap_or(NO_SYM));
+        
+        #[cfg(debug_assertions)]
+        self.assert_well_formed();
     }
 
     /// Pop a state from the stack
@@ -128,6 +132,10 @@ impl StackNode {
             let sym = self.head.pop().unwrap();
             let state = self.head.pop().unwrap();
             let symbol = if sym == NO_SYM { None } else { Some(sym) };
+            
+            #[cfg(debug_assertions)]
+            self.assert_well_formed();
+            
             return Some((state, symbol));
         }
 
@@ -158,6 +166,10 @@ impl StackNode {
             let symbol = self.symbol;
             self.state = 0;
             self.symbol = None;
+            
+            #[cfg(debug_assertions)]
+            self.assert_well_formed();
+            
             Some((state, symbol))
         } else {
             None

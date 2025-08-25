@@ -1,0 +1,67 @@
+// Example property test for stack invariants (future enhancement)
+// To use: rename to stack_proptest.rs and add proptest to dev-dependencies
+
+#[cfg(test)]
+mod proptests {
+    use proptest::prelude::*;
+    use rust_sitter_glr_core::stack::StackNode;
+
+    proptest! {
+        #[test]
+        fn roundtrip(pushes in proptest::collection::vec(
+            (0u16..=5000u16, proptest::option::of(0u16..=5000u16)), 
+            0..200
+        )) {
+            let mut s = StackNode::new();
+            
+            // Push all state/symbol pairs
+            for (st, sym) in &pushes {
+                s.push(*st, *sym);
+            }
+            
+            // Verify invariants hold
+            s.assert_well_formed();
+            prop_assert_eq!(s.depth(), s.to_vec().len());
+            prop_assert_eq!(s.top(), s.to_vec().last().copied());
+            
+            // Popping all should yield states in reverse of to_vec()
+            let mut rev = s.to_vec();
+            rev.reverse();
+            
+            for expect in rev {
+                prop_assert_eq!(s.pop().map(|(st, _)| st), Some(expect));
+            }
+            
+            // Stack should be empty
+            prop_assert_eq!(s.pop(), None);
+            prop_assert!(s.is_empty());
+        }
+        
+        #[test]
+        fn fork_preserves_invariants(pushes in proptest::collection::vec(
+            (0u16..=1000u16, proptest::option::of(0u16..=1000u16)),
+            1..50
+        )) {
+            let mut original = StackNode::new();
+            
+            for (st, sym) in &pushes {
+                original.push(*st, *sym);
+            }
+            
+            // Fork and verify both maintain invariants
+            let mut fork = original.fork();
+            
+            original.assert_well_formed();
+            fork.assert_well_formed();
+            
+            prop_assert_eq!(original.depth(), fork.depth());
+            prop_assert_eq!(original.top(), fork.top());
+            prop_assert_eq!(original.to_vec(), fork.to_vec());
+            
+            // Mutations to fork don't affect original
+            if let Some((_, _)) = fork.pop() {
+                prop_assert_ne!(original.depth(), fork.depth());
+            }
+        }
+    }
+}
