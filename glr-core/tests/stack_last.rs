@@ -1,6 +1,13 @@
-use rust_sitter_glr_core::stack::{GlrStack, StackNode};
+use rust_sitter_glr_core::stack::StackNode;
+
+#[cfg(feature = "test-api")]
+use rust_sitter_glr_core::stack::test_helpers::GlrStack;
+
+// For tests that don't require test-api feature, use struct literals
+use std::sync::Arc;
 
 #[test]
+#[cfg(feature = "test-api")]
 fn vec_impl_peek_matches_slice() {
     let v = vec![1u16, 2, 3];
     // Trait method:
@@ -14,31 +21,46 @@ fn vec_impl_peek_matches_slice() {
 #[test]
 fn stacknode_top_falls_back_to_state() {
     // Empty head -> returns state
+    #[cfg(feature = "test-api")]
+    let s = StackNode::from_raw(42, vec![], None);
+
+    #[cfg(not(feature = "test-api"))]
     let s = StackNode {
         state: 42,
         symbol: None,
-        head: Vec::new(),
+        head: vec![],
         tail: None,
     };
+
     assert_eq!(s.top(), Some(42));
 }
 
 #[test]
 fn stacknode_top_reads_head() {
+    #[cfg(feature = "test-api")]
+    let s = StackNode::from_raw(5, vec![7, 11], None); // 7 is state, 11 is symbol (or NO_SYM)
+
+    #[cfg(not(feature = "test-api"))]
     let s = StackNode {
         state: 5,
         symbol: None,
         head: vec![7, 11], // 7 is state, 11 is symbol (or NO_SYM)
         tail: None,
     };
+
     assert_eq!(s.top(), Some(7)); // top() returns the state, not the symbol
-    // GlrStack impl calls .top() for peek()
-    assert_eq!(<StackNode as GlrStack>::peek(&s), Some(7));
-    // Length delegates to depth()
-    assert!(<StackNode as GlrStack>::len(&s) >= 2);
+
+    #[cfg(feature = "test-api")]
+    {
+        // GlrStack impl calls .top() for peek()
+        assert_eq!(<StackNode as GlrStack>::peek(&s), Some(7));
+        // Length delegates to depth()
+        assert!(<StackNode as GlrStack>::len(&s) >= 2);
+    }
 }
 
 #[test]
+#[cfg(feature = "test-api")]
 fn vec_glrstack_operations() {
     let mut v = vec![10u16, 20];
 

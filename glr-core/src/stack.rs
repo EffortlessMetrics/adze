@@ -13,33 +13,6 @@
 
 use std::sync::Arc;
 
-/// Minimal trait the engine uses. Implemented by the old Vec-based stack and the new persistent one.
-pub trait GlrStack: Clone {
-    fn push(&mut self, state: u16);
-    fn pop(&mut self) -> Option<u16>;
-    fn peek(&self) -> Option<u16>;
-    fn len(&self) -> usize;
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-}
-
-// Implement GlrStack for Vec<u16> for backwards compatibility
-impl GlrStack for Vec<u16> {
-    fn push(&mut self, state: u16) {
-        Vec::push(self, state)
-    }
-    fn pop(&mut self) -> Option<u16> {
-        Vec::pop(self)
-    }
-    fn peek(&self) -> Option<u16> {
-        self.last().copied()
-    }
-    fn len(&self) -> usize {
-        Vec::len(self)
-    }
-}
-
 /// Small vector optimization: number of state/symbol pairs before spilling
 const SMALL_VEC_PAIR_CAP: usize = 4;
 /// Total entry capacity (pairs * 2)
@@ -67,31 +40,12 @@ pub struct StackNode {
     pub tail: Option<Arc<StackNode>>,
 }
 
-// Implement GlrStack for StackNode
-impl GlrStack for StackNode {
-    fn push(&mut self, state: u16) {
-        self.push(state, None)
-    }
-    fn pop(&mut self) -> Option<u16> {
-        self.pop().map(|(state, _)| state)
-    }
-    fn peek(&self) -> Option<u16> {
-        self.top()
-    }
-    fn len(&self) -> usize {
-        self.depth()
-    }
-}
-
 impl StackNode {
     // Private helper functions for pair operations
     #[inline]
     fn push_pair(head: &mut Vec<u16>, state: u16, sym: Option<u16>) {
         debug_assert!(head.len() % 2 == 0, "head must contain pairs before push");
-        debug_assert!(
-            sym.map_or(true, |s| s != NO_SYM),
-            "symbol id must be < u16::MAX"
-        );
+        debug_assert!(sym != Some(NO_SYM), "symbol id must be < u16::MAX");
         head.push(state);
         head.push(sym.unwrap_or(NO_SYM));
         debug_assert!(head.len() % 2 == 0, "head must contain pairs after push");
@@ -280,6 +234,7 @@ impl StackNode {
 
     /// Assert that the stack structure is well-formed (for debugging)
     #[inline]
+    #[cfg_attr(not(any(test, debug_assertions)), doc(hidden))]
     pub fn assert_well_formed(&self) {
         let mut cur: Option<&StackNode> = Some(self);
         while let Some(n) = cur {
@@ -287,11 +242,73 @@ impl StackNode {
             cur = n.tail.as_deref();
         }
     }
+
+    /// Test-only constructor for creating a StackNode with raw fields
+    #[cfg(any(test, feature = "test-api"))]
+    pub fn from_raw(state: u16, head: Vec<u16>, tail: Option<Arc<StackNode>>) -> Self {
+        let s = Self {
+            state,
+            symbol: None,
+            head,
+            tail,
+        };
+        s.assert_well_formed();
+        s
+    }
 }
 
 impl Default for StackNode {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Test helpers module (only available in tests or with test-api feature)
+#[cfg(any(test, feature = "test-api"))]
+pub mod test_helpers {
+    use super::*;
+
+    /// Minimal trait the engine uses. Implemented by the old Vec-based stack and the new persistent one.
+    pub trait GlrStack: Clone {
+        fn push(&mut self, state: u16);
+        fn pop(&mut self) -> Option<u16>;
+        fn peek(&self) -> Option<u16>;
+        fn len(&self) -> usize;
+        fn is_empty(&self) -> bool {
+            self.len() == 0
+        }
+    }
+
+    // Implement GlrStack for Vec<u16> for backwards compatibility
+    impl GlrStack for Vec<u16> {
+        fn push(&mut self, state: u16) {
+            Vec::push(self, state)
+        }
+        fn pop(&mut self) -> Option<u16> {
+            Vec::pop(self)
+        }
+        fn peek(&self) -> Option<u16> {
+            self.last().copied()
+        }
+        fn len(&self) -> usize {
+            Vec::len(self)
+        }
+    }
+
+    // Implement GlrStack for StackNode
+    impl GlrStack for StackNode {
+        fn push(&mut self, state: u16) {
+            StackNode::push(self, state, None)
+        }
+        fn pop(&mut self) -> Option<u16> {
+            StackNode::pop(self).map(|(state, _)| state)
+        }
+        fn peek(&self) -> Option<u16> {
+            self.top()
+        }
+        fn len(&self) -> usize {
+            self.depth()
+        }
     }
 }
 
@@ -349,5 +366,25 @@ mod tests {
         }
 
         assert!(stack.is_empty());
+    }
+
+    #[test]
+    fn top_ignores_symbol_and_reads_state() {
+        // Guard test for NO_SYM semantics
+        let mut s = StackNode::new();
+
+        // Push state 7 with symbol 11
+        s.push(7, Some(11));
+
+        // top() should return the state, not the symbol
+        assert_eq!(s.top(), Some(7));
+
+        // Verify the stack is well-formed
+        s.assert_well_formed();
+
+        // Also test with NO_SYM (None)
+        s.push(9, None);
+        assert_eq!(s.top(), Some(9));
+        s.assert_well_formed();
     }
 }
