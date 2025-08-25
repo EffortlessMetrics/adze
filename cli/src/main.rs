@@ -10,8 +10,13 @@ mod parse;
 
 /// Rust-sitter CLI - Tools for grammar development
 #[derive(Parser)]
-#[command(name = "rust-sitter")]
-#[command(author, version, about, long_about = None)]
+#[command(
+    name = "rust-sitter",
+    author,
+    version,
+    about = "Rust-sitter CLI",
+    long_about = "CLI tools for rust-sitter grammar development"
+)]
 struct Cli {
     /// Enable verbose output
     #[arg(short, long, global = true)]
@@ -237,29 +242,40 @@ pub use grammar::*;
 
     fs::write(project_dir.join("src/lib.rs"), lib_rs)?;
 
+    let crate_name = name.replace('-', "_");
+
     // Create example test
-    let test_rs = r#"use insta::assert_snapshot;
+    let test_rs = format!(
+        r#"use insta::assert_debug_snapshot;
+use {crate_name}::grammar;
 
 #[test]
-fn test_simple_program() {
+fn test_simple_program() {{
     let input = "42; foo;";
-    // TODO: Add parsing logic once grammar is built
-    assert_snapshot!(input);
-}
-"#;
+    assert_debug_snapshot!(grammar::parse(input));
+}}
+"#,
+        crate_name = crate_name
+    );
 
     fs::write(project_dir.join("tests/basic.rs"), test_rs)?;
 
     // Create README
     let readme = format!(
-        r#"# {}
+        r#"# {name}
 
-A rust-sitter grammar for {}.
+A rust-sitter grammar for {name}.
 
 ## Usage
 
 ```rust
-// TODO: Add usage example
+use {crate_name}::grammar;
+
+fn main() {{
+    let input = "42; foo;";
+    let parsed = grammar::parse(input);
+    println!("{:?}", parsed);
+}}
 ```
 
 ## Development
@@ -278,7 +294,8 @@ cargo test
 
 MIT
 "#,
-        name, name
+        name = name,
+        crate_name = crate_name
     );
 
     fs::write(project_dir.join("README.md"), readme)?;
@@ -421,6 +438,48 @@ fn parse_file_dynamic(
     symbol: &str,
 ) -> Result<()> {
     use libloading::Library;
+    use rust_sitter::pure_parser::{ParsedNode, Parser as PureParser, TSLanguage};
+
+    fn print_tree(node: &ParsedNode, indent: usize) {
+        let spaces = "  ".repeat(indent);
+        println!("{}({}", spaces, node.kind());
+        for child in &node.children {
+            print_tree(child, indent + 1);
+        }
+        println!("{})", spaces);
+    }
+
+    fn node_to_sexp(node: &ParsedNode, depth: usize) -> String {
+        let indent = "  ".repeat(depth);
+        if node.children.is_empty() {
+            format!("{}({})", indent, node.kind())
+        } else {
+            let mut result = format!("{}({}", indent, node.kind());
+            for child in &node.children {
+                result.push('\n');
+                result.push_str(&node_to_sexp(child, depth + 1));
+            }
+            result.push_str(&format!("\n{}{})", indent, ""));
+            result
+        }
+    }
+
+    fn add_node_to_dot(
+        node: &ParsedNode,
+        dot: &mut String,
+        id_counter: &mut usize,
+        parent_id: Option<usize>,
+    ) {
+        let current_id = *id_counter;
+        *id_counter += 1;
+        dot.push_str(&format!("  node{} [label=\"{}\"];\n", current_id, node.kind()));
+        if let Some(pid) = parent_id {
+            dot.push_str(&format!("  node{} -> node{};\n", pid, current_id));
+        }
+        for child in &node.children {
+            add_node_to_dot(child, dot, id_counter, Some(current_id));
+        }
+    }
 
     println!(
         "{} Loading dynamic grammar: {}",
@@ -430,13 +489,11 @@ fn parse_file_dynamic(
     let input_content = fs::read_to_string(input)?;
 
     unsafe {
-        // Check if file exists
         if !grammar.exists() {
             anyhow::bail!("dynamic grammar not found: {}", grammar.display());
         }
 
         let lib = Library::new(grammar)?;
-        // Build symbol name with null terminator
         let sym_name = {
             let mut s = symbol.as_bytes().to_vec();
             if !s.ends_with(b"\0") {
@@ -447,19 +504,43 @@ fn parse_file_dynamic(
         let get_language: libloading::Symbol<unsafe extern "C" fn() -> *const u8> =
             lib.get(&sym_name)?;
         let lang_ptr = get_language();
+        let language = &*(lang_ptr as *const TSLanguage);
 
-        // TODO: Bridge to rust-sitter's pure parser using the language pointer
-        println!(
-            "{} Loaded language from: {}",
-            "✓".green(),
-            grammar.display()
-        );
-        println!("Input size: {} bytes", input_content.len());
+        let mut parser = PureParser::new();
+        parser
+            .set_language(language)
+            .map_err(|e| anyhow::anyhow!(e))?;
 
-        // For now, just show we loaded it successfully
-        match format {
-            OutputFormat::Json => println!("{{\"status\": \"dynamic loading successful\"}}"),
-            _ => println!("Dynamic loading successful - parser integration pending"),
+        let result = parser.parse_string(&input_content);
+
+        if let Some(root) = result.root {
+            match format {
+                OutputFormat::Json => {
+                    #[cfg(feature = "serialization")]
+                    {
+                        use rust_sitter::serialization::TreeSerializer;
+                        let serializer = TreeSerializer::new(input_content.as_bytes());
+                        let node = serializer.serialize_node(&root);
+                        let json = serde_json::to_string_pretty(&node)?;
+                        println!("{}", json);
+                    }
+                    #[cfg(not(feature = "serialization"))]
+                    {
+                        println!("{{\"error\": \"serialization feature not enabled\"}}");
+                    }
+                }
+                OutputFormat::Sexp => println!("{}", node_to_sexp(&root, 0)),
+                OutputFormat::Dot => {
+                    let mut dot = String::from("digraph ParseTree {\n");
+                    let mut id = 0;
+                    add_node_to_dot(&root, &mut dot, &mut id, None);
+                    dot.push_str("}\n");
+                    println!("{}", dot);
+                }
+                OutputFormat::Tree => print_tree(&root, 0),
+            }
+        } else {
+            eprintln!("{} Failed to parse input", "❌".red());
         }
     }
 
@@ -520,6 +601,12 @@ fn check_grammar(grammar: &Path) -> Result<()> {
     println!("{} Checking grammar syntax...", "🔍".blue());
 
     // Try to build the grammar
+    unsafe {
+        std::env::set_var("OUT_DIR", ".");
+        std::env::set_var("TARGET", "x86_64-unknown-linux-gnu");
+        std::env::set_var("OPT_LEVEL", "0");
+        std::env::set_var("HOST", "x86_64-unknown-linux-gnu");
+    }
     match std::panic::catch_unwind(|| build_parsers(grammar)) {
         Ok(_) => {
             println!("{} Grammar syntax is valid!", "✅".green());
