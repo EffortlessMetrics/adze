@@ -4,7 +4,11 @@
 #
 # Format: one crate name per line
 rust-sitter-playground
+rust-sitter
 rust-sitter-runtime
+rust-sitter-glr-core
+rust-sitter-tablegen
+rust-sitter-tool
 rust-sitter-testing
 glr-test-support
 test-mini

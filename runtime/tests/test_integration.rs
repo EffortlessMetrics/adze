@@ -9,7 +9,7 @@ use indexmap::IndexMap;
 use rust_sitter::error_recovery::ErrorRecoveryConfigBuilder;
 // use rust_sitter::external_scanner::ExternalScanner; // Unused
 // use rust_sitter::incremental_v3::{Edit, IncrementalParser, Position}; // Feature-gated
-use rust_sitter::query::{compile_query, QueryCursor};
+use rust_sitter::query::{QueryCursor, compile_query};
 use rust_sitter::scanner_registry::ExternalScannerBuilder;
 use rust_sitter::scanners::IndentationScanner;
 use rust_sitter::tree_sitter::Point as Position;

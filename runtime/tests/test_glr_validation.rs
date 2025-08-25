@@ -90,10 +90,12 @@ fn test_comprehensive_validation() {
 
     // Should detect left recursion
     assert!(result.stats.has_left_recursion);
-    assert!(result
-        .warnings
-        .iter()
-        .any(|w| w.message.contains("left recursion")));
+    assert!(
+        result
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("left recursion"))
+    );
 
     // Should have helpful suggestions
     assert!(!result.suggestions.is_empty());
@@ -160,10 +162,12 @@ fn test_undefined_symbol_with_typo() {
 
     // Should suggest "identifier" as a correction
     assert!(!undefined_error.related.is_empty());
-    assert!(undefined_error
-        .related
-        .iter()
-        .any(|r| r.message.contains("identifier")));
+    assert!(
+        undefined_error
+            .related
+            .iter()
+            .any(|r| r.message.contains("identifier"))
+    );
 
     // Error should have helpful location info
     assert!(undefined_error.location.description.contains("expr"));
@@ -213,10 +217,12 @@ fn test_non_productive_cycle_detection() {
 
     // Should detect non-productive symbols
     assert!(!result.is_valid);
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| e.kind == ErrorKind::NonProductiveSymbol));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::NonProductiveSymbol)
+    );
 
     // Should identify all symbols in the cycle
     let non_prod_errors: Vec<_> = result
@@ -336,10 +342,12 @@ fn test_ambiguous_grammar_detection() {
     assert!(result.stats.requires_glr);
 
     // Should have warnings about ambiguity
-    assert!(result
-        .warnings
-        .iter()
-        .any(|w| w.message.contains("ambiguity")));
+    assert!(
+        result
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("ambiguity"))
+    );
 
     // Should suggest GLR parsing
     assert!(result.suggestions.iter().any(|s| s.contains("GLR")));
@@ -414,20 +422,26 @@ fn test_token_validation() {
     let result = validator.validate(&grammar);
 
     // Should have errors for invalid tokens
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| e.kind == ErrorKind::InvalidToken && e.message.contains("regex")));
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| e.kind == ErrorKind::InvalidToken && e.message.contains("empty")));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::InvalidToken && e.message.contains("regex"))
+    );
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::InvalidToken && e.message.contains("empty"))
+    );
 
     // Should warn about overlapping tokens
-    assert!(result
-        .warnings
-        .iter()
-        .any(|w| w.message.contains("overlapping")));
+    assert!(
+        result
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("overlapping"))
+    );
 }
 
 #[test]
@@ -536,14 +550,18 @@ fn test_unreachable_symbol_warning() {
     let result = validator.validate(&grammar);
 
     // Should warn about unused token and unreachable rule
-    assert!(result
-        .warnings
-        .iter()
-        .any(|w| w.message.contains("unused") && w.message.contains("never used")));
-    assert!(result
-        .warnings
-        .iter()
-        .any(|w| w.message.contains("unreachable_rule") && w.message.contains("not reachable")));
+    assert!(
+        result
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("unused") && w.message.contains("never used"))
+    );
+    assert!(
+        result
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("unreachable_rule") && w.message.contains("not reachable"))
+    );
 
     // Should still be valid (warnings don't make grammar invalid)
     assert!(result.is_valid);

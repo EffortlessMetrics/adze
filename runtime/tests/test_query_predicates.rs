@@ -7,7 +7,7 @@
 mod tests {
     use rust_sitter::{
         parser_v3::{ParseNode, Parser},
-        query::{compile_query, Query, QueryCursor},
+        query::{Query, QueryCursor, compile_query},
     };
     use rust_sitter_ir::{Grammar, Rule, RuleExpr, Symbol, SymbolId};
     use std::collections::HashMap;

@@ -175,9 +175,9 @@ fn test_parse_number() {
     match parser.parse("42") {
         Ok(tree) => {
             assert_eq!(tree.root_kind, 3); // expr
-                                           // Tree structure no longer has children field
-                                           // assert_eq!(tree.children.len(), 1);
-                                           // assert_eq!(tree.children[0].symbol, SymbolId(1)); // number
+            // Tree structure no longer has children field
+            // assert_eq!(tree.children.len(), 1);
+            // assert_eq!(tree.children[0].symbol, SymbolId(1)); // number
         }
         Err(e) => panic!("Parse failed: {}", e),
     }
@@ -194,10 +194,10 @@ fn test_parse_addition() {
     match parser.parse("1+2") {
         Ok(tree) => {
             assert_eq!(tree.root_kind, 3); // expr
-                                           // Tree structure no longer has children field - skip child assertions
-                                           // assert_eq!(tree.children[0].symbol, SymbolId(3)); // expr (left)
-                                           // assert_eq!(tree.children[1].symbol, SymbolId(2)); // +
-                                           // assert_eq!(tree.children[2].symbol, SymbolId(3)); // expr (right)
+            // Tree structure no longer has children field - skip child assertions
+            // assert_eq!(tree.children[0].symbol, SymbolId(3)); // expr (left)
+            // assert_eq!(tree.children[1].symbol, SymbolId(2)); // +
+            // assert_eq!(tree.children[2].symbol, SymbolId(3)); // expr (right)
         }
         Err(e) => panic!("Parse failed: {}", e),
     }
@@ -215,7 +215,7 @@ fn test_parse_with_whitespace() {
     match parser.parse("1 + 2") {
         Ok(tree) => {
             assert_eq!(tree.root_kind, 3); // expr
-                                           // Tree structure no longer has children field - skip child assertions
+            // Tree structure no longer has children field - skip child assertions
         }
         Err(e) => panic!("Parse failed: {}", e),
     }

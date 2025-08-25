@@ -1,5 +1,5 @@
 use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
-use rust_sitter::ts_format::{choose_action_with_precedence, TSActionTag};
+use rust_sitter::ts_format::{TSActionTag, choose_action_with_precedence};
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, StateId, SymbolId};
 use std::collections::{BTreeMap, BTreeSet, HashMap};

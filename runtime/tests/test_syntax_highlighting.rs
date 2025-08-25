@@ -263,7 +263,9 @@ fn test_highlight_overlap_removal() {
 
     // Should keep the more specific highlight (identifier)
     // The overlap removal logic ensures we don't have overlapping ranges
-    assert!(highlights
-        .iter()
-        .all(|h| h.highlight == "variable" || h.highlight == "expression"));
+    assert!(
+        highlights
+            .iter()
+            .all(|h| h.highlight == "variable" || h.highlight == "expression")
+    );
 }

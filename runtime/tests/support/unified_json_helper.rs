@@ -15,7 +15,7 @@ use rust_sitter_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
 /// This preserves the type so tests compile, but avoids UB if someone
 /// runs `--ignored` prematurely.
 pub fn unified_json_language() -> &'static TSLanguage {
-    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 
     let grammar = json_grammar::build_json_grammar();
 

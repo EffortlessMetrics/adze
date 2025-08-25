@@ -1,7 +1,7 @@
 //! Test for the new forest splicing incremental parsing approach
 
 use rust_sitter::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser};
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
