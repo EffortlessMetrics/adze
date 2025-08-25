@@ -87,7 +87,9 @@ impl StackNode {
 
     /// Push a new state onto the stack
     pub fn push(&mut self, state: u16, symbol: Option<u16>) {
-        if self.head.len() >= SMALL_VEC_SIZE {
+        // Always store pairs to avoid ambiguity
+        // Check if we need to spill (now checking for pairs)
+        if self.head.len() >= SMALL_VEC_SIZE - 1 {
             // Spill to a new node with shared tail
             let old_node = Self {
                 state: self.state,
@@ -98,21 +100,18 @@ impl StackNode {
             self.tail = Some(Arc::new(old_node));
         }
 
+        // Always push as a pair: state, then symbol (u16::MAX means no symbol)
         self.head.push(state);
-        if let Some(sym) = symbol {
-            self.head.push(sym);
-        }
+        self.head.push(symbol.unwrap_or(u16::MAX));
     }
 
     /// Pop a state from the stack
     pub fn pop(&mut self) -> Option<(u16, Option<u16>)> {
-        if !self.head.is_empty() {
-            let symbol = if self.head.len() >= 2 {
-                Some(self.head.pop().unwrap())
-            } else {
-                None
-            };
+        if self.head.len() >= 2 {
+            // Pop the pair (symbol first, then state)
+            let sym = self.head.pop().unwrap();
             let state = self.head.pop().unwrap();
+            let symbol = if sym == u16::MAX { None } else { Some(sym) };
             return Some((state, symbol));
         }
 
@@ -137,18 +136,31 @@ impl StackNode {
                     self.pop()
                 }
             }
+        } else if self.state != 0 {
+            // Return the initial state
+            let state = self.state;
+            let symbol = self.symbol;
+            self.state = 0;
+            self.symbol = None;
+            Some((state, symbol))
         } else {
             None
         }
     }
 
-    /// Get the current top state without popping (alias for last)
+    /// Get the current top state without popping
     #[inline]
     pub fn top(&self) -> Option<u16> {
-        // Use the slice method explicitly to avoid trait-method shadowing
-        <[u16]>::last(self.head.as_slice())
-            .copied()
-            .or(Some(self.state))
+        // Get the state from the last pair (state is at even indices)
+        if self.head.len() >= 2 {
+            Some(self.head[self.head.len() - 2])
+        } else if let Some(tail) = &self.tail {
+            tail.top()
+        } else if self.state != 0 {
+            Some(self.state)
+        } else {
+            None
+        }
     }
 
     /// Get the last state without popping
@@ -157,17 +169,29 @@ impl StackNode {
         self.top()
     }
 
-    /// Get the depth of the stack
+    /// Get the depth of the stack (number of states pushed)
     pub fn depth(&self) -> usize {
-        let mut depth = self.head.len() + 1; // +1 for self.state
+        let mut count = 0;
+        
+        // Count states in current node
+        if self.state != 0 {
+            count += 1;
+        }
+        
+        // Count pairs in head (each pair is one state)
+        count += self.head.len() / 2;
+        
+        // Count states in tail nodes
         let mut tail = &self.tail;
-
         while let Some(node) = tail {
-            depth += node.head.len() + 1;
+            if node.state != 0 {
+                count += 1;
+            }
+            count += node.head.len() / 2;
             tail = &node.tail;
         }
-
-        depth
+        
+        count
     }
 
     /// Check if the stack is empty
@@ -176,24 +200,14 @@ impl StackNode {
         self.head.is_empty() && self.tail.is_none() && self.state == 0
     }
 
-    /// Convert to a vector for debugging
+    /// Convert to a vector for debugging (returns only states, not symbols)
     pub fn to_vec(&self) -> Vec<u16> {
-        let mut result = Vec::with_capacity(self.depth());
+        let mut result = Vec::new();
+        let mut stack = self.clone();
 
-        // Add current node
-        if self.state != 0 {
-            result.push(self.state);
-        }
-        result.extend(&self.head);
-
-        // Add tail nodes
-        let mut tail = &self.tail;
-        while let Some(node) = tail {
-            if node.state != 0 {
-                result.push(node.state);
-            }
-            result.extend(&node.head);
-            tail = &node.tail;
+        // Pop everything to get states in order
+        while let Some((state, _symbol)) = stack.pop() {
+            result.push(state);
         }
 
         result.reverse();
