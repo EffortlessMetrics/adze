@@ -91,7 +91,7 @@ impl StackNode {
     /// Push a new state onto the stack
     pub fn push(&mut self, state: u16, symbol: Option<u16>) {
         debug_assert!(self.head.len() % 2 == 0, "head must contain pairs");
-        
+
         // Always store pairs to avoid ambiguity
         // Check if we need to spill (now checking for pairs)
         if self.head.len() >= SMALL_VEC_SIZE - 1 {
@@ -113,7 +113,7 @@ impl StackNode {
     /// Pop a state from the stack
     pub fn pop(&mut self) -> Option<(u16, Option<u16>)> {
         debug_assert!(self.head.len() % 2 == 0, "head must contain pairs");
-        
+
         if self.head.len() >= 2 {
             // Pop the pair (symbol first, then state)
             let sym = self.head.pop().unwrap();
@@ -204,7 +204,7 @@ impl StackNode {
     pub fn to_vec(&self) -> Vec<u16> {
         // O(n) walk: accumulate tail→head states in order
         let mut out = Vec::with_capacity(self.depth());
-        
+
         // Walk tails first to build chain from root to head
         let mut chain: Vec<&StackNode> = Vec::new();
         let mut cur: Option<&StackNode> = Some(self);
@@ -212,7 +212,7 @@ impl StackNode {
             chain.push(n);
             cur = n.tail.as_deref();
         }
-        
+
         // Process nodes in reverse order (root to head)
         for n in chain.iter().rev() {
             if n.state != 0 {
@@ -238,7 +238,7 @@ impl StackNode {
         // In a real implementation, we'd check more of the suffix
         self.depth() == other.depth() && self.top() == other.top()
     }
-    
+
     /// Assert that the stack structure is well-formed (for debugging)
     #[inline]
     pub fn assert_well_formed(&self) {
