@@ -172,6 +172,14 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
             true
         }
     }
+
+    fn input(&self) -> &[u8] {
+        self.src
+    }
+
+    fn byte_position(&self) -> usize {
+        self.cursor
+    }
 }
 
 // Additional methods for extended functionality

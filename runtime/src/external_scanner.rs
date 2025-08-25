@@ -68,6 +68,16 @@ pub trait Lexer {
 
     /// Check if at end of file
     fn is_eof(&self) -> bool;
+
+    /// Get the full input slice being scanned
+    fn input(&self) -> &[u8] {
+        &[]
+    }
+
+    /// Get the current byte position within the input
+    fn byte_position(&self) -> usize {
+        0
+    }
 }
 
 /// Trait for implementing external scanners (object-safe)

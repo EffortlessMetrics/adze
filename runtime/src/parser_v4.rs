@@ -1523,6 +1523,14 @@ impl crate::external_scanner::Lexer for Parser {
     fn is_eof(&self) -> bool {
         self.position >= self.input.len()
     }
+
+    fn input(&self) -> &[u8] {
+        &self.input
+    }
+
+    fn byte_position(&self) -> usize {
+        self.position
+    }
 }
 
 #[cfg(test)]

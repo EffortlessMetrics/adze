@@ -59,13 +59,13 @@ impl DynExternalScanner for CScannerWrapper {
         _lexer: &mut dyn crate::external_scanner::Lexer,
         valid_symbols: &[bool],
     ) -> Option<ScanResult> {
-        // For C scanners, we need to adapt the Rust lexer to C API
-        // Extract input and position from lexer - this needs better API
-        let input = &[]; // TODO: Get from lexer
-        let position = 0; // TODO: Get from lexer
+        // For C scanners, we need to adapt the Rust lexer to the C API
+        // Extract the full input and current byte position from the lexer
+        let input = _lexer.input();
+        let position = _lexer.byte_position();
         use crate::external_scanner_ffi::RustLexerAdapter;
 
-        // Create a lexer adapter
+        // Create a lexer adapter with the current lexer state
         let mut adapter = RustLexerAdapter::new(input, position);
         let mut ts_lexer = adapter.as_ts_lexer();
 
