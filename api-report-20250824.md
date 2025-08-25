@@ -1,6 +1,6 @@
 # API Surface Report
 
-Generated: Sun Aug 24 20:07:31 EDT 2025
+Generated: Sun Aug 24 20:39:33 EDT 2025
 
 ## Public Types
 

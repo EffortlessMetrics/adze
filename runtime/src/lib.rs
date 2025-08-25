@@ -25,6 +25,8 @@ pub mod field_tree;
 pub mod lex;
 /// Line and column position tracking utilities.
 pub mod linecol;
+/// Memory pool for efficient allocation and reuse
+pub mod pool;
 /// Tree-sitter format constants and helpers
 pub mod ts_format;
 

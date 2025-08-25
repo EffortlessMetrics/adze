@@ -38,6 +38,7 @@ parallel = ["rayon"]
 strict_docs = []
 strict_api = []
 glr-trace = []
+glr_telemetry = []  # Enable telemetry counters for performance monitoring
 test-helpers = []
 strict-invariants = []
 memory-tests = []

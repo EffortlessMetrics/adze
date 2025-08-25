@@ -44,13 +44,16 @@ enum Commands {
 
     /// Parse a file using the grammar
     Parse {
-        /// Grammar file
+        /// Grammar file (or .so/.dylib path when using --dynamic)
         grammar: PathBuf,
         /// Input file to parse
         input: PathBuf,
         /// Output format
         #[arg(short, long, default_value = "tree")]
         format: OutputFormat,
+        /// Use dynamic loader to load compiled grammar from shared library
+        #[arg(long)]
+        dynamic: bool,
     },
 
     /// Test grammar against test files
@@ -114,7 +117,8 @@ fn main() -> Result<()> {
             grammar,
             input,
             format,
-        } => parse_file(&grammar, &input, format)?,
+            dynamic,
+        } => parse_file(&grammar, &input, format, dynamic)?,
         Commands::Test { path, update } => test_grammar(&path, update)?,
         Commands::Doc { grammar, output } => generate_docs(&grammar, output)?,
         Commands::Check { grammar } => check_grammar(&grammar)?,
@@ -358,7 +362,21 @@ fn watch_and_build(path: &Path) -> Result<()> {
     }
 }
 
-fn parse_file(grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> {
+fn parse_file(grammar: &Path, input: &Path, format: OutputFormat, dynamic: bool) -> Result<()> {
+    if dynamic {
+        #[cfg(feature = "dynamic")]
+        {
+            return parse_file_dynamic(grammar, input, format);
+        }
+        #[cfg(not(feature = "dynamic"))]
+        {
+            eprintln!(
+                "{}\n",
+                "Error: Dynamic loading not enabled. Build with --features dynamic".red()
+            );
+            std::process::exit(2);
+        }
+    }
     println!("{} Parsing file: {}", "📄".blue(), input.display());
 
     // Convert clap OutputFormat to our parse module's format
@@ -383,6 +401,44 @@ fn parse_file(grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> 
             Err(e)
         }
     }
+}
+
+#[cfg(feature = "dynamic")]
+fn parse_file_dynamic(grammar: &Path, input: &Path, format: OutputFormat) -> Result<()> {
+    use libloading::Library;
+
+    println!(
+        "{} Loading dynamic grammar: {}",
+        "🔧".blue(),
+        grammar.display()
+    );
+    let input_content = fs::read_to_string(input)?;
+
+    unsafe {
+        let lib = Library::new(grammar)?;
+        // Tree-sitter grammars export a function like `tree_sitter_<lang>()`
+        // that returns a pointer to the Language struct
+        // TODO: Adjust the symbol name based on the actual grammar
+        let get_language: libloading::Symbol<unsafe extern "C" fn() -> *const u8> =
+            lib.get(b"language\0")?;
+        let lang_ptr = get_language();
+
+        // TODO: Bridge to rust-sitter's pure parser using the language pointer
+        println!(
+            "{} Loaded language from: {}",
+            "✓".green(),
+            grammar.display()
+        );
+        println!("Input size: {} bytes", input_content.len());
+
+        // For now, just show we loaded it successfully
+        match format {
+            OutputFormat::Json => println!("{{\"status\": \"dynamic loading successful\"}}"),
+            _ => println!("Dynamic loading successful - parser integration pending"),
+        }
+    }
+
+    Ok(())
 }
 
 fn test_grammar(_path: &Path, update: bool) -> Result<()> {

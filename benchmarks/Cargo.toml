@@ -12,6 +12,10 @@ name = "glr_performance"
 harness = false
 
 [[bench]]
+name = "glr_hot"
+harness = false
+
+[[bench]]
 name = "optimization_bench"
 harness = false
 
@@ -19,12 +23,17 @@ harness = false
 name = "incremental_bench"
 harness = false
 
+[[bench]]
+name = "stack_optimization"
+harness = false
+
 [dependencies]
 rust-sitter = { path = "../runtime", features = ["pure-rust"] }
 rust-sitter-example = { path = "../example" }
 rust-sitter-python = { path = "../grammars/python" }
 rust-sitter-ir = { path = "../ir" }
-rust-sitter-glr-core = { path = "../glr-core" }
+rust-sitter-glr-core = { path = "../glr-core", features = ["glr_telemetry"] }
+rust-sitter-tablegen = { path = "../tablegen" }
 tree-sitter = "0.20"
 criterion = "0.5"
 indexmap = "2.0"
