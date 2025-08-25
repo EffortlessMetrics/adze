@@ -118,7 +118,7 @@ impl StackNode {
         // Always push as a pair: state, then symbol (NO_SYM means no symbol)
         self.head.push(state);
         self.head.push(symbol.unwrap_or(NO_SYM));
-        
+
         #[cfg(debug_assertions)]
         self.assert_well_formed();
     }
@@ -132,10 +132,10 @@ impl StackNode {
             let sym = self.head.pop().unwrap();
             let state = self.head.pop().unwrap();
             let symbol = if sym == NO_SYM { None } else { Some(sym) };
-            
+
             #[cfg(debug_assertions)]
             self.assert_well_formed();
-            
+
             return Some((state, symbol));
         }
 
@@ -166,10 +166,10 @@ impl StackNode {
             let symbol = self.symbol;
             self.state = 0;
             self.symbol = None;
-            
+
             #[cfg(debug_assertions)]
             self.assert_well_formed();
-            
+
             Some((state, symbol))
         } else {
             None
