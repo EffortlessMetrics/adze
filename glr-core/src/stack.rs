@@ -9,7 +9,7 @@ use std::sync::Arc;
 pub trait GlrStack: Clone {
     fn push(&mut self, state: u16);
     fn pop(&mut self) -> Option<u16>;
-    fn last(&self) -> Option<u16>;
+    fn peek(&self) -> Option<u16>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool {
         self.len() == 0
@@ -24,8 +24,8 @@ impl GlrStack for Vec<u16> {
     fn pop(&mut self) -> Option<u16> {
         Vec::pop(self)
     }
-    fn last(&self) -> Option<u16> {
-        <[u16]>::last(self.as_slice()).copied()
+    fn peek(&self) -> Option<u16> {
+        self.last().copied()
     }
     fn len(&self) -> usize {
         Vec::len(self)
@@ -56,7 +56,7 @@ impl GlrStack for StackNode {
     fn pop(&mut self) -> Option<u16> {
         self.pop().map(|(state, _)| state)
     }
-    fn last(&self) -> Option<u16> {
+    fn peek(&self) -> Option<u16> {
         self.top()
     }
     fn len(&self) -> usize {
@@ -143,6 +143,7 @@ impl StackNode {
     }
 
     /// Get the current top state without popping (alias for last)
+    #[inline]
     pub fn top(&self) -> Option<u16> {
         // Use the slice method explicitly to avoid trait-method shadowing
         <[u16]>::last(self.head.as_slice())
@@ -151,6 +152,7 @@ impl StackNode {
     }
 
     /// Get the last state without popping
+    #[inline]
     pub fn last(&self) -> Option<u16> {
         self.top()
     }
@@ -169,6 +171,7 @@ impl StackNode {
     }
 
     /// Check if the stack is empty
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.head.is_empty() && self.tail.is_none() && self.state == 0
     }
