@@ -5,7 +5,7 @@
 //! copy overhead during GLR parsing.
 //!
 //! # Invariants
-//! 
+//!
 //! - `head` stores pairs `[state, symbol_or_NO_SYM]`
 //! - Head vector always has even length
 //! - `top()` returns the last state in the last pair (unless `head` is empty, then returns `state`)
