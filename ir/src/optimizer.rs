@@ -522,10 +522,25 @@ impl GrammarOptimizer {
         recursive_rules: Vec<Rule>,
         base_rules: Vec<Rule>,
     ) {
-        // Remove original rules
-        // TODO: Fix this for new Grammar structure
-        // grammar.rules.retain(|_, r| r.lhs != original_symbol);
-        grammar.rules.shift_remove(&original_symbol);
+        // Remove all original rules for the symbol using the current Grammar APIs
+        grammar.rules.remove(&original_symbol);
+
+        // Any conflict declarations referencing the original symbol should also
+        // reference the new helper symbol to preserve conflict metadata
+        for conflict in &mut grammar.conflicts {
+            if conflict.symbols.contains(&original_symbol)
+                && !conflict.symbols.contains(&new_symbol)
+            {
+                conflict.symbols.push(new_symbol);
+            }
+        }
+
+        // Give the new symbol a readable name if possible
+        if let Some(name) = grammar.rule_names.get(&original_symbol).cloned() {
+            grammar
+                .rule_names
+                .insert(new_symbol, format!("{}__rec", name));
+        }
 
         // Add transformed base rules: A -> β A'
         for base_rule in base_rules {
@@ -549,13 +564,25 @@ impl GrammarOptimizer {
             // Remove the left-recursive symbol
             let mut new_rhs: Vec<_> = recursive_rule.rhs[1..].to_vec();
             new_rhs.push(Symbol::NonTerminal(new_symbol));
+            // Adjust field positions since we removed the first symbol
+            let adjusted_fields = recursive_rule
+                .fields
+                .iter()
+                .filter_map(|(field_id, index)| {
+                    if *index > 0 {
+                        Some((*field_id, index - 1))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
 
             let new_rule = Rule {
                 lhs: new_symbol,
                 rhs: new_rhs,
                 precedence: recursive_rule.precedence,
                 associativity: recursive_rule.associativity,
-                fields: Vec::new(), // Fields need to be adjusted
+                fields: adjusted_fields,
                 production_id: self.create_new_production_id(grammar),
             };
 
@@ -885,7 +912,9 @@ impl OptimizationStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Associativity, PrecedenceKind};
+    use crate::{
+        Associativity, ConflictDeclaration, ConflictResolution, FieldId, PrecedenceKind,
+    };
 
     fn create_test_grammar() -> Grammar {
         let mut grammar = Grammar::new("test".to_string());
@@ -1074,5 +1103,114 @@ mod tests {
 
         // Either unit rules were eliminated or symbols were removed
         assert!(stats.total() > 0);
+    }
+
+    #[test]
+    fn test_transform_left_recursion_rewrites_grammar() {
+        let mut grammar = Grammar::new("lr".to_string());
+
+        // Tokens used in the grammar
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "+".to_string(),
+                pattern: TokenPattern::String("+".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.tokens.insert(
+            SymbolId(2),
+            Token {
+                name: "b".to_string(),
+                pattern: TokenPattern::String("b".to_string()),
+                fragile: false,
+            },
+        );
+
+        // Field and rule name for the non-terminal
+        grammar.fields.insert(FieldId(0), "b".to_string());
+        let a = SymbolId(3);
+        grammar.rule_names.insert(a, "A".to_string());
+
+        // Left-recursive rule: A -> A + b
+        grammar.add_rule(Rule {
+            lhs: a,
+            rhs: vec![
+                Symbol::NonTerminal(a),
+                Symbol::Terminal(SymbolId(1)),
+                Symbol::Terminal(SymbolId(2)),
+            ],
+            precedence: Some(PrecedenceKind::Static(5)),
+            associativity: Some(Associativity::Left),
+            fields: vec![(FieldId(0), 2)],
+            production_id: ProductionId(0),
+        });
+
+        // Base rule: A -> b
+        grammar.add_rule(Rule {
+            lhs: a,
+            rhs: vec![Symbol::Terminal(SymbolId(2))],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(0), 0)],
+            production_id: ProductionId(1),
+        });
+
+        // Conflict referencing original symbol
+        grammar.conflicts.push(ConflictDeclaration {
+            symbols: vec![a],
+            resolution: ConflictResolution::GLR,
+        });
+
+        let mut optimizer = GrammarOptimizer::new();
+        optimizer.analyze_grammar(&grammar);
+        let rules = optimizer.extract_rules_for_symbol(&grammar, a).unwrap();
+        let (recursive, base) = optimizer.partition_recursive_rules(&rules, a);
+        let new_symbol = optimizer.create_new_symbol(&grammar);
+        optimizer.transform_left_recursion(&mut grammar, a, new_symbol, recursive, base);
+
+        // Verify base rule was rewritten
+        let b_id = grammar
+            .tokens
+            .iter()
+            .find(|(_, t)| t.name == "b")
+            .map(|(id, _)| *id)
+            .unwrap();
+        let a_rules = grammar.get_rules_for_symbol(a).unwrap();
+        assert_eq!(a_rules.len(), 1);
+        assert_eq!(
+            a_rules[0].rhs,
+            vec![Symbol::Terminal(b_id), Symbol::NonTerminal(new_symbol)]
+        );
+        assert_eq!(a_rules[0].fields, vec![(FieldId(0), 0)]);
+
+        // Verify new symbol rules
+        let plus_id = grammar
+            .tokens
+            .iter()
+            .find(|(_, t)| t.name == "+")
+            .map(|(id, _)| *id)
+            .unwrap();
+        let new_rules = grammar.get_rules_for_symbol(new_symbol).unwrap();
+        assert_eq!(new_rules.len(), 2);
+        let recursive_rule = new_rules.iter().find(|r| !r.rhs.is_empty()).unwrap();
+        assert_eq!(
+            recursive_rule.rhs,
+            vec![
+                Symbol::Terminal(plus_id),
+                Symbol::Terminal(b_id),
+                Symbol::NonTerminal(new_symbol),
+            ]
+        );
+        assert_eq!(recursive_rule.fields, vec![(FieldId(0), 1)]);
+        assert_eq!(recursive_rule.precedence, Some(PrecedenceKind::Static(5)));
+        assert_eq!(recursive_rule.associativity, Some(Associativity::Left));
+
+        // Ensure epsilon rule exists
+        assert!(new_rules.iter().any(|r| r.rhs.is_empty()));
+
+        // Conflicts should include new symbol
+        assert!(grammar.conflicts[0].symbols.contains(&a));
+        assert!(grammar.conflicts[0].symbols.contains(&new_symbol));
     }
 }
