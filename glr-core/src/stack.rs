@@ -49,25 +49,10 @@ const ENTRY_CAP: usize = SMALL_VEC_PAIR_CAP * 2;
 /// Symbol IDs are guaranteed to be less than u16::MAX.
 const NO_SYM: u16 = u16::MAX;
 
-// Helper functions for pair operations
-#[inline]
-fn push_pair(head: &mut Vec<u16>, state: u16, sym: Option<u16>) {
-    debug_assert!(head.len() % 2 == 0, "head must contain pairs before push");
-    head.push(state);
-    head.push(sym.unwrap_or(NO_SYM));
-    debug_assert!(head.len() % 2 == 0, "head must contain pairs after push");
-}
-
-#[inline]
-fn pop_pair(head: &mut Vec<u16>) -> Option<(u16, Option<u16>)> {
-    debug_assert!(head.len() % 2 == 0, "head must contain pairs");
-    if head.len() < 2 {
-        return None;
-    }
-    let sym = head.pop().unwrap();
-    let state = head.pop().unwrap();
-    Some((state, (sym != NO_SYM).then_some(sym)))
-}
+/// Reserved base state value.
+/// State 0 is reserved as the "empty base" state for stack initialization.
+/// All valid grammar states must be > 0.
+const BASE_EMPTY_STATE: u16 = 0;
 
 /// A persistent stack node with shared tail
 #[derive(Clone, Debug)]
@@ -99,10 +84,34 @@ impl GlrStack for StackNode {
 }
 
 impl StackNode {
+    // Private helper functions for pair operations
+    #[inline]
+    fn push_pair(head: &mut Vec<u16>, state: u16, sym: Option<u16>) {
+        debug_assert!(head.len() % 2 == 0, "head must contain pairs before push");
+        debug_assert!(
+            sym.map_or(true, |s| s != NO_SYM),
+            "symbol id must be < u16::MAX"
+        );
+        head.push(state);
+        head.push(sym.unwrap_or(NO_SYM));
+        debug_assert!(head.len() % 2 == 0, "head must contain pairs after push");
+    }
+
+    #[inline]
+    fn pop_pair(head: &mut Vec<u16>) -> Option<(u16, Option<u16>)> {
+        debug_assert!(head.len() % 2 == 0, "head must contain pairs");
+        if head.len() < 2 {
+            return None;
+        }
+        let sym = head.pop().unwrap();
+        let state = head.pop().unwrap();
+        Some((state, (sym != NO_SYM).then_some(sym)))
+    }
+
     /// Create a new empty stack
     pub fn new() -> Self {
         Self {
-            state: 0,
+            state: BASE_EMPTY_STATE,
             symbol: None,
             head: Vec::with_capacity(ENTRY_CAP),
             tail: None,
@@ -134,7 +143,7 @@ impl StackNode {
         }
 
         // Always push as a pair using helper
-        push_pair(&mut self.head, state, symbol);
+        Self::push_pair(&mut self.head, state, symbol);
 
         #[cfg(debug_assertions)]
         self.assert_well_formed();
@@ -142,7 +151,7 @@ impl StackNode {
 
     /// Pop a state from the stack
     pub fn pop(&mut self) -> Option<(u16, Option<u16>)> {
-        if let Some(pair) = pop_pair(&mut self.head) {
+        if let Some(pair) = Self::pop_pair(&mut self.head) {
             #[cfg(debug_assertions)]
             self.assert_well_formed();
             return Some(pair);
