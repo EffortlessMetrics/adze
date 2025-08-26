@@ -1,4 +1,5 @@
 //! Benchmarks for table compression performance
+#![allow(clippy::let_and_return)]
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};

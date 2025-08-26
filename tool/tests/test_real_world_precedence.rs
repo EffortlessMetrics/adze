@@ -74,7 +74,7 @@ module.exports = grammar({
             // Try to convert to IR
             let converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
-                Ok(ir_grammar) => {
+                Ok(_ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
                     println!(
                         "  IR has {} rules, {} tokens",

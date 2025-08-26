@@ -95,7 +95,7 @@ impl Parser {
         #[cfg(feature = "glr-core")]
         {
             let forest = engine_parse_full(language, input)?;
-            return Ok(forest_to_tree(forest));
+            Ok(forest_to_tree(forest))
         }
 
         #[cfg(not(feature = "glr-core"))]
@@ -119,7 +119,7 @@ impl Parser {
             // For now, fall back to fresh parse
             let _ = old_tree;
             let forest = engine_parse_full(language, input)?;
-            return Ok(forest_to_tree(forest));
+            Ok(forest_to_tree(forest))
         }
 
         #[cfg(not(feature = "glr-core"))]

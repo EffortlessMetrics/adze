@@ -113,9 +113,11 @@ pub mod symbol_comparison;
 pub mod version_info;
 
 #[cfg(test)]
+/// Utilities for constructing test parse tables and grammars.
 pub mod test_helpers;
 
 #[cfg(test)]
+/// Simple symbol allocator used in tests.
 pub mod test_symbol_alloc;
 
 #[doc(hidden)]
