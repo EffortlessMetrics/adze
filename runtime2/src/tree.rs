@@ -15,6 +15,7 @@ pub struct Tree {
 }
 
 /// Internal tree node representation
+#[derive(Clone)]
 #[allow(dead_code)]
 pub(crate) struct TreeNode {
     /// Symbol type
@@ -26,6 +27,9 @@ pub(crate) struct TreeNode {
     children: Vec<TreeNode>,
     /// Field ID if this node has a field name
     field_id: Option<u16>,
+    /// Whether this node was touched by the last edit
+    #[allow(dead_code)]
+    dirty: bool,
 }
 
 impl TreeNode {
@@ -42,6 +46,7 @@ impl TreeNode {
             end_byte,
             children,
             field_id: None,
+            dirty: false,
         }
     }
 }
@@ -70,6 +75,7 @@ impl Tree {
                 end_byte: 0,
                 children: vec![],
                 field_id: None,
+                dirty: false,
             },
             language: None,
             source: None,
@@ -89,17 +95,46 @@ impl Tree {
     /// Apply an edit to the tree (for incremental parsing)
     #[cfg(feature = "incremental")]
     pub fn edit(&mut self, edit: &crate::InputEdit) {
-        // TODO: Implement tree editing
-        // 1. Update byte offsets in affected nodes
-        // 2. Mark dirty regions for re-parsing
-        // 3. Maintain tree structure invariants
-        let _ = edit;
+        fn apply_edit(node: &mut TreeNode, edit: &crate::InputEdit, delta: isize) {
+            // Update children first so we process leaves before parents
+            for child in &mut node.children {
+                apply_edit(child, edit, delta);
+            }
+
+            // Determine how this node relates to the edit
+            if node.end_byte <= edit.start_byte {
+                // Node occurs before the edit range – nothing to do
+                return;
+            }
+
+            if node.start_byte >= edit.old_end_byte {
+                // Node occurs completely after the edit range – shift by delta
+                let start = node.start_byte as isize + delta;
+                let end = node.end_byte as isize + delta;
+                node.start_byte = start.max(0) as usize;
+                node.end_byte = end.max(0) as usize;
+                return;
+            }
+
+            // Node intersects the edited region – mark dirty and expand to
+            // cover the new text. Children have already been shifted/marked.
+            node.start_byte = node.start_byte.min(edit.start_byte);
+            let new_end = node.end_byte as isize + delta;
+            node.end_byte = edit.new_end_byte.max(new_end.max(0) as usize);
+            node.dirty = true;
+        }
+
+        let delta = edit.new_end_byte as isize - edit.old_end_byte as isize;
+        apply_edit(&mut self.root, edit, delta);
     }
 
     /// Get a copy of this tree
     pub fn clone(&self) -> Self {
-        // TODO: Implement proper cloning
-        Self::new_stub()
+        Self {
+            root: self.root.clone(),
+            language: self.language.clone(),
+            source: self.source.clone(),
+        }
     }
 
     /// Walk the tree with a callback
@@ -130,29 +165,72 @@ impl fmt::Debug for Tree {
 }
 
 /// Tree cursor for efficient tree traversal
-pub struct TreeCursor {
-    // TODO: Implement cursor for efficient traversal
+pub struct TreeCursor<'a> {
+    /// Stack of nodes representing the path from the root to the current node
+    stack: Vec<CursorEntry<'a>>,
+    /// Language reference for creating `Node`s
+    language: Option<&'a Language>,
 }
 
-impl TreeCursor {
+struct CursorEntry<'a> {
+    node: &'a TreeNode,
+    /// Index of this node in its parent's child list
+    index: usize,
+}
+
+impl<'a> TreeCursor<'a> {
     /// Create a new cursor at the root
-    pub fn new(tree: &Tree) -> Self {
-        let _ = tree;
-        Self {}
+    pub fn new(tree: &'a Tree) -> Self {
+        Self {
+            stack: vec![CursorEntry {
+                node: &tree.root,
+                index: 0,
+            }],
+            language: tree.language.as_ref(),
+        }
+    }
+
+    /// Get the node currently pointed to by the cursor
+    #[allow(dead_code)]
+    pub fn node(&self) -> Node<'a> {
+        Node::new(self.stack.last().unwrap().node, self.language)
     }
 
     /// Move to the first child
     pub fn goto_first_child(&mut self) -> bool {
-        false
+        let current = self.stack.last().unwrap().node;
+        if current.children.is_empty() {
+            return false;
+        }
+        self.stack.push(CursorEntry {
+            node: &current.children[0],
+            index: 0,
+        });
+        true
     }
 
     /// Move to the next sibling
     pub fn goto_next_sibling(&mut self) -> bool {
-        false
+        if self.stack.len() < 2 {
+            return false;
+        }
+        let parent = self.stack[self.stack.len() - 2].node;
+        let next_index = self.stack.last().unwrap().index + 1;
+        if next_index >= parent.children.len() {
+            return false;
+        }
+        let top = self.stack.last_mut().unwrap();
+        top.node = &parent.children[next_index];
+        top.index = next_index;
+        true
     }
 
     /// Move to the parent
     pub fn goto_parent(&mut self) -> bool {
-        false
+        if self.stack.len() <= 1 {
+            return false;
+        }
+        self.stack.pop();
+        true
     }
 }
