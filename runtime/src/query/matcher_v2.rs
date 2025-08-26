@@ -306,7 +306,8 @@ impl<'a> Iterator for QueryMatches<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::SymbolId;
+    use crate::query::compile_query;
+    use rust_sitter_ir::{Grammar, SymbolId, Token, TokenPattern};
 
     fn make_node(symbol: u16, start: usize, end: usize) -> ParseNode {
         let symbol_id = SymbolId(symbol);
@@ -320,46 +321,29 @@ mod tests {
         }
     }
 
+    fn create_test_grammar() -> Grammar {
+        let mut grammar = Grammar::new("test".to_string());
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "identifier".to_string(),
+                pattern: TokenPattern::Regex("[a-zA-Z]+".to_string()),
+                fragile: false,
+            },
+        );
+        grammar
+    }
+
     #[test]
     fn test_predicate_matching() {
         // Create a simple query with predicates
         let query_str = r#"
-            (identifier) @name
+            (identifier @name)
             (#eq? @name "test")
         "#;
 
-        // Mock symbol IDs
-        let identifier_symbol = SymbolId(1);
-
-        // Create a mock query (normally would use compile_query)
-        let mut query = Query {
-            source: query_str.to_string(),
-            patterns: vec![],
-            capture_names: HashMap::new(),
-            property_settings: vec![],
-            property_predicates: vec![],
-        };
-
-        query.capture_names.insert("name".to_string(), 0);
-
-        let pattern = Pattern {
-            root: PatternNode {
-                symbol: identifier_symbol,
-                children: vec![],
-                fields: HashMap::new(),
-                capture: Some(0),
-                is_named: true,
-                quantifier: Quantifier::One,
-            },
-            predicates: vec![Predicate::Eq {
-                capture1: 0,
-                capture2: None,
-                value: Some("test".to_string()),
-            }],
-            start_byte: 0,
-        };
-
-        query.patterns.push(pattern);
+        let grammar = create_test_grammar();
+        let query = compile_query(query_str, &grammar).unwrap();
 
         // Create test tree
         let source = "test other test";
