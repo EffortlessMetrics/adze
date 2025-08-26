@@ -4,11 +4,12 @@
 //! and decodes it into rust-sitter's native structures.
 
 use indexmap::IndexMap;
-use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
+use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{
-    ExternalToken, Grammar, ProductionId, Rule, RuleId, StateId, SymbolId, Token, TokenPattern,
+    ExternalToken, FieldId, Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
+    TokenPattern,
 };
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::{CStr, c_char};
 use std::path::Path;
 
@@ -160,8 +161,8 @@ pub fn decode_grammar_with_patterns(
     lang: &'static TSLanguage,
     token_patterns: &HashMap<String, TokenPattern>,
 ) -> Grammar {
-    let mut rules = IndexMap::new();
-    let mut tokens = IndexMap::new();
+    let mut rules: IndexMap<SymbolId, Vec<Rule>> = IndexMap::new();
+    let mut tokens: IndexMap<SymbolId, Token> = IndexMap::new();
     let mut symbol_names = Vec::new();
     let mut externals = Vec::new();
 
@@ -214,21 +215,17 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Process symbols to determine tokens vs rules
+    // Process symbols to determine tokens
     for i in 0..lang.symbol_count as usize {
         let metadata = unsafe { *lang.symbol_metadata.add(i) };
         let name = &symbol_names[i];
         let symbol_id = SymbolId(i as u16);
 
-        // Check if this is a terminal (token) or non-terminal (rule)
-        // In Tree-sitter, terminals typically have lower IDs and specific metadata bits
         if is_terminal(metadata, name) {
             // This is a token
-            // Try to get the real pattern from our loaded patterns
             let pattern = if let Some(real_pattern) = token_patterns.get(name) {
                 real_pattern.clone()
             } else {
-                // Fallback to placeholder pattern
                 rust_sitter_ir::TokenPattern::String(name.clone())
             };
 
@@ -240,21 +237,65 @@ pub fn decode_grammar_with_patterns(
                     fragile: false,
                 },
             );
-        } else {
-            // This is a rule (non-terminal)
-            // For now, create a stub rule - real rules would come from grammar definitions
-            rules.insert(
-                symbol_id,
-                vec![Rule {
-                    lhs: symbol_id,
-                    rhs: vec![], // Will be populated from production rules
-                    precedence: None,
-                    associativity: None,
-                    fields: vec![],
-                    production_id: ProductionId(i as u16),
-                }],
-            );
         }
+    }
+
+    // Decode field names
+    let mut field_name_map = IndexMap::new();
+    if !lang.field_names.is_null() {
+        for i in 0..lang.field_count as usize {
+            unsafe {
+                let name_ptr = *lang.field_names.add(i);
+                if !name_ptr.is_null() {
+                    let name = CStr::from_ptr(name_ptr as *const c_char)
+                        .to_string_lossy()
+                        .into_owned();
+                    field_name_map.insert(FieldId(i as u16), name);
+                }
+            }
+        }
+    }
+
+    // Decode field map entries: (production_id -> [(field_id, position)])
+    let mut fields_by_rule: HashMap<u16, Vec<(FieldId, usize)>> = HashMap::new();
+    if !lang.field_map_slices.is_null() && !lang.field_map_entries.is_null() {
+        for pid in 0..lang.production_count as usize {
+            let start = unsafe { *lang.field_map_slices.add(pid * 2) } as usize;
+            let len = unsafe { *lang.field_map_slices.add(pid * 2 + 1) } as usize;
+            for j in 0..len {
+                let entry_index = (start + j) * 2;
+                let low = unsafe { *lang.field_map_entries.add(entry_index) } as u32;
+                let high = unsafe { *lang.field_map_entries.add(entry_index + 1) } as u32;
+                let packed = (high << 16) | low;
+                let field_id = (packed & 0xFFFF) as u16;
+                let child_index = ((packed >> 16) & 0xFF) as usize;
+                fields_by_rule
+                    .entry(pid as u16)
+                    .or_default()
+                    .push((FieldId(field_id), child_index));
+            }
+        }
+    }
+
+    // Decode rules and attach field info
+    let parse_rules = decode_rules(lang);
+    let mut production_ids = IndexMap::new();
+    for (i, r) in parse_rules.iter().enumerate() {
+        let mut rhs = Vec::new();
+        for _ in 0..r.rhs_len {
+            rhs.push(Symbol::NonTerminal(SymbolId(0))); // placeholder symbols
+        }
+        let fields = fields_by_rule.remove(&(i as u16)).unwrap_or_default();
+        let rule = Rule {
+            lhs: r.lhs,
+            rhs,
+            precedence: None,
+            associativity: None,
+            fields: fields.iter().map(|(fid, pos)| (*fid, *pos)).collect(),
+            production_id: ProductionId(i as u16),
+        };
+        rules.entry(r.lhs).or_default().push(rule);
+        production_ids.insert(RuleId(i as u16), ProductionId(i as u16));
     }
 
     // Process external tokens
@@ -276,11 +317,11 @@ pub fn decode_grammar_with_patterns(
         conflicts: vec![],
         externals,
         extras: vec![],
-        fields: IndexMap::new(),
+        fields: field_name_map,
         supertypes: vec![],
         inline_rules: vec![],
         alias_sequences: IndexMap::new(),
-        production_ids: IndexMap::new(),
+        production_ids,
         max_alias_sequence_length: 0,
         rule_names: IndexMap::new(),
         symbol_registry: None,
@@ -342,8 +383,10 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     let goto_table = Vec::new();
     let mut symbol_metadata = Vec::new();
     let mut symbol_to_index = BTreeMap::new();
+    let mut extras_set: BTreeSet<SymbolId> = BTreeSet::new();
 
-    // Decode rules from TSLanguage
+    // Decode grammar and rules from TSLanguage
+    let mut grammar = decode_grammar(lang);
     let rules = decode_rules(lang);
 
     // Build (lhs, rhs_len) -> rule_id map for normalizing Reduce actions
@@ -378,11 +421,15 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             (ts_metadata, name)
         };
 
+        if (ts_metadata & 0x04) != 0 {
+            extras_set.insert(SymbolId(i as u16));
+        }
+
         symbol_metadata.push(SymbolMetadata {
             name,
             visible: (ts_metadata & 0x01) != 0,
             named: (ts_metadata & 0x02) != 0,
-            supertype: (ts_metadata & 0x04) != 0,
+            supertype: (ts_metadata & 0x08) != 0,
         });
     }
 
@@ -391,20 +438,20 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         let mut state_actions = Vec::new();
 
         for symbol in 0..lang.symbol_count as usize {
-            // Get the action index from the parse table
             let table_offset = state * lang.symbol_count as usize + symbol;
             let action = unsafe {
                 let action_idx = *lang.parse_table.add(table_offset);
 
-                // Decode the action from parse_actions array
                 if action_idx != 0 {
-                    let action = &*lang.parse_actions.add(action_idx as usize);
-                    decode_action(action, &rules, &rid_by_pair)
+                    let raw = &*lang.parse_actions.add(action_idx as usize);
+                    if raw.extra != 0 && raw.action_type == TSActionTag::Shift as u8 {
+                        extras_set.insert(SymbolId(symbol as u16));
+                    }
+                    decode_action(raw, &rules, &rid_by_pair)
                 } else {
                     Action::Error
                 }
             };
-            // Create an action cell with single action (Tree-sitter doesn't store multiple actions)
             let action_cell = if matches!(action, Action::Error) {
                 vec![]
             } else {
@@ -453,6 +500,11 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                 if action_index != 0 && symbol < lang.symbol_count as usize {
                     let action = unsafe {
                         let action_entry = &*lang.parse_actions.add(action_index);
+                        if action_entry.extra != 0
+                            && action_entry.action_type == TSActionTag::Shift as u8
+                        {
+                            extras_set.insert(SymbolId(symbol as u16));
+                        }
                         decode_action(action_entry, &rules, &rid_by_pair)
                     };
                     if !matches!(action, Action::Error) {
@@ -528,6 +580,44 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // Use lang.eof_symbol as a symbol id
     let eof_symbol = SymbolId(lang.eof_symbol);
 
+    let extras: Vec<SymbolId> = extras_set.into_iter().collect();
+
+    // Build field map from grammar rules
+    let mut field_map = BTreeMap::new();
+    for rules_vec in grammar.rules.values() {
+        for rule in rules_vec {
+            for (fid, pos) in &rule.fields {
+                field_map.insert((RuleId(rule.production_id.0), *pos as u16), fid.0);
+            }
+        }
+    }
+
+    // Decode lex modes
+    let lex_modes = if !lang.lex_modes.is_null() {
+        (0..lang.state_count as usize)
+            .map(|i| unsafe {
+                let m = *lang.lex_modes.add(i);
+                LexMode {
+                    lex_state: m.lex_state,
+                    external_lex_state: m.external_lex_state,
+                }
+            })
+            .collect()
+    } else {
+        vec![
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0
+            };
+            lang.state_count as usize
+        ]
+    };
+
+    // Field names vector from grammar
+    let field_names: Vec<String> = grammar.fields.values().cloned().collect();
+
+    grammar.extras = extras.clone();
+
     let mut table = ParseTable {
         action_table,
         goto_table,
@@ -562,18 +652,18 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             debug_assert_ne!(start, SymbolId(0), "start_symbol cannot be ERROR(0)");
             start
         },
-        rules,                       // Now move rules after computing start_symbol
-        grammar: Grammar::default(), // TODO: Build from language
+        rules,   // Now move rules after computing start_symbol
+        grammar, // attach decoded grammar
         initial_state: StateId(0),
         token_count: lang.token_count as usize,
         external_token_count: lang.external_token_count as usize,
-        lex_modes: Vec::new(),            // TODO: Decode from language
-        extras: Vec::new(),               // TODO: Decode from language
+        lex_modes,
+        extras: extras.clone(),
         dynamic_prec_by_rule: Vec::new(), // TODO: Decode from language
         rule_assoc_by_rule: Vec::new(),   // TODO: Decode from language
         alias_sequences: Vec::new(),      // TODO: Decode from language
-        field_names: Vec::new(),          // TODO: Decode from language
-        field_map: BTreeMap::new(),       // TODO: Decode from language
+        field_names,
+        field_map,
     };
 
     // Auto-detect GOTO indexing mode
@@ -584,10 +674,15 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
 /// Determine if a symbol is a terminal based on metadata and name
 fn is_terminal(metadata: u8, name: &str) -> bool {
-    // In Tree-sitter, the metadata encodes visibility and type information:
-    // Bit 0 (0x01): visible flag - if set, the symbol is visible
-    // Visible symbols are typically terminals (tokens)
-    // Hidden symbols (metadata & 0x01 == 0) are typically non-terminals
+    // In Tree-sitter, metadata bits encode symbol characteristics.
+    // Bit 0 (0x01): visible flag
+    // Bit 2 (0x04): extra token flag
+    // Visible symbols are typically terminals, but extras are terminals even if hidden.
+
+    // Extras are always terminals
+    if (metadata & 0x04) != 0 {
+        return true;
+    }
 
     // First check: if the symbol is visible (bit 0 set), it's likely a terminal
     if (metadata & 0x01) != 0 {
