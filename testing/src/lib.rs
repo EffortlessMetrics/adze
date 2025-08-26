@@ -2,12 +2,15 @@
 // Tests compatibility with official Tree-sitter grammars
 
 use anyhow::{Context, Result};
-use rust_sitter_glr_core::ParseTable;
+use rust_sitter_glr_core::{
+    build_lr1_automaton, FirstFollowSets, ParseTable,
+};
 use rust_sitter_ir::Grammar;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use rust_sitter_tool::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 
 /// Test result for a single grammar
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,17 +128,40 @@ impl BetaTester {
     }
 
     /// Load a grammar from disk
-    fn load_grammar(&self, _path: &Path) -> Result<Grammar> {
-        // TODO: Implement grammar loading
-        // This would parse the rust-sitter grammar definition
-        unimplemented!("Grammar loading not yet implemented")
+    fn load_grammar(&self, path: &Path) -> Result<Grammar> {
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("Failed to read grammar file at {}", path.display()))?;
+
+        match path.extension().and_then(|e| e.to_str()) {
+            Some("json") => {
+                let grammar: Grammar = serde_json::from_str(&content)
+                    .context("Failed to parse grammar JSON")?;
+                Ok(grammar)
+            }
+            Some("js") => {
+                let grammar_js = parse_grammar_js_v2(&content)
+                    .context("Failed to parse grammar.js")?;
+                let converter = GrammarJsConverter::new(grammar_js);
+                let grammar = converter
+                    .convert()
+                    .context("Failed to convert grammar.js to IR")?;
+                Ok(grammar)
+            }
+            _ => {
+                anyhow::bail!(
+                    "Unsupported grammar format for {}",
+                    path.display()
+                )
+            }
+        }
     }
 
     /// Generate parse table for grammar
-    fn generate_parse_table(&self, _grammar: &Grammar) -> Result<ParseTable> {
-        // TODO: Implement parse table generation
-        // This would use the GLR core to generate tables
-        unimplemented!("Parse table generation not yet implemented")
+    fn generate_parse_table(&self, grammar: &Grammar) -> Result<ParseTable> {
+        let first_follow = FirstFollowSets::compute(grammar);
+        let parse_table = build_lr1_automaton(grammar, &first_follow)
+            .context("Failed to build parse table")?;
+        Ok(parse_table)
     }
 
     /// Test a single file
