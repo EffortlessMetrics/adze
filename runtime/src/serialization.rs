@@ -13,10 +13,10 @@ use crate::pure_parser::ParsedNode as Node;
 use crate::tree_sitter::{Node, Tree};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-#[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
-use tree_sitter_runtime_c2rust::TreeCursor;
 #[cfg(all(feature = "tree-sitter-standard", not(feature = "pure-rust")))]
-use tree_sitter_runtime_standard::TreeCursor;
+use tree_sitter::TreeCursor;
+#[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
+use tree_sitter_c2rust::TreeCursor;
 
 #[cfg(feature = "serialization")]
 use serde_json::{Value, json};
@@ -333,6 +333,12 @@ pub struct BinarySerializer {
     field_name_map: HashMap<String, u16>,
     node_types: Vec<String>,
     field_names: Vec<String>,
+}
+
+impl Default for BinarySerializer {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl BinarySerializer {

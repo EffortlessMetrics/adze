@@ -111,11 +111,17 @@ impl Telemetry {
 #[cfg(feature = "glr_telemetry")]
 #[derive(Debug, Clone, Copy)]
 pub struct TelemetryStats {
+    /// Number of times the parser forked to explore multiple paths.
     pub forks: u64,
+    /// Number of stack merges performed.
     pub merges: u64,
+    /// Count of reduce operations executed.
     pub reduces: u64,
+    /// Count of shift operations executed.
     pub shifts: u64,
+    /// Maximum number of concurrently active stacks.
     pub max_stacks: u64,
+    /// Total stacks created over the parse (including dropped ones).
     pub total_stacks: u64,
 }
 

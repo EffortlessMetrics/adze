@@ -6,7 +6,8 @@
 use indexmap::IndexMap;
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{
-    ExternalToken, Grammar, ProductionId, Rule, RuleId, StateId, SymbolId, Token, TokenPattern,
+    ExternalToken, Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
+    TokenPattern,
 };
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::{CStr, c_char};
@@ -160,10 +161,11 @@ pub fn decode_grammar_with_patterns(
     lang: &'static TSLanguage,
     token_patterns: &HashMap<String, TokenPattern>,
 ) -> Grammar {
-    let mut rules = IndexMap::new();
+    let mut rules: IndexMap<SymbolId, Vec<Rule>> = IndexMap::new();
     let mut tokens = IndexMap::new();
     let mut symbol_names = Vec::new();
     let mut externals = Vec::new();
+    let mut rule_names = IndexMap::new();
 
     // Read all symbol names
     if lang.symbol_names.is_null() {
@@ -242,19 +244,38 @@ pub fn decode_grammar_with_patterns(
             );
         } else {
             // This is a rule (non-terminal)
-            // For now, create a stub rule - real rules would come from grammar definitions
-            rules.insert(
-                symbol_id,
-                vec![Rule {
-                    lhs: symbol_id,
-                    rhs: vec![], // Will be populated from production rules
-                    precedence: None,
-                    associativity: None,
-                    fields: vec![],
-                    production_id: ProductionId(i as u16),
-                }],
-            );
+            // Track the rule name for later mapping
+            rule_names.insert(symbol_id, name.clone());
         }
+    }
+
+    // Populate rules from language metadata if available
+    let parsed_rules = decode_rules(lang);
+    let has_alias_data = !lang.alias_map.is_null() && !lang.alias_sequences.is_null();
+    for (i, pr) in parsed_rules.into_iter().enumerate() {
+        // Build RHS from alias_sequences if available
+        let mut rhs = Vec::with_capacity(pr.rhs_len as usize);
+        if has_alias_data {
+            let offset = unsafe { *lang.alias_map.add(i) } as usize;
+            for j in 0..pr.rhs_len as usize {
+                let sym_idx = unsafe { *lang.alias_sequences.add(offset + j) };
+                let sym_id = SymbolId(sym_idx);
+                let symbol = if (sym_idx as u32) < lang.token_count + lang.external_token_count {
+                    Symbol::Terminal(sym_id)
+                } else {
+                    Symbol::NonTerminal(sym_id)
+                };
+                rhs.push(symbol);
+            }
+        }
+        rules.entry(pr.lhs).or_default().push(Rule {
+            lhs: pr.lhs,
+            rhs,
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(i as u16),
+        });
     }
 
     // Process external tokens
@@ -282,7 +303,7 @@ pub fn decode_grammar_with_patterns(
         alias_sequences: IndexMap::new(),
         production_ids: IndexMap::new(),
         max_alias_sequence_length: 0,
-        rule_names: IndexMap::new(),
+        rule_names,
         symbol_registry: None,
     }
 }
@@ -290,7 +311,9 @@ pub fn decode_grammar_with_patterns(
 /// Rule metadata decoded from TSLanguage
 #[derive(Clone, Copy, Debug)]
 pub struct RuleMeta {
+    /// Left-hand-side non-terminal for this rule.
     pub lhs: SymbolId,
+    /// Number of symbols on the right-hand side.
     pub rhs_len: u8,
 }
 

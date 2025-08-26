@@ -326,26 +326,23 @@ fn gen_struct_or_variant(
                             );
                             return None;
                         }
-                    } else if let Some(text) = params
+                    } else if let Some(Expr::Lit(ExprLit {
+                        lit: Lit::Str(s), ..
+                    })) = params
                         .iter()
                         .find(|param| param.path == "text")
                         .map(|p| p.expr.clone())
                     {
-                        if let Expr::Lit(ExprLit {
-                            lit: Lit::Str(s), ..
-                        }) = text
-                        {
-                            // For single-leaf variants, create a rule with the string
-                            // Don't return inline - we want a named rule for proper AST nodes
-                            out.insert(
-                                path,
-                                json!({
-                                    "type": "STRING",
-                                    "value": s.value(),
-                                }),
-                            );
-                            return None;
-                        }
+                        // For single-leaf variants, create a rule with the string
+                        // Don't return inline - we want a named rule for proper AST nodes
+                        out.insert(
+                            path,
+                            json!({
+                                "type": "STRING",
+                                "value": s.value(),
+                            }),
+                        );
+                        return None;
                     }
                 }
             }

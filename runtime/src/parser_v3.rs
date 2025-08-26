@@ -9,7 +9,6 @@ use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::fmt;
 
 // Re-export the lexer Token type for consistency
-pub(crate) use crate::lexer::Token;
 
 /// Parser state during execution
 #[derive(Debug, Clone)]
@@ -69,6 +68,7 @@ pub(crate) enum ParseError {
         position: usize,
     },
     /// No valid parse found
+    #[allow(dead_code)]
     InvalidParse(String),
     /// Parser is in an invalid state
     InvalidState(String),
@@ -98,6 +98,7 @@ impl std::error::Error for ParseError {}
 
 impl Parser {
     /// Create a new parser with the given grammar and parse table
+    #[allow(dead_code)]
     pub(crate) fn new(grammar: Grammar, parse_table: ParseTable) -> Self {
         Self {
             grammar,
@@ -116,6 +117,7 @@ impl Parser {
     }
 
     /// Set error recovery configuration
+    #[allow(dead_code)]
     pub(crate) fn with_error_recovery(mut self, config: ErrorRecoveryConfig) -> Self {
         self.error_recovery = Some(config);
         self
@@ -580,8 +582,7 @@ impl Parser {
     ) -> Result<Option<RecoveryAction>> {
         // Try different recovery strategies
         // 1. Check if we can insert a token to continue
-        for &sync_token_u16 in &config.sync_tokens {
-            let sync_token = SymbolId(sync_token_u16);
+        for &sync_token in &config.sync_tokens {
             match self.get_action(state, sync_token) {
                 Ok(action) if !matches!(action, Action::Error) => {
                     return Ok(Some(RecoveryAction::InsertToken(sync_token)));
@@ -605,7 +606,7 @@ impl Parser {
 
         // 4. Create error node as last resort
         // Always allow error node creation as fallback
-        return Ok(Some(RecoveryAction::CreateErrorNode(vec![token.symbol])));
+        Ok(Some(RecoveryAction::CreateErrorNode(vec![token.symbol])))
     }
 
     /// Create an error node containing problematic tokens

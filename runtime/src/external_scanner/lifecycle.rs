@@ -64,15 +64,13 @@ impl ScannerWrapper {
 
 /// RAII guard for C external scanners.
 /// Holds the scanner solely to drive `Drop`; inner field is intentionally unused.
-#[allow(unused_tuple_struct_fields)]
+#[allow(dead_code)]
 pub struct ScannerGuard(pub(crate) Box<CExternalScanner>);
 
 impl Drop for ScannerGuard {
     fn drop(&mut self) {
         // Safely destroy the C scanner
-        unsafe {
-            // C scanner cleanup handled internally
-        }
+        // C scanner cleanup handled internally
     }
 }
 

@@ -85,6 +85,7 @@ pub mod parse_forest;
 pub mod driver;
 pub mod forest_view;
 pub mod stack;
+/// Telemetry counters for tracking GLR parser operations.
 pub mod telemetry;
 pub mod ts_lexer;
 
