@@ -361,14 +361,6 @@ pub fn decode_grammar_with_patterns(
     }
 }
 
-/// Rule metadata decoded from TSLanguage
-#[derive(Clone, Copy, Debug)]
-pub struct RuleMeta {
-    pub lhs: SymbolId,
-    pub rhs_len: u8,
-}
-
-/// Decode rules from TSLanguage
 fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
     const DEBUG_RULE_PRINT_LIMIT: usize = 5;
     let n = lang.production_count as usize; // Use production_count, not rule_count
@@ -595,9 +587,6 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // tcols,
     // index_to_symbol.len()
     // );
-    for _col in nonterminal_to_index.values() {
-        // eprintln!("  NT SymbolId({}) -> col {}", sym.0, col);
-    }
 
     // lang.eof_symbol is the *column index* of EOF, so map it back to the
     // corresponding SymbolId using the index_to_symbol mapping we just built.
