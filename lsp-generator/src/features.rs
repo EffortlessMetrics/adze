@@ -159,37 +159,73 @@ impl LspFeature for HoverProvider {
     }
 
     fn generate_handler(&self) -> String {
-        r#"
+        let mut entries: Vec<_> = self.documentation.iter().collect();
+        entries.sort_by(|a, b| a.0.cmp(b.0));
+        let docs = entries
+            .into_iter()
+            .map(|(name, doc)| format!("\"{}\" => Some(\"{}\".to_string()),", name, doc))
+            .collect::<Vec<_>>()
+            .join("\n        ");
+
+        format!(
+            r#"
 pub async fn handle_hover(
     params: lsp_types::HoverParams,
-) -> Result<Option<lsp_types::Hover>> {
+) -> Result<Option<lsp_types::Hover>> {{
     // Get the word under cursor
     let word = get_word_at_position(&params)?;
-    
+
     // Look up documentation
-    let contents = match lookup_documentation(&word) {
+    let contents = match lookup_documentation(&word) {{
         Some(doc) => lsp_types::HoverContents::Scalar(
             lsp_types::MarkedString::String(doc)
         ),
         None => return Ok(None),
-    };
-    
-    Ok(Some(lsp_types::Hover {
+    }};
+
+    Ok(Some(lsp_types::Hover {{
         contents,
         range: None,
-    }))
-}
+    }}))
+}}
 
-fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {
-    // Implementation would extract word at cursor position
-    todo!("Extract word at position")
-}
+fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {{
+    let uri = &params.text_document_position_params.text_document.uri;
+    let path = uri
+        .to_file_path()
+        .map_err(|_| anyhow::Error::msg("invalid file URI"))?;
+    let text = std::fs::read_to_string(path)?;
 
-fn lookup_documentation(word: &str) -> Option<String> {
-    // Implementation would look up documentation
-    todo!("Look up documentation for word")
-}"#
-        .to_string()
+    let position = params.text_document_position_params.position;
+    let line = text.lines().nth(position.line as usize).unwrap_or("");
+    let chars: Vec<char> = line.chars().collect();
+    let mut idx = position.character as usize;
+    if idx > chars.len() {{
+        idx = chars.len();
+    }}
+
+    let mut start = idx;
+    while start > 0 && (chars[start - 1].is_alphanumeric() || chars[start - 1] == '_') {{
+        start -= 1;
+    }}
+
+    let mut end = idx;
+    while end < chars.len() && (chars[end].is_alphanumeric() || chars[end] == '_') {{
+        end += 1;
+    }}
+
+    Ok(chars[start..end].iter().collect())
+}}
+
+fn lookup_documentation(word: &str) -> Option<String> {{
+    match word {{
+        {}
+        _ => None,
+    }}
+}}
+"#,
+            docs
+        )
     }
 
     fn required_imports(&self) -> Vec<String> {
