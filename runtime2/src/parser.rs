@@ -42,6 +42,10 @@ impl Parser {
                 return Err(ParseError::with_msg("Language has no tokenizer"));
             }
         }
+        if language.symbol_metadata.is_empty() {
+            return Err(ParseError::with_msg("Language has no symbol metadata"));
+        }
+        // TODO: Validate language version compatibility
         self.language = Some(language);
         Ok(())
     }

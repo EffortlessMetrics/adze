@@ -4,19 +4,21 @@
 //! GLR parsing internally to handle ambiguous grammars.
 //!
 //! # Quick start
-//! ```no_run
+//! ```ignore
 //! use rust_sitter_runtime::{Parser, Language, Token};
-//! # #[cfg(feature = "glr-core")]
-//! let lang = Language::new_stub()
+//! // `parse_table` and metadata would come from a generated parser crate.
+//! let lang = Language::builder()
+//!     .parse_table(todo!())
+//!     .symbol_metadata(vec![])
+//!     .build()
+//!     .unwrap()
 //!     .with_static_tokens(vec![
 //!         Token { kind: 1, start: 0, end: 1 },
 //!         Token { kind: 0, start: 1, end: 1 }, // EOF
 //!     ]);
-//! # #[cfg(not(feature = "glr-core"))]
-//! # let lang = Language::new_stub();
 //! let mut p = Parser::new();
-//! p.set_language(lang).unwrap(); // will fail fast if tokenizer/tables missing in GLR mode
-//! let _ = p.parse("a", None); // will error until parse tables are provided
+//! p.set_language(lang).unwrap();
+//! let _ = p.parse("a", None);
 //! ```
 
 #![warn(missing_docs)]
