@@ -1,6 +1,7 @@
 mod language_builder;
 
-use rust_sitter::pure_parser::TSLanguage;
+use rust_sitter::pure_parser::{TSLanguage, TSLexState};
+use std::sync::OnceLock;
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_glr_core::GotoIndexing;
 use rust_sitter_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
@@ -33,8 +34,15 @@ struct UpstreamLanguage {
     public_symbol_map: *const u16,
     alias_map: *const u16,
     alias_sequences: *const u16,
-    lex_modes: *const u8,
-    lex_fn: Option<unsafe extern "C" fn(*mut c_void, StateId) -> bool>,
+    lex_modes: *const TSLexState,
+    lex_fn: Option<unsafe extern "C" fn(*mut c_void, u16) -> bool>,
+}
+
+static UPSTREAM_LEX: OnceLock<unsafe extern "C" fn(*mut c_void, u16) -> bool> = OnceLock::new();
+
+unsafe extern "C" fn lex_adapter(lexer: *mut c_void, state: TSLexState) -> bool {
+    let f = UPSTREAM_LEX.get().expect("lex fn not set");
+    f(lexer, state.lex_state)
 }
 
 /// Return a `TSLanguage` built from the real Tree-sitter JSON grammar.
@@ -48,6 +56,7 @@ pub fn unified_json_language() -> &'static TSLanguage {
     let lang_fn: unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage =
         unsafe { std::mem::transmute(tree_sitter_json::LANGUAGE.into_raw()) };
     let data = extract(lang_fn).expect("extract tree-sitter json");
+    let upstream = unsafe { &*(lang_fn() as *const UpstreamLanguage) };
 
     // Build minimal Grammar with symbol names and token stubs
     let mut grammar = Grammar::new("ts_json".to_string());
@@ -142,6 +151,12 @@ pub fn unified_json_language() -> &'static TSLanguage {
 
     // Normalize for Tree-sitter layout and build final language
     language_builder::normalize_table_for_ts(&mut table);
-    let lang = language_builder::build_json_ts_language(&grammar, &table);
+    let mut lang = language_builder::build_ts_language(&grammar, &table);
+    // Reuse the upstream lex function and modes for tokenization
+    if let Some(f) = upstream.lex_fn {
+        let _ = UPSTREAM_LEX.set(f);
+        lang.lex_fn = Some(lex_adapter);
+    }
+    lang.lex_modes = upstream.lex_modes;
     Box::leak(Box::new(lang))
 }
