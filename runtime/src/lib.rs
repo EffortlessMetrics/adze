@@ -159,6 +159,9 @@ pub use rust_sitter_ir;
 // }
 // mod parallel_parser_v2;
 
+#[cfg(test)]
+mod parallel_parser;
+
 #[cfg(feature = "pure-rust")]
 mod tree_sitter_compat;
 
