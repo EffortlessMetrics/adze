@@ -499,8 +499,8 @@ mod tests {
         );
         grammar.extras.push(SYM_WS);
 
-        grammar.rule_names.insert(SYM_PAIR, "pair".to_string());
         grammar.rule_names.insert(SYM_ROOT, "root".to_string());
+        grammar.rule_names.insert(SYM_PAIR, "pair".to_string());
 
         grammar.fields.insert(FieldId(0), "left".to_string());
         grammar.fields.insert(FieldId(1), "right".to_string());
@@ -532,8 +532,11 @@ mod tests {
             production_id: ProductionId(2),
         };
 
+        // Insert root rules first so start_symbol() selects SYM_ROOT
+        grammar
+            .rules
+            .insert(SYM_ROOT, vec![root_rule_rec, root_rule_base]);
         grammar.rules.insert(SYM_PAIR, vec![pair_rule]);
-        grammar.rules.insert(SYM_ROOT, vec![root_rule_rec, root_rule_base]);
 
         let ff = FirstFollowSets::compute(&grammar);
         let table = build_lr1_automaton(&grammar, &ff).expect("table");
