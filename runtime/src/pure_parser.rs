@@ -1336,6 +1336,18 @@ impl Parser {
         }
     }
 
+    /// Look up the goto state for a non-terminal using the parse table.
+    /// Returns `0` when no transition exists, mirroring Tree-sitter's ABI.
+    #[allow(dead_code)]
+    fn get_goto_state(
+        &self,
+        language: &TSLanguage,
+        state: TSStateId,
+        symbol: TSSymbol,
+    ) -> TSStateId {
+        self.get_goto(language, state, symbol).unwrap_or(0)
+    }
+
     /// Get expected symbols for error reporting
     fn get_expected_symbols(&self, language: &TSLanguage, state: TSStateId) -> Vec<TSSymbol> {
         let mut expected = Vec::new();
@@ -1726,5 +1738,57 @@ mod tests {
         // Symbol 0 is a token; there is no goto entry. The helper should
         // return None instead of panicking.
         assert!(parser.get_goto(&LANGUAGE, 0, 0).is_none());
+    }
+
+    #[test]
+    fn test_get_goto_state_returns_zero_when_missing() {
+        // Language with one token and one non-terminal but no goto entries.
+        static PARSE_TABLE: [u16; 2] = [0, 0];
+        static SMALL_PARSE_TABLE: [u16; 1] = [0];
+        static SMALL_PARSE_TABLE_MAP: [u32; 1] = [0];
+        static LEX_MODES: [TSLexState; 1] = [TSLexState {
+            lex_state: 0,
+            external_lex_state: 0,
+        }];
+        static LANGUAGE: TSLanguage = TSLanguage {
+            version: TREE_SITTER_LANGUAGE_VERSION,
+            symbol_count: 2,
+            alias_count: 0,
+            token_count: 1,
+            external_token_count: 0,
+            state_count: 1,
+            large_state_count: 1,
+            production_id_count: 0,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            production_id_map: std::ptr::null(),
+            parse_table: PARSE_TABLE.as_ptr(),
+            small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
+            small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
+            parse_actions: std::ptr::null(),
+            symbol_names: std::ptr::null(),
+            field_names: std::ptr::null(),
+            field_map_slices: std::ptr::null(),
+            field_map_entries: std::ptr::null(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: LEX_MODES.as_ptr(),
+            lex_fn: None,
+            keyword_lex_fn: None,
+            keyword_capture_token: 0,
+            external_scanner: ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            eof_symbol: 0,
+            rules: std::ptr::null(),
+            rule_count: 0,
+        };
+
+        let parser = Parser::new();
+        // Symbol 1 is the lone non-terminal; with no table entry this should return 0.
+        assert_eq!(parser.get_goto_state(&LANGUAGE, 0, 1), 0);
     }
 }
