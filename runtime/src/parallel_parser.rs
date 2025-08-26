@@ -6,10 +6,34 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use crate::incremental_v3::{Subtree, SubtreePool, Tree};
-use crate::parser_v3::{ParseNode, Parser};
 use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::{Grammar, SymbolId};
+
+#[cfg(feature = "legacy-parsers")]
+use crate::parser_v3::{ParseNode, Parser};
+
+#[cfg(not(feature = "legacy-parsers"))]
+#[derive(Debug, Clone)]
+pub struct ParseNode {
+    /// Symbol ID for this node
+    pub symbol: SymbolId,
+    /// Child nodes
+    pub children: Vec<ParseNode>,
+    /// Start byte offset in the input
+    pub start_byte: usize,
+    /// End byte offset in the input
+    pub end_byte: usize,
+    /// Field name if this node is a field
+    pub field_name: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct Subtree {
+    symbol: SymbolId,
+    start_byte: usize,
+    end_byte: usize,
+    children: Vec<Subtree>,
+}
 
 /// Parallel parser configuration
 #[derive(Debug, Clone)]
@@ -46,14 +70,12 @@ pub struct ParallelParser {
 /// Cache for reusable subtrees
 struct SubtreeCache {
     cache: HashMap<u64, Arc<Subtree>>,
-    pool: SubtreePool,
 }
 
 impl SubtreeCache {
     fn new() -> Self {
         Self {
             cache: HashMap::new(),
-            pool: SubtreePool::new(),
         }
     }
 
@@ -125,6 +147,7 @@ impl ParallelParser {
     }
 
     /// Parse input in parallel
+    #[cfg(feature = "legacy-parsers")]
     pub fn parse(&self, input: &str) -> Result<ParseNode> {
         let bytes = input.as_bytes();
 
@@ -237,6 +260,7 @@ impl ParallelParser {
     }
 
     /// Parse a single chunk
+    #[cfg(feature = "legacy-parsers")]
     fn parse_chunk(&self, chunk_id: usize, chunk: ParseChunk) -> ChunkResult {
         use std::time::Instant;
         let start_time = Instant::now();
@@ -431,6 +455,7 @@ pub struct ParallelStats {
 
 impl ParallelParser {
     /// Parse with statistics collection
+    #[cfg(feature = "legacy-parsers")]
     pub fn parse_with_stats(&self, input: &str) -> Result<(ParseNode, ParallelStats)> {
         let mut stats = ParallelStats::default();
 
