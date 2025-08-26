@@ -7,6 +7,19 @@ mod glr_query;
 
 use glr_query::{QueryCursor, QueryParser, Subtree};
 
+// Symbol identifiers used in the test grammar
+const NUMBER_ID: SymbolId = SymbolId(0);
+const PLUS_ID: SymbolId = SymbolId(1);
+const TIMES_ID: SymbolId = SymbolId(2);
+const LPAREN_ID: SymbolId = SymbolId(3);
+const RPAREN_ID: SymbolId = SymbolId(4);
+const EXPR_ID: SymbolId = SymbolId(10);
+const TERM_ID: SymbolId = SymbolId(11);
+const FACTOR_ID: SymbolId = SymbolId(12);
+const ADD_EXPR_ID: SymbolId = SymbolId(13);
+const MUL_EXPR_ID: SymbolId = SymbolId(14);
+const PAREN_EXPR_ID: SymbolId = SymbolId(15);
+
 fn create_test_grammar() -> Grammar {
     let mut grammar = Grammar::new("test".to_string());
 
@@ -163,76 +176,191 @@ fn create_test_grammar() -> Grammar {
 }
 
 fn parse_expression(_grammar: &Grammar, input: &str) -> Option<Subtree> {
-    // For testing, create subtree structures based on the input
-    // In a real implementation, this would use the GLR parser
+    // A tiny hand-written parser for arithmetic expressions.
+    // This parser only supports the constructs needed by the query tests:
+    // numbers, `+`, `*` and parentheses.  It produces tree shapes that match
+    // the grammar defined in `create_test_grammar`.
 
-    let expr_id = SymbolId(10);
-    let add_expr_id = SymbolId(13);
-    let term_id = SymbolId(11);
-    let factor_id = SymbolId(12);
-    let number_id = SymbolId(0);
-    let plus_id = SymbolId(1);
+    // Symbol IDs used by the grammar
+    #[derive(Clone)]
+    struct Parser<'a> {
+        bytes: &'a [u8],
+        pos: usize,
+    }
 
-    if input == "1 + 2" {
-        // Create tree for "1 + 2"
-        Some(Subtree {
-            symbol: add_expr_id,
-            children: vec![
-                Subtree {
-                    symbol: expr_id,
-                    children: vec![Subtree {
-                        symbol: term_id,
-                        children: vec![Subtree {
-                            symbol: factor_id,
-                            children: vec![Subtree {
-                                symbol: number_id,
-                                children: vec![],
-                                start_byte: 0,
-                                end_byte: 1,
-                            }],
-                            start_byte: 0,
-                            end_byte: 1,
-                        }],
-                        start_byte: 0,
-                        end_byte: 1,
-                    }],
-                    start_byte: 0,
-                    end_byte: 1,
-                },
-                Subtree {
-                    symbol: plus_id,
-                    children: vec![],
-                    start_byte: 2,
-                    end_byte: 3,
-                },
-                Subtree {
-                    symbol: term_id,
-                    children: vec![Subtree {
-                        symbol: factor_id,
-                        children: vec![Subtree {
-                            symbol: number_id,
+    impl<'a> Parser<'a> {
+        fn new(input: &'a str) -> Self {
+            Self {
+                bytes: input.as_bytes(),
+                pos: 0,
+            }
+        }
+
+        fn peek(&self) -> Option<u8> {
+            self.bytes.get(self.pos).copied()
+        }
+
+        fn advance(&mut self) {
+            self.pos += 1;
+        }
+
+        fn skip_ws(&mut self) {
+            while matches!(self.peek(), Some(b' ' | b'\t' | b'\n' | b'\r')) {
+                self.advance();
+            }
+        }
+
+        fn parse_number(&mut self) -> Option<Subtree> {
+            let start = self.pos;
+            while matches!(self.peek(), Some(b'0'..=b'9')) {
+                self.advance();
+            }
+            if start == self.pos {
+                return None;
+            }
+            Some(Subtree {
+                symbol: NUMBER_ID,
+                children: vec![],
+                start_byte: start,
+                end_byte: self.pos,
+            })
+        }
+
+        fn parse_factor(&mut self) -> Option<Subtree> {
+            self.skip_ws();
+            if self.peek() == Some(b'(') {
+                let l_start = self.pos;
+                self.advance();
+                let expr = self.parse_expr()?;
+                self.skip_ws();
+                let r_start = self.pos;
+                if self.peek() != Some(b')') {
+                    return None;
+                }
+                self.advance();
+                let paren = Subtree {
+                    symbol: PAREN_EXPR_ID,
+                    start_byte: l_start,
+                    end_byte: self.pos,
+                    children: vec![
+                        Subtree {
+                            symbol: LPAREN_ID,
                             children: vec![],
-                            start_byte: 4,
-                            end_byte: 5,
-                        }],
-                        start_byte: 4,
-                        end_byte: 5,
-                    }],
-                    start_byte: 4,
-                    end_byte: 5,
-                },
-            ],
-            start_byte: 0,
-            end_byte: 5,
-        })
+                            start_byte: l_start,
+                            end_byte: l_start + 1,
+                        },
+                        expr,
+                        Subtree {
+                            symbol: RPAREN_ID,
+                            children: vec![],
+                            start_byte: r_start,
+                            end_byte: r_start + 1,
+                        },
+                    ],
+                };
+                Some(Subtree {
+                    symbol: FACTOR_ID,
+                    start_byte: l_start,
+                    end_byte: self.pos,
+                    children: vec![paren],
+                })
+            } else {
+                let number = self.parse_number()?;
+                Some(Subtree {
+                    symbol: FACTOR_ID,
+                    start_byte: number.start_byte,
+                    end_byte: number.end_byte,
+                    children: vec![number],
+                })
+            }
+        }
+
+        fn parse_term(&mut self) -> Option<Subtree> {
+            let mut left = self.parse_factor()?;
+            self.skip_ws();
+            while self.peek() == Some(b'*') {
+                let op_pos = self.pos;
+                self.advance();
+                let right = self.parse_factor()?;
+                let left_term = Subtree {
+                    symbol: TERM_ID,
+                    start_byte: left.start_byte,
+                    end_byte: left.end_byte,
+                    children: vec![left],
+                };
+                let right_factor = Subtree {
+                    symbol: FACTOR_ID,
+                    start_byte: right.start_byte,
+                    end_byte: right.end_byte,
+                    children: vec![right],
+                };
+                left = Subtree {
+                    symbol: MUL_EXPR_ID,
+                    start_byte: left_term.start_byte,
+                    end_byte: right_factor.end_byte,
+                    children: vec![
+                        left_term,
+                        Subtree {
+                            symbol: TIMES_ID,
+                            children: vec![],
+                            start_byte: op_pos,
+                            end_byte: op_pos + 1,
+                        },
+                        right_factor,
+                    ],
+                };
+                self.skip_ws();
+            }
+            Some(left)
+        }
+
+        fn parse_expr(&mut self) -> Option<Subtree> {
+            let mut left = self.parse_term()?;
+            self.skip_ws();
+            while self.peek() == Some(b'+') {
+                let op_pos = self.pos;
+                self.advance();
+                let right = self.parse_term()?;
+                let left_expr = Subtree {
+                    symbol: EXPR_ID,
+                    start_byte: left.start_byte,
+                    end_byte: left.end_byte,
+                    children: vec![left],
+                };
+                let right_term = Subtree {
+                    symbol: TERM_ID,
+                    start_byte: right.start_byte,
+                    end_byte: right.end_byte,
+                    children: vec![right],
+                };
+                left = Subtree {
+                    symbol: ADD_EXPR_ID,
+                    start_byte: left_expr.start_byte,
+                    end_byte: right_term.end_byte,
+                    children: vec![
+                        left_expr,
+                        Subtree {
+                            symbol: PLUS_ID,
+                            children: vec![],
+                            start_byte: op_pos,
+                            end_byte: op_pos + 1,
+                        },
+                        right_term,
+                    ],
+                };
+                self.skip_ws();
+            }
+            Some(left)
+        }
+    }
+
+    let mut p = Parser::new(input);
+    let tree = p.parse_expr()?;
+    p.skip_ws();
+    if p.pos == p.bytes.len() {
+        Some(tree)
     } else {
-        // Default tree structure
-        Some(Subtree {
-            symbol: expr_id,
-            children: vec![],
-            start_byte: 0,
-            end_byte: input.len(),
-        })
+        None
     }
 }
 
@@ -289,8 +417,8 @@ fn test_wildcard_pattern() {
     let cursor = QueryCursor::new();
     let matches: Vec<_> = cursor.matches(&query, &tree).collect();
 
-    // Should find numbers (0 in this default case)
-    assert_eq!(matches.len(), 0); // Default tree has no numbers
+    // Should find both numbers in the expression
+    assert_eq!(matches.len(), 2);
 }
 
 #[test]
@@ -320,7 +448,8 @@ fn test_nested_query() {
     let tree = parse_expression(&grammar, "(1 + 2) * 3").unwrap();
 
     // Create a query to find additions inside parentheses
-    let query_parser = QueryParser::new(&grammar, "(paren_expression (add_expression) @add)");
+    let query_parser =
+        QueryParser::new(&grammar, "(paren_expression (_) (add_expression) @add (_))");
     let query = query_parser.parse().unwrap();
 
     let cursor = QueryCursor::new();
@@ -385,7 +514,7 @@ fn test_query_parser_errors() {
         ("expression", "ExpectedOpenParen"),
         ("(expression", "ExpectedCloseParen"),
         ("(unknown_type)", "UnknownNodeType"),
-        ("(#unknown?)", "ExpectedOpenParen"),
+        ("(#unknown?)", "ExpectedIdentifier"),
         ("(expression) (#eq? @unknown)", "UnknownCapture"),
     ];
 

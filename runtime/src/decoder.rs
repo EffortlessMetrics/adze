@@ -6,7 +6,8 @@
 use indexmap::IndexMap;
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{
-    ExternalToken, Grammar, ProductionId, Rule, RuleId, StateId, SymbolId, Token, TokenPattern,
+    ExternalToken, Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
+    TokenPattern,
 };
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::{CStr, c_char};
@@ -241,20 +242,23 @@ pub fn decode_grammar_with_patterns(
                 },
             );
         } else {
-            // This is a rule (non-terminal)
-            // For now, create a stub rule - real rules would come from grammar definitions
-            rules.insert(
-                symbol_id,
-                vec![Rule {
-                    lhs: symbol_id,
-                    rhs: vec![], // Will be populated from production rules
-                    precedence: None,
-                    associativity: None,
-                    fields: vec![],
-                    production_id: ProductionId(i as u16),
-                }],
-            );
+            // Non-terminal: ensure we have an entry in the rules map
+            rules.entry(symbol_id).or_insert_with(Vec::new);
         }
+    }
+
+    // Build rules from the language's production metadata
+    let parse_rules = decode_rules(lang);
+    for (rid, pr) in parse_rules.into_iter().enumerate() {
+        let rhs = vec![Symbol::NonTerminal(SymbolId(0)); pr.rhs_len as usize];
+        rules.entry(pr.lhs).or_default().push(Rule {
+            lhs: pr.lhs,
+            rhs,
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(rid as u16),
+        });
     }
 
     // Process external tokens

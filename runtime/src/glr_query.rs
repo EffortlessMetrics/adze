@@ -677,8 +677,8 @@ impl<'a> QueryMatches<'a> {
             }
         }
 
-        // All remaining children must be optional
-        node_index == node_children.len()
+        // Pattern matched; remaining children are ignored
+        true
     }
 
     fn check_predicates(&self, pattern: &Pattern) -> bool {

@@ -18,7 +18,7 @@ fn glr_smoke_table_construction() {
         sym2idx.insert(SymbolId(i), i as usize);
     }
 
-    let table = ParseTable {
+    let mut table = ParseTable {
         action_table: action,
         goto_table: gotos,
         rules: vec![ParseRule {
@@ -54,12 +54,16 @@ fn glr_smoke_table_construction() {
         symbol_metadata: vec![],
     };
 
-    // Basic sanity checks
+    // Basic sanity checks before normalization
     assert_eq!(table.state_count, 2);
     assert_eq!(table.symbol_count, 4);
     assert_eq!(table.token_count, 2);
     assert_eq!(table.eof_symbol, SymbolId(2));
     assert_eq!(table.start_symbol, SymbolId(3));
+
+    // Normalize EOF column to match Driver invariants
+    table = table.normalize_eof_to_zero();
+    assert_eq!(table.eof_symbol, SymbolId(0));
 
     // Verify we can create a driver (doesn't parse anything, just checks construction)
     let _driver = rust_sitter_glr_core::Driver::new(&table);
