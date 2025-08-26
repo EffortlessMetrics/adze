@@ -1,6 +1,6 @@
 //! Tree representation for parsed syntax trees
 
-use crate::{node::Node, Language};
+use crate::{Language, node::Node};
 use std::fmt;
 
 /// A parsed syntax tree

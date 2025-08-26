@@ -100,7 +100,7 @@ fn debug_extraction_state_0() {
 
     // Check the language metadata to find the real initial state
     println!("\n=== Checking language metadata ===");
-    extern "C" {
+    unsafe extern "C" {
         fn ts_language_version(lang: *const TSLanguage) -> u32;
     }
     let version = unsafe { ts_language_version(lang.0) };
