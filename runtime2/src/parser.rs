@@ -4,6 +4,8 @@
 use crate::builder::forest_to_tree;
 #[cfg(feature = "glr-core")]
 use crate::engine::parse_full as engine_parse_full;
+#[cfg(all(feature = "glr-core", feature = "incremental"))]
+use crate::engine::parse_incremental as engine_parse_incremental;
 use crate::{error::ParseError, language::Language, tree::Tree};
 use std::time::Duration;
 
@@ -40,7 +42,6 @@ impl Parser {
                 return Err(ParseError::with_msg("Language has no tokenizer"));
             }
         }
-        // TODO: Validate language version compatibility
         self.language = Some(language);
         Ok(())
     }
@@ -118,7 +119,7 @@ impl Parser {
                     return Ok(old_tree.clone());
                 }
             }
-            let forest = engine_parse_full(language, input)?;
+            let forest = engine_parse_incremental(language, input, old_tree)?;
             Ok(forest_to_tree(forest))
         }
 
