@@ -164,10 +164,24 @@ impl LspBuilder {
     }
 }
 
-fn load_grammar(_path: &Path) -> Result<Grammar> {
-    // This would load the grammar from the compiled rust-sitter grammar
-    // For now, return a placeholder
-    todo!("Implement grammar loading from compiled rust-sitter parser")
+fn load_grammar(path: &Path) -> Result<Grammar> {
+    use anyhow::Context;
+    use libloading::Library;
+    use rust_sitter::{decoder::decode_grammar, pure_parser::TSLanguage};
+
+    unsafe {
+        let lib = Library::new(path)
+            .with_context(|| format!("Failed to load grammar library at {}", path.display()))?;
+        let lang_fn: libloading::Symbol<unsafe extern "C" fn() -> *const TSLanguage> = lib
+            .get(b"language\0")
+            .context("Missing 'language' symbol in grammar library")?;
+        let lang_ptr = lang_fn();
+        if lang_ptr.is_null() {
+            anyhow::bail!("'language' symbol returned null pointer");
+        }
+        let grammar = decode_grammar(&*lang_ptr);
+        Ok(grammar)
+    }
 }
 
 #[cfg(test)]
