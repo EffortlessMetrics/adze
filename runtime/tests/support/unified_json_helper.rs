@@ -64,98 +64,52 @@ pub fn unified_json_language() -> &'static TSLanguage {
 
 // Keep the scaffolding functions below as reference for when we wire up the real implementation
 
-/// Very small JSON-like token set (expand as you port real rules).
+/// Build a minimal but real JSON grammar using [`GrammarBuilder`].
+///
+/// This grammar is intentionally small but contains enough structure to
+/// exercise the parser pipeline and demonstrate how a grammar is constructed.
 #[allow(dead_code)]
 fn build_min_json_grammar() -> Grammar {
-    let mut g = Grammar::new("json_min".to_string());
+    use rust_sitter_ir::builder::GrammarBuilder;
 
-    // Tokens. Add/rename to match your IR expectations.
-    // These are enough to keep the scaffold compiling; semantics come later.
-    g.tokens.insert(
-        SymbolId(1),
-        Token {
-            name: "{".to_string(),
-            pattern: TokenPattern::String("{".to_string()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(2),
-        Token {
-            name: "}".to_string(),
-            pattern: TokenPattern::String("}".to_string()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(3),
-        Token {
-            name: ":".to_string(),
-            pattern: TokenPattern::String(":".to_string()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(4),
-        Token {
-            name: ",".to_string(),
-            pattern: TokenPattern::String(",".to_string()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(5),
-        Token {
-            name: "string".to_string(),
-            pattern: TokenPattern::Regex(r#""([^"\\]|\\.)*""#.to_string()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(6),
-        Token {
-            name: "number".to_string(),
-            pattern: TokenPattern::Regex(r#"-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?"#.to_string()),
-            fragile: false,
-        },
-    );
-
-    // TODO: Add nonterminals + rules via g.rules[...] when you port a real grammar.
-    // Keep this stub minimal to compile; LanguageBuilder may accept empty rules
-    // until you wire a real table (the test remains #[ignore] meanwhile).
-
-    g
+    GrammarBuilder::new("json_min")
+        // Terminals
+        .token("{", "{")
+        .token("}", "}")
+        .token(":", ":")
+        .token(",", ",")
+        .token("string", r#""([^"\\]|\\.)*""#)
+        .token("number", r#"-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?"#)
+        // Nonterminals and rules
+        .rule("document", vec!["object"])
+        .rule("start", vec!["value"])
+        .rule("value", vec!["string"])
+        .rule("value", vec!["number"])
+        .rule("value", vec!["object"])
+        .rule("object", vec!["{", "}"])
+        .rule("object", vec!["{", "pairs", "}"])
+        .rule("pairs", vec!["pair"])
+        .rule("pairs", vec!["pair", ",", "pairs"])
+        .rule("pair", vec!["string", ":", "value"])
+        .start("document")
+        .build()
 }
 
-/// A stub parse table that satisfies struct shape and keeps tests compiling.
-/// Replace with a real table (actions/gotos/metadata) when you flip tests on.
+/// Construct a minimal parse table for the grammar using the regular
+/// `build_lr1_automaton` pipeline. This produces real action and goto tables
+/// along with all necessary metadata so the table can be fed into the language
+/// builder or parser directly.
 #[allow(dead_code)]
 fn make_minimal_parse_table(grammar: Grammar) -> ParseTable {
-    ParseTable {
-        // ActionCell model: Vec<Vec<ActionCell>> (state × symbol)
-        action_table: vec![],
-        goto_table: vec![],
-        symbol_metadata: vec![],
-        state_count: 0,
-        symbol_count: 0,
-        symbol_to_index: BTreeMap::new(),
-        index_to_symbol: vec![],
-        external_scanner_states: vec![],
-        rules: vec![], // Fill with real rules when ready
-        nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(0),
-        start_symbol: SymbolId(1),
-        grammar,
-        initial_state: StateId(0),
-        token_count: 0,
-        external_token_count: 0,
-        lex_modes: vec![],
-        extras: vec![],
-        dynamic_prec_by_rule: vec![],
-        rule_assoc_by_rule: vec![],
-        alias_sequences: vec![],
-        field_names: vec![],
-        field_map: BTreeMap::new(),
-    }
+    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+
+    // Compute the LR(1) parse table for the supplied grammar
+    let ff = FirstFollowSets::compute(&grammar);
+    let mut table = build_lr1_automaton(&grammar, &ff).expect("build LR(1) automaton");
+
+    // Normalize to Tree-sitter conventions so it can be plugged into the
+    // language builder without additional massaging.
+    language_builder::normalize_table_for_ts(&mut table);
+
+    table
 }
