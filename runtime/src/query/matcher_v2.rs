@@ -370,4 +370,69 @@ mod tests {
         assert_eq!(matches[0].captures[0].node.start_byte, 0);
         assert_eq!(matches[1].captures[0].node.start_byte, 11);
     }
+
+    #[test]
+    fn test_query_without_predicates() {
+        // Test that queries work without predicates as well
+        let query_str = "(identifier @name)";
+
+        let grammar = create_test_grammar();
+        let query = compile_query(query_str, &grammar).unwrap();
+
+        // Create test tree with three identifiers
+        let source = "foo bar baz";
+        let root = ParseNode {
+            symbol: SymbolId(0),
+            symbol_id: SymbolId(0),
+            children: vec![
+                make_node(1, 0, 3),  // "foo"
+                make_node(1, 4, 7),  // "bar"
+                make_node(1, 8, 11), // "baz"
+            ],
+            start_byte: 0,
+            end_byte: 11,
+            field_name: None,
+        };
+
+        // Match without predicates - should match all identifiers
+        let matcher = QueryMatcher::new(&query, source);
+        let matches = matcher.matches(&root);
+
+        assert_eq!(matches.len(), 3);
+        assert_eq!(matches[0].captures[0].node.start_byte, 0);
+        assert_eq!(matches[1].captures[0].node.start_byte, 4);
+        assert_eq!(matches[2].captures[0].node.start_byte, 8);
+    }
+
+    #[test]
+    fn test_empty_query_result() {
+        // Test a query that doesn't match anything
+        let query_str = r#"
+            (identifier @name)
+            (#eq? @name "nonexistent")
+        "#;
+
+        let grammar = create_test_grammar();
+        let query = compile_query(query_str, &grammar).unwrap();
+
+        let source = "test other test";
+        let root = ParseNode {
+            symbol: SymbolId(0),
+            symbol_id: SymbolId(0),
+            children: vec![
+                make_node(1, 0, 4),   // "test"
+                make_node(1, 5, 10),  // "other"
+                make_node(1, 11, 15), // "test"
+            ],
+            start_byte: 0,
+            end_byte: 15,
+            field_name: None,
+        };
+
+        let matcher = QueryMatcher::new(&query, source);
+        let matches = matcher.matches(&root);
+
+        // Should not match anything
+        assert_eq!(matches.len(), 0);
+    }
 }
