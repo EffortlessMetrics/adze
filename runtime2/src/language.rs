@@ -115,6 +115,42 @@ impl Clone for Language {
     }
 }
 
+#[cfg(feature = "glr-core")]
+fn empty_parse_table() -> &'static rust_sitter_glr_core::ParseTable {
+    use rust_sitter_glr_core::{GotoIndexing, ParseTable};
+    use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+    use std::collections::BTreeMap;
+    use std::sync::OnceLock;
+
+    static TABLE: OnceLock<ParseTable> = OnceLock::new();
+    TABLE.get_or_init(|| ParseTable {
+        action_table: Vec::new(),
+        goto_table: Vec::new(),
+        symbol_metadata: Vec::new(),
+        state_count: 0,
+        symbol_count: 0,
+        symbol_to_index: BTreeMap::new(),
+        index_to_symbol: Vec::new(),
+        external_scanner_states: Vec::new(),
+        rules: Vec::new(),
+        nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
+        eof_symbol: SymbolId(0),
+        start_symbol: SymbolId(0),
+        grammar: Grammar::new("stub".to_string()),
+        initial_state: StateId(0),
+        token_count: 0,
+        external_token_count: 0,
+        lex_modes: Vec::new(),
+        extras: Vec::new(),
+        dynamic_prec_by_rule: Vec::new(),
+        rule_assoc_by_rule: Vec::new(),
+        alias_sequences: Vec::new(),
+        field_names: Vec::new(),
+        field_map: BTreeMap::<(RuleId, u16), u16>::new(),
+    })
+}
+
 impl Language {
     /// Create a stub language for testing
     pub fn new_stub() -> Self {
@@ -124,7 +160,7 @@ impl Language {
             field_count: 0,
             max_alias_sequence_length: 0,
             #[cfg(feature = "glr-core")]
-            parse_table: None,
+            parse_table: Some(empty_parse_table()),
             #[cfg(not(feature = "glr-core"))]
             parse_table: ParseTable {
                 state_count: 0,
@@ -138,7 +174,10 @@ impl Language {
             #[cfg(feature = "external-scanners")]
             external_scanner: None,
             #[cfg(feature = "glr-core")]
-            tokenize: None,
+            tokenize: Some(Box::new(|_: &[u8]| {
+                Box::new(std::iter::empty::<crate::Token>())
+                    as Box<dyn Iterator<Item = crate::Token>>
+            })),
         }
     }
 

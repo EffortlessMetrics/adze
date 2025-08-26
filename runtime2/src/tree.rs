@@ -1,9 +1,10 @@
 //! Tree representation for parsed syntax trees
 
-use crate::{Language, node::Node};
+use crate::{node::Node, Language};
 use std::fmt;
 
 /// A parsed syntax tree
+#[derive(Clone)]
 pub struct Tree {
     /// Root node of the tree
     root: TreeNode,
@@ -136,15 +137,6 @@ impl Tree {
 
         let delta = edit.new_end_byte as isize - edit.old_end_byte as isize;
         apply_edit(&mut self.root, edit, delta);
-    }
-
-    /// Get a copy of this tree
-    pub fn clone(&self) -> Self {
-        Self {
-            root: self.root.clone(),
-            language: self.language.clone(),
-            source: self.source.clone(),
-        }
     }
 
     /// Walk the tree with a callback
