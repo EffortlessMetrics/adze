@@ -92,7 +92,14 @@ pub fn safe_dedup_threshold() -> usize {
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
-use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
+use rust_sitter_glr_core::{
+    compare_versions,
+    compare_versions_with_symbols,
+    Action,
+    CompareResult,
+    ParseTable,
+    VersionInfo,
+};
 use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
@@ -1780,7 +1787,24 @@ impl GLRParser {
         // Find the best stack according to version comparison
         let mut best_idx = 0;
         for i in 1..self.stacks.len() {
-            match compare_versions(&self.stacks[best_idx].version, &self.stacks[i].version) {
+            let left = &self.stacks[best_idx];
+            let right = &self.stacks[i];
+            let left_sym = left
+                .nodes
+                .last()
+                .map(|n| n.node.symbol_id)
+                .unwrap_or(SymbolId(0));
+            let right_sym = right
+                .nodes
+                .last()
+                .map(|n| n.node.symbol_id)
+                .unwrap_or(SymbolId(0));
+            match compare_versions_with_symbols(
+                &left.version,
+                &right.version,
+                left_sym,
+                right_sym,
+            ) {
                 CompareResult::TakeRight | CompareResult::PreferRight => {
                     best_idx = i;
                 }
@@ -1891,38 +1915,58 @@ impl GLRParser {
     /// currently returns the first valid parse found. Future enhancements could return
     /// all valid parses or use additional criteria to select the best one.
     pub fn finish(&self) -> Result<Arc<Subtree>, String> {
-        // Find a successfully parsed stack
+        // Find the best successfully parsed stack
         // Success criteria:
         // 1. Has exactly one node (the root of the parse tree)
         // 2. That node represents the start symbol (we'll accept any non-terminal for now)
-
+        let mut best: Option<&ParseStack> = None;
         for stack in &self.stacks {
             debug_glr!("finish: stack has {} nodes", stack.nodes.len());
             if stack.nodes.len() == 1 {
-                // Accept if we have exactly one node after EOF processing
-                // This should be the root of the parse tree (the start symbol)
-                let node = &stack.nodes[0];
-                // Check if we encountered errors during parsing (e.g., deleted tokens)
-                if stack.version.in_error && self.error_recovery.is_some() {
-                    // Wrap in error node to indicate parse had errors
-                    let error_node = Arc::new(Subtree::new(
-                        SubtreeNode {
-                            symbol_id: SymbolId(u16::MAX), // Special error symbol
-                            is_error: true,
-                            byte_range: node.node.byte_range.clone(),
-                        },
-                        vec![node.clone()],
-                    ));
-                    return Ok(error_node);
+                if let Some(current) = best {
+                    let current_sym = current.nodes[0].node.symbol_id;
+                    let new_sym = stack.nodes[0].node.symbol_id;
+                    match compare_versions_with_symbols(
+                        &current.version,
+                        &stack.version,
+                        current_sym,
+                        new_sym,
+                    ) {
+                        CompareResult::TakeRight | CompareResult::PreferRight => {
+                            best = Some(stack);
+                        }
+                        _ => {}
+                    }
+                } else {
+                    best = Some(stack);
                 }
-                return Ok(node.clone());
-            } else if !stack.nodes.is_empty() {
-                // If we have multiple nodes but error recovery was used,
-                // return a partial tree wrapped in an error node
+            }
+        }
+
+        if let Some(best_stack) = best {
+            let node = &best_stack.nodes[0];
+            // Check if we encountered errors during parsing (e.g., deleted tokens)
+            if best_stack.version.in_error && self.error_recovery.is_some() {
+                // Wrap in error node to indicate parse had errors
+                let error_node = Arc::new(Subtree::new(
+                    SubtreeNode {
+                        symbol_id: SymbolId(u16::MAX), // Special error symbol
+                        is_error: true,
+                        byte_range: node.node.byte_range.clone(),
+                    },
+                    vec![node.clone()],
+                ));
+                return Ok(error_node);
+            }
+            return Ok(node.clone());
+        }
+
+        // If no stack had a single node, check for partial parse trees with errors
+        for stack in &self.stacks {
+            if !stack.nodes.is_empty() {
                 let has_error =
                     stack.nodes.iter().any(|n| n.node.is_error) || stack.version.in_error;
                 if has_error && self.error_recovery.is_some() {
-                    // Create an error node containing all remaining nodes
                     let error_node = Arc::new(Subtree::new(
                         SubtreeNode {
                             symbol_id: SymbolId(u16::MAX), // Special error symbol
