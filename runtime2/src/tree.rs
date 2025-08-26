@@ -1,6 +1,6 @@
 //! Tree representation for parsed syntax trees
 
-use crate::{node::Node, Language};
+use crate::{Language, node::Node};
 use std::fmt;
 
 /// A parsed syntax tree
@@ -15,6 +15,7 @@ pub struct Tree {
 }
 
 /// Internal tree node representation
+#[derive(Clone)]
 #[allow(dead_code)]
 pub(crate) struct TreeNode {
     /// Symbol type
@@ -26,6 +27,8 @@ pub(crate) struct TreeNode {
     children: Vec<TreeNode>,
     /// Field ID if this node has a field name
     field_id: Option<u16>,
+    /// Whether this node was affected by an edit
+    dirty: bool,
 }
 
 impl TreeNode {
@@ -42,6 +45,7 @@ impl TreeNode {
             end_byte,
             children,
             field_id: None,
+            dirty: false,
         }
     }
 }
@@ -70,6 +74,7 @@ impl Tree {
                 end_byte: 0,
                 children: vec![],
                 field_id: None,
+                dirty: false,
             },
             language: None,
             source: None,
@@ -89,17 +94,57 @@ impl Tree {
     /// Apply an edit to the tree (for incremental parsing)
     #[cfg(feature = "incremental")]
     pub fn edit(&mut self, edit: &crate::InputEdit) {
-        // TODO: Implement tree editing
-        // 1. Update byte offsets in affected nodes
-        // 2. Mark dirty regions for re-parsing
-        // 3. Maintain tree structure invariants
-        let _ = edit;
+        fn shift_subtree(node: &mut TreeNode, delta: isize) {
+            node.start_byte = (node.start_byte as isize + delta).max(0) as usize;
+            node.end_byte = (node.end_byte as isize + delta).max(0) as usize;
+            for child in &mut node.children {
+                shift_subtree(child, delta);
+            }
+        }
+
+        fn apply_edit(node: &mut TreeNode, edit: &crate::InputEdit, delta: isize) -> bool {
+            // If the node ends before the edit, nothing to do
+            if node.end_byte <= edit.start_byte {
+                return false;
+            }
+
+            // If the node starts after the old end, shift the whole subtree
+            if node.start_byte >= edit.old_end_byte {
+                shift_subtree(node, delta);
+                return false;
+            }
+
+            // Otherwise, the edit touches this node
+            let mut dirty = true;
+
+            if node.start_byte >= edit.start_byte {
+                node.start_byte = (node.start_byte as isize + delta).max(0) as usize;
+            }
+            if node.end_byte >= edit.old_end_byte {
+                node.end_byte = (node.end_byte as isize + delta).max(0) as usize;
+            }
+
+            for child in &mut node.children {
+                if apply_edit(child, edit, delta) {
+                    dirty = true;
+                }
+            }
+
+            node.dirty = dirty;
+            dirty
+        }
+
+        let delta = edit.new_end_byte as isize - edit.old_end_byte as isize;
+        apply_edit(&mut self.root, edit, delta);
     }
 
     /// Get a copy of this tree
     pub fn clone(&self) -> Self {
-        // TODO: Implement proper cloning
-        Self::new_stub()
+        Self {
+            root: self.root.clone(),
+            language: self.language.clone(),
+            source: self.source.clone(),
+        }
     }
 
     /// Walk the tree with a callback
@@ -130,29 +175,61 @@ impl fmt::Debug for Tree {
 }
 
 /// Tree cursor for efficient tree traversal
-pub struct TreeCursor {
-    // TODO: Implement cursor for efficient traversal
+pub struct TreeCursor<'tree> {
+    stack: Vec<(&'tree TreeNode, usize)>,
+    language: Option<&'tree Language>,
 }
 
-impl TreeCursor {
+impl<'tree> TreeCursor<'tree> {
     /// Create a new cursor at the root
-    pub fn new(tree: &Tree) -> Self {
-        let _ = tree;
-        Self {}
+    pub fn new(tree: &'tree Tree) -> Self {
+        Self {
+            stack: vec![(&tree.root, 0)],
+            language: tree.language.as_ref(),
+        }
+    }
+
+    /// Get the current node
+    pub fn node(&self) -> Node<'tree> {
+        Node::new(self.stack.last().unwrap().0, self.language)
     }
 
     /// Move to the first child
     pub fn goto_first_child(&mut self) -> bool {
-        false
+        let node = self.stack.last().unwrap().0;
+        if node.children.is_empty() {
+            false
+        } else {
+            let child = &node.children[0];
+            self.stack.push((child, 0));
+            true
+        }
     }
 
     /// Move to the next sibling
     pub fn goto_next_sibling(&mut self) -> bool {
-        false
+        if self.stack.len() < 2 {
+            return false;
+        }
+        let (_, idx) = *self.stack.last().unwrap();
+        let parent = self.stack[self.stack.len() - 2].0;
+        if idx + 1 < parent.children.len() {
+            let next = &parent.children[idx + 1];
+            self.stack.pop();
+            self.stack.push((next, idx + 1));
+            true
+        } else {
+            false
+        }
     }
 
     /// Move to the parent
     pub fn goto_parent(&mut self) -> bool {
-        false
+        if self.stack.len() <= 1 {
+            false
+        } else {
+            self.stack.pop();
+            true
+        }
     }
 }
