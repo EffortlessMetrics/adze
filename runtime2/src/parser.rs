@@ -116,6 +116,7 @@ impl Parser {
     ) -> Result<Tree, ParseError> {
         #[cfg(feature = "glr-core")]
         {
+            // Optimization: return early if input hasn't changed
             if let Some(old_src) = old_tree.source_bytes() {
                 if old_src == input {
                     return Ok(old_tree.clone());
