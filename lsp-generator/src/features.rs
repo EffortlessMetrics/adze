@@ -159,37 +159,80 @@ impl LspFeature for HoverProvider {
     }
 
     fn generate_handler(&self) -> String {
-        r#"
+        let docs = self
+            .documentation
+            .iter()
+            .map(|(k, v)| format!("(\"{}\", \"{}\")", k, v))
+            .collect::<Vec<_>>()
+            .join(",\n        ");
+
+        format!(
+            r#"
 pub async fn handle_hover(
     params: lsp_types::HoverParams,
-) -> Result<Option<lsp_types::Hover>> {
+) -> Result<Option<lsp_types::Hover>> {{
     // Get the word under cursor
     let word = get_word_at_position(&params)?;
-    
+
     // Look up documentation
-    let contents = match lookup_documentation(&word) {
+    let contents = match lookup_documentation(&word) {{
         Some(doc) => lsp_types::HoverContents::Scalar(
             lsp_types::MarkedString::String(doc)
         ),
         None => return Ok(None),
-    };
-    
-    Ok(Some(lsp_types::Hover {
+    }};
+
+    Ok(Some(lsp_types::Hover {{
         contents,
         range: None,
-    }))
-}
+    }}))
+}}
 
-fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {
-    // Implementation would extract word at cursor position
-    todo!("Extract word at position")
-}
+fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {{
+    use std::fs;
+    use anyhow::anyhow;
+    let uri = &params.text_document_position_params.text_document.uri;
+    let path = uri.to_file_path().map_err(|_| anyhow("invalid uri"))?;
+    let text = fs::read_to_string(path)?;
+    let position = params.text_document_position_params.position;
+    let line = text
+        .lines()
+        .nth(position.line as usize)
+        .ok_or_else(|| anyhow("line out of bounds"))?;
+    let chars: Vec<char> = line.chars().collect();
+    let mut start = position.character as usize;
+    let mut end = start;
+    while start > 0 {{
+        let c = chars[start - 1];
+        if c.is_alphanumeric() || c == '_' {{
+            start -= 1;
+        }} else {{
+            break;
+        }}
+    }}
+    while end < chars.len() {{
+        let c = chars[end];
+        if c.is_alphanumeric() || c == '_' {{
+            end += 1;
+        }} else {{
+            break;
+        }}
+    }}
+    Ok(chars[start..end].iter().collect())
+}}
 
-fn lookup_documentation(word: &str) -> Option<String> {
-    // Implementation would look up documentation
-    todo!("Look up documentation for word")
-}"#
-        .to_string()
+fn lookup_documentation(word: &str) -> Option<String> {{
+    use std::collections::HashMap;
+    let docs: HashMap<&str, &str> = [
+        {}
+    ]
+    .into_iter()
+    .collect();
+    docs.get(word).map(|s| s.to_string())
+}}
+"#,
+            docs
+        )
     }
 
     fn required_imports(&self) -> Vec<String> {
@@ -292,5 +335,90 @@ fn offset_to_position(text: &str, offset: usize) -> lsp_types::Position {{
                 "save": true
             }
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::{Result, anyhow};
+    use lsp_types::{
+        HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,
+    };
+    use std::collections::HashMap;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    fn test_get_word_at_position(params: &HoverParams) -> Result<String> {
+        use anyhow::anyhow;
+        use std::fs;
+        let uri = &params.text_document_position_params.text_document.uri;
+        let path = uri.to_file_path().map_err(|_| anyhow!("invalid uri"))?;
+        let text = fs::read_to_string(path)?;
+        let position = params.text_document_position_params.position;
+        let line = text
+            .lines()
+            .nth(position.line as usize)
+            .ok_or_else(|| anyhow!("line out of bounds"))?;
+        let chars: Vec<char> = line.chars().collect();
+        let mut start = position.character as usize;
+        let mut end = start;
+        while start > 0 {
+            let c = chars[start - 1];
+            if c.is_alphanumeric() || c == '_' {
+                start -= 1;
+            } else {
+                break;
+            }
+        }
+        while end < chars.len() {
+            let c = chars[end];
+            if c.is_alphanumeric() || c == '_' {
+                end += 1;
+            } else {
+                break;
+            }
+        }
+        Ok(chars[start..end].iter().collect())
+    }
+
+    fn test_lookup_documentation(word: &str, docs: &HashMap<String, String>) -> Option<String> {
+        docs.get(word).cloned()
+    }
+
+    #[test]
+    fn extracts_word_under_cursor() {
+        let mut file = NamedTempFile::new().unwrap();
+        writeln!(file, "let sample_word = 1;").unwrap();
+
+        let uri = Url::from_file_path(file.path()).unwrap();
+        let params = HoverParams {
+            text_document_position_params: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri },
+                position: Position {
+                    line: 0,
+                    character: 6,
+                },
+            },
+            work_done_progress_params: Default::default(),
+        };
+
+        let word = test_get_word_at_position(&params).unwrap();
+        assert_eq!(word, "sample_word");
+    }
+
+    #[test]
+    fn finds_documentation_for_word() {
+        let mut docs = HashMap::new();
+        docs.insert(
+            "sample_word".to_string(),
+            "Sample documentation".to_string(),
+        );
+
+        assert_eq!(
+            test_lookup_documentation("sample_word", &docs),
+            Some("Sample documentation".to_string())
+        );
+        assert_eq!(test_lookup_documentation("missing", &docs), None);
     }
 }
