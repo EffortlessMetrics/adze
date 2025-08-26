@@ -70,7 +70,12 @@ mod tests {
             let err = result
                 .errors
                 .get(0)
-                .map(|e| format!("pos {} expected {:?} found {}", e.position, e.expected, e.found))
+                .map(|e| {
+                    format!(
+                        "pos {} expected {:?} found {}",
+                        e.position, e.expected, e.found
+                    )
+                })
                 .unwrap_or_else(|| "unknown error".to_string());
             anyhow::bail!("parse failed: {}", err)
         }
@@ -97,7 +102,12 @@ mod tests {
             let err = result
                 .errors
                 .get(0)
-                .map(|e| format!("pos {} expected {:?} found {}", e.position, e.expected, e.found))
+                .map(|e| {
+                    format!(
+                        "pos {} expected {:?} found {}",
+                        e.position, e.expected, e.found
+                    )
+                })
                 .unwrap_or_else(|| "unknown error".to_string());
             anyhow::bail!("parse failed: {}", err)
         }
@@ -110,7 +120,11 @@ mod tests {
 
     #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
     fn tree_to_sexp(node: &rust_sitter::pure_parser::ParsedNode, source: &str) -> String {
-        fn node_to_sexp(node: &rust_sitter::pure_parser::ParsedNode, source: &str, indent: usize) -> String {
+        fn node_to_sexp(
+            node: &rust_sitter::pure_parser::ParsedNode,
+            source: &str,
+            indent: usize,
+        ) -> String {
             let mut result = String::new();
             let spaces = " ".repeat(indent);
 
