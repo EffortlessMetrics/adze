@@ -188,33 +188,6 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Debug: Find 'def' keyword and show symbol mapping
-    for i in 0..lang.symbol_count as usize {
-        if symbol_names[i] == "def" {
-            let _metadata = unsafe { *lang.symbol_metadata.add(i) };
-            // eprintln!(
-            // "Found 'def' at Symbol {}: '{}' (metadata: 0x{:02x})",
-            // i, symbol_names[i], metadata
-            // );
-            break;
-        }
-    }
-
-    // Debug: Show first few terminal mappings
-    // eprintln!("\nFirst few terminals with their patterns:");
-    let mut count = 0;
-    for i in 0..lang.symbol_count as usize {
-        let metadata = unsafe { *lang.symbol_metadata.add(i) };
-        if is_terminal(metadata, &symbol_names[i]) && count < 10 {
-            let _pattern = token_patterns
-                .get(&symbol_names[i])
-                .map(|p| format!("{:?}", p))
-                .unwrap_or_else(|| "no pattern".to_string());
-            // eprintln!("  Symbol {}: '{}' -> {}", i, symbol_names[i], pattern);
-            count += 1;
-        }
-    }
-
     // Process symbols to determine tokens
     for i in 0..lang.symbol_count as usize {
         let metadata = unsafe { *lang.symbol_metadata.add(i) };
@@ -335,8 +308,12 @@ pub fn decode_grammar_with_patterns(
     for i in 0..lang.external_token_count as usize {
         let symbol_id = unsafe { *lang.external_scanner.symbol_map.add(i) };
         if (symbol_id as u32) < lang.symbol_count {
+            let name = symbol_names
+                .get(symbol_id as usize)
+                .cloned()
+                .unwrap_or_else(|| format!("external_{}", i));
             externals.push(ExternalToken {
-                name: format!("external_{}", i),
+                name,
                 symbol_id: SymbolId(symbol_id),
             });
         }
