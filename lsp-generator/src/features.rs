@@ -198,19 +198,32 @@ fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {{
 
     let position = params.text_document_position_params.position;
     let line = text.lines().nth(position.line as usize).unwrap_or("");
+
+    // Convert UTF-16 position to a character index
+    let mut utf16_count = 0usize;
+    let mut char_index = 0usize;
+    for ch in line.chars() {{
+        if utf16_count >= position.character as usize {{
+            break;
+        }}
+        utf16_count += ch.len_utf16();
+        char_index += 1;
+    }}
+
     let chars: Vec<char> = line.chars().collect();
-    let mut idx = position.character as usize;
-    if idx > chars.len() {{
-        idx = chars.len();
+    let idx = char_index.min(chars.len());
+
+    fn is_word_char(c: char) -> bool {{
+        c.is_alphanumeric() || c == '_'
     }}
 
     let mut start = idx;
-    while start > 0 && (chars[start - 1].is_alphanumeric() || chars[start - 1] == '_') {{
+    while start > 0 && is_word_char(chars[start - 1]) {{
         start -= 1;
     }}
 
     let mut end = idx;
-    while end < chars.len() && (chars[end].is_alphanumeric() || chars[end] == '_') {{
+    while end < chars.len() && is_word_char(chars[end]) {{
         end += 1;
     }}
 
@@ -218,6 +231,9 @@ fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {{
 }}
 
 fn lookup_documentation(word: &str) -> Option<String> {{
+    if word.is_empty() {{
+        return None;
+    }}
     match word {{
         {}
         _ => None,
