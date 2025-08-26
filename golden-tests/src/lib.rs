@@ -56,9 +56,10 @@ mod tests {
     /// Parse Python source code and return S-expression
     #[cfg(feature = "python-grammar")]
     fn parse_python(source: &str) -> Result<String> {
-        // This would use the rust-sitter generated Python parser
-        // For now, return a placeholder
-        todo!("Python parser integration")
+        use rust_sitter::Parse;
+
+        let tree = rust_sitter_python::parse(source)?;
+        Ok(tree_to_sexp(&tree, source))
     }
 
     #[cfg(not(feature = "python-grammar"))]
@@ -69,14 +70,65 @@ mod tests {
     /// Parse JavaScript source code and return S-expression
     #[cfg(feature = "javascript-grammar")]
     fn parse_javascript(source: &str) -> Result<String> {
-        // This would use the rust-sitter generated JavaScript parser
-        // For now, return a placeholder
-        todo!("JavaScript parser integration")
+        use rust_sitter::Parse;
+
+        let tree = rust_sitter_javascript::parse(source)?;
+        Ok(tree_to_sexp(&tree, source))
     }
 
     #[cfg(not(feature = "javascript-grammar"))]
     fn parse_javascript(_source: &str) -> Result<String> {
         anyhow::bail!("JavaScript grammar feature not enabled")
+    }
+
+    fn tree_to_sexp(tree: &rust_sitter::tree_sitter::Tree, source: &str) -> String {
+        fn node_to_sexp(node: &rust_sitter::tree_sitter::Node, source: &str, indent: usize) -> String {
+            let mut result = String::new();
+            let spaces = " ".repeat(indent);
+
+            if node.is_named() {
+                result.push_str(&format!("{}({}", spaces, node.kind()));
+
+                if node.child_count() == 0 {
+                    let text = &source[node.start_byte()..node.end_byte()];
+                    result.push_str(&format!(" \"{}\")", escape_string(text)));
+                } else {
+                    result.push('\n');
+
+                    for i in 0..node.child_count() {
+                        if let Some(child) = node.child(i) {
+                            result.push_str(&node_to_sexp(child, source, indent + 2));
+                            result.push('\n');
+                        }
+                    }
+
+                    result.push_str(&format!("{})", spaces));
+                }
+            } else {
+                let text = &source[node.start_byte()..node.end_byte()];
+                result.push_str(&format!("{}\"{}\"", spaces, escape_string(text)));
+            }
+
+            result
+        }
+
+        node_to_sexp(tree.root_node(), source, 0)
+    }
+
+    fn escape_string(s: &str) -> String {
+        s.chars()
+            .flat_map(|c| match c {
+                '"' => vec!['\\', '"'],
+                '\\' => vec!['\\', '\\'],
+                '\n' => vec!['\\', 'n'],
+                '\r' => vec!['\\', 'r'],
+                '\t' => vec!['\\', 't'],
+                c if c.is_control() => {
+                    format!("\\u{{{:04x}}}", c as u32).chars().collect()
+                }
+                c => vec![c],
+            })
+            .collect()
     }
 
     /// Compute SHA256 hash of a string
