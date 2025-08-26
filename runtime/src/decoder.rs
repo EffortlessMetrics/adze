@@ -6,7 +6,8 @@
 use indexmap::IndexMap;
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{
-    ExternalToken, Grammar, ProductionId, Rule, RuleId, StateId, SymbolId, Token, TokenPattern,
+    Associativity, ExternalToken, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, RuleId,
+    StateId, Symbol, SymbolId, Token, TokenPattern,
 };
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::{CStr, c_char};
@@ -160,8 +161,8 @@ pub fn decode_grammar_with_patterns(
     lang: &'static TSLanguage,
     token_patterns: &HashMap<String, TokenPattern>,
 ) -> Grammar {
-    let mut rules = IndexMap::new();
-    let mut tokens = IndexMap::new();
+    let mut rules: IndexMap<SymbolId, Vec<Rule>> = IndexMap::new();
+    let mut tokens: IndexMap<SymbolId, Token> = IndexMap::new();
     let mut symbol_names = Vec::new();
     let mut externals = Vec::new();
 
@@ -214,21 +215,17 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Process symbols to determine tokens vs rules
+    // Process symbols to determine tokens
     for i in 0..lang.symbol_count as usize {
         let metadata = unsafe { *lang.symbol_metadata.add(i) };
         let name = &symbol_names[i];
         let symbol_id = SymbolId(i as u16);
 
-        // Check if this is a terminal (token) or non-terminal (rule)
-        // In Tree-sitter, terminals typically have lower IDs and specific metadata bits
         if is_terminal(metadata, name) {
             // This is a token
-            // Try to get the real pattern from our loaded patterns
             let pattern = if let Some(real_pattern) = token_patterns.get(name) {
                 real_pattern.clone()
             } else {
-                // Fallback to placeholder pattern
                 rust_sitter_ir::TokenPattern::String(name.clone())
             };
 
@@ -240,20 +237,97 @@ pub fn decode_grammar_with_patterns(
                     fragile: false,
                 },
             );
-        } else {
-            // This is a rule (non-terminal)
-            // For now, create a stub rule - real rules would come from grammar definitions
-            rules.insert(
-                symbol_id,
-                vec![Rule {
-                    lhs: symbol_id,
-                    rhs: vec![], // Will be populated from production rules
-                    precedence: None,
-                    associativity: None,
-                    fields: vec![],
-                    production_id: ProductionId(i as u16),
-                }],
-            );
+        }
+    }
+
+    // Decode field names
+    let mut field_names_map = IndexMap::new();
+    if !lang.field_names.is_null() {
+        for i in 0..lang.field_count as usize {
+            unsafe {
+                let name_ptr = *lang.field_names.add(i);
+                if !name_ptr.is_null() {
+                    let name = CStr::from_ptr(name_ptr as *const c_char)
+                        .to_string_lossy()
+                        .into_owned();
+                    field_names_map.insert(FieldId(i as u16), name);
+                }
+            }
+        }
+    }
+
+    // Decode production rules from language metadata
+    if !lang.rules.is_null() {
+        for i in 0..lang.rule_count as usize {
+            let ts_rule = unsafe { *lang.rules.add(i) };
+            let lhs = SymbolId(ts_rule.lhs);
+            let rhs_len = ts_rule.rhs_len as usize;
+
+            // Build placeholder RHS of correct length
+            let mut rhs = Vec::with_capacity(rhs_len);
+            for _ in 0..rhs_len {
+                rhs.push(Symbol::NonTerminal(SymbolId(0))); // Placeholder; actual symbols unknown
+            }
+
+            // Dynamic precedence if available
+            let precedence =
+                if !lang.parse_actions.is_null() && (i as u32) < lang.production_id_count {
+                    let action = unsafe { *lang.parse_actions.add(i) };
+                    if action.dynamic_precedence != 0 {
+                        Some(PrecedenceKind::Dynamic(action.dynamic_precedence as i16))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+            // Associativity metadata currently not encoded
+            let associativity = None;
+
+            // Decode field mappings for this production
+            let fields = if lang.field_count > 0
+                && !lang.field_map_slices.is_null()
+                && !lang.field_map_entries.is_null()
+            {
+                unsafe {
+                    let slices = std::slice::from_raw_parts(
+                        lang.field_map_slices,
+                        lang.production_id_count as usize * 2,
+                    );
+                    let mut out = Vec::new();
+                    if i * 2 + 1 < slices.len() {
+                        let start = slices[i * 2] as usize;
+                        let len = slices[i * 2 + 1] as usize;
+                        if len > 0 {
+                            let entries = std::slice::from_raw_parts(
+                                lang.field_map_entries,
+                                (start + len) * 2,
+                            );
+                            for j in 0..len {
+                                let low = entries[(start + j) * 2];
+                                let high = entries[(start + j) * 2 + 1];
+                                let packed = ((high as u32) << 16) | (low as u32);
+                                let field_id = (packed & 0xFFFF) as u16;
+                                let child_index = ((packed >> 16) & 0xFF) as usize;
+                                out.push((FieldId(field_id), child_index));
+                            }
+                        }
+                    }
+                    out
+                }
+            } else {
+                Vec::new()
+            };
+
+            rules.entry(lhs).or_default().push(Rule {
+                lhs,
+                rhs,
+                precedence,
+                associativity,
+                fields,
+                production_id: ProductionId(i as u16),
+            });
         }
     }
 
@@ -276,7 +350,7 @@ pub fn decode_grammar_with_patterns(
         conflicts: vec![],
         externals,
         extras: vec![],
-        fields: IndexMap::new(),
+        fields: field_names_map,
         supertypes: vec![],
         inline_rules: vec![],
         alias_sequences: IndexMap::new(),
@@ -525,8 +599,12 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         // eprintln!("  NT SymbolId({}) -> col {}", sym.0, col);
     }
 
-    // Use lang.eof_symbol as a symbol id
-    let eof_symbol = SymbolId(lang.eof_symbol);
+    // lang.eof_symbol is the *column index* of EOF, so map it back to the
+    // corresponding SymbolId using the index_to_symbol mapping we just built.
+    let eof_symbol = index_to_symbol
+        .get(lang.eof_symbol as usize)
+        .copied()
+        .unwrap_or(SymbolId(0));
 
     let mut table = ParseTable {
         action_table,
@@ -579,7 +657,8 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // Auto-detect GOTO indexing mode
     table.detect_goto_indexing();
 
-    table
+    // Ensure downstream components see a canonical EOF column
+    table.normalize_eof_to_zero()
 }
 
 /// Determine if a symbol is a terminal based on metadata and name
