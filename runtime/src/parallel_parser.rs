@@ -345,33 +345,75 @@ impl ParallelParser {
 
     /// Build parse tree from subtrees
     fn build_tree_from_subtrees(&self, subtrees: Vec<Subtree>, input: &[u8]) -> Result<ParseNode> {
-        // For now, create a simple wrapper node
-        // TODO: Implement proper tree construction
+        let root_symbol = self.grammar.start_symbol().unwrap_or(SymbolId(0));
+
+        // Convert subtrees to parse nodes, flattening any roots that match the start symbol
+        let mut children: Vec<ParseNode> = subtrees
+            .into_iter()
+            .flat_map(|st| {
+                let node = self.subtree_to_node(st);
+                if node.symbol == root_symbol {
+                    node.children
+                } else {
+                    vec![node]
+                }
+            })
+            .collect();
+
+        // Ensure children are ordered by their byte positions
+        children.sort_by_key(|c| c.start_byte);
+
         Ok(ParseNode {
-            symbol: self.grammar.start_symbol.unwrap_or(SymbolId(0)),
-            children: subtrees
-                .into_iter()
-                .map(|st| self.subtree_to_node(st))
-                .collect(),
+            symbol: root_symbol,
+            children,
             start_byte: 0,
             end_byte: input.len(),
             field_name: None,
         })
     }
 
-    /// Convert subtree to parse node
+    /// Convert subtree to parse node, attaching field names using grammar metadata
     fn subtree_to_node(&self, subtree: Subtree) -> ParseNode {
+        let mut children: Vec<ParseNode> = subtree
+            .children
+            .into_iter()
+            .map(|st| self.subtree_to_node(st))
+            .collect();
+
+        // Attach field names based on grammar rule metadata
+        if let Some(rule) = self.match_rule(subtree.symbol, &children) {
+            for &(field_id, index) in &rule.fields {
+                if let Some(child) = children.get_mut(index) {
+                    if let Some(name) = self.grammar.fields.get(&field_id) {
+                        child.field_name = Some(name.clone());
+                    }
+                }
+            }
+        }
+
         ParseNode {
             symbol: subtree.symbol,
-            children: subtree
-                .children
-                .into_iter()
-                .map(|st| self.subtree_to_node(st))
-                .collect(),
+            children,
             start_byte: subtree.start_byte,
             end_byte: subtree.end_byte,
             field_name: None,
         }
+    }
+
+    /// Find the grammar rule matching a subtree's children
+    fn match_rule(&self, symbol: SymbolId, children: &[ParseNode]) -> Option<&rust_sitter_ir::Rule> {
+        use rust_sitter_ir::Symbol;
+
+        let rules = self.grammar.rules.get(&symbol)?;
+        rules.iter().find(|rule| {
+            if rule.rhs.len() != children.len() {
+                return false;
+            }
+            rule.rhs.iter().zip(children.iter()).all(|(sym, child)| match sym {
+                Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id == &child.symbol,
+                _ => false,
+            })
+        })
     }
 }
 
@@ -402,18 +444,74 @@ impl ParallelParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+    use rust_sitter_ir::{FieldId, ProductionId, Rule, Symbol, Token, TokenPattern};
 
+    // Build a simple grammar with field metadata for testing
     fn create_test_grammar() -> (Grammar, ParseTable) {
-        // Simple test grammar
-        let grammar = Grammar::new("test".to_string());
-        let table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 1,
-            symbol_count: 1,
-            symbol_to_index: std::collections::HashMap::new(),
+        let mut grammar = Grammar::new("test".to_string());
+
+        const SYM_NUMBER: SymbolId = SymbolId(1);
+        const SYM_WS: SymbolId = SymbolId(2);
+        const SYM_PAIR: SymbolId = SymbolId(3);
+        const SYM_ROOT: SymbolId = SymbolId(4);
+
+        grammar.tokens.insert(
+            SYM_NUMBER,
+            Token {
+                name: "number".to_string(),
+                pattern: TokenPattern::Regex("\\d+".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.tokens.insert(
+            SYM_WS,
+            Token {
+                name: "_ws".to_string(),
+                pattern: TokenPattern::Regex("\\s+".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.extras.push(SYM_WS);
+
+        grammar.rule_names.insert(SYM_PAIR, "pair".to_string());
+        grammar.rule_names.insert(SYM_ROOT, "root".to_string());
+
+        grammar.fields.insert(FieldId(0), "left".to_string());
+        grammar.fields.insert(FieldId(1), "right".to_string());
+
+        let pair_rule = Rule {
+            lhs: SYM_PAIR,
+            rhs: vec![Symbol::Terminal(SYM_NUMBER), Symbol::Terminal(SYM_NUMBER)],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(0), 0), (FieldId(1), 1)],
+            production_id: ProductionId(0),
         };
+
+        let root_rule_rec = Rule {
+            lhs: SYM_ROOT,
+            rhs: vec![Symbol::NonTerminal(SYM_PAIR), Symbol::NonTerminal(SYM_ROOT)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        };
+
+        let root_rule_base = Rule {
+            lhs: SYM_ROOT,
+            rhs: vec![Symbol::NonTerminal(SYM_PAIR)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(2),
+        };
+
+        grammar.rules.insert(SYM_PAIR, vec![pair_rule]);
+        grammar.rules.insert(SYM_ROOT, vec![root_rule_rec, root_rule_base]);
+
+        let ff = FirstFollowSets::compute(&grammar);
+        let table = build_lr1_automaton(&grammar, &ff).expect("table");
         (grammar, table)
     }
 
@@ -448,6 +546,79 @@ mod tests {
 
         // Test dirty boundaries
         assert!(!parser.is_statement_boundary(b"hello\n    world", 5));
+    }
+
+    #[test]
+    fn test_subtree_merging_with_fields() {
+        let (grammar, table) = create_test_grammar();
+        let parser = ParallelParser::new(grammar, table, Default::default());
+
+        const SYM_NUMBER: SymbolId = SymbolId(1);
+        const SYM_PAIR: SymbolId = SymbolId(3);
+        const SYM_ROOT: SymbolId = SymbolId(4);
+
+        let num1 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 0, end_byte: 1 };
+        let num2 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 2, end_byte: 3 };
+        let pair1 = Subtree { symbol: SYM_PAIR, children: vec![num1, num2], start_byte: 0, end_byte: 3 };
+        let root1 = Subtree { symbol: SYM_ROOT, children: vec![pair1], start_byte: 0, end_byte: 3 };
+
+        let num3 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 4, end_byte: 5 };
+        let num4 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 6, end_byte: 7 };
+        let pair2 = Subtree { symbol: SYM_PAIR, children: vec![num3, num4], start_byte: 4, end_byte: 7 };
+        let root2 = Subtree { symbol: SYM_ROOT, children: vec![pair2], start_byte: 4, end_byte: 7 };
+
+        // Intentionally pass subtrees out of order to test ordering
+        let tree = parser
+            .build_tree_from_subtrees(vec![root2, root1], b"1 2 3 4")
+            .unwrap();
+
+        assert_eq!(tree.children.len(), 2);
+        assert_eq!(tree.children[0].start_byte, 0);
+        assert_eq!(tree.children[1].start_byte, 4);
+
+        // Check field names on pair children
+        let first_pair = &tree.children[0];
+        assert_eq!(
+            first_pair.children[0].field_name.as_deref(),
+            Some("left")
+        );
+        assert_eq!(
+            first_pair.children[1].field_name.as_deref(),
+            Some("right")
+        );
+    }
+
+    #[test]
+    fn test_merge_chunk_results_ordering() {
+        let (grammar, table) = create_test_grammar();
+        let parser = ParallelParser::new(grammar, table, Default::default());
+
+        const SYM_NUMBER: SymbolId = SymbolId(1);
+        const SYM_PAIR: SymbolId = SymbolId(3);
+        const SYM_ROOT: SymbolId = SymbolId(4);
+
+        let num1 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 0, end_byte: 1 };
+        let num2 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 2, end_byte: 3 };
+        let pair1 = Subtree { symbol: SYM_PAIR, children: vec![num1, num2], start_byte: 0, end_byte: 3 };
+        let root1 = Subtree { symbol: SYM_ROOT, children: vec![pair1], start_byte: 0, end_byte: 3 };
+
+        let num3 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 4, end_byte: 5 };
+        let num4 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 6, end_byte: 7 };
+        let pair2 = Subtree { symbol: SYM_PAIR, children: vec![num3, num4], start_byte: 4, end_byte: 7 };
+        let root2 = Subtree { symbol: SYM_ROOT, children: vec![pair2], start_byte: 4, end_byte: 7 };
+
+        let result = parser
+            .merge_chunk_results(
+                vec![
+                    ChunkResult { chunk_id: 1, subtrees: vec![root2], incomplete_tokens: vec![], parse_time_ms: 0.0 },
+                    ChunkResult { chunk_id: 0, subtrees: vec![root1], incomplete_tokens: vec![], parse_time_ms: 0.0 },
+                ],
+                b"1 2 3 4",
+            )
+            .unwrap();
+
+        assert_eq!(result.children[0].start_byte, 0);
+        assert_eq!(result.children[1].start_byte, 4);
     }
 }
 
