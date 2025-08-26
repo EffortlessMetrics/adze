@@ -165,8 +165,13 @@ mod pure_rust_golden {
         let language = unified_json_helper::unified_json_language();
         let mut parser = Parser::new();
         parser.set_language(language).expect("set language");
-        let tree = parser.parse(r#"{ "a": 1 }"#, None);
-        assert!(tree.is_some());
+        let tree = parser
+            .parse(r#"{ "a": 1 }"#, None)
+            .expect("tree");
+        // Ensure we parsed a full document without errors
+        let decoded = rust_sitter::decoder::decode_parse_table(language);
+        assert_eq!(tree.root_kind(), decoded.start_symbol.0);
+        assert_eq!(tree.error_count(), 0);
     }
 
     #[test]
@@ -175,12 +180,16 @@ mod pure_rust_golden {
         let language = unified_json_helper::unified_json_language();
         let mut parser = Parser::new();
         parser.set_language(language).expect("set language");
-        let tree1 = parser.parse(r#"{"a": 1}"#, None);
-        assert!(tree1.is_some());
+        let tree1 = parser
+            .parse(r#"{"a": 1}"#, None)
+            .expect("first parse");
+        assert_eq!(tree1.error_count(), 0);
 
         // TODO: When incremental parsing is ready, use tree1 for incremental parse
-        let tree2 = parser.parse(r#"{"a": 1, "b": 2}"#, None);
-        assert!(tree2.is_some());
+        let tree2 = parser
+            .parse(r#"{"a": 1, "b": 2}"#, None)
+            .expect("second parse");
+        assert_eq!(tree2.error_count(), 0);
     }
 
     #[test]
@@ -189,9 +198,10 @@ mod pure_rust_golden {
         let language = unified_json_helper::unified_json_language();
         let mut parser = Parser::new();
         parser.set_language(language).expect("set language");
-        let tree = parser.parse(r#"{"a": 1, "b": }"#, None); // Missing value
-        // TODO: Check for error nodes when the parser is fully implemented
-        assert!(tree.is_some() || tree.is_none()); // Parser may or may not produce tree with errors
+        let tree = parser
+            .parse(r#"{"a": 1, "b": }"#, None)
+            .expect("parsed"); // Missing value
+        assert!(tree.error_count() > 0, "should report errors");
     }
 
     #[test]
@@ -202,11 +212,8 @@ mod pure_rust_golden {
         parser.set_language(language).expect("set language");
 
         let src = r#"{"outer": {"inner": true}, "n": null}"#;
-        let tree = parser.parse(src, None);
-
-        // For now, just verify the parser can handle nested structures
-        // More detailed assertions can be added as the parser matures
-        assert!(tree.is_some());
+        let tree = parser.parse(src, None).expect("tree");
+        assert_eq!(tree.error_count(), 0);
     }
 }
 

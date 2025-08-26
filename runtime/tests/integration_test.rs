@@ -36,6 +36,8 @@ fn test_complete_workflow() {
         eprintln!("Parse errors found: {}", tree.error_count());
         eprintln!("Tree: {:?}", tree);
     }
+    let decoded = rust_sitter::decoder::decode_parse_table(language);
+    assert_eq!(tree.root_kind(), decoded.start_symbol.0);
     assert_eq!(
         tree.error_count(),
         0,
@@ -52,6 +54,7 @@ fn test_complete_workflow() {
     assert!(edited_tree.is_some(), "Failed to parse edited source");
 
     let edited_tree = edited_tree.unwrap();
+    assert_eq!(edited_tree.root_kind(), decoded.start_symbol.0);
     assert_eq!(
         edited_tree.error_count(),
         0,
