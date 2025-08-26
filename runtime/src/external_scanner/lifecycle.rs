@@ -64,22 +64,23 @@ impl ScannerWrapper {
 
 /// RAII guard for C external scanners.
 /// Holds the scanner solely to drive `Drop`; inner field is intentionally unused.
-#[allow(unused_tuple_struct_fields)]
+#[allow(dead_code)]
 pub struct ScannerGuard(pub(crate) Box<CExternalScanner>);
 
 impl Drop for ScannerGuard {
     fn drop(&mut self) {
         // Safely destroy the C scanner
-        unsafe {
-            // C scanner cleanup handled internally
-        }
+        // C scanner cleanup handled internally
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    };
 
     struct TestScanner {
         drop_counter: Arc<AtomicUsize>,
@@ -87,10 +88,10 @@ mod tests {
 
     impl ExternalScanner for TestScanner {
         fn scan(
-            &self,
+            &mut self,
             _lexer: &mut dyn crate::external_scanner::Lexer,
             _valid_symbols: &[bool],
-        ) -> Option<usize> {
+        ) -> Option<ScanResult> {
             None
         }
 
@@ -113,7 +114,7 @@ mod tests {
             let scanner = TestScanner {
                 drop_counter: drop_counter.clone(),
             };
-            let _wrapper = ScannerWrapper::new_rust(Arc::new(scanner));
+            let _wrapper = ScannerWrapper::new_rust(Arc::new(Mutex::new(scanner)));
             // Scanner should not be dropped yet (held by Arc)
             assert_eq!(drop_counter.load(Ordering::SeqCst), 0);
         }

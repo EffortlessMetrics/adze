@@ -1,4 +1,5 @@
 //! Test JSON parsing with error recovery to verify our EOF and error stats fixes
+#![allow(clippy::unwrap_or_default, clippy::unnecessary_get_then_check)]
 
 use rust_sitter_glr_core::{Driver, FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};

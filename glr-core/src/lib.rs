@@ -85,6 +85,7 @@ pub mod parse_forest;
 pub mod driver;
 pub mod forest_view;
 pub mod stack;
+/// Telemetry counters for tracking GLR parser operations.
 pub mod telemetry;
 pub mod ts_lexer;
 
@@ -112,9 +113,11 @@ pub mod symbol_comparison;
 pub mod version_info;
 
 #[cfg(test)]
+/// Utilities for constructing test parse tables and grammars.
 pub mod test_helpers;
 
 #[cfg(test)]
+/// Simple symbol allocator used in tests.
 pub mod test_symbol_alloc;
 
 #[doc(hidden)]

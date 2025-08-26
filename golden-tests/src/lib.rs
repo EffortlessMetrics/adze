@@ -55,7 +55,7 @@ mod tests {
 
     /// Parse Python source code and return S-expression
     #[cfg(feature = "python-grammar")]
-    fn parse_python(source: &str) -> Result<String> {
+    fn parse_python(_source: &str) -> Result<String> {
         // This would use the rust-sitter generated Python parser
         // For now, return a placeholder
         todo!("Python parser integration")
@@ -68,7 +68,7 @@ mod tests {
 
     /// Parse JavaScript source code and return S-expression
     #[cfg(feature = "javascript-grammar")]
-    fn parse_javascript(source: &str) -> Result<String> {
+    fn parse_javascript(_source: &str) -> Result<String> {
         // This would use the rust-sitter generated JavaScript parser
         // For now, return a placeholder
         todo!("JavaScript parser integration")

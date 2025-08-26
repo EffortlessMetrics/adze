@@ -97,7 +97,7 @@ impl Tree {
     }
 
     /// Get a copy of this tree
-    pub fn clone(&self) -> Self {
+    pub fn duplicate(&self) -> Self {
         // TODO: Implement proper cloning
         Self::new_stub()
     }

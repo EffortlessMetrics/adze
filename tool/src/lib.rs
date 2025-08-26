@@ -105,7 +105,6 @@ pub fn build_parsers(root_file: &Path) {
                     println!("cargo:rerun-if-changed={}", result.parser_path);
                     println!("Built pure-Rust parser for {}", result.grammar_name);
                 }
-                return;
             }
             Err(e) => {
                 eprintln!("Failed to build pure-Rust parser: {}", e);
@@ -118,7 +117,8 @@ pub fn build_parsers(root_file: &Path) {
                 panic!("FATAL: Pure-Rust parser generation failed: {:#}", e);
             }
         }
-        return; // Critical: don't fall through to C generation
+        // Critical: don't fall through to C generation
+        return;
     }
 
     // If we get here, use C-based generation exclusively

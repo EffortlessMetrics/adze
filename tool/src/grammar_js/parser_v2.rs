@@ -3,6 +3,8 @@
 //! This module provides a more comprehensive parser for Tree-sitter grammar.js files.
 //! It handles most common grammar patterns and can parse real-world grammars.
 
+#![allow(clippy::manual_strip, clippy::regex_creation_in_loops)]
+
 use super::{ExternalToken, GrammarJs, Rule};
 use anyhow::{Context, Result, anyhow, bail};
 use regex::Regex;

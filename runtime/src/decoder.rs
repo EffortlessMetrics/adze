@@ -162,9 +162,10 @@ pub fn decode_grammar_with_patterns(
     token_patterns: &HashMap<String, TokenPattern>,
 ) -> Grammar {
     let mut rules: IndexMap<SymbolId, Vec<Rule>> = IndexMap::new();
-    let mut tokens: IndexMap<SymbolId, Token> = IndexMap::new();
+    let mut tokens = IndexMap::new();
     let mut symbol_names = Vec::new();
     let mut externals = Vec::new();
+    let mut rule_names = IndexMap::new();
 
     // Read all symbol names
     if lang.symbol_names.is_null() {
@@ -277,24 +278,34 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Decode rules and attach field info
-    let parse_rules = decode_rules(lang);
+    // Populate rules from language metadata if available
+    let parsed_rules = decode_rules(lang);
     let mut production_ids = IndexMap::new();
-    for (i, r) in parse_rules.iter().enumerate() {
-        let mut rhs = Vec::new();
-        for _ in 0..r.rhs_len {
-            rhs.push(Symbol::NonTerminal(SymbolId(0))); // placeholder symbols
+    let has_alias_data = !lang.alias_map.is_null() && !lang.alias_sequences.is_null();
+    for (i, pr) in parsed_rules.into_iter().enumerate() {
+        // Build RHS from alias_sequences if available
+        let mut rhs = Vec::with_capacity(pr.rhs_len as usize);
+        if has_alias_data {
+            let offset = unsafe { *lang.alias_map.add(i) } as usize;
+            for j in 0..pr.rhs_len as usize {
+                let sym_idx = unsafe { *lang.alias_sequences.add(offset + j) };
+                let sym_id = SymbolId(sym_idx);
+                let symbol = if (sym_idx as u32) < lang.token_count + lang.external_token_count {
+                    Symbol::Terminal(sym_id)
+                } else {
+                    Symbol::NonTerminal(sym_id)
+                };
+                rhs.push(symbol);
+            }
         }
-        let fields = fields_by_rule.remove(&(i as u16)).unwrap_or_default();
-        let rule = Rule {
-            lhs: r.lhs,
+        rules.entry(pr.lhs).or_default().push(Rule {
+            lhs: pr.lhs,
             rhs,
             precedence: None,
             associativity: None,
-            fields: fields.iter().map(|(fid, pos)| (*fid, *pos)).collect(),
+            fields: vec![],
             production_id: ProductionId(i as u16),
-        };
-        rules.entry(r.lhs).or_default().push(rule);
+        });
         production_ids.insert(RuleId(i as u16), ProductionId(i as u16));
     }
 
@@ -325,7 +336,7 @@ pub fn decode_grammar_with_patterns(
         alias_sequences: IndexMap::new(),
         production_ids,
         max_alias_sequence_length: 0,
-        rule_names: IndexMap::new(),
+        rule_names,
         symbol_registry: None,
     }
 }
@@ -333,7 +344,9 @@ pub fn decode_grammar_with_patterns(
 /// Rule metadata decoded from TSLanguage
 #[derive(Clone, Copy, Debug)]
 pub struct RuleMeta {
+    /// Left-hand-side non-terminal for this rule.
     pub lhs: SymbolId,
+    /// Number of symbols on the right-hand side.
     pub rhs_len: u8,
 }
 
