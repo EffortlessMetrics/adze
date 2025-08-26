@@ -84,11 +84,10 @@ impl Grammar {
     /// Get the start symbol (LHS of the first rule)
     pub fn start_symbol(&self) -> Option<SymbolId> {
         // For Tree-sitter compatibility, look for "source_file" symbol
-        if let Some(source_file_id) = self.find_symbol_by_name("source_file") {
-            // Check if this symbol actually has rules
-            if self.rules.contains_key(&source_file_id) {
-                return Some(source_file_id);
-            }
+        if let Some(source_file_id) = self.find_symbol_by_name("source_file")
+            && self.rules.contains_key(&source_file_id)
+        {
+            return Some(source_file_id);
         }
 
         // In rust-sitter, source_file is often just a reference to the actual language type
@@ -97,20 +96,20 @@ impl Grammar {
 
         // Try common patterns first
         for name in &["Expression", "Statement", "Program", "Module"] {
-            if let Some(symbol_id) = self.find_symbol_by_name(name) {
-                if self.rules.contains_key(&symbol_id) {
-                    return Some(symbol_id);
-                }
+            if let Some(symbol_id) = self.find_symbol_by_name(name)
+                && self.rules.contains_key(&symbol_id)
+            {
+                return Some(symbol_id);
             }
         }
 
         // Otherwise, use the first symbol that has rules and isn't a leaf/token
         for (symbol_id, rules) in &self.rules {
             // Skip symbols that look like internal/generated names
-            if let Some(name) = self.rule_names.get(symbol_id) {
-                if !name.contains('_') && !rules.is_empty() {
-                    return Some(*symbol_id);
-                }
+            if let Some(name) = self.rule_names.get(symbol_id)
+                && !name.contains('_') && !rules.is_empty()
+            {
+                return Some(*symbol_id);
             }
         }
 

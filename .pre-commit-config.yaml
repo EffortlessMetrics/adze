@@ -24,7 +24,7 @@ repos:
 
       - id: cargo-test-tools
         name: cargo test ts-bridge
-        entry: bash -c 'cargo test -p ts-bridge --quiet'
+        entry: bash -c 'cargo test --manifest-path tools/ts-bridge/Cargo.toml --features with-grammars --quiet'
         language: system
         pass_filenames: false
         files: 'tools/ts-bridge/.*\.rs$'

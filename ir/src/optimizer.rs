@@ -234,10 +234,10 @@ impl GrammarOptimizer {
         for (symbol_id, rules) in &grammar.rules {
             if self.inlinable_rules.contains(symbol_id) {
                 // Only inline if all rules for this symbol have exactly one RHS symbol
-                if rules.len() == 1 && rules[0].rhs.len() == 1 {
-                    if let Some(target) = rules[0].rhs.first() {
-                        replacements.insert(*symbol_id, target.clone());
-                    }
+                if rules.len() == 1 && rules[0].rhs.len() == 1
+                    && let Some(target) = rules[0].rhs.first()
+                {
+                    replacements.insert(*symbol_id, target.clone());
                 }
             } else if Some(*symbol_id) == self.source_file_id {
                 // source_file is not inlined
@@ -249,11 +249,11 @@ impl GrammarOptimizer {
             for rule in rules.iter_mut() {
                 let mut modified = false;
                 for symbol in &mut rule.rhs {
-                    if let Symbol::NonTerminal(id) = symbol {
-                        if let Some(replacement) = replacements.get(id) {
-                            *symbol = replacement.clone();
-                            modified = true;
-                        }
+                    if let Symbol::NonTerminal(id) = symbol
+                        && let Some(replacement) = replacements.get(id)
+                    {
+                        *symbol = replacement.clone();
+                        modified = true;
                     }
                 }
                 if modified {
@@ -297,10 +297,10 @@ impl GrammarOptimizer {
         for rules in grammar.rules.values_mut() {
             for rule in rules.iter_mut() {
                 for symbol in &mut rule.rhs {
-                    if let Symbol::Terminal(id) = symbol {
-                        if let Some(&new_id) = replacements.get(id) {
-                            *symbol = Symbol::Terminal(new_id);
-                        }
+                    if let Symbol::Terminal(id) = symbol
+                        && let Some(&new_id) = replacements.get(id)
+                    {
+                        *symbol = Symbol::Terminal(new_id);
                     }
                 }
             }
@@ -359,10 +359,8 @@ impl GrammarOptimizer {
 
         // Find unit rules
         for rule in grammar.all_rules() {
-            if rule.rhs.len() == 1 {
-                if let Symbol::NonTerminal(_) = &rule.rhs[0] {
-                    unit_rules.push(rule.clone());
-                }
+            if rule.rhs.len() == 1 && let Symbol::NonTerminal(_) = &rule.rhs[0] {
+                unit_rules.push(rule.clone());
             }
         }
 
@@ -790,11 +788,11 @@ impl GrammarOptimizer {
         grammar.rules = new_rules;
 
         // Update source_file_id if it was renumbered
-        if let Some(sf_id) = self.source_file_id {
-            if let Some(&new_id) = old_to_new.get(&sf_id) {
-                // Update source_file_id
-                self.source_file_id = Some(new_id);
-            }
+        if let Some(sf_id) = self.source_file_id
+            && let Some(&new_id) = old_to_new.get(&sf_id)
+        {
+            // Update source_file_id
+            self.source_file_id = Some(new_id);
         }
 
         // Update rule_names

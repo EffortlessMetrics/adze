@@ -755,13 +755,13 @@ impl GrammarValidator {
         for (symbol, rules) in &grammar.rules {
             for rule in rules {
                 // Check for trivial rules (A -> B)
-                if rule.rhs.len() == 1 {
-                    if let Symbol::NonTerminal(_) = &rule.rhs[0] {
-                        self.warnings.push(ValidationWarning::InefficientRule {
-                            symbol: *symbol,
-                            suggestion: "Consider inlining trivial rules".to_string(),
-                        });
-                    }
+                if rule.rhs.len() == 1
+                    && let Symbol::NonTerminal(_) = &rule.rhs[0]
+                {
+                    self.warnings.push(ValidationWarning::InefficientRule {
+                        symbol: *symbol,
+                        suggestion: "Consider inlining trivial rules".to_string(),
+                    });
                 }
 
                 // Check for very long rules
