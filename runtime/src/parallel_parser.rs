@@ -237,23 +237,27 @@ impl ParallelParser {
 
     /// Check if a position is at a statement boundary
     fn is_statement_boundary(&self, input: &[u8], pos: usize) -> bool {
-        // Simple heuristic: check indentation
+        // Simple heuristic: only treat boundaries as "clean" when the line
+        // following the newline starts at column 0. Indented lines are
+        // considered continuations and marked as dirty boundaries.
         if pos + 1 >= input.len() {
             return true;
         }
 
-        // Skip whitespace after newline
+        // Skip whitespace after newline and track indentation depth.
         let mut i = pos + 1;
+        let mut indent = 0;
         while i < input.len() && (input[i] == b' ' || input[i] == b'\t') {
             i += 1;
+            indent += 1;
         }
 
-        // Check if we're at the start of a keyword or identifier
         if i < input.len() {
-            match input[i] {
-                b'a'..=b'z' | b'A'..=b'Z' | b'_' => true,
-                _ => false,
+            if indent > 0 {
+                return false;
             }
+
+            matches!(input[i], b'a'..=b'z' | b'A'..=b'Z' | b'_')
         } else {
             true
         }
@@ -425,7 +429,11 @@ impl ParallelParser {
     }
 
     /// Find the grammar rule matching a subtree's children
-    fn match_rule(&self, symbol: SymbolId, children: &[ParseNode]) -> Option<&rust_sitter_ir::Rule> {
+    fn match_rule(
+        &self,
+        symbol: SymbolId,
+        children: &[ParseNode],
+    ) -> Option<&rust_sitter_ir::Rule> {
         use rust_sitter_ir::Symbol;
 
         let rules = self.grammar.rules.get(&symbol)?;
@@ -433,10 +441,15 @@ impl ParallelParser {
             if rule.rhs.len() != children.len() {
                 return false;
             }
-            rule.rhs.iter().zip(children.iter()).all(|(sym, child)| match sym {
-                Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => id == &child.symbol,
-                _ => false,
-            })
+            rule.rhs
+                .iter()
+                .zip(children.iter())
+                .all(|(sym, child)| match sym {
+                    Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
+                        id == &child.symbol
+                    }
+                    _ => false,
+                })
         })
     }
 }
@@ -469,7 +482,7 @@ impl ParallelParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
     use rust_sitter_ir::{FieldId, ProductionId, Rule, Symbol, Token, TokenPattern};
 
     // Build a simple grammar with field metadata for testing
@@ -585,15 +598,55 @@ mod tests {
         const SYM_PAIR: SymbolId = SymbolId(3);
         const SYM_ROOT: SymbolId = SymbolId(4);
 
-        let num1 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 0, end_byte: 1 };
-        let num2 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 2, end_byte: 3 };
-        let pair1 = Subtree { symbol: SYM_PAIR, children: vec![num1, num2], start_byte: 0, end_byte: 3 };
-        let root1 = Subtree { symbol: SYM_ROOT, children: vec![pair1], start_byte: 0, end_byte: 3 };
+        let num1 = Subtree {
+            symbol: SYM_NUMBER,
+            children: vec![],
+            start_byte: 0,
+            end_byte: 1,
+        };
+        let num2 = Subtree {
+            symbol: SYM_NUMBER,
+            children: vec![],
+            start_byte: 2,
+            end_byte: 3,
+        };
+        let pair1 = Subtree {
+            symbol: SYM_PAIR,
+            children: vec![num1, num2],
+            start_byte: 0,
+            end_byte: 3,
+        };
+        let root1 = Subtree {
+            symbol: SYM_ROOT,
+            children: vec![pair1],
+            start_byte: 0,
+            end_byte: 3,
+        };
 
-        let num3 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 4, end_byte: 5 };
-        let num4 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 6, end_byte: 7 };
-        let pair2 = Subtree { symbol: SYM_PAIR, children: vec![num3, num4], start_byte: 4, end_byte: 7 };
-        let root2 = Subtree { symbol: SYM_ROOT, children: vec![pair2], start_byte: 4, end_byte: 7 };
+        let num3 = Subtree {
+            symbol: SYM_NUMBER,
+            children: vec![],
+            start_byte: 4,
+            end_byte: 5,
+        };
+        let num4 = Subtree {
+            symbol: SYM_NUMBER,
+            children: vec![],
+            start_byte: 6,
+            end_byte: 7,
+        };
+        let pair2 = Subtree {
+            symbol: SYM_PAIR,
+            children: vec![num3, num4],
+            start_byte: 4,
+            end_byte: 7,
+        };
+        let root2 = Subtree {
+            symbol: SYM_ROOT,
+            children: vec![pair2],
+            start_byte: 4,
+            end_byte: 7,
+        };
 
         // Intentionally pass subtrees out of order to test ordering
         let tree = parser
@@ -606,14 +659,8 @@ mod tests {
 
         // Check field names on pair children
         let first_pair = &tree.children[0];
-        assert_eq!(
-            first_pair.children[0].field_name.as_deref(),
-            Some("left")
-        );
-        assert_eq!(
-            first_pair.children[1].field_name.as_deref(),
-            Some("right")
-        );
+        assert_eq!(first_pair.children[0].field_name.as_deref(), Some("left"));
+        assert_eq!(first_pair.children[1].field_name.as_deref(), Some("right"));
     }
 
     #[test]
@@ -625,21 +672,71 @@ mod tests {
         const SYM_PAIR: SymbolId = SymbolId(3);
         const SYM_ROOT: SymbolId = SymbolId(4);
 
-        let num1 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 0, end_byte: 1 };
-        let num2 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 2, end_byte: 3 };
-        let pair1 = Subtree { symbol: SYM_PAIR, children: vec![num1, num2], start_byte: 0, end_byte: 3 };
-        let root1 = Subtree { symbol: SYM_ROOT, children: vec![pair1], start_byte: 0, end_byte: 3 };
+        let num1 = Subtree {
+            symbol: SYM_NUMBER,
+            children: vec![],
+            start_byte: 0,
+            end_byte: 1,
+        };
+        let num2 = Subtree {
+            symbol: SYM_NUMBER,
+            children: vec![],
+            start_byte: 2,
+            end_byte: 3,
+        };
+        let pair1 = Subtree {
+            symbol: SYM_PAIR,
+            children: vec![num1, num2],
+            start_byte: 0,
+            end_byte: 3,
+        };
+        let root1 = Subtree {
+            symbol: SYM_ROOT,
+            children: vec![pair1],
+            start_byte: 0,
+            end_byte: 3,
+        };
 
-        let num3 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 4, end_byte: 5 };
-        let num4 = Subtree { symbol: SYM_NUMBER, children: vec![], start_byte: 6, end_byte: 7 };
-        let pair2 = Subtree { symbol: SYM_PAIR, children: vec![num3, num4], start_byte: 4, end_byte: 7 };
-        let root2 = Subtree { symbol: SYM_ROOT, children: vec![pair2], start_byte: 4, end_byte: 7 };
+        let num3 = Subtree {
+            symbol: SYM_NUMBER,
+            children: vec![],
+            start_byte: 4,
+            end_byte: 5,
+        };
+        let num4 = Subtree {
+            symbol: SYM_NUMBER,
+            children: vec![],
+            start_byte: 6,
+            end_byte: 7,
+        };
+        let pair2 = Subtree {
+            symbol: SYM_PAIR,
+            children: vec![num3, num4],
+            start_byte: 4,
+            end_byte: 7,
+        };
+        let root2 = Subtree {
+            symbol: SYM_ROOT,
+            children: vec![pair2],
+            start_byte: 4,
+            end_byte: 7,
+        };
 
         let result = parser
             .merge_chunk_results(
                 vec![
-                    ChunkResult { chunk_id: 1, subtrees: vec![root2], incomplete_tokens: vec![], parse_time_ms: 0.0 },
-                    ChunkResult { chunk_id: 0, subtrees: vec![root1], incomplete_tokens: vec![], parse_time_ms: 0.0 },
+                    ChunkResult {
+                        chunk_id: 1,
+                        subtrees: vec![root2],
+                        incomplete_tokens: vec![],
+                        parse_time_ms: 0.0,
+                    },
+                    ChunkResult {
+                        chunk_id: 0,
+                        subtrees: vec![root1],
+                        incomplete_tokens: vec![],
+                        parse_time_ms: 0.0,
+                    },
                 ],
                 b"1 2 3 4",
             )
