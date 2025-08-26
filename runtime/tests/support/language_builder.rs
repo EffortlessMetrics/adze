@@ -107,8 +107,10 @@ pub fn normalize_table_for_ts(table: &mut ParseTable) {
         }
     }
 
-    // Prefer highest SymbolId (commonly augmented start)
-    let start_nt = if let Some(s) = start_candidates.iter().max_by_key(|s| s.0) {
+    // Use pre-set start symbol if provided; otherwise, fall back to heuristic
+    let start_nt = if table.start_symbol != SymbolId(0) {
+        table.start_symbol
+    } else if let Some(s) = start_candidates.iter().max_by_key(|s| s.0) {
         *s
     } else {
         // Fallback: pick a LHS present in rules that's an NT
