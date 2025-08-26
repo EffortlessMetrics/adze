@@ -1336,23 +1336,6 @@ impl Parser {
         }
     }
 
-    /// Get goto state after a reduction.
-    ///
-    /// This uses the same parse-table lookup as [`get_goto`] and returns `0`
-    /// if no goto state exists. The GLR parser computes goto states internally
-    /// and should not rely on this helper.
-    #[allow(dead_code)]
-    fn get_goto_state(
-        &self,
-        language: &TSLanguage,
-        state: TSStateId,
-        symbol: TSSymbol,
-    ) -> TSStateId {
-        // Reuse the parse-table based lookup. Returning 0 mirrors the
-        // Tree-sitter C API behaviour for missing goto entries.
-        self.get_goto(language, state, symbol).unwrap_or(0)
-    }
-
     /// Get expected symbols for error reporting
     fn get_expected_symbols(&self, language: &TSLanguage, state: TSStateId) -> Vec<TSSymbol> {
         let mut expected = Vec::new();
@@ -1690,7 +1673,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_goto_state_handles_missing_entries() {
+    fn test_get_goto_handles_missing_entries() {
         // Minimal language with a single token and no goto entries.
         static PARSE_TABLE: [u16; 1] = [0];
         static SMALL_PARSE_TABLE: [u16; 1] = [0];
@@ -1741,7 +1724,7 @@ mod tests {
         };
 
         // Symbol 0 is a token; there is no goto entry. The helper should
-        // return 0 instead of panicking.
-        assert_eq!(parser.get_goto_state(&LANGUAGE, 0, 0), 0);
+        // return None instead of panicking.
+        assert!(parser.get_goto(&LANGUAGE, 0, 0).is_none());
     }
 }
