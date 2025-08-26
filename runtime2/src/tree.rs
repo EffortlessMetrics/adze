@@ -6,12 +6,12 @@ use std::fmt;
 /// A parsed syntax tree
 pub struct Tree {
     /// Root node of the tree
-    root: TreeNode,
+    pub(crate) root: TreeNode,
     /// Language used to parse this tree
-    language: Option<Language>,
+    pub(crate) language: Option<Language>,
     /// Source text (optional, for convenience)
     #[allow(dead_code)]
-    source: Option<Vec<u8>>,
+    pub(crate) source: Option<Vec<u8>>,
 }
 
 /// Internal tree node representation
@@ -98,8 +98,21 @@ impl Tree {
 
     /// Get a copy of this tree
     pub fn clone(&self) -> Self {
-        // TODO: Implement proper cloning
-        Self::new_stub()
+        fn clone_node(node: &TreeNode) -> TreeNode {
+            TreeNode {
+                symbol: node.symbol,
+                start_byte: node.start_byte,
+                end_byte: node.end_byte,
+                children: node.children.iter().map(clone_node).collect(),
+                field_id: node.field_id,
+            }
+        }
+
+        Self {
+            root: clone_node(&self.root),
+            language: self.language.clone(),
+            source: self.source.clone(),
+        }
     }
 
     /// Walk the tree with a callback
