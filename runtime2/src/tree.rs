@@ -4,6 +4,7 @@ use crate::{node::Node, Language};
 use std::fmt;
 
 /// A parsed syntax tree
+#[derive(Clone)]
 pub struct Tree {
     /// Root node of the tree
     root: TreeNode,
@@ -131,17 +132,6 @@ impl Tree {
 
         // Record the last edit so incremental parsing can reparse this region.
         self.last_edit = Some(*edit);
-    }
-
-    /// Get a copy of this tree
-    pub fn clone(&self) -> Self {
-        Self {
-            root: self.root.clone(),
-            language: self.language.clone(),
-            source: self.source.clone(),
-            #[cfg(feature = "incremental")]
-            last_edit: self.last_edit,
-        }
     }
 
     /// Walk the tree with a callback
