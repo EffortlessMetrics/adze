@@ -100,7 +100,7 @@ fn create_json_grammar() -> Grammar {
         },
     );
 
-    // Add rule names
+    // Add rule names for complex structures and mark the start symbol
     grammar.rule_names.insert(value_id, "value".to_string());
     grammar.rule_names.insert(object_id, "object".to_string());
     grammar.rule_names.insert(array_id, "array".to_string());
@@ -162,7 +162,7 @@ fn create_json_grammar() -> Grammar {
         production_id: ProductionId(4),
     });
 
-    grammar.rules.entry(value_id).or_default().push(Rule {
+    grammar.rules.entry(object_id).or_default().push(Rule {
         lhs: object_id,
         rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
         precedence: None,
@@ -185,7 +185,7 @@ fn create_json_grammar() -> Grammar {
         production_id: ProductionId(6),
     });
 
-    grammar.rules.entry(value_id).or_default().push(Rule {
+    grammar.rules.entry(array_id).or_default().push(Rule {
         lhs: array_id,
         rhs: vec![Symbol::Terminal(lbracket_id), Symbol::Terminal(rbracket_id)],
         precedence: None,
@@ -222,11 +222,13 @@ fn test_tree_bridge_json_number() {
             let root = tree.root_node();
 
             // Test tree API
-            // The root is the reduced value, which in this case is directly the number
-            assert_eq!(root.kind(), "number");
+            // The root is the start symbol `value` with a single `number` child
+            assert_eq!(root.kind(), "value");
             assert_eq!(root.byte_range(), 0..2);
-            assert_eq!(root.child_count(), 0); // Terminal nodes have no children
-            assert_eq!(root.utf8_text(tree.text()).unwrap(), "42");
+            assert_eq!(root.child_count(), 1);
+            let child = root.child(0).unwrap();
+            assert_eq!(child.kind(), "number");
+            assert_eq!(child.utf8_text(tree.text()).unwrap(), "42");
         }
         Err(e) => panic!("Failed to build parse table: {:?}", e),
     }
@@ -257,18 +259,20 @@ fn test_tree_bridge_json_object() {
             let root = tree.root_node();
 
             // Test tree structure
-            // The root is the object itself (value → object reduction)
-            assert_eq!(root.kind(), "object");
+            // The root is the start symbol `value` with an `object` child
+            assert_eq!(root.kind(), "value");
+            let object_node = root.child(0).unwrap();
+            assert_eq!(object_node.kind(), "object");
 
             // Objects have children: { members } or { }
             // In this case: { members }
-            assert!(root.child_count() >= 2); // At least { and }
+            assert!(object_node.child_count() >= 2); // At least { and }
 
             // Use cursor to traverse
-            let _cursor = root.walk();
+            let _cursor = object_node.walk();
 
             // Check we can access text
-            let text = root.utf8_text(tree.text()).unwrap();
+            let text = object_node.utf8_text(tree.text()).unwrap();
             assert_eq!(text, r#"{"key": 123}"#);
         }
         Err(e) => panic!("Failed to build parse table: {:?}", e),
@@ -300,7 +304,10 @@ fn test_tree_cursor_navigation() {
             let mut cursor = tree.root_node().walk();
 
             // Navigate tree with cursor
-            // The root is the array itself (value → array reduction)
+            assert_eq!(cursor.node().kind(), "value");
+
+            // Move to the array child
+            assert!(cursor.goto_first_child());
             assert_eq!(cursor.node().kind(), "array");
 
             // Arrays have: [ elements ]
@@ -311,7 +318,7 @@ fn test_tree_cursor_navigation() {
             // Go to sibling (elements)
             assert!(cursor.goto_next_sibling());
 
-            // Go back to parent
+            // Go back to parent (array)
             assert!(cursor.goto_parent());
             assert_eq!(cursor.node().kind(), "array");
         }

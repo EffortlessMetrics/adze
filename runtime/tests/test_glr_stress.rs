@@ -74,9 +74,9 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     grammar.rules.entry(expr_id).or_default().push(Rule {
         lhs: expr_id,
         rhs: vec![
-            Symbol::Terminal(expr_id),
+            Symbol::NonTerminal(expr_id),
             Symbol::Terminal(plus_id),
-            Symbol::Terminal(expr_id),
+            Symbol::NonTerminal(expr_id),
         ],
         precedence: None,
         associativity: None,
@@ -89,9 +89,9 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     grammar.rules.entry(expr_id).or_default().push(Rule {
         lhs: expr_id,
         rhs: vec![
-            Symbol::Terminal(expr_id),
+            Symbol::NonTerminal(expr_id),
             Symbol::Terminal(times_id),
-            Symbol::Terminal(expr_id),
+            Symbol::NonTerminal(expr_id),
         ],
         precedence: None,
         associativity: None,
@@ -103,7 +103,7 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     // expr -> term
     grammar.rules.entry(expr_id).or_default().push(Rule {
         lhs: expr_id,
-        rhs: vec![Symbol::Terminal(term_id)],
+        rhs: vec![Symbol::NonTerminal(term_id)],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -115,9 +115,9 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     grammar.rules.entry(term_id).or_default().push(Rule {
         lhs: term_id,
         rhs: vec![
-            Symbol::Terminal(term_id),
+            Symbol::NonTerminal(term_id),
             Symbol::Terminal(plus_id),
-            Symbol::Terminal(factor_id),
+            Symbol::NonTerminal(factor_id),
         ],
         precedence: None,
         associativity: None,
@@ -129,7 +129,7 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     // term -> factor
     grammar.rules.entry(term_id).or_default().push(Rule {
         lhs: term_id,
-        rhs: vec![Symbol::Terminal(factor_id)],
+        rhs: vec![Symbol::NonTerminal(factor_id)],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -142,7 +142,7 @@ fn create_ambiguous_expression_grammar() -> Grammar {
         lhs: factor_id,
         rhs: vec![
             Symbol::Terminal(lparen_id),
-            Symbol::Terminal(expr_id),
+            Symbol::NonTerminal(expr_id),
             Symbol::Terminal(rparen_id),
         ],
         precedence: None,
@@ -207,9 +207,9 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     grammar.rules.entry(expr_id).or_default().push(Rule {
         lhs: expr_id,
         rhs: vec![
-            Symbol::Terminal(expr_id),
+            Symbol::NonTerminal(expr_id),
             Symbol::Terminal(op_id),
-            Symbol::Terminal(expr_id),
+            Symbol::NonTerminal(expr_id),
         ],
         precedence: None,
         associativity: None,
@@ -221,7 +221,7 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     // expr -> expr2
     grammar.rules.entry(expr_id).or_default().push(Rule {
         lhs: expr_id,
-        rhs: vec![Symbol::Terminal(expr2_id)],
+        rhs: vec![Symbol::NonTerminal(expr2_id)],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -233,9 +233,9 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     grammar.rules.entry(expr2_id).or_default().push(Rule {
         lhs: expr2_id,
         rhs: vec![
-            Symbol::Terminal(expr2_id),
+            Symbol::NonTerminal(expr2_id),
             Symbol::Terminal(op_id),
-            Symbol::Terminal(expr3_id),
+            Symbol::NonTerminal(expr3_id),
         ],
         precedence: None,
         associativity: None,
@@ -247,7 +247,7 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     // expr2 -> expr3
     grammar.rules.entry(expr2_id).or_default().push(Rule {
         lhs: expr2_id,
-        rhs: vec![Symbol::Terminal(expr3_id)],
+        rhs: vec![Symbol::NonTerminal(expr3_id)],
         precedence: None,
         associativity: None,
         fields: vec![],
@@ -259,9 +259,9 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     grammar.rules.entry(expr3_id).or_default().push(Rule {
         lhs: expr3_id,
         rhs: vec![
-            Symbol::Terminal(expr_id),
+            Symbol::NonTerminal(expr_id),
             Symbol::Terminal(op_id),
-            Symbol::Terminal(expr3_id),
+            Symbol::NonTerminal(expr3_id),
         ],
         precedence: None,
         associativity: None,

@@ -2,6 +2,25 @@
 use rust_sitter::pure_parser::{ExternalScanner, Parser, TSLanguage, TSParseAction};
 use std::ptr;
 
+// Minimal symbol name and metadata tables required by the parser
+const SYMBOL_0: &[u8] = b"ERROR\0";
+const SYMBOL_1: &[u8] = b"digit\0";
+const SYMBOL_2: &[u8] = b"plus\0";
+const SYMBOL_3: &[u8] = b"star\0";
+const SYMBOL_4: &[u8] = b"number\0";
+const SYMBOL_5: &[u8] = b"add\0";
+const SYMBOL_6: &[u8] = b"mul\0";
+const SYMBOL_NAMES: [*const u8; 7] = [
+    SYMBOL_0.as_ptr(),
+    SYMBOL_1.as_ptr(),
+    SYMBOL_2.as_ptr(),
+    SYMBOL_3.as_ptr(),
+    SYMBOL_4.as_ptr(),
+    SYMBOL_5.as_ptr(),
+    SYMBOL_6.as_ptr(),
+];
+const SYMBOL_METADATA: [u8; 7] = [0; 7];
+
 // Create a simple test language
 fn create_test_language() -> &'static TSLanguage {
     // Define parse actions
@@ -106,11 +125,11 @@ fn create_test_language() -> &'static TSLanguage {
         small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
         small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
         parse_actions: PARSE_ACTIONS.as_ptr(),
-        symbol_names: ptr::null(),
+        symbol_names: SYMBOL_NAMES.as_ptr(),
         field_names: ptr::null(),
         field_map_slices: ptr::null(),
         field_map_entries: ptr::null(),
-        symbol_metadata: ptr::null(),
+        symbol_metadata: SYMBOL_METADATA.as_ptr(),
         public_symbol_map: ptr::null(),
         alias_map: ptr::null(),
         alias_sequences: ptr::null(),

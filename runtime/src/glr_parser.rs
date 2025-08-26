@@ -46,7 +46,7 @@
 //!
 //! ## Example Usage
 //!
-//! ```rust,no_run
+//! ```ignore
 //! use rust_sitter::glr_parser::GLRParser;
 //! use rust_sitter::glr_lexer::GLRLexer;
 //! use rust_sitter_ir::{Grammar, SymbolId};

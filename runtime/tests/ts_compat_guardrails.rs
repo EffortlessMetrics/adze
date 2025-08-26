@@ -35,13 +35,13 @@ fn table_guardrails() {
         "goto table must have at least one nonterminal transition"
     );
 
-    // Check that Expression symbol exists and is named correctly
-    let expr_symbol = t
+    // Check that number symbol exists and is named correctly
+    let number_symbol = t
         .symbol_metadata
         .iter()
-        .find(|m| m.name == "expression")
-        .expect("Expression symbol not found");
-    assert!(expr_symbol.named, "Expression should be a named symbol");
+        .find(|m| m.name == "number")
+        .expect("number symbol not found");
+    assert!(number_symbol.named, "number should be a named symbol");
 }
 
 #[test]

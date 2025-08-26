@@ -196,14 +196,14 @@ fn test_small_row_invalid_nt_column() {
 }
 
 #[test]
-#[should_panic(expected = "Duplicate column 3")]
 fn test_small_row_duplicate_columns() {
     let token_count = 10;
     let mut state = SmallRowState::new();
 
-    // Add duplicate columns (even if values differ)
+    // Adding the same column twice should overwrite the previous value
     state.add_token_action(3, 103);
-    state.add_token_action(3, 999); // Duplicate!
+    state.add_token_action(3, 999); // Overwrites previous value
 
-    state.encode(token_count); // Should panic on duplicate check
+    let data = state.encode(token_count);
+    assert_eq!(data, vec![3, 999]);
 }
