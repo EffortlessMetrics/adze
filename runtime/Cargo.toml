@@ -66,8 +66,8 @@ serde_json = "1.0.142"
 proptest = "1.4"
 hex = "0.4"
 glr-test-support = { path = "../glr-test-support" }
-rust-sitter-python-simple = { path = "../grammars/python-simple" }
-rust-sitter-python = { path = "../grammars/python" }
+rust-sitter-python-simple = { path = "../grammars/python-simple", default-features = false }
+rust-sitter-python = { path = "../grammars/python", default-features = false }
 
 tree-sitter-json = "0.24.8"
 

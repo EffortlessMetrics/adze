@@ -117,7 +117,7 @@ pub fn extract_field<LT: Extract<T>, T>(
             let n = cursor.node();
             if let Some(name) = cursor.field_name() {
                 if name == field_name {
-                    let out = LT::extract(Some(&n), source, *last_idx, closure_ref);
+                    let out = LT::extract(Some(n), source, *last_idx, closure_ref);
 
                     if !cursor.goto_next_sibling() {
                         *cursor_opt = None;

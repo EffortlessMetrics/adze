@@ -1,10 +1,13 @@
-use rust_sitter::{tree_sitter::Parser, Extract, WithLeaf};
-use tree_sitter_json::language as json_language;
+#![cfg(feature = "tree-sitter-standard")]
+
+use rust_sitter::{Extract, WithLeaf};
+use tree_sitter_json::LANGUAGE;
+use tree_sitter_runtime_standard::Parser;
 
 #[test]
 fn missing_leaf_fn_returns_none_ts() {
     let mut parser = Parser::new();
-    parser.set_language(&json_language()).unwrap();
+    parser.set_language(&LANGUAGE.into()).unwrap();
     let source = b"1";
     let tree = parser
         .parse(std::str::from_utf8(source).unwrap(), None)
@@ -17,7 +20,7 @@ fn missing_leaf_fn_returns_none_ts() {
 #[test]
 fn invalid_utf8_returns_none_ts() {
     let mut parser = Parser::new();
-    parser.set_language(&json_language()).unwrap();
+    parser.set_language(&LANGUAGE.into()).unwrap();
     let tree = parser.parse("1", None).unwrap();
     let node = tree.root_node().child(0).unwrap();
     let bad_source = [0xff];
