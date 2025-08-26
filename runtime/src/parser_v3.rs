@@ -3,7 +3,7 @@
 
 use crate::error_recovery::{ErrorRecoveryConfig, RecoveryAction};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::fmt;
@@ -723,15 +723,7 @@ mod tests {
         // This test would require building a parse table
         // For now, we'll just verify the parser compiles
         let grammar = create_simple_grammar();
-        let parse_table = ParseTable {
-            action_table: vec![],
-            goto_table: vec![],
-            symbol_metadata: vec![],
-            state_count: 0,
-            symbol_count: 0,
-            symbol_to_index: std::collections::BTreeMap::new(),
-            external_scanner_states: vec![],
-        };
+        let parse_table = ParseTable::default();
 
         let _parser = Parser::new(grammar, parse_table);
     }

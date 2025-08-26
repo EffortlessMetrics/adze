@@ -77,7 +77,10 @@ impl Drop for ScannerGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    };
 
     struct TestScanner {
         drop_counter: Arc<AtomicUsize>,
@@ -85,10 +88,10 @@ mod tests {
 
     impl ExternalScanner for TestScanner {
         fn scan(
-            &self,
+            &mut self,
             _lexer: &mut dyn crate::external_scanner::Lexer,
             _valid_symbols: &[bool],
-        ) -> Option<usize> {
+        ) -> Option<ScanResult> {
             None
         }
 
@@ -111,7 +114,7 @@ mod tests {
             let scanner = TestScanner {
                 drop_counter: drop_counter.clone(),
             };
-            let _wrapper = ScannerWrapper::new_rust(Arc::new(scanner));
+            let _wrapper = ScannerWrapper::new_rust(Arc::new(Mutex::new(scanner)));
             // Scanner should not be dropped yet (held by Arc)
             assert_eq!(drop_counter.load(Ordering::SeqCst), 0);
         }
