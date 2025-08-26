@@ -12,9 +12,13 @@ pub struct Tree {
     /// Source text (optional, for convenience)
     #[allow(dead_code)]
     source: Option<Vec<u8>>,
+    /// Last edit applied to this tree (for incremental parsing)
+    #[cfg(feature = "incremental")]
+    last_edit: Option<crate::InputEdit>,
 }
 
 /// Internal tree node representation
+#[derive(Clone)]
 #[allow(dead_code)]
 pub(crate) struct TreeNode {
     /// Symbol type
@@ -53,6 +57,8 @@ impl Tree {
             root,
             language: None,
             source: None,
+            #[cfg(feature = "incremental")]
+            last_edit: None,
         }
     }
 
@@ -73,6 +79,8 @@ impl Tree {
             },
             language: None,
             source: None,
+            #[cfg(feature = "incremental")]
+            last_edit: None,
         }
     }
 
@@ -89,17 +97,51 @@ impl Tree {
     /// Apply an edit to the tree (for incremental parsing)
     #[cfg(feature = "incremental")]
     pub fn edit(&mut self, edit: &crate::InputEdit) {
-        // TODO: Implement tree editing
-        // 1. Update byte offsets in affected nodes
-        // 2. Mark dirty regions for re-parsing
-        // 3. Maintain tree structure invariants
-        let _ = edit;
+        let delta = edit.new_end_byte as isize - edit.old_end_byte as isize;
+
+        fn apply_edit(node: &mut TreeNode, edit: &crate::InputEdit, delta: isize) {
+            // If the node ends before the edit start, it's unaffected.
+            if node.end_byte <= edit.start_byte {
+                return;
+            }
+
+            // If the node starts after the old edit end, shift it by the delta.
+            if node.start_byte >= edit.old_end_byte {
+                node.start_byte = (node.start_byte as isize + delta) as usize;
+                node.end_byte = (node.end_byte as isize + delta) as usize;
+            } else {
+                // The node intersects the edit; adjust its range to encompass the change.
+                if node.start_byte > edit.start_byte {
+                    node.start_byte = edit.start_byte;
+                }
+
+                if node.end_byte >= edit.old_end_byte {
+                    node.end_byte = (node.end_byte as isize + delta) as usize;
+                } else if node.end_byte > edit.start_byte {
+                    node.end_byte = edit.start_byte;
+                }
+            }
+
+            for child in &mut node.children {
+                apply_edit(child, edit, delta);
+            }
+        }
+
+        apply_edit(&mut self.root, edit, delta);
+
+        // Record the last edit so incremental parsing can reparse this region.
+        self.last_edit = Some(*edit);
     }
 
     /// Get a copy of this tree
     pub fn clone(&self) -> Self {
-        // TODO: Implement proper cloning
-        Self::new_stub()
+        Self {
+            root: self.root.clone(),
+            language: self.language.clone(),
+            source: self.source.clone(),
+            #[cfg(feature = "incremental")]
+            last_edit: self.last_edit,
+        }
     }
 
     /// Walk the tree with a callback
