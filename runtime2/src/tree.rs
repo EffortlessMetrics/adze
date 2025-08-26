@@ -4,6 +4,7 @@ use crate::{node::Node, Language};
 use std::fmt;
 
 /// A parsed syntax tree
+#[derive(Clone)]
 pub struct Tree {
     /// Root node of the tree
     root: TreeNode,
@@ -16,6 +17,7 @@ pub struct Tree {
 
 /// Internal tree node representation
 #[allow(dead_code)]
+#[derive(Clone)]
 pub(crate) struct TreeNode {
     /// Symbol type
     symbol: u32,
@@ -86,6 +88,21 @@ impl Tree {
         self.language.as_ref()
     }
 
+    /// Set the language for this tree
+    pub(crate) fn set_language(&mut self, language: Language) {
+        self.language = Some(language);
+    }
+
+    /// Set the source bytes for this tree
+    pub(crate) fn set_source(&mut self, source: Vec<u8>) {
+        self.source = Some(source);
+    }
+
+    /// Get the source bytes of this tree, if available
+    pub fn source_bytes(&self) -> Option<&[u8]> {
+        self.source.as_deref()
+    }
+
     /// Apply an edit to the tree (for incremental parsing)
     #[cfg(feature = "incremental")]
     pub fn edit(&mut self, edit: &crate::InputEdit) {
@@ -94,12 +111,6 @@ impl Tree {
         // 2. Mark dirty regions for re-parsing
         // 3. Maintain tree structure invariants
         let _ = edit;
-    }
-
-    /// Get a copy of this tree
-    pub fn clone(&self) -> Self {
-        // TODO: Implement proper cloning
-        Self::new_stub()
     }
 
     /// Walk the tree with a callback
