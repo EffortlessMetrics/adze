@@ -23,8 +23,8 @@ repos:
         files: 'glr-core/.*\.rs$'
 
       - id: cargo-test-tools
-        name: cargo test ts-bridge (stub-ts)
-        entry: bash -c 'cargo test -p ts-bridge --features stub-ts --quiet'
+        name: cargo test ts-bridge
+        entry: bash -c 'cargo test -p ts-bridge --quiet'
         language: system
         pass_filenames: false
         files: 'tools/ts-bridge/.*\.rs$'
@@ -33,13 +33,14 @@ repos:
         name: contract tripwires (EOF & stats)
         language: system
         pass_filenames: false
-        entry: bash -c '
-          set -euo pipefail
-          # No stubbed stats
-          ! rg -n "-> \(false, 0, 0\)" glr-core | tee /dev/stderr | grep -q .
-          # No stray "Unknown action type" decoders without V/Recover
-          ! rg -n "Unknown action type" glr-core tablegen runtime --glob "*.rs" | grep -v "// Expected: V for Recover" | tee /dev/stderr | grep -q .
-        '
+        entry: |
+          bash -c '
+            set -euo pipefail
+            # No stubbed stats
+            ! rg -n "-> \(false, 0, 0\)" glr-core | tee /dev/stderr | grep -q .
+            # No stray "Unknown action type" decoders without V/Recover
+            ! rg -n "Unknown action type" glr-core tablegen runtime --glob "*.rs" | grep -v "// Expected: V for Recover" | tee /dev/stderr | grep -q .
+          '
         files: '(glr-core|tablegen|runtime)/.*\.rs$'
 
       - id: tables-sanity

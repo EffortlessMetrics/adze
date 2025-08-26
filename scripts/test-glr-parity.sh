@@ -7,11 +7,7 @@ echo ""
 
 # Check if ts-bridge is built
 if ! cargo build -p ts-bridge 2>/dev/null; then
-    echo "⚠️  ts-bridge doesn't build with production features (expected - needs real TS libs)"
-    echo "   Building with stub features for development..."
-    cd tools/ts-bridge
-    cargo build --features stub-ts
-    cd ../..
+    echo "⚠️  ts-bridge failed to build (requires Tree-sitter libraries)"
 fi
 
 # Test directories

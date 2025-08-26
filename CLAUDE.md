@@ -287,9 +287,6 @@ The ts-bridge tool extracts parse tables from compiled Tree-sitter grammars for 
 # Production build (with vendored headers)
 cargo build -p ts-bridge
 
-# Development build (with stubs for testing)
-cargo build -p ts-bridge --features stub-ts
-
 # Run ABI verification
 cargo run -p ts-bridge --bin tsb-abi-check
 ./tools/ts-bridge/scripts/abi-hash.sh
@@ -297,8 +294,8 @@ cargo run -p ts-bridge --bin tsb-abi-check
 
 **Testing:**
 ```bash
-# Run basic tests (works with stubs)
-cargo test -p ts-bridge --test basic --features stub-ts
+# Run basic tests
+cargo test -p ts-bridge --test basic
 
 # Run parity tests (requires actual Tree-sitter libraries)
 cargo test -p ts-bridge --features with-grammars
