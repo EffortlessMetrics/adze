@@ -58,6 +58,7 @@ use std::collections::{BTreeMap, BTreeSet};
 /// Error types and Result alias for GLR operations.
 pub mod error;
 pub use error::Result as GlrResult;
+
 /// Back-compat alias: prefer `GlrError`; `GLRError` remains for now.
 pub use GLRError as GlrError;
 
