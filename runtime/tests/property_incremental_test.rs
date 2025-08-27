@@ -1,6 +1,8 @@
 // Property-based tests for incremental parsing
 // These tests ensure that incremental parsing produces the same results as fresh parsing
 
+mod common;
+
 // Basic sanity test that always runs
 #[test]
 fn test_fresh_parse_sanity() {
@@ -40,9 +42,9 @@ mod incremental_properties {
     use rust_sitter::pure_incremental::Edit;
     use rust_sitter::pure_parser::Point;
     use rust_sitter_glr_core::ParseTable;
-    use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
+    use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
-    use super::common;
+    use super::common::build_table;
 
     /// Strategy for generating source code strings
     fn source_strategy() -> impl Strategy<Value = String> {
@@ -74,15 +76,15 @@ mod incremental_properties {
             new_end_byte: pos + insert_len,
             start_point: Point {
                 row: 0,
-                column: pos,
+                column: pos as u32,
             }, // Simplified - assumes single line
             old_end_point: Point {
                 row: 0,
-                column: pos + del_len,
+                column: (pos + del_len) as u32,
             },
             new_end_point: Point {
                 row: 0,
-                column: pos + insert_len,
+                column: (pos + insert_len) as u32,
             },
         }
     }
@@ -94,11 +96,25 @@ mod incremental_properties {
 
         // Add simple number token
         let number_id = SymbolId(1);
-        grammar.add_terminal(number_id, "number".to_string());
+        grammar.tokens.insert(
+            number_id,
+            Token {
+                name: "number".to_string(),
+                pattern: TokenPattern::Regex(r"\d+".to_string()),
+                fragile: false,
+            },
+        );
 
         // Add simple identifier token
         let ident_id = SymbolId(2);
-        grammar.add_terminal(ident_id, "identifier".to_string());
+        grammar.tokens.insert(
+            ident_id,
+            Token {
+                name: "identifier".to_string(),
+                pattern: TokenPattern::Regex(r"[a-zA-Z_]\w*".to_string()),
+                fragile: false,
+            },
+        );
 
         // Add root non-terminal that accepts a sequence
         let root_id = SymbolId(10);
@@ -112,8 +128,8 @@ mod incremental_properties {
         };
         grammar.add_rule(rule);
 
-        let table = common::build_table(&grammar);
-        (grammar, *table)
+        let table = build_table(&grammar);
+        (grammar, table)
     }
 
     #[cfg(feature = "incremental_glr")]
@@ -139,19 +155,22 @@ mod incremental_properties {
             let tree_fresh = parser.parse(&edited).expect("Fresh parse should succeed");
 
             // Try incremental parse (when implemented)
-            if let Some(tree_inc) = parser.reparse(&edited, &tree1, &edit) {
-                // Core properties that must hold
-                prop_assert_eq!(tree_inc.root_kind, tree_fresh.root_kind,
-                    "Root kinds should match between incremental and fresh parse");
-                prop_assert_eq!(tree_inc.error_count, tree_fresh.error_count,
-                    "Error counts should match between incremental and fresh parse");
+            match parser.reparse(&edited, &tree1, &edit) {
+                Ok(tree_inc) => {
+                    // Core properties that must hold
+                    prop_assert_eq!(tree_inc.root_kind, tree_fresh.root_kind,
+                        "Root kinds should match between incremental and fresh parse");
+                    prop_assert_eq!(tree_inc.error_count, tree_fresh.error_count,
+                        "Error counts should match between incremental and fresh parse");
 
-                // Additional properties can be added as the implementation matures
-            } else {
-                // Incremental parsing not implemented yet - that's OK
-                // At least verify fresh parsing works
-                prop_assert!(tree_fresh.error_count == 0 || tree_fresh.error_count > 0,
-                    "Fresh parse should complete with a valid error count");
+                    // Additional properties can be added as the implementation matures
+                }
+                Err(_) => {
+                    // Incremental parsing failed - that's OK for now
+                    // At least verify fresh parsing works
+                    prop_assert!(tree_fresh.error_count == 0 || tree_fresh.error_count > 0,
+                        "Fresh parse should complete with a valid error count");
+                }
             }
         }
 

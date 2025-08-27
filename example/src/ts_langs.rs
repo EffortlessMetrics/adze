@@ -37,7 +37,7 @@ pub fn arithmetic() -> Arc<Language> {
         "_whitespace",            // 2
         "-",                      // 3
         "number",                 // 4
-        "Expression",             // 5
+        "expression",             // 5  -- fixed case to match test expectation
         "source_file",            // 6
         "Expression_Mul",         // 7
         "whitespace_pattern",     // 8
