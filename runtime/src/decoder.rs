@@ -10,7 +10,7 @@ use rust_sitter_ir::{
     SymbolId, Token, TokenPattern,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::ffi::{CStr, c_char};
+use std::ffi::{c_char, CStr};
 use std::path::Path;
 
 use crate::pure_parser::{TSLanguage, TSParseAction};
@@ -550,11 +550,19 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             extras_set.insert(SymbolId(i as u16));
         }
 
+        let symbol_id = SymbolId(i as u16);
+        let is_terminal = (i as u32) < lang.token_count + lang.external_token_count;
+
         symbol_metadata.push(SymbolMetadata {
             name,
             visible: (ts_metadata & 0x01) != 0,
             named: (ts_metadata & 0x02) != 0,
             supertype: (ts_metadata & 0x08) != 0,
+            // Additional fields required by GLR core API contracts
+            is_terminal,
+            is_extra: (ts_metadata & 0x04) != 0,
+            is_fragile: false, // Tree-sitter doesn't expose fragile token info directly
+            symbol_id,
         });
     }
 

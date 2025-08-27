@@ -95,11 +95,17 @@ pub fn arithmetic() -> Arc<Language> {
         } else {
             format!("symbol_{}", i)
         };
+        let symbol_id = SymbolId(i as u16);
         symbol_metadata.push(SymbolMetadata {
             name,
             visible: true,
             named: !is_token || i == 1, // number is named, operators are not
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: is_token,
+            is_extra: false,   // TODO: determine if this symbol is extra
+            is_fragile: false, // Not used in this test case
+            symbol_id,
         });
     }
 
