@@ -99,8 +99,8 @@ fn test_error_recovery() {
 #[test]
 #[cfg(feature = "pure-rust")]
 fn test_cancellation() {
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();

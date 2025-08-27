@@ -3,7 +3,7 @@
 
 #![cfg(feature = "small-table")]
 
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::AbiLanguageBuilder;
 

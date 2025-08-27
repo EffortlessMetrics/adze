@@ -1,12 +1,12 @@
 //! Test that Accept action is reachable and actually executed during parsing
 //! This verifies the normalization pipeline produces valid tables that can terminate parsing
 
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 #[allow(unused_imports)]
 use rust_sitter_tablegen::{
-    abi::{TSLanguage, TSParseAction},
     AbiLanguageBuilder,
+    abi::{TSLanguage, TSParseAction},
 };
 
 /// Create a simple JSON-like grammar for testing
