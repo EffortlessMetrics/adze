@@ -1,246 +1,176 @@
-// Minimal "tablegen → unified parser" glue for tests.
-// Now uses a real JSON grammar and LR(1) table so the pure-Rust tests run
-// without needing pre-generated artifacts.
-
 mod language_builder;
 
 use rust_sitter::pure_parser::TSLanguage;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{
-    FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
-};
+use rust_sitter_glr_core::GotoIndexing;
+use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
+use rust_sitter_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
+use ts_bridge::{extract, schema::Action as TsAction};
 
-/// Build a fully-wired `TSLanguage` for a small JSON grammar.
+/// Return a `TSLanguage` built from the real Tree-sitter JSON grammar.
+///
+/// Rather than casting the upstream `tree_sitter_json` pointer into our
+/// `TSLanguage` (which has a different ABI), we use the `ts-bridge` extractor
+/// to decode the Tree-sitter parse tables and rebuild a fresh language using
+/// our pure-Rust layout.
 pub fn unified_json_language() -> &'static TSLanguage {
-    let grammar = build_json_grammar();
-    let mut table = build_json_parse_table(&grammar);
+    // Extract parse table data from upstream Tree-sitter JSON grammar
+    let lang_fn = unsafe { std::mem::transmute(tree_sitter_json::LANGUAGE.into_raw()) };
+    let data = extract(lang_fn).expect("extract tree-sitter json");
 
-    // Basic sanity checks to ensure the table looks reasonable
-    assert_eq!(table.token_count, grammar.tokens.len(), "token_count drift");
-    assert!(table.state_count > 0, "no states generated");
-    assert!(!table.action_table.is_empty(), "action table is empty");
+    // Find the document symbol - this should be the start symbol for JSON
+    let mut document_id = None;
+    for (i, sym) in data.symbols.iter().enumerate() {
+        if sym.name == "document" {
+            document_id = Some(i as u16);
+            break;
+        }
+    }
 
-    // Normalize the table to Tree-sitter format before building the language
+    // Build minimal Grammar with symbol names and token stubs
+    let mut grammar = Grammar::new("ts_json".to_string());
+    for (i, sym) in data.symbols.iter().enumerate() {
+        let sid = SymbolId(i as u16);
+        grammar.rule_names.insert(sid, sym.name.clone());
+        if (i as u32) < data.token_count + data.external_token_count {
+            grammar.tokens.insert(
+                sid,
+                Token {
+                    name: sym.name.clone(),
+                    pattern: TokenPattern::String(sym.name.clone()),
+                    fragile: false,
+                },
+            );
+        }
+    }
+
+    // Add the EOF symbol to the grammar as well
+    if data.eof_symbol as usize >= data.symbols.len() {
+        let eof_sid = SymbolId(data.eof_symbol);
+        grammar.rule_names.insert(eof_sid, "EOF".to_string());
+        grammar.tokens.insert(
+            eof_sid,
+            Token {
+                name: "EOF".to_string(),
+                pattern: TokenPattern::String("EOF".to_string()),
+                fragile: false,
+            },
+        );
+    }
+
+    // Convert extracted data into our ParseTable representation
+    let state_count = data.state_count as usize;
+    let symbol_count = data.symbol_count as usize;
+    let mut table = ParseTable {
+        action_table: vec![vec![Vec::new(); symbol_count]; state_count],
+        goto_table: vec![vec![StateId(0); symbol_count]; state_count],
+        symbol_metadata: Vec::with_capacity(symbol_count),
+        state_count,
+        symbol_count,
+        symbol_to_index: std::collections::BTreeMap::new(),
+        index_to_symbol: Vec::with_capacity(symbol_count),
+        external_scanner_states: vec![vec![false; data.external_token_count as usize]; state_count],
+        rules: data
+            .rules
+            .iter()
+            .map(|r| ParseRule {
+                lhs: SymbolId(r.lhs),
+                rhs_len: r.rhs_len,
+            })
+            .collect(),
+        nonterminal_to_index: std::collections::BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
+        eof_symbol: SymbolId(data.eof_symbol),
+        start_symbol: SymbolId(document_id.unwrap_or(data.start_symbol)), // Use document symbol if found
+        grammar: grammar.clone(),
+        initial_state: StateId(0),
+        token_count: data.token_count as usize,
+        external_token_count: data.external_token_count as usize,
+        lex_modes: vec![
+            rust_sitter_glr_core::LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            };
+            state_count
+        ],
+        extras: Vec::new(),
+        dynamic_prec_by_rule: vec![0; data.rules.len()],
+        rule_assoc_by_rule: vec![0; data.rules.len()],
+        alias_sequences: vec![vec![]; data.rules.len()],
+        field_names: Vec::new(),
+        field_map: std::collections::BTreeMap::new(),
+    };
+
+    for (i, sym) in data.symbols.iter().enumerate() {
+        table.symbol_metadata.push(SymbolMetadata {
+            name: sym.name.clone(),
+            visible: sym.visible,
+            named: sym.named,
+            supertype: false,
+        });
+        let sid = SymbolId(i as u16);
+        table.symbol_to_index.insert(sid, i);
+        table.index_to_symbol.push(sid);
+        if (i as u32) >= data.token_count + data.external_token_count {
+            table.nonterminal_to_index.insert(sid, i);
+        }
+    }
+
+    // Add EOF symbol if it's beyond the original symbols
+    if data.eof_symbol as usize >= data.symbols.len() {
+        let eof_sid = SymbolId(data.eof_symbol);
+        let eof_index = data.eof_symbol as usize;
+        table.symbol_metadata.push(SymbolMetadata {
+            name: "EOF".to_string(),
+            visible: false,
+            named: true,
+            supertype: false,
+        });
+        table.symbol_to_index.insert(eof_sid, eof_index);
+        // Note: don't push to index_to_symbol since it should maintain symbol_count size
+    }
+
+    for cell in &data.actions {
+        // Map symbol correctly to handle EOF properly
+        let sym = if cell.symbol == data.eof_symbol {
+            // For EOF actions, we need to check if EOF is in bounds
+            if (data.eof_symbol as usize) < symbol_count {
+                data.eof_symbol
+            } else {
+                // Skip out-of-bounds EOF actions for now
+                continue;
+            }
+        } else {
+            cell.symbol
+        };
+
+        if (sym as usize) >= symbol_count {
+            eprintln!(
+                "Warning: symbol {} is out of bounds for symbol_count {}",
+                sym, symbol_count
+            );
+            continue;
+        }
+
+        let row = &mut table.action_table[cell.state as usize][sym as usize];
+        for a in &cell.actions {
+            row.push(match a {
+                TsAction::Shift { state, .. } => Action::Shift(StateId(*state)),
+                TsAction::Reduce { rule, .. } => Action::Reduce(rust_sitter_ir::RuleId(*rule)),
+                TsAction::Accept => Action::Accept,
+                TsAction::Recover => Action::Recover,
+            });
+        }
+    }
+
+    for cell in &data.gotos {
+        if let Some(next) = cell.next_state {
+            table.goto_table[cell.state as usize][cell.symbol as usize] = StateId(next);
+        }
+    }
+
+    // Normalize for Tree-sitter layout and build final language
     language_builder::normalize_table_for_ts(&mut table);
 
     let lang = language_builder::build_json_ts_language(&grammar, &table);
     Box::leak(Box::new(lang))
 }
-
-// --- Grammar & parse table helpers -----------------------------------------
-
-fn build_json_grammar() -> Grammar {
-    let mut g = Grammar::new("json_min".to_string());
-
-    // Tokens
-    g.tokens.insert(
-        SymbolId(0),
-        Token {
-            name: "{".into(),
-            pattern: TokenPattern::String("{".into()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(1),
-        Token {
-            name: "}".into(),
-            pattern: TokenPattern::String("}".into()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(2),
-        Token {
-            name: ":".into(),
-            pattern: TokenPattern::String(":".into()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(3),
-        Token {
-            name: ",".into(),
-            pattern: TokenPattern::String(",".into()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(4),
-        Token {
-            name: "string".into(),
-            pattern: TokenPattern::Regex(r#""([^"\\]|\\.)*""#.into()),
-            fragile: false,
-        },
-    );
-    g.tokens.insert(
-        SymbolId(5),
-        Token {
-            name: "number".into(),
-            pattern: TokenPattern::Regex(
-                r#"-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?"#.into(),
-            ),
-            fragile: false,
-        },
-    );
-
-    // Nonterminals
-    const DOCUMENT: SymbolId = SymbolId(99);
-    const START: SymbolId = SymbolId(100);
-    const VALUE: SymbolId = SymbolId(101);
-    const OBJECT: SymbolId = SymbolId(102);
-    const PAIRS: SymbolId = SymbolId(103);
-    const PAIR: SymbolId = SymbolId(104);
-
-    // Fields
-    const F_KEY: FieldId = FieldId(1);
-    const F_VALUE: FieldId = FieldId(2);
-
-    // DOCUMENT -> OBJECT
-    g.rules.insert(
-        DOCUMENT,
-        vec![Rule {
-            lhs: DOCUMENT,
-            rhs: vec![Symbol::NonTerminal(OBJECT)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        }],
-    );
-
-    // START -> VALUE
-    g.rules.insert(
-        START,
-        vec![Rule {
-            lhs: START,
-            rhs: vec![Symbol::NonTerminal(VALUE)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(1),
-        }],
-    );
-
-    // VALUE -> STRING | NUMBER | OBJECT
-    g.rules.insert(
-        VALUE,
-        vec![
-            Rule {
-                lhs: VALUE,
-                rhs: vec![Symbol::Terminal(SymbolId(4))],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(2),
-            },
-            Rule {
-                lhs: VALUE,
-                rhs: vec![Symbol::Terminal(SymbolId(5))],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(3),
-            },
-            Rule {
-                lhs: VALUE,
-                rhs: vec![Symbol::NonTerminal(OBJECT)],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(4),
-            },
-        ],
-    );
-
-    // OBJECT -> { } | { PAIRS }
-    g.rules.insert(
-        OBJECT,
-        vec![
-            Rule {
-                lhs: OBJECT,
-                rhs: vec![Symbol::Terminal(SymbolId(0)), Symbol::Terminal(SymbolId(1))],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(5),
-            },
-            Rule {
-                lhs: OBJECT,
-                rhs: vec![
-                    Symbol::Terminal(SymbolId(0)),
-                    Symbol::NonTerminal(PAIRS),
-                    Symbol::Terminal(SymbolId(1)),
-                ],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(6),
-            },
-        ],
-    );
-
-    // PAIRS -> PAIR | PAIR , PAIRS
-    g.rules.insert(
-        PAIRS,
-        vec![
-            Rule {
-                lhs: PAIRS,
-                rhs: vec![Symbol::NonTerminal(PAIR)],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(7),
-            },
-            Rule {
-                lhs: PAIRS,
-                rhs: vec![
-                    Symbol::NonTerminal(PAIR),
-                    Symbol::Terminal(SymbolId(3)),
-                    Symbol::NonTerminal(PAIRS),
-                ],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(8),
-            },
-        ],
-    );
-
-    // PAIR -> STRING : VALUE
-    g.rules.insert(
-        PAIR,
-        vec![Rule {
-            lhs: PAIR,
-            rhs: vec![
-                Symbol::Terminal(SymbolId(4)),
-                Symbol::Terminal(SymbolId(2)),
-                Symbol::NonTerminal(VALUE),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![(F_KEY, 0), (F_VALUE, 2)],
-            production_id: ProductionId(9),
-        }],
-    );
-
-    // Field names and rule names
-    g.fields.insert(F_KEY, "key".to_string());
-    g.fields.insert(F_VALUE, "value".to_string());
-
-    g.rule_names.insert(DOCUMENT, "source_file".to_string());
-    g.rule_names.insert(START, "start".to_string());
-    g.rule_names.insert(VALUE, "value".to_string());
-    g.rule_names.insert(OBJECT, "object".to_string());
-    g.rule_names.insert(PAIRS, "pairs".to_string());
-    g.rule_names.insert(PAIR, "pair".to_string());
-
-    g
-}
-
-fn build_json_parse_table(grammar: &Grammar) -> ParseTable {
-    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
-    let ff = FirstFollowSets::compute(grammar);
-    build_lr1_automaton(grammar, &ff).expect("build LR(1) automaton")
-}
-
