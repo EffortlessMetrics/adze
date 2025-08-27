@@ -223,11 +223,17 @@ fn create_arithmetic_parse_table() -> ParseTable {
 
     // Add symbol metadata
     for i in 0..13 {
+        let is_terminal = i < 8; // Assume first 8 are terminals
         table.symbol_metadata.push(SymbolMetadata {
             name: format!("symbol_{}", i),
             visible: true,
             named: i != 7, // whitespace is unnamed
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal,
+            is_extra: i == 7, // whitespace is extra
+            is_fragile: false,
+            symbol_id: SymbolId(i as u16),
         });
     }
 
@@ -353,14 +359,10 @@ fn test_lexer_error_recovery() {
 
     // Should have: number, space, error(@), space, number
     assert!(tokens.iter().any(|t| t.symbol == SymbolId(999))); // Has error token
-    assert!(
-        tokens
-            .iter()
-            .any(|t| t.symbol == SymbolId(1) && t.text == b"123")
-    );
-    assert!(
-        tokens
-            .iter()
-            .any(|t| t.symbol == SymbolId(1) && t.text == b"456")
-    );
+    assert!(tokens
+        .iter()
+        .any(|t| t.symbol == SymbolId(1) && t.text == b"123"));
+    assert!(tokens
+        .iter()
+        .any(|t| t.symbol == SymbolId(1) && t.text == b"456"));
 }

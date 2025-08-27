@@ -101,11 +101,17 @@ pub fn unified_json_language() -> &'static TSLanguage {
     };
 
     for (i, sym) in data.symbols.iter().enumerate() {
+        let is_terminal = (i as u32) < data.token_count + data.external_token_count;
         table.symbol_metadata.push(SymbolMetadata {
             name: sym.name.clone(),
             visible: sym.visible,
             named: sym.named,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal,
+            is_extra: false, // TODO: determine if this symbol is extra
+            is_fragile: false,
+            symbol_id: SymbolId(i as u16),
         });
         let sid = SymbolId(i as u16);
         table.symbol_to_index.insert(sid, i);
@@ -124,6 +130,11 @@ pub fn unified_json_language() -> &'static TSLanguage {
             visible: false,
             named: true,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: true, // EOF is typically a terminal
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: eof_sid,
         });
         table.symbol_to_index.insert(eof_sid, eof_index);
         // Note: don't push to index_to_symbol since it should maintain symbol_count size
