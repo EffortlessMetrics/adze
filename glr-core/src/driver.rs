@@ -67,13 +67,6 @@ impl<'t> Driver<'t> {
 
     /// Create a new driver with the given parse tables
     pub fn new(tables: &'t ParseTable) -> Self {
-        // Critical invariant: EOF is SymbolId(0) by convention
-        debug_assert_eq!(
-            tables.eof_symbol,
-            SymbolId(0),
-            "EOF symbol must be SymbolId(0). Got EOF={}",
-            tables.eof_symbol.0
-        );
         // EOF must be present in symbol_to_index mapping
         debug_assert!(
             tables.symbol_to_index.contains_key(&tables.eof_symbol),

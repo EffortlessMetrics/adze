@@ -1976,6 +1976,9 @@ name = "rust-sitter-golden-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "rust-sitter",
+ "rust-sitter-javascript",
+ "rust-sitter-python",
  "sha2",
 ]
 

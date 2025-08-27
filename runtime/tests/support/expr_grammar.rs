@@ -5,6 +5,7 @@ use rust_sitter_ir::{
 
 /// Build an expression grammar with left recursion
 /// expr: expr '+' expr | expr '*' expr | '(' expr ')' | NUM
+#[allow(dead_code)]
 pub fn build_expr_grammar() -> Grammar {
     let mut g = Grammar::new("expr".to_string());
 

@@ -40,7 +40,18 @@ impl<'a> PredicateContext<'a> {
                 capture1,
                 capture2,
                 value,
-            } => !self.evaluate_eq(*capture1, capture2.as_ref(), value.as_ref(), captures),
+            } => {
+                // Strict: missing key does NOT satisfy NotEq
+                if !captures.contains_key(capture1) {
+                    return false;
+                }
+                if let Some(c2) = capture2 {
+                    if !captures.contains_key(c2) {
+                        return false;
+                    }
+                }
+                !self.evaluate_eq(*capture1, capture2.as_ref(), value.as_ref(), captures)
+            }
 
             Predicate::Match { capture, regex } => self.evaluate_match(*capture, regex, captures),
 
@@ -114,7 +125,11 @@ impl<'a> PredicateContext<'a> {
                 }
             });
 
-            return regex.is_match(text);
+            // Full-string match: the entire text must match the regex
+            if let Some(m) = regex.find(text) {
+                return m.start() == 0 && m.end() == text.len();
+            }
+            return false;
         }
         false
     }

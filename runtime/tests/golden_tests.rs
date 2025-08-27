@@ -241,7 +241,6 @@ mod fixture_runner {
     use std::path::Path;
 
     #[test]
-    #[ignore = "enable when fixture files are present"]
     fn run_golden_fixture_dir() {
         let dir = Path::new("tests/golden/json");
         if !dir.exists() {
