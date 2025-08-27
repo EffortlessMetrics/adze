@@ -6,8 +6,8 @@
 use indexmap::IndexMap;
 use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{
-    ExternalToken, FieldId, Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
-    TokenPattern,
+    Associativity, ExternalToken, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, RuleId,
+    StateId, Symbol, SymbolId, Token, TokenPattern,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::{c_char, CStr};
@@ -162,7 +162,7 @@ pub fn decode_grammar_with_patterns(
     token_patterns: &HashMap<String, TokenPattern>,
 ) -> Grammar {
     let mut rules: IndexMap<SymbolId, Vec<Rule>> = IndexMap::new();
-    let mut tokens = IndexMap::new();
+    let mut tokens: IndexMap<SymbolId, Token> = IndexMap::new();
     let mut symbol_names = Vec::new();
     let mut externals = Vec::new();
     let mut rule_names = IndexMap::new();
@@ -189,33 +189,6 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Debug: Find 'def' keyword and show symbol mapping
-    for i in 0..lang.symbol_count as usize {
-        if symbol_names[i] == "def" {
-            let _metadata = unsafe { *lang.symbol_metadata.add(i) };
-            // eprintln!(
-            // "Found 'def' at Symbol {}: '{}' (metadata: 0x{:02x})",
-            // i, symbol_names[i], metadata
-            // );
-            break;
-        }
-    }
-
-    // Debug: Show first few terminal mappings
-    // eprintln!("\nFirst few terminals with their patterns:");
-    let mut count = 0;
-    for i in 0..lang.symbol_count as usize {
-        let metadata = unsafe { *lang.symbol_metadata.add(i) };
-        if is_terminal(metadata, &symbol_names[i]) && count < 10 {
-            let _pattern = token_patterns
-                .get(&symbol_names[i])
-                .map(|p| format!("{:?}", p))
-                .unwrap_or_else(|| "no pattern".to_string());
-            // eprintln!("  Symbol {}: '{}' -> {}", i, symbol_names[i], pattern);
-            count += 1;
-        }
-    }
-
     // Process symbols to determine tokens
     for i in 0..lang.symbol_count as usize {
         let metadata = unsafe { *lang.symbol_metadata.add(i) };
@@ -238,6 +211,97 @@ pub fn decode_grammar_with_patterns(
                     fragile: false,
                 },
             );
+        }
+    }
+
+    // Decode field names
+    let mut field_names_map = IndexMap::new();
+    if !lang.field_names.is_null() {
+        for i in 0..lang.field_count as usize {
+            unsafe {
+                let name_ptr = *lang.field_names.add(i);
+                if !name_ptr.is_null() {
+                    let name = CStr::from_ptr(name_ptr as *const c_char)
+                        .to_string_lossy()
+                        .into_owned();
+                    field_names_map.insert(FieldId(i as u16), name);
+                }
+            }
+        }
+    }
+
+    // Decode production rules from language metadata
+    if !lang.rules.is_null() {
+        for i in 0..lang.rule_count as usize {
+            let ts_rule = unsafe { *lang.rules.add(i) };
+            let lhs = SymbolId(ts_rule.lhs);
+            let rhs_len = ts_rule.rhs_len as usize;
+
+            // Build placeholder RHS of correct length
+            let mut rhs = Vec::with_capacity(rhs_len);
+            for _ in 0..rhs_len {
+                rhs.push(Symbol::NonTerminal(SymbolId(0))); // Placeholder; actual symbols unknown
+            }
+
+            // Dynamic precedence if available
+            let precedence =
+                if !lang.parse_actions.is_null() && (i as u32) < lang.production_id_count {
+                    let action = unsafe { *lang.parse_actions.add(i) };
+                    if action.dynamic_precedence != 0 {
+                        Some(PrecedenceKind::Dynamic(action.dynamic_precedence as i16))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+            // Associativity metadata currently not encoded
+            let associativity = None;
+
+            // Decode field mappings for this production
+            let fields = if lang.field_count > 0
+                && !lang.field_map_slices.is_null()
+                && !lang.field_map_entries.is_null()
+            {
+                unsafe {
+                    let slices = std::slice::from_raw_parts(
+                        lang.field_map_slices,
+                        lang.production_id_count as usize * 2,
+                    );
+                    let mut out = Vec::new();
+                    if i * 2 + 1 < slices.len() {
+                        let start = slices[i * 2] as usize;
+                        let len = slices[i * 2 + 1] as usize;
+                        if len > 0 {
+                            let entries = std::slice::from_raw_parts(
+                                lang.field_map_entries,
+                                (start + len) * 2,
+                            );
+                            for j in 0..len {
+                                let low = entries[(start + j) * 2];
+                                let high = entries[(start + j) * 2 + 1];
+                                let packed = ((high as u32) << 16) | (low as u32);
+                                let field_id = (packed & 0xFFFF) as u16;
+                                let child_index = ((packed >> 16) & 0xFF) as usize;
+                                out.push((FieldId(field_id), child_index));
+                            }
+                        }
+                    }
+                    out
+                }
+            } else {
+                Vec::new()
+            };
+
+            rules.entry(lhs).or_default().push(Rule {
+                lhs,
+                rhs,
+                precedence,
+                associativity,
+                fields,
+                production_id: ProductionId(i as u16),
+            });
         }
     }
 
@@ -310,15 +374,17 @@ pub fn decode_grammar_with_patterns(
     }
 
     // Process external tokens
-    if !lang.external_scanner.symbol_map.is_null() {
-        for i in 0..lang.external_token_count as usize {
-            let symbol_id = unsafe { *lang.external_scanner.symbol_map.add(i) };
-            if (symbol_id as u32) < lang.symbol_count {
-                externals.push(ExternalToken {
-                    name: format!("external_{}", i),
-                    symbol_id: SymbolId(symbol_id),
-                });
-            }
+    for i in 0..lang.external_token_count as usize {
+        let symbol_id = unsafe { *lang.external_scanner.symbol_map.add(i) };
+        if (symbol_id as u32) < lang.symbol_count {
+            let name = symbol_names
+                .get(symbol_id as usize)
+                .cloned()
+                .unwrap_or_else(|| format!("external_{}", i));
+            externals.push(ExternalToken {
+                name,
+                symbol_id: SymbolId(symbol_id),
+            });
         }
     }
 
@@ -330,7 +396,7 @@ pub fn decode_grammar_with_patterns(
         conflicts: vec![],
         externals,
         extras: vec![],
-        fields: field_name_map,
+        fields: field_names_map,
         supertypes: vec![],
         inline_rules: vec![],
         alias_sequences: IndexMap::new(),
@@ -341,16 +407,6 @@ pub fn decode_grammar_with_patterns(
     }
 }
 
-/// Rule metadata decoded from TSLanguage
-#[derive(Clone, Copy, Debug)]
-pub struct RuleMeta {
-    /// Left-hand-side non-terminal for this rule.
-    pub lhs: SymbolId,
-    /// Number of symbols on the right-hand side.
-    pub rhs_len: u8,
-}
-
-/// Decode rules from TSLanguage
 fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
     const DEBUG_RULE_PRINT_LIMIT: usize = 5;
     let n = lang.production_count as usize; // Use production_count, not rule_count
@@ -588,12 +644,13 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // tcols,
     // index_to_symbol.len()
     // );
-    for _col in nonterminal_to_index.values() {
-        // eprintln!("  NT SymbolId({}) -> col {}", sym.0, col);
-    }
 
-    // Use lang.eof_symbol as a symbol id
-    let eof_symbol = SymbolId(lang.eof_symbol);
+    // lang.eof_symbol is the *column index* of EOF, so map it back to the
+    // corresponding SymbolId using the index_to_symbol mapping we just built.
+    let eof_symbol = index_to_symbol
+        .get(lang.eof_symbol as usize)
+        .copied()
+        .unwrap_or(SymbolId(0));
 
     let extras: Vec<SymbolId> = extras_set.into_iter().collect();
 
@@ -711,7 +768,8 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // Auto-detect GOTO indexing mode
     table.detect_goto_indexing();
 
-    table
+    // Ensure downstream components see a canonical EOF column
+    table.normalize_eof_to_zero()
 }
 
 /// Determine if a symbol is a terminal based on metadata and name

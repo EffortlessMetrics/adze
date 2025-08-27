@@ -6,19 +6,18 @@ use std::collections::BTreeMap;
 fn glr_smoke_table_construction() {
     // Test that we can construct a basic parse table without panic
     // EOF(0), 'x'(1), S(2)
-    // ACTION table columns are [EOF, 'x']
-    let mut action = vec![vec![vec![]; 2]; 2];
+    let mut action = vec![vec![vec![]; 3]; 2];
     action[0][1].push(Action::Shift(StateId(1))); // on 'x' shift to 1
     action[1][0].push(Action::Reduce(RuleId(0))); // on EOF reduce S -> 'x'
 
-    // GOTO table columns are nonterminals [S]
-    let mut gotos = vec![vec![StateId(65535); 1]; 2];
-    gotos[0][0] = StateId(1); // goto S after reduce (accept state)
+    let mut gotos = vec![vec![StateId(65535); 3]; 2];
+    gotos[0][2] = StateId(1); // goto S after reduce (accept state)
 
     // Map terminals to ACTION table columns
     let mut sym2idx = BTreeMap::new();
-    sym2idx.insert(SymbolId(0), 0); // EOF
-    sym2idx.insert(SymbolId(1), 1); // 'x'
+    for i in 0..3 {
+        sym2idx.insert(SymbolId(i), i as usize);
+    }
 
     let table = ParseTable {
         action_table: action,
@@ -30,8 +29,8 @@ fn glr_smoke_table_construction() {
         state_count: 2,
         symbol_count: 3,
         symbol_to_index: sym2idx,
-        index_to_symbol: vec![SymbolId(0), SymbolId(1)],
-        token_count: 1, // only 'x'
+        index_to_symbol: vec![SymbolId(0), SymbolId(1), SymbolId(2)],
+        token_count: 1, // 'x'
         external_token_count: 0,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(2),
@@ -51,7 +50,7 @@ fn glr_smoke_table_construction() {
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),
-        nonterminal_to_index: BTreeMap::from([(SymbolId(2), 0)]),
+        nonterminal_to_index: BTreeMap::from([(SymbolId(2), 2)]),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         symbol_metadata: vec![],
     };
