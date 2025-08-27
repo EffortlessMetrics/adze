@@ -33,8 +33,22 @@ has_c2rust_feature() {
     echo "$c2rust_packages" | grep -q "^${pkg}$"
 }
 
-echo -e "${GREEN}[pre-commit]${NC} Running formatting and validation checks..."
+# Add iteration tracking for better UX
+HOOK_ITERATION=${HOOK_ITERATION:-0}
+export HOOK_ITERATION=$((HOOK_ITERATION + 1))
+
+if [ "$HOOK_ITERATION" -gt 1 ]; then
+    echo -e "${GREEN}[pre-commit]${NC} Stabilizing formatting (iteration $HOOK_ITERATION)..."
+else
+    echo -e "${GREEN}[pre-commit]${NC} Running formatting and validation checks..."
+fi
 echo -e "${BLUE}→${NC} Using robust pre-commit hook from .githooks/"
+
+# Safety guard against infinite loops
+if [ "$HOOK_ITERATION" -gt 5 ]; then
+    echo -e "${RED}✖ Too many formatting iterations. Check for conflicting formatting rules.${NC}"
+    exit 1
+fi
 
 # Step 0: Fast fail if conflict markers are present
 # Look for actual git conflict markers (7 characters for <<<<<<< and >>>>>>> exactly)
