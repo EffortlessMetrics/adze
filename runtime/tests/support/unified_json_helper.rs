@@ -1,49 +1,10 @@
 mod language_builder;
 
-use rust_sitter::pure_parser::{TSLanguage, TSLexState};
-use std::sync::OnceLock;
-use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
+use rust_sitter::pure_parser::TSLanguage;
 use rust_sitter_glr_core::GotoIndexing;
+use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
-use ts_bridge::{extract, schema::{Action as TsAction}};
-use std::ffi::c_void;
-
-#[repr(C)]
-struct UpstreamLanguage {
-    _prefix: [u8; 0],
-    // fields up to lex_fn
-    version: u32,
-    symbol_count: u32,
-    alias_count: u32,
-    token_count: u32,
-    external_token_count: u32,
-    state_count: u32,
-    large_state_count: u32,
-    production_id_count: u32,
-    field_count: u32,
-    max_alias_sequence_length: u16,
-    parse_table: *const u16,
-    small_parse_table: *const u16,
-    small_parse_table_map: *const u32,
-    parse_actions: *const u16,
-    symbol_names: *const *const u8,
-    field_names: *const *const u8,
-    field_map_slices: *const u16,
-    field_map_entries: *const u16,
-    symbol_metadata: *const u8,
-    public_symbol_map: *const u16,
-    alias_map: *const u16,
-    alias_sequences: *const u16,
-    lex_modes: *const TSLexState,
-    lex_fn: Option<unsafe extern "C" fn(*mut c_void, u16) -> bool>,
-}
-
-static UPSTREAM_LEX: OnceLock<unsafe extern "C" fn(*mut c_void, u16) -> bool> = OnceLock::new();
-
-unsafe extern "C" fn lex_adapter(lexer: *mut c_void, state: TSLexState) -> bool {
-    let f = UPSTREAM_LEX.get().expect("lex fn not set");
-    f(lexer, state.lex_state)
-}
+use ts_bridge::{extract, schema::Action as TsAction};
 
 /// Return a `TSLanguage` built from the real Tree-sitter JSON grammar.
 ///
@@ -53,10 +14,17 @@ unsafe extern "C" fn lex_adapter(lexer: *mut c_void, state: TSLexState) -> bool 
 /// our pure-Rust layout.
 pub fn unified_json_language() -> &'static TSLanguage {
     // Extract parse table data from upstream Tree-sitter JSON grammar
-    let lang_fn: unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage =
-        unsafe { std::mem::transmute(tree_sitter_json::LANGUAGE.into_raw()) };
+    let lang_fn = unsafe { std::mem::transmute(tree_sitter_json::LANGUAGE.into_raw()) };
     let data = extract(lang_fn).expect("extract tree-sitter json");
-    let upstream = unsafe { &*(lang_fn() as *const UpstreamLanguage) };
+
+    // Find the document symbol - this should be the start symbol for JSON
+    let mut document_id = None;
+    for (i, sym) in data.symbols.iter().enumerate() {
+        if sym.name == "document" {
+            document_id = Some(i as u16);
+            break;
+        }
+    }
 
     // Build minimal Grammar with symbol names and token stubs
     let mut grammar = Grammar::new("ts_json".to_string());
@@ -73,6 +41,20 @@ pub fn unified_json_language() -> &'static TSLanguage {
                 },
             );
         }
+    }
+
+    // Add the EOF symbol to the grammar as well
+    if data.eof_symbol as usize >= data.symbols.len() {
+        let eof_sid = SymbolId(data.eof_symbol);
+        grammar.rule_names.insert(eof_sid, "EOF".to_string());
+        grammar.tokens.insert(
+            eof_sid,
+            Token {
+                name: "EOF".to_string(),
+                pattern: TokenPattern::String("EOF".to_string()),
+                fragile: false,
+            },
+        );
     }
 
     // Convert extracted data into our ParseTable representation
@@ -97,16 +79,19 @@ pub fn unified_json_language() -> &'static TSLanguage {
             .collect(),
         nonterminal_to_index: std::collections::BTreeMap::new(),
         goto_indexing: GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(0),
-        start_symbol: SymbolId(data.start_symbol),
+        eof_symbol: SymbolId(data.eof_symbol),
+        start_symbol: SymbolId(document_id.unwrap_or(data.start_symbol)), // Use document symbol if found
         grammar: grammar.clone(),
         initial_state: StateId(0),
         token_count: data.token_count as usize,
         external_token_count: data.external_token_count as usize,
-        lex_modes: vec![rust_sitter_glr_core::LexMode {
-            lex_state: 0,
-            external_lex_state: 0,
-        }; state_count],
+        lex_modes: vec![
+            rust_sitter_glr_core::LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            };
+            state_count
+        ],
         extras: Vec::new(),
         dynamic_prec_by_rule: vec![0; data.rules.len()],
         rule_assoc_by_rule: vec![0; data.rules.len()],
@@ -130,8 +115,42 @@ pub fn unified_json_language() -> &'static TSLanguage {
         }
     }
 
+    // Add EOF symbol if it's beyond the original symbols
+    if data.eof_symbol as usize >= data.symbols.len() {
+        let eof_sid = SymbolId(data.eof_symbol);
+        let eof_index = data.eof_symbol as usize;
+        table.symbol_metadata.push(SymbolMetadata {
+            name: "EOF".to_string(),
+            visible: false,
+            named: true,
+            supertype: false,
+        });
+        table.symbol_to_index.insert(eof_sid, eof_index);
+        // Note: don't push to index_to_symbol since it should maintain symbol_count size
+    }
+
     for cell in &data.actions {
-        let sym = if cell.symbol == data.eof_symbol { 0 } else { cell.symbol };
+        // Map symbol correctly to handle EOF properly
+        let sym = if cell.symbol == data.eof_symbol {
+            // For EOF actions, we need to check if EOF is in bounds
+            if (data.eof_symbol as usize) < symbol_count {
+                data.eof_symbol
+            } else {
+                // Skip out-of-bounds EOF actions for now
+                continue;
+            }
+        } else {
+            cell.symbol
+        };
+
+        if (sym as usize) >= symbol_count {
+            eprintln!(
+                "Warning: symbol {} is out of bounds for symbol_count {}",
+                sym, symbol_count
+            );
+            continue;
+        }
+
         let row = &mut table.action_table[cell.state as usize][sym as usize];
         for a in &cell.actions {
             row.push(match a {
@@ -151,12 +170,7 @@ pub fn unified_json_language() -> &'static TSLanguage {
 
     // Normalize for Tree-sitter layout and build final language
     language_builder::normalize_table_for_ts(&mut table);
-    let mut lang = language_builder::build_ts_language(&grammar, &table);
-    // Reuse the upstream lex function and modes for tokenization
-    if let Some(f) = upstream.lex_fn {
-        let _ = UPSTREAM_LEX.set(f);
-        lang.lex_fn = Some(lex_adapter);
-    }
-    lang.lex_modes = upstream.lex_modes;
+
+    let lang = language_builder::build_json_ts_language(&grammar, &table);
     Box::leak(Box::new(lang))
 }

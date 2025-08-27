@@ -9,7 +9,7 @@ use rust_sitter_ir::{
     ExternalToken, Grammar, ProductionId, Rule, RuleId, StateId, SymbolId, Token, TokenPattern,
 };
 use std::collections::{BTreeMap, HashMap};
-use std::ffi::{CStr, c_char};
+use std::ffi::{c_char, CStr};
 use std::path::Path;
 
 use crate::pure_parser::{TSLanguage, TSParseAction};
@@ -551,13 +551,40 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             let lhs_symbols: std::collections::BTreeSet<SymbolId> =
                 rules.iter().map(|r| r.lhs).collect();
 
-            // Filter to only non-terminals and pick the one with highest ID
-            // (often the augmented start symbol)
-            let start = lhs_symbols
-                .into_iter()
-                .filter(|s| is_nt(*s))
-                .max_by_key(|s| s.0)
-                .unwrap_or(SymbolId((tcols + 1) as u16));
+            // Filter to only non-terminals and pick the best start symbol candidate
+            // Prefer symbols that don't end with "_repeat" or similar internal names
+            let nt_symbols: Vec<_> = lhs_symbols.into_iter().filter(|s| is_nt(*s)).collect();
+
+            let start = if nt_symbols.is_empty() {
+                SymbolId((tcols + 1) as u16)
+            } else {
+                // Try to find a meaningful start symbol (not a repeat helper)
+                let meaningful = nt_symbols
+                    .iter()
+                    .filter(|s| {
+                        // Get symbol name from symbol_names if available
+                        if let Some(name_ptr) =
+                            unsafe { lang.symbol_names.add(s.0 as usize).as_ref() }
+                        {
+                            let name = unsafe { std::ffi::CStr::from_ptr(*name_ptr as *const i8) };
+                            if let Ok(name_str) = name.to_str() {
+                                // Prefer symbols that don't look like internal helpers
+                                !name_str.contains("repeat") && !name_str.starts_with('_')
+                            } else {
+                                true
+                            }
+                        } else {
+                            true
+                        }
+                    })
+                    .min_by_key(|s| s.0) // Pick the first meaningful one, not the highest
+                    .copied();
+
+                meaningful.unwrap_or_else(|| {
+                    // Fallback: pick the highest ID among nonterminals
+                    *nt_symbols.iter().max_by_key(|s| s.0).unwrap()
+                })
+            };
 
             debug_assert_ne!(start, SymbolId(0), "start_symbol cannot be ERROR(0)");
             start
