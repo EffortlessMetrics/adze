@@ -120,7 +120,7 @@ mod incremental_properties {
         let root_id = SymbolId(10);
         let rule = Rule {
             lhs: root_id,
-            rhs: vec![Symbol::Terminal(number_id)], // Simplified for now
+            rhs: vec![Symbol::Terminal(number_id)],
             precedence: None,
             associativity: None,
             fields: vec![],

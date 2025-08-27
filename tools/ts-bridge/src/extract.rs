@@ -1,6 +1,6 @@
 use crate::ffi::{SafeLang, TsbActionKind};
 use crate::schema::*;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 const MAX_ACTIONS_PER_CELL: usize = 32;
 
@@ -153,15 +153,12 @@ pub fn extract(
         };
     }
 
-    let start_symbol = lang.detect_start_symbol() as u16;
-
     // In Tree-sitter: ts_builtin_sym_end = 0, ts_builtin_sym_error = -1
-    // We need to map Tree-sitter's symbol 0 (end-of-input) to our EOF sentinel
-    // Our EOF should be outside the normal symbol space
-    let eof_symbol: u16 = (tokc + extc) as u16;
+    // Allocate a new symbol ID just past Tree-sitter's symbol space for EOF
+    let eof_symbol: u16 = symc as u16;
 
-    // Ensure symbol_count includes the EOF symbol
-    let symbol_count = symc.max((eof_symbol as u32) + 1);
+    // The total symbol count now includes our synthetic EOF sentinel
+    let symbol_count = eof_symbol as u32 + 1;
 
     // Copy Tree-sitter's symbol 0 (ts_builtin_sym_end) actions to our EOF sentinel
     // This ensures the driver's EOF phase sees the right accept/reduce actions
@@ -183,12 +180,12 @@ pub fn extract(
         // Ensure EOF column exists in every state (defensive check)
         #[cfg(debug_assertions)]
         {
-            let states_with_eof: std::collections::HashSet<u16> = actions
+            let states_with_eof: HashSet<u16> = actions
                 .iter()
                 .filter(|c| c.symbol == eof_symbol)
                 .map(|c| c.state)
                 .collect();
-            let states_with_ts_end: std::collections::HashSet<u16> = actions
+            let states_with_ts_end: HashSet<u16> = actions
                 .iter()
                 .filter(|c| c.symbol == ts_end_sym)
                 .map(|c| c.state)
@@ -197,6 +194,25 @@ pub fn extract(
                 states_with_eof, states_with_ts_end,
                 "EOF column must exist in exactly the same states as TS end column"
             );
+        }
+    }
+
+    // Derive start symbol: nonterminal from state 0 whose next state accepts EOF
+    let term_boundary = tokc + extc;
+    let accept_states: HashSet<u16> = actions
+        .iter()
+        .filter(|c| c.symbol == eof_symbol && c.actions.iter().any(|a| matches!(a, Action::Accept)))
+        .map(|c| c.state)
+        .collect();
+    let mut start_symbol = 0u16;
+    for g in &gotos {
+        if g.state == 0 && u32::from(g.symbol) >= term_boundary {
+            if let Some(ns) = g.next_state {
+                if accept_states.contains(&ns) {
+                    start_symbol = g.symbol;
+                    break;
+                }
+            }
         }
     }
 

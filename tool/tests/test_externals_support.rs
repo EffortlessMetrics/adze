@@ -1,5 +1,5 @@
 use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
-use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
 use std::fs;
 use tempfile::TempDir;
 
@@ -265,7 +265,7 @@ module.exports = grammar({
             // Try to convert
             let converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
-                Ok(ir_grammar) => {
+                Ok(_ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
 
                     // Try to build (will likely fail without scanner implementation)

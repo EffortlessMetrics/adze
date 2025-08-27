@@ -1302,10 +1302,10 @@ impl GLRParser {
             }
         }
 
-        // Update telemetry
+        #[cfg_attr(not(feature = "glr_telemetry"), allow(unused_variables))]
+        let input_count = stacks.len() + out.len();
         #[cfg(feature = "glr_telemetry")]
         {
-            let input_count = stacks.len() + out.len();
             self.bump_telemetry(|t| {
                 t.tops_before_compress += input_count;
                 t.tops_after_compress += out.len();

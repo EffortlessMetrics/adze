@@ -4,6 +4,7 @@
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Build a minimal grammar with an external INDENT token
+#[allow(dead_code)]
 pub fn build_indent_grammar() -> Grammar {
     let mut grammar = Grammar::new("indent".to_string());
 

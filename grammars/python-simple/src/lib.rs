@@ -1,3 +1,10 @@
+#![allow(
+    clippy::empty_line_after_outer_attr,
+    clippy::manual_non_exhaustive,
+    clippy::char_lit_as_u8,
+    clippy::unnecessary_cast
+)]
+
 // Simplified Python grammar for testing pure-rust implementation
 #[rust_sitter::grammar("python_simple")]
 pub mod grammar {

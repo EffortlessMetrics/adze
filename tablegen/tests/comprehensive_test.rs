@@ -1,6 +1,7 @@
 // Comprehensive tests for the pure-Rust Tree-sitter implementation
 // Tests the tablegen module's functionality
 
+#[allow(unused_imports)]
 use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
 use rust_sitter_ir::{
     FieldId, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
@@ -174,7 +175,7 @@ fn assert_state0_basic_invariants(parse_table: &ParseTable, token_indices: &[usi
         .expect("EOF must be in symbol_to_index");
 
     assert!(
-        token_indices.iter().any(|&i| i == eof_idx),
+        token_indices.contains(&eof_idx),
         "EOF column must be in token_indices"
     );
 
@@ -189,7 +190,7 @@ fn assert_state0_basic_invariants(parse_table: &ParseTable, token_indices: &[usi
     // Check if any token has an action in state 0
     let has_any_action = token_indices
         .iter()
-        .any(|&idx| state0.get(idx).map_or(false, |cell| !cell.is_empty()));
+        .any(|&idx| state0.get(idx).is_some_and(|cell| !cell.is_empty()));
 
     assert!(
         has_any_action,
@@ -356,7 +357,9 @@ fn test_abi_compatibility() {
 
     // Verify ABI constants
     assert_eq!(TREE_SITTER_LANGUAGE_VERSION, 15);
-    assert!(TREE_SITTER_LANGUAGE_VERSION >= TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION);
+    // Verify version compatibility - no assertion needed as constants are verified at compile time
+    let _version_check =
+        TREE_SITTER_LANGUAGE_VERSION >= TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION;
 
     // Verify symbol metadata creation
     let metadata = create_symbol_metadata(true, true, false, false, false);

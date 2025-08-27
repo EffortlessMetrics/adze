@@ -1,5 +1,6 @@
 //! Debug test for JSON parsing issues
 #![cfg(feature = "json-parity")]
+#![allow(unused_variables, clippy::print_literal)]
 
 use rust_sitter_ir::SymbolId;
 use std::fs;

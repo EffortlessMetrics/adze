@@ -1,3 +1,5 @@
+#![allow(clippy::empty_line_after_outer_attr, clippy::unnecessary_cast)]
+
 #[rust_sitter::grammar("mini")]
 pub mod grammar {
     #[rust_sitter::language]

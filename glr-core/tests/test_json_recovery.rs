@@ -1,8 +1,11 @@
 //! Test JSON parsing with error recovery to verify our EOF and error stats fixes
+#![allow(clippy::unwrap_or_default, clippy::unnecessary_get_then_check)]
 
-use rust_sitter_glr_core::{Driver, FirstFollowSets, build_lr1_automaton};
+#[allow(unused_imports)]
+use rust_sitter_glr_core::{build_lr1_automaton, Driver, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
+#[allow(dead_code)]
 fn create_json_grammar() -> Grammar {
     let mut grammar = Grammar::new("json".to_string());
 

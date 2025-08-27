@@ -13,7 +13,7 @@ pub mod test {
         }
 
         /// Allocate the next symbol ID
-        pub fn next(&mut self) -> SymbolId {
+        pub fn next_id(&mut self) -> SymbolId {
             let id = self.0;
             self.0 = self.0.checked_add(1).expect("Symbol ID overflow");
             SymbolId(id)
@@ -21,7 +21,7 @@ pub mod test {
 
         /// Allocate N consecutive symbol IDs
         pub fn next_n(&mut self, n: usize) -> Vec<SymbolId> {
-            (0..n).map(|_| self.next()).collect()
+            (0..n).map(|_| self.next_id()).collect()
         }
 
         /// Get current symbol without advancing

@@ -6,7 +6,7 @@
 mod support;
 
 use rust_sitter::decoder;
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 use rust_sitter_ir::SymbolId;
 
 #[test]
@@ -20,7 +20,7 @@ fn external_indent_token_in_table() {
     support::language_builder::normalize_table_for_ts(&mut parse_table);
 
     // Check that INDENT token appears in the parse table
-    let indent_id = SymbolId(1);
+    let _indent_id = SymbolId(1);
     let mut indent_found = false;
     let mut indent_states = Vec::new();
 
@@ -67,7 +67,7 @@ fn external_token_language_generation() {
     );
 
     // Check that the language has the expected number of symbols
-    let total_symbols = grammar.tokens.len()
+    let _total_symbols = grammar.tokens.len()
         + grammar
             .rules
             .values()

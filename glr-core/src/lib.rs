@@ -57,13 +57,14 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// Error types and Result alias for GLR operations.
 pub mod error;
+pub use error::Result as GlrResult;
+
 /// Back-compat alias: prefer `GlrError`; `GLRError` remains for now.
 pub use GLRError as GlrError;
-pub use error::Result as GlrResult;
 
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {
-    pub use crate::{FirstFollowSets, ParseTable, build_lr1_automaton};
+    pub use crate::{build_lr1_automaton, FirstFollowSets, ParseTable};
 }
 
 // Keep available, but don't promise public docs yet:
@@ -85,6 +86,7 @@ pub mod parse_forest;
 pub mod driver;
 pub mod forest_view;
 pub mod stack;
+/// Telemetry counters for tracking GLR parser operations.
 pub mod telemetry;
 pub mod ts_lexer;
 
@@ -112,9 +114,11 @@ pub mod symbol_comparison;
 pub mod version_info;
 
 #[cfg(test)]
+/// Utilities for constructing test parse tables and grammars.
 pub mod test_helpers;
 
 #[cfg(test)]
+/// Simple symbol allocator used in tests.
 pub mod test_symbol_alloc;
 
 #[doc(hidden)]
@@ -124,7 +128,7 @@ pub use advanced_conflict::{
 #[doc(hidden)]
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
 #[doc(hidden)]
-pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
+pub use conflict_visualizer::{generate_dot_graph, ConflictVisualizer};
 #[doc(hidden)]
 pub use gss::{GSSStats, GraphStructuredStack, StackNode};
 #[doc(hidden)]
@@ -133,12 +137,12 @@ pub use parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
 #[doc(hidden)]
 pub use precedence_compare::{
-    PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
+    compare_precedences, PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver,
 };
 #[doc(hidden)]
 pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
 #[doc(hidden)]
-pub use version_info::{CompareResult, VersionInfo, compare_versions};
+pub use version_info::{compare_versions, CompareResult, VersionInfo};
 
 // Precedence resolution structures
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

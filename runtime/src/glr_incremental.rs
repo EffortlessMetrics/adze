@@ -200,7 +200,7 @@ pub fn reparse(
             );
             old
         };
-        let old_tokens = tokenize_source(&old_source, &grammar);
+        let old_tokens = tokenize_source(&old_source, grammar);
 
         // Find which old tokens are affected by the edit
         let mut affected_start_idx = 0;
@@ -226,7 +226,7 @@ pub fn reparse(
 
         // 2. Tokenize only the new edited text
         let new_text = &source[edit.start_byte..edit.new_end_byte];
-        let mut edited_tokens = tokenize_source(new_text, &grammar);
+        let mut edited_tokens = tokenize_source(new_text, grammar);
 
         // Adjust byte positions for the edited tokens
         for token in &mut edited_tokens {

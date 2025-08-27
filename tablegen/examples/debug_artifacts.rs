@@ -1,5 +1,5 @@
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{SymbolId, builder::GrammarBuilder};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_ir::{builder::GrammarBuilder, SymbolId};
 use rust_sitter_tablegen::{collect_token_indices, eof_accepts_or_reduces};
 use std::collections::BTreeMap;
 
@@ -41,7 +41,7 @@ fn main() {
     // Get token indices
     let token_indices = collect_token_indices(&grammar, &parse_table);
     println!("\n=== Token Indices from collect_token_indices ===");
-    let mut sorted_indices: Vec<_> = token_indices.iter().copied().collect();
+    let mut sorted_indices: Vec<_> = token_indices.to_vec();
     sorted_indices.sort();
     println!("  {:?}", sorted_indices);
 
@@ -52,7 +52,7 @@ fn main() {
 
     // Display state 0 action cells (first 12 non-empty)
     println!("\n=== State 0 Action Cells (first 12 non-empty) ===");
-    if let Some(state_0_row) = parse_table.action_table.get(0) {
+    if let Some(state_0_row) = parse_table.action_table.first() {
         let mut shown = 0;
         for (col, actions) in state_0_row.iter().enumerate() {
             if !actions.is_empty() && shown < 12 {

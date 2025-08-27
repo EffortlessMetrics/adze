@@ -217,8 +217,8 @@ impl SimpleGrammarJsParser {
         }
 
         // Check for symbol reference
-        if trimmed.starts_with("$.") {
-            let symbol_name = trimmed[2..].trim();
+        if let Some(stripped) = trimmed.strip_prefix("$.") {
+            let symbol_name = stripped.trim();
             return Ok(Rule::Symbol {
                 name: symbol_name.to_string(),
             });
