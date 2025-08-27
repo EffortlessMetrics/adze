@@ -36,16 +36,19 @@ for crate in runtime glr-core tablegen tools/ts-bridge ir common macro tool exam
         
         # Default features
         count=$(cargo test -p "$crate_name" --no-run 2>&1 | grep -E "Running.*test" | wc -l 2>/dev/null || echo "0")
+        count=$(echo "$count" | xargs)
         echo "    default features: $count tests"
         
         # With test-helpers if applicable
         if cargo metadata --format-version 1 2>/dev/null | jq -r ".packages[] | select(.name == \"$crate_name\") | .features | keys[]" | grep -q "test-helpers"; then
             count=$(cargo test -p "$crate_name" --features test-helpers --no-run 2>&1 | grep -E "Running.*test" | wc -l 2>/dev/null || echo "0")
+            count=$(echo "$count" | xargs)
             echo "    with test-helpers: $count tests"
         fi
         
         # Check for #[ignore] tests
         ignored=$(rg "#\[ignore\]" "$crate" --glob "*.rs" 2>/dev/null | wc -l || echo "0")
+        ignored=$(echo "$ignored" | xargs)
         if [ "$ignored" -gt "0" ]; then
             echo -e "    ${YELLOW}ignored tests: $ignored${NC}"
         fi
