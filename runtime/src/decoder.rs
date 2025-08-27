@@ -6,8 +6,8 @@
 use indexmap::IndexMap;
 use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{
-    Associativity, ExternalToken, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, RuleId,
-    StateId, Symbol, SymbolId, Token, TokenPattern,
+    ExternalToken, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol,
+    SymbolId, Token, TokenPattern,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::{c_char, CStr};
@@ -165,7 +165,7 @@ pub fn decode_grammar_with_patterns(
     let mut tokens: IndexMap<SymbolId, Token> = IndexMap::new();
     let mut symbol_names = Vec::new();
     let mut externals = Vec::new();
-    let mut rule_names = IndexMap::new();
+    let rule_names = IndexMap::new();
 
     // Read all symbol names
     if lang.symbol_names.is_null() {
@@ -237,10 +237,27 @@ pub fn decode_grammar_with_patterns(
             let lhs = SymbolId(ts_rule.lhs);
             let rhs_len = ts_rule.rhs_len as usize;
 
-            // Build placeholder RHS of correct length
+            // Build RHS from alias_sequences if available
             let mut rhs = Vec::with_capacity(rhs_len);
-            for _ in 0..rhs_len {
-                rhs.push(Symbol::NonTerminal(SymbolId(0))); // Placeholder; actual symbols unknown
+            let has_alias_data = !lang.alias_map.is_null() && !lang.alias_sequences.is_null();
+            if has_alias_data && i < lang.rule_count as usize {
+                let offset = unsafe { *lang.alias_map.add(i) } as usize;
+                for j in 0..rhs_len {
+                    let sym_idx = unsafe { *lang.alias_sequences.add(offset + j) };
+                    let sym_id = SymbolId(sym_idx);
+                    let symbol = if (sym_idx as u32) < lang.token_count + lang.external_token_count
+                    {
+                        Symbol::Terminal(sym_id)
+                    } else {
+                        Symbol::NonTerminal(sym_id)
+                    };
+                    rhs.push(symbol);
+                }
+            } else {
+                // Fallback: build placeholder RHS of correct length
+                for _ in 0..rhs_len {
+                    rhs.push(Symbol::NonTerminal(SymbolId(0))); // Placeholder; actual symbols unknown
+                }
             }
 
             // Dynamic precedence if available
@@ -342,35 +359,44 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Populate rules from language metadata if available
-    let parsed_rules = decode_rules(lang);
+    // Only populate additional rules from parse_rules if we don't have proper TSRule data
+    // This avoids overwriting correct rule data with incomplete data
     let mut production_ids = IndexMap::new();
-    let has_alias_data = !lang.alias_map.is_null() && !lang.alias_sequences.is_null();
-    for (i, pr) in parsed_rules.into_iter().enumerate() {
-        // Build RHS from alias_sequences if available
-        let mut rhs = Vec::with_capacity(pr.rhs_len as usize);
-        if has_alias_data {
-            let offset = unsafe { *lang.alias_map.add(i) } as usize;
-            for j in 0..pr.rhs_len as usize {
-                let sym_idx = unsafe { *lang.alias_sequences.add(offset + j) };
-                let sym_id = SymbolId(sym_idx);
-                let symbol = if (sym_idx as u32) < lang.token_count + lang.external_token_count {
-                    Symbol::Terminal(sym_id)
-                } else {
-                    Symbol::NonTerminal(sym_id)
-                };
-                rhs.push(symbol);
+    if lang.rules.is_null() {
+        let parsed_rules = decode_rules(lang);
+        let has_alias_data = !lang.alias_map.is_null() && !lang.alias_sequences.is_null();
+        for (i, pr) in parsed_rules.into_iter().enumerate() {
+            // Build RHS from alias_sequences if available
+            let mut rhs = Vec::with_capacity(pr.rhs_len as usize);
+            if has_alias_data {
+                let offset = unsafe { *lang.alias_map.add(i) } as usize;
+                for j in 0..pr.rhs_len as usize {
+                    let sym_idx = unsafe { *lang.alias_sequences.add(offset + j) };
+                    let sym_id = SymbolId(sym_idx);
+                    let symbol = if (sym_idx as u32) < lang.token_count + lang.external_token_count
+                    {
+                        Symbol::Terminal(sym_id)
+                    } else {
+                        Symbol::NonTerminal(sym_id)
+                    };
+                    rhs.push(symbol);
+                }
             }
+            rules.entry(pr.lhs).or_default().push(Rule {
+                lhs: pr.lhs,
+                rhs,
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(i as u16),
+            });
+            production_ids.insert(RuleId(i as u16), ProductionId(i as u16));
         }
-        rules.entry(pr.lhs).or_default().push(Rule {
-            lhs: pr.lhs,
-            rhs,
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(i as u16),
-        });
-        production_ids.insert(RuleId(i as u16), ProductionId(i as u16));
+    } else {
+        // We have TSRule data, so just build the production_ids mapping from that
+        for i in 0..lang.rule_count as usize {
+            production_ids.insert(RuleId(i as u16), ProductionId(i as u16));
+        }
     }
 
     // Process external tokens
@@ -458,7 +484,35 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
     // Decode grammar and rules from TSLanguage
     let mut grammar = decode_grammar(lang);
-    let rules = decode_rules(lang);
+    // Extract rules from the grammar in production_id order
+    let rules: Vec<ParseRule> = {
+        let mut rules_vec = vec![None; lang.rule_count as usize];
+        // Collect all rules from all LHS symbols in the grammar and place them by production_id
+        for rules_for_lhs in grammar.rules.values() {
+            for rule in rules_for_lhs {
+                let idx = rule.production_id.0 as usize;
+                if idx < rules_vec.len() {
+                    rules_vec[idx] = Some(ParseRule {
+                        lhs: rule.lhs,
+                        rhs_len: rule.rhs.len() as u16,
+                    });
+                }
+            }
+        }
+        // Convert to final vector, handling any gaps
+        rules_vec
+            .into_iter()
+            .map(|opt_rule| {
+                opt_rule.unwrap_or({
+                    // Fallback for missing rules - shouldn't happen with valid grammars
+                    ParseRule {
+                        lhs: SymbolId(0),
+                        rhs_len: 0,
+                    }
+                })
+            })
+            .collect()
+    };
 
     // Build (lhs, rhs_len) -> rule_id map for normalizing Reduce actions
     let mut rid_by_pair: HashMap<(u16, u8), u16> = HashMap::with_capacity(rules.len());

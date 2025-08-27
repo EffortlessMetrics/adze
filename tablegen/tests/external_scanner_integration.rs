@@ -1,7 +1,7 @@
 use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{ExternalToken, Grammar, StateId, SymbolId};
-use rust_sitter_tablegen::StaticLanguageGenerator;
 use rust_sitter_tablegen::external_scanner::ExternalScannerGenerator;
+use rust_sitter_tablegen::StaticLanguageGenerator;
 
 #[test]
 fn test_language_generation_with_external_scanner() {
@@ -24,7 +24,7 @@ fn test_language_generation_with_external_scanner() {
     for i in 0..102 {
         symbol_to_index.insert(SymbolId(i), i as usize);
     }
-    let index_to_symbol: Vec<SymbolId> = (0..102).map(|i| SymbolId(i)).collect();
+    let index_to_symbol: Vec<SymbolId> = (0..102).map(SymbolId).collect();
 
     let mut parse_table = ParseTable {
         state_count: 5,
@@ -133,7 +133,7 @@ fn test_node_types_include_external_tokens() {
     for i in 0..52 {
         symbol_to_index.insert(SymbolId(i), i as usize);
     }
-    let index_to_symbol: Vec<SymbolId> = (0..52).map(|i| SymbolId(i)).collect();
+    let index_to_symbol: Vec<SymbolId> = (0..52).map(SymbolId).collect();
 
     let parse_table = ParseTable {
         state_count: 1,

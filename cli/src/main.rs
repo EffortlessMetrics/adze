@@ -371,12 +371,12 @@ fn parse_file(
     input: &Path,
     format: OutputFormat,
     dynamic: bool,
-    symbol: &str,
+    _symbol: &str,
 ) -> Result<()> {
     if dynamic {
         #[cfg(feature = "dynamic")]
         {
-            return parse_file_dynamic(grammar, input, format, symbol);
+            return parse_file_dynamic(grammar, input, format, _symbol);
         }
         #[cfg(not(feature = "dynamic"))]
         {
