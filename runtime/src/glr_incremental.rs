@@ -716,8 +716,13 @@ impl IncrementalGLRParser {
                     println!(
                         "DEBUG: Potentially ambiguous input detected - falling back to full parse"
                     );
-                    println!("DEBUG: Old alternatives: {}, Middle len: {}, Total len: {}, Might introduce ambiguity: {}", 
-                            old_forest.alternatives.len(), middle_len, tokens.len(), might_introduce_ambiguity);
+                    println!(
+                        "DEBUG: Old alternatives: {}, Middle len: {}, Total len: {}, Might introduce ambiguity: {}",
+                        old_forest.alternatives.len(),
+                        middle_len,
+                        tokens.len(),
+                        might_introduce_ambiguity
+                    );
                 }
                 // Fall back to full parsing to ensure ambiguity is correctly handled
                 return self.parse_fresh(tokens);
