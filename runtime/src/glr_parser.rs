@@ -53,8 +53,11 @@
 //! use rust_sitter_glr_core::ParseTable;
 //!
 //! // Create parser with grammar and parse table
+//! # fn example() {
 //! let grammar: Grammar = /* ... */;
+//! # let grammar = Grammar::default();
 //! let parse_table: ParseTable = /* ... */;
+//! # let parse_table = ParseTable::default();
 //! let mut parser = GLRParser::new(grammar, parse_table);
 //!
 //! // Create lexer and tokenize input
@@ -72,6 +75,7 @@
 //!     Ok(tree) => println!("Parse successful!"),
 //!     Err(e) => println!("Parse failed: {}", e),
 //! }
+//! # }
 //! ```
 
 /// Default threshold for pointer-based dedup.

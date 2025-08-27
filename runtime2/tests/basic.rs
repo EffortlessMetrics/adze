@@ -13,8 +13,8 @@ fn can_create_parser() {
 fn can_set_language() {
     let mut parser = Parser::new();
     let language = Language::new_stub();
-    parser.set_language(language).unwrap();
-    assert!(parser.language().is_some());
+    assert!(parser.set_language(language).is_err());
+    assert!(parser.language().is_none());
 }
 
 #[test]

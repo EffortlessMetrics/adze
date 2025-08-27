@@ -11,7 +11,7 @@ use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::{GLRParser, ParseStack};
 use rust_sitter::parser_v4::{Parser, Tree};
 use rust_sitter::subtree::Subtree;
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets, ParseTable};
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token, TokenPattern,
 };
@@ -317,7 +317,7 @@ fn test_glr_state_management() {
         let next_id = parser1.get_next_stack_id();
 
         // Create new parser and restore state
-        let mut parser2 = GLRParser::new(parse_table, grammar);
+        let mut parser2 = GLRParser::new(parse_table, grammar.clone());
         parser2.set_gss_state(saved_stacks);
         parser2.set_next_stack_id(next_id);
 

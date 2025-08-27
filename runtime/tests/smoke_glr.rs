@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 #[test]
 fn glr_smoke_table_construction() {
     // Test that we can construct a basic parse table without panic
-    // EOF(0), 'x'(1), S(2)
+    // EOF(0), 'x'(1), S(2) - EOF must be SymbolId(0) by convention
     let mut action = vec![vec![vec![]; 3]; 2];
     action[0][1].push(Action::Shift(StateId(1))); // on 'x' shift to 1
     action[1][0].push(Action::Reduce(RuleId(0))); // on EOF reduce S -> 'x'
