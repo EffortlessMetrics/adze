@@ -78,8 +78,8 @@ impl Drop for ScannerGuard {
 mod tests {
     use super::*;
     use std::sync::{
-        Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
     };
 
     struct TestScanner {

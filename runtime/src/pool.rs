@@ -188,6 +188,7 @@ mod tests {
 
     #[derive(Default, Debug)]
     struct TestNode {
+        #[allow(dead_code)]
         value: u32,
     }
 
@@ -204,7 +205,7 @@ mod tests {
         assert_eq!(pool.size(), 1);
 
         // Get it again (should reuse)
-        let node2 = pool.get_or_default();
+        let _node2 = pool.get_or_default();
         assert_eq!(pool.size(), 0);
 
         let stats = pool.stats();

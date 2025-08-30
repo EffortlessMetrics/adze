@@ -26,8 +26,8 @@ use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::{Grammar, RuleId, SymbolId};
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 /// Simple edit descriptor for byte-based edits
 #[derive(Debug, Clone)]

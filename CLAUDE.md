@@ -181,6 +181,49 @@ When working on the pure-Rust implementation:
 3. **FFI Tests**: Ensure generated Language structs match C ABI requirements
 4. **Integration Tests**: Test with real Tree-sitter grammars for validation
 
+### Cap Concurrency Implementation
+
+**Goal:** Eliminate fork/PID/file-descriptor storms and stabilize E2E/visual + unit tests across machines by bounding concurrency.
+
+**Implementation:**
+```bash
+# Use capped test aliases
+cargo t2                    # Run tests with 2 threads
+cargo test-safe            # Run tests with safe defaults
+cargo test-ultra-safe      # Run tests with 1 thread
+
+# Use preflight script for system pressure monitoring
+scripts/preflight.sh       # Check system pressure and set caps
+scripts/test-capped.sh     # Run tests with automatic concurrency caps
+
+# Container limits (optional)
+docker-compose -f docker-compose.test.yml up rust-tests
+```
+
+**Concurrency Defaults:**
+- Rust test threads: **2** (via `RUST_TEST_THREADS`)
+- Rayon thread pool: **4** (via `RAYON_NUM_THREADS`)
+- Tokio worker threads: **2** (via `TOKIO_WORKER_THREADS`)
+- Tokio blocking threads: **8** (via `TOKIO_BLOCKING_THREADS`)
+- Cargo build jobs: **4** (via `CARGO_BUILD_JOBS`)
+- Scientific libs (BLAS): **1** thread each (prevents CPU storms)
+
+**Environment Variables:**
+All caps are configurable via environment variables. The `preflight.sh` script automatically degrades to ultra-safe mode (all caps = 1) if the system is under high PID pressure (>85% of pid_max).
+
+**Code Integration:**
+```rust
+// In test setup or main application:
+use rust_sitter::concurrency_caps;
+concurrency_caps::init_concurrency_caps(); // Set up capped thread pools
+
+// For bounded parallel operations:
+let results = concurrency_caps::bounded_parallel_map(items, 4, |x| process(x));
+```
+
+**CI Integration:**
+The CI pipeline automatically uses these caps via environment variables set in `.github/workflows/ci.yml`. All `cargo test` commands include `-- --test-threads=$RUST_TEST_THREADS`.
+
 ### Test Connectivity Safeguards
 
 The project includes multiple layers of protection to prevent tests from being silently disconnected or disabled:
