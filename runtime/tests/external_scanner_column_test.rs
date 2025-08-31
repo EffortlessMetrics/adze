@@ -12,14 +12,12 @@ fn test_column_tracking_basic() {
     let mut ts_lexer = adapter.as_ts_lexer();
 
     // Advance through "hello"
-    for i in 0..5 {
-        unsafe {
-            (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-        }
+    for _i in 0..5 {
+        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     }
 
     // After "hello", column should be 5
-    let column = unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) };
+    let column = (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer);
     assert_eq!(column, 5);
 }
 
@@ -35,36 +33,21 @@ fn test_column_tracking_with_newlines() {
 
     // Advance to newline
     for _ in 0..5 {
-        unsafe {
-            (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-        }
-    }
-    assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
-        5
-    );
-
-    // Advance past newline
-    unsafe {
         (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     }
+    assert_eq!((ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer), 5);
+
+    // Advance past newline
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
 
     // Column should reset to 0 after newline
-    assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
-        0
-    );
+    assert_eq!((ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer), 0);
 
     // Advance through "world"
     for _ in 0..5 {
-        unsafe {
-            (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-        }
+        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     }
-    assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
-        5
-    );
+    assert_eq!((ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer), 5);
 }
 
 #[test]
@@ -75,25 +58,15 @@ fn test_column_tracking_with_crlf() {
 
     // Advance to CR
     for _ in 0..5 {
-        unsafe {
-            (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-        }
-    }
-    assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
-        5
-    );
-
-    // Advance past CRLF (should handle both characters)
-    unsafe {
         (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     }
+    assert_eq!((ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer), 5);
+
+    // Advance past CRLF (should handle both characters)
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
 
     // Column should reset to 0 after CRLF
-    assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
-        0
-    );
+    assert_eq!((ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer), 0);
 }
 
 #[test]
@@ -103,18 +76,11 @@ fn test_column_tracking_with_skip() {
     let mut ts_lexer = adapter.as_ts_lexer();
 
     // Skip whitespace (with skip=true)
-    unsafe {
-        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, true);
-    }
-    unsafe {
-        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, true);
-    }
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, true);
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, true);
 
     // Column should still advance even when skipping
-    assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
-        2
-    );
+    assert_eq!((ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer), 2);
 }
 
 #[test]
@@ -139,38 +105,30 @@ fn test_column_tracking_with_utf8() {
     let mut ts_lexer = adapter.as_ts_lexer();
 
     // Advance through "c" (1 byte)
-    unsafe {
-        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-    }
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
+        (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer),
         1 // Byte offset 1
     );
 
     // Advance through "a" (1 byte)
-    unsafe {
-        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-    }
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
+        (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer),
         2 // Byte offset 2
     );
 
     // Advance through "f" (1 byte)
-    unsafe {
-        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-    }
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
+        (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer),
         3 // Byte offset 3
     );
 
     // Advance through "é" (2 bytes in UTF-8)
-    unsafe {
-        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-    }
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
+        (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer),
         4 // After advancing past 'é', we're at byte position 4 (not 5 - we're at the position after consuming the char)
     );
 }
@@ -183,20 +141,16 @@ fn test_column_with_tabs() {
     let mut ts_lexer = adapter.as_ts_lexer();
 
     // Advance through "a"
-    unsafe {
-        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-    }
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
+        (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer),
         1 // Byte offset 1
     );
 
     // Advance through "\t" (tab)
-    unsafe {
-        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-    }
+    (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     assert_eq!(
-        unsafe { (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer) },
+        (ts_lexer.get_column)(&mut ts_lexer as *mut TSLexer),
         2 // Byte offset 2 (tabs count as 1 byte)
     );
 }

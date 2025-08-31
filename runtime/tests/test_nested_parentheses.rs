@@ -3,7 +3,7 @@ use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
 // Test for nested parentheses issue in GLR parser
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
@@ -62,9 +62,9 @@ fn create_expression_grammar() -> Grammar {
     grammar.rule_names.insert(expr_id, "expression".to_string());
 
     // Rules
-    let add_rule_id = SymbolId(20);
-    let paren_rule_id = SymbolId(24);
-    let number_rule_id = SymbolId(25);
+    let _add_rule_id = SymbolId(20);
+    let _paren_rule_id = SymbolId(24);
+    let _number_rule_id = SymbolId(25);
 
     // expression → expression + expression
     grammar.rules.entry(expr_id).or_default().push(Rule {

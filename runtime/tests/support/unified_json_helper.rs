@@ -12,9 +12,15 @@ use ts_bridge::{extract, schema::Action as TsAction};
 /// `TSLanguage` (which has a different ABI), we use the `ts-bridge` extractor
 /// to decode the Tree-sitter parse tables and rebuild a fresh language using
 /// our pure-Rust layout.
+#[allow(dead_code)]
 pub fn unified_json_language() -> &'static TSLanguage {
     // Extract parse table data from upstream Tree-sitter JSON grammar
-    let lang_fn = unsafe { std::mem::transmute(tree_sitter_json::LANGUAGE.into_raw()) };
+    let lang_fn = unsafe {
+        std::mem::transmute::<
+            unsafe extern "C" fn() -> *const (),
+            unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage,
+        >(tree_sitter_json::LANGUAGE.into_raw())
+    };
     let data = extract(lang_fn).expect("extract tree-sitter json");
 
     // Find the document symbol - this should be the start symbol for JSON

@@ -6,7 +6,7 @@
 mod support;
 
 use rust_sitter::decoder;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 
 #[test]
 fn test_rule_count_preservation() {
@@ -450,10 +450,10 @@ fn test_lhs_production_agreement() {
     // Verify each rule's LHS is valid and in the symbol table
     for (i, r) in decoded_table.rules.iter().enumerate() {
         // Check that the LHS symbol exists in the symbol_to_index mapping
-        let lhs_col = decoded_table.symbol_to_index.get(&r.lhs).expect(&format!(
-            "Rule {} LHS symbol {:?} not in symbol_to_index",
-            i, r.lhs
-        ));
+        let lhs_col = decoded_table
+            .symbol_to_index
+            .get(&r.lhs)
+            .unwrap_or_else(|| panic!("Rule {} LHS symbol {:?} not in symbol_to_index", i, r.lhs));
 
         // Verify the reverse mapping is consistent
         if *lhs_col < decoded_table.index_to_symbol.len() {

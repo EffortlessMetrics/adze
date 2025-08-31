@@ -7,7 +7,7 @@ use rust_sitter::subtree::Subtree;
 // This test demonstrates parsing a complete grammar from definition to tree output
 
 use rust_sitter::glr_validation::GLRGrammarValidator;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
@@ -79,7 +79,7 @@ fn convert_forest_to_query_subtree(forest: &Arc<ForestNode>) -> rust_sitter::glr
             .map(|a| {
                 a.children
                     .iter()
-                    .map(|child| convert_forest_to_query_subtree(child))
+                    .map(convert_forest_to_query_subtree)
                     .collect()
             })
             .unwrap_or_default(),

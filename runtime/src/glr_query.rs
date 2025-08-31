@@ -13,7 +13,9 @@ use std::fmt;
 pub struct Subtree {
     pub symbol: SymbolId,
     pub children: Vec<Subtree>,
+    #[allow(dead_code)]
     pub start_byte: usize,
+    #[allow(dead_code)]
     pub end_byte: usize,
 }
 
@@ -82,12 +84,15 @@ pub enum Predicate {
     /// #eq? predicate - captures must be equal
     Equal(Vec<u32>),
     /// #not-eq? predicate - captures must not be equal
+    #[allow(dead_code)]
     NotEqual(Vec<u32>),
     /// #match? predicate - capture must match regex
     Match(u32, String),
     /// #not-match? predicate - capture must not match regex
+    #[allow(dead_code)]
     NotMatch(u32, String),
     /// #any-of? predicate - capture must be one of values
+    #[allow(dead_code)]
     AnyOf(u32, Vec<String>),
 }
 

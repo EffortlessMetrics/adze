@@ -10,19 +10,19 @@ const NEWLINE: u16 = 1002;
 
 /// Python-style indentation scanner
 struct IndentationScanner {
-    indent_stack: std::sync::Mutex<Vec<usize>>,
+    indent_stack: Vec<usize>,
 }
 
 impl IndentationScanner {
     fn new() -> Self {
         Self {
-            indent_stack: std::sync::Mutex::new(vec![0]), // Start with indent level 0
+            indent_stack: vec![0], // Start with indent level 0
         }
     }
 }
 
 impl ExternalScanner for IndentationScanner {
-    fn scan(&self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
+    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
         // Skip whitespace until we find something meaningful
         let mut indent_level = 0;
         let mut found_newline = false;
@@ -62,13 +62,12 @@ impl ExternalScanner for IndentationScanner {
             }
 
             // Compare with current indentation level
-            let mut stack = self.indent_stack.lock().unwrap();
-            let current = *stack.last().unwrap();
+            let current = *self.indent_stack.last().unwrap();
 
             if indent_level > current {
                 // Indent
                 if valid_symbols.get(INDENT as usize) == Some(&true) {
-                    stack.push(indent_level);
+                    self.indent_stack.push(indent_level);
                     lexer.mark_end();
                     return Some(ScanResult {
                         symbol: INDENT,
@@ -79,8 +78,10 @@ impl ExternalScanner for IndentationScanner {
                 // Dedent - might be multiple levels
                 if valid_symbols.get(DEDENT as usize) == Some(&true) {
                     // Find matching indent level
-                    while stack.len() > 1 && *stack.last().unwrap() > indent_level {
-                        stack.pop();
+                    while self.indent_stack.len() > 1
+                        && *self.indent_stack.last().unwrap() > indent_level
+                    {
+                        self.indent_stack.pop();
                     }
                     lexer.mark_end();
                     return Some(ScanResult {
@@ -96,24 +97,22 @@ impl ExternalScanner for IndentationScanner {
 
     fn serialize(&self, buffer: &mut Vec<u8>) {
         // Serialize indent stack
-        let stack = self.indent_stack.lock().unwrap();
-        for &level in stack.iter() {
+        for &level in &self.indent_stack {
             buffer.extend_from_slice(&(level as u32).to_le_bytes());
         }
     }
 
     fn deserialize(&mut self, buffer: &[u8]) {
         // Deserialize indent stack
-        let mut stack = self.indent_stack.lock().unwrap();
-        stack.clear();
+        self.indent_stack.clear();
         for chunk in buffer.chunks_exact(4) {
             if let Ok(bytes) = chunk.try_into() {
                 let level = u32::from_le_bytes(bytes) as usize;
-                stack.push(level);
+                self.indent_stack.push(level);
             }
         }
-        if stack.is_empty() {
-            stack.push(0);
+        if self.indent_stack.is_empty() {
+            self.indent_stack.push(0);
         }
     }
 }
@@ -187,7 +186,7 @@ fn test_basic_indentation() {
             length: 4
         })
     );
-    assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0, 4]);
+    assert_eq!(scanner.indent_stack, vec![0, 4]);
 
     // Move to next line with same indent
     lexer.position = 29; // After "print('hello')\n"
@@ -206,7 +205,7 @@ fn test_basic_indentation() {
             length: 0
         })
     );
-    assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0]);
+    assert_eq!(scanner.indent_stack, vec![0]);
 }
 
 #[test]
@@ -281,8 +280,8 @@ fn test_mixed_spaces_tabs() {
 
 #[test]
 fn test_serialization() {
-    let scanner = IndentationScanner::new();
-    *scanner.indent_stack.lock().unwrap() = vec![0, 4, 8];
+    let mut scanner = IndentationScanner::new();
+    scanner.indent_stack = vec![0, 4, 8];
 
     let mut buffer = Vec::new();
     scanner.serialize(&mut buffer);
@@ -290,7 +289,7 @@ fn test_serialization() {
 
     let mut scanner2 = IndentationScanner::new();
     scanner2.deserialize(&buffer);
-    assert_eq!(*scanner2.indent_stack.lock().unwrap(), vec![0, 4, 8]);
+    assert_eq!(scanner2.indent_stack, vec![0, 4, 8]);
 }
 
 #[test]
@@ -367,7 +366,7 @@ fn test_multi_dedent() {
             length: 4
         })
     );
-    assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0, 4]);
+    assert_eq!(scanner.indent_stack, vec![0, 4]);
 
     // Skip to second newline (after "if y:")
     lexer.position = 17;
@@ -382,7 +381,7 @@ fn test_multi_dedent() {
             length: 8
         })
     );
-    assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0, 4, 8]);
+    assert_eq!(scanner.indent_stack, vec![0, 4, 8]);
 
     // Skip to third newline (after "pass")
     lexer.position = 33;
@@ -400,7 +399,7 @@ fn test_multi_dedent() {
     );
 
     // Stack should have popped one level
-    assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0, 4]);
+    assert_eq!(scanner.indent_stack, vec![0, 4]);
 
     // Call scan again for second DEDENT
     let result = scanner.scan(&mut lexer, &valid_symbols);
@@ -413,7 +412,7 @@ fn test_multi_dedent() {
     );
 
     // Stack should have popped another level
-    assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0]);
+    assert_eq!(scanner.indent_stack, vec![0]);
 }
 
 #[test]
@@ -423,7 +422,7 @@ fn test_dedent_sequence() {
     let mut scanner = IndentationScanner::new();
 
     // Set up the indent stack as if we've indented 3 times
-    *scanner.indent_stack.lock().unwrap() = vec![0, 4, 8, 12];
+    scanner.indent_stack = vec![0, 4, 8, 12];
 
     struct TestLexer<'a> {
         input: &'a [u8],
@@ -484,12 +483,9 @@ fn test_dedent_sequence() {
                 length: 0
             })
         );
-        assert_eq!(
-            scanner.indent_stack.lock().unwrap().len(),
-            expected_stack_size
-        );
+        assert_eq!(scanner.indent_stack.len(), expected_stack_size);
     }
 
     // Final stack should be [0]
-    assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0]);
+    assert_eq!(scanner.indent_stack, vec![0]);
 }

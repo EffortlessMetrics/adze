@@ -97,12 +97,7 @@ pub fn safe_dedup_threshold() -> usize {
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
 use rust_sitter_glr_core::{
-    compare_versions,
-    compare_versions_with_symbols,
-    Action,
-    CompareResult,
-    ParseTable,
-    VersionInfo,
+    compare_versions, compare_versions_with_symbols, Action, CompareResult, ParseTable, VersionInfo,
 };
 use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
@@ -1803,12 +1798,8 @@ impl GLRParser {
                 .last()
                 .map(|n| n.node.symbol_id)
                 .unwrap_or(SymbolId(0));
-            match compare_versions_with_symbols(
-                &left.version,
-                &right.version,
-                left_sym,
-                right_sym,
-            ) {
+            match compare_versions_with_symbols(&left.version, &right.version, left_sym, right_sym)
+            {
                 CompareResult::TakeRight | CompareResult::PreferRight => {
                     best_idx = i;
                 }
