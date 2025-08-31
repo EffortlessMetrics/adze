@@ -1,7 +1,7 @@
 use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{ExternalToken, Grammar, StateId, SymbolId};
-use rust_sitter_tablegen::StaticLanguageGenerator;
 use rust_sitter_tablegen::external_scanner::ExternalScannerGenerator;
+use rust_sitter_tablegen::StaticLanguageGenerator;
 
 #[test]
 fn test_language_generation_with_external_scanner() {
@@ -24,7 +24,7 @@ fn test_language_generation_with_external_scanner() {
     for i in 0..102 {
         symbol_to_index.insert(SymbolId(i), i as usize);
     }
-    let index_to_symbol: Vec<SymbolId> = (0..102).map(|i| SymbolId(i)).collect();
+    let index_to_symbol: Vec<SymbolId> = (0..102).map(SymbolId).collect();
 
     let mut parse_table = ParseTable {
         state_count: 5,
@@ -66,6 +66,11 @@ fn test_language_generation_with_external_scanner() {
             visible: false,
             named: false,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: true, // EOF is typically a terminal
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(0), // Will be overwritten by loop logic
         };
         102
     ];
@@ -76,6 +81,11 @@ fn test_language_generation_with_external_scanner() {
         visible: true,
         named: true,
         supertype: false,
+        // Additional fields required by GLR core API contracts
+        is_terminal: true, // External token is a terminal
+        is_extra: false,
+        is_fragile: false,
+        symbol_id: SymbolId(100),
     };
 
     parse_table.symbol_metadata[101] = SymbolMetadata {
@@ -83,6 +93,11 @@ fn test_language_generation_with_external_scanner() {
         visible: true,
         named: true,
         supertype: false,
+        // Additional fields required by GLR core API contracts
+        is_terminal: true, // External token is a terminal
+        is_extra: false,
+        is_fragile: false,
+        symbol_id: SymbolId(101),
     };
 
     // Create the language generator
@@ -133,7 +148,7 @@ fn test_node_types_include_external_tokens() {
     for i in 0..52 {
         symbol_to_index.insert(SymbolId(i), i as usize);
     }
-    let index_to_symbol: Vec<SymbolId> = (0..52).map(|i| SymbolId(i)).collect();
+    let index_to_symbol: Vec<SymbolId> = (0..52).map(SymbolId).collect();
 
     let parse_table = ParseTable {
         state_count: 1,
@@ -169,6 +184,11 @@ fn test_node_types_include_external_tokens() {
                 visible: false,
                 named: false,
                 supertype: false,
+                // Additional fields required by GLR core API contracts
+                is_terminal: true, // EOF is typically a terminal
+                is_extra: false,
+                is_fragile: false,
+                symbol_id: SymbolId(0), // Will be overwritten by loop logic
             };
             52
         ],

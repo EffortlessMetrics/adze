@@ -43,6 +43,11 @@ fn create_simple_grammar() -> (Grammar, ParseTable) {
                 visible: true,
                 named: true,
                 supertype: false,
+                // Additional fields required by GLR core API contracts
+                is_terminal: true, // Default test tokens as terminals
+                is_extra: false,
+                is_fragile: false,
+                symbol_id: SymbolId(0), // Will be overwritten by loop logic if needed
             };
             2
         ],
@@ -130,6 +135,11 @@ fn test_table_compression() {
             visible: true,
             named: true,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: true, // Default test symbols as terminals
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(0), // Will be overwritten by loop logic if needed
         };
         5
     ];

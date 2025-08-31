@@ -12,7 +12,7 @@ fn test_parse_without_parser() {
     fs::write(&test_file, "test content").unwrap();
 
     let output = Command::new("cargo")
-        .args(&[
+        .args([
             "run",
             "--bin",
             "rust-sitter-cli",
@@ -46,7 +46,7 @@ fn test_parse_without_parser() {
 #[test]
 fn test_cli_help() {
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "rust-sitter-cli", "--", "--help"])
+        .args(["run", "--bin", "rust-sitter-cli", "--", "--help"])
         .output()
         .expect("Failed to run CLI");
 
@@ -62,7 +62,7 @@ fn test_cli_help() {
 #[test]
 fn test_parse_help() {
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "rust-sitter-cli", "--", "parse", "--help"])
+        .args(["run", "--bin", "rust-sitter-cli", "--", "parse", "--help"])
         .output()
         .expect("Failed to run CLI");
 
@@ -83,7 +83,7 @@ fn test_parse_help() {
 #[test]
 fn test_parse_nonexistent_file() {
     let output = Command::new("cargo")
-        .args(&[
+        .args([
             "run",
             "--bin",
             "rust-sitter-cli",
@@ -111,7 +111,7 @@ fn test_parse_with_parser_shows_limitations() {
     fs::write(&test_file, "const x = 42;").unwrap();
 
     let output = Command::new("cargo")
-        .args(&[
+        .args([
             "run",
             "--bin",
             "rust-sitter-cli",
@@ -151,7 +151,7 @@ fn test_test_command_shows_limitations() {
     fs::create_dir_all(temp_dir.path().join("corpus")).unwrap();
 
     let output = Command::new("cargo")
-        .args(&[
+        .args([
             "run",
             "--bin",
             "rust-sitter-cli",
@@ -177,7 +177,7 @@ fn test_test_command_shows_limitations() {
 #[test]
 fn test_generate_command_exists() {
     let output = Command::new("cargo")
-        .args(&[
+        .args([
             "run",
             "--bin",
             "rust-sitter-cli",
@@ -195,7 +195,7 @@ fn test_generate_command_exists() {
     );
 }
 
-#[cfg(feature = "integration")]
+#[cfg(feature = "build_parsers")]
 /// Test parsing with an actual crate (requires example crate to be built)
 /// This test is feature-gated as it requires a working parser crate
 #[test]
@@ -215,7 +215,7 @@ fn test_parse_with_example_crate() {
 
     if example_path.exists() {
         let output = Command::new("cargo")
-            .args(&[
+            .args([
                 "run",
                 "--bin",
                 "rust-sitter-cli",

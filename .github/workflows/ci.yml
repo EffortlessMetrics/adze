@@ -13,6 +13,16 @@ env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
   COVERAGE_THRESHOLD: 80
+  # Cap Concurrency - stabilize tests across CI environments  
+  RUST_TEST_THREADS: 2
+  RAYON_NUM_THREADS: 4
+  TOKIO_WORKER_THREADS: 2
+  TOKIO_BLOCKING_THREADS: 8
+  CARGO_BUILD_JOBS: 4
+  OMP_NUM_THREADS: 1
+  OPENBLAS_NUM_THREADS: 1
+  MKL_NUM_THREADS: 1
+  NUMEXPR_NUM_THREADS: 1
 
 jobs:
   lint:
@@ -155,10 +165,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       
       - name: Test (workspace, default features)
-        run: cargo test --workspace --locked --no-fail-fast
+        run: cargo test --workspace --locked --no-fail-fast -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test (workspace, all features)
-        run: cargo test --workspace --all-features --locked --no-fail-fast
+        run: cargo test --workspace --all-features --locked --no-fail-fast -- --test-threads=$RUST_TEST_THREADS
 
   # Test with debug assertions enabled to catch invariant violations
   test-debug-assertions:
@@ -202,7 +212,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       
       - name: Run tests in release mode
-        run: cargo test --workspace --release ${{ matrix.features }}
+        run: cargo test --workspace --release ${{ matrix.features }} -- --test-threads=$RUST_TEST_THREADS
       
       - name: Run invariant tests with strict-invariants
         if: contains(matrix.features, 'strict-invariants')

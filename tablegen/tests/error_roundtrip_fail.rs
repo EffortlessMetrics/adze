@@ -18,7 +18,7 @@ fn error_roundtrip_propagates_failure() {
 
     // …and that trying to use it in tablegen lifts to TableGenError via `From`.
     let err = (|| -> rust_sitter_tablegen::Result<()> {
-        let pt = pt?; // GLRError -> TableGenError
+        let _pt = pt?; // GLRError -> TableGenError
         Ok(())
     })()
     .unwrap_err();

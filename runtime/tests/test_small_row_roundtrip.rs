@@ -20,11 +20,31 @@ impl SmallRowState {
 
     /// Add a token action to the small row
     fn add_token_action(&mut self, column: u16, encoded_action: u16) {
+        assert!(
+            !self.token_columns.contains_key(&column),
+            "Duplicate column {}",
+            column
+        );
+        assert!(
+            !self.nt_columns.contains_key(&column),
+            "Duplicate column {}",
+            column
+        );
         self.token_columns.insert(column, encoded_action);
     }
 
     /// Add an NT goto to the small row  
     fn add_nt_goto(&mut self, column: u16, goto_state: u16) {
+        assert!(
+            !self.token_columns.contains_key(&column),
+            "Duplicate column {}",
+            column
+        );
+        assert!(
+            !self.nt_columns.contains_key(&column),
+            "Duplicate column {}",
+            column
+        );
         self.nt_columns.insert(column, goto_state);
     }
 

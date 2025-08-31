@@ -4,6 +4,7 @@ use crate::{node::Node, Language};
 use std::fmt;
 
 /// A parsed syntax tree
+#[derive(Clone)]
 pub struct Tree {
     /// Root node of the tree
     root: TreeNode,
@@ -16,6 +17,7 @@ pub struct Tree {
 
 /// Internal tree node representation
 #[allow(dead_code)]
+#[derive(Clone)]
 pub(crate) struct TreeNode {
     /// Symbol type
     symbol: u32,
@@ -86,6 +88,21 @@ impl Tree {
         self.language.as_ref()
     }
 
+    /// Set the language for this tree
+    pub(crate) fn set_language(&mut self, language: Language) {
+        self.language = Some(language);
+    }
+
+    /// Set the source bytes for this tree
+    pub(crate) fn set_source(&mut self, source: Vec<u8>) {
+        self.source = Some(source);
+    }
+
+    /// Get the source bytes of this tree, if available
+    pub fn source_bytes(&self) -> Option<&[u8]> {
+        self.source.as_deref()
+    }
+
     /// Apply an edit to the tree (for incremental parsing)
     #[cfg(feature = "incremental")]
     pub fn edit(&mut self, edit: &crate::InputEdit) {
@@ -97,7 +114,7 @@ impl Tree {
     }
 
     /// Get a copy of this tree
-    pub fn clone(&self) -> Self {
+    pub fn duplicate(&self) -> Self {
         // TODO: Implement proper cloning
         Self::new_stub()
     }
@@ -129,30 +146,126 @@ impl fmt::Debug for Tree {
     }
 }
 
-/// Tree cursor for efficient tree traversal
-pub struct TreeCursor {
-    // TODO: Implement cursor for efficient traversal
+/// Internal cursor stack entry
+#[derive(Clone, Copy)]
+struct CursorEntry<'tree> {
+    /// Node at this level
+    node: &'tree TreeNode,
+    /// Index of this node within its parent's children
+    index: usize,
 }
 
-impl TreeCursor {
+/// Tree cursor for efficient tree traversal
+pub struct TreeCursor<'tree> {
+    /// Stack of nodes from root to current position
+    stack: Vec<CursorEntry<'tree>>,
+}
+
+impl<'tree> TreeCursor<'tree> {
     /// Create a new cursor at the root
-    pub fn new(tree: &Tree) -> Self {
-        let _ = tree;
-        Self {}
+    pub fn new(tree: &'tree Tree) -> Self {
+        Self {
+            stack: vec![CursorEntry {
+                node: &tree.root,
+                index: 0,
+            }],
+        }
     }
 
     /// Move to the first child
     pub fn goto_first_child(&mut self) -> bool {
+        if let Some(entry) = self.stack.last() {
+            if let Some(child) = entry.node.children.first() {
+                self.stack.push(CursorEntry {
+                    node: child,
+                    index: 0,
+                });
+                return true;
+            }
+        }
         false
     }
 
     /// Move to the next sibling
     pub fn goto_next_sibling(&mut self) -> bool {
-        false
+        let len = self.stack.len();
+        if len < 2 {
+            return false;
+        }
+
+        // Split the stack to borrow parent immutably and current mutably
+        let (parent_slice, current_slice) = self.stack.split_at_mut(len - 1);
+        let parent = parent_slice.last().unwrap();
+        let current = &mut current_slice[0];
+        let next_index = current.index + 1;
+        if next_index < parent.node.children.len() {
+            current.node = &parent.node.children[next_index];
+            current.index = next_index;
+            true
+        } else {
+            false
+        }
     }
 
     /// Move to the parent
     pub fn goto_parent(&mut self) -> bool {
-        false
+        if self.stack.len() > 1 {
+            self.stack.pop();
+            true
+        } else {
+            false
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn build_test_tree() -> Tree {
+        let child1 = TreeNode::new_with_children(
+            1,
+            0,
+            0,
+            vec![TreeNode::new_with_children(3, 0, 0, vec![])],
+        );
+        let child2 = TreeNode::new_with_children(2, 0, 0, vec![]);
+        let root = TreeNode::new_with_children(0, 0, 0, vec![child1, child2]);
+        Tree::new(root)
+    }
+
+    #[test]
+    fn cursor_traversal() {
+        let tree = build_test_tree();
+        let mut cursor = TreeCursor::new(&tree);
+
+        // Start at root
+        assert_eq!(cursor.stack.last().unwrap().node.symbol, 0);
+
+        // Traverse to first child
+        assert!(cursor.goto_first_child());
+        assert_eq!(cursor.stack.last().unwrap().node.symbol, 1);
+
+        // Traverse to grandchild
+        assert!(cursor.goto_first_child());
+        assert_eq!(cursor.stack.last().unwrap().node.symbol, 3);
+
+        // No sibling for grandchild
+        assert!(!cursor.goto_next_sibling());
+
+        // Back to first child
+        assert!(cursor.goto_parent());
+        assert_eq!(cursor.stack.last().unwrap().node.symbol, 1);
+
+        // Move to second child of root
+        assert!(cursor.goto_next_sibling());
+        assert_eq!(cursor.stack.last().unwrap().node.symbol, 2);
+
+        // Back to root
+        assert!(cursor.goto_parent());
+        assert_eq!(cursor.stack.last().unwrap().node.symbol, 0);
+
+        // Root has no parent
+        assert!(!cursor.goto_parent());
     }
 }

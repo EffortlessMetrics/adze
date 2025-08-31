@@ -270,10 +270,15 @@ pub mod test_helpers {
 
     /// Minimal trait the engine uses. Implemented by the old Vec-based stack and the new persistent one.
     pub trait GlrStack: Clone {
+        /// Push a parser state onto the stack.
         fn push(&mut self, state: u16);
+        /// Remove and return the top parser state, if any.
         fn pop(&mut self) -> Option<u16>;
+        /// View the top parser state without removing it.
         fn peek(&self) -> Option<u16>;
+        /// Current number of states stored in the stack.
         fn len(&self) -> usize;
+        /// Returns `true` when the stack contains no states.
         fn is_empty(&self) -> bool {
             self.len() == 0
         }

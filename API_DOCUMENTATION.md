@@ -3,6 +3,8 @@
 Complete API reference for rust-sitter v0.6.0 - the production-ready pure-Rust parser generator with GLR support.
 
 > **Note**: This document covers the stable API. Some advanced features (queries, incremental parsing, serialization) are available under feature flags and their APIs may change before v1.0.
+> 
+> **v0.5+ Breaking Changes**: The `SymbolMetadata` struct has been updated for GLR compatibility. See [Migration Guide](./MIGRATION_GUIDE.md#symbolmetadata-struct-changes) for upgrade instructions.
 
 ## Table of Contents
 
@@ -19,6 +21,7 @@ Complete API reference for rust-sitter v0.6.0 - the production-ready pure-Rust p
 11. [Performance Analysis](#performance-analysis)
 12. [LSP Generation](#lsp-generation)
 13. [Playground API](#playground-api)
+14. [Thread Safety & Concurrency](#thread-safety)
 
 ## Core Types
 
@@ -75,6 +78,24 @@ pub struct ParseNode {
 ```
 
 A node in the parse tree.
+
+### `SymbolMetadata`
+```rust
+pub struct SymbolMetadata {
+    pub name: String,
+    pub visible: bool,     // Renamed from is_visible (v0.5+)
+    pub named: bool,       // New field (v0.5+)
+    pub hidden: bool,      // New field for extras (v0.5+)
+    pub terminal: bool,    // Renamed from is_terminal (v0.5+)
+    // GLR-specific extensions (v0.5+)
+    pub is_terminal: bool, // GLR core compatibility
+    pub is_extra: bool,    // Extra symbol marker
+    pub is_fragile: bool,  // Fragile token marker
+    pub symbol_id: SymbolId, // Symbol identifier
+}
+```
+
+Metadata for symbols in the grammar. **Breaking Change in v0.5**: Field names have been standardized (`is_visible` → `visible`, `is_terminal` → `terminal`) and new fields added for GLR compatibility. See [Migration Guide](./MIGRATION_GUIDE.md#symbolmetadata-struct-changes) for upgrade instructions.
 
 ## Grammar Definition
 
@@ -706,9 +727,43 @@ pub struct PlaygroundFeatures {
 
 Use `Arc<Grammar>` to share grammars across threads.
 
+### Concurrency Management (v0.5+)
+```rust
+use rust_sitter::concurrency_caps;
+
+/// Initialize bounded thread pools for stable performance
+pub fn init_concurrency_caps();
+
+/// Bounded parallel iteration with configurable concurrency
+pub fn bounded_parallel_map<T, R, F>(
+    items: Vec<T>, 
+    concurrency: usize, 
+    f: F
+) -> Vec<R>
+where
+    T: Send,
+    R: Send,
+    F: Fn(T) -> R + Send + Sync;
+```
+
+**Environment Variables** (configurable caps):
+- `RUST_TEST_THREADS`: Test parallelism (default: 2)
+- `RAYON_NUM_THREADS`: Rayon thread pool size (default: 4) 
+- `TOKIO_WORKER_THREADS`: Tokio async workers (default: 2)
+- `TOKIO_BLOCKING_THREADS`: Tokio blocking pool (default: 8)
+- `CARGO_BUILD_JOBS`: Parallel compilation (default: 4)
+
+**Usage**: Call `concurrency_caps::init_concurrency_caps()` once at startup for stable resource usage across machines.
+
 ## Version Compatibility
 
 - Tree-sitter ABI: v14-v15
-- Minimum Rust: 1.70.0
+- Minimum Rust: 1.89.0 (Rust 2024 Edition)
 - WASM targets: wasm32-unknown-unknown, wasm32-wasi
 - Supported platforms: Linux, macOS, Windows, WebAssembly
+
+**Recent Changes (August 2025)**:
+- Updated SymbolMetadata API for GLR compatibility (breaking change)
+- Added concurrency caps system for stable testing
+- Implemented grammar loading and parse table generation
+- Enhanced GLR parser infrastructure

@@ -21,9 +21,10 @@ fn create_ambiguous_expression_grammar() -> Grammar {
     let rparen_id = SymbolId(5);
 
     // Non-terminals
-    let expr_id = SymbolId(10);
-    let term_id = SymbolId(11);
-    let factor_id = SymbolId(12);
+    let start_id = SymbolId(10); // Start symbol (like DOCUMENT in JSON)
+    let expr_id = SymbolId(11);
+    let term_id = SymbolId(12);
+    let factor_id = SymbolId(13);
 
     // Define tokens
     grammar.tokens.insert(
@@ -162,10 +163,25 @@ fn create_ambiguous_expression_grammar() -> Grammar {
         production_id: ProductionId(rule_id),
     });
 
-    // Set expr as the start symbol by adding it to rule_names
+    // Add a start rule: start -> expr
+    rule_id += 1; // Increment rule_id before using it
+    grammar.rules.entry(start_id).or_default().push(Rule {
+        lhs: start_id,
+        rhs: vec![Symbol::NonTerminal(expr_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(rule_id),
+    });
+
+    // Set up rule names with proper start symbol
     grammar
         .rule_names
-        .insert(expr_id, "source_file".to_string());
+        .insert(start_id, "source_file".to_string());
+    grammar.rule_names.insert(expr_id, "expr".to_string());
+    grammar.rule_names.insert(term_id, "term".to_string());
+    grammar.rule_names.insert(factor_id, "factor".to_string());
+
     grammar
 }
 
@@ -178,9 +194,10 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     let op_id = SymbolId(2); // Single operator that can mean different things
 
     // Non-terminals
-    let expr_id = SymbolId(10);
-    let expr2_id = SymbolId(11);
-    let expr3_id = SymbolId(12);
+    let start_id = SymbolId(10); // Start symbol
+    let expr_id = SymbolId(11);
+    let expr2_id = SymbolId(12);
+    let expr3_id = SymbolId(13);
 
     // Define tokens
     grammar.tokens.insert(
@@ -281,28 +298,45 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
     });
 
     // All three expression types can also reduce to num directly
+    rule_id += 1;
     grammar.rules.entry(expr_id).or_default().push(Rule {
         lhs: expr_id,
         rhs: vec![Symbol::Terminal(num_id)],
         precedence: None,
         associativity: None,
         fields: vec![],
-        production_id: ProductionId(rule_id + 1),
+        production_id: ProductionId(rule_id),
     });
 
+    rule_id += 1;
     grammar.rules.entry(expr2_id).or_default().push(Rule {
         lhs: expr2_id,
         rhs: vec![Symbol::Terminal(num_id)],
         precedence: None,
         associativity: None,
         fields: vec![],
-        production_id: ProductionId(rule_id + 2),
+        production_id: ProductionId(rule_id),
     });
 
-    // Set expr as the start symbol by adding it to rule_names
+    // Add a start rule: start -> expr
+    rule_id += 1;
+    grammar.rules.entry(start_id).or_default().push(Rule {
+        lhs: start_id,
+        rhs: vec![Symbol::NonTerminal(expr_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(rule_id),
+    });
+
+    // Set up rule names with proper start symbol
     grammar
         .rule_names
-        .insert(expr_id, "source_file".to_string());
+        .insert(start_id, "source_file".to_string());
+    grammar.rule_names.insert(expr_id, "expr".to_string());
+    grammar.rule_names.insert(expr2_id, "expr2".to_string());
+    grammar.rule_names.insert(expr3_id, "expr3".to_string());
+
     grammar
 }
 

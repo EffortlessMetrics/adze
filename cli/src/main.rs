@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use rust_sitter_tool::build_parsers;
@@ -308,8 +308,8 @@ fn build_grammar(path: &Path) -> Result<()> {
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| {
-                e.path().extension().map_or(false, |ext| ext == "rs")
-                    && e.path().to_str().map_or(false, |s| s.contains("grammar"))
+                e.path().extension().is_some_and(|ext| ext == "rs")
+                    && e.path().to_str().is_some_and(|s| s.contains("grammar"))
             })
             .collect();
 
@@ -353,7 +353,7 @@ fn watch_and_build(path: &Path) -> Result<()> {
                 if event
                     .paths
                     .iter()
-                    .any(|p| p.extension().map_or(false, |ext| ext == "rs"))
+                    .any(|p| p.extension().is_some_and(|ext| ext == "rs"))
                 {
                     println!("{} Change detected, rebuilding...", "🔄".yellow());
                     if let Err(e) = build_grammar(path) {
@@ -371,12 +371,12 @@ fn parse_file(
     input: &Path,
     format: OutputFormat,
     dynamic: bool,
-    symbol: &str,
+    _symbol: &str,
 ) -> Result<()> {
     if dynamic {
         #[cfg(feature = "dynamic")]
         {
-            return parse_file_dynamic(grammar, input, format, symbol);
+            return parse_file_dynamic(grammar, input, format, _symbol);
         }
         #[cfg(not(feature = "dynamic"))]
         {
@@ -446,7 +446,7 @@ fn parse_file_dynamic(
         };
         let get_language: libloading::Symbol<unsafe extern "C" fn() -> *const u8> =
             lib.get(&sym_name)?;
-        let lang_ptr = get_language();
+        let _lang_ptr = get_language();
 
         // TODO: Bridge to rust-sitter's pure parser using the language pointer
         println!(
@@ -501,7 +501,7 @@ fn generate_docs(grammar: &Path, output: Option<PathBuf>) -> Result<()> {
 
     for line in content.lines() {
         if line.trim().starts_with("///") {
-            docs.push_str(&line.trim_start_matches("///").trim());
+            docs.push_str(line.trim_start_matches("///").trim());
             docs.push('\n');
         }
     }

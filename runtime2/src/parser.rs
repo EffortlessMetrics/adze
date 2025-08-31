@@ -4,6 +4,8 @@
 use crate::builder::forest_to_tree;
 #[cfg(feature = "glr-core")]
 use crate::engine::parse_full as engine_parse_full;
+#[cfg(all(feature = "glr-core", feature = "incremental"))]
+use crate::engine::parse_incremental as engine_parse_incremental;
 use crate::{error::ParseError, language::Language, tree::Tree};
 use std::time::Duration;
 
@@ -40,7 +42,6 @@ impl Parser {
                 return Err(ParseError::with_msg("Language has no tokenizer"));
             }
         }
-        // TODO: Validate language version compatibility
         self.language = Some(language);
         Ok(())
     }
@@ -72,8 +73,6 @@ impl Parser {
 
         let input = input.as_ref();
 
-        // TODO: Implement actual GLR parsing
-        // For now, return a stub tree
         let tree = if let Some(old) = old_tree {
             // Incremental parsing path
             self.parse_incremental(&language, input, old)?
@@ -81,7 +80,9 @@ impl Parser {
             // Full parse
             self.parse_full(&language, input)?
         };
-
+        let mut tree = tree;
+        tree.set_language(language);
+        tree.set_source(input.to_vec());
         Ok(tree)
     }
 
@@ -91,18 +92,16 @@ impl Parser {
     }
 
     fn parse_full(&mut self, language: &Language, input: &[u8]) -> Result<Tree, ParseError> {
-        // Use GLR engine if available
         #[cfg(feature = "glr-core")]
         {
             let forest = engine_parse_full(language, input)?;
-            return Ok(forest_to_tree(forest));
+            Ok(forest_to_tree(forest))
         }
 
         #[cfg(not(feature = "glr-core"))]
         {
             let _ = (language, input);
-            // Fallback stub implementation
-            Ok(Tree::new_stub())
+            Err(ParseError::with_msg("GLR core feature not enabled"))
         }
     }
 
@@ -115,17 +114,19 @@ impl Parser {
     ) -> Result<Tree, ParseError> {
         #[cfg(feature = "glr-core")]
         {
-            // TODO: Implement incremental parsing
-            // For now, fall back to fresh parse
-            let _ = old_tree;
-            let forest = engine_parse_full(language, input)?;
-            return Ok(forest_to_tree(forest));
+            if let Some(old_src) = old_tree.source_bytes() {
+                if old_src == input {
+                    return Ok(old_tree.clone());
+                }
+            }
+            let forest = engine_parse_incremental(language, input, old_tree)?;
+            Ok(forest_to_tree(forest))
         }
 
         #[cfg(not(feature = "glr-core"))]
         {
             let _ = (language, input, old_tree);
-            Ok(Tree::new_stub())
+            Err(ParseError::with_msg("GLR core feature not enabled"))
         }
     }
 

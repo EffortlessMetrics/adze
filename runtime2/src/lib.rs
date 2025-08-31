@@ -33,6 +33,7 @@ pub mod tree;
 mod builder;
 #[cfg(feature = "glr-core")]
 mod engine;
+/// Token types and lexing helpers.
 pub mod token;
 
 // Re-exports for convenience
