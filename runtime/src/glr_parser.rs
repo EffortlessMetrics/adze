@@ -1830,7 +1830,8 @@ impl GLRParser {
         );
 
         // Hard bound: at most a few iterations (guards infinite loops).
-        for _i in 0..8 {
+        #[allow(unused_variables)] // Used in debug_glr! macro
+        for i in 0..8 {
             // Close first with EOF as lookahead to expose any reduces
             let stacks = std::mem::take(&mut self.stacks);
             let stacks = self.reduce_until_saturated(stacks, eof, self.input_length);
