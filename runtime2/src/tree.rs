@@ -108,8 +108,15 @@ impl Tree {
 
             // If the node starts after the old edit end, shift it by the delta.
             if node.start_byte >= edit.old_end_byte {
-                node.start_byte = (node.start_byte as isize + delta) as usize;
-                node.end_byte = (node.end_byte as isize + delta) as usize;
+                // Bounds checking to prevent integer overflow
+                if delta >= 0 {
+                    node.start_byte = node.start_byte.saturating_add(delta as usize);
+                    node.end_byte = node.end_byte.saturating_add(delta as usize);
+                } else {
+                    let abs_delta = (-delta) as usize;
+                    node.start_byte = node.start_byte.saturating_sub(abs_delta);
+                    node.end_byte = node.end_byte.saturating_sub(abs_delta);
+                }
             } else {
                 // The node intersects the edit; adjust its range to encompass the change.
                 if node.start_byte > edit.start_byte {
@@ -117,9 +124,20 @@ impl Tree {
                 }
 
                 if node.end_byte >= edit.old_end_byte {
-                    node.end_byte = (node.end_byte as isize + delta) as usize;
+                    // Bounds checking for intersecting nodes
+                    if delta >= 0 {
+                        node.end_byte = node.end_byte.saturating_add(delta as usize);
+                    } else {
+                        let abs_delta = (-delta) as usize;
+                        node.end_byte = node.end_byte.saturating_sub(abs_delta);
+                    }
                 } else if node.end_byte > edit.start_byte {
                     node.end_byte = edit.start_byte;
+                }
+
+                // Ensure valid range invariant: start_byte <= end_byte
+                if node.start_byte > node.end_byte {
+                    node.end_byte = node.start_byte;
                 }
             }
 
