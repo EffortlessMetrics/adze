@@ -34,7 +34,12 @@ pub enum ParseErrorKind {
 
     /// Language version mismatch
     #[error("language version mismatch: expected {expected}, got {actual}")]
-    VersionMismatch { expected: u32, actual: u32 },
+    VersionMismatch {
+        /// Expected version
+        expected: u32,
+        /// Actual version found
+        actual: u32,
+    },
 
     /// Syntax error in input
     #[error("syntax error at {0}")]

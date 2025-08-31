@@ -1,5 +1,13 @@
 //! Language representation compatible with Tree-sitter
 
+#[cfg(feature = "glr-core")]
+use rust_sitter_glr_core::{
+    GotoIndexing, Grammar, LexMode, ParseTable as GlrParseTable, StateId, SymbolId,
+    SymbolMetadata as GlrSymbolMetadata,
+};
+#[cfg(feature = "glr-core")]
+use std::collections::BTreeMap;
+
 /// A language definition containing parse tables and metadata
 pub struct Language {
     /// Language version for compatibility checking
@@ -17,6 +25,7 @@ pub struct Language {
     pub parse_table: ParseTable,
     /// Optional tokenizer. If absent, parsing will fail with a clear error.
     #[cfg(feature = "glr-core")]
+    #[allow(clippy::type_complexity)]
     pub tokenize: Option<Box<dyn Fn(&[u8]) -> Box<dyn Iterator<Item = crate::Token> + '_>>>,
     /// Symbol names
     pub symbol_names: Vec<String>,
@@ -48,7 +57,12 @@ pub enum Action {
     /// Shift to state
     Shift(u16),
     /// Reduce by production
-    Reduce { symbol: u16, child_count: u8 },
+    Reduce {
+        /// Symbol to reduce to
+        symbol: u16,
+        /// Number of children to pop
+        child_count: u8,
+    },
     /// Accept the input
     Accept,
     /// Error/invalid
@@ -120,11 +134,11 @@ impl Language {
     pub fn new_stub() -> Self {
         Self {
             version: 0,
-            symbol_count: 0,
+            symbol_count: 1, // At least EOF symbol
             field_count: 0,
             max_alias_sequence_length: 0,
             #[cfg(feature = "glr-core")]
-            parse_table: None,
+            parse_table: Some(Box::leak(Box::new(create_stub_parse_table()))),
             #[cfg(not(feature = "glr-core"))]
             parse_table: ParseTable {
                 state_count: 0,
@@ -132,13 +146,24 @@ impl Language {
                 small_parse_table: None,
                 small_parse_table_map: None,
             },
-            symbol_names: vec![],
-            symbol_metadata: vec![],
+            symbol_names: vec!["EOF".to_string()],
+            symbol_metadata: vec![SymbolMetadata {
+                is_terminal: true,
+                is_visible: false,
+                is_supertype: false,
+            }],
             field_names: vec![],
             #[cfg(feature = "external-scanners")]
             external_scanner: None,
             #[cfg(feature = "glr-core")]
-            tokenize: None,
+            tokenize: Some(Box::new(|_input| {
+                // Minimal tokenizer that just returns EOF
+                Box::new(std::iter::once(crate::Token {
+                    kind: 0, // EOF
+                    start: 0,
+                    end: 0,
+                }))
+            })),
         }
     }
 
@@ -166,14 +191,52 @@ impl Language {
     pub fn is_terminal(&self, symbol: u16) -> bool {
         self.symbol_metadata
             .get(symbol as usize)
-            .map_or(false, |m| m.is_terminal)
+            .is_some_and(|m| m.is_terminal)
     }
 
     /// Check if a symbol is visible
     pub fn is_visible(&self, symbol: u16) -> bool {
         self.symbol_metadata
             .get(symbol as usize)
-            .map_or(false, |m| m.is_visible)
+            .is_some_and(|m| m.is_visible)
+    }
+}
+
+#[cfg(feature = "glr-core")]
+fn create_stub_parse_table() -> GlrParseTable {
+    GlrParseTable {
+        action_table: vec![],
+        goto_table: vec![],
+        symbol_metadata: vec![GlrSymbolMetadata {
+            name: "EOF".to_string(),
+            visible: false,
+            named: false,
+            supertype: false,
+        }],
+        state_count: 1,
+        symbol_count: 1,
+        symbol_to_index: BTreeMap::new(),
+        index_to_symbol: vec![SymbolId(0)],
+        external_scanner_states: vec![],
+        rules: vec![],
+        nonterminal_to_index: BTreeMap::new(),
+        goto_indexing: GotoIndexing::NonterminalMap,
+        eof_symbol: SymbolId(0),
+        start_symbol: SymbolId(0),
+        grammar: Grammar::new("stub".to_string()),
+        initial_state: StateId(0),
+        token_count: 1,
+        external_token_count: 0,
+        lex_modes: vec![LexMode {
+            lex_state: 0,
+            external_lex_state: 0,
+        }],
+        extras: vec![],
+        dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: BTreeMap::new(),
     }
 }
 
