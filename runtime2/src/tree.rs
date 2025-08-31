@@ -3,7 +3,40 @@
 use crate::{node::Node, Language};
 use std::fmt;
 
-/// A parsed syntax tree
+/// A parsed syntax tree.
+///
+/// Represents the result of parsing source code into a structured syntax tree.
+/// Supports tree editing for incremental parsing and deep cloning for analysis.
+///
+/// # Features
+///
+/// - **Tree-sitter API compatibility**: Provides familiar `root_node()` interface
+/// - **Incremental parsing support**: `edit()` method updates ranges for efficient re-parsing
+/// - **Deep cloning**: Full tree duplication for analysis and experimentation
+/// - **GLR integration**: Works with both deterministic and ambiguous grammars
+///
+/// # Examples
+///
+/// Basic usage:
+/// ```no_run
+/// # use rust_sitter_runtime::{Parser, Tree};
+/// # let mut parser = Parser::new();
+/// let tree = parser.parse_utf8("fn main() {}", None)?;
+/// let root = tree.root_node();
+/// println!("Parsed {} with {} children", root.kind(), root.child_count());
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+///
+/// Tree cloning for analysis:
+/// ```no_run
+/// # use rust_sitter_runtime::{Tree, InputEdit, Point};
+/// # let tree = Tree::new_stub();
+/// // Clone for non-destructive analysis
+/// let analysis_tree = tree.clone();
+///
+/// // Original tree unchanged, copy can be modified
+/// assert_eq!(tree.root_node().start_byte(), analysis_tree.root_node().start_byte());
+/// ```
 #[derive(Clone)]
 pub struct Tree {
     /// Root node of the tree
@@ -13,11 +46,25 @@ pub struct Tree {
     /// Source text (optional, for convenience)
     #[allow(dead_code)]
     source: Option<Vec<u8>>,
+    /// Last edit applied to this tree (for incremental parsing)
+    #[cfg(feature = "incremental")]
+    last_edit: Option<crate::InputEdit>,
 }
 
-/// Internal tree node representation
-#[allow(dead_code)]
+/// Internal tree node representation.
+///
+/// Represents a single node in the syntax tree with byte range information
+/// and child relationships. Supports deep cloning to enable tree duplication
+/// for analysis and experimental transformations.
+///
+/// # Fields
+///
+/// - `symbol`: The grammar symbol ID for this node type
+/// - `start_byte`/`end_byte`: Byte range in the source text
+/// - `children`: Child nodes in source order
+/// - `field_id`: Optional field name for structured access
 #[derive(Clone)]
+#[allow(dead_code)]
 pub(crate) struct TreeNode {
     /// Symbol type
     symbol: u32,
@@ -55,6 +102,8 @@ impl Tree {
             root,
             language: None,
             source: None,
+            #[cfg(feature = "incremental")]
+            last_edit: None,
         }
     }
 
@@ -75,6 +124,8 @@ impl Tree {
             },
             language: None,
             source: None,
+            #[cfg(feature = "incremental")]
+            last_edit: None,
         }
     }
 
@@ -103,20 +154,120 @@ impl Tree {
         self.source.as_deref()
     }
 
-    /// Apply an edit to the tree (for incremental parsing)
+    /// Apply an edit to the tree for incremental parsing.
+    ///
+    /// Updates all node byte ranges affected by the edit while maintaining tree structure
+    /// invariants. This is a foundational operation for incremental parsing that enables
+    /// efficient re-parsing of modified text.
+    ///
+    /// # Algorithm
+    ///
+    /// The editing algorithm processes each node based on its relationship to the edit:
+    /// - **Unaffected nodes** (end before edit start): No changes applied
+    /// - **Shifted nodes** (start after edit end): Shifted by the edit delta
+    /// - **Intersecting nodes**: Range expanded to encompass the edit region
+    ///
+    /// # Safety
+    ///
+    /// - Uses saturating arithmetic to prevent integer overflow during range calculations
+    /// - Maintains `start_byte <= end_byte` invariants for all nodes
+    /// - Handles edge cases like zero-length edits and large deletions safely
+    ///
+    /// # Arguments
+    ///
+    /// * `edit` - The input edit describing the text change with old and new byte ranges
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use rust_sitter_runtime::{Tree, InputEdit, Point};
+    /// # let mut tree = Tree::new_stub();
+    /// // Insert text: changes "hello" to "hello world"
+    /// let edit = InputEdit {
+    ///     start_byte: 5,      // After "hello"
+    ///     old_end_byte: 5,    // No deletion
+    ///     new_end_byte: 11,   // " world" added
+    ///     start_position: Point { row: 0, column: 5 },
+    ///     old_end_position: Point { row: 0, column: 5 },
+    ///     new_end_position: Point { row: 0, column: 11 },
+    /// };
+    ///
+    /// #[cfg(feature = "incremental")]
+    /// tree.edit(&edit);
+    /// // All nodes after byte 5 are now shifted by +6 bytes
+    /// ```
+    ///
+    /// ```no_run
+    /// # use rust_sitter_runtime::{Tree, InputEdit, Point};
+    /// # let mut tree = Tree::new_stub();
+    /// // Replace text: changes "foo" to "bar"
+    /// let edit = InputEdit {
+    ///     start_byte: 10,
+    ///     old_end_byte: 13,   // "foo" removed (3 bytes)
+    ///     new_end_byte: 13,   // "bar" added (3 bytes)
+    ///     start_position: Point { row: 1, column: 0 },
+    ///     old_end_position: Point { row: 1, column: 3 },
+    ///     new_end_position: Point { row: 1, column: 3 },
+    /// };
+    ///
+    /// #[cfg(feature = "incremental")]
+    /// tree.edit(&edit);
+    /// // Nodes intersecting bytes 10-13 are marked for re-parsing
+    /// ```
     #[cfg(feature = "incremental")]
     pub fn edit(&mut self, edit: &crate::InputEdit) {
-        // TODO: Implement tree editing
-        // 1. Update byte offsets in affected nodes
-        // 2. Mark dirty regions for re-parsing
-        // 3. Maintain tree structure invariants
-        let _ = edit;
-    }
+        let delta = edit.new_end_byte as isize - edit.old_end_byte as isize;
 
-    /// Get a copy of this tree
-    pub fn duplicate(&self) -> Self {
-        // TODO: Implement proper cloning
-        Self::new_stub()
+        fn apply_edit(node: &mut TreeNode, edit: &crate::InputEdit, delta: isize) {
+            // If the node ends before the edit start, it's unaffected.
+            if node.end_byte <= edit.start_byte {
+                return;
+            }
+
+            // If the node starts after the old edit end, shift it by the delta.
+            if node.start_byte >= edit.old_end_byte {
+                // Bounds checking to prevent integer overflow
+                if delta >= 0 {
+                    node.start_byte = node.start_byte.saturating_add(delta as usize);
+                    node.end_byte = node.end_byte.saturating_add(delta as usize);
+                } else {
+                    let abs_delta = (-delta) as usize;
+                    node.start_byte = node.start_byte.saturating_sub(abs_delta);
+                    node.end_byte = node.end_byte.saturating_sub(abs_delta);
+                }
+            } else {
+                // The node intersects the edit; adjust its range to encompass the change.
+                if node.start_byte > edit.start_byte {
+                    node.start_byte = edit.start_byte;
+                }
+
+                if node.end_byte >= edit.old_end_byte {
+                    // Bounds checking for intersecting nodes
+                    if delta >= 0 {
+                        node.end_byte = node.end_byte.saturating_add(delta as usize);
+                    } else {
+                        let abs_delta = (-delta) as usize;
+                        node.end_byte = node.end_byte.saturating_sub(abs_delta);
+                    }
+                } else if node.end_byte > edit.start_byte {
+                    node.end_byte = edit.start_byte;
+                }
+
+                // Ensure valid range invariant: start_byte <= end_byte
+                if node.start_byte > node.end_byte {
+                    node.end_byte = node.start_byte;
+                }
+            }
+
+            for child in &mut node.children {
+                apply_edit(child, edit, delta);
+            }
+        }
+
+        apply_edit(&mut self.root, edit, delta);
+
+        // Record the last edit so incremental parsing can reparse this region.
+        self.last_edit = Some(*edit);
     }
 
     /// Walk the tree with a callback
