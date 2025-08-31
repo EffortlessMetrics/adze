@@ -1,37 +1,5 @@
-error[E0603]: struct `StateId` is private
- --> tests/fixtures/missing_parse_table_fields.rs:4:48
-  |
-4 | use rust_sitter_glr_core::{ParseTable, Action, StateId, SymbolId};
-  |                                                ^^^^^^^ private struct
-  |
-note: the struct `StateId` is defined here
- --> src/lib.rs
-  |
-  | use rust_sitter_ir::*;
-  |     ^^^^^^^^^^^^^^
-help: import `StateId` directly
-  |
-4 | use rust_sitter_glr_core::{ParseTable, Action, rust_sitter_ir::StateId, SymbolId};
-  |                                                ++++++++++++++++
-
-error[E0603]: struct `SymbolId` is private
- --> tests/fixtures/missing_parse_table_fields.rs:4:57
-  |
-4 | use rust_sitter_glr_core::{ParseTable, Action, StateId, SymbolId};
-  |                                                         ^^^^^^^^ private struct
-  |
-note: the struct `SymbolId` is defined here
- --> src/lib.rs
-  |
-  | use rust_sitter_ir::*;
-  |     ^^^^^^^^^^^^^^
-help: import `SymbolId` directly
-  |
-4 | use rust_sitter_glr_core::{ParseTable, Action, StateId, rust_sitter_ir::SymbolId};
-  |                                                         ++++++++++++++++
-
-error[E0063]: missing fields `alias_sequences`, `dynamic_prec_by_rule`, `eof_symbol` and 16 other fields in initializer of `ParseTable`
- --> tests/fixtures/missing_parse_table_fields.rs:9:24
-  |
-9 |     let _parse_table = ParseTable {
-  |                        ^^^^^^^^^^ missing `alias_sequences`, `dynamic_prec_by_rule`, `eof_symbol` and 16 other fields
+error[E0063]: missing fields `alias_sequences`, `dynamic_prec_by_rule`, `eof_symbol` and 14 other fields in initializer of `ParseTable`
+  --> tests/fixtures/missing_parse_table_fields.rs:10:24
+   |
+10 |     let _parse_table = ParseTable {
+   |                        ^^^^^^^^^^ missing `alias_sequences`, `dynamic_prec_by_rule`, `eof_symbol` and 14 other fields

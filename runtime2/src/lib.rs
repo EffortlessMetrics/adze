@@ -44,6 +44,9 @@ pub use parser::Parser;
 pub use token::Token;
 pub use tree::Tree;
 
+#[cfg(feature = "incremental")]
+pub use tree::EditError;
+
 /// Input edit information for incremental parsing
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InputEdit {

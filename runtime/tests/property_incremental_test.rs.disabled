@@ -42,7 +42,7 @@ mod incremental_properties {
     use rust_sitter_glr_core::ParseTable;
     use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 
-    use super::common;
+    use crate::common;
 
     /// Strategy for generating source code strings
     fn source_strategy() -> impl Strategy<Value = String> {
