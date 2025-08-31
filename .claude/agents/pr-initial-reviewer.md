@@ -59,7 +59,7 @@ You will:
 - **Testing Strategy**: `just test` (core), `just matrix` (features), `just snap` (grammars), `just smoke` (ts-bridge)
 - **Quality Gates**: No `.rs.disabled` files, snapshot tests updated, GLR conflicts resolved, FFI compatibility maintained
 - **Build Tools**: `cargo xtask` (orchestration), `just` shortcuts, MSRV 1.89, Rust 2024 edition
-- **Local Verification**: No CI available - all validation must be local using scripts and just commands
+- **Local Verification**: No CI/GitHub Actions - all validation must be local using scripts and just commands
 
 **OUTPUT STRUCTURE**:
 ```
