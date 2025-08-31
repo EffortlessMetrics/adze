@@ -147,7 +147,15 @@ impl ExternalScanner {
 
 impl Default for ExternalScanner {
     fn default() -> Self {
-        Self::default()
+        Self {
+            states: std::ptr::null(),
+            symbol_map: std::ptr::null(),
+            create: None,
+            destroy: None,
+            scan: None,
+            serialize: None,
+            deserialize: None,
+        }
     }
 }
 

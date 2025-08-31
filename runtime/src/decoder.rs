@@ -165,7 +165,7 @@ pub fn decode_grammar_with_patterns(
     let mut tokens: IndexMap<SymbolId, Token> = IndexMap::new();
     let mut symbol_names = Vec::new();
     let mut externals = Vec::new();
-    let mut rule_names = IndexMap::new();
+    let rule_names = IndexMap::new();
 
     // Read all symbol names
     if lang.symbol_names.is_null() {
@@ -213,7 +213,7 @@ pub fn decode_grammar_with_patterns(
             );
         } else {
             // Non-terminal: ensure we have an entry in the rules map
-            rules.entry(symbol_id).or_insert_with(Vec::new);
+            rules.entry(symbol_id).or_default();
         }
     }
 

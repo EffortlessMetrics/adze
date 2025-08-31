@@ -652,6 +652,21 @@ pub fn build_indent_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> 
     // IMPORTANT: mark there is 1 external token (INDENT)
     lang.external_token_count = 1;
 
+    // Create external scanner symbol map for the INDENT token
+    let external_symbol_map = vec![1u16]; // INDENT token maps to symbol 1
+    let external_symbol_map = Box::leak(Box::new(external_symbol_map));
+
+    // Set up external scanner with proper symbol map
+    lang.external_scanner = ExternalScanner {
+        states: std::ptr::null(),
+        symbol_map: external_symbol_map.as_ptr(),
+        create: None,
+        destroy: None,
+        scan: None,
+        serialize: None,
+        deserialize: None,
+    };
+
     // Provide lex modes: state 0 => START, others => NORMAL
     let mut modes = vec![
         TSLexState {
