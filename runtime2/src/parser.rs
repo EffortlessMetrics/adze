@@ -1,6 +1,8 @@
 //! Parser implementation with Tree-sitter-compatible API
 
+#[cfg(feature = "glr-core")]
 use crate::builder::forest_to_tree;
+#[cfg(feature = "glr-core")]
 use crate::engine::parse_full as engine_parse_full;
 #[cfg(all(feature = "glr-core", feature = "incremental"))]
 use crate::engine::parse_incremental as engine_parse_incremental;
@@ -76,10 +78,8 @@ impl Parser {
         let language = unsafe { &*language_ptr };
 
         let tree = if let Some(old) = old_tree {
-            // Incremental parsing path
             self.parse_incremental(language, input, old)?
         } else {
-            // Full parse
             self.parse_full(language, input)?
         };
         let mut tree = tree;
@@ -114,7 +114,7 @@ impl Parser {
         input: &[u8],
         old_tree: &Tree,
     ) -> Result<Tree, ParseError> {
-        #[cfg(feature = "glr-core")]
+        #[cfg(all(feature = "glr-core", feature = "incremental"))]
         {
             // Optimization: return early if input hasn't changed
             if let Some(old_src) = old_tree.source_bytes() {
