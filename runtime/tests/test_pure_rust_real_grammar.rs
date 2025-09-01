@@ -23,21 +23,19 @@ mod pure_rust_real_grammar_tests {
         // let mut parser = Parser::new();
         // parser.set_language(language).unwrap();
 
-        // For now, just assert true to have a passing test
-        assert!(true, "Pure-rust parser test placeholder");
+        // For now, just a placeholder test
+        // Will be implemented when generated languages support pure-rust
     }
 
     #[test]
     fn test_incremental_parsing() {
         // Placeholder for incremental parsing test
         // Will be implemented when generated languages support pure-rust
-        assert!(true, "Pure-rust incremental test placeholder");
     }
 
     #[test]
     fn test_error_recovery() {
         // Placeholder for error recovery test
         // Will be implemented when generated languages support pure-rust
-        assert!(true, "Pure-rust error recovery test placeholder");
     }
 }

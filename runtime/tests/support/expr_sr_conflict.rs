@@ -4,6 +4,7 @@
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Build an expression grammar with shift/reduce conflicts (no precedence)
+#[allow(dead_code)]
 pub fn build_expr_sr_conflict() -> Grammar {
     let mut grammar = Grammar::new("expr_conflict".to_string());
 
@@ -124,6 +125,7 @@ pub fn build_expr_sr_conflict() -> Grammar {
 }
 
 /// Build the same grammar WITH precedence to compare
+#[allow(dead_code)]
 pub fn build_expr_with_precedence() -> Grammar {
     let mut grammar = Grammar::new("expr_precedence".to_string());
 

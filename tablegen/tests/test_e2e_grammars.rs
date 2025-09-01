@@ -1,10 +1,10 @@
 //! End-to-end tests for full grammar processing pipeline
 //! Tests nullable start (Python-like) and non-nullable (JavaScript-like) grammars
 
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::builder::GrammarBuilder;
+use rust_sitter_tablegen::TableCompressor;
 use rust_sitter_tablegen::helpers::{collect_token_indices, eof_accepts_or_reduces};
-use rust_sitter_tablegen::{CompressedTables, TableCompressor};
 
 #[test]
 fn test_python_like_nullable_start() {

@@ -42,7 +42,6 @@ impl Parser {
                 return Err(ParseError::with_msg("Language has no tokenizer"));
             }
         }
-        // TODO: Validate language version compatibility
         self.language = Some(language);
         Ok(())
     }
@@ -70,16 +69,22 @@ impl Parser {
         input: impl AsRef<[u8]>,
         old_tree: Option<&Tree>,
     ) -> Result<Tree, ParseError> {
-        let language = self.language.clone().ok_or(ParseError::no_language())?;
+        let language_ptr =
+            self.language.as_ref().ok_or(ParseError::no_language())? as *const Language;
 
         let input = input.as_ref();
 
-        let tree = if let Some(old) = old_tree {
-            self.parse_incremental(&language, input, old)?
-        } else {
-            self.parse_full(&language, input)?
-        };
+        // SAFETY: we only read from the language while holding an immutable reference
+        let language = unsafe { &*language_ptr };
 
+        let tree = if let Some(old) = old_tree {
+            self.parse_incremental(language, input, old)?
+        } else {
+            self.parse_full(language, input)?
+        };
+        let mut tree = tree;
+        tree.set_language(language.clone());
+        tree.set_source(input.to_vec());
         Ok(tree)
     }
 
@@ -92,13 +97,13 @@ impl Parser {
         #[cfg(feature = "glr-core")]
         {
             let forest = engine_parse_full(language, input)?;
-            return Ok(forest_to_tree(forest));
+            Ok(forest_to_tree(forest))
         }
 
         #[cfg(not(feature = "glr-core"))]
         {
             let _ = (language, input);
-            Ok(Tree::new_stub())
+            Err(ParseError::with_msg("GLR core feature not enabled"))
         }
     }
 
@@ -111,14 +116,20 @@ impl Parser {
     ) -> Result<Tree, ParseError> {
         #[cfg(all(feature = "glr-core", feature = "incremental"))]
         {
+            // Optimization: return early if input hasn't changed
+            if let Some(old_src) = old_tree.source_bytes() {
+                if old_src == input {
+                    return Ok(old_tree.clone());
+                }
+            }
             let forest = engine_parse_incremental(language, input, old_tree)?;
-            return Ok(forest_to_tree(forest));
+            Ok(forest_to_tree(forest))
         }
 
         #[cfg(not(feature = "glr-core"))]
         {
             let _ = (language, input, old_tree);
-            Ok(Tree::new_stub())
+            Err(ParseError::with_msg("GLR core feature not enabled"))
         }
     }
 

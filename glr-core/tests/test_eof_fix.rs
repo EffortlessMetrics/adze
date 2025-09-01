@@ -58,7 +58,7 @@ fn test_eof_normalization() {
 #[test]
 fn test_error_stats_not_stubbed() {
     // Create parse table with deliberate recovery scenario
-    let mut parse_table = ParseTable {
+    let parse_table = ParseTable {
         action_table: vec![
             // State 0
             vec![
@@ -143,11 +143,11 @@ fn test_error_stats_not_stubbed() {
     ]);
 
     match result {
-        Ok(forest) => {
+        Ok(_forest) => {
             // Get real stats - this should NOT return (false, 0, 0) from a stub
             #[cfg(feature = "test-api")]
             {
-                let (has_error, missing, cost) = forest.debug_error_stats();
+                let (has_error, missing, cost) = _forest.debug_error_stats();
 
                 // We expect recovery to have inserted the missing RBRACE
                 assert!(

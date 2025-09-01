@@ -469,7 +469,7 @@ mod tests {
 
     #[test]
     fn test_playground_features() {
-        let features = vec![
+        let features = [
             PlaygroundFeature::WebInterface(8080),
             PlaygroundFeature::CliInterface,
             PlaygroundFeature::Visualization,

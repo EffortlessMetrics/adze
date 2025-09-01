@@ -92,24 +92,19 @@ if git log --name-only --pretty=format: "@{u}.." | grep -q '\.rs\.disabled$'; th
 fi
 echo -e "${GREEN}✓${NC} No disabled test files in push"
 
-# Step 2: Ensure no unstaged changes before format check
-if ! git diff --quiet; then
-    echo -e "${RED}✖ Unstaged changes present${NC}"
-    echo "You have unstaged changes that could affect formatting checks."
-    echo "Please commit or stash all changes before pushing."
-    echo ""
-    git --no-pager status -s
-    exit 1
-fi
-
-# Step 3: Run full formatting check
-echo -e "${YELLOW}→${NC} Verifying code formatting..."
-if ! cargo fmt --all -- --check; then
-    echo -e "${RED}✖ Code formatting issues detected${NC}"
-    echo ""
-    echo "Please run 'cargo fmt --all' to fix formatting before pushing"
-    echo ""
-    exit 1
+# Step 2: Check and apply code formatting
+echo -e "${YELLOW}→${NC} Checking and applying code formatting..."
+if ! cargo fmt --all -- --check >/dev/null 2>&1; then
+    echo "   Applying formatting fixes..."
+    cargo fmt --all
+    if ! git diff --quiet; then
+        echo -e "${YELLOW}⚠${NC} Formatting changes applied - please commit these changes"
+        echo "The following files were reformatted:"
+        git diff --name-only | sed 's/^/  /'
+        echo ""
+        echo "Run: git add -A && git commit -m 'fix: apply rustfmt formatting'"
+        exit 1
+    fi
 fi
 echo -e "${GREEN}✓${NC} Code formatting verified"
 

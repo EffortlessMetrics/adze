@@ -3,6 +3,7 @@
 
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+#[allow(unused_imports)]
 use rust_sitter_tablegen::{
     AbiLanguageBuilder,
     abi::{TSLanguage, TSParseAction},

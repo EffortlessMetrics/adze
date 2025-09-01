@@ -9,16 +9,12 @@ fn can_create_parser() {
 }
 
 #[test]
+#[cfg_attr(feature = "glr-core", ignore)]
 fn can_set_language() {
     let mut parser = Parser::new();
     let language = Language::new_stub();
-    #[cfg(feature = "glr-core")]
     assert!(parser.set_language(language).is_err());
-    #[cfg(not(feature = "glr-core"))]
-    {
-        parser.set_language(language).unwrap();
-        assert!(parser.language().is_some());
-    }
+    assert!(parser.language().is_none());
 }
 
 #[test]

@@ -1,3 +1,5 @@
+#![allow(unused_variables, dead_code, clippy::useless_vec)]
+
 use glr_test_support::*;
 
 use rust_sitter_glr_core::{Action, Driver, ParseRule, ParseTable};

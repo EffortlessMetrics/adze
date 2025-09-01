@@ -138,7 +138,7 @@ fn test_forest_splicing_simple_edit() {
     let new_forest = parser.parse_incremental(&new_tokens, &[edit]).unwrap();
 
     // Verify that we got a valid parse tree
-    assert!(new_forest.alternatives.len() > 0);
+    assert!(!new_forest.alternatives.is_empty());
 
     // The forest should represent the expression "1 + 5 + 3"
     println!("Incremental parse successful!");
@@ -176,7 +176,7 @@ fn test_forest_splicing_prefix_reuse() {
     let new_forest = parser.parse_incremental(&new_tokens, &[edit]).unwrap();
 
     // Verify parsing succeeded
-    assert!(new_forest.alternatives.len() > 0);
+    assert!(!new_forest.alternatives.is_empty());
     println!("Prefix reuse test successful!");
 }
 
@@ -211,6 +211,6 @@ fn test_forest_splicing_suffix_reuse() {
     let new_forest = parser.parse_incremental(&new_tokens, &[edit]).unwrap();
 
     // Verify parsing succeeded
-    assert!(new_forest.alternatives.len() > 0);
+    assert!(!new_forest.alternatives.is_empty());
     println!("Suffix reuse test successful!");
 }

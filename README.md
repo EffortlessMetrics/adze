@@ -519,23 +519,47 @@ let mut parser = Parser::new(grammar, table)
 ```
 
 ### Incremental Parsing
-Efficiently reparse only changed portions of the document:
+Efficiently edit trees in-place and reparse only changed portions:
+
+**In-Place Tree Editing (PR #28)** - With comprehensive error handling:
+```rust
+#[cfg(feature = "incremental")]
+use rust_sitter_runtime2::{Tree, InputEdit, Point, EditError};
+
+// Apply edits directly to existing trees
+let edit = InputEdit {
+    start_byte: 10,
+    old_end_byte: 15,
+    new_end_byte: 20,
+    start_position: Point::new(0, 10),
+    old_end_position: Point::new(0, 15),
+    new_end_position: Point::new(0, 20),
+};
+
+// Safe editing with overflow protection
+match tree.edit(&edit) {
+    Ok(()) => println!("Tree updated successfully"),
+    Err(EditError::InvalidRange { start, old_end }) => {
+        println!("Invalid range: {}..{}", start, old_end);
+    },
+    Err(EditError::ArithmeticOverflow) => {
+        println!("Edit would cause overflow");
+    },
+    Err(EditError::ArithmeticUnderflow) => {
+        println!("Edit would cause underflow");
+    },
+}
+
+// Deep cloning for analysis
+let analysis_tree = tree.clone();
+```
+
+**Full Incremental Parsing**:
 ```rust
 use rust_sitter::incremental_v3::{IncrementalParser, Edit};
 
 let mut parser = IncrementalParser::new(grammar, table);
 let tree = parser.parse(source)?;
-
-// Apply an edit
-let edit = Edit {
-    start_byte: 10,
-    old_end_byte: 15,
-    new_end_byte: 20,
-    start_position: Position { row: 0, column: 10 },
-    old_end_position: Position { row: 0, column: 15 },
-    new_end_position: Position { row: 0, column: 20 },
-};
-
 let new_tree = parser.reparse(&tree, &edit, new_source)?;
 ```
 

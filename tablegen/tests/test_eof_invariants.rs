@@ -39,7 +39,7 @@ fn test_eof_in_token_indices() {
     // assert!(eof_accepts_or_reduces(&parse_table));
 
     // For 0.7.0, we validate that the functions exist and compile
-    assert!(true, "EOF invariant helpers are available");
+    // For 0.7.0, we validate that the functions exist and compile - no assertion needed
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
 use rust_sitter::ts_format::{TSActionTag, choose_action_with_precedence};
 use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, StateId, SymbolId};
+use rust_sitter_ir::{Grammar, StateId, Symbol, SymbolId};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::CString;
 use std::os::raw::c_void;
@@ -107,8 +107,10 @@ pub fn normalize_table_for_ts(table: &mut ParseTable) {
         }
     }
 
-    // Prefer highest SymbolId (commonly augmented start)
-    let start_nt = if let Some(s) = start_candidates.iter().max_by_key(|s| s.0) {
+    // Use pre-set start symbol if provided; otherwise, fall back to heuristic
+    let start_nt = if table.start_symbol != SymbolId(0) {
+        table.start_symbol
+    } else if let Some(s) = start_candidates.iter().max_by_key(|s| s.0) {
         *s
     } else {
         // Fallback: pick a LHS present in rules that's an NT
@@ -503,6 +505,29 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
     }
     let ts_rules = Box::leak(Box::new(ts_rules));
 
+    // Build alias sequences storing RHS symbol IDs for each rule
+    let mut sorted_rules: Vec<_> = grammar.rules.values().flat_map(|rs| rs.iter()).collect();
+    sorted_rules.sort_by_key(|r| r.production_id.0);
+
+    let max_rhs_len = sorted_rules.iter().map(|r| r.rhs.len()).max().unwrap_or(0);
+    let mut alias_map = Vec::new();
+    let mut alias_sequences = Vec::new();
+    for r in &sorted_rules {
+        alias_map.push(alias_sequences.len() as u16);
+        for sym in &r.rhs {
+            let sid = match sym {
+                Symbol::Terminal(t) | Symbol::NonTerminal(t) => *t,
+                _ => SymbolId(0),
+            };
+            alias_sequences.push(sid.0);
+        }
+        while alias_sequences.len() % max_rhs_len != 0 {
+            alias_sequences.push(0);
+        }
+    }
+    let alias_map = Box::leak(Box::new(alias_map));
+    let alias_sequences = Box::leak(Box::new(alias_sequences));
+
     // Build primary_state_ids array (all states are primary in our simple implementation)
     let primary_state_ids: Vec<u16> = (0..parse_table.state_count as u16).collect();
     let primary_state_ids = Box::leak(Box::new(primary_state_ids));
@@ -512,14 +537,14 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
     TSLanguage {
         version: 15,
         symbol_count: parse_table.index_to_symbol.len() as u32,
-        alias_count: 0,
+        alias_count: sorted_rules.len() as u32,
         token_count: parse_table.token_count as u32,
         external_token_count: parse_table.external_token_count as u32,
         state_count: parse_table.state_count as u32,
         large_state_count: parse_table.state_count as u32, // All states are large states
         production_id_count: 0,
         field_count: grammar.fields.len() as u32,
-        max_alias_sequence_length: 0,
+        max_alias_sequence_length: max_rhs_len as u16,
         production_id_map: std::ptr::null(),
         parse_table: full_parse_table.as_ptr(),
         small_parse_table: std::ptr::null(),
@@ -531,8 +556,8 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         field_map_entries: std::ptr::null(),
         symbol_metadata: symbol_metadata.as_ptr(),
         public_symbol_map: std::ptr::null(),
-        alias_map: std::ptr::null(),
-        alias_sequences: std::ptr::null(),
+        alias_map: alias_map.as_ptr(),
+        alias_sequences: alias_sequences.as_ptr(),
         lex_modes: lex_modes.as_ptr(),
         lex_fn: None, // Will be set per-grammar
         keyword_lex_fn: None,

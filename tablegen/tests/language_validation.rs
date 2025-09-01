@@ -1,4 +1,4 @@
-use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
+use rust_sitter_glr_core::{Action, GotoIndexing, ParseTable};
 use rust_sitter_ir::{FieldId, Grammar, StateId, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::validation::TSLanguage;
 use rust_sitter_tablegen::{

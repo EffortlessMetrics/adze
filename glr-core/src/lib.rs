@@ -57,9 +57,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// Error types and Result alias for GLR operations.
 pub mod error;
+pub use error::Result as GlrResult;
+
 /// Back-compat alias: prefer `GlrError`; `GLRError` remains for now.
 pub use GLRError as GlrError;
-pub use error::Result as GlrResult;
+
+// Re-export key types from rust-sitter-ir for API consumers
+pub use rust_sitter_ir::{Grammar, StateId, SymbolId};
 
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {
@@ -85,6 +89,7 @@ pub mod parse_forest;
 pub mod driver;
 pub mod forest_view;
 pub mod stack;
+/// Telemetry counters for tracking GLR parser operations.
 pub mod telemetry;
 pub mod ts_lexer;
 
@@ -112,9 +117,11 @@ pub mod symbol_comparison;
 pub mod version_info;
 
 #[cfg(test)]
+/// Utilities for constructing test parse tables and grammars.
 pub mod test_helpers;
 
 #[cfg(test)]
+/// Simple symbol allocator used in tests.
 pub mod test_symbol_alloc;
 
 #[doc(hidden)]
@@ -1829,6 +1836,11 @@ pub struct SymbolMetadata {
     pub visible: bool,
     pub named: bool,
     pub supertype: bool,
+    // Additional fields required by API contracts
+    pub is_terminal: bool,
+    pub is_extra: bool,
+    pub is_fragile: bool,
+    pub symbol_id: SymbolId,
 }
 
 /// Conflict detection and resolution
@@ -2669,12 +2681,17 @@ pub fn build_lr1_automaton(
     let mut symbol_metadata = Vec::new();
 
     // Add terminal symbols
-    for (_, token) in &grammar.tokens {
+    for (symbol_id, token) in &grammar.tokens {
         symbol_metadata.push(SymbolMetadata {
             name: token.name.clone(),
             visible: !token.name.starts_with('_'),
             named: !matches!(&token.pattern, TokenPattern::String(_)),
             supertype: false,
+            // Additional fields required by API contracts
+            is_terminal: true,
+            is_extra: grammar.extras.contains(symbol_id),
+            is_fragile: false, // TODO: implement fragile token detection
+            symbol_id: *symbol_id,
         });
     }
 
@@ -2686,6 +2703,11 @@ pub fn build_lr1_automaton(
             visible: true,
             named: true,
             supertype: is_supertype,
+            // Additional fields required by API contracts
+            is_terminal: false,
+            is_extra: false,   // non-terminals are never extra
+            is_fragile: false, // TODO: implement fragile token detection
+            symbol_id: *symbol_id,
         });
     }
 
@@ -2696,6 +2718,11 @@ pub fn build_lr1_automaton(
             visible: !external.name.starts_with('_'),
             named: true,
             supertype: false,
+            // Additional fields required by API contracts
+            is_terminal: true,             // external symbols are terminals
+            is_extra: false,               // TODO: check if external symbol is in extras
+            is_fragile: false,             // TODO: implement fragile token detection
+            symbol_id: external.symbol_id, // use external symbol ID
         });
     }
 
@@ -3170,12 +3197,21 @@ mod tests {
             visible: true,
             named: true,
             supertype: false,
+            // Additional fields required by API contracts
+            is_terminal: false,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(1),
         };
 
         assert_eq!(metadata.name, "expression");
         assert!(metadata.visible);
         assert!(metadata.named);
         assert!(!metadata.supertype);
+        assert!(!metadata.is_terminal);
+        assert!(!metadata.is_extra);
+        assert!(!metadata.is_fragile);
+        assert_eq!(metadata.symbol_id, SymbolId(1));
     }
 
     #[test]

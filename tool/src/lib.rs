@@ -105,7 +105,6 @@ pub fn build_parsers(root_file: &Path) {
                     println!("cargo:rerun-if-changed={}", result.parser_path);
                     println!("Built pure-Rust parser for {}", result.grammar_name);
                 }
-                return;
             }
             Err(e) => {
                 eprintln!("Failed to build pure-Rust parser: {}", e);
@@ -118,7 +117,8 @@ pub fn build_parsers(root_file: &Path) {
                 panic!("FATAL: Pure-Rust parser generation failed: {:#}", e);
             }
         }
-        return; // Critical: don't fall through to C generation
+        // Critical: don't fall through to C generation
+        return;
     }
 
     // If we get here, use C-based generation exclusively
@@ -510,6 +510,7 @@ mod tests {
             pub mod grammar {
                 #[rust_sitter::language]
                 pub struct NumberList {
+                    #[rust_sitter::repeat(non_empty = true)]
                     #[rust_sitter::delimited(
                         #[rust_sitter::leaf(text = ",")]
                         ()
@@ -546,6 +547,7 @@ mod tests {
             pub mod grammar {
                 #[rust_sitter::language]
                 pub struct NumberList {
+                    #[rust_sitter::repeat(non_empty = true)]
                     numbers: Vec<Number>,
                 }
 
@@ -676,6 +678,7 @@ mod tests {
 
                 #[rust_sitter::language]
                 pub struct NumberList {
+                    #[rust_sitter::repeat(non_empty = true)]
                     #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     numbers: Vec<Spanned<i32>>,
                 }

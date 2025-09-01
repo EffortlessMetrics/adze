@@ -62,6 +62,12 @@ pub struct SubtreePool {
     by_range: HashMap<Range<usize>, usize>, // byte_range -> node index
 }
 
+impl Default for SubtreePool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SubtreePool {
     /// Creates an empty subtree pool.
     pub fn new() -> Self {
