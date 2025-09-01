@@ -6,10 +6,13 @@
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TSActionTag {
+    /// Error action tag.
     Error = 0,
+    /// Shift action tag.
     Shift = 1,
+    /// Reduce action tag (Tree-sitter uses 3 for Reduce, not 2).
     Reduce = 3, // Tree-sitter uses 3 for Reduce (not 2)
-    // Tree-sitter uses 2 for "Recover" actions, which are not used in rust-sitter
+    /// Accept action tag (Tree-sitter uses 4 for Accept, not 3).
     Accept = 4, // Tree-sitter uses 4 for Accept (not 3)
 }
 

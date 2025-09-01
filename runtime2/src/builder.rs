@@ -6,12 +6,16 @@ use crate::tree::{Tree, TreeNode};
 #[cfg(feature = "glr-core")]
 use rust_sitter_glr_core::ForestView as CoreForestView;
 
+#[cfg(feature = "glr-core")]
 pub fn forest_to_tree(forest: Forest) -> Tree {
     match forest {
-        #[cfg(feature = "glr-core")]
         Forest::Glr(core) => build_from_glr(core),
-        _ => Tree::new_stub(),
     }
+}
+
+#[cfg(not(feature = "glr-core"))]
+pub fn forest_to_tree(_forest: Forest) -> Tree {
+    Tree::new_stub()
 }
 
 #[cfg(feature = "glr-core")]

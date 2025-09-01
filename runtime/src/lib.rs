@@ -13,6 +13,8 @@
 
 /// Private implementation details exposed for macro use only.
 pub mod __private;
+/// Concurrency caps for thread pools and parallel operations
+pub mod concurrency_caps;
 /// External scanner interface for custom tokenization.
 pub mod external_scanner;
 /// FFI bindings for external scanners.
@@ -171,10 +173,10 @@ pub use rust_sitter_macro::*;
     not(feature = "tree-sitter-c2rust"),
     not(feature = "pure-rust")
 ))]
-pub use tree_sitter_runtime_standard as tree_sitter;
+pub use tree_sitter;
 
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
-pub use tree_sitter_runtime_c2rust as tree_sitter;
+pub use tree_sitter_c2rust as tree_sitter;
 
 /// Tree-sitter compatibility module for pure-Rust implementation.
 #[cfg(feature = "pure-rust")]
@@ -535,10 +537,10 @@ pub mod errors {
         not(feature = "tree-sitter-c2rust"),
         not(feature = "pure-rust")
     ))]
-    use tree_sitter_runtime_standard as tree_sitter;
+    use tree_sitter;
 
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
-    use tree_sitter_runtime_c2rust as tree_sitter;
+    use tree_sitter_c2rust as tree_sitter;
 
     #[derive(Debug)]
     /// An explanation for an error that occurred during parsing.

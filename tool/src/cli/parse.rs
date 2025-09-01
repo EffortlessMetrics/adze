@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use serde_json::json;
 use std::fs;
 use std::path::Path;
 
@@ -18,7 +17,7 @@ pub enum OutputFormat {
 pub fn parse_file(
     file_path: &Path,
     parser_path: Option<&Path>,
-    format: OutputFormat,
+    _format: OutputFormat,
     _show_fields: bool,
     _show_stats: bool,
 ) -> Result<()> {

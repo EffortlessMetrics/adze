@@ -44,6 +44,7 @@ pub struct TSExternalScanner {
 
 #[cfg(feature = "external-scanners")]
 #[repr(C)]
+/// Function pointers bridging a Rust scanner to the C ABI expected by Tree-sitter.
 pub struct TSExternalScannerVTable {
     /// Create a new scanner instance
     pub create: unsafe extern "C" fn() -> *mut std::os::raw::c_void,

@@ -113,10 +113,10 @@ fn test_error_stats_not_stubbed() {
     ]);
 
     match result {
-        Ok(forest) => {
+        Ok(_forest) => {
             #[cfg(feature = "test-api")]
             {
-                let (has_error, missing, cost) = forest.debug_error_stats();
+                let (has_error, missing, cost) = _forest.debug_error_stats();
 
                 // THE CRITICAL ASSERTION: If error recovery happened, stats must show it
                 // This prevents regression to stub returning (false, 0, 0)
@@ -266,10 +266,10 @@ fn test_clean_parse_has_zero_errors() {
     ]);
 
     match result {
-        Ok(forest) => {
+        Ok(_forest) => {
             #[cfg(feature = "test-api")]
             {
-                let (has_error, missing, cost) = forest.debug_error_stats();
+                let (has_error, missing, cost) = _forest.debug_error_stats();
 
                 // Clean parse should have all zeros
                 assert_eq!(

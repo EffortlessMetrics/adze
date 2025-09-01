@@ -53,8 +53,11 @@
 //! use rust_sitter_glr_core::ParseTable;
 //!
 //! // Create parser with grammar and parse table
+//! # fn example() {
 //! let grammar: Grammar = /* ... */;
+//! # let grammar = Grammar::default();
 //! let parse_table: ParseTable = /* ... */;
+//! # let parse_table = ParseTable::default();
 //! let mut parser = GLRParser::new(grammar, parse_table);
 //!
 //! // Create lexer and tokenize input
@@ -72,6 +75,7 @@
 //!     Ok(tree) => println!("Parse successful!"),
 //!     Err(e) => println!("Parse failed: {}", e),
 //! }
+//! # }
 //! ```
 
 /// Default threshold for pointer-based dedup.
@@ -92,7 +96,7 @@ pub fn safe_dedup_threshold() -> usize {
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
-use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
+use rust_sitter_glr_core::{compare_versions, Action, CompareResult, ParseTable, VersionInfo};
 use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
@@ -1298,10 +1302,10 @@ impl GLRParser {
             }
         }
 
-        // Update telemetry
+        #[cfg_attr(not(feature = "glr_telemetry"), allow(unused_variables))]
+        let input_count = stacks.len() + out.len();
         #[cfg(feature = "glr_telemetry")]
         {
-            let input_count = stacks.len() + out.len();
             self.bump_telemetry(|t| {
                 t.tops_before_compress += input_count;
                 t.tops_after_compress += out.len();

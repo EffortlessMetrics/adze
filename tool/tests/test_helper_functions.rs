@@ -27,7 +27,7 @@ module.exports = grammar({
 
     // Check that the list rule was properly expanded
     println!("IR Grammar rules: {:?}", ir_grammar.rules.len());
-    assert!(ir_grammar.rules.len() > 0);
+    assert!(!ir_grammar.rules.is_empty());
 }
 
 #[test]
@@ -56,7 +56,7 @@ module.exports = grammar({
     let ir_grammar = converter.convert().expect("Failed to convert to IR");
 
     println!("Rules converted: {:?}", ir_grammar.rules.len());
-    assert!(ir_grammar.rules.len() > 0);
+    assert!(!ir_grammar.rules.is_empty());
 }
 
 #[test]

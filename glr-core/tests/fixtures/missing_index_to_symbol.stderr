@@ -1,5 +1,17 @@
-error[E0063]: missing field `index_to_symbol` in initializer of `ParseTable`
-  --> tests/fixtures/missing_index_to_symbol.rs:18:24
+error[E0063]: missing fields `named`, `supertype` and `visible` in initializer of `SymbolMetadata`
+  --> tests/fixtures/missing_index_to_symbol.rs:25:13
    |
-18 |     let _parse_table = ParseTable {
-   |                        ^^^^^^^^^^ missing `index_to_symbol`
+25 |             SymbolMetadata {
+   |             ^^^^^^^^^^^^^^ missing `named`, `supertype` and `visible`
+
+error[E0063]: missing fields `named`, `supertype` and `visible` in initializer of `SymbolMetadata`
+  --> tests/fixtures/missing_index_to_symbol.rs:32:13
+   |
+32 |             SymbolMetadata {
+   |             ^^^^^^^^^^^^^^ missing `named`, `supertype` and `visible`
+
+error[E0063]: missing fields `goto_indexing` and `index_to_symbol` in initializer of `ParseTable`
+  --> tests/fixtures/missing_index_to_symbol.rs:17:24
+   |
+17 |     let _parse_table = ParseTable {
+   |                        ^^^^^^^^^^ missing `goto_indexing` and `index_to_symbol`

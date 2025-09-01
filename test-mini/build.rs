@@ -1,6 +1,7 @@
 use std::path::Path;
 
 fn main() {
+    println!("cargo::rustc-check-cfg=cfg(rust_sitter_unsafe_attrs)");
     // Enable pure-rust parser generation
     // SAFETY: This is safe in a build script as it runs in a single-threaded context
     unsafe {

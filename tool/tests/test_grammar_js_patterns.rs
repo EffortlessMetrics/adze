@@ -77,6 +77,8 @@ fn test_real_grammar_patterns() {
     ];
 
     let temp_dir = TempDir::new().unwrap();
+    let grammar_regex =
+        regex::Regex::new(r"module\.exports\s*=\s*grammar\s*\(([\s\S]*)\)").unwrap();
 
     for (name, url) in grammars {
         println!("\nExamining {} grammar...", name);
@@ -85,7 +87,7 @@ fn test_real_grammar_patterns() {
             .join(format!("{}.grammar.js", name.to_lowercase()));
 
         let output = Command::new("curl")
-            .args(&["-s", "-o", path.to_str().unwrap(), url])
+            .args(["-s", "-o", path.to_str().unwrap(), url])
             .output()
             .expect("Failed to run curl");
 
@@ -108,8 +110,7 @@ fn test_real_grammar_patterns() {
                 println!("  Snippet: {}", snippet.replace('\n', " "));
 
                 // Check if it matches the expected pattern
-                let exports_regex =
-                    regex::Regex::new(r"module\.exports\s*=\s*grammar\s*\(([\s\S]*)\)").unwrap();
+                let exports_regex = &grammar_regex;
                 if exports_regex.is_match(&content) {
                     println!("  Regex match: YES");
                 } else {

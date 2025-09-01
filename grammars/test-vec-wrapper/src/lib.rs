@@ -1,3 +1,5 @@
+#![allow(clippy::empty_line_after_outer_attr, clippy::unnecessary_cast)]
+
 #[rust_sitter::grammar("test_vec_wrapper")]
 pub mod grammar {
     #[rust_sitter::language]

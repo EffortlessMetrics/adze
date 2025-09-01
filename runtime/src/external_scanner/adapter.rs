@@ -217,6 +217,7 @@ fn position_to_line_col(src: &[u8], pos: usize, line_starts: &[usize]) -> (u32, 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::external_scanner::Lexer;
 
     #[test]
     fn test_advance_crlf() {

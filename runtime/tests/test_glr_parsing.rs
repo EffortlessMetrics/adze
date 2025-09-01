@@ -317,7 +317,7 @@ fn test_glr_state_management() {
         let next_id = parser1.get_next_stack_id();
 
         // Create new parser and restore state
-        let mut parser2 = GLRParser::new(parse_table, grammar);
+        let mut parser2 = GLRParser::new(parse_table, grammar.clone());
         parser2.set_gss_state(saved_stacks);
         parser2.set_next_stack_id(next_id);
 
