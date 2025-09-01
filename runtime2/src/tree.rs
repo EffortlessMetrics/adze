@@ -306,7 +306,6 @@ impl Tree {
         Ok(())
     }
 
-
     /// Walk the tree with a callback
     #[allow(dead_code)]
     pub(crate) fn walk<F>(&self, mut callback: F)
@@ -456,11 +455,7 @@ mod tests {
         // Root has no parent
         assert!(!cursor.goto_parent());
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
     use crate::Point;
 
     #[cfg(feature = "incremental")]
