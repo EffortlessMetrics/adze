@@ -113,7 +113,7 @@ pub fn run_generate(
     debug: bool,
     pure_rust: bool,
 ) -> Result<()> {
-    use crate::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
+    use crate::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 
     println!("Generating parser from {:?}...", grammar);
 

@@ -6,7 +6,7 @@
 //! Build tool for rust-sitter parser generation
 
 use serde_json::Value;
-use syn::{parse_quote, Item};
+use syn::{Item, parse_quote};
 
 mod expansion;
 use expansion::*;
@@ -18,11 +18,11 @@ pub mod visualization;
 pub use visualization::GrammarVisualizer;
 
 pub mod grammar_js;
-pub use grammar_js::{parse_grammar_js, GrammarJsConverter};
+pub use grammar_js::{GrammarJsConverter, parse_grammar_js};
 
 pub mod pure_rust_builder;
 pub use pure_rust_builder::{
-    build_parser, build_parser_for_crate, build_parser_from_grammar_js, BuildOptions, BuildResult,
+    BuildOptions, BuildResult, build_parser, build_parser_for_crate, build_parser_from_grammar_js,
 };
 
 pub mod cli;
@@ -97,7 +97,7 @@ pub fn build_parsers(root_file: &Path) {
 
     if use_pure_rust {
         // Use pure-Rust builder exclusively
-        use pure_rust_builder::{build_parser_for_crate, BuildOptions};
+        use pure_rust_builder::{BuildOptions, build_parser_for_crate};
         let options = BuildOptions::default();
         match build_parser_for_crate(root_file, options) {
             Ok(results) => {
@@ -329,7 +329,7 @@ pub fn build_parsers(root_file: &Path) {
 mod tests {
     use syn::parse_quote;
 
-    use super::{generate_grammar, GENERATED_SEMANTIC_VERSION};
+    use super::{GENERATED_SEMANTIC_VERSION, generate_grammar};
     use tree_sitter_generate::generate_parser_for_grammar;
 
     #[test]
