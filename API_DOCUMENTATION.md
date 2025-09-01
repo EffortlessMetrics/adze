@@ -344,6 +344,109 @@ pub enum RecoveryAction {
 
 ## Incremental Parsing
 
+> **Feature Flag**: Incremental parsing capabilities require the `incremental` feature flag.
+> ```toml
+> [dependencies]
+> rust-sitter = { version = "0.6", features = ["incremental"] }
+> ```
+
+### `Tree` - Enhanced with Incremental Support
+```rust
+impl Tree {
+    /// Apply an edit to the tree for incremental parsing
+    /// Returns EditError if the edit operation would cause overflow/underflow
+    #[cfg(feature = "incremental")]
+    pub fn edit(&mut self, edit: &InputEdit) -> Result<(), EditError>;
+    
+    /// Deep clone a tree for non-destructive analysis
+    pub fn clone(&self) -> Self;
+    
+    /// Get the root node of the tree
+    pub fn root_node(&self) -> Node;
+    
+    /// Get the language used to parse this tree
+    pub fn language(&self) -> Option<&Language>;
+}
+```
+
+### `EditError` - Comprehensive Error Handling
+```rust
+#[cfg(feature = "incremental")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EditError {
+    /// Invalid byte range in edit operation
+    InvalidRange {
+        start: usize,
+        old_end: usize,
+    },
+    /// Arithmetic overflow during position calculation
+    ArithmeticOverflow,
+    /// Arithmetic underflow during position calculation  
+    ArithmeticUnderflow,
+}
+
+impl std::fmt::Display for EditError { /* ... */ }
+impl std::error::Error for EditError {}
+```
+
+**Error Conditions**:
+- `InvalidRange`: Occurs when `old_end_byte < start_byte` or `new_end_byte < start_byte`
+- `ArithmeticOverflow`: Prevents integer overflow during node position adjustments
+- `ArithmeticUnderflow`: Prevents integer underflow during large deletions
+
+### `InputEdit` - Tree Edit Operations
+```rust
+pub struct InputEdit {
+    pub start_byte: usize,
+    pub old_end_byte: usize,
+    pub new_end_byte: usize,
+    pub start_position: Point,
+    pub old_end_position: Point,
+    pub new_end_position: Point,
+}
+
+pub struct Point {
+    pub row: usize,
+    pub column: usize,
+}
+```
+
+### Incremental Parsing Workflow
+```rust
+use rust_sitter_runtime::{Tree, InputEdit, Point, EditError};
+
+// 1. Parse initial content
+let mut tree = parser.parse_utf8("fn main() {}", None)?;
+
+// 2. Create an edit operation
+let edit = InputEdit {
+    start_byte: 10,
+    old_end_byte: 11,  // Replace one character
+    new_end_byte: 15,  // With 4 characters
+    start_position: Point::new(0, 10),
+    old_end_position: Point::new(0, 11),
+    new_end_position: Point::new(0, 15),
+};
+
+// 3. Apply edit safely with error handling
+match tree.edit(&edit) {
+    Ok(()) => {
+        // Tree updated successfully - nodes marked dirty as needed
+        // Now reparse with the new source content
+        let new_tree = parser.parse_utf8("fn main() { println!(\"Hello\"); }", Some(&tree))?;
+    }
+    Err(EditError::InvalidRange { start, old_end }) => {
+        eprintln!("Invalid edit range: start={}, end={}", start, old_end);
+    }
+    Err(EditError::ArithmeticOverflow) => {
+        eprintln!("Edit would cause position overflow");
+    }
+    Err(EditError::ArithmeticUnderflow) => {
+        eprintln!("Edit would cause position underflow");
+    }
+}
+```
+
 ### `IncrementalParser`
 ```rust
 impl IncrementalParser {
@@ -357,29 +460,12 @@ impl IncrementalParser {
     pub fn reparse(
         &mut self,
         old_tree: &Tree,
-        edit: &Edit,
+        edit: &InputEdit,
         new_source: &str,
     ) -> Result<Tree>;
     
     /// Reset parser state
     pub fn reset(&mut self);
-}
-```
-
-### `Edit`
-```rust
-pub struct Edit {
-    pub start_byte: usize,
-    pub old_end_byte: usize,
-    pub new_end_byte: usize,
-    pub start_position: Position,
-    pub old_end_position: Position,
-    pub new_end_position: Position,
-}
-
-pub struct Position {
-    pub row: usize,
-    pub column: usize,
 }
 ```
 
@@ -714,6 +800,61 @@ pub struct PlaygroundFeatures {
 }
 ```
 
+## Feature Flags
+
+Rust-sitter uses feature flags to enable optional functionality. Configure features in your `Cargo.toml`:
+
+```toml
+[dependencies]
+rust-sitter = { version = "0.6", features = ["incremental", "external-scanners", "queries"] }
+```
+
+### Available Features
+
+#### Core Features (runtime2)
+- **`default`** = `["glr-core"]` - Enables GLR parser core integration
+- **`glr-core`** - GLR (Generalized LR) parser support for ambiguous grammars
+- **`incremental`** - Tree editing and incremental parsing capabilities (PR #28)
+- **`external-scanners`** - Support for custom external scanners (e.g., indentation)
+- **`queries`** - Tree-sitter style query language support
+- **`arenas`** - Arena allocators for improved performance
+
+#### Backend Features (runtime)
+- **`tree-sitter-c2rust`** (default) - Pure Rust Tree-sitter implementation, WASM-compatible
+- **`tree-sitter-standard`** - Standard C Tree-sitter runtime
+
+#### Development Features
+- **`stub-ts`** (ts-bridge) - Development mode with stubbed Tree-sitter libraries
+- **`with-grammars`** (ts-bridge) - Production mode with actual Tree-sitter grammars
+
+### Feature Compatibility
+
+**Incremental Parsing** (requires `incremental` feature):
+```rust
+#[cfg(feature = "incremental")]
+use rust_sitter_runtime::{Tree, InputEdit, EditError};
+
+#[cfg(feature = "incremental")]
+fn edit_tree(tree: &mut Tree, edit: InputEdit) -> Result<(), EditError> {
+    tree.edit(&edit)
+}
+
+#[cfg(not(feature = "incremental"))]
+fn edit_tree(_tree: &mut Tree, _edit: InputEdit) -> Result<(), EditError> {
+    Err("Incremental parsing not enabled".into())
+}
+```
+
+**WASM Compatibility**:
+- Use `tree-sitter-c2rust` feature for browser environments
+- Incremental parsing works in WASM with checked arithmetic safety
+- External scanners require WASM-compatible implementations
+
+**Performance Tuning**:
+- Enable `arenas` for reduced allocation overhead
+- Use `glr-core` for complex grammars with conflicts
+- Consider `external-scanners` for languages with significant whitespace semantics
+
 ## Thread Safety
 
 - `Grammar`: `Send + Sync`
@@ -721,6 +862,7 @@ pub struct PlaygroundFeatures {
 - `ExternalScanner`: `Send + Sync`
 - `Query`: `Send + Sync`
 - `ParseNode`: `Send + Sync`
+- `Tree`: `Send + Sync` (with incremental feature)
 - `GrammarTester`: `Send`
 - `Profiler`: `Send`
 - `PlaygroundServer`: `Send`

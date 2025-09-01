@@ -136,6 +136,14 @@ The runtime crate (`/runtime/`) now includes:
 - **`visitor.rs`** - Parse tree visitor API for traversal and analysis
 - **`serialization.rs`** - Tree serialization in multiple formats
 
+The runtime2 crate (`/runtime2/`) now includes:
+- **`tree.rs`** - Enhanced Tree implementation with incremental editing support
+  - Feature-gated incremental parsing via `#[cfg(feature = "incremental")]`
+  - Comprehensive `EditError` handling for overflow/underflow protection
+  - Deep cloning support for non-destructive tree analysis
+  - Checked arithmetic operations to prevent integer vulnerabilities
+  - Tree cursor API for efficient traversal
+
 The tool crate (`/tool/`) now includes:
 - **`visualization.rs`** - Grammar and tree visualization tools
 
@@ -159,7 +167,21 @@ The tool crate (`/tool/`) now includes:
    - Compile-time: Macros mark types but don't generate parser code
    - Build-time: Tool reads the marked types and generates actual parser
 
-3. **Environment Variables**:
+3. **Incremental Parsing Flow** (PR #28):
+   - Trees support in-place editing via `Tree::edit()` for efficient incremental parsing
+   - Edit operations validate ranges and use checked arithmetic to prevent overflow/underflow
+   - Nodes affected by edits are marked as "dirty" for selective re-parsing
+   - Deep cloning enables safe analysis without affecting original trees
+   - Feature-gated implementation allows optional dependency on incremental parsing
+
+   **Memory Safety Improvements**:
+   - All position arithmetic uses `checked_add()` and `checked_sub()` to prevent integer overflow/underflow
+   - Range validation prevents invalid edit operations that could corrupt tree structure
+   - Comprehensive `EditError` enum provides specific error types for debugging
+   - Recursive tree operations are bounded to prevent stack overflow on malformed inputs
+   - Deep cloning creates fully independent tree copies without shared references
+
+4. **Environment Variables**:
    - `RUST_SITTER_EMIT_ARTIFACTS=true`: Outputs generated grammar files to `target/debug/build/<crate>-<hash>/out/` for debugging
 
 ### Working with the Codebase
