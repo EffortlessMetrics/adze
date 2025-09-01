@@ -3,6 +3,43 @@
 use crate::{node::Node, Language};
 use std::fmt;
 
+/// Errors that can occur during tree editing operations
+#[cfg(feature = "incremental")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EditError {
+    /// Invalid byte range in edit operation
+    InvalidRange {
+        /// Start byte position
+        start: usize,
+        /// End byte position (old_end or new_end)
+        old_end: usize,
+    },
+    /// Arithmetic overflow during position calculation
+    ArithmeticOverflow,
+    /// Arithmetic underflow during position calculation  
+    ArithmeticUnderflow,
+}
+
+#[cfg(feature = "incremental")]
+impl fmt::Display for EditError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EditError::InvalidRange { start, old_end } => {
+                write!(f, "Invalid edit range: start={}, end={}", start, old_end)
+            }
+            EditError::ArithmeticOverflow => {
+                write!(f, "Arithmetic overflow during tree edit operation")
+            }
+            EditError::ArithmeticUnderflow => {
+                write!(f, "Arithmetic underflow during tree edit operation")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "incremental")]
+impl std::error::Error for EditError {}
+
 /// A parsed syntax tree.
 ///
 /// Represents the result of parsing source code into a structured syntax tree.
@@ -75,10 +112,14 @@ pub(crate) struct TreeNode {
     children: Vec<TreeNode>,
     /// Field ID if this node has a field name
     field_id: Option<u16>,
+    /// Whether this node has been affected by an edit
+    #[cfg(feature = "incremental")]
+    dirty: bool,
 }
 
 impl TreeNode {
     /// Create a new tree node with children
+    #[allow(dead_code)]
     pub(crate) fn new_with_children(
         symbol: u32,
         start_byte: usize,
@@ -91,12 +132,15 @@ impl TreeNode {
             end_byte,
             children,
             field_id: None,
+            #[cfg(feature = "incremental")]
+            dirty: false,
         }
     }
 }
 
 impl Tree {
     /// Create a new tree from a root node
+    #[allow(dead_code)]
     pub(crate) fn new(root: TreeNode) -> Self {
         Self {
             root,
@@ -121,6 +165,8 @@ impl Tree {
                 end_byte: 0,
                 children: vec![],
                 field_id: None,
+                #[cfg(feature = "incremental")]
+                dirty: false,
             },
             language: None,
             source: None,
@@ -154,120 +200,110 @@ impl Tree {
         self.source.as_deref()
     }
 
-    /// Apply an edit to the tree for incremental parsing.
-    ///
-    /// Updates all node byte ranges affected by the edit while maintaining tree structure
-    /// invariants. This is a foundational operation for incremental parsing that enables
-    /// efficient re-parsing of modified text.
-    ///
-    /// # Algorithm
-    ///
-    /// The editing algorithm processes each node based on its relationship to the edit:
-    /// - **Unaffected nodes** (end before edit start): No changes applied
-    /// - **Shifted nodes** (start after edit end): Shifted by the edit delta
-    /// - **Intersecting nodes**: Range expanded to encompass the edit region
-    ///
-    /// # Safety
-    ///
-    /// - Uses saturating arithmetic to prevent integer overflow during range calculations
-    /// - Maintains `start_byte <= end_byte` invariants for all nodes
-    /// - Handles edge cases like zero-length edits and large deletions safely
-    ///
-    /// # Arguments
-    ///
-    /// * `edit` - The input edit describing the text change with old and new byte ranges
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use rust_sitter_runtime::{Tree, InputEdit, Point};
-    /// # let mut tree = Tree::new_stub();
-    /// // Insert text: changes "hello" to "hello world"
-    /// let edit = InputEdit {
-    ///     start_byte: 5,      // After "hello"
-    ///     old_end_byte: 5,    // No deletion
-    ///     new_end_byte: 11,   // " world" added
-    ///     start_position: Point { row: 0, column: 5 },
-    ///     old_end_position: Point { row: 0, column: 5 },
-    ///     new_end_position: Point { row: 0, column: 11 },
-    /// };
-    ///
-    /// #[cfg(feature = "incremental")]
-    /// tree.edit(&edit);
-    /// // All nodes after byte 5 are now shifted by +6 bytes
-    /// ```
-    ///
-    /// ```no_run
-    /// # use rust_sitter_runtime::{Tree, InputEdit, Point};
-    /// # let mut tree = Tree::new_stub();
-    /// // Replace text: changes "foo" to "bar"
-    /// let edit = InputEdit {
-    ///     start_byte: 10,
-    ///     old_end_byte: 13,   // "foo" removed (3 bytes)
-    ///     new_end_byte: 13,   // "bar" added (3 bytes)
-    ///     start_position: Point { row: 1, column: 0 },
-    ///     old_end_position: Point { row: 1, column: 3 },
-    ///     new_end_position: Point { row: 1, column: 3 },
-    /// };
-    ///
-    /// #[cfg(feature = "incremental")]
-    /// tree.edit(&edit);
-    /// // Nodes intersecting bytes 10-13 are marked for re-parsing
-    /// ```
+    /// Apply an edit to the tree (for incremental parsing) - Enhanced with comprehensive error handling
     #[cfg(feature = "incremental")]
-    pub fn edit(&mut self, edit: &crate::InputEdit) {
-        let delta = edit.new_end_byte as isize - edit.old_end_byte as isize;
-
-        fn apply_edit(node: &mut TreeNode, edit: &crate::InputEdit, delta: isize) {
-            // If the node ends before the edit start, it's unaffected.
-            if node.end_byte <= edit.start_byte {
-                return;
-            }
-
-            // If the node starts after the old edit end, shift it by the delta.
-            if node.start_byte >= edit.old_end_byte {
-                // Bounds checking to prevent integer overflow
-                if delta >= 0 {
-                    node.start_byte = node.start_byte.saturating_add(delta as usize);
-                    node.end_byte = node.end_byte.saturating_add(delta as usize);
-                } else {
-                    let abs_delta = (-delta) as usize;
-                    node.start_byte = node.start_byte.saturating_sub(abs_delta);
-                    node.end_byte = node.end_byte.saturating_sub(abs_delta);
-                }
-            } else {
-                // The node intersects the edit; adjust its range to encompass the change.
-                if node.start_byte > edit.start_byte {
-                    node.start_byte = edit.start_byte;
-                }
-
-                if node.end_byte >= edit.old_end_byte {
-                    // Bounds checking for intersecting nodes
-                    if delta >= 0 {
-                        node.end_byte = node.end_byte.saturating_add(delta as usize);
-                    } else {
-                        let abs_delta = (-delta) as usize;
-                        node.end_byte = node.end_byte.saturating_sub(abs_delta);
-                    }
-                } else if node.end_byte > edit.start_byte {
-                    node.end_byte = edit.start_byte;
-                }
-
-                // Ensure valid range invariant: start_byte <= end_byte
-                if node.start_byte > node.end_byte {
-                    node.end_byte = node.start_byte;
-                }
-            }
-
-            for child in &mut node.children {
-                apply_edit(child, edit, delta);
-            }
+    pub fn edit(&mut self, edit: &crate::InputEdit) -> Result<(), EditError> {
+        // Validate edit parameters upfront
+        if edit.old_end_byte < edit.start_byte {
+            return Err(EditError::InvalidRange {
+                start: edit.start_byte,
+                old_end: edit.old_end_byte,
+            });
+        }
+        if edit.new_end_byte < edit.start_byte {
+            return Err(EditError::InvalidRange {
+                start: edit.start_byte,
+                old_end: edit.new_end_byte,
+            });
         }
 
-        apply_edit(&mut self.root, edit, delta);
+        fn safe_shift(node: &mut TreeNode, delta: isize) -> Result<(), EditError> {
+            // Use checked arithmetic to prevent overflow
+            if delta >= 0 {
+                let positive_delta = delta as usize;
+                node.start_byte = node
+                    .start_byte
+                    .checked_add(positive_delta)
+                    .ok_or(EditError::ArithmeticOverflow)?;
+                node.end_byte = node
+                    .end_byte
+                    .checked_add(positive_delta)
+                    .ok_or(EditError::ArithmeticOverflow)?;
+            } else {
+                let negative_delta = (-delta) as usize;
+                node.start_byte = node
+                    .start_byte
+                    .checked_sub(negative_delta)
+                    .ok_or(EditError::ArithmeticUnderflow)?;
+                node.end_byte = node
+                    .end_byte
+                    .checked_sub(negative_delta)
+                    .ok_or(EditError::ArithmeticUnderflow)?;
+            }
 
-        // Record the last edit so incremental parsing can reparse this region.
+            for child in node.children.iter_mut() {
+                safe_shift(child, delta)?;
+            }
+            Ok(())
+        }
+
+        fn safe_apply(node: &mut TreeNode, edit: &crate::InputEdit) -> Result<(), EditError> {
+            // Calculate delta with overflow protection
+            let delta = if edit.new_end_byte >= edit.old_end_byte {
+                (edit.new_end_byte - edit.old_end_byte) as isize
+            } else {
+                -((edit.old_end_byte - edit.new_end_byte) as isize)
+            };
+
+            if node.end_byte <= edit.start_byte {
+                // This node is completely before the edit; recurse to children in case
+                // they are after the edit (shouldn't happen if invariants hold).
+                for child in node.children.iter_mut() {
+                    safe_apply(child, edit)?;
+                }
+                return Ok(());
+            }
+
+            if node.start_byte >= edit.old_end_byte {
+                // Node is completely after the edit range; shift it forward/backward.
+                safe_shift(node, delta)?;
+                return Ok(());
+            }
+
+            // Node intersects edit. Mark dirty and adjust bounds.
+            #[cfg(feature = "incremental")]
+            {
+                node.dirty = true;
+            }
+            if node.start_byte > edit.start_byte {
+                node.start_byte = edit.start_byte;
+            }
+            if node.end_byte >= edit.old_end_byte {
+                // Use safe arithmetic for end_byte adjustment
+                if delta >= 0 {
+                    node.end_byte = node
+                        .end_byte
+                        .checked_add(delta as usize)
+                        .ok_or(EditError::ArithmeticOverflow)?;
+                } else {
+                    node.end_byte = node
+                        .end_byte
+                        .checked_sub((-delta) as usize)
+                        .ok_or(EditError::ArithmeticUnderflow)?;
+                }
+            } else {
+                node.end_byte = edit.new_end_byte;
+            }
+
+            for child in node.children.iter_mut() {
+                safe_apply(child, edit)?;
+            }
+            Ok(())
+        }
+
+        safe_apply(&mut self.root, edit)?;
         self.last_edit = Some(*edit);
+        Ok(())
     }
 
     /// Walk the tree with a callback
@@ -418,5 +454,210 @@ mod tests {
 
         // Root has no parent
         assert!(!cursor.goto_parent());
+    }
+
+    use crate::Point;
+
+    #[cfg(feature = "incremental")]
+    use super::EditError;
+
+    fn sample_tree() -> Tree {
+        let child1 = TreeNode::new_with_children(1, 0, 2, vec![]);
+        let child2 = TreeNode::new_with_children(2, 2, 5, vec![]);
+        let root = TreeNode::new_with_children(0, 0, 5, vec![child1, child2]);
+        Tree::new(root)
+    }
+
+    #[test]
+    fn clone_deep_copies_tree() {
+        let tree = sample_tree();
+        let mut cloned = tree.clone();
+        // Modify the clone's first child; original should remain unchanged
+        cloned.root.children[0].start_byte = 10;
+        assert_eq!(tree.root.children[0].start_byte, 0);
+    }
+
+    #[cfg(feature = "incremental")]
+    #[test]
+    fn edit_updates_ranges_and_marks_dirty() {
+        let mut tree = sample_tree();
+        let edit = crate::InputEdit {
+            start_byte: 2,
+            old_end_byte: 4,
+            new_end_byte: 6,
+            start_position: Point::new(0, 2),
+            old_end_position: Point::new(0, 4),
+            new_end_position: Point::new(0, 6),
+        };
+        tree.edit(&edit).expect("Edit should succeed");
+
+        // Root adjusted by +2 at end and marked dirty
+        assert_eq!(tree.root.start_byte, 0);
+        assert_eq!(tree.root.end_byte, 7);
+        assert!(tree.root.dirty);
+
+        // First child unaffected
+        let first = &tree.root.children[0];
+        assert_eq!(first.start_byte, 0);
+        assert_eq!(first.end_byte, 2);
+        assert!(!first.dirty);
+
+        // Second child overlaps edit and is marked dirty/shifted
+        let second = &tree.root.children[1];
+        assert_eq!(second.start_byte, 2);
+        assert_eq!(second.end_byte, 7);
+        assert!(second.dirty);
+    }
+
+    #[cfg(feature = "incremental")]
+    #[test]
+    fn edit_handles_edge_cases_safely() {
+        let mut tree = sample_tree();
+
+        // Test 1: Invalid range (old_end < start)
+        let invalid_edit = crate::InputEdit {
+            start_byte: 5,
+            old_end_byte: 3, // Invalid: less than start
+            new_end_byte: 8,
+            start_position: Point::new(0, 5),
+            old_end_position: Point::new(0, 3),
+            new_end_position: Point::new(0, 8),
+        };
+        assert!(matches!(
+            tree.edit(&invalid_edit),
+            Err(EditError::InvalidRange { .. })
+        ));
+
+        // Test 2: Large deletion (negative delta)
+        let large_deletion = crate::InputEdit {
+            start_byte: 1,
+            old_end_byte: 10,
+            new_end_byte: 1, // Deletes 9 characters
+            start_position: Point::new(0, 1),
+            old_end_position: Point::new(0, 10),
+            new_end_position: Point::new(0, 1),
+        };
+        tree.edit(&large_deletion)
+            .expect("Large deletion should succeed");
+
+        // Test 3: Zero-length edit (insertion)
+        let mut tree2 = sample_tree();
+        let insertion = crate::InputEdit {
+            start_byte: 3,
+            old_end_byte: 3, // Zero-length edit
+            new_end_byte: 8, // Insert 5 characters
+            start_position: Point::new(0, 3),
+            old_end_position: Point::new(0, 3),
+            new_end_position: Point::new(0, 8),
+        };
+        tree2.edit(&insertion).expect("Insertion should succeed");
+        assert_eq!(tree2.root.end_byte, 10); // Original 5 + 5 inserted
+    }
+
+    #[cfg(feature = "incremental")]
+    #[test]
+    fn edit_validates_input_ranges() {
+        let mut tree = sample_tree();
+
+        // Test invalid range where old_end < start
+        let invalid_edit = crate::InputEdit {
+            start_byte: 10,
+            old_end_byte: 5, // Invalid: less than start
+            new_end_byte: 8,
+            start_position: Point::new(0, 10),
+            old_end_position: Point::new(0, 5),
+            new_end_position: Point::new(0, 8),
+        };
+
+        let result = tree.edit(&invalid_edit);
+        assert!(matches!(
+            result,
+            Err(EditError::InvalidRange {
+                start: 10,
+                old_end: 5
+            })
+        ));
+
+        // Test invalid range where new_end < start
+        let invalid_edit2 = crate::InputEdit {
+            start_byte: 10,
+            old_end_byte: 15,
+            new_end_byte: 5, // Invalid: less than start
+            start_position: Point::new(0, 10),
+            old_end_position: Point::new(0, 15),
+            new_end_position: Point::new(0, 5),
+        };
+
+        let result2 = tree.edit(&invalid_edit2);
+        assert!(matches!(
+            result2,
+            Err(EditError::InvalidRange {
+                start: 10,
+                old_end: 5
+            })
+        ));
+    }
+
+    #[cfg(feature = "incremental")]
+    #[test]
+    fn edit_underflow_protection() {
+        let mut tree = Tree::new(TreeNode::new_with_children(
+            0,
+            10,
+            50,
+            vec![TreeNode::new_with_children(1, 20, 30, vec![])],
+        ));
+
+        // Large deletion that would cause underflow in naive implementation
+        let underflow_edit = crate::InputEdit {
+            start_byte: 5,
+            old_end_byte: 60, // Delete more than what exists
+            new_end_byte: 6,  // Replace with small content
+            start_position: Point::new(0, 5),
+            old_end_position: Point::new(0, 60),
+            new_end_position: Point::new(0, 6),
+        };
+
+        // The edit should either succeed safely or return underflow error
+        let result = tree.edit(&underflow_edit);
+        if let Err(EditError::ArithmeticUnderflow) = result {
+            // Expected case - underflow was detected and prevented
+        } else {
+            // If it succeeds, verify bounds are reasonable
+            result.expect("Edit should either succeed or return underflow error");
+            assert!(tree.root.start_byte <= tree.root.end_byte);
+        }
+    }
+
+    #[cfg(feature = "incremental")]
+    #[test]
+    fn edit_recursive_safety() {
+        // Test deep tree to ensure recursive operations are bounded
+        let mut deep_tree = TreeNode::new_with_children(0, 0, 100, vec![]);
+
+        // Create a deep nested structure
+        let mut current = &mut deep_tree;
+        for i in 1..50 {
+            let child =
+                TreeNode::new_with_children(i, (i * 2) as usize, (i * 2 + 10) as usize, vec![]);
+            current.children.push(child);
+            current = &mut current.children[0];
+        }
+
+        let mut tree = Tree::new(deep_tree);
+
+        // Apply edit that affects the entire tree
+        let edit = crate::InputEdit {
+            start_byte: 0,
+            old_end_byte: 5,
+            new_end_byte: 10,
+            start_position: Point::new(0, 0),
+            old_end_position: Point::new(0, 5),
+            new_end_position: Point::new(0, 10),
+        };
+
+        // This should complete without stack overflow
+        tree.edit(&edit).expect("Deep tree edit should succeed");
+        assert!(tree.root.dirty);
     }
 }

@@ -53,7 +53,8 @@ fn glr_smoke_table_construction() {
         nonterminal_to_index: BTreeMap::from([(SymbolId(2), 2)]),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         symbol_metadata: vec![],
-    };
+    }
+    .normalize_eof_to_zero();
 
     // Basic sanity checks
     assert_eq!(table.state_count, 2);
