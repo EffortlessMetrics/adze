@@ -52,13 +52,14 @@ fn glr_smoke_table_construction() {
         nonterminal_to_index: BTreeMap::from([(SymbolId(3), 3)]),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
         symbol_metadata: vec![],
-    };
+    }
+    .normalize_eof_to_zero();
 
     // Basic sanity checks
     assert_eq!(table.state_count, 2);
     assert_eq!(table.symbol_count, 4);
     assert_eq!(table.token_count, 2);
-    assert_eq!(table.eof_symbol, SymbolId(2));
+    assert_eq!(table.eof_symbol, SymbolId(0)); // EOF normalized to 0
     assert_eq!(table.start_symbol, SymbolId(3));
 
     // Verify we can create a driver (doesn't parse anything, just checks construction)
