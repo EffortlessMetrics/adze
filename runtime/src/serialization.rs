@@ -19,7 +19,7 @@ use tree_sitter::TreeCursor;
 use tree_sitter_c2rust::TreeCursor;
 
 #[cfg(feature = "serialization")]
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Serializable representation of a parse tree node
 #[derive(Debug, Clone, Serialize, Deserialize)]

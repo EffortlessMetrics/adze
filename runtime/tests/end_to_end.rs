@@ -359,10 +359,14 @@ fn test_lexer_error_recovery() {
 
     // Should have: number, space, error(@), space, number
     assert!(tokens.iter().any(|t| t.symbol == SymbolId(999))); // Has error token
-    assert!(tokens
-        .iter()
-        .any(|t| t.symbol == SymbolId(1) && t.text == b"123"));
-    assert!(tokens
-        .iter()
-        .any(|t| t.symbol == SymbolId(1) && t.text == b"456"));
+    assert!(
+        tokens
+            .iter()
+            .any(|t| t.symbol == SymbolId(1) && t.text == b"123")
+    );
+    assert!(
+        tokens
+            .iter()
+            .any(|t| t.symbol == SymbolId(1) && t.text == b"456")
+    );
 }
