@@ -1,19 +1,106 @@
-# Rust Sitter Performance Optimizations
+# Rust Sitter Performance Guide
 
-This document describes the performance optimizations implemented in rust-sitter.
+This document describes the performance optimizations implemented in rust-sitter, with a focus on the new GLR runtime2 capabilities.
 
 ## Overview
 
-Rust Sitter includes several performance optimizations that make it competitive with or faster than the C-based Tree-sitter implementation:
+Rust Sitter includes several performance optimizations that make it competitive with or faster than traditional parsers:
 
-1. **SIMD-Accelerated Lexing** - Up to 3x faster token scanning
-2. **Parallel Parsing** - Multi-threaded parsing for large files
-3. **Zero-Copy Parsing** - Minimal memory allocations
-4. **Incremental Parsing** - O(log n) complexity for edits
+1. **GLR Forest-to-Tree Conversion** - High-performance ambiguous parse handling
+2. **Incremental Parsing with Subtree Reuse** - O(log n) complexity for edits
+3. **Zero-Copy Parsing** - Minimal memory allocations with arena support
+4. **Performance Monitoring** - Built-in metrics for optimization
+5. **Bounded Concurrency** - Stable resource usage across machines
 
-## SIMD Lexer
+## GLR Performance Features (runtime2)
 
-The SIMD lexer (`simd_lexer` module) provides accelerated token scanning using:
+The GLR runtime2 provides comprehensive performance monitoring and optimization:
+
+### Forest-to-Tree Conversion Metrics
+
+Enable detailed conversion monitoring:
+
+```bash
+RUST_SITTER_LOG_PERFORMANCE=true cargo run
+```
+
+**Sample Output:**
+```
+🚀 Forest->Tree conversion: 1247 nodes, depth 23, took 2.1ms
+🚀 Forest->Tree conversion: 3891 nodes, depth 45, took 8.7ms
+```
+
+**Metrics Provided:**
+- **Node Count**: Total nodes processed during conversion (indicates parse complexity)
+- **Tree Depth**: Maximum depth of parse tree (stack usage estimation)
+- **Conversion Time**: Time spent converting GLR forest to Tree-sitter tree format
+- **Memory Usage**: Arena allocation tracking (when arenas feature enabled)
+
+### Performance Monitoring API
+
+```rust
+use rust_sitter_runtime::Parser;
+use std::time::Instant;
+
+let mut parser = Parser::new();
+parser.set_language(glr_language)?;
+
+let start = Instant::now();
+let tree = parser.parse_utf8(large_input, old_tree)?;
+let parse_time = start.elapsed();
+
+// Access internal metrics (when available)
+if let Some(metrics) = tree.conversion_metrics() {
+    println!("Nodes: {}, Depth: {}, Time: {:?}", 
+             metrics.node_count, metrics.depth, metrics.conversion_time);
+}
+```
+
+### Incremental Parsing Performance
+
+GLR incremental parsing provides sophisticated subtree reuse:
+
+```rust
+// Monitor subtree reuse effectiveness
+use rust_sitter_runtime::glr_incremental::{SUBTREE_REUSE_COUNT, reset_reuse_counter};
+use std::sync::atomic::Ordering;
+
+reset_reuse_counter();
+
+let tree1 = parser.parse_utf8("def main(): pass", None)?;
+let tree2 = parser.parse_utf8("def hello(): pass", Some(&tree1))?;
+
+let reused = SUBTREE_REUSE_COUNT.load(Ordering::SeqCst);
+println!("Reused {} subtrees during incremental parse", reused);
+```
+
+**Performance Characteristics:**
+- **Conservative Reuse**: Only reuses subtrees completely outside edit ranges
+- **Forest Splicing**: Direct forest node reuse for 3-4x improvement over snapshots
+- **Smart Fallback**: Automatically falls back to full parse when incremental isn't beneficial
+
+### Arena Allocators
+
+Enable arena allocators for parsing-heavy workloads:
+
+```toml
+[dependencies]
+rust-sitter-runtime = { version = "0.1", features = ["glr-core", "arenas"] }
+```
+
+**Benefits:**
+- Reduced allocation overhead during parsing
+- Better cache locality for parse tree nodes
+- Automatic cleanup when parser is reset
+
+```rust
+let mut parser = Parser::new();
+parser.reset(); // Clears arena and resets allocator
+```
+
+## Legacy Performance Features
+
+### SIMD Lexer (runtime)
 
 ### Optimizations
 

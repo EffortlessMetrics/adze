@@ -25,14 +25,32 @@ target/debug/build/*/out/
 └── node-types.json    # AST node type information
 ```
 
-## Backend Differences
+## Runtime Backends
 
-### Pure-Rust Backend
+### GLR Runtime (runtime2) - **Production Ready**
 
-The pure-Rust backend generates:
+The modern GLR runtime provides:
+- **Tree-sitter Compatible API**: Drop-in replacement with `Parser::new()`, `parse()`, etc.
+- **GLR Engine Integration**: Handles ambiguous grammars with multiple parse paths
+- **Incremental Parsing**: Automatic subtree reuse with conservative conflict avoidance
+- **Performance Monitoring**: Built-in metrics via `RUST_SITTER_LOG_PERFORMANCE`
+- **Feature Gates**: `glr-core`, `incremental`, `arenas` for different capabilities
+
+```rust
+use rust_sitter_runtime::{Parser, Language};
+
+let mut parser = Parser::new();
+parser.set_language(glr_language)?;  // Validates parse table presence
+let tree = parser.parse_utf8("def main(): pass", None)?;
+```
+
+### Pure-Rust Backend (runtime)
+
+The original pure-Rust backend generates:
 - Static parse tables as Rust constants
 - Compile-time optimized state machines
 - Zero runtime parser generation
+- WASM-compatible parsing
 
 ### C Backend
 
@@ -59,12 +77,29 @@ The parser uses LR(1) tables containing:
 - **Goto Table**: Maps (state, non-terminal) → state
 - **Reduce Table**: Production rules for reductions
 
-### GLR Extensions
+### GLR Extensions (Production Ready)
 
-GLR parsing adds:
-- **Fork States**: States where parsing can diverge
-- **Merge Points**: States where paths reconverge
-- **Conflict Resolution**: Dynamic precedence handling
+GLR parsing in runtime2 provides:
+- **Multi-Action Cells**: Each (state, symbol) pair can hold multiple conflicting actions
+- **Runtime Forking**: Parser dynamically forks on conflicts, exploring all valid paths
+- **Forest Management**: Efficient handling of ambiguous parse forests
+- **Tree Conversion**: High-performance forest-to-tree conversion with metrics
+- **Conflict Preservation**: Precedence/associativity orders actions but preserves alternatives
+
+**Example: Handling Ambiguous Grammar**
+```rust
+// Grammar with shift/reduce conflicts
+#[rust_sitter::language]
+struct Module {
+    statements: Vec<Statement>, // REPEAT(_statement) creates conflicts
+}
+
+// GLR parser handles both:
+// 1. Empty files (reduce to empty module)
+// 2. Files with statements (shift tokens)
+let tree = parser.parse_utf8("", None)?;          // Empty file
+let tree = parser.parse_utf8("def main():", None)?; // With statement
+```
 
 ## Debugging Generation
 
@@ -79,6 +114,18 @@ Shows:
 - Conflict detection
 - Table generation
 - Optimization decisions
+- GLR state construction
+
+### Enable Performance Monitoring
+
+```bash
+RUST_SITTER_LOG_PERFORMANCE=true cargo run
+```
+
+Outputs:
+```
+🚀 Forest->Tree conversion: 1247 nodes, depth 23, took 2.1ms
+```
 
 ### Inspect Generated Grammar
 
@@ -87,14 +134,26 @@ RUST_SITTER_EMIT_ARTIFACTS=true cargo build
 cat target/debug/build/*/out/grammar.json | jq
 ```
 
+### GLR-Specific Debugging
+
+```rust
+// Debug GLR parse table loading
+let language = Language::new_glr(parse_table, tokenizer, symbols);
+match language.validate_glr() {
+    Ok(()) => println!("GLR validation passed"),
+    Err(msg) => eprintln!("GLR validation failed: {}", msg),
+}
+```
+
 ## Common Issues
 
 ### Large Parse Tables
 
 Large grammars can generate big tables. Solutions:
-1. Enable the `optimize` feature
-2. Simplify grammar rules
-3. Use `Box` for recursive types
+1. Enable the `optimize` feature for table compression
+2. Simplify grammar rules and reduce conflicts
+3. Use `Box` for recursive types to reduce stack usage
+4. Consider using GLR runtime2 which handles complex grammars efficiently
 
 ### Slow Build Times
 
@@ -102,9 +161,33 @@ Parser generation can be slow for complex grammars:
 1. Use `cargo check` during development
 2. Enable incremental compilation
 3. Consider splitting large grammars
+4. Use runtime2 for faster development iteration
+
+### GLR Memory Usage
+
+GLR parsing uses more memory due to multiple parse paths:
+1. Enable `arenas` feature for better allocation performance
+2. Monitor forest-to-tree conversion metrics
+3. Use incremental parsing to reduce full parse frequency
+4. Consider parser timeouts for pathological inputs
+
+## Runtime Selection Guide
+
+### Choose runtime2 (GLR) when:
+- Parsing ambiguous grammars (C++, natural language)
+- Need incremental parsing performance
+- Want Tree-sitter API compatibility
+- Require robust conflict handling
+
+### Choose runtime (Pure Rust) when:
+- WASM deployment is critical
+- Grammar is unambiguous
+- Maximum performance for simple grammars
+- Minimal binary size requirements
 
 ## Next Steps
 
-- Learn about [Query and Pattern Matching](query-patterns.md)
-- Explore [Performance Optimization](performance.md)
+- Learn about [Incremental Parsing](incremental-parsing.md)
+- Explore [Performance Optimization](performance.md) 
 - Read about [Error Recovery](error-recovery.md)
+- Understand [GLR Ambiguity Handling](glr-ambiguity.md)

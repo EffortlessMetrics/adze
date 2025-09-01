@@ -151,7 +151,7 @@ struct Whitespace {
 ## Parser API
 
 ### `Parser` (GLR Runtime - `runtime2/`)
-The main parser API with Tree-sitter compatibility and GLR engine integration:
+The main parser API with Tree-sitter compatibility and production-ready GLR engine integration:
 
 ```rust
 impl Parser {
@@ -160,6 +160,7 @@ impl Parser {
     
     /// Set the language for parsing
     /// Validates GLR-specific requirements (parse table, tokenizer)
+    /// Returns error if language lacks parse table or tokenizer in GLR mode
     pub fn set_language(&mut self, language: Language) -> Result<(), ParseError>;
     
     /// Get the current language
@@ -168,36 +169,66 @@ impl Parser {
     /// Set a timeout for parsing operations
     pub fn set_timeout(&mut self, timeout: Duration);
     
+    /// Get the current timeout
+    pub fn timeout(&self) -> Option<Duration>;
+    
     /// Parse input bytes with optional incremental parsing
+    /// Automatically routes to GLR engine when glr-core feature is enabled
+    /// Falls back to full parse when incremental features are disabled
     pub fn parse(&mut self, input: impl AsRef<[u8]>, old_tree: Option<&Tree>) -> Result<Tree, ParseError>;
     
-    /// Parse UTF-8 string input
+    /// Parse UTF-8 string input with automatic validation
     pub fn parse_utf8(&mut self, input: &str, old_tree: Option<&Tree>) -> Result<Tree, ParseError>;
     
-    /// Reset the parser state
+    /// Reset the parser state (clears arenas if enabled)
     pub fn reset(&mut self);
 }
 ```
 
-**Feature Gates:**
-- **`glr-core`**: Enables GLR parsing engine and forest-to-tree conversion
-- **`incremental`**: Enables true incremental parsing with subtree reuse
-- **`incremental_glr`**: Combines GLR and incremental parsing features
+**GLR Integration Status**: **Production Ready** ✅
+- Complete GLR engine routing with Tree-sitter API compatibility
+- Feature-gated compilation for different GLR capabilities
+- Memory-safe GLR forest management with performance monitoring
+- Incremental parsing optimization with subtree reuse
 
-### `Language` Structure
+**Feature Gates:**
+- **`glr-core`**: Enables GLR parsing engine and forest-to-tree conversion (default)
+- **`incremental`**: Enables true incremental parsing with subtree reuse and edit operations
+- **`arenas`**: Enables arena allocators for improved memory performance
+- **`external-scanners`**: Support for custom external scanners (indentation, heredocs)
+- **`queries`**: Tree-sitter style query language support (future)
+
+### `Language` Structure (GLR-Compatible)
 ```rust
 pub struct Language {
     pub version: u32,
     pub symbol_count: usize,
     pub field_count: usize,
     pub max_alias_sequence_length: usize,
-    pub parse_table: Option<&'static ParseTable>,  // GLR parse table
-    pub tokenize: Option<Box<dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = Token> + 'a>>>,
+    
+    // GLR-specific fields (production ready)
+    pub parse_table: Option<&'static ParseTable>,  // Required for GLR parsing
+    pub tokenize: Option<Box<dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = Token> + 'a>>>,  // Required for GLR
+    
+    // Symbol and field metadata
     pub symbol_names: Vec<String>,
     pub symbol_metadata: Vec<SymbolMetadata>,
     pub field_names: Vec<String>,
+    
     #[cfg(feature = "external-scanners")]
     pub external_scanner: Option<Box<dyn ExternalScanner>>,
+}
+
+impl Language {
+    /// Create a new language with GLR support
+    pub fn new_glr(
+        parse_table: &'static ParseTable,
+        tokenizer: Box<dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = Token> + 'a>>,
+        symbol_metadata: Vec<SymbolMetadata>,
+    ) -> Self;
+    
+    /// Validate GLR requirements (parse table and tokenizer present)
+    pub fn validate_glr(&self) -> Result<(), String>;
 }
 ```
 
@@ -385,33 +416,41 @@ pub enum RecoveryAction {
 > rust-sitter = { version = "0.6", features = ["incremental_glr"] }       # GLR + incremental  
 > ```
 
-### GLR-Compatible Incremental Parsing
-The GLR integration provides true incremental parsing with sophisticated subtree reuse:
+### GLR-Compatible Incremental Parsing (Production Ready)
+The GLR runtime2 provides seamless incremental parsing through the standard Parser API:
 
 ```rust
-use rust_sitter_runtime::glr_incremental::{reparse, Edit, SUBTREE_REUSE_COUNT, reset_reuse_counter};
-use std::sync::atomic::Ordering;
+use rust_sitter_runtime::{Parser, Tree, InputEdit, Point};
 
-// Monitor subtree reuse effectiveness
-reset_reuse_counter();
+// Create parser with GLR language
+let mut parser = Parser::new();
+parser.set_language(glr_language)?;
 
-// Create an edit operation
-let edit = Edit::new(start_byte, old_end_byte, new_end_byte);
+// Initial parse
+let tree = parser.parse_utf8("def main(): pass", None)?;
 
-// Attempt GLR-aware incremental reparse
-if let Some(new_tree) = reparse(&grammar, &table, new_source, &old_tree, &edit) {
-    let reused_nodes = SUBTREE_REUSE_COUNT.load(Ordering::SeqCst);
-    println!("Reused {} subtrees during incremental parse", reused_nodes);
-} else {
-    // Fallback to full parse when incremental parsing isn't beneficial
-}
+// Create edit operation
+let edit = InputEdit {
+    start_byte: 4,
+    old_end_byte: 8,    // Replace "main"
+    new_end_byte: 12,   // With "hello_world"
+    start_position: Point { row: 0, column: 4 },
+    old_end_position: Point { row: 0, column: 8 },
+    new_end_position: Point { row: 0, column: 12 },
+};
+
+// Apply edit and reparse incrementally
+let mut new_tree = tree.clone();
+new_tree.edit(&edit)?;  // Mark dirty regions
+let incremental_tree = parser.parse_utf8("def hello_world(): pass", Some(&new_tree))?;
 ```
 
-**GLR Incremental Features:**
-- **Forest Splicing**: Direct forest node reuse for 3-4x performance improvement over GSS snapshots  
-- **Conservative Conflict Avoidance**: Only reuses subtrees completely outside edit ranges to maintain GLR correctness
-- **Ambiguity Preservation**: Maintains all parse alternatives during incremental edits
-- **Performance Monitoring**: `SUBTREE_REUSE_COUNT` tracks reuse effectiveness for optimization
+**GLR Incremental Features (Integrated into runtime2)**:
+- **Automatic Routing**: Parser automatically selects incremental vs full parse based on edit scope
+- **Conservative Reuse**: Only reuses subtrees completely outside edit ranges to maintain GLR correctness
+- **Performance Optimization**: Input comparison short-circuit for unchanged text
+- **Error Safety**: Comprehensive EditError handling prevents overflow/underflow
+- **Feature Gating**: Falls back gracefully when incremental features are disabled
 
 ### `Tree` - Enhanced with Incremental Support
 ```rust
@@ -722,28 +761,37 @@ pub struct FuzzConfig {
 
 ## Performance Analysis
 
-### GLR Performance Monitoring
-The GLR runtime includes built-in performance monitoring and optimization capabilities:
+### GLR Performance Monitoring (Production Ready)
+The runtime2 includes comprehensive performance monitoring and optimization:
 
 ```rust
 // Enable performance logging via environment variable
 std::env::set_var("RUST_SITTER_LOG_PERFORMANCE", "true");
 
-// Parse with performance monitoring
-let tree = parser.parse_utf8(input, old_tree)?;
+// Parse with automatic performance monitoring
+let mut parser = Parser::new();
+parser.set_language(glr_language)?;
+let tree = parser.parse_utf8(large_input, old_tree)?;
 // Console output: "🚀 Forest->Tree conversion: 1247 nodes, depth 23, took 2.1ms"
 ```
 
 **Environment Variables:**
 - `RUST_SITTER_LOG_PERFORMANCE=true`: Enables detailed forest-to-tree conversion metrics
-- `RUST_TEST_THREADS=N`: Controls test concurrency for stable benchmarking 
+- `RUST_TEST_THREADS=N`: Controls test concurrency for stable benchmarking
 - `RAYON_NUM_THREADS=N`: Limits parallel processing for predictable performance
 
-**GLR Performance Metrics:**
+**GLR Performance Metrics (Integrated):**
 - **Node Count**: Total nodes processed during forest-to-tree conversion
-- **Tree Depth**: Maximum depth of the parse tree for stack usage estimation  
+- **Tree Depth**: Maximum depth of the parse tree for stack usage estimation
 - **Conversion Time**: Time spent converting GLR forest to Tree-sitter tree format
-- **Subtree Reuse**: Count of reused nodes during incremental parsing (`SUBTREE_REUSE_COUNT`)
+- **Memory Usage**: Arena allocation tracking when arenas feature is enabled
+- **Parse Route**: Whether incremental or full parsing was selected
+
+**Performance Features:**
+- **Zero-Cost Abstractions**: Performance monitoring has no overhead when disabled
+- **Smart Caching**: Input comparison optimization prevents unnecessary reparsing
+- **Memory Efficiency**: Arena allocators reduce allocation overhead
+- **Bounded Concurrency**: Thread pool management prevents resource exhaustion
 
 ### `Profiler`
 ```rust
@@ -900,21 +948,26 @@ rust-sitter = { version = "0.6", features = ["incremental", "external-scanners",
 
 ### Available Features
 
-#### Core Features (runtime2)
+#### Core Features (runtime2) - Production Ready
 - **`default`** = `["glr-core"]` - Enables GLR parser core integration
-- **`glr-core`** - GLR (Generalized LR) parser support for ambiguous grammars
-- **`incremental`** - Tree editing and incremental parsing capabilities (PR #28)
-- **`external-scanners`** - Support for custom external scanners (e.g., indentation)
-- **`queries`** - Tree-sitter style query language support
-- **`arenas`** - Arena allocators for improved performance
+- **`glr-core`** - GLR (Generalized LR) parser support for ambiguous grammars with multi-action cells
+- **`incremental`** - Tree editing and incremental parsing with conservative subtree reuse
+- **`external-scanners`** - Support for custom external scanners (indentation, heredocs, etc.)
+- **`arenas`** - Arena allocators for improved memory performance during parsing
+- **`queries`** - Tree-sitter style query language support (future expansion)
 
-#### Backend Features (runtime)
+#### Combined Features (runtime2)
+- **`incremental_glr`** - Combines GLR and incremental parsing for maximum capabilities
+- **`all-features`** - Enables all available features for comprehensive functionality
+
+#### Backend Features (runtime) - Legacy
 - **`tree-sitter-c2rust`** (default) - Pure Rust Tree-sitter implementation, WASM-compatible
 - **`tree-sitter-standard`** - Standard C Tree-sitter runtime
 
 #### Development Features
 - **`stub-ts`** (ts-bridge) - Development mode with stubbed Tree-sitter libraries
 - **`with-grammars`** (ts-bridge) - Production mode with actual Tree-sitter grammars
+- **`test-api`** (glr-core) - Internal debug helpers for integration tests
 
 ### Feature Compatibility
 

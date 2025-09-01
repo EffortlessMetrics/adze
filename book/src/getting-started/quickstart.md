@@ -49,7 +49,13 @@ mod grammar {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create parser with GLR runtime (production ready)
+    use rust_sitter_runtime::Parser;
+    
+    let mut parser = Parser::new();
+    parser.set_language(grammar::language())?; // Generated GLR language
+    
     // Parse some expressions
     let expressions = vec![
         "42",
@@ -60,15 +66,50 @@ fn main() {
     
     for expr in expressions {
         println!("Parsing: {}", expr);
-        match grammar::parse(expr) {
-            Ok(ast) => println!("  Result: {:?}\n", ast),
+        match parser.parse_utf8(expr, None) {
+            Ok(tree) => {
+                let ast = grammar::extract_ast(&tree)?;
+                println!("  Result: {:?}\n", ast);
+            },
             Err(e) => println!("  Error: {}\n", e),
         }
     }
+    
+    // Demonstrate incremental parsing
+    let initial = "1 + 2";
+    let tree1 = parser.parse_utf8(initial, None)?;
+    println!("Initial parse: {}", initial);
+    
+    let updated = "10 + 20";
+    let tree2 = parser.parse_utf8(updated, Some(&tree1))?;  // Incremental!
+    println!("Incremental parse: {} (reused compatible subtrees)", updated);
+    
+    Ok(())
 }
 ```
 
-### Step 2: Run Your Parser
+### Step 2: Add Dependencies
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+rust-sitter = { version = "0.6", features = ["glr-core", "incremental"] }
+rust-sitter-runtime = "0.1"  # GLR runtime
+
+[build-dependencies]
+rust-sitter-tool = "0.6"
+```
+
+Create `build.rs`:
+
+```rust
+fn main() {
+    rust_sitter_tool::build_parsers().unwrap();
+}
+```
+
+### Step 3: Run Your Parser
 
 ```bash
 cargo run
@@ -101,7 +142,10 @@ Let's break down what each part does:
 mod grammar { ... }
 ```
 
-This creates a grammar named "arithmetic" and generates a `parse` function.
+This creates a grammar named "arithmetic" and generates:
+- A `language()` function returning a GLR-compatible `Language`
+- An `extract_ast()` function to convert parse trees to your AST types
+- Parser integration with runtime2's `Parser` API
 
 ### The Language Root
 
@@ -181,26 +225,57 @@ pub struct StringLiteral {
 
 ## Error Handling
 
-Rust-Sitter provides detailed error messages:
+The GLR runtime provides comprehensive error information:
 
 ```rust
-match grammar::parse("1 + + 2") {
-    Ok(ast) => println!("Parsed: {:?}", ast),
+match parser.parse_utf8("1 + + 2", None) {
+    Ok(tree) => {
+        match grammar::extract_ast(&tree) {
+            Ok(ast) => println!("Parsed: {:?}", ast),
+            Err(e) => println!("AST extraction error: {}", e),
+        }
+    },
     Err(e) => {
-        println!("Error at position {}: {}", e.position, e.message);
-        println!("Expected one of: {:?}", e.expected);
+        println!("Parse error: {}", e);
+        // GLR parsing can handle some syntax errors gracefully
+        if let Some(partial_tree) = e.partial_tree() {
+            println!("Partial parse available for error recovery");
+        }
     }
 }
 ```
 
+## Performance Monitoring
+
+Enable GLR performance metrics:
+
+```bash
+RUST_SITTER_LOG_PERFORMANCE=true cargo run
+```
+
+Outputs forest-to-tree conversion statistics:
+```
+🚀 Forest->Tree conversion: 247 nodes, depth 12, took 0.8ms
+```
+
+## GLR Features Available
+
+With runtime2, you get:
+
+- **Ambiguous Grammar Support**: Handle conflicts that traditional parsers reject
+- **Incremental Parsing**: Automatic subtree reuse for editor-like performance
+- **Error Recovery**: Partial parse trees available even with syntax errors
+- **Tree-sitter Compatibility**: Drop-in replacement for existing Tree-sitter usage
+- **Performance Monitoring**: Built-in metrics for optimization
+
 ## Next Steps
 
-Now that you've created your first grammar:
+Now that you've created your first GLR grammar:
 
-1. Read about [Grammar Definition](../guide/grammar-definition.md) for more complex patterns
-2. Learn about [Incremental Parsing](../guide/incremental-parsing.md) for editor integration
-3. Explore [Query and Pattern Matching](../guide/query-patterns.md) for code analysis
-4. Check out the [Grammar Examples](../reference/grammar-examples.md) for inspiration
+1. Read about [Parser Generation](../guide/parser-generation.md) to understand GLR vs Pure-Rust backends
+2. Learn about [Incremental Parsing](../guide/incremental-parsing.md) for real-time editor integration
+3. Explore [GLR Ambiguity Handling](../guide/glr-ambiguity.md) for complex grammar conflicts
+4. Check out [Performance Optimization](../guide/performance.md) for production deployment
 
 ## Tips for Success
 
@@ -208,4 +283,7 @@ Now that you've created your first grammar:
 2. **Test as You Go**: Write tests for each grammar rule
 3. **Use the Playground**: The interactive playground helps visualize parse trees
 4. **Check Examples**: The repository includes many example grammars
-5. **Enable Debug Output**: Set `RUST_LOG=debug` to see parser decisions
+5. **Enable Debug Output**: Set `RUST_LOG=debug` to see GLR parser decisions
+6. **Use Performance Monitoring**: Enable `RUST_SITTER_LOG_PERFORMANCE` for conversion metrics
+7. **Start with GLR Runtime**: runtime2 provides the most features and Tree-sitter compatibility
+8. **Test Incrementally**: Use incremental parsing for responsive applications
