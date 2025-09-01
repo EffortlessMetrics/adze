@@ -23,11 +23,12 @@ When cleaning up a PR, you will:
 
 2. **Execute Systematic Fixes**:
    
-   **Address GitHub Reviewer Feedback First**:
+   **Address GitHub Reviewer Feedback First** (with local verification):
    - Use `gh pr view <number>` and `gh pr review <number>` to fetch all reviewer comments
    - Parse feedback threads and map to specific code locations and actionable items
    - Reply to reviewer comments directly using `gh pr comment <number>` when fixes are implemented
    - Update PR labels and status as fixes are completed
+   - **Run local validation** for each fix using appropriate `just` commands
    
    **Grammar/Tool Issues**:
    - Fix macro expansion failures, grammar extraction panics, build-time generation issues
@@ -49,15 +50,15 @@ When cleaning up a PR, you will:
    - Fix test connectivity violations (remove `.rs.disabled` files, reconnect orphaned tests)
    - Address feature matrix failures and test harness issues
 
-3. **Post Comprehensive GitHub Status Updates**:
+3. **Post Comprehensive GitHub Status Updates** (Local verification workflow):
    Use `gh pr comment <number>` to post detailed cleanup reports:
 
 ```markdown
-## 🔧 PR Cleanup Complete - PR #<number>
+## 🔧 PR Cleanup Complete - PR #<number> (Local Verification)
 
 ### Issues Addressed
 **🔴 Critical Blockers Fixed**: [List with before/after]
-**🟡 Test Failures Resolved**: [Specific test cases and root causes]
+**🟡 Local Test Failures Resolved**: [Specific test cases and root causes]
 **📝 Reviewer Feedback Integrated**: [Reference to specific comment threads]
 
 ### Changes Made
@@ -65,13 +66,14 @@ When cleaning up a PR, you will:
 **GLR Engine Layer**: [Changes in `glr-core/`, `tablegen/` with performance impact]
 **Runtime/FFI Layer**: [Changes in `runtime/` with ABI compatibility notes]
 
-### Quality Assurance Results
-- ✅ `just test`: **X/Y tests passing** 
-- ✅ `just clippy`: **Zero warnings**
-- ✅ `just fmt`: **Formatting compliant**
-- ✅ Test Connectivity: **No `.rs.disabled` files**
+### Local Quality Assurance Results (CI/Actions disabled)
+- ✅ `just test`: **X/Y tests passing** (verified locally)
+- ✅ `just clippy`: **Zero warnings** (local lint check)
+- ✅ `just fmt`: **Formatting compliant** (local format check)
+- ✅ Test Connectivity: **No `.rs.disabled` files** (local script check)
 - ✅ Snapshot Tests: **Updated via `just snap`** (if applicable)
 - ✅ GitHub Reviews: **All reviewer feedback addressed**
+- **Note**: All checks performed locally - no CI validation available
 
 ### Next Steps & Agent Routing
 [Specific recommendation for next agent with context]

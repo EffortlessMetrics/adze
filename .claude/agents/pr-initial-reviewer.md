@@ -32,12 +32,13 @@ You will:
 - Workspace dependency cycles or MSRV/Rust 2024 edition compatibility issues
 - Grammar extraction or parser generation pipeline breakage
 
-**POST GITHUB STATUS UPDATES**:
+**POST GITHUB STATUS UPDATES** (CI/Actions disabled - local verification only):
 - Use `gh pr comment <number>` to post your initial triage assessment
-- Include severity classification: 🔴 **Critical Blockers**, 🟡 **Testing Required**, 🟢 **Ready for Review**
+- Include severity classification: 🔴 **Critical Blockers**, 🟡 **Local Testing Required**, 🟢 **Ready for Local Review**
 - Tag specific areas needing attention: `@Grammar-Changes`, `@FFI-Updates`, `@Test-Coverage`
-- Reference specific workspace crates affected and testing commands needed
-- Set PR labels using `gh pr edit <number> --add-label` for routing (e.g., `needs-testing`, `grammar-change`, `ffi-update`)
+- Reference specific workspace crates affected and **local** testing commands needed
+- Set PR labels using `gh pr edit <number> --add-label` for routing (e.g., `needs-local-testing`, `grammar-change`, `ffi-update`)
+- **Note**: All validation will be performed locally - no CI checks available
 
 **GUIDE NEXT AGENT SELECTION**:
 - **🔴 Critical Blockers Found**: Recommend immediate escalation to `pr-cleanup-reviewer` to fix before testing
@@ -59,7 +60,9 @@ You will:
 - **Testing Strategy**: `just test` (core), `just matrix` (features), `just snap` (grammars), `just smoke` (ts-bridge)
 - **Quality Gates**: No `.rs.disabled` files, snapshot tests updated, GLR conflicts resolved, FFI compatibility maintained
 - **Build Tools**: `cargo xtask` (orchestration), `just` shortcuts, MSRV 1.89, Rust 2024 edition
-- **Local Verification**: No CI available - all validation must be local using scripts and just commands
+- **Local-Only Workflow**: No CI/Actions available - **all validation must be local** using `just` commands and scripts
+- **GitHub Comments**: Post status updates and validation results as PR comments for transparency
+- **Verification Strategy**: Use `just pre`, `just test`, `just matrix` for comprehensive local validation
 
 **OUTPUT STRUCTURE**:
 ```
