@@ -61,17 +61,6 @@ fn alloc_production_id(grammar: &Grammar) -> Result<ProductionId> {
     Ok(ProductionId(next))
 }
 
-/// Allocate a valid SymbolId safely
-fn alloc_token_id(grammar: &Grammar) -> Result<SymbolId> {
-    let max_tok = grammar.tokens.keys().map(|k| k.0).max().unwrap_or(0);
-    let max_rule = grammar.rules.keys().map(|k| k.0).max().unwrap_or(0);
-    let max_id = max_tok.max(max_rule);
-    let next = max_id
-        .checked_add(1)
-        .context("too many symbols (u16 overflow)")?;
-    Ok(SymbolId(next))
-}
-
 /// Ensures every wrapper non-terminal that directly produces a pattern has an explicit unit rule N -> T.
 /// This guarantees LR items expose terminal lookaheads, enabling token shifts from initial states.
 ///
@@ -120,7 +109,7 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
     // Second pass: Look for existing unit rules that might need desugaring
     // (This handles cases where the wrapper has a rule but it's to an inline pattern)
     let mut rules_to_add = Vec::new();
-    for (nt_id, rules) in &grammar.rules {
+    for (_, rules) in &grammar.rules {
         for rule in rules {
             if rule.rhs.len() == 1 {
                 // This is a unit rule
@@ -176,15 +165,14 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
     if std::env::var("RUST_LOG")
         .unwrap_or_default()
         .contains("debug")
+        && !rules_to_add.is_empty()
     {
-        if !rules_to_add.is_empty() {
-            eprintln!(
-                "Desugaring: Added {} unit rules for pattern wrappers",
-                rules_to_add.len()
-            );
-            for (nt, tok) in rules_to_add {
-                eprintln!("  {} -> Terminal({})", nt.0, tok.0);
-            }
+        eprintln!(
+            "Desugaring: Added {} unit rules for pattern wrappers",
+            rules_to_add.len()
+        );
+        for (nt, tok) in rules_to_add {
+            eprintln!("  {} -> Terminal({})", nt.0, tok.0);
         }
     }
 
@@ -216,18 +204,17 @@ pub fn build_parser_from_grammar_js(
 
     // Convert to IR
     let converter = GrammarJsConverter::new(grammar_js);
-    let mut grammar = converter
+    let grammar = converter
         .convert()
         .context("Failed to convert grammar.js to IR")?;
 
     // Grammar converted successfully
 
-    // Optimize the grammar
     #[cfg(feature = "optimize")]
-    {
+    let grammar = {
         use rust_sitter_ir::optimizer::optimize_grammar;
-        grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
-    }
+        optimize_grammar(grammar).context("Failed to optimize grammar")?
+    };
 
     // Grammar optimized successfully
 
@@ -501,7 +488,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         .unwrap_or_default()
         .contains("debug")
     {
-        if let Some(state0_actions) = parse_table.action_table.get(0) {
+        if let Some(state0_actions) = parse_table.action_table.first() {
             eprintln!(
                 "State 0 debug: {} action cells, {} tokens",
                 state0_actions.len(),

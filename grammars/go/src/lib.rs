@@ -1,3 +1,12 @@
+#![allow(
+    clippy::empty_line_after_outer_attr,
+    clippy::manual_non_exhaustive,
+    clippy::op_ref,
+    clippy::char_lit_as_u8,
+    clippy::unnecessary_cast,
+    clippy::assertions_on_constants
+)]
+
 // Simplified Go grammar for rust-sitter v0.5.0-beta
 // This is a minimal subset to demonstrate basic functionality
 

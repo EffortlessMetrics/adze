@@ -2,6 +2,8 @@
 
 use crate::builder::forest_to_tree;
 use crate::engine::parse_full as engine_parse_full;
+#[cfg(all(feature = "glr-core", feature = "incremental"))]
+use crate::engine::parse_incremental as engine_parse_incremental;
 use crate::{error::ParseError, language::Language, tree::Tree};
 use std::time::Duration;
 
@@ -38,7 +40,6 @@ impl Parser {
                 return Err(ParseError::with_msg("Language has no tokenizer"));
             }
         }
-        // TODO: Validate language version compatibility
         self.language = Some(language);
         Ok(())
     }
@@ -81,7 +82,9 @@ impl Parser {
             // Full parse
             self.parse_full(language, input)?
         };
-
+        let mut tree = tree;
+        tree.set_language(language.clone());
+        tree.set_source(input.to_vec());
         Ok(tree)
     }
 
@@ -91,11 +94,17 @@ impl Parser {
     }
 
     fn parse_full(&mut self, language: &Language, input: &[u8]) -> Result<Tree, ParseError> {
-        let forest = engine_parse_full(language, input)?;
-        let mut tree = forest_to_tree(forest);
-        tree.language = Some(language.clone());
-        tree.source = Some(input.to_vec());
-        Ok(tree)
+        #[cfg(feature = "glr-core")]
+        {
+            let forest = engine_parse_full(language, input)?;
+            Ok(forest_to_tree(forest))
+        }
+
+        #[cfg(not(feature = "glr-core"))]
+        {
+            let _ = (language, input);
+            Err(ParseError::with_msg("GLR core feature not enabled"))
+        }
     }
 
     #[cfg(feature = "incremental")]
@@ -105,17 +114,22 @@ impl Parser {
         input: &[u8],
         old_tree: &Tree,
     ) -> Result<Tree, ParseError> {
-        if let Some(old_src) = old_tree.source.as_ref() {
-            if old_src.as_slice() == input {
-                return Ok(old_tree.clone());
+        #[cfg(feature = "glr-core")]
+        {
+            if let Some(old_src) = old_tree.source_bytes() {
+                if old_src == input {
+                    return Ok(old_tree.clone());
+                }
             }
+            let forest = engine_parse_incremental(language, input, old_tree)?;
+            Ok(forest_to_tree(forest))
         }
 
-        let forest = crate::engine::parse_incremental(language, input, old_tree)?;
-        let mut tree = forest_to_tree(forest);
-        tree.language = Some(language.clone());
-        tree.source = Some(input.to_vec());
-        Ok(tree)
+        #[cfg(not(feature = "glr-core"))]
+        {
+            let _ = (language, input, old_tree);
+            Err(ParseError::with_msg("GLR core feature not enabled"))
+        }
     }
 
     #[cfg(not(feature = "incremental"))]

@@ -5,5 +5,6 @@ pub struct Token {
     pub kind: u32,
     /// Byte range (half-open).
     pub start: u32,
+    /// Byte offset where the token ends.
     pub end: u32,
 }

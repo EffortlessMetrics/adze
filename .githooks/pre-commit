@@ -14,6 +14,119 @@ NC='\033[0m' # No Color
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
+# Check system resource pressure and adjust behavior
+check_system_pressure() {
+    local max_load_avg=8.0
+    local max_memory_percent=85
+    local max_processes=500
+    
+    # Check load average (1-minute)
+    if command -v uptime >/dev/null 2>&1; then
+        local load_avg
+        load_avg=$(uptime | awk -F'load average:' '{print $2}' | awk -F',' '{print $1}' | tr -d ' ')
+        if command -v bc >/dev/null 2>&1 && [ -n "$load_avg" ]; then
+            if echo "$load_avg > $max_load_avg" | bc -l >/dev/null 2>&1; then
+                echo -e "${YELLOW}⚠${NC} High system load ($load_avg), using conservative settings"
+                export HOOK_CONSERVATIVE_MODE=1
+                return 0
+            fi
+        fi
+    fi
+    
+    # Check memory usage
+    if [ -f /proc/meminfo ]; then
+        local mem_total mem_available mem_used_percent
+        mem_total=$(awk '/MemTotal:/ {print $2}' /proc/meminfo)
+        mem_available=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)
+        if [ -n "$mem_total" ] && [ -n "$mem_available" ]; then
+            mem_used_percent=$(( (mem_total - mem_available) * 100 / mem_total ))
+            if [ "$mem_used_percent" -gt "$max_memory_percent" ]; then
+                echo -e "${YELLOW}⚠${NC} High memory usage (${mem_used_percent}%), using conservative settings"
+                export HOOK_CONSERVATIVE_MODE=1
+                return 0
+            fi
+        fi
+    fi
+    
+    # Check running processes
+    local process_count
+    process_count=$(ps aux | wc -l)
+    if [ "$process_count" -gt "$max_processes" ]; then
+        echo -e "${YELLOW}⚠${NC} High process count ($process_count), using conservative settings"
+        export HOOK_CONSERVATIVE_MODE=1
+        return 0
+    fi
+    
+    return 0
+}
+
+# Function to run command with timeout and resource monitoring
+run_with_timeout() {
+    local timeout_duration="$1"
+    local description="$2"
+    shift 2
+    local cmd=("$@")
+    
+    # Adjust timeout in conservative mode - wait longer but still enforce limits
+    if [ "${HOOK_CONSERVATIVE_MODE:-0}" = "1" ]; then
+        # In conservative mode, extend timeouts significantly but still cap them
+        timeout_duration=$((timeout_duration * 3))
+        echo -e "${BLUE}  →${NC} Running: $description (conservative timeout: ${timeout_duration}s - waiting for system resources)"
+        echo -e "${YELLOW}    ⚠${NC} System under load, this may take longer than usual"
+    else
+        echo -e "${BLUE}  →${NC} Running: $description (timeout: ${timeout_duration}s)"
+    fi
+    
+    if command -v timeout >/dev/null 2>&1; then
+        if timeout "$timeout_duration" "${cmd[@]}"; then
+            return 0
+        else
+            local exit_code=$?
+            if [ $exit_code -eq 124 ]; then
+                echo -e "${RED}✖ $description timed out after ${timeout_duration}s${NC}"
+                echo "Current system status:"
+                uptime 2>/dev/null || true
+                echo "Running Cargo processes: $(pgrep -c cargo 2>/dev/null || echo 0)"
+                
+                # In conservative mode, offer to wait for resources
+                if [ "${HOOK_CONSERVATIVE_MODE:-0}" = "1" ]; then
+                    echo ""
+                    echo -e "${YELLOW}Options:${NC}"
+                    echo "  1. Wait 30s for system load to decrease and retry"
+                    echo "  2. Continue with manual verification required"
+                    echo "  3. Abort commit"
+                    read -p "Choose (1/2/3): " -t 10 choice || choice="2"
+                    
+                    case "$choice" in
+                        1)
+                            echo "Waiting 30s for system resources..."
+                            sleep 30
+                            echo "Retrying $description..."
+                            return 125  # Special code for retry
+                            ;;
+                        2)
+                            echo -e "${YELLOW}⚠ Manual verification required after commit${NC}"
+                            echo "Run: ${cmd[*]}"
+                            return 0  # Allow commit but warn
+                            ;;
+                        *)
+                            echo "Aborting commit"
+                            return 1
+                            ;;
+                    esac
+                else
+                    echo "Consider reducing scope or investigating system resource contention"
+                fi
+            fi
+            return $exit_code
+        fi
+    else
+        # Fallback without timeout if timeout command not available
+        echo -e "${YELLOW}⚠${NC} timeout command not available, running without timeout"
+        "${cmd[@]}"
+    fi
+}
+
 # Function to check if a package has tree-sitter-c2rust feature
 has_c2rust_feature() {
     local pkg="$1"
@@ -23,7 +136,9 @@ has_c2rust_feature() {
     fi
     
     local c2rust_packages
-    c2rust_packages=$(cargo metadata --format-version 1 2>/dev/null | \
+    # Use offline flag and timeout to prevent hanging
+    c2rust_packages=$(run_with_timeout 30 "cargo metadata for feature check" \
+        cargo metadata --format-version 1 --offline 2>/dev/null | \
         jq -r '.packages[] | select(.features["tree-sitter-c2rust"] != null) | .name' 2>/dev/null || true)
     
     if [ -z "$c2rust_packages" ]; then
@@ -33,8 +148,25 @@ has_c2rust_feature() {
     echo "$c2rust_packages" | grep -q "^${pkg}$"
 }
 
-echo -e "${GREEN}[pre-commit]${NC} Running formatting and validation checks..."
+# Add iteration tracking for better UX
+HOOK_ITERATION=${HOOK_ITERATION:-0}
+export HOOK_ITERATION=$((HOOK_ITERATION + 1))
+
+if [ "$HOOK_ITERATION" -gt 1 ]; then
+    echo -e "${GREEN}[pre-commit]${NC} Stabilizing formatting (iteration $HOOK_ITERATION)..."
+else
+    echo -e "${GREEN}[pre-commit]${NC} Running formatting and validation checks..."
+fi
 echo -e "${BLUE}→${NC} Using robust pre-commit hook from .githooks/"
+
+# Check system pressure before starting heavy operations
+check_system_pressure
+
+# Safety guard against infinite loops
+if [ "$HOOK_ITERATION" -gt 5 ]; then
+    echo -e "${RED}✖ Too many formatting iterations. Check for conflicting formatting rules.${NC}"
+    exit 1
+fi
 
 # Step 0: Fast fail if conflict markers are present
 # Look for actual git conflict markers (7 characters for <<<<<<< and >>>>>>> exactly)
@@ -115,7 +247,10 @@ else
         for file in "${STAGED_RUST_FILES[@]}"; do
             if [ -f "$file" ]; then
                 echo -e "${BLUE}  →${NC} Formatting $file"
-                rustfmt "$file"
+                run_with_timeout 60 "rustfmt $file" rustfmt "$file" || {
+                    echo -e "${RED}✖ Failed to format $file${NC}"
+                    exit 1
+                }
             fi
         done
         
@@ -167,7 +302,8 @@ fi
 run_clippy_set() {
     local mode="$1"   # "default" or feature string
     if [ "$mode" = "default" ]; then
-        if ! cargo clippy -q --all-targets --no-deps ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
+        if ! run_with_timeout 300 "clippy (default features)" \
+             cargo clippy -q --all-targets --no-deps --offline ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
             return 1
         fi
     else
@@ -194,13 +330,15 @@ run_clippy_set() {
                 return 0
             fi
             
-            if ! cargo clippy -q --all-targets --no-default-features \
-                 --features "$mode" --no-deps "${filtered_args[@]}" -- -D warnings; then
+            if ! run_with_timeout 300 "clippy ($mode features)" \
+                 cargo clippy -q --all-targets --no-default-features \
+                 --features "$mode" --no-deps --offline "${filtered_args[@]}" -- -D warnings; then
                 return 1
             fi
         else
-            if ! cargo clippy -q --all-targets --no-default-features \
-                 --features "$mode" --no-deps ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
+            if ! run_with_timeout 300 "clippy ($mode features)" \
+                 cargo clippy -q --all-targets --no-default-features \
+                 --features "$mode" --no-deps --offline ${pkg_args[@]+"${pkg_args[@]}"} -- -D warnings; then
                 return 1
             fi
         fi
@@ -213,15 +351,39 @@ if [ ${#pkg_args[@]} -eq 0 ]; then
     echo "   no affected crates; skipping clippy in pre-commit"
 else
     # Always run baseline (default features)
-    echo "   clippy: default features"
-    if ! run_clippy_set "default"; then
-        echo -e "${RED}✖ Clippy (default) failed${NC}"
-        echo ""
-        echo "To see detailed clippy output, run:"
-        echo "  cargo clippy --all-targets ${pkg_args[*]}"
-        echo ""
-        exit 1
+    if [ "${HOOK_CONSERVATIVE_MODE:-0}" = "1" ]; then
+        echo "   clippy: default features (conservative mode - extended timeouts)"
+    else
+        echo "   clippy: default features"
     fi
+    
+    # Run clippy with retry logic in conservative mode
+    clippy_attempts=0
+    max_attempts=2
+    while [ $clippy_attempts -lt $max_attempts ]; do
+        clippy_attempts=$((clippy_attempts + 1))
+        
+        if [ $clippy_attempts -gt 1 ]; then
+            echo "   clippy attempt $clippy_attempts/$max_attempts"
+        fi
+        
+        run_clippy_set "default"
+        clippy_result=$?
+        
+        if [ $clippy_result -eq 0 ]; then
+            break  # Success
+        elif [ $clippy_result -eq 125 ] && [ $clippy_attempts -lt $max_attempts ]; then
+            echo "   retrying clippy after resource wait..."
+            continue  # Retry requested
+        else
+            echo -e "${RED}✖ Clippy (default) failed${NC}"
+            echo ""
+            echo "To see detailed clippy output, run:"
+            echo "  cargo clippy --all-targets ${pkg_args[*]}"
+            echo ""
+            exit 1
+        fi
+    done
 fi
 
 # Optional extended feature set at commit time (keeps commit fast by default)

@@ -17,8 +17,8 @@ path = "src/lib.rs"
 [features]
 default = ["pure-rust"]
 pure-rust = ["rust-sitter-macro/pure-rust"]
-tree-sitter-c2rust = ["tree-sitter-runtime-c2rust"]
-tree-sitter-standard = ["tree-sitter-runtime-standard"]
+tree-sitter-c2rust = ["dep:tree-sitter-c2rust"]
+tree-sitter-standard = ["dep:tree-sitter"]
 wasm = ["wasm-bindgen", "pure-rust"]
 simd = ["pure-rust"]
 serialization = ["serde", "serde_json"] # Enable tree serialization
@@ -38,8 +38,8 @@ strict_api = [] # Enable strict API surface checking
 unstable-benches = [] # Enable benchmarks that depend on unstable APIs
 
 [dependencies]
-tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
-tree-sitter-runtime-standard = { package = "tree-sitter", version = "0.25.8", optional = true }
+tree-sitter-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
+tree-sitter = { version = "0.25.8", optional = true }
 rust-sitter-macro = { version = "0.8.0-dev", path = "../macro" }
 rust-sitter-ir = { version = "0.8.0-dev", path = "../ir" }
 rust-sitter-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
@@ -71,8 +71,8 @@ rust-sitter-python-simple = { path = "../grammars/python-simple" }
 rust-sitter-python = { path = "../grammars/python" }
 
 # Tree-sitter dependencies for ts-compat golden tests
-tree-sitter = "0.25.8"
 tree-sitter-json = "0.24.8"
+ts-bridge = { path = "../tools/ts-bridge" }
 
 [[bench]]
 name = "simple_bench"

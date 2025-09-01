@@ -1,9 +1,8 @@
 //! This test fixture intentionally omits the index_to_symbol field to ensure compile-time errors
 //! This helps catch regressions where ParseTable initializers forget required fields
 
-use rust_sitter_glr_core::{
-    Action, Grammar, LexMode, ParseTable, StateId, SymbolId, SymbolMetadata,
-};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
+use rust_sitter_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 fn main() {
@@ -21,20 +20,19 @@ fn main() {
         symbol_count: 2,
         symbol_to_index,
         // MISSING: index_to_symbol
+        goto_indexing: GotoIndexing::NonterminalMap,
         symbol_metadata: vec![
             SymbolMetadata {
                 name: "token".to_string(),
-                is_terminal: true,
-                is_extra: false,
-                is_fragile: false,
-                symbol_id: SymbolId(0),
+                visible: true,
+                named: false,
+                supertype: false,
             },
             SymbolMetadata {
                 name: "S".to_string(),
-                is_terminal: false,
-                is_extra: false,
-                is_fragile: false,
-                symbol_id: SymbolId(1),
+                visible: true,
+                named: true,
+                supertype: false,
             },
         ],
         external_scanner_states: vec![],

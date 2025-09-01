@@ -33,6 +33,7 @@ pub mod tree;
 mod builder;
 #[cfg(feature = "glr-core")]
 mod engine;
+/// Token types and lexing helpers.
 pub mod token;
 
 // Re-exports for convenience
@@ -43,6 +44,9 @@ pub use node::{Node, Point};
 pub use parser::Parser;
 pub use token::Token;
 pub use tree::Tree;
+
+#[cfg(feature = "incremental")]
+pub use tree::EditError;
 
 /// Input edit information for incremental parsing
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -9,9 +9,9 @@ fn test_debug_javascript_parsing() {
     let grammar_path = temp_dir.path().join("javascript.grammar.js");
 
     std::process::Command::new("curl")
-        .args(&[
-            "-s", 
-            "-o", 
+        .args([
+            "-s",
+            "-o",
             grammar_path.to_str().unwrap(),
             "https://raw.githubusercontent.com/tree-sitter/tree-sitter-javascript/master/grammar.js"
         ])

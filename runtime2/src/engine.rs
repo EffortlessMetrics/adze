@@ -8,6 +8,8 @@ use rust_sitter_glr_core::{Driver, Forest as CoreForest};
 pub enum Forest {
     #[cfg(feature = "glr-core")]
     Glr(CoreForest),
+    #[cfg(not(feature = "glr-core"))]
+    Stub,
 }
 
 pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseError> {

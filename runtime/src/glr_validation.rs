@@ -1,5 +1,6 @@
 //! Validation utilities for GLR parsing.
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+#![allow(dead_code, clippy::needless_range_loop, clippy::only_used_in_recursion)]
 
 // Enhanced grammar validation for GLR parser with detailed diagnostics
 // This module provides comprehensive validation with helpful error messages

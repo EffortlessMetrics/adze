@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop)]
+
 use std::fs;
 use tempfile::TempDir;
 

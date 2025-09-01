@@ -100,9 +100,7 @@ pub fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_glr_core::ParseTable;
     use rust_sitter_ir::{Grammar, SymbolId};
-    use std::collections::BTreeMap;
 
     #[test]
     fn test_collect_token_indices() {

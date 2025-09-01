@@ -20,7 +20,7 @@ fn external_indent_token_in_table() {
     support::language_builder::normalize_table_for_ts(&mut parse_table);
 
     // Check that INDENT token appears in the parse table
-    let indent_id = SymbolId(1);
+    let _indent_id = SymbolId(1);
     let mut indent_found = false;
     let mut indent_states = Vec::new();
 
@@ -67,7 +67,7 @@ fn external_token_language_generation() {
     );
 
     // Check that the language has the expected number of symbols
-    let total_symbols = grammar.tokens.len()
+    let _total_symbols = grammar.tokens.len()
         + grammar
             .rules
             .values()

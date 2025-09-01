@@ -268,21 +268,27 @@ impl<'a> QueryMatcher<'a> {
 
 /// Iterator over query matches
 pub struct QueryMatches<'a> {
+    #[allow(dead_code)]
     matcher: QueryMatcher<'a>,
+    #[allow(dead_code)]
     root: &'a ParseNode,
     #[allow(dead_code)]
     pattern_index: usize,
-    done: bool,
+    matches: Vec<QueryMatch>,
+    current_index: usize,
 }
 
 impl<'a> QueryMatches<'a> {
     /// Create a new query matches iterator
     pub fn new(query: &'a Query, root: &'a ParseNode, source: &'a str) -> Self {
+        let matcher = QueryMatcher::new(query, source);
+        let matches = matcher.matches(root);
         QueryMatches {
-            matcher: QueryMatcher::new(query, source),
+            matcher,
             root,
             pattern_index: 0,
-            done: false,
+            matches,
+            current_index: 0,
         }
     }
 }
@@ -291,22 +297,21 @@ impl<'a> Iterator for QueryMatches<'a> {
     type Item = QueryMatch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.done {
-            return None;
+        if self.current_index < self.matches.len() {
+            let match_item = self.matches[self.current_index].clone();
+            self.current_index += 1;
+            Some(match_item)
+        } else {
+            None
         }
-
-        // Get all matches (simplified - real implementation would be incremental)
-        let matches = self.matcher.matches(self.root);
-        self.done = true;
-
-        matches.into_iter().next()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::SymbolId;
+    use crate::query::compile_query;
+    use rust_sitter_ir::{Grammar, SymbolId, Token, TokenPattern};
 
     fn make_node(symbol: u16, start: usize, end: usize) -> ParseNode {
         let symbol_id = SymbolId(symbol);
@@ -320,46 +325,29 @@ mod tests {
         }
     }
 
+    fn create_test_grammar() -> Grammar {
+        let mut grammar = Grammar::new("test".to_string());
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "identifier".to_string(),
+                pattern: TokenPattern::Regex("[a-zA-Z]+".to_string()),
+                fragile: false,
+            },
+        );
+        grammar
+    }
+
     #[test]
     fn test_predicate_matching() {
         // Create a simple query with predicates
         let query_str = r#"
-            (identifier) @name
+            (identifier @name)
             (#eq? @name "test")
         "#;
 
-        // Mock symbol IDs
-        let identifier_symbol = SymbolId(1);
-
-        // Create a mock query (normally would use compile_query)
-        let mut query = Query {
-            source: query_str.to_string(),
-            patterns: vec![],
-            capture_names: HashMap::new(),
-            property_settings: vec![],
-            property_predicates: vec![],
-        };
-
-        query.capture_names.insert("name".to_string(), 0);
-
-        let pattern = Pattern {
-            root: PatternNode {
-                symbol: identifier_symbol,
-                children: vec![],
-                fields: HashMap::new(),
-                capture: Some(0),
-                is_named: true,
-                quantifier: Quantifier::One,
-            },
-            predicates: vec![Predicate::Eq {
-                capture1: 0,
-                capture2: None,
-                value: Some("test".to_string()),
-            }],
-            start_byte: 0,
-        };
-
-        query.patterns.push(pattern);
+        let grammar = create_test_grammar();
+        let query = compile_query(query_str, &grammar).unwrap();
 
         // Create test tree
         let source = "test other test";
@@ -385,5 +373,70 @@ mod tests {
         assert_eq!(matches.len(), 2);
         assert_eq!(matches[0].captures[0].node.start_byte, 0);
         assert_eq!(matches[1].captures[0].node.start_byte, 11);
+    }
+
+    #[test]
+    fn test_query_without_predicates() {
+        // Test that queries work without predicates as well
+        let query_str = "(identifier @name)";
+
+        let grammar = create_test_grammar();
+        let query = compile_query(query_str, &grammar).unwrap();
+
+        // Create test tree with three identifiers
+        let source = "foo bar baz";
+        let root = ParseNode {
+            symbol: SymbolId(0),
+            symbol_id: SymbolId(0),
+            children: vec![
+                make_node(1, 0, 3),  // "foo"
+                make_node(1, 4, 7),  // "bar"
+                make_node(1, 8, 11), // "baz"
+            ],
+            start_byte: 0,
+            end_byte: 11,
+            field_name: None,
+        };
+
+        // Match without predicates - should match all identifiers
+        let matcher = QueryMatcher::new(&query, source);
+        let matches = matcher.matches(&root);
+
+        assert_eq!(matches.len(), 3);
+        assert_eq!(matches[0].captures[0].node.start_byte, 0);
+        assert_eq!(matches[1].captures[0].node.start_byte, 4);
+        assert_eq!(matches[2].captures[0].node.start_byte, 8);
+    }
+
+    #[test]
+    fn test_empty_query_result() {
+        // Test a query that doesn't match anything
+        let query_str = r#"
+            (identifier @name)
+            (#eq? @name "nonexistent")
+        "#;
+
+        let grammar = create_test_grammar();
+        let query = compile_query(query_str, &grammar).unwrap();
+
+        let source = "test other test";
+        let root = ParseNode {
+            symbol: SymbolId(0),
+            symbol_id: SymbolId(0),
+            children: vec![
+                make_node(1, 0, 4),   // "test"
+                make_node(1, 5, 10),  // "other"
+                make_node(1, 11, 15), // "test"
+            ],
+            start_byte: 0,
+            end_byte: 15,
+            field_name: None,
+        };
+
+        let matcher = QueryMatcher::new(&query, source);
+        let matches = matcher.matches(&root);
+
+        // Should not match anything
+        assert_eq!(matches.len(), 0);
     }
 }

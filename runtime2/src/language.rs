@@ -1,5 +1,8 @@
 //! Language representation compatible with Tree-sitter
 
+#[cfg(feature = "glr-core")]
+type TokenizerFn = dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = crate::Token> + 'a>;
+
 /// A language definition containing parse tables and metadata
 pub struct Language {
     /// Language version for compatibility checking
@@ -17,7 +20,7 @@ pub struct Language {
     pub parse_table: ParseTable,
     /// Optional tokenizer. If absent, parsing will fail with a clear error.
     #[cfg(feature = "glr-core")]
-    pub tokenize: Option<Box<dyn Fn(&[u8]) -> Box<dyn Iterator<Item = crate::Token> + '_>>>,
+    pub tokenize: Option<Box<TokenizerFn>>,
     /// Symbol names
     pub symbol_names: Vec<String>,
     /// Symbol metadata
@@ -48,7 +51,12 @@ pub enum Action {
     /// Shift to state
     Shift(u16),
     /// Reduce by production
-    Reduce { symbol: u16, child_count: u8 },
+    Reduce {
+        /// Symbol produced by the reduction
+        symbol: u16,
+        /// Number of children consumed by the reduction
+        child_count: u8,
+    },
     /// Accept the input
     Accept,
     /// Error/invalid
@@ -166,14 +174,14 @@ impl Language {
     pub fn is_terminal(&self, symbol: u16) -> bool {
         self.symbol_metadata
             .get(symbol as usize)
-            .map_or(false, |m| m.is_terminal)
+            .is_some_and(|m| m.is_terminal)
     }
 
     /// Check if a symbol is visible
     pub fn is_visible(&self, symbol: u16) -> bool {
         self.symbol_metadata
             .get(symbol as usize)
-            .map_or(false, |m| m.is_visible)
+            .is_some_and(|m| m.is_visible)
     }
 }
 

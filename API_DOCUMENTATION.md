@@ -3,6 +3,8 @@
 Complete API reference for rust-sitter v0.6.0 - the production-ready pure-Rust parser generator with GLR support.
 
 > **Note**: This document covers the stable API. Some advanced features (queries, incremental parsing, serialization) are available under feature flags and their APIs may change before v1.0.
+> 
+> **v0.5+ Breaking Changes**: The `SymbolMetadata` struct has been updated for GLR compatibility. See [Migration Guide](./MIGRATION_GUIDE.md#symbolmetadata-struct-changes) for upgrade instructions.
 
 ## Table of Contents
 
@@ -19,6 +21,7 @@ Complete API reference for rust-sitter v0.6.0 - the production-ready pure-Rust p
 11. [Performance Analysis](#performance-analysis)
 12. [LSP Generation](#lsp-generation)
 13. [Playground API](#playground-api)
+14. [Thread Safety & Concurrency](#thread-safety)
 
 ## Core Types
 
@@ -75,6 +78,24 @@ pub struct ParseNode {
 ```
 
 A node in the parse tree.
+
+### `SymbolMetadata`
+```rust
+pub struct SymbolMetadata {
+    pub name: String,
+    pub visible: bool,     // Renamed from is_visible (v0.5+)
+    pub named: bool,       // New field (v0.5+)
+    pub hidden: bool,      // New field for extras (v0.5+)
+    pub terminal: bool,    // Renamed from is_terminal (v0.5+)
+    // GLR-specific extensions (v0.5+)
+    pub is_terminal: bool, // GLR core compatibility
+    pub is_extra: bool,    // Extra symbol marker
+    pub is_fragile: bool,  // Fragile token marker
+    pub symbol_id: SymbolId, // Symbol identifier
+}
+```
+
+Metadata for symbols in the grammar. **Breaking Change in v0.5**: Field names have been standardized (`is_visible` → `visible`, `is_terminal` → `terminal`) and new fields added for GLR compatibility. See [Migration Guide](./MIGRATION_GUIDE.md#symbolmetadata-struct-changes) for upgrade instructions.
 
 ## Grammar Definition
 
@@ -323,6 +344,109 @@ pub enum RecoveryAction {
 
 ## Incremental Parsing
 
+> **Feature Flag**: Incremental parsing capabilities require the `incremental` feature flag.
+> ```toml
+> [dependencies]
+> rust-sitter = { version = "0.6", features = ["incremental"] }
+> ```
+
+### `Tree` - Enhanced with Incremental Support
+```rust
+impl Tree {
+    /// Apply an edit to the tree for incremental parsing
+    /// Returns EditError if the edit operation would cause overflow/underflow
+    #[cfg(feature = "incremental")]
+    pub fn edit(&mut self, edit: &InputEdit) -> Result<(), EditError>;
+    
+    /// Deep clone a tree for non-destructive analysis
+    pub fn clone(&self) -> Self;
+    
+    /// Get the root node of the tree
+    pub fn root_node(&self) -> Node;
+    
+    /// Get the language used to parse this tree
+    pub fn language(&self) -> Option<&Language>;
+}
+```
+
+### `EditError` - Comprehensive Error Handling
+```rust
+#[cfg(feature = "incremental")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EditError {
+    /// Invalid byte range in edit operation
+    InvalidRange {
+        start: usize,
+        old_end: usize,
+    },
+    /// Arithmetic overflow during position calculation
+    ArithmeticOverflow,
+    /// Arithmetic underflow during position calculation  
+    ArithmeticUnderflow,
+}
+
+impl std::fmt::Display for EditError { /* ... */ }
+impl std::error::Error for EditError {}
+```
+
+**Error Conditions**:
+- `InvalidRange`: Occurs when `old_end_byte < start_byte` or `new_end_byte < start_byte`
+- `ArithmeticOverflow`: Prevents integer overflow during node position adjustments
+- `ArithmeticUnderflow`: Prevents integer underflow during large deletions
+
+### `InputEdit` - Tree Edit Operations
+```rust
+pub struct InputEdit {
+    pub start_byte: usize,
+    pub old_end_byte: usize,
+    pub new_end_byte: usize,
+    pub start_position: Point,
+    pub old_end_position: Point,
+    pub new_end_position: Point,
+}
+
+pub struct Point {
+    pub row: usize,
+    pub column: usize,
+}
+```
+
+### Incremental Parsing Workflow
+```rust
+use rust_sitter_runtime::{Tree, InputEdit, Point, EditError};
+
+// 1. Parse initial content
+let mut tree = parser.parse_utf8("fn main() {}", None)?;
+
+// 2. Create an edit operation
+let edit = InputEdit {
+    start_byte: 10,
+    old_end_byte: 11,  // Replace one character
+    new_end_byte: 15,  // With 4 characters
+    start_position: Point::new(0, 10),
+    old_end_position: Point::new(0, 11),
+    new_end_position: Point::new(0, 15),
+};
+
+// 3. Apply edit safely with error handling
+match tree.edit(&edit) {
+    Ok(()) => {
+        // Tree updated successfully - nodes marked dirty as needed
+        // Now reparse with the new source content
+        let new_tree = parser.parse_utf8("fn main() { println!(\"Hello\"); }", Some(&tree))?;
+    }
+    Err(EditError::InvalidRange { start, old_end }) => {
+        eprintln!("Invalid edit range: start={}, end={}", start, old_end);
+    }
+    Err(EditError::ArithmeticOverflow) => {
+        eprintln!("Edit would cause position overflow");
+    }
+    Err(EditError::ArithmeticUnderflow) => {
+        eprintln!("Edit would cause position underflow");
+    }
+}
+```
+
 ### `IncrementalParser`
 ```rust
 impl IncrementalParser {
@@ -336,29 +460,12 @@ impl IncrementalParser {
     pub fn reparse(
         &mut self,
         old_tree: &Tree,
-        edit: &Edit,
+        edit: &InputEdit,
         new_source: &str,
     ) -> Result<Tree>;
     
     /// Reset parser state
     pub fn reset(&mut self);
-}
-```
-
-### `Edit`
-```rust
-pub struct Edit {
-    pub start_byte: usize,
-    pub old_end_byte: usize,
-    pub new_end_byte: usize,
-    pub start_position: Position,
-    pub old_end_position: Position,
-    pub new_end_position: Position,
-}
-
-pub struct Position {
-    pub row: usize,
-    pub column: usize,
 }
 ```
 
@@ -693,6 +800,61 @@ pub struct PlaygroundFeatures {
 }
 ```
 
+## Feature Flags
+
+Rust-sitter uses feature flags to enable optional functionality. Configure features in your `Cargo.toml`:
+
+```toml
+[dependencies]
+rust-sitter = { version = "0.6", features = ["incremental", "external-scanners", "queries"] }
+```
+
+### Available Features
+
+#### Core Features (runtime2)
+- **`default`** = `["glr-core"]` - Enables GLR parser core integration
+- **`glr-core`** - GLR (Generalized LR) parser support for ambiguous grammars
+- **`incremental`** - Tree editing and incremental parsing capabilities (PR #28)
+- **`external-scanners`** - Support for custom external scanners (e.g., indentation)
+- **`queries`** - Tree-sitter style query language support
+- **`arenas`** - Arena allocators for improved performance
+
+#### Backend Features (runtime)
+- **`tree-sitter-c2rust`** (default) - Pure Rust Tree-sitter implementation, WASM-compatible
+- **`tree-sitter-standard`** - Standard C Tree-sitter runtime
+
+#### Development Features
+- **`stub-ts`** (ts-bridge) - Development mode with stubbed Tree-sitter libraries
+- **`with-grammars`** (ts-bridge) - Production mode with actual Tree-sitter grammars
+
+### Feature Compatibility
+
+**Incremental Parsing** (requires `incremental` feature):
+```rust
+#[cfg(feature = "incremental")]
+use rust_sitter_runtime::{Tree, InputEdit, EditError};
+
+#[cfg(feature = "incremental")]
+fn edit_tree(tree: &mut Tree, edit: InputEdit) -> Result<(), EditError> {
+    tree.edit(&edit)
+}
+
+#[cfg(not(feature = "incremental"))]
+fn edit_tree(_tree: &mut Tree, _edit: InputEdit) -> Result<(), EditError> {
+    Err("Incremental parsing not enabled".into())
+}
+```
+
+**WASM Compatibility**:
+- Use `tree-sitter-c2rust` feature for browser environments
+- Incremental parsing works in WASM with checked arithmetic safety
+- External scanners require WASM-compatible implementations
+
+**Performance Tuning**:
+- Enable `arenas` for reduced allocation overhead
+- Use `glr-core` for complex grammars with conflicts
+- Consider `external-scanners` for languages with significant whitespace semantics
+
 ## Thread Safety
 
 - `Grammar`: `Send + Sync`
@@ -700,15 +862,50 @@ pub struct PlaygroundFeatures {
 - `ExternalScanner`: `Send + Sync`
 - `Query`: `Send + Sync`
 - `ParseNode`: `Send + Sync`
+- `Tree`: `Send + Sync` (with incremental feature)
 - `GrammarTester`: `Send`
 - `Profiler`: `Send`
 - `PlaygroundServer`: `Send`
 
 Use `Arc<Grammar>` to share grammars across threads.
 
+### Concurrency Management (v0.5+)
+```rust
+use rust_sitter::concurrency_caps;
+
+/// Initialize bounded thread pools for stable performance
+pub fn init_concurrency_caps();
+
+/// Bounded parallel iteration with configurable concurrency
+pub fn bounded_parallel_map<T, R, F>(
+    items: Vec<T>, 
+    concurrency: usize, 
+    f: F
+) -> Vec<R>
+where
+    T: Send,
+    R: Send,
+    F: Fn(T) -> R + Send + Sync;
+```
+
+**Environment Variables** (configurable caps):
+- `RUST_TEST_THREADS`: Test parallelism (default: 2)
+- `RAYON_NUM_THREADS`: Rayon thread pool size (default: 4) 
+- `TOKIO_WORKER_THREADS`: Tokio async workers (default: 2)
+- `TOKIO_BLOCKING_THREADS`: Tokio blocking pool (default: 8)
+- `CARGO_BUILD_JOBS`: Parallel compilation (default: 4)
+
+**Usage**: Call `concurrency_caps::init_concurrency_caps()` once at startup for stable resource usage across machines.
+
 ## Version Compatibility
 
 - Tree-sitter ABI: v14-v15
-- Minimum Rust: 1.70.0
+- Minimum Rust: 1.89.0 (Rust 2024 Edition)
 - WASM targets: wasm32-unknown-unknown, wasm32-wasi
 - Supported platforms: Linux, macOS, Windows, WebAssembly
+
+**Recent Changes (August 2025)**:
+- Updated SymbolMetadata API for GLR compatibility (breaking change)
+- Added concurrency caps system for stable testing
+- Implemented grammar loading and parse table generation
+- Enhanced GLR parser infrastructure

@@ -320,21 +320,27 @@ impl<'a> QueryMatcher<'a> {
 
 /// Iterator over query matches
 pub struct QueryMatches<'a> {
+    #[allow(dead_code)]
     matcher: QueryMatcher<'a>,
+    #[allow(dead_code)]
     root: &'a ParseNode,
     #[allow(dead_code)]
     pattern_index: usize,
-    done: bool,
+    matches: Vec<QueryMatch>,
+    current_index: usize,
 }
 
 impl<'a> QueryMatches<'a> {
     /// Create a new query matches iterator
     pub fn new(query: &'a Query, root: &'a ParseNode) -> Self {
+        let matcher = QueryMatcher::new(query);
+        let matches = matcher.matches(root);
         QueryMatches {
-            matcher: QueryMatcher::new(query),
+            matcher,
             root,
             pattern_index: 0,
-            done: false,
+            matches,
+            current_index: 0,
         }
     }
 }
@@ -343,14 +349,12 @@ impl<'a> Iterator for QueryMatches<'a> {
     type Item = QueryMatch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.done {
-            return None;
+        if self.current_index < self.matches.len() {
+            let match_item = self.matches[self.current_index].clone();
+            self.current_index += 1;
+            Some(match_item)
+        } else {
+            None
         }
-
-        // Get all matches (simplified - real implementation would be incremental)
-        let matches = self.matcher.matches(self.root);
-        self.done = true;
-
-        matches.into_iter().next()
     }
 }

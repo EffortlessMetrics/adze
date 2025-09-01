@@ -1,6 +1,7 @@
 //! Test that JSON empty object {} parses correctly
 //! This tests the critical fix for Tree-sitter table extraction
 #![cfg(feature = "json-parity")]
+#![allow(unused_imports, clippy::needless_range_loop)]
 
 use rust_sitter_glr_core::{
     Action, ActionCell, Driver, LexMode, ParseRule, ParseTable, SymbolMetadata,

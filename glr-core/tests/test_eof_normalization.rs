@@ -10,5 +10,4 @@ fn test_eof_normalization_logic() {
     // rely on EOF=0 convention
 
     // See test_glr_conflicts.rs for tests that exercise EOF normalization
-    assert!(true);
 }
