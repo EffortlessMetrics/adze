@@ -26,8 +26,8 @@ use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::{Grammar, RuleId, SymbolId};
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 /// Simple edit descriptor for byte-based edits
 #[derive(Debug, Clone)]
@@ -321,14 +321,31 @@ impl ForestNode {
         self.byte_range.start < edit_range.end && self.byte_range.end > edit_range.start
     }
 
+    /// Check if this node's byte range overlaps with the given range
+    pub fn overlaps(&self, other: &Range<usize>) -> bool {
+        self.byte_range.start < other.end && self.byte_range.end > other.start
+    }
+
     /// Find reusable subtrees that don't overlap the edit
+    /// GLR-compatible implementation that collects valid subtrees for post-parse reuse
     pub fn find_reusable_subtrees(&self, edit_range: &Range<usize>) -> Vec<Arc<ForestNode>> {
-        // TEMPORARY: Disable all reuse to test if incremental parsing works without it
-        // The current approach of injecting subtrees during token processing is
-        // fundamentally incompatible with GLR forking. We need to redesign this
-        // to only reuse subtrees when building the final forest, not during parsing.
-        let _ = edit_range; // Suppress unused warning
-        Vec::new()
+        let mut reusable = Vec::new();
+
+        // Only collect subtrees that are completely outside the edit range
+        // This conservative approach ensures GLR forking compatibility
+        for alternative in &self.alternatives {
+            if !self.overlaps_edit(edit_range) {
+                // Check all children in this alternative
+                for child in &alternative.children {
+                    if !child.overlaps(edit_range) {
+                        // This child is completely unaffected by the edit
+                        reusable.push(child.clone());
+                    }
+                }
+            }
+        }
+
+        reusable
     }
 }
 

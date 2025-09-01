@@ -99,6 +99,9 @@ fn main() {
 - Repetitions and optionals
 - Pattern matching for tokens
 - Simple parsing
+- **GLR parsing** (ambiguous grammar support) ✨
+- **True incremental parsing** with subtree reuse ✨
+- **Performance monitoring** and optimization ✨
 
 ## Tips for Beta Users
 
@@ -106,6 +109,73 @@ fn main() {
 2. **Test Incrementally** - Build up your grammar piece by piece
 3. **Check Examples** - Look at the JavaScript, Python, and Go examples
 4. **Report Issues** - This is a beta, your feedback is valuable!
+
+## GLR Features & Performance
+
+### Using GLR Parsing
+Enable GLR parsing for ambiguous grammars:
+
+```toml
+[dependencies]
+rust-sitter = { version = "0.5.0-beta", features = ["glr-core"] }
+# Note: GLR runtime is currently in runtime2/ directory (not yet published)
+rust-sitter-runtime = { path = "../rust-sitter/runtime2", features = ["glr-core"] }
+```
+
+```rust
+use rust_sitter_runtime::Parser;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let language = my_language::language();
+    let mut parser = Parser::new();
+    parser.set_language(language)?;
+    
+    let tree = parser.parse_utf8("ambiguous input", None)?;
+    println!("Parsed with GLR: root kind = {}", tree.root_kind());
+    Ok(())
+}
+```
+
+### Incremental Parsing
+Enable true incremental parsing for large files:
+
+```toml
+[dependencies]
+rust-sitter = { version = "0.5.0-beta", features = ["incremental_glr"] }
+```
+
+```rust
+use rust_sitter_runtime::{Parser, glr_incremental};
+
+// Monitor reuse effectiveness
+glr_incremental::reset_reuse_counter();
+
+let old_tree = parser.parse_utf8("original content", None)?;
+let new_tree = parser.parse_utf8("modified content", Some(&old_tree))?;
+
+let reused = glr_incremental::get_reuse_count();
+println!("Reused {} subtrees during incremental parse", reused);
+```
+
+### Performance Optimization
+Enable performance monitoring to optimize your parser:
+
+```rust
+use std::env;
+
+// Enable detailed logging
+env::set_var("RUST_SITTER_LOG_PERFORMANCE", "true");
+
+// Parse with metrics
+let tree = parser.parse_utf8(large_input, None)?;
+// Output: "🚀 Forest->Tree conversion: 1247 nodes, depth 23, took 2.1ms"
+```
+
+**Optimization Tips:**
+- Use incremental parsing for large files or frequent edits
+- Monitor subtree reuse with `SUBTREE_REUSE_COUNT` 
+- Set `RUST_TEST_THREADS=2` for consistent benchmarking
+- Enable `RUST_SITTER_LOG_PERFORMANCE` during development
 
 ## Common Patterns
 

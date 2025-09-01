@@ -33,7 +33,7 @@ pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseErro
         let toks = tok_fn(input).map(|t| (t.kind, t.start, t.end));
 
         let forest = drv.parse_tokens(toks)?;
-        return Ok(Forest::Glr(forest));
+        Ok(Forest::Glr(forest))
     }
 
     #[cfg(not(feature = "glr-core"))]
@@ -43,6 +43,7 @@ pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseErro
     }
 }
 
+#[allow(dead_code)]
 pub fn parse_incremental(
     language: &Language,
     input: &[u8],

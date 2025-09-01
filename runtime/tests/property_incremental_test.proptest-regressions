@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 472143d1e0cf5967191f9cfc000f5e62627686506a4aadaf96de4ab286c27ec9 # shrinks to original = "0", (edit_pos, del_len, insert) = (0, 0, "")
+cc 7b33d14fd38e8b526d51604d65d492cb852d455e2ddc0658a58fde0dde586200 # shrinks to original = " ", edits = [(0, 0, "0")]

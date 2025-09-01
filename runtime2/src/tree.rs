@@ -456,6 +456,7 @@ mod tests {
         assert!(!cursor.goto_parent());
     }
 
+    #[allow(unused_imports)]
     use crate::Point;
 
     #[cfg(feature = "incremental")]

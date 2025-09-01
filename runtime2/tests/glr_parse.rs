@@ -37,6 +37,7 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
     let table: &'static _ = Box::leak(Box::new(table));
 
     let t_counter = counter.clone();
+    #[allow(clippy::type_complexity)]
     let tokenize: Box<dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = Token> + 'a>> = Box::new(
         move |input: &[u8]| -> Box<dyn Iterator<Item = Token> + '_> {
             t_counter.fetch_add(1, Ordering::SeqCst);
