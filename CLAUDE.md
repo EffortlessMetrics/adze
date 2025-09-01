@@ -387,7 +387,7 @@ Successfully transformed rust-sitter from a simple LR parser to a true GLR (Gene
    - **Grammar Loading Pipeline**: Completed parse table generation infrastructure for production use
 
 #### **GLR Runtime Integration - Production Complete** ✅ *(September 2025)*
-Successfully completed full GLR integration in runtime2 with PR #22 merge, delivering a production-ready parsing solution with Tree-sitter API compatibility and seamless incremental parsing.
+Successfully completed full GLR integration in runtime2 with PR #14 merge ("runtime2: wire parser to GLR engine"), delivering a production-ready parsing solution with Tree-sitter API compatibility and seamless incremental parsing.
 
 **Production Deployment Achievements:**
 1. **Complete GLR Runtime API**: Production-ready parser integration in `runtime2/src/parser.rs`
