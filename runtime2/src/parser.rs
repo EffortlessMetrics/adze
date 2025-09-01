@@ -4,6 +4,8 @@
 use crate::builder::forest_to_tree;
 #[cfg(feature = "glr-core")]
 use crate::engine::parse_full as engine_parse_full;
+#[cfg(all(feature = "glr-core", feature = "incremental"))]
+use crate::engine::parse_incremental as engine_parse_incremental;
 use crate::{error::ParseError, language::Language, tree::Tree};
 use std::time::Duration;
 
@@ -72,13 +74,9 @@ impl Parser {
 
         let input = input.as_ref();
 
-        // TODO: Implement actual GLR parsing
-        // For now, return a stub tree
         let tree = if let Some(old) = old_tree {
-            // Incremental parsing path
             self.parse_incremental(&language, input, old)?
         } else {
-            // Full parse
             self.parse_full(&language, input)?
         };
 
@@ -91,7 +89,6 @@ impl Parser {
     }
 
     fn parse_full(&mut self, language: &Language, input: &[u8]) -> Result<Tree, ParseError> {
-        // Use GLR engine if available
         #[cfg(feature = "glr-core")]
         {
             let forest = engine_parse_full(language, input)?;
@@ -101,7 +98,6 @@ impl Parser {
         #[cfg(not(feature = "glr-core"))]
         {
             let _ = (language, input);
-            // Fallback stub implementation
             Ok(Tree::new_stub())
         }
     }
@@ -113,12 +109,9 @@ impl Parser {
         input: &[u8],
         old_tree: &Tree,
     ) -> Result<Tree, ParseError> {
-        #[cfg(feature = "glr-core")]
+        #[cfg(all(feature = "glr-core", feature = "incremental"))]
         {
-            // TODO: Implement incremental parsing
-            // For now, fall back to fresh parse
-            let _ = old_tree;
-            let forest = engine_parse_full(language, input)?;
+            let forest = engine_parse_incremental(language, input, old_tree)?;
             return Ok(forest_to_tree(forest));
         }
 

@@ -5,10 +5,10 @@ use std::collections::BTreeMap;
 #[test]
 fn glr_smoke_table_construction() {
     // Test that we can construct a basic parse table without panic
-    // ERROR(0), 'x'(1), EOF(2), S(3)
+    // EOF(0), 'x'(1), ERROR(2), S(3)
     let mut action = vec![vec![vec![]; 4]; 2];
     action[0][1].push(Action::Shift(StateId(1))); // on 'x' shift to 1
-    action[1][2].push(Action::Reduce(RuleId(0))); // on EOF reduce S -> 'x'
+    action[1][0].push(Action::Reduce(RuleId(0))); // on EOF reduce S -> 'x'
 
     let mut gotos = vec![vec![StateId(65535); 4]; 2];
     gotos[0][3] = StateId(1); // goto S after reduce (accept state)
@@ -31,7 +31,7 @@ fn glr_smoke_table_construction() {
         index_to_symbol: vec![SymbolId(0), SymbolId(1), SymbolId(2), SymbolId(3)],
         token_count: 2, // 'x', EOF-1 (EOF is token_count)
         external_token_count: 0,
-        eof_symbol: SymbolId(2),
+        eof_symbol: SymbolId(0),
         start_symbol: SymbolId(3),
         extras: vec![],
         external_scanner_states: vec![vec![false; 0]; 2],
@@ -58,7 +58,7 @@ fn glr_smoke_table_construction() {
     assert_eq!(table.state_count, 2);
     assert_eq!(table.symbol_count, 4);
     assert_eq!(table.token_count, 2);
-    assert_eq!(table.eof_symbol, SymbolId(2));
+    assert_eq!(table.eof_symbol, SymbolId(0));
     assert_eq!(table.start_symbol, SymbolId(3));
 
     // Verify we can create a driver (doesn't parse anything, just checks construction)
