@@ -426,7 +426,8 @@ impl GLRParser {
         let initial_stack = ParseStack::new(StateId(0), 0);
 
         // Compute FIRST/FOLLOW sets for the resolver
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow =
+            FirstFollowSets::compute(&grammar).expect("Failed to compute FIRST/FOLLOW sets");
         let vec_wrapper_resolver = Some(VecWrapperResolver::new(&grammar, &first_follow));
 
         Self {

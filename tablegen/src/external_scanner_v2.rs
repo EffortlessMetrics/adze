@@ -155,7 +155,7 @@ impl ExternalScannerGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+    use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
     use rust_sitter_ir::{ProductionId, Rule, Symbol, Token, TokenPattern};
 
     #[test]
@@ -246,7 +246,7 @@ mod tests {
             symbol_id: SymbolId(201),
         });
 
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
         let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
         let generator = ExternalScannerGenerator::new(grammar, parse_table);
 

@@ -1,12 +1,12 @@
 //! Benchmarks for table compression performance
 #![allow(clippy::let_and_return)]
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::builder::GrammarBuilder;
 use rust_sitter_tablegen::{
-    TableCompressor,
     helpers::{collect_token_indices, eof_accepts_or_reduces},
+    TableCompressor,
 };
 
 /// Benchmark small grammar compression
@@ -18,7 +18,7 @@ fn bench_small_grammar(c: &mut Criterion) {
         .start("S")
         .build();
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
     let start_nullable = eof_accepts_or_reduces(&parse_table);
@@ -77,7 +77,7 @@ fn bench_arithmetic_grammar(c: &mut Criterion) {
         .start("expr")
         .build();
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
     let start_nullable = eof_accepts_or_reduces(&parse_table);
@@ -98,7 +98,7 @@ fn bench_arithmetic_grammar(c: &mut Criterion) {
 /// Benchmark Python-like grammar compression (nullable start)
 fn bench_python_like_grammar(c: &mut Criterion) {
     let grammar = GrammarBuilder::python_like();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
     let start_nullable = eof_accepts_or_reduces(&parse_table);
@@ -119,7 +119,7 @@ fn bench_python_like_grammar(c: &mut Criterion) {
 /// Benchmark JavaScript-like grammar compression (non-nullable start)
 fn bench_javascript_like_grammar(c: &mut Criterion) {
     let grammar = GrammarBuilder::javascript_like();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
     let start_nullable = eof_accepts_or_reduces(&parse_table);
@@ -164,7 +164,7 @@ fn bench_table_size_scaling(c: &mut Criterion) {
         );
 
         let grammar = builder.start("start").build();
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
         let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
         let token_indices = collect_token_indices(&grammar, &parse_table);
         let start_nullable = eof_accepts_or_reduces(&parse_table);
@@ -187,7 +187,7 @@ fn bench_table_size_scaling(c: &mut Criterion) {
 /// Benchmark compression with different options
 fn bench_compression_options(c: &mut Criterion) {
     let grammar = GrammarBuilder::javascript_like();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let token_indices = collect_token_indices(&grammar, &parse_table);
     let start_nullable = eof_accepts_or_reduces(&parse_table);

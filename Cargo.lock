@@ -2128,6 +2128,7 @@ dependencies = [
  "syn 2.0.106",
  "syn-inline-mod",
  "tempfile",
+ "thiserror 2.0.16",
  "tree-sitter 0.25.8",
  "tree-sitter-generate",
 ]

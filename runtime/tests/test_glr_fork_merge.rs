@@ -1,5 +1,5 @@
 // Test GLR fork/merge functionality
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -144,7 +144,7 @@ fn create_arithmetic_grammar() -> Grammar {
 #[test]
 fn test_simple_fork_merge() {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -182,7 +182,7 @@ fn test_simple_fork_merge() {
 #[test]
 fn test_complex_ambiguity() {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -225,7 +225,7 @@ fn test_complex_ambiguity() {
 #[test]
 fn test_precedence_disambiguation() {
     let grammar = create_arithmetic_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -280,7 +280,7 @@ fn test_precedence_disambiguation() {
 #[test]
 fn test_merge_identical_stacks() {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 

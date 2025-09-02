@@ -1,5 +1,5 @@
 // Debug parse table generation for ambiguous grammars
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_ambiguous_grammar() -> Grammar {
@@ -55,7 +55,7 @@ fn create_ambiguous_grammar() -> Grammar {
 #[test]
 fn test_parse_table_has_conflicts() {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     println!("\n=== Grammar Rules ===");
     for (symbol_id, rules) in &grammar.rules {

@@ -1,5 +1,5 @@
 // Test for nullable start symbol handling in table compression
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets, ParseTable};
 use rust_sitter_ir::*;
 use rust_sitter_tablegen::{compress::TableCompressor, helpers::collect_token_indices};
 use rustc_hash::FxHashSet;
@@ -96,7 +96,7 @@ fn nullable_start_allows_eof_accept_or_reduce() {
     });
 
     // Build FIRST/FOLLOW sets and parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Assert invariants about state 0
@@ -182,7 +182,7 @@ fn non_nullable_start_has_no_eof_reduce() {
         production_id: ProductionId(1),
     });
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Assert invariants about state 0

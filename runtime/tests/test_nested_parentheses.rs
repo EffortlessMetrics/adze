@@ -3,7 +3,7 @@ use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
 // Test for nested parentheses issue in GLR parser
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
@@ -136,7 +136,7 @@ fn print_tree(tree: &Arc<Subtree>, indent: usize) -> String {
 #[test]
 fn test_simple_parentheses() {
     let grammar = create_expression_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -165,7 +165,7 @@ fn test_simple_parentheses() {
 #[test]
 fn test_double_parentheses() {
     let grammar = create_expression_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -194,7 +194,7 @@ fn test_double_parentheses() {
 #[test]
 fn test_triple_parentheses() {
     let grammar = create_expression_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -223,7 +223,7 @@ fn test_triple_parentheses() {
 #[test]
 fn test_nested_parentheses_with_expression() {
     let grammar = create_expression_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -271,7 +271,7 @@ fn test_nested_parentheses_with_expression() {
 #[test]
 fn test_deeply_nested_parentheses() {
     let grammar = create_expression_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 

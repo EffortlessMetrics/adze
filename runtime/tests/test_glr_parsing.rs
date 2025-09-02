@@ -11,7 +11,7 @@ use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::{GLRParser, ParseStack};
 use rust_sitter::parser_v4::{Parser, Tree};
 use rust_sitter::subtree::Subtree;
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets, ParseTable};
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token, TokenPattern,
 };
@@ -115,7 +115,7 @@ fn create_ambiguous_grammar() -> Grammar {
 /// Create a parse table with conflicts for testing GLR
 fn create_conflicting_parse_table(grammar: &Grammar) -> ParseTable {
     // Use the proper LR1 automaton builder
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     build_lr1_automaton(&grammar, &first_follow).expect("Failed to build LR1 automaton")
 }
 

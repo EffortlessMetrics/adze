@@ -1,5 +1,5 @@
 // Test deep parentheses nesting
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // Import internal modules for testing
@@ -87,7 +87,7 @@ fn create_simple_grammar() -> Grammar {
 #[ignore = "GLR parser issue with simple grammar - needs investigation"]
 fn test_very_deep_parentheses() {
     let grammar = create_simple_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     // Test various depths
     let depths = vec![1, 5, 10, 20, 50, 100, 200, 500];

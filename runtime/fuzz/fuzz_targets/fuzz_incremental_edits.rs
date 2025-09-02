@@ -69,7 +69,7 @@ fn create_test_grammar() -> Arc<Grammar> {
 lazy_static::lazy_static! {
     static ref TEST_GRAMMAR: Arc<Grammar> = create_test_grammar();
     static ref PARSE_TABLE: rust_sitter_glr_core::ParseTable = {
-        let ff_sets = FirstFollowSets::compute(&TEST_GRAMMAR);
+        let ff_sets = FirstFollowSets::compute(&TEST_GRAMMAR).unwrap();
         build_lr1_automaton(&TEST_GRAMMAR, &ff_sets)
             .expect("Failed to build parse table for test grammar")
     };

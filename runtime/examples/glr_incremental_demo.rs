@@ -4,7 +4,7 @@ use rust_sitter::{
     glr_incremental::{ForestNode, GLREdit, GLRToken, IncrementalGLRParser},
     glr_parser::GLRParser,
 };
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 use std::ops::Range;
 use std::sync::Arc;
@@ -17,7 +17,7 @@ fn main() {
     let grammar = Arc::new(grammar);
 
     // Build parse table
-    let ff_sets = FirstFollowSets::compute(&grammar);
+    let ff_sets = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = match build_lr1_automaton(&grammar, &ff_sets) {
         Ok(table) => table,
         Err(e) => {

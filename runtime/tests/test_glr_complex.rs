@@ -2,7 +2,7 @@
 
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_glr_core::{
-    CompareResult, FirstFollowSets, VersionInfo, build_lr1_automaton, compare_versions_with_symbols,
+    build_lr1_automaton, compare_versions_with_symbols, CompareResult, FirstFollowSets, VersionInfo,
 };
 use rust_sitter_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
@@ -227,7 +227,7 @@ fn build_reduce_reduce_grammar() -> Grammar {
 #[test]
 fn test_ternary_operator() {
     let grammar = build_ternary_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(table, grammar);
@@ -255,7 +255,7 @@ fn test_ternary_operator() {
 #[test]
 fn test_nested_ternary() {
     let grammar = build_ternary_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(table, grammar);
@@ -280,7 +280,7 @@ fn test_nested_ternary() {
 #[test]
 fn test_reduce_reduce_conflict() {
     let grammar = build_reduce_reduce_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(table, grammar);
@@ -321,7 +321,7 @@ fn test_ternary_is_right_associative() {
     // Test that ternary operator is right-associative
     // "a ? b : c ? d : e" should parse as "a ? b : (c ? d : e)"
     let grammar = build_ternary_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Debug: Print all rule associativities

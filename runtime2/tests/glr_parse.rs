@@ -32,7 +32,7 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
             fields: vec![],
         }],
     );
-    let ff = FirstFollowSets::compute(&grammar);
+    let ff = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &ff).expect("table");
     let table: &'static _ = Box::leak(Box::new(table));
 
