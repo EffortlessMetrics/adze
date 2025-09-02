@@ -638,6 +638,7 @@ dependencies = [
  "rust-sitter-ir",
  "rust-sitter-macro",
  "rust-sitter-tablegen",
+ "smallvec",
  "thiserror",
  "tree-sitter",
  "tree-sitter-c2rust",

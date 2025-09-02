@@ -1,6 +1,6 @@
 # API Surface Report
 
-Generated: Mon Sep  1 11:24:24 EDT 2025
+Generated: Mon Sep  1 20:39:50 EDT 2025
 
 ## Public Types
 
@@ -17,5 +17,5 @@ Generated: Mon Sep  1 11:24:24 EDT 2025
 ⚠️  Potential breaking changes detected
 
 ### rust-sitter-tool
-✅ No breaking changes
+⚠️  Potential breaking changes detected
 
