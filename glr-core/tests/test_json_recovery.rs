@@ -344,7 +344,7 @@ fn create_json_grammar() -> Grammar {
 #[cfg(feature = "test-helpers")]
 fn test_valid_json_clean_forest() {
     let grammar = create_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut driver = Driver::new(&parse_table);
@@ -379,7 +379,7 @@ fn test_valid_json_clean_forest() {
 #[cfg(feature = "test-helpers")]
 fn test_missing_closing_brace_recovery() {
     let grammar = create_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut driver = Driver::new(&parse_table);
@@ -426,7 +426,7 @@ fn test_missing_closing_brace_recovery() {
 #[cfg(feature = "test-helpers")]
 fn test_trailing_comma_recovery() {
     let grammar = create_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut driver = Driver::new(&parse_table);
@@ -468,7 +468,7 @@ fn test_trailing_comma_recovery() {
 fn test_eof_not_zero() {
     // Verify our EOF fix: EOF symbol should not be 0 (ERROR)
     let grammar = create_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     assert_ne!(

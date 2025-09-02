@@ -158,7 +158,7 @@ fn build_json_grammar() -> Grammar {
 #[test]
 fn small_table_round_trip_accept() {
     let grammar = build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Build language with compressed table feature
@@ -189,7 +189,7 @@ fn small_table_round_trip_accept() {
 #[test]
 fn compressed_table_size_reduction() {
     let grammar = build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Build with compressed table

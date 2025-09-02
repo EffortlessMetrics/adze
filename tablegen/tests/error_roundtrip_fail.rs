@@ -7,7 +7,7 @@ fn error_roundtrip_propagates_failure() {
     // Empty grammar will fail when trying to build automaton
     let g = Grammar::default();
 
-    let ff = FirstFollowSets::compute(&g);
+    let ff = FirstFollowSets::compute(&g).unwrap();
     let pt = build_lr1_automaton(&g, &ff);
 
     // Ensure this is an Err from glr-core…

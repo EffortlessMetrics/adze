@@ -77,7 +77,7 @@ fn test_basic_parsing_without_errors() {
     let grammar = create_simple_grammar();
 
     // Generate parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Create parser without error recovery
@@ -103,7 +103,7 @@ fn test_error_recovery_double_operator() {
     let grammar = create_simple_grammar();
 
     // Generate parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Create parser with error recovery

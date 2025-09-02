@@ -486,7 +486,7 @@ impl FirstFollowSets {
         }
     }
     /// Compute FIRST/FOLLOW sets for the given grammar
-    pub fn compute(grammar: &Grammar) -> Self {
+    pub fn compute(grammar: &Grammar) -> Result<Self, GLRError> {
         // Find the maximum symbol ID to determine the size needed
         let max_rule_id = grammar.rules.keys().map(|id| id.0).max().unwrap_or(0);
         let max_token_id = grammar.tokens.keys().map(|id| id.0).max().unwrap_or(0);
@@ -570,9 +570,9 @@ impl FirstFollowSets {
                         | Symbol::Choice(_)
                         | Symbol::Sequence(_) => {
                             // These should be normalized before FIRST/FOLLOW computation
-                            panic!(
-                                "Complex symbols should be normalized before FIRST/FOLLOW computation"
-                            );
+                            return Err(GLRError::ComplexSymbolsNotNormalized {
+                                operation: "FIRST/FOLLOW computation".to_string(),
+                            });
                         }
                     }
                 }
@@ -623,7 +623,7 @@ impl FirstFollowSets {
                         // Add FIRST of remaining symbols to FOLLOW of current symbol
                         let remaining = &rule.rhs[i + 1..];
                         let first_of_remaining =
-                            Self::first_of_sequence_static(remaining, &first, &nullable);
+                            Self::first_of_sequence_static(remaining, &first, &nullable)?;
 
                         if let Some(follow_set) = follow.get_mut(id) {
                             let old_len = follow_set.count_ones(..);
@@ -650,16 +650,16 @@ impl FirstFollowSets {
             }
         }
 
-        Self {
+        Ok(Self {
             first,
             follow,
             nullable,
             symbol_count,
-        }
+        })
     }
 
     /// Get FIRST set of a sequence of symbols
-    pub fn first_of_sequence(&self, symbols: &[Symbol]) -> FixedBitSet {
+    pub fn first_of_sequence(&self, symbols: &[Symbol]) -> Result<FixedBitSet, GLRError> {
         Self::first_of_sequence_static(symbols, &self.first, &self.nullable)
     }
 
@@ -667,7 +667,7 @@ impl FirstFollowSets {
         symbols: &[Symbol],
         first: &IndexMap<SymbolId, FixedBitSet>,
         nullable: &FixedBitSet,
-    ) -> FixedBitSet {
+    ) -> Result<FixedBitSet, GLRError> {
         let mut result = FixedBitSet::with_capacity(nullable.len());
 
         for symbol in symbols {
@@ -693,12 +693,14 @@ impl FirstFollowSets {
                 | Symbol::RepeatOne(_)
                 | Symbol::Choice(_)
                 | Symbol::Sequence(_) => {
-                    panic!("Complex symbols should be normalized before FIRST/FOLLOW computation");
+                    return Err(GLRError::ComplexSymbolsNotNormalized {
+                        operation: "FIRST/FOLLOW computation".to_string(),
+                    });
                 }
             }
         }
 
-        result
+        Ok(result)
     }
 
     fn sequence_is_nullable(symbols: &[Symbol], nullable: &FixedBitSet) -> bool {
@@ -802,7 +804,11 @@ impl ItemSet {
     }
 
     /// Compute closure of this item set
-    pub fn closure(&mut self, grammar: &Grammar, first_follow: &FirstFollowSets) {
+    pub fn closure(
+        &mut self,
+        grammar: &Grammar,
+        first_follow: &FirstFollowSets,
+    ) -> Result<(), GLRError> {
         let _initial_size = self.items.len();
 
         let mut added = true;
@@ -828,7 +834,7 @@ impl ItemSet {
                             }
                             beta.push(Symbol::Terminal(item.lookahead));
 
-                            let first_beta_alpha = first_follow.first_of_sequence(&beta);
+                            let first_beta_alpha = first_follow.first_of_sequence(&beta)?;
 
                             // Add new items for each symbol in FIRST(β α)
                             for lookahead_idx in first_beta_alpha.ones() {
@@ -853,6 +859,7 @@ impl ItemSet {
         }
 
         // Closure complete
+        Ok(())
     }
 
     /// Compute GOTO for a given symbol
@@ -885,7 +892,7 @@ impl ItemSet {
         }
 
         // Compute closure of the new set
-        new_set.closure(grammar, _first_follow);
+        let _ = new_set.closure(grammar, _first_follow);
         new_set
     }
 }
@@ -931,7 +938,7 @@ impl ItemSetCollection {
         }
 
         // Compute closure
-        initial_set.closure(grammar, first_follow);
+        let _ = initial_set.closure(grammar, first_follow);
         eprintln!(
             "Initial state 0 after closure has {} items:",
             initial_set.items.len()
@@ -1170,7 +1177,7 @@ impl ItemSetCollection {
             }
 
             // Compute closure
-            initial_set.closure(grammar, first_follow);
+            let _ = initial_set.closure(grammar, first_follow);
         }
 
         // Only add initial set if it has items
@@ -2079,6 +2086,15 @@ pub enum GLRError {
 
     #[error("Table validation failed: {0}")]
     TableValidation(TableError),
+
+    #[error("Complex symbols must be normalized before {operation}")]
+    ComplexSymbolsNotNormalized { operation: String },
+
+    #[error("Expected {expected} symbol, found complex symbol")]
+    ExpectedSimpleSymbol { expected: String },
+
+    #[error("Invalid symbol state during {operation}")]
+    InvalidSymbolState { operation: String },
 }
 
 /// Errors related to parse table validation
@@ -3044,7 +3060,7 @@ mod tests {
     #[test]
     fn test_first_follow_empty_grammar() {
         let grammar = Grammar::new("test".to_string());
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
         assert!(first_follow.first.is_empty());
         assert!(first_follow.follow.is_empty());
@@ -3073,7 +3089,7 @@ mod tests {
         };
         grammar.tokens.insert(SymbolId(1), token);
 
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
         // FIRST(S) should contain 'a'
         assert!(first_follow.first.contains_key(&SymbolId(0)));
@@ -3100,7 +3116,7 @@ mod tests {
         };
         grammar.rules.entry(SymbolId(0)).or_default().push(rule);
 
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
         // S should be nullable
         assert!(first_follow.is_nullable(SymbolId(0)));
@@ -3125,11 +3141,11 @@ mod tests {
         };
         grammar.tokens.insert(SymbolId(2), token_b);
 
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
         // Test FIRST of sequence [a, b]
         let sequence = vec![Symbol::Terminal(SymbolId(1)), Symbol::Terminal(SymbolId(2))];
-        let first_seq = first_follow.first_of_sequence(&sequence);
+        let first_seq = first_follow.first_of_sequence(&sequence).unwrap();
 
         // Should contain only 'a' (first terminal)
         assert!(first_seq.contains(1));

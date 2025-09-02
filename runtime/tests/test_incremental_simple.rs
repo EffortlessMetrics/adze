@@ -40,7 +40,7 @@ fn create_simple_grammar() -> Grammar {
 )]
 fn test_incremental_basic() {
     let grammar = create_simple_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // This test verifies the basic structure is working

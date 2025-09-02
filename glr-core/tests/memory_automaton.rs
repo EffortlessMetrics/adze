@@ -17,7 +17,7 @@ mod memory_tests {
             .start("module")
             .build();
 
-        let ff = FirstFollowSets::compute(&g);
+        let ff = FirstFollowSets::compute(&g).unwrap();
         let _pt = build_lr1_automaton(&g, &ff).expect("build");
 
         // Drop profiler to get stats
@@ -58,7 +58,7 @@ mod memory_tests {
             .start("stmts")
             .build();
 
-        let ff = FirstFollowSets::compute(&g);
+        let ff = FirstFollowSets::compute(&g).unwrap();
         let pt = build_lr1_automaton(&g, &ff).expect("build");
 
         println!("States generated: {}", pt.state_count);

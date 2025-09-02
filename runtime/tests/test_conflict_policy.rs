@@ -14,7 +14,7 @@ use rust_sitter_ir::StateId;
 fn shift_wins_sr_conflict_raw_table() {
     // Build grammar with known SR conflicts
     let grammar = support::expr_sr_conflict::build_expr_sr_conflict();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Find SR conflict cells in raw table (before normalization)
@@ -50,7 +50,7 @@ fn shift_wins_sr_conflict_raw_table() {
 fn shift_wins_sr_conflict_encoded() {
     // Build grammar with SR conflicts
     let grammar = support::expr_sr_conflict::build_expr_sr_conflict();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Find a specific SR conflict before normalization
@@ -158,7 +158,7 @@ fn precedence_resolves_conflicts() {
 fn reduce_reduce_conflict_resolution() {
     // Test reduce/reduce conflict resolution (if any exist)
     let grammar = support::expr_sr_conflict::build_expr_sr_conflict();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Find RR conflicts (two different reduce actions)
@@ -189,7 +189,7 @@ fn reduce_reduce_conflict_resolution() {
 fn glr_preserves_all_actions() {
     // Verify GLR table preserves all conflicting actions before encoding
     let grammar = support::expr_sr_conflict::build_expr_sr_conflict();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Count cells with multiple actions (GLR feature)
@@ -222,7 +222,7 @@ fn glr_preserves_all_actions() {
 fn conflict_policy_consistency() {
     // Test that the same conflict is resolved the same way across the table
     let grammar = support::expr_sr_conflict::build_expr_sr_conflict();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Collect all SR conflicts before normalization

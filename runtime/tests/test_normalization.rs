@@ -17,7 +17,7 @@ fn ts_action_tags_match_ts_runtime() {
 #[test]
 fn dense_mapping_and_token_boundary_hold() {
     let g = support::json_grammar::build_json_grammar();
-    let ff = FirstFollowSets::compute(&g);
+    let ff = FirstFollowSets::compute(&g).unwrap();
     let mut t = build_lr1_automaton(&g, &ff).unwrap();
     support::language_builder::normalize_table_for_ts(&mut t);
     let tcols = t.token_count + t.external_token_count;
@@ -50,7 +50,7 @@ fn dense_mapping_and_token_boundary_hold() {
 #[test]
 fn decoded_table_has_accept_and_same_sizes() {
     let g = support::json_grammar::build_json_grammar();
-    let ff = FirstFollowSets::compute(&g);
+    let ff = FirstFollowSets::compute(&g).unwrap();
     let mut t = build_lr1_automaton(&g, &ff).unwrap();
     support::language_builder::normalize_table_for_ts(&mut t);
 
@@ -83,7 +83,7 @@ fn decoded_table_has_accept_and_same_sizes() {
 fn normalize_perf_smoke() {
     use std::time::Instant;
     let g = support::json_grammar::build_json_grammar();
-    let ff = FirstFollowSets::compute(&g);
+    let ff = FirstFollowSets::compute(&g).unwrap();
     let mut t = build_lr1_automaton(&g, &ff).unwrap();
 
     let t0 = Instant::now();
@@ -102,7 +102,7 @@ fn normalize_perf_smoke() {
 #[test]
 fn expr_round_trip_accepts() {
     let grammar = support::expr_grammar::build_expr_grammar();
-    let ff = FirstFollowSets::compute(&grammar);
+    let ff = FirstFollowSets::compute(&grammar).unwrap();
     let mut table = build_lr1_automaton(&grammar, &ff).expect("build");
     support::language_builder::normalize_table_for_ts(&mut table);
 

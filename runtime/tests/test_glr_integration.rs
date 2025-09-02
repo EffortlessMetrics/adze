@@ -37,7 +37,7 @@ fn parse_tokens(parser: &mut GLRParser, tokens: &[TokenWithPosition]) -> Option<
 
 // Helper function to create a parser from grammar
 fn create_parser(grammar: &Grammar) -> GLRParser {
-    let first_follow = FirstFollowSets::compute(grammar);
+    let first_follow = FirstFollowSets::compute(grammar).unwrap();
     let parse_table = build_lr1_automaton(grammar, &first_follow).unwrap();
     GLRParser::new(parse_table, grammar.clone())
 }
@@ -322,7 +322,7 @@ fn test_full_glr_pipeline() {
 
     // Step 5: Test incremental parsing
     // Re-create parser with proper types
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut incremental = IncrementalGLRParser::new(grammar.clone(), parse_table);
     let glr_tokens = tokens_to_glr(&tokens);

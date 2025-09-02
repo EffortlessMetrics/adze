@@ -20,7 +20,7 @@ fn main() {
         .build();
 
     // Generate parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 

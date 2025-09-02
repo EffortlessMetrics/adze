@@ -55,7 +55,7 @@ fn create_ambiguous_grammar() -> Grammar {
 #[test]
 fn test_parse_table_has_conflicts() {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     println!("\n=== Grammar Rules ===");
     for (symbol_id, rules) in &grammar.rules {

@@ -80,7 +80,7 @@ fn test_simple_number_parsing() {
         }
     }
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -219,7 +219,7 @@ fn test_glr_ambiguity() {
     });
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -252,7 +252,7 @@ fn test_glr_error_handling() {
     let grammar = create_number_grammar();
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 

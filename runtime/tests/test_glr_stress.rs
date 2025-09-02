@@ -343,7 +343,7 @@ fn create_extremely_ambiguous_grammar() -> Grammar {
 #[test]
 fn test_deeply_nested_ambiguous_expression() {
     let grammar = create_ambiguous_expression_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(parse_table, grammar.clone());
@@ -378,7 +378,7 @@ fn test_deeply_nested_ambiguous_expression() {
 #[test]
 fn test_extremely_ambiguous_parsing() {
     let grammar = create_extremely_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(parse_table, grammar.clone());
@@ -423,7 +423,7 @@ fn test_extremely_ambiguous_parsing() {
 #[test]
 fn test_long_ambiguous_chain() {
     let grammar = create_ambiguous_expression_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(parse_table, grammar.clone());
@@ -468,7 +468,7 @@ fn test_long_ambiguous_chain() {
 #[test]
 fn test_stress_deeply_nested_parentheses() {
     let grammar = create_ambiguous_expression_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(parse_table, grammar.clone());

@@ -306,7 +306,8 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     desugar_pattern_wrappers(&mut grammar)?;
 
     // Step 1: Compute FIRST/FOLLOW sets
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar)
+        .with_context(|| "Failed to compute FIRST/FOLLOW sets")?;
 
     // Write debug info to a file
     let debug_file_path =

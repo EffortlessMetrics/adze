@@ -96,7 +96,7 @@ pub fn safe_dedup_threshold() -> usize {
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
-use rust_sitter_glr_core::{compare_versions, Action, CompareResult, ParseTable, VersionInfo};
+use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
 use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
@@ -426,7 +426,8 @@ impl GLRParser {
         let initial_stack = ParseStack::new(StateId(0), 0);
 
         // Compute FIRST/FOLLOW sets for the resolver
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow =
+            FirstFollowSets::compute(&grammar).expect("Failed to compute FIRST/FOLLOW sets");
         let vec_wrapper_resolver = Some(VecWrapperResolver::new(&grammar, &first_follow));
 
         Self {

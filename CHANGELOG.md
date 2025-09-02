@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **LSP Generator**: Complete grammar loading infrastructure for automatic language server generation
+  - `load_grammar()` function with streaming JSON deserialization for memory efficiency
+  - Security hardening: 10MB file size limits, buffered I/O, comprehensive input validation  
+  - Production-ready LSP server generation from rust-sitter grammars
+  - Full Builder API with fluent configuration: completion, hover, diagnostics support
+  - Comprehensive test coverage with 6 test scenarios covering all error conditions
+  - Documentation updates with complete API reference and usage examples
+
 ### ⚠️ Breaking Changes
 
 - **API**: Renamed `GlrStack::last()` to `GlrStack::peek()` to avoid trait method shadowing with `Vec::last()`

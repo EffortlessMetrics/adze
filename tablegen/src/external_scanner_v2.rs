@@ -246,7 +246,7 @@ mod tests {
             symbol_id: SymbolId(201),
         });
 
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
         let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
         let generator = ExternalScannerGenerator::new(grammar, parse_table);
 

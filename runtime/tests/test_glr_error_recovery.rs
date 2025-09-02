@@ -145,7 +145,7 @@ fn parse_with_recovery(
     config: ErrorRecoveryConfig,
 ) -> Option<Arc<Subtree>> {
     // Generate parse table
-    let first_follow = FirstFollowSets::compute(grammar);
+    let first_follow = FirstFollowSets::compute(grammar).unwrap();
     let table = build_lr1_automaton(grammar, &first_follow).unwrap();
 
     // Create parser with error recovery

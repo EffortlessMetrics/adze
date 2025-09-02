@@ -12,7 +12,7 @@ fn test_python_like_nullable_start() {
     let grammar = GrammarBuilder::python_like();
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
@@ -43,7 +43,7 @@ fn test_javascript_like_non_nullable_start() {
     let grammar = GrammarBuilder::javascript_like();
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
@@ -111,7 +111,7 @@ fn test_precedence_handling() {
         .build();
 
     // Build parse table - with precedence, conflicts should be resolved
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
@@ -141,7 +141,7 @@ fn test_empty_grammar_handling() {
         .build();
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
@@ -175,7 +175,7 @@ fn test_recursive_grammar() {
         .build();
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 

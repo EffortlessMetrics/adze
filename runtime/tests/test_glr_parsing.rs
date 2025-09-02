@@ -115,7 +115,7 @@ fn create_ambiguous_grammar() -> Grammar {
 /// Create a parse table with conflicts for testing GLR
 fn create_conflicting_parse_table(grammar: &Grammar) -> ParseTable {
     // Use the proper LR1 automaton builder
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     build_lr1_automaton(&grammar, &first_follow).expect("Failed to build LR1 automaton")
 }
 

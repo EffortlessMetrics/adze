@@ -79,7 +79,7 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
     let grammar = create_arithmetic_grammar();
 
     // Build parse table
-    let ff_sets = FirstFollowSets::compute(&grammar);
+    let ff_sets = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &ff_sets).expect("Failed to build parse table");
 
     let mut group = c.benchmark_group("incremental_parsing");
@@ -199,7 +199,7 @@ fn benchmark_edit_location_impact(c: &mut Criterion) {
     let grammar = create_arithmetic_grammar();
 
     // Build parse table
-    let ff_sets = FirstFollowSets::compute(&grammar);
+    let ff_sets = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &ff_sets).expect("Failed to build parse table");
 
     let size = 50;

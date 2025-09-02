@@ -28,6 +28,9 @@ pub use pure_rust_builder::{
 pub mod cli;
 pub mod scanner_build;
 
+pub mod error;
+pub use error::{Result as ToolResult, ToolError};
+
 // Use tree-sitter-generate's version for compatibility
 // Version 0.25.1 is what we depend on in Cargo.toml
 const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 1));

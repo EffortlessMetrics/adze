@@ -93,7 +93,7 @@ mod incremental_reuse_tests {
 
     /// Build parse table from grammar
     fn build_parse_table(grammar: &Grammar) -> ParseTable {
-        let first_follow = FirstFollowSets::compute(grammar);
+        let first_follow = FirstFollowSets::compute(grammar).unwrap();
         build_lr1_automaton(grammar, &first_follow).expect("Failed to build parse table")
     }
 
