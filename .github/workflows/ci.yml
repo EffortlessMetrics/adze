@@ -13,14 +13,12 @@ env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
   COVERAGE_THRESHOLD: 80
-  # Cap Concurrency - stabilize tests across CI environments (Ultra-safe for PR #44)
-  RUST_TEST_THREADS: 1
-  RAYON_NUM_THREADS: 1
-  TOKIO_WORKER_THREADS: 1
-  TOKIO_BLOCKING_THREADS: 2
-  CARGO_BUILD_JOBS: 1
-  # Disable sccache to prevent thread exhaustion
-  SCCACHE_DISABLE: 1
+  # Cap Concurrency - stabilize tests across CI environments (Balanced for stable testing)
+  RUST_TEST_THREADS: 2
+  RAYON_NUM_THREADS: 4
+  TOKIO_WORKER_THREADS: 2
+  TOKIO_BLOCKING_THREADS: 8
+  CARGO_BUILD_JOBS: 4
   OMP_NUM_THREADS: 1
   OPENBLAS_NUM_THREADS: 1
   MKL_NUM_THREADS: 1
