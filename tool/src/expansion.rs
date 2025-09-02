@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rust_sitter_common::*;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use syn::{parse::Parse, punctuated::Punctuated, *};
 
 use crate::error::{Result, ToolError};
@@ -58,7 +58,10 @@ fn gen_field(
                 // Validate that the pattern is not empty
                 if s.value().is_empty() {
                     return Err(ToolError::GrammarValidation {
-                        reason: format!("Empty patterns are not supported. Token '{}' has an empty pattern value.", path)
+                        reason: format!(
+                            "Empty patterns are not supported. Token '{}' has an empty pattern value.",
+                            path
+                        ),
                     });
                 }
 

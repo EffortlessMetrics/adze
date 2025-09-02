@@ -1,7 +1,7 @@
 // Enhanced parser with full reduction support
 // This implements a complete LR parser with grammar-aware reductions
 
-use rust_sitter_glr_core::{compare_versions, Action, CompareResult, ParseTable, VersionInfo};
+use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
