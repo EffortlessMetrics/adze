@@ -34,28 +34,32 @@ const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 1));
 
 /// Generates JSON strings defining Tree Sitter grammars for every Rust Sitter
 /// grammar found in the given module and recursive submodules.
-pub fn generate_grammars(root_file: &Path) -> Vec<Value> {
+pub fn generate_grammars(root_file: &Path) -> syn::Result<Vec<Value>> {
     let root_file = syn_inline_mod::parse_and_inline_modules(root_file).items;
     let mut out = vec![];
-    root_file
-        .iter()
-        .for_each(|i| generate_all_grammars(i, &mut out));
-    out
+    for i in root_file.iter() {
+        generate_all_grammars(i, &mut out)?;
+    }
+    Ok(out)
 }
 
-fn generate_all_grammars(item: &Item, out: &mut Vec<Value>) {
+fn generate_all_grammars(item: &Item, out: &mut Vec<Value>) -> syn::Result<()> {
     if let Item::Mod(m) = item {
-        m.content
-            .iter()
-            .for_each(|(_, items)| items.iter().for_each(|i| generate_all_grammars(i, out)));
+        if let Some((_, items)) = &m.content {
+            for i in items.iter() {
+                generate_all_grammars(i, out)?;
+            }
+        }
 
-        if m.attrs
+        if m
+            .attrs
             .iter()
             .any(|a| a.path() == &parse_quote!(rust_sitter::grammar))
         {
-            out.push(generate_grammar(m))
+            out.push(generate_grammar(m)?);
         }
     }
+    Ok(())
 }
 
 #[cfg(feature = "build_parsers")]
@@ -143,7 +147,8 @@ pub fn build_parsers(root_file: &Path) {
         }
     }
 
-    generate_grammars(root_file).iter().for_each(|grammar| {
+    let grammars = generate_grammars(root_file).expect("failed to generate grammars");
+    grammars.iter().for_each(|grammar| {
         let grammar_str = grammar.to_string();
         if emit_artifacts {
             eprintln!(
@@ -356,7 +361,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -380,7 +385,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -409,7 +414,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -440,7 +445,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -470,7 +475,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -498,7 +503,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -535,7 +540,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -568,7 +573,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -605,7 +610,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -635,7 +640,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -664,7 +669,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }
@@ -695,7 +700,7 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).unwrap();
         insta::assert_snapshot!(grammar);
         generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
     }

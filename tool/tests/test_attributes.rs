@@ -30,7 +30,7 @@ fn test_external_attribute() {
     .unwrap();
 
     // Generate grammar JSON
-    let grammars = rust_sitter_tool::generate_grammars(&grammar_path);
+    let grammars = rust_sitter_tool::generate_grammars(&grammar_path).unwrap();
     assert!(!grammars.is_empty(), "No grammars generated");
 
     let grammar_json = &grammars[0];
@@ -79,7 +79,7 @@ fn test_word_attribute() {
     .unwrap();
 
     // Generate grammar JSON
-    let grammars = rust_sitter_tool::generate_grammars(&grammar_path);
+    let grammars = rust_sitter_tool::generate_grammars(&grammar_path).unwrap();
     assert!(!grammars.is_empty(), "No grammars generated");
 
     let grammar_json = &grammars[0];
@@ -144,7 +144,7 @@ fn test_combined_attributes() {
     .unwrap();
 
     // Generate grammar JSON
-    let grammars = rust_sitter_tool::generate_grammars(&grammar_path);
+    let grammars = rust_sitter_tool::generate_grammars(&grammar_path).unwrap();
     assert!(!grammars.is_empty(), "No grammars generated");
 
     let grammar_json = &grammars[0];

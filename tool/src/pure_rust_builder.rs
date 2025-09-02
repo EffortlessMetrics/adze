@@ -227,7 +227,7 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
     let mut results = Vec::new();
 
     // Find all grammar definitions
-    let grammars = crate::generate_grammars(root_file);
+    let grammars = crate::generate_grammars(root_file)?;
 
     // Debug: write to file
     {
