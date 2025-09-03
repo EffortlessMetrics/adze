@@ -174,7 +174,7 @@ fn non_integer_prec_left_literal() {
     let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
-        error_msg.contains("Expected integer literal for precedence"),
+        error_msg.contains("Expected integer literal for left-associative precedence"),
         "Expected non-integer precedence error, got: {}",
         error_msg
     );
@@ -207,7 +207,7 @@ fn non_integer_prec_right_literal() {
     let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
-        error_msg.contains("Expected integer literal for precedence"),
+        error_msg.contains("Expected integer literal for right-associative precedence"),
         "Expected non-integer precedence error, got: {}",
         error_msg
     );
