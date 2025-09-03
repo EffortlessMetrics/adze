@@ -167,7 +167,10 @@ pub fn build_parsers(root_file: &Path) {
         }
 
         // Better error handling for C generation
-        let (grammar_name, grammar_c) = match generate_parser_for_grammar(&grammar_str, GENERATED_SEMANTIC_VERSION) {
+        let (grammar_name, grammar_c) = match generate_parser_for_grammar(
+            &grammar_str,
+            GENERATED_SEMANTIC_VERSION,
+        ) {
             Ok(result) => {
                 // Also save a per-grammar copy for easier debugging
                 if let Some(base_path) = &dump_path {
@@ -175,11 +178,13 @@ pub fn build_parsers(root_file: &Path) {
                     let _ = std::fs::write(named_path, &grammar_str);
                 }
                 result
-            },
+            }
             Err(e) => {
                 eprintln!("ERROR: Tree-sitter C generation failed for grammar");
                 eprintln!("  Error: {}", e);
-                eprintln!("  Hint: Ensure tree-sitter CLI >= 0.22 is on PATH (run `tree-sitter --version`)");
+                eprintln!(
+                    "  Hint: Ensure tree-sitter CLI >= 0.22 is on PATH (run `tree-sitter --version`)"
+                );
                 eprintln!("  Hint: Check that the grammar JSON is valid");
                 if emit_artifacts {
                     eprintln!("  Debug: See generated grammar JSON above");
