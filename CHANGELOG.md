@@ -14,20 +14,18 @@ All notable changes to this project will be documented in this file.
   - Comprehensive test coverage with 6 test scenarios covering all error conditions
   - Documentation updates with complete API reference and usage examples
 
-### ⚠️ Breaking Changes
-
-- **API**: Renamed `GlrStack::last()` to `GlrStack::peek()` to avoid trait method shadowing with `Vec::last()`
-  - This prevents confusing behavior where the trait method shadowed the slice method
-  - Migration: Replace all calls to `stack.last()` with `stack.peek()`
-
-### Added
-
 - **Precedence Error Handling**: Comprehensive validation and error reporting for precedence attributes
   - Detect multiple precedence attributes (`prec`, `prec_left`, `prec_right`) on same rule
   - Validate precedence values are integer literals in range 0 to 4294967295
   - Provide specific error messages for common mistakes (strings, floats, variables, overflow)
   - Enhanced test coverage for edge cases including zero, max u32, and negative values
   - Integration tests verify precedence errors don't break other grammar processing
+
+### ⚠️ Breaking Changes
+
+- **API**: Renamed `GlrStack::last()` to `GlrStack::peek()` to avoid trait method shadowing with `Vec::last()`
+  - This prevents confusing behavior where the trait method shadowed the slice method
+  - Migration: Replace all calls to `stack.last()` with `stack.peek()`
 
 ### Fixed
 

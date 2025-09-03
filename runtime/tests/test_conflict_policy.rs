@@ -7,7 +7,7 @@ mod support;
 
 use rust_sitter::decoder;
 use rust_sitter::ts_format::choose_action as ts_choose;
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 use rust_sitter_ir::StateId;
 
 #[test]
@@ -110,7 +110,7 @@ fn precedence_resolves_conflicts() {
 
     // Without precedence - should have conflicts
     let grammar_no_prec = support::expr_sr_conflict::build_expr_sr_conflict();
-    let first_follow_no = FirstFollowSets::compute(&grammar_no_prec);
+    let first_follow_no = FirstFollowSets::compute(&grammar_no_prec).unwrap();
     let table_no_prec = build_lr1_automaton(&grammar_no_prec, &first_follow_no).unwrap();
 
     let mut conflicts_without = 0;
@@ -124,7 +124,7 @@ fn precedence_resolves_conflicts() {
 
     // With precedence - should have fewer or no conflicts
     let grammar_with_prec = support::expr_sr_conflict::build_expr_with_precedence();
-    let first_follow_with = FirstFollowSets::compute(&grammar_with_prec);
+    let first_follow_with = FirstFollowSets::compute(&grammar_with_prec).unwrap();
     let table_with_prec = build_lr1_automaton(&grammar_with_prec, &first_follow_with).unwrap();
 
     let mut conflicts_with = 0;

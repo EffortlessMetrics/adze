@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rust_sitter_common::*;
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, *};
 
 use crate::error::{Result, ToolError};
@@ -22,7 +22,7 @@ fn gen_field(
         .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::word))
     {
         if word_rule.is_some() {
-            return Err(ToolError::MultipleWordRules);
+            Err(ToolError::MultipleWordRules)?;
         }
 
         *word_rule = Some(path.clone());
@@ -81,10 +81,10 @@ fn gen_field(
                     is_option,
                 ))
             } else {
-                return Err(ToolError::ExpectedStringLiteral {
+                Err(ToolError::ExpectedStringLiteral {
                     context: "pattern".to_string(),
                     actual: format!("{:?}", lit.lit),
-                });
+                })
             }
         } else if let Some(Expr::Lit(lit)) = text_param {
             if let Lit::Str(s) = &lit.lit {
@@ -875,7 +875,7 @@ pub fn generate_grammar(module: &ItemMod) -> Result<Value> {
 
                 if is_word {
                     if word_rule.is_some() {
-                        return Err(ToolError::MultipleWordRules);
+                        Err(ToolError::MultipleWordRules)?;
                     }
                     word_rule = Some(s.ident.to_string());
                 }

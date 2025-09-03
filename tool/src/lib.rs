@@ -6,7 +6,7 @@
 //! Build tool for rust-sitter parser generation
 
 use serde_json::Value;
-use syn::{Item, parse_quote};
+use syn::{parse_quote, Item};
 
 mod expansion;
 use expansion::*;
@@ -18,11 +18,11 @@ pub mod visualization;
 pub use visualization::GrammarVisualizer;
 
 pub mod grammar_js;
-pub use grammar_js::{GrammarJsConverter, parse_grammar_js};
+pub use grammar_js::{parse_grammar_js, GrammarJsConverter};
 
 pub mod pure_rust_builder;
 pub use pure_rust_builder::{
-    BuildOptions, BuildResult, build_parser, build_parser_for_crate, build_parser_from_grammar_js,
+    build_parser, build_parser_for_crate, build_parser_from_grammar_js, BuildOptions, BuildResult,
 };
 
 pub mod cli;
@@ -103,7 +103,7 @@ pub fn build_parsers(root_file: &Path) {
 
     if use_pure_rust {
         // Use pure-Rust builder exclusively
-        use pure_rust_builder::{BuildOptions, build_parser_for_crate};
+        use pure_rust_builder::{build_parser_for_crate, BuildOptions};
         let options = BuildOptions::default();
         match build_parser_for_crate(root_file, options) {
             Ok(results) => {
@@ -167,7 +167,10 @@ pub fn build_parsers(root_file: &Path) {
         }
 
         // Better error handling for C generation
-        let (grammar_name, grammar_c) = match generate_parser_for_grammar(&grammar_str, GENERATED_SEMANTIC_VERSION) {
+        let (grammar_name, grammar_c) = match generate_parser_for_grammar(
+            &grammar_str,
+            GENERATED_SEMANTIC_VERSION,
+        ) {
             Ok(result) => {
                 // Also save a per-grammar copy for easier debugging
                 if let Some(base_path) = &dump_path {
@@ -175,11 +178,13 @@ pub fn build_parsers(root_file: &Path) {
                     let _ = std::fs::write(named_path, &grammar_str);
                 }
                 result
-            },
+            }
             Err(e) => {
                 eprintln!("ERROR: Tree-sitter C generation failed for grammar");
                 eprintln!("  Error: {}", e);
-                eprintln!("  Hint: Ensure tree-sitter CLI >= 0.22 is on PATH (run `tree-sitter --version`)");
+                eprintln!(
+                    "  Hint: Ensure tree-sitter CLI >= 0.22 is on PATH (run `tree-sitter --version`)"
+                );
                 eprintln!("  Hint: Check that the grammar JSON is valid");
                 if emit_artifacts {
                     eprintln!("  Debug: See generated grammar JSON above");
@@ -335,7 +340,7 @@ pub fn build_parsers(root_file: &Path) {
 mod tests {
     use syn::parse_quote;
 
-    use super::{GENERATED_SEMANTIC_VERSION, generate_grammar};
+    use super::{generate_grammar, GENERATED_SEMANTIC_VERSION};
     use tree_sitter_generate::generate_parser_for_grammar;
 
     #[test]
@@ -362,9 +367,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -386,9 +395,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -415,9 +428,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -446,9 +463,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -476,9 +497,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -504,9 +529,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -541,9 +570,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -574,9 +607,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -611,9 +648,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -641,9 +682,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -670,9 +715,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -701,9 +750,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[cfg(feature = "build_parsers")]
