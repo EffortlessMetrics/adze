@@ -37,7 +37,7 @@ const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 1));
 
 /// Generates JSON strings defining Tree Sitter grammars for every Rust Sitter
 /// grammar found in the given module and recursive submodules.
-pub fn generate_grammars(root_file: &Path) -> syn::Result<Vec<Value>> {
+pub fn generate_grammars(root_file: &Path) -> ToolResult<Vec<Value>> {
     let root_file = syn_inline_mod::parse_and_inline_modules(root_file).items;
     let mut out = vec![];
     for i in root_file.iter() {
@@ -46,19 +46,22 @@ pub fn generate_grammars(root_file: &Path) -> syn::Result<Vec<Value>> {
     Ok(out)
 }
 
-fn generate_all_grammars(item: &Item, out: &mut Vec<Value>) {
+fn generate_all_grammars(item: &Item, out: &mut Vec<Value>) -> ToolResult<()> {
     if let Item::Mod(m) = item {
-        m.content
-            .iter()
-            .for_each(|(_, items)| items.iter().for_each(|i| generate_all_grammars(i, out)));
+        if let Some((_, items)) = &m.content {
+            for item in items {
+                generate_all_grammars(item, out)?;
+            }
+        }
 
         if m.attrs
             .iter()
             .any(|a| a.path() == &parse_quote!(rust_sitter::grammar))
         {
-            out.push(generate_grammar(m))
+            out.push(generate_grammar(m)?)
         }
     }
+    Ok(())
 }
 
 #[cfg(feature = "build_parsers")]
@@ -146,8 +149,8 @@ pub fn build_parsers(root_file: &Path) {
         }
     }
 
-    generate_grammars(root_file).iter().for_each(|grammar| {
-        let grammar_str = grammar.to_string();
+    for grammar in generate_grammars(root_file).unwrap() {
+        let grammar_str = serde_json::to_string(&grammar).unwrap();
         if emit_artifacts {
             eprintln!(
                 "Generated grammar JSON:\n{}",
@@ -216,7 +219,7 @@ pub fn build_parsers(root_file: &Path) {
         let mut grammar_json_file =
             std::fs::File::create(dir.join(format!("{grammar_name}.json"))).unwrap();
         grammar_json_file
-            .write_all(serde_json::to_string_pretty(grammar).unwrap().as_bytes())
+            .write_all(serde_json::to_string_pretty(&grammar).unwrap().as_bytes())
             .unwrap();
         drop(grammar_json_file);
 
@@ -325,7 +328,7 @@ pub fn build_parsers(root_file: &Path) {
             .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
             .collect();
         c_config.compile(&lib_name);
-    });
+    }
 }
 
 #[cfg(test)]

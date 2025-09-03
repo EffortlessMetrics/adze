@@ -227,7 +227,7 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
     let mut results = Vec::new();
 
     // Find all grammar definitions
-    let grammars = crate::generate_grammars(root_file);
+    let grammars = crate::generate_grammars(root_file)?;
 
     // Debug: write to file
     {
@@ -245,7 +245,7 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
 
     for grammar_json in grammars {
         // Convert serde_json::Value to string
-        let grammar_json_str = grammar_json.to_string();
+        let grammar_json_str = serde_json::to_string(&grammar_json).unwrap();
         let result = build_parser_from_json(grammar_json_str, options.clone())?;
         results.push(result);
     }

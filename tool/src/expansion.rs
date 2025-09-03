@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use rust_sitter_common::*;
 use serde_json::{Map, Value, json};
-use syn::{parse::Parse, punctuated::Punctuated, *};
+use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, *};
 
 use crate::error::{Result, ToolError};
 
@@ -749,7 +749,7 @@ fn gen_struct_or_variant(
     Ok(None) // Return None for non-single-leaf variants
 }
 
-pub fn generate_grammar(module: &ItemMod) -> syn::Result<Value> {
+pub fn generate_grammar(module: &ItemMod) -> Result<Value> {
     let mut rules_map = Map::new();
     // for some reason, source_file must be the first key for things to work
     // We'll insert it after we find the root type
@@ -875,10 +875,7 @@ pub fn generate_grammar(module: &ItemMod) -> syn::Result<Value> {
 
                 if is_word {
                     if word_rule.is_some() {
-                        return Err(syn::Error::new_spanned(
-                            &s.ident,
-                            "multiple word rules specified - only one word rule is allowed per grammar",
-                        ));
+                        return Err(ToolError::MultipleWordRules);
                     }
                     word_rule = Some(s.ident.to_string());
                 }
