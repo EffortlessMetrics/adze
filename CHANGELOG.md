@@ -20,6 +20,15 @@ All notable changes to this project will be documented in this file.
   - This prevents confusing behavior where the trait method shadowed the slice method
   - Migration: Replace all calls to `stack.last()` with `stack.peek()`
 
+### Added
+
+- **Precedence Error Handling**: Comprehensive validation and error reporting for precedence attributes
+  - Detect multiple precedence attributes (`prec`, `prec_left`, `prec_right`) on same rule
+  - Validate precedence values are integer literals in range 0 to 4294967295
+  - Provide specific error messages for common mistakes (strings, floats, variables, overflow)
+  - Enhanced test coverage for edge cases including zero, max u32, and negative values
+  - Integration tests verify precedence errors don't break other grammar processing
+
 ### Fixed
 
 - **Memory Safety**: Fixed memory leak in telemetry by removing `Box::leak`, replaced with safe `Option<&'t Telemetry>` pattern
@@ -34,6 +43,7 @@ All notable changes to this project will be documented in this file.
 - **Code Robustness**: Added debug assertions to verify stack invariants (even-length head vectors)
 - **Stack Efficiency**: Rewrote `top()`, `depth()`, and `to_vec()` to use iterative algorithms instead of recursion
 - **Telemetry**: Added `inc_fork_by(n)` for efficient bulk fork counting
+- **Developer Experience**: Enhanced error messages for precedence attribute conflicts with specific attribute lists
 
 ### Testing
 

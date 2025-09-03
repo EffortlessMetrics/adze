@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rust_sitter_common::*;
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use syn::{parse::Parse, punctuated::Punctuated, *};
 
 use crate::error::{Result, ToolError};
@@ -303,6 +303,162 @@ fn gen_field(
     }
 }
 
+/// Precedence attributes handler for grammar rules.
+///
+/// Manages the three types of precedence attributes:
+/// - `#[rust_sitter::prec(n)]`: Non-associative precedence
+/// - `#[rust_sitter::prec_left(n)]`: Left-associative precedence  
+/// - `#[rust_sitter::prec_right(n)]`: Right-associative precedence
+///
+/// Only one precedence attribute can be applied per rule. The precedence value
+/// must be an integer literal in the range 0 to 4294967295 (u32).
+#[derive(Default)]
+struct Precs<'a> {
+    prec: Option<&'a Attribute>,
+    prec_left: Option<&'a Attribute>,
+    prec_right: Option<&'a Attribute>,
+}
+
+impl<'a> Precs<'a> {
+    /// Extracts precedence attributes from a list of attributes.
+    ///
+    /// Searches for `prec`, `prec_left`, and `prec_right` attributes
+    /// and stores references to them for later validation and application.
+    fn new(attrs: &'a [Attribute]) -> Self {
+        Self {
+            prec: attrs
+                .iter()
+                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec)),
+            prec_left: attrs
+                .iter()
+                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_left)),
+            prec_right: attrs
+                .iter()
+                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_right)),
+        }
+    }
+
+    /// Applies precedence to a grammar rule, validating attribute usage.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `syn::Error` in the following cases:
+    /// - Multiple precedence attributes are specified on the same rule
+    /// - The precedence value is not an integer literal (e.g., string, float, variable)
+    /// - The precedence value is outside the valid u32 range (0 to 4294967295)
+    ///
+    /// Error messages include specific guidance on how to fix the issue.
+    fn apply(&self, base_rule: Value) -> syn::Result<Value> {
+        let count = self.prec.iter().count()
+            + self.prec_left.iter().count()
+            + self.prec_right.iter().count();
+        if count > 1 {
+            let span = self
+                .prec
+                .map(|a| a.span())
+                .or_else(|| self.prec_left.map(|a| a.span()))
+                .or_else(|| self.prec_right.map(|a| a.span()))
+                .unwrap();
+
+            // Collect which attributes were found for a better error message
+            let mut found_attrs = Vec::new();
+            if self.prec.is_some() {
+                found_attrs.push("prec");
+            }
+            if self.prec_left.is_some() {
+                found_attrs.push("prec_left");
+            }
+            if self.prec_right.is_some() {
+                found_attrs.push("prec_right");
+            }
+
+            return Err(syn::Error::new(
+                span,
+                format!(
+                    "only one of prec, prec_left, and prec_right can be specified, but found: {}",
+                    found_attrs.join(", ")
+                ),
+            ));
+        }
+
+        if let Some(attr) = self.prec {
+            let expr: Expr = attr.parse_args()?;
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(i), ..
+            }) = expr
+            {
+                let value = i.base10_parse::<u32>().map_err(|e| {
+                    syn::Error::new(
+                        i.span(),
+                        format!(
+                            "Invalid integer literal for precedence: {} (must be a valid u32)",
+                            e
+                        ),
+                    )
+                })?;
+                Ok(json!({
+                    "type": "PREC",
+                    "value": value,
+                    "content": base_rule
+                }))
+            } else {
+                Err(syn::Error::new(
+                    expr.span(),
+                    "Expected integer literal for precedence. Use #[rust_sitter::prec(123)] with a positive integer (0 to 4294967295).",
+                ))
+            }
+        } else if let Some(attr) = self.prec_left {
+            let expr: Expr = attr.parse_args()?;
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(i), ..
+            }) = expr
+            {
+                let value = i
+                    .base10_parse::<u32>()
+                    .map_err(|e| syn::Error::new(
+                        i.span(),
+                        format!("Invalid integer literal for left-associative precedence: {} (must be a valid u32)", e)
+                    ))?;
+                Ok(json!({
+                    "type": "PREC_LEFT",
+                    "value": value,
+                    "content": base_rule
+                }))
+            } else {
+                Err(syn::Error::new(
+                    expr.span(),
+                    "Expected integer literal for left-associative precedence. Use #[rust_sitter::prec_left(123)] with a positive integer (0 to 4294967295).",
+                ))
+            }
+        } else if let Some(attr) = self.prec_right {
+            let expr: Expr = attr.parse_args()?;
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(i), ..
+            }) = expr
+            {
+                let value = i
+                    .base10_parse::<u32>()
+                    .map_err(|e| syn::Error::new(
+                        i.span(),
+                        format!("Invalid integer literal for right-associative precedence: {} (must be a valid u32)", e)
+                    ))?;
+                Ok(json!({
+                    "type": "PREC_RIGHT",
+                    "value": value,
+                    "content": base_rule
+                }))
+            } else {
+                Err(syn::Error::new(
+                    expr.span(),
+                    "Expected integer literal for right-associative precedence. Use #[rust_sitter::prec_right(123)] with a positive integer (0 to 4294967295).",
+                ))
+            }
+        } else {
+            Ok(base_rule)
+        }
+    }
+}
+
 fn gen_struct_or_variant(
     path: String,
     attrs: Vec<Attribute>,
@@ -519,24 +675,6 @@ fn gen_struct_or_variant(
         })
         .collect::<Vec<Value>>();
 
-    let prec_attr = attrs
-        .iter()
-        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec));
-
-    let prec_param = prec_attr.and_then(|a| a.parse_args_with(Expr::parse).ok());
-
-    let prec_left_attr = attrs
-        .iter()
-        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_left));
-
-    let prec_left_param = prec_left_attr.and_then(|a| a.parse_args_with(Expr::parse).ok());
-
-    let prec_right_attr = attrs
-        .iter()
-        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_right));
-
-    let prec_right_param = prec_right_attr.and_then(|a| a.parse_args_with(Expr::parse).ok());
-
     let base_rule = match fields {
         Fields::Unit => {
             let dummy_field = Field {
@@ -603,59 +741,15 @@ fn gen_struct_or_variant(
         );
     }
 
-    let rule = if let Some(Expr::Lit(lit)) = prec_param {
-        if prec_left_attr.is_some() || prec_right_attr.is_some() {
-            return Err(ToolError::MultiplePrecedenceAttributes);
-        }
-
-        if let Lit::Int(i) = &lit.lit {
-            json!({
-                "type": "PREC",
-                "value": i.base10_parse::<u32>().unwrap(),
-                "content": base_rule
-            })
-        } else {
-            return Err(ToolError::ExpectedIntegerLiteral {
-                actual: format!("{:?}", lit.lit),
-            });
-        }
-    } else if let Some(Expr::Lit(lit)) = prec_left_param {
-        if prec_right_attr.is_some() {
-            return Err(ToolError::MultiplePrecedenceAttributes);
-        }
-
-        if let Lit::Int(i) = &lit.lit {
-            json!({
-                "type": "PREC_LEFT",
-                "value": i.base10_parse::<u32>().unwrap(),
-                "content": base_rule
-            })
-        } else {
-            return Err(ToolError::ExpectedIntegerLiteral {
-                actual: format!("{:?}", lit.lit),
-            });
-        }
-    } else if let Some(Expr::Lit(lit)) = prec_right_param {
-        if let Lit::Int(i) = &lit.lit {
-            json!({
-                "type": "PREC_RIGHT",
-                "value": i.base10_parse::<u32>().unwrap(),
-                "content": base_rule
-            })
-        } else {
-            return Err(ToolError::ExpectedIntegerLiteral {
-                actual: format!("{:?}", lit.lit),
-            });
-        }
-    } else {
-        base_rule
-    };
+    let rule = Precs::new(&attrs)
+        .apply(base_rule)
+        .map_err(|e| ToolError::SynError { syn_error: e })?;
 
     out.insert(path, rule);
     Ok(None) // Return None for non-single-leaf variants
 }
 
-pub fn generate_grammar(module: &ItemMod) -> Value {
+pub fn generate_grammar(module: &ItemMod) -> syn::Result<Value> {
     let mut rules_map = Map::new();
     // for some reason, source_file must be the first key for things to work
     // We'll insert it after we find the root type
@@ -716,25 +810,22 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
     // Optionally locate the rule annotated with `#[rust_sitter::word]`.
     let mut word_rule = None;
-    contents.iter().for_each(|c| {
+    for c in contents.iter() {
         let (symbol, attrs) = match c {
             Item::Enum(e) => {
                 let mut members: Vec<Value> = vec![];
 
-                e.variants.iter().for_each(|v| {
+                for v in e.variants.iter() {
                     let variant_path = format!("{}_{}", e.ident, v.ident);
 
-                    // Generate the variant rule - handle errors locally
-                    if let Err(e) = gen_struct_or_variant(
+                    // Generate the variant rule - propagate errors
+                    gen_struct_or_variant(
                         variant_path.clone(),
                         v.attrs.clone(),
                         v.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
-                    ) {
-                        eprintln!("Error generating variant {}: {:?}", variant_path, e);
-                        return; // Skip processing this grammar due to error
-                    }
+                    )?;
 
                     // Always reference the variant by name, even for single-leaf variants
                     // This ensures we get proper node names in the parse tree
@@ -746,7 +837,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                     // For enum variants, precedence is already applied in gen_struct_or_variant
                     // Just use the variant reference directly
                     members.push(variant_ref);
-                });
+                }
 
                 // For precedence to work correctly with the LR algorithm,
                 // we need the CHOICE to be visible. This allows the parser to see
@@ -784,30 +875,26 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
                 if is_word {
                     if word_rule.is_some() {
-                        eprintln!("Error: Multiple `word` rules specified");
-                        return; // Skip processing this grammar due to error
+                        return Err(syn::Error::new_spanned(&s.ident, "multiple word rules specified - only one word rule is allowed per grammar"));
                     }
                     word_rule = Some(s.ident.to_string());
                 }
 
                 // Generate rules for non-external structs AND extra structs (even if they're not referenced)
                 if !is_external || is_extra {
-                    if let Err(e) = gen_struct_or_variant(
+                    gen_struct_or_variant(
                         s.ident.to_string(),
                         s.attrs.clone(),
                         s.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
-                    ) {
-                        eprintln!("Error generating struct {}: {:?}", s.ident, e);
-                        return; // Skip processing this grammar due to error
-                    }
+                    )?;
                 }
 
                 (s.ident.to_string(), s.attrs.clone())
             }
 
-            _ => return,
+            _ => continue,
         };
 
         if attrs
@@ -831,7 +918,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                 "name": symbol
             }));
         }
-    });
+    }
 
     // source_file rule already inserted above - don't overwrite it!
 
@@ -861,5 +948,5 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
             .insert("externals".to_string(), json!(externals_list));
     }
 
-    grammar
+    Ok(grammar)
 }

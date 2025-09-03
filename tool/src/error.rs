@@ -85,6 +85,13 @@ pub enum ToolError {
     /// Error from table generation
     #[error(transparent)]
     TableGen(#[from] rust_sitter_tablegen::TableGenError),
+
+    /// Syn parsing error
+    #[error(transparent)]
+    SynError {
+        #[from]
+        syn_error: syn::Error,
+    },
 }
 
 /// Convenience type alias for tool results

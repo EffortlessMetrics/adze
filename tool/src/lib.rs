@@ -6,7 +6,7 @@
 //! Build tool for rust-sitter parser generation
 
 use serde_json::Value;
-use syn::{Item, parse_quote};
+use syn::{parse_quote, Item};
 
 mod expansion;
 use expansion::*;
@@ -18,11 +18,11 @@ pub mod visualization;
 pub use visualization::GrammarVisualizer;
 
 pub mod grammar_js;
-pub use grammar_js::{GrammarJsConverter, parse_grammar_js};
+pub use grammar_js::{parse_grammar_js, GrammarJsConverter};
 
 pub mod pure_rust_builder;
 pub use pure_rust_builder::{
-    BuildOptions, BuildResult, build_parser, build_parser_for_crate, build_parser_from_grammar_js,
+    build_parser, build_parser_for_crate, build_parser_from_grammar_js, BuildOptions, BuildResult,
 };
 
 pub mod cli;
@@ -37,13 +37,13 @@ const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 1));
 
 /// Generates JSON strings defining Tree Sitter grammars for every Rust Sitter
 /// grammar found in the given module and recursive submodules.
-pub fn generate_grammars(root_file: &Path) -> Vec<Value> {
+pub fn generate_grammars(root_file: &Path) -> syn::Result<Vec<Value>> {
     let root_file = syn_inline_mod::parse_and_inline_modules(root_file).items;
     let mut out = vec![];
-    root_file
-        .iter()
-        .for_each(|i| generate_all_grammars(i, &mut out));
-    out
+    for i in root_file.iter() {
+        generate_all_grammars(i, &mut out)?;
+    }
+    Ok(out)
 }
 
 fn generate_all_grammars(item: &Item, out: &mut Vec<Value>) {
@@ -100,7 +100,7 @@ pub fn build_parsers(root_file: &Path) {
 
     if use_pure_rust {
         // Use pure-Rust builder exclusively
-        use pure_rust_builder::{BuildOptions, build_parser_for_crate};
+        use pure_rust_builder::{build_parser_for_crate, BuildOptions};
         let options = BuildOptions::default();
         match build_parser_for_crate(root_file, options) {
             Ok(results) => {
@@ -332,7 +332,7 @@ pub fn build_parsers(root_file: &Path) {
 mod tests {
     use syn::parse_quote;
 
-    use super::{GENERATED_SEMANTIC_VERSION, generate_grammar};
+    use super::{generate_grammar, GENERATED_SEMANTIC_VERSION};
     use tree_sitter_generate::generate_parser_for_grammar;
 
     #[test]
