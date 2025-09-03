@@ -234,7 +234,8 @@ impl GrammarOptimizer {
         for (symbol_id, rules) in &grammar.rules {
             if self.inlinable_rules.contains(symbol_id) {
                 // Only inline if all rules for this symbol have exactly one RHS symbol
-                if rules.len() == 1 && rules[0].rhs.len() == 1
+                if rules.len() == 1
+                    && rules[0].rhs.len() == 1
                     && let Some(target) = rules[0].rhs.first()
                 {
                     replacements.insert(*symbol_id, target.clone());
@@ -359,7 +360,9 @@ impl GrammarOptimizer {
 
         // Find unit rules
         for rule in grammar.all_rules() {
-            if rule.rhs.len() == 1 && let Symbol::NonTerminal(_) = &rule.rhs[0] {
+            if rule.rhs.len() == 1
+                && let Symbol::NonTerminal(_) = &rule.rhs[0]
+            {
                 unit_rules.push(rule.clone());
             }
         }

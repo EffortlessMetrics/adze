@@ -15,6 +15,11 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
+      
       - name: Format (rustfmt)
         run: cargo fmt --all -- --check
       

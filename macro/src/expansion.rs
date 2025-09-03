@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::errors::IteratorExt as _;
 use proc_macro2::Span;
-use quote::{ToTokens, quote};
+use quote::{quote, ToTokens};
 use rust_sitter_common::*;
 use syn::{parse::Parse, punctuated::Punctuated, *};
 
@@ -73,55 +73,55 @@ fn gen_struct_or_variant(
     container_attrs: Vec<Attribute>,
 ) -> Result<Expr> {
     // Special handling for single-field enum variants that might be leaf nodes
-    if let (Some(variant_name), Fields::Unnamed(unnamed_fields)) = (&variant_ident, &fields) {
-        if unnamed_fields.unnamed.len() == 1 {
-            let field = &unnamed_fields.unnamed[0];
-            // Check if this field has a leaf attribute
-            let is_leaf = field
+    if let (Some(variant_name), Fields::Unnamed(unnamed_fields)) = (&variant_ident, &fields)
+        && unnamed_fields.unnamed.len() == 1
+    {
+        let field = &unnamed_fields.unnamed[0];
+        // Check if this field has a leaf attribute
+        let is_leaf = field
+            .attrs
+            .iter()
+            .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
+        if is_leaf {
+            // For leaf variants, extract directly from the node without navigating to children
+            let leaf_type = &field.ty;
+            let leaf_attr = field
                 .attrs
                 .iter()
-                .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
-            if is_leaf {
-                // For leaf variants, extract directly from the node without navigating to children
-                let leaf_type = &field.ty;
-                let leaf_attr = field
-                    .attrs
-                    .iter()
-                    .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
+                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
 
-                let leaf_params = leaf_attr.and_then(|a| {
-                    a.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
-                        .ok()
-                });
+            let leaf_params = leaf_attr.and_then(|a| {
+                a.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+                    .ok()
+            });
 
-                let transform_param = leaf_params.as_ref().and_then(|p| {
-                    p.iter()
-                        .find(|param| param.path == "transform")
-                        .map(|p| p.expr.clone())
-                });
+            let transform_param = leaf_params.as_ref().and_then(|p| {
+                p.iter()
+                    .find(|param| param.path == "transform")
+                    .map(|p| p.expr.clone())
+            });
 
-                let (leaf_type, closure_expr): (Type, Expr) = match transform_param {
-                    Some(closure) => {
-                        let mut non_leaf = HashSet::new();
-                        non_leaf.insert("Spanned");
-                        non_leaf.insert("Box");
-                        non_leaf.insert("Option");
-                        non_leaf.insert("Vec");
-                        let wrapped_leaf_type = wrap_leaf_type(leaf_type, &non_leaf);
-                        (wrapped_leaf_type, syn::parse_quote!(Some(&#closure)))
-                    }
-                    None => (leaf_type.clone(), syn::parse_quote!(None)),
-                };
+            let (leaf_type, closure_expr): (Type, Expr) = match transform_param {
+                Some(closure) => {
+                    let mut non_leaf = HashSet::new();
+                    non_leaf.insert("Spanned");
+                    non_leaf.insert("Box");
+                    non_leaf.insert("Option");
+                    non_leaf.insert("Vec");
+                    let wrapped_leaf_type = wrap_leaf_type(leaf_type, &non_leaf);
+                    (wrapped_leaf_type, syn::parse_quote!(Some(&#closure)))
+                }
+                None => (leaf_type.clone(), syn::parse_quote!(None)),
+            };
 
-                let construct_name = quote! {
-                    #containing_type::#variant_name
-                };
+            let construct_name = quote! {
+                #containing_type::#variant_name
+            };
 
-                return Ok(syn::parse_quote!({
-                    let value = <#leaf_type as ::rust_sitter::Extract<_>>::extract(Some(node), source, 0, #closure_expr);
-                    #construct_name(value)
-                }));
-            }
+            return Ok(syn::parse_quote!({
+                let value = <#leaf_type as ::rust_sitter::Extract<_>>::extract(Some(node), source, 0, #closure_expr);
+                #construct_name(value)
+            }));
         }
     }
 
