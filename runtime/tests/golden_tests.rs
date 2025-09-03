@@ -26,7 +26,8 @@ mod ts_compat_golden {
     // Temporarily disabled to resolve linking conflicts
     #[test]
     fn dummy_test() {
-        assert!(true, "Placeholder test to prevent empty module");
+        // Placeholder test to prevent empty module
+        // This will be removed when real tests are enabled
     }
 }
 

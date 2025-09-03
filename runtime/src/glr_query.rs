@@ -13,7 +13,9 @@ use std::fmt;
 pub struct Subtree {
     pub symbol: SymbolId,
     pub children: Vec<Subtree>,
+    #[allow(dead_code)]
     pub start_byte: usize,
+    #[allow(dead_code)]
     pub end_byte: usize,
 }
 
@@ -78,6 +80,7 @@ pub enum Quantifier {
 
 /// Predicates for additional matching constraints
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum Predicate {
     /// #eq? predicate - captures must be equal
     Equal(Vec<u32>),

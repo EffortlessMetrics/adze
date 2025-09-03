@@ -12,8 +12,10 @@ use ts_bridge::{extract, schema::Action as TsAction};
 /// `TSLanguage` (which has a different ABI), we use the `ts-bridge` extractor
 /// to decode the Tree-sitter parse tables and rebuild a fresh language using
 /// our pure-Rust layout.
+#[allow(dead_code)]
 pub fn unified_json_language() -> &'static TSLanguage {
     // Extract parse table data from upstream Tree-sitter JSON grammar
+    #[allow(clippy::missing_transmute_annotations)]
     let lang_fn = unsafe { std::mem::transmute(tree_sitter_json::LANGUAGE.into_raw()) };
     let data = extract(lang_fn).expect("extract tree-sitter json");
 
