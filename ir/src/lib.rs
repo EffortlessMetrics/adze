@@ -16,7 +16,7 @@ pub use error::{IrError, Result as IrResult};
 
 /// Grammar optimization utilities
 pub mod optimizer;
-pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
+pub use optimizer::{optimize_grammar, GrammarOptimizer, OptimizationStats};
 
 /// Grammar validation utilities
 pub mod validation;
@@ -107,7 +107,8 @@ impl Grammar {
         for (symbol_id, rules) in &self.rules {
             // Skip symbols that look like internal/generated names
             if let Some(name) = self.rule_names.get(symbol_id)
-                && !name.contains('_') && !rules.is_empty()
+                && !name.contains('_')
+                && !rules.is_empty()
             {
                 return Some(*symbol_id);
             }

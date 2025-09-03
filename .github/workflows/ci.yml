@@ -154,6 +154,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
+      
       - name: Test (workspace, default features)
         run: cargo test --workspace --locked --no-fail-fast
       
@@ -525,6 +530,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
+      
       - name: Build docs (deny warnings)
         env:
           RUSTDOCFLAGS: -D warnings
@@ -577,6 +587,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
       
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@v2
@@ -682,11 +697,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       
-      - name: Install jq
+      - name: Install dependencies
         run: |
-          if ! command -v jq >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y jq
-          fi
+          sudo apt-get update
+          sudo apt-get install -y jq libtree-sitter-dev pkg-config
 
       # 1) Block silently disabled tests (files renamed to .disabled)
       - name: Fail on disabled test files

@@ -18,8 +18,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq libtree-sitter-dev pkg-config
       - name: Build ts-bridge
         run: cargo build -p ts-bridge --release
       - name: Run parity cases
