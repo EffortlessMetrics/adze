@@ -67,7 +67,7 @@ pub use rust_sitter_ir::{Grammar, StateId, SymbolId};
 
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {
-    pub use crate::{FirstFollowSets, ParseTable, build_lr1_automaton};
+    pub use crate::{build_lr1_automaton, FirstFollowSets, ParseTable};
 }
 
 // Keep available, but don't promise public docs yet:
@@ -131,7 +131,7 @@ pub use advanced_conflict::{
 #[doc(hidden)]
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
 #[doc(hidden)]
-pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
+pub use conflict_visualizer::{generate_dot_graph, ConflictVisualizer};
 #[doc(hidden)]
 pub use gss::{GSSStats, GraphStructuredStack, StackNode};
 #[doc(hidden)]
@@ -140,12 +140,12 @@ pub use parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
 #[doc(hidden)]
 pub use precedence_compare::{
-    PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
+    compare_precedences, PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver,
 };
 #[doc(hidden)]
 pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
 #[doc(hidden)]
-pub use version_info::{CompareResult, VersionInfo, compare_versions};
+pub use version_info::{compare_versions, CompareResult, VersionInfo};
 
 // Precedence resolution structures
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -231,16 +231,15 @@ fn build_prec_tables(
                     } else {
                         None
                     }
-                }) {
-                    if (tok_idx as u32) < token_count {
-                        set_tok_prec(
-                            tok_idx,
-                            TokPrec {
-                                prec: level,
-                                assoc: assoc_val,
-                            },
-                        );
-                    }
+                }) && (tok_idx as u32) < token_count
+                {
+                    set_tok_prec(
+                        tok_idx,
+                        TokPrec {
+                            prec: level,
+                            assoc: assoc_val,
+                        },
+                    );
                 }
             }
 
@@ -535,23 +534,23 @@ impl FirstFollowSets {
                 for symbol in &rule.rhs {
                     match symbol {
                         Symbol::Terminal(id) => {
-                            if let Some(first_set) = first.get_mut(&lhs) {
-                                if !first_set.contains(id.0 as usize) {
-                                    first_set.insert(id.0 as usize);
-                                    changed = true;
-                                }
+                            if let Some(first_set) = first.get_mut(&lhs)
+                                && !first_set.contains(id.0 as usize)
+                            {
+                                first_set.insert(id.0 as usize);
+                                changed = true;
                             }
                             rule_nullable = false;
                             break;
                         }
                         Symbol::NonTerminal(id) | Symbol::External(id) => {
-                            if let Some(symbol_first) = first.get(id).cloned() {
-                                if let Some(lhs_first) = first.get_mut(&lhs) {
-                                    let old_len = lhs_first.count_ones(..);
-                                    lhs_first.union_with(&symbol_first);
-                                    if lhs_first.count_ones(..) > old_len {
-                                        changed = true;
-                                    }
+                            if let Some(symbol_first) = first.get(id).cloned()
+                                && let Some(lhs_first) = first.get_mut(&lhs)
+                            {
+                                let old_len = lhs_first.count_ones(..);
+                                lhs_first.union_with(&symbol_first);
+                                if lhs_first.count_ones(..) > old_len {
+                                    changed = true;
                                 }
                             }
 
@@ -586,10 +585,10 @@ impl FirstFollowSets {
 
         // Compute FOLLOW sets
         // Initialize FOLLOW(start_symbol) with EOF
-        if let Some(start_symbol) = grammar.start_symbol() {
-            if let Some(follow_set) = follow.get_mut(&start_symbol) {
-                follow_set.insert(0); // EOF symbol
-            }
+        if let Some(start_symbol) = grammar.start_symbol()
+            && let Some(follow_set) = follow.get_mut(&start_symbol)
+        {
+            follow_set.insert(0); // EOF symbol
         }
 
         changed = true;
@@ -598,22 +597,20 @@ impl FirstFollowSets {
 
             for rule in grammar.all_rules() {
                 // Special handling for rules of the form A -> A B (left recursion)
-                if rule.rhs.len() >= 2 {
-                    if let (Symbol::NonTerminal(first_id), Symbol::NonTerminal(second_id)) =
+                if rule.rhs.len() >= 2
+                    && let (Symbol::NonTerminal(first_id), Symbol::NonTerminal(second_id)) =
                         (&rule.rhs[0], &rule.rhs[1])
+                    && *first_id == rule.lhs
+                {
+                    // This is a left-recursive rule like Module_body_vec_contents -> Module_body_vec_contents Statement
+                    // FIRST(Statement) should be in FOLLOW(Module_body_vec_contents)
+                    if let Some(first_of_second) = first.get(second_id)
+                        && let Some(follow_set) = follow.get_mut(&rule.lhs)
                     {
-                        if *first_id == rule.lhs {
-                            // This is a left-recursive rule like Module_body_vec_contents -> Module_body_vec_contents Statement
-                            // FIRST(Statement) should be in FOLLOW(Module_body_vec_contents)
-                            if let Some(first_of_second) = first.get(second_id) {
-                                if let Some(follow_set) = follow.get_mut(&rule.lhs) {
-                                    let old_len = follow_set.count_ones(..);
-                                    follow_set.union_with(first_of_second);
-                                    if follow_set.count_ones(..) > old_len {
-                                        changed = true;
-                                    }
-                                }
-                            }
+                        let old_len = follow_set.count_ones(..);
+                        follow_set.union_with(first_of_second);
+                        if follow_set.count_ones(..) > old_len {
+                            changed = true;
                         }
                     }
                 }
@@ -634,15 +631,14 @@ impl FirstFollowSets {
                         }
 
                         // If remaining symbols are nullable, add FOLLOW of LHS
-                        if Self::sequence_is_nullable(remaining, &nullable) {
-                            if let Some(lhs_follow) = follow.get(&rule.lhs).cloned() {
-                                if let Some(follow_set) = follow.get_mut(id) {
-                                    let old_len = follow_set.count_ones(..);
-                                    follow_set.union_with(&lhs_follow);
-                                    if follow_set.count_ones(..) > old_len {
-                                        changed = true;
-                                    }
-                                }
+                        if Self::sequence_is_nullable(remaining, &nullable)
+                            && let Some(lhs_follow) = follow.get(&rule.lhs).cloned()
+                            && let Some(follow_set) = follow.get_mut(id)
+                        {
+                            let old_len = follow_set.count_ones(..);
+                            follow_set.union_with(&lhs_follow);
+                            if follow_set.count_ones(..) > old_len {
+                                changed = true;
                             }
                         }
                     }
@@ -873,20 +869,19 @@ impl ItemSet {
 
         // Add all items where the dot can advance over the given symbol
         for item in &self.items {
-            if let Some(next_sym) = item.next_symbol(grammar) {
-                if std::mem::discriminant(next_sym) == std::mem::discriminant(symbol) {
-                    match (next_sym, symbol) {
-                        (Symbol::Terminal(a), Symbol::Terminal(b))
-                        | (Symbol::NonTerminal(a), Symbol::NonTerminal(b))
-                        | (Symbol::External(a), Symbol::External(b))
-                            if a == b =>
-                        {
-                            let new_item =
-                                LRItem::new(item.rule_id, item.position + 1, item.lookahead);
-                            new_set.add_item(new_item);
-                        }
-                        _ => {}
+            if let Some(next_sym) = item.next_symbol(grammar)
+                && std::mem::discriminant(next_sym) == std::mem::discriminant(symbol)
+            {
+                match (next_sym, symbol) {
+                    (Symbol::Terminal(a), Symbol::Terminal(b))
+                    | (Symbol::NonTerminal(a), Symbol::NonTerminal(b))
+                    | (Symbol::External(a), Symbol::External(b))
+                        if a == b =>
+                    {
+                        let new_item = LRItem::new(item.rule_id, item.position + 1, item.lookahead);
+                        new_set.add_item(new_item);
                     }
+                    _ => {}
                 }
             }
         }
@@ -2057,11 +2052,11 @@ impl ConflictResolver {
         let mut best_rule_id = u16::MAX;
 
         for action in &conflict.actions {
-            if let Action::Reduce(rule_id) = action {
-                if rule_id.0 < best_rule_id {
-                    best_rule_id = rule_id.0;
-                    best_action = Some(action.clone());
-                }
+            if let Action::Reduce(rule_id) = action
+                && rule_id.0 < best_rule_id
+            {
+                best_rule_id = rule_id.0;
+                best_action = Some(action.clone());
             }
         }
 
@@ -2130,12 +2125,11 @@ fn can_derive_start(grammar: &Grammar, symbol: SymbolId, start: SymbolId) -> boo
     // Check if there's a rule symbol -> start
     if let Some(rules) = grammar.get_rules_for_symbol(symbol) {
         for rule in rules {
-            if rule.rhs.len() == 1 {
-                if let Symbol::NonTerminal(target) = &rule.rhs[0] {
-                    if *target == start {
-                        return true;
-                    }
-                }
+            if rule.rhs.len() == 1
+                && let Symbol::NonTerminal(target) = &rule.rhs[0]
+                && *target == start
+            {
+                return true;
             }
         }
     }
@@ -2278,11 +2272,11 @@ pub fn build_lr1_automaton(
     // Also collect terminals from rule RHS that might not be in grammar.tokens
     for rule in augmented_grammar.all_rules() {
         for symbol in &rule.rhs {
-            if let Symbol::Terminal(id) = symbol {
-                if !token_symbols.contains(id) {
-                    token_symbols.push(*id);
-                    max_symbol_id = max_symbol_id.max(id.0);
-                }
+            if let Symbol::Terminal(id) = symbol
+                && !token_symbols.contains(id)
+            {
+                token_symbols.push(*id);
+                max_symbol_id = max_symbol_id.max(id.0);
             }
         }
     }
@@ -2650,12 +2644,10 @@ pub fn build_lr1_automaton(
             .copied()
             .unwrap_or(symbol.0 == 0); // EOF is a terminal
 
-        if !is_terminal {
-            if let Some(&symbol_idx) = symbol_to_index.get(symbol) {
-                let state_idx = from_state.0 as usize;
-                if state_idx < goto_table.len() && symbol_idx < goto_table[state_idx].len() {
-                    // "DEBUG: Setting goto for state {} non-terminal {} (id={}) -> state {}"
-                }
+        if !is_terminal && let Some(&symbol_idx) = symbol_to_index.get(symbol) {
+            let state_idx = from_state.0 as usize;
+            if state_idx < goto_table.len() && symbol_idx < goto_table[state_idx].len() {
+                // "DEBUG: Setting goto for state {} non-terminal {} (id={}) -> state {}"
             }
         }
     }
@@ -2680,14 +2672,13 @@ pub fn build_lr1_automaton(
             let reduce_rule_id: Option<RuleId> = None;
 
             // If we found a reduce item that needs EOF action, ensure it's in the action table
-            if needs_eof_reduce {
-                if let Some(rule_id) = reduce_rule_id {
-                    if let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0)) {
-                        // Check if EOF action already exists
-                        if action_table[state_idx][eof_idx].is_empty() {
-                            action_table[state_idx][eof_idx].push(Action::Reduce(rule_id));
-                        }
-                    }
+            if needs_eof_reduce
+                && let Some(rule_id) = reduce_rule_id
+                && let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0))
+            {
+                // Check if EOF action already exists
+                if action_table[state_idx][eof_idx].is_empty() {
+                    action_table[state_idx][eof_idx].push(Action::Reduce(rule_id));
                 }
             }
         }
@@ -2824,10 +2815,10 @@ pub fn build_lr1_automaton(
 
     // Add EOF to symbol_to_index if not present
     // Map our EOF symbol to the same index as SymbolId(0) for compatibility
-    if !symbol_to_index.contains_key(&eof_symbol) {
-        if let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0)) {
-            symbol_to_index.insert(eof_symbol, eof_idx);
-        }
+    if !symbol_to_index.contains_key(&eof_symbol)
+        && let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0))
+    {
+        symbol_to_index.insert(eof_symbol, eof_idx);
     }
 
     // Normalize action table for deterministic output

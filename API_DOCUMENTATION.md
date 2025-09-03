@@ -22,6 +22,7 @@ Complete API reference for rust-sitter v0.6.0 - the production-ready pure-Rust p
 12. [LSP Generation](#lsp-generation)
 13. [Playground API](#playground-api)
 14. [Thread Safety & Concurrency](#thread-safety)
+15. [Development Tools](#development-tools)
 
 ## Core Types
 
@@ -965,8 +966,7 @@ rust-sitter = { version = "0.6", features = ["incremental", "external-scanners",
 - **`tree-sitter-standard`** - Standard C Tree-sitter runtime
 
 #### Development Features
-- **`stub-ts`** (ts-bridge) - Development mode with stubbed Tree-sitter libraries
-- **`with-grammars`** (ts-bridge) - Production mode with actual Tree-sitter grammars
+- **`with-grammars`** (ts-bridge) - Enables parity tests with real Tree-sitter grammars
 - **`test-api`** (glr-core) - Internal debug helpers for integration tests
 
 ### Feature Compatibility
@@ -1038,6 +1038,46 @@ where
 - `CARGO_BUILD_JOBS`: Parallel compilation (default: 4)
 
 **Usage**: Call `concurrency_caps::init_concurrency_caps()` once at startup for stable resource usage across machines.
+
+## Development Tools
+
+### ts-bridge: Tree-sitter to GLR Bridge
+**Production Ready** - Extracts parse tables from compiled Tree-sitter grammars for GLR runtime integration.
+
+```rust
+// Extract parse tables from a compiled Tree-sitter grammar
+use ts_bridge::extract;
+
+// Language function from compiled Tree-sitter grammar
+extern "C" fn tree_sitter_json() -> *const ts_bridge::ffi::TSLanguage {
+    // Implementation provided by compiled grammar
+}
+
+// Extract parse table data
+let parse_table = extract(tree_sitter_json)?;
+println!("Extracted {} states, {} symbols", 
+    parse_table.states.len(), parse_table.symbols.len());
+```
+
+**Key Features:**
+- **ABI Stability**: Pinned to Tree-sitter v15 with SHA-256 header verification
+- **Dynamic Buffer Allocation**: No truncation - automatically expands for large action cells
+- **Comprehensive Testing**: Parity tests ensure extracted tables match Tree-sitter exactly
+- **Production Grade**: Supports full parse table extraction from real Tree-sitter libraries
+
+**CLI Usage:**
+```bash
+# Extract parse tables from compiled grammar
+cargo run -p ts-bridge -- path/to/grammar.so output.json tree_sitter_language_fn
+
+# Verify ABI compatibility
+cargo run -p ts-bridge --bin tsb-abi-check
+
+# Run parity tests with real grammars
+cargo test -p ts-bridge --features with-grammars
+```
+
+**Requirements**: Requires `libtree-sitter-dev` system package for linking real Tree-sitter libraries.
 
 ## Version Compatibility
 

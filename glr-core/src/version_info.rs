@@ -79,11 +79,7 @@ pub fn compare_versions(a: &VersionInfo, b: &VersionInfo) -> CompareResult {
     const MAX_COST_DIFF_FACTOR: usize = 18;
 
     if a.cost != b.cost {
-        let cost_diff = if a.cost > b.cost {
-            a.cost - b.cost
-        } else {
-            b.cost - a.cost
-        };
+        let cost_diff = a.cost.abs_diff(b.cost);
 
         // Tree-sitter's exact formula for "take" threshold
         let total_node_count = a.node_count + b.node_count;

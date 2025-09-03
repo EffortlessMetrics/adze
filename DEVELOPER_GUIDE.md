@@ -1,5 +1,31 @@
 # Developer Guide - rust-sitter
 
+## Prerequisites
+
+### System Requirements
+- **Rust 1.89.0+** with 2024 edition support
+- **libtree-sitter-dev**: Required for ts-bridge tool functionality
+- **libclang-dev**: Required for some feature bindings
+- **Git**: For version control and automated workflows
+
+### Platform Support
+- Linux (primary development)
+- macOS (CI tested) 
+- Windows (CI tested)
+- WebAssembly targets
+
+### Installation
+```bash
+# On Ubuntu/Debian
+sudo apt-get install libtree-sitter-dev libclang-dev
+
+# On macOS via Homebrew  
+brew install tree-sitter
+
+# On Windows
+# Use vcpkg or manually install Tree-sitter development libraries
+```
+
 ## Quick Commands Cheat Sheet
 
 ### Default Build & Test

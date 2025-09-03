@@ -50,9 +50,5 @@ cc = { version = "1", optional = true }
 name = "rust-sitter-gen"
 path = "src/bin/rust-sitter.rs"
 
-[[bin]]
-name = "rust-sitter-cli"
-path = "src/bin/rust-sitter.rs"
-
 [dev-dependencies]
 insta = "1.39"

@@ -4,6 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Use TDD. Red-Green-Refactor, spec driven design. User-story driven design.
 
+## Requirements
+
+### Minimum Rust Version (MSRV)
+- **Rust 1.89.0** or later
+- **Rust 2024 Edition** - all workspace crates use the latest edition
+- Components: `rustfmt`, `clippy` (automatically configured via `rust-toolchain.toml`)
+
+### System Dependencies
+- **libtree-sitter-dev**: Required for ts-bridge tool (production mode)
+- **libclang**: Required for binding generation in some features
+- **Git**: Version control and automated testing workflows
+
+### Supported Platforms
+- Linux (primary development and CI)
+- macOS (tested via CI)
+- Windows (tested via CI)
+- WebAssembly (wasm32-unknown-unknown, wasm32-wasi)
+
 ## Common Development Commands
 
 ### Building
@@ -163,7 +181,6 @@ The tool crate (`/tool/`) now includes:
    - Located in `/tools/ts-bridge/`
    - Extracts parse tables from compiled Tree-sitter grammars
    - Features ABI stability guards (v15 pinning with SHA verification)
-   - Supports feature-gated development (stub) and production builds
    - Includes comprehensive parity testing framework
 
 ### Key Design Patterns

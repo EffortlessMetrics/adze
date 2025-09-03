@@ -113,10 +113,11 @@ cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter
 ```
 
 Features:
-- Extract complete parse tables from any Tree-sitter grammar
-- ABI stability guards (pinned to Tree-sitter v15)
-- Feature-gated development/production builds
-- Comprehensive parity testing framework
+- **Production Ready**: Extract complete parse tables from any Tree-sitter grammar
+- **ABI Stability**: Pinned to Tree-sitter v15 with SHA-256 header verification  
+- **Dynamic Buffer Allocation**: No truncation - automatically expands for large action cells
+- **Real Tree-sitter Libraries**: Always uses actual Tree-sitter runtime (no stubs)
+- **Comprehensive Parity Testing**: Validates extraction accuracy against Tree-sitter
 
 See [tools/ts-bridge/README.md](tools/ts-bridge/README.md) for details.
 

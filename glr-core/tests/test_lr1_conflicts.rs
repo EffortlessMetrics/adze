@@ -1,5 +1,5 @@
 // Test LR(1) item set generation to understand why conflicts aren't appearing
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 #[test]
@@ -76,10 +76,10 @@ fn test_lr1_conflict_detection() -> Result<(), Box<dyn std::error::Error>> {
                     .iter()
                     .find(|(_, idx)| **idx == sym_idx)
                     .map(|(sym, _)| sym);
-                if let Some(sym) = symbol {
-                    if !matches!(actions[0], rust_sitter_glr_core::Action::Error) {
-                        println!("  Symbol {} (idx {}): {:?}", sym.0, sym_idx, actions[0]);
-                    }
+                if let Some(sym) = symbol
+                    && !matches!(actions[0], rust_sitter_glr_core::Action::Error)
+                {
+                    println!("  Symbol {} (idx {}): {:?}", sym.0, sym_idx, actions[0]);
                 }
             }
         }
