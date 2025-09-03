@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rust_sitter_common::*;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use syn::{parse::Parse, punctuated::Punctuated, *};
 
 use crate::error::{Result, ToolError};
@@ -875,7 +875,10 @@ pub fn generate_grammar(module: &ItemMod) -> syn::Result<Value> {
 
                 if is_word {
                     if word_rule.is_some() {
-                        return Err(syn::Error::new_spanned(&s.ident, "multiple word rules specified - only one word rule is allowed per grammar"));
+                        return Err(syn::Error::new_spanned(
+                            &s.ident,
+                            "multiple word rules specified - only one word rule is allowed per grammar",
+                        ));
                     }
                     word_rule = Some(s.ident.to_string());
                 }
