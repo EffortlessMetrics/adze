@@ -134,9 +134,9 @@ The tool crate (`/tool/`) now includes:
 
 9. **`ts-bridge`** - Tree-sitter to GLR Bridge Tool
    - Located in `/tools/ts-bridge/`
-   - Extracts parse tables from compiled Tree-sitter grammars
+   - Extracts parse tables from compiled Tree-sitter grammars  
    - Features ABI stability guards (v15 pinning with SHA verification)
-   - Supports feature-gated development (stub) and production builds
+   - Production-ready with real Tree-sitter runtime linking (requires libtree-sitter-dev)
    - Includes comprehensive parity testing framework
 
 ### Key Design Patterns
@@ -284,7 +284,7 @@ The ts-bridge tool extracts parse tables from compiled Tree-sitter grammars for 
 
 **Building:**
 ```bash
-# Production build (with vendored headers)
+# Production build (requires libtree-sitter-dev system package)
 cargo build -p ts-bridge
 
 # Run ABI verification
@@ -308,9 +308,9 @@ cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter
 ```
 
 **Key Features:**
-- ABI stability with Tree-sitter v15 (vendored headers + SHA verification)
+- ABI stability with Tree-sitter v15 (SHA verification and runtime checks)
 - Dynamic buffer allocation (no truncation for large action cells)
-- Feature-gated builds for development vs production
+- Production-ready with real Tree-sitter runtime (libtree-sitter-dev required)
 - Comprehensive parity testing against Tree-sitter
 
 ### Known Issues (Being Addressed)
@@ -318,4 +318,3 @@ cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter
 1. **GLR Runtime Optimization**: Fork/merge logic needs performance tuning for large files
 2. **External Scanner FFI**: Integration with C scanners needs final touches
 3. **Incremental Parsing**: GLR incremental parsing algorithms need implementation
-4. **ts-bridge Linking**: Production builds need actual Tree-sitter library linking (undefined symbols)

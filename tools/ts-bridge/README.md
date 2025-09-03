@@ -10,9 +10,9 @@ This tool extracts parse tables from compiled Tree-sitter grammars and converts 
 
 ## Building
 
-### Production Build (default)
+### Production Build
 ```bash
-# Build with real Tree-sitter headers (vendored)
+# Build with real Tree-sitter headers (requires libtree-sitter-dev system package)
 cargo build -p ts-bridge
 
 # Run the ABI verification
@@ -67,7 +67,7 @@ The bridge works by:
 - `ffi/shim.c`: C shim that interfaces with Tree-sitter API
 - `src/extract.rs`: Core extraction logic with width checks and buffer safety
 - `src/schema.rs`: Data structures for parse table representation
-- `ci/vendor/`: Vendored Tree-sitter headers with SHA pinning
+- Production builds link against system libtree-sitter-dev
 
 ### Safety Features
 
@@ -78,9 +78,9 @@ The bridge works by:
 ## ABI Stability
 
 We pin to Tree-sitter language version 15 and use multiple layers of protection:
-- Vendored headers with SHA-256 hashes
+- System library integration with libtree-sitter-dev
 - Runtime ABI version checks via `tsb_language_version()`
-- CI script to detect header drift
+- SHA-256 hash verification of critical headers
 
 ## Buffer Management
 

@@ -708,7 +708,7 @@ Use `Arc<Grammar>` to share grammars across threads.
 
 ## Version Compatibility
 
-- Tree-sitter ABI: v14-v15
-- Minimum Rust: 1.70.0
+- Tree-sitter ABI: v15 (production requirement)
+- Minimum Rust: 1.89.0
 - WASM targets: wasm32-unknown-unknown, wasm32-wasi
 - Supported platforms: Linux, macOS, Windows, WebAssembly
