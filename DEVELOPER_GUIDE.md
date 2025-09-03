@@ -126,11 +126,8 @@ RUST_SITTER_EMIT_ARTIFACTS=true cargo build -p rust-sitter-example
 
 ### ts-bridge Tool
 ```bash
-# Build production version (requires Tree-sitter libs)
+# Build ts-bridge (requires Tree-sitter libs)
 cargo build -p ts-bridge
-
-# Build development version with stubs
-cargo build -p ts-bridge --features stub-ts
 
 # Run ABI verification
 cargo run -p ts-bridge --bin tsb-abi-check
@@ -247,7 +244,6 @@ cd runtime2 && cargo test --features glr-core -- forest
 ```bash
 # Some features are mutually exclusive
 # Build specific packages when needed:
-cargo build -p ts-bridge --features stub-ts
 cargo build -p example --features pure-rust
 ```
 

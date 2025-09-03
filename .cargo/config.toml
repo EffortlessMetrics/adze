@@ -3,7 +3,7 @@
 [build]
 # Number of parallel jobs, defaults to # of CPUs (0 is invalid, remove to use default)
 rustflags = [
-  "--check-cfg=cfg(feature, values(\"perf-counters\",\"test-api\",\"strict-invariants\",\"memory-tests\",\"json-parity\",\"with-grammars\",\"stub-ts\",\"external_scanners\",\"incremental_glr\",\"strict_docs\"))",
+  "--check-cfg=cfg(feature, values(\"perf-counters\",\"test-api\",\"strict-invariants\",\"memory-tests\",\"json-parity\",\"with-grammars\",\"external_scanners\",\"incremental_glr\",\"strict_docs\"))",
   "-Awarnings"  # Suppress warnings for quieter builds (helps prevent Node wrapper crashes)
 ]
 

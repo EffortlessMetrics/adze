@@ -3,7 +3,6 @@ fn main() {
     println!("cargo:rerun-if-changed=ffi/shim.h");
 
     // Feature flags (exposed to build.rs via env)
-    let stub = std::env::var_os("CARGO_FEATURE_STUB_TS").is_some();
     let vendored_rt = std::env::var_os("CARGO_FEATURE_VENDORED_TS_RUNTIME").is_some();
     let link_system = std::env::var_os("CARGO_FEATURE_LINK_SYSTEM_TS").is_some();
     let ts_ffi_raw = std::env::var_os("CARGO_FEATURE_TS_FFI_RAW").is_some();
@@ -11,11 +10,7 @@ fn main() {
     let mut b = cc::Build::new();
     b.file("ffi/shim.c").include("ffi");
 
-    if stub {
-        println!("cargo:rerun-if-changed=ffi/ts_stub.c");
-        b.define("tsb_stub", None); // Define for C preprocessor only
-        b.file("ffi/ts_stub.c").include("ffi");
-    } else if link_system {
+    if link_system {
         // Use system libtree-sitter when requested
         let lib = pkg_config::Config::new()
             .atleast_version("0.22")

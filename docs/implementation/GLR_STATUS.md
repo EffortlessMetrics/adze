@@ -73,8 +73,8 @@ cargo test -p rust-sitter-glr-core
 # Enable trace output for debugging
 cargo test -p rust-sitter-glr-core --features glr-trace -- --nocapture
 
-# Build ts-bridge (development)
-cd tools/ts-bridge && cargo build --features stub-ts
+# Build ts-bridge
+cd tools/ts-bridge && cargo build
 
 # Test production GLR runtime
 cargo test -p rust-sitter-runtime2 --features glr-core

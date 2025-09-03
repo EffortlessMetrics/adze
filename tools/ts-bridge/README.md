@@ -5,7 +5,6 @@ This tool extracts parse tables from compiled Tree-sitter grammars and converts 
 ## Features
 
 - **Production-ready**: Full extraction of Tree-sitter parse tables with ABI guards
-- **Feature-gated builds**: Separate development (stub) and production modes
 - **ABI stability**: Pinned to Tree-sitter v15 with header hash verification
 - **Comprehensive testing**: Parity tests ensure extracted tables match Tree-sitter exactly
 
@@ -20,13 +19,6 @@ cargo build -p ts-bridge
 cargo run -p ts-bridge --bin tsb-abi-check
 ```
 
-### Development Build (stub mode)
-```bash
-# Build with stub headers for development (outputs dummy data)
-cargo build -p ts-bridge --features stub-ts
-
-# NOTE: CLI will fail-fast with stub builds to prevent accidental misuse
-```
 
 ## Usage
 
@@ -82,7 +74,6 @@ The bridge works by:
 - **Width checks**: All values verified to fit in u16 with debug assertions
 - **Dynamic buffer allocation**: Action buffers expand as needed (no truncation)
 - **ABI guards**: Runtime version checks prevent silent breakage
-- **Feature gates**: Stub builds clearly marked and fail-fast in production
 
 ## ABI Stability
 
@@ -105,8 +96,7 @@ We pin to Tree-sitter language version 15 and use multiple layers of protection:
 
 ## Production Checklist
 
-✅ Build without `stub-ts` feature
-✅ Run `tsb-abi-check` to verify ABI compatibility  
+✅ Run `tsb-abi-check` to verify ABI compatibility
 ✅ Execute `abi-hash.sh` to verify header integrity
 ✅ Run parity tests with actual grammars
 ✅ Verify extracted JSON contains valid data (non-zero counts)
