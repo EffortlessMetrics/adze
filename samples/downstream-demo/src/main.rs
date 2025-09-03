@@ -18,7 +18,8 @@ fn main() {
     println!("Number of rules: {}", grammar.rules.len());
 
     // Compute FIRST/FOLLOW sets
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow =
+        FirstFollowSets::compute(&grammar).expect("Failed to compute FIRST/FOLLOW sets");
     println!("✓ FIRST/FOLLOW sets computed");
 
     // Build LR(1) parse table

@@ -1,7 +1,10 @@
 #![cfg(feature = "with-grammars")]
 
 use std::mem::transmute;
-use ts_bridge::{extract, ffi::{SafeLang, TSLanguage}};
+use ts_bridge::{
+    extract,
+    ffi::{SafeLang, TSLanguage},
+};
 
 fn get_json_language() -> *const TSLanguage {
     unsafe { tree_sitter_json::LANGUAGE.into_raw()() as *const TSLanguage }

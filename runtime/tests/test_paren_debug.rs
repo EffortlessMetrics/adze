@@ -96,7 +96,7 @@ fn test_paren_debug() {
         }
     }
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     println!("\nFirst/Follow sets computed");
 

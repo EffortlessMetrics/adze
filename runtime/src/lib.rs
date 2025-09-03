@@ -13,6 +13,8 @@
 
 /// Private implementation details exposed for macro use only.
 pub mod __private;
+/// Concurrency caps for thread pools and parallel operations
+pub mod concurrency_caps;
 /// External scanner interface for custom tokenization.
 pub mod external_scanner;
 /// FFI bindings for external scanners.
@@ -171,10 +173,10 @@ pub use rust_sitter_macro::*;
     not(feature = "tree-sitter-c2rust"),
     not(feature = "pure-rust")
 ))]
-pub use tree_sitter_runtime_standard as tree_sitter;
+pub use tree_sitter;
 
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
-pub use tree_sitter_runtime_c2rust as tree_sitter;
+pub use tree_sitter_c2rust as tree_sitter;
 
 /// Tree-sitter compatibility module for pure-Rust implementation.
 #[cfg(feature = "pure-rust")]
@@ -266,6 +268,55 @@ impl<L> Extract<L> for WithLeaf<L> {
         })
         .map(|s| leaf_fn.unwrap()(s))
         .unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn index_valid_span() {
+        let source = "hello world";
+        let span = Spanned {
+            value: (),
+            span: (0, 5),
+        };
+        assert_eq!(&source[span], "hello");
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid span")]
+    fn index_invalid_span_panics() {
+        let source = "hello";
+        let span = Spanned {
+            value: (),
+            span: (0, 10),
+        };
+        let _ = &source[span];
+    }
+
+    #[test]
+    fn index_mut_valid_span() {
+        let mut source = String::from("hello world");
+        let span = Spanned {
+            value: (),
+            span: (6, 11),
+        };
+        source.as_mut_str()[span].make_ascii_uppercase();
+        assert_eq!(source, "hello WORLD");
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid span")]
+    fn index_mut_invalid_span_panics() {
+        let mut source = String::from("hello");
+        let span = Spanned {
+            value: (),
+            span: (6, 7),
+        };
+        let s = source.as_mut_str();
+        let _ = &mut s[span];
     }
 }
 
@@ -496,6 +547,29 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
     }
 }
 
+impl<T> std::ops::Index<Spanned<T>> for str {
+    type Output = str;
+
+    fn index(&self, span: Spanned<T>) -> &Self::Output {
+        let (start, end) = span.span;
+        self.get(start..end).unwrap_or_else(|| {
+            panic!(
+                "Invalid span {start}..{end} for string of length {}",
+                self.len()
+            )
+        })
+    }
+}
+
+impl<T> std::ops::IndexMut<Spanned<T>> for str {
+    fn index_mut(&mut self, span: Spanned<T>) -> &mut Self::Output {
+        let (start, end) = span.span;
+        let len = self.len();
+        self.get_mut(start..end)
+            .unwrap_or_else(|| panic!("Invalid span {start}..{end} for string of length {len}",))
+    }
+}
+
 impl Extract<String> for String {
     type LeafFn = ();
 
@@ -535,10 +609,10 @@ pub mod errors {
         not(feature = "tree-sitter-c2rust"),
         not(feature = "pure-rust")
     ))]
-    use tree_sitter_runtime_standard as tree_sitter;
+    use tree_sitter;
 
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
-    use tree_sitter_runtime_c2rust as tree_sitter;
+    use tree_sitter_c2rust as tree_sitter;
 
     #[derive(Debug)]
     /// An explanation for an error that occurred during parsing.

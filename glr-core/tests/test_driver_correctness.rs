@@ -9,11 +9,13 @@ use std::collections::BTreeMap;
 type ActionCell = Vec<Action>;
 
 // Symbol-aware test helpers that work across EOF normalization and both indexing modes
+#[allow(dead_code)]
 fn actions_for(t: &ParseTable, state: usize, sym: SymbolId) -> &[Action] {
     let idx = t.symbol_to_index[&sym];
     &t.action_table[state][idx]
 }
 
+#[allow(dead_code)]
 fn goto_for(t: &ParseTable, state: usize, lhs: SymbolId) -> Option<StateId> {
     let row = &t.goto_table[state];
     let col = match t.goto_indexing {

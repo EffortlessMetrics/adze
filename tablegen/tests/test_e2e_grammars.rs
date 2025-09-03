@@ -1,10 +1,10 @@
 //! End-to-end tests for full grammar processing pipeline
 //! Tests nullable start (Python-like) and non-nullable (JavaScript-like) grammars
 
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::builder::GrammarBuilder;
+use rust_sitter_tablegen::TableCompressor;
 use rust_sitter_tablegen::helpers::{collect_token_indices, eof_accepts_or_reduces};
-use rust_sitter_tablegen::{CompressedTables, TableCompressor};
 
 #[test]
 fn test_python_like_nullable_start() {
@@ -12,7 +12,7 @@ fn test_python_like_nullable_start() {
     let grammar = GrammarBuilder::python_like();
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
@@ -43,7 +43,7 @@ fn test_javascript_like_non_nullable_start() {
     let grammar = GrammarBuilder::javascript_like();
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
@@ -111,7 +111,7 @@ fn test_precedence_handling() {
         .build();
 
     // Build parse table - with precedence, conflicts should be resolved
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
@@ -141,7 +141,7 @@ fn test_empty_grammar_handling() {
         .build();
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 
@@ -175,7 +175,7 @@ fn test_recursive_grammar() {
         .build();
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table =
         build_lr1_automaton(&grammar, &first_follow).expect("Failed to build parse table");
 

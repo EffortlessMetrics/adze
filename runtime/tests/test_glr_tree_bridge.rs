@@ -200,7 +200,7 @@ fn create_json_grammar() -> Grammar {
 #[test]
 fn test_tree_bridge_json_number() {
     let grammar = Arc::new(create_json_grammar());
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(parse_table) => {
@@ -235,7 +235,7 @@ fn test_tree_bridge_json_number() {
 #[test]
 fn test_tree_bridge_json_object() {
     let grammar = Arc::new(create_json_grammar());
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(parse_table) => {
@@ -278,7 +278,7 @@ fn test_tree_bridge_json_object() {
 #[test]
 fn test_tree_cursor_navigation() {
     let grammar = Arc::new(create_json_grammar());
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(parse_table) => {
@@ -322,7 +322,7 @@ fn test_tree_cursor_navigation() {
 #[test]
 fn test_node_equality_and_ids() {
     let grammar = Arc::new(create_json_grammar());
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(parse_table) => {

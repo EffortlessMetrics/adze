@@ -130,11 +130,17 @@ impl<T> Default for NodePool<T> {
 /// Snapshot of pool statistics
 #[derive(Debug, Clone)]
 pub struct PoolStatsSnapshot {
+    /// Total number of objects requested from the pool.
     pub gets: u64,
+    /// Total number of objects returned to the pool.
     pub puts: u64,
+    /// Number of requests that were not satisfied from the pool.
     pub misses: u64,
+    /// Number of objects dropped instead of pooled.
     pub drops: u64,
+    /// Current number of objects stored in the pool.
     pub current_size: usize,
+    /// Maximum capacity of the pool.
     pub capacity: usize,
 }
 
@@ -182,6 +188,7 @@ mod tests {
 
     #[derive(Default, Debug)]
     struct TestNode {
+        #[allow(dead_code)]
         value: u32,
     }
 
@@ -198,7 +205,7 @@ mod tests {
         assert_eq!(pool.size(), 1);
 
         // Get it again (should reuse)
-        let node2 = pool.get_or_default();
+        let _node2 = pool.get_or_default();
         assert_eq!(pool.size(), 0);
 
         let stats = pool.stats();

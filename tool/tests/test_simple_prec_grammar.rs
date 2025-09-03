@@ -34,7 +34,7 @@ module.exports = grammar({
             // Convert to IR
             let converter = GrammarJsConverter::new(grammar);
             match converter.convert() {
-                Ok(ir_grammar) => {
+                Ok(_ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
 
                     // Build the parser

@@ -82,13 +82,14 @@ fn test_action_table_compression_round_trip() {
     });
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Compress the action table
     let compressed = compress_action_table(&parse_table.action_table);
 
     // Decompress and verify each action matches
+    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let original_actions = &parse_table.action_table[state][symbol];
@@ -172,12 +173,13 @@ fn test_goto_table_compression_round_trip() {
     });
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Extract goto table (transitions on nonterminals)
     let mut goto_table = vec![vec![None; parse_table.symbol_count]; parse_table.state_count];
 
+    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for (symbol_id, &index) in &parse_table.symbol_to_index {
             // Check if this symbol is a nonterminal
@@ -198,6 +200,7 @@ fn test_goto_table_compression_round_trip() {
     let compressed = compress_goto_table(&goto_table);
 
     // Decompress and verify each goto matches
+    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let original = goto_table[state][symbol];
@@ -308,7 +311,7 @@ fn test_compression_with_fork_actions() {
     });
 
     // Build parse table with conflicts
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Debug output: Print table structure
@@ -321,6 +324,7 @@ fn test_compression_with_fork_actions() {
     println!("\n=== All Actions in Parse Table ===");
     let mut action_counts = HashMap::new();
 
+    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         println!("\nState {}:", state);
         for symbol in 0..parse_table.symbol_count {
@@ -382,6 +386,7 @@ fn test_compression_with_fork_actions() {
     println!("\n=== Checking for Shift-Reduce Conflicts ===");
     // Look for states where we have both shift and reduce actions on the same symbol
     let _conflict_count = 0;
+    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let actions = &parse_table.action_table[state][symbol];
@@ -408,6 +413,7 @@ fn test_compression_with_fork_actions() {
     // Count Fork actions and multi-action cells
     let mut fork_count = 0;
     let mut multi_action_count = 0;
+    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let actions = &parse_table.action_table[state][symbol];
@@ -525,6 +531,7 @@ fn test_compression_with_fork_actions() {
     let compressed = compress_action_table(&parse_table.action_table);
 
     // Verify Fork actions and multi-action cells are preserved
+    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let original_actions = &parse_table.action_table[state][symbol];
@@ -620,7 +627,7 @@ fn test_compression_with_fork_actions() {
 #[ignore = "BitPackedActionTable has pre-existing bugs with decompression - needs separate fix"]
 fn test_bit_packed_round_trip() {
     let grammar = create_conflict_grammar(); // Grammar with Fork actions
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Convert GLR action table to legacy format for BitPackedActionTable
@@ -655,6 +662,7 @@ fn test_bit_packed_round_trip() {
     let mut fork_count = 0;
 
     // Verify every cell matches after decompression
+    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let original_legacy = &legacy_action_table[state][symbol];
@@ -696,7 +704,7 @@ fn test_bit_packed_round_trip() {
 #[test]
 fn test_large_grammar_compression() {
     let grammar = create_large_grammar(50); // 50 rules
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let original_size = parse_table.state_count * parse_table.symbol_count;
@@ -714,6 +722,7 @@ fn test_large_grammar_compression() {
     // println!("  Compression ratio: {:.2}%", compression_ratio * 100.0);
 
     // Verify compression maintains correctness
+    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let original_actions = &parse_table.action_table[state][symbol];
@@ -780,7 +789,7 @@ fn test_compression_performance() {
 
     for size in sizes {
         let grammar = create_large_grammar(size);
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
         let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
         // Time compression
@@ -790,6 +799,7 @@ fn test_compression_performance() {
 
         // Time decompression of all cells
         let start = Instant::now();
+        #[allow(clippy::needless_range_loop)]
         for state in 0..parse_table.state_count {
             for symbol in 0..parse_table.symbol_count {
                 let _ = decompress_action(&compressed, state, symbol);

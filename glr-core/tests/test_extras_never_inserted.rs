@@ -13,5 +13,5 @@ fn test_extras_concept() {
     //
     // This is a conceptual test to document the behavior rather than
     // a full integration test.
-    assert!(true, "Extras insertion prevention is built into the Driver");
+    // TODO: Implement a real test when error recovery hooks are available
 }

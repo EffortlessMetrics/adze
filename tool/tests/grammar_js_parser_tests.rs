@@ -342,7 +342,15 @@ module.exports = grammar({
             assert_eq!(grammar.word, Some("identifier".to_string()));
             assert!(!grammar.extras.is_empty());
             assert_eq!(grammar.inline.len(), 2);
-            assert_eq!(grammar.conflicts.len(), 0); // We removed the conflicts that referenced undefined rules
+            assert_eq!(grammar.conflicts.len(), 2); // Both conflicts are valid since all referenced rules exist
+
+            // Verify the conflicts are correctly parsed
+            assert_eq!(grammar.conflicts[0], vec!["primary_expression", "pattern"]);
+            assert_eq!(
+                grammar.conflicts[1],
+                vec!["primary_expression", "rest_pattern"]
+            );
+
             assert!(!grammar.rules.is_empty());
 
             // Check specific rules

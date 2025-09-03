@@ -49,7 +49,7 @@ fn test_compressed_table_generation() {
     grammar.add_rule(rule2);
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Compress the tables
@@ -145,10 +145,10 @@ fn test_deterministic_table_generation() {
     let grammar1 = create_test_grammar("test1");
     let grammar2 = create_test_grammar("test2");
 
-    let first_follow1 = FirstFollowSets::compute(&grammar1);
+    let first_follow1 = FirstFollowSets::compute(&grammar1).unwrap();
     let parse_table1 = build_lr1_automaton(&grammar1, &first_follow1).unwrap();
 
-    let first_follow2 = FirstFollowSets::compute(&grammar2);
+    let first_follow2 = FirstFollowSets::compute(&grammar2).unwrap();
     let parse_table2 = build_lr1_automaton(&grammar2, &first_follow2).unwrap();
 
     let compressor = TableCompressor::new();

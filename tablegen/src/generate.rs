@@ -220,8 +220,10 @@ mod tests {
     use rust_sitter_ir::*;
 
     fn create_test_grammar() -> Grammar {
-        let mut grammar = Grammar::default();
-        grammar.name = "test".to_string();
+        let mut grammar = Grammar {
+            name: "test".to_string(),
+            ..Default::default()
+        };
 
         // Add a simple token
         grammar.tokens.insert(

@@ -5,13 +5,13 @@ use rust_sitter_ir::Grammar;
 /// Build a parse table from a grammar - centralizes the construction logic
 #[allow(dead_code)]
 pub fn build_table(grammar: &Grammar) -> ParseTable {
-    let ff = FirstFollowSets::compute(grammar);
+    let ff = FirstFollowSets::compute(grammar).unwrap();
     build_lr1_automaton(grammar, &ff).expect("Failed to build automaton")
 }
 
 /// Build parse table and wrap in Result for tests that need error handling
 #[allow(dead_code)]
 pub fn build_table_result(grammar: &Grammar) -> anyhow::Result<ParseTable> {
-    let ff = FirstFollowSets::compute(grammar);
+    let ff = FirstFollowSets::compute(grammar).unwrap();
     Ok(build_lr1_automaton(grammar, &ff)?)
 }

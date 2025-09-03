@@ -1,5 +1,4 @@
-use anyhow::Result;
-use rust_sitter_tool::grammar_js::{GrammarJsParserV3, parse_grammar_js_v2};
+use rust_sitter_tool::grammar_js::GrammarJsParserV3;
 
 #[test]
 fn test_simple_function_block() {

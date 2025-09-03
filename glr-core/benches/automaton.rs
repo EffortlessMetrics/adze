@@ -1,5 +1,5 @@
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::builder::GrammarBuilder;
 
 fn small_nullable() -> rust_sitter_ir::Grammar {
@@ -48,7 +48,7 @@ fn bench_automaton(c: &mut Criterion) {
     for (name, grammar) in cases {
         group.bench_function(BenchmarkId::new("full_build", name), |b| {
             b.iter(|| {
-                let ff = FirstFollowSets::compute(&grammar);
+                let ff = FirstFollowSets::compute(&grammar).expect("compute first/follow sets");
                 build_lr1_automaton(&grammar, &ff).expect("build automaton");
             })
         });
@@ -66,7 +66,7 @@ fn bench_automaton(c: &mut Criterion) {
     ] {
         ff_group.bench_function(BenchmarkId::new("compute", name), |b| {
             b.iter(|| {
-                FirstFollowSets::compute(&grammar);
+                let _ = FirstFollowSets::compute(&grammar);
             })
         });
     }

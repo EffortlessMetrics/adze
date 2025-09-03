@@ -5,5 +5,5 @@
 #[test]
 fn placeholder() {
     // Placeholder test to prevent test failure
-    assert!(true);
+    // Placeholder test - no assertion needed
 }

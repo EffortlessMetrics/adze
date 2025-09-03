@@ -68,7 +68,7 @@ fn test_reduce_reclosure_guard() {
     // This test guards against removing the reduce→re-closure fix
     // Without re-closure, empty input won't be accepted
     let grammar = create_reduce_reclosure_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -123,7 +123,7 @@ fn test_eof_recovery_no_delete_guard() {
 
     // Start symbol is determined by first rule's LHS
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 
@@ -194,7 +194,7 @@ fn test_accept_aggregation_guard() {
 
     // Start symbol is determined by first rule's LHS
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
     let mut parser = GLRParser::new(parse_table, grammar.clone());
 

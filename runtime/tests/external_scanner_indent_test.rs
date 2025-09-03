@@ -22,7 +22,7 @@ impl IndentationScanner {
 }
 
 impl ExternalScanner for IndentationScanner {
-    fn scan(&self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
+    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
         // Skip whitespace until we find something meaningful
         let mut indent_level = 0;
         let mut found_newline = false;

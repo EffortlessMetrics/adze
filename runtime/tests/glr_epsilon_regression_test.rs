@@ -15,8 +15,10 @@ use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 fn create_epsilon_grammar() -> (Grammar, ParseTable) {
     use rust_sitter_ir::{Token, TokenPattern};
 
-    let mut grammar = Grammar::default();
-    grammar.name = "EpsilonTest".to_string();
+    let mut grammar = Grammar {
+        name: "EpsilonTest".to_string(),
+        ..Default::default()
+    };
 
     // Symbol IDs (start at 1 to avoid EOF=0)
     let s_id = SymbolId(1);
@@ -114,7 +116,7 @@ fn create_epsilon_grammar() -> (Grammar, ParseTable) {
     });
 
     // Build parse table using the GLR core
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
@@ -135,8 +137,10 @@ fn create_epsilon_grammar() -> (Grammar, ParseTable) {
 fn create_rr_conflict_grammar() -> (Grammar, ParseTable) {
     use rust_sitter_ir::{Token, TokenPattern};
 
-    let mut grammar = Grammar::default();
-    grammar.name = "RRConflictTest".to_string();
+    let mut grammar = Grammar {
+        name: "RRConflictTest".to_string(),
+        ..Default::default()
+    };
 
     // Symbol IDs (start at 1 to avoid EOF=0)
     let s_id = SymbolId(1);
@@ -235,7 +239,7 @@ fn create_rr_conflict_grammar() -> (Grammar, ParseTable) {
     });
 
     // Build parse table using the GLR core
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
@@ -324,7 +328,7 @@ fn test_rr_conflict_multiple_paths_preserved() {
         // Check that we have alternatives (both parse paths)
         // With proper GLR, we should have both derivations
         assert!(
-            trees.len() >= 1,
+            !trees.is_empty(),
             "Should have at least one alternative parse"
         );
     }
@@ -340,8 +344,10 @@ fn test_epsilon_cycle_no_infinite_loop() {
     // This creates a cycle A -> B -> A where B can be epsilon
     use rust_sitter_ir::{Token, TokenPattern};
 
-    let mut grammar = Grammar::default();
-    grammar.name = "EpsilonCycle".to_string();
+    let mut grammar = Grammar {
+        name: "EpsilonCycle".to_string(),
+        ..Default::default()
+    };
 
     // Symbol IDs (start at 1 to avoid EOF=0)
     let s_id = SymbolId(1);
@@ -404,7 +410,7 @@ fn test_epsilon_cycle_no_infinite_loop() {
         production_id: ProductionId(3),
     });
 
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
@@ -469,7 +475,7 @@ fn test_goto_indexing_direct_symbol_id() {
         }],
     );
 
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero()
@@ -596,7 +602,7 @@ fn test_goto_indexing_auto_detection() {
         }],
     );
 
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();

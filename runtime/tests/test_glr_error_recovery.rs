@@ -6,7 +6,6 @@ use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use std::collections::HashSet;
 use std::sync::Arc;
 
 fn create_test_grammar() -> Grammar {
@@ -145,7 +144,7 @@ fn parse_with_recovery(
     config: ErrorRecoveryConfig,
 ) -> Option<Arc<Subtree>> {
     // Generate parse table
-    let first_follow = FirstFollowSets::compute(grammar);
+    let first_follow = FirstFollowSets::compute(grammar).unwrap();
     let table = build_lr1_automaton(grammar, &first_follow).unwrap();
 
     // Create parser with error recovery

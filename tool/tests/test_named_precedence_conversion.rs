@@ -46,5 +46,5 @@ module.exports = grammar({
     // The rules should have correct precedence values
     // Unfortunately we can't easily check the actual precedence values from here
     // but at least we can verify the conversion works
-    assert!(ir_grammar.rules.len() > 0);
+    assert!(!ir_grammar.rules.is_empty());
 }

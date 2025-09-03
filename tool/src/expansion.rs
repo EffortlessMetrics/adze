@@ -2,7 +2,9 @@ use std::collections::HashSet;
 
 use rust_sitter_common::*;
 use serde_json::{Map, Value, json};
-use syn::{parse::Parse, punctuated::Punctuated, *};
+use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, *};
+
+use crate::error::{Result, ToolError};
 
 fn gen_field(
     path: String,
@@ -10,7 +12,7 @@ fn gen_field(
     leaf_attrs: Vec<Attribute>,
     word_rule: &mut Option<String>,
     out: &mut Map<String, Value>,
-) -> (Value, bool) {
+) -> Result<(Value, bool)> {
     let leaf_attr = leaf_attrs
         .iter()
         .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
@@ -20,7 +22,7 @@ fn gen_field(
         .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::word))
     {
         if word_rule.is_some() {
-            panic!("Multiple `word` rules specified");
+            Err(ToolError::MultipleWordRules)?;
         }
 
         *word_rule = Some(path.clone());
@@ -55,10 +57,12 @@ fn gen_field(
             if let Lit::Str(s) = &lit.lit {
                 // Validate that the pattern is not empty
                 if s.value().is_empty() {
-                    panic!(
-                        "Empty patterns are not supported. Token '{}' has an empty pattern value.",
-                        path
-                    );
+                    return Err(ToolError::GrammarValidation {
+                        reason: format!(
+                            "Empty patterns are not supported. Token '{}' has an empty pattern value.",
+                            path
+                        ),
+                    });
                 }
 
                 out.insert(
@@ -69,15 +73,18 @@ fn gen_field(
                     }),
                 );
 
-                (
+                Ok((
                     json!({
                         "type": "SYMBOL",
                         "name": path
                     }),
                     is_option,
-                )
+                ))
             } else {
-                panic!("Expected string literal for pattern");
+                Err(ToolError::ExpectedStringLiteral {
+                    context: "pattern".to_string(),
+                    actual: format!("{:?}", lit.lit),
+                })
             }
         } else if let Some(Expr::Lit(lit)) = text_param {
             if let Lit::Str(s) = &lit.lit {
@@ -92,15 +99,18 @@ fn gen_field(
                     }),
                 );
 
-                (
+                Ok((
                     json!({
                         "type": "SYMBOL",
                         "name": path
                     }),
                     is_option,
-                )
+                ))
             } else {
-                panic!("Expected string literal for text");
+                return Err(ToolError::ExpectedStringLiteral {
+                    context: "text".to_string(),
+                    actual: format!("{:?}", lit.lit),
+                });
             }
         } else {
             let symbol_name = match filter_inner_type(&leaf_type, &skip_over) {
@@ -108,23 +118,29 @@ fn gen_field(
                     if p.path.segments.len() == 1 {
                         p.path.segments[0].ident.to_string()
                     } else {
-                        panic!("Expected a single segment path");
+                        return Err(ToolError::ExpectedSingleSegmentPath {
+                            actual: format!("{}", p.path.segments.len()),
+                        });
                     }
                 }
                 Type::Tuple(t) if t.elems.is_empty() => {
                     // Unit type () - generate a synthetic name
                     format!("{path}_unit")
                 }
-                _ => panic!("Expected a path or unit type"),
+                _ => {
+                    return Err(ToolError::ExpectedPathType {
+                        actual: "non-path type".to_string(),
+                    });
+                }
             };
 
-            (
+            Ok((
                 json!({
                     "type": "SYMBOL",
                     "name": symbol_name,
                 }),
                 false,
-            )
+            ))
         }
     } else if is_vec {
         // Check if we need to pass the inner element type name
@@ -142,7 +158,7 @@ fn gen_field(
             leaf_attrs.clone(),
             word_rule,
             out,
-        );
+        )?;
 
         let delimited_attr = leaf_attrs
             .iter()
@@ -151,15 +167,17 @@ fn gen_field(
         let delimited_params =
             delimited_attr.and_then(|a| a.parse_args_with(FieldThenParams::parse).ok());
 
-        let delimiter_json = delimited_params.map(|p| {
-            gen_field(
+        let delimiter_json = if let Some(p) = delimited_params {
+            Some(gen_field(
                 format!("{path}_vec_delimiter"),
                 p.field.ty,
                 p.field.attrs,
                 word_rule,
                 out,
-            )
-        });
+            )?)
+        } else {
+            None
+        };
 
         let repeat_attr = leaf_attrs
             .iter()
@@ -271,17 +289,173 @@ fn gen_field(
             })
         };
 
-        (reference, false) // Never mark as optional since we handle it in the reference
+        Ok((reference, false)) // Never mark as optional since we handle it in the reference
     } else {
         // is_option
         let (field_json, field_optional) =
-            gen_field(path, inner_type_option, leaf_attrs, word_rule, out);
+            gen_field(path, inner_type_option, leaf_attrs, word_rule, out)?;
 
         if field_optional {
-            panic!("Option<Option<_>> is not supported");
+            return Err(ToolError::NestedOptionType);
         }
 
-        (field_json, true)
+        Ok((field_json, true))
+    }
+}
+
+/// Precedence attributes handler for grammar rules.
+///
+/// Manages the three types of precedence attributes:
+/// - `#[rust_sitter::prec(n)]`: Non-associative precedence
+/// - `#[rust_sitter::prec_left(n)]`: Left-associative precedence  
+/// - `#[rust_sitter::prec_right(n)]`: Right-associative precedence
+///
+/// Only one precedence attribute can be applied per rule. The precedence value
+/// must be an integer literal in the range 0 to 4294967295 (u32).
+#[derive(Default)]
+struct Precs<'a> {
+    prec: Option<&'a Attribute>,
+    prec_left: Option<&'a Attribute>,
+    prec_right: Option<&'a Attribute>,
+}
+
+impl<'a> Precs<'a> {
+    /// Extracts precedence attributes from a list of attributes.
+    ///
+    /// Searches for `prec`, `prec_left`, and `prec_right` attributes
+    /// and stores references to them for later validation and application.
+    fn new(attrs: &'a [Attribute]) -> Self {
+        Self {
+            prec: attrs
+                .iter()
+                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec)),
+            prec_left: attrs
+                .iter()
+                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_left)),
+            prec_right: attrs
+                .iter()
+                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_right)),
+        }
+    }
+
+    /// Applies precedence to a grammar rule, validating attribute usage.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `syn::Error` in the following cases:
+    /// - Multiple precedence attributes are specified on the same rule
+    /// - The precedence value is not an integer literal (e.g., string, float, variable)
+    /// - The precedence value is outside the valid u32 range (0 to 4294967295)
+    ///
+    /// Error messages include specific guidance on how to fix the issue.
+    fn apply(&self, base_rule: Value) -> syn::Result<Value> {
+        let count = self.prec.iter().count()
+            + self.prec_left.iter().count()
+            + self.prec_right.iter().count();
+        if count > 1 {
+            let span = self
+                .prec
+                .map(|a| a.span())
+                .or_else(|| self.prec_left.map(|a| a.span()))
+                .or_else(|| self.prec_right.map(|a| a.span()))
+                .unwrap();
+
+            // Collect which attributes were found for a better error message
+            let mut found_attrs = Vec::new();
+            if self.prec.is_some() {
+                found_attrs.push("prec");
+            }
+            if self.prec_left.is_some() {
+                found_attrs.push("prec_left");
+            }
+            if self.prec_right.is_some() {
+                found_attrs.push("prec_right");
+            }
+
+            return Err(syn::Error::new(
+                span,
+                format!(
+                    "only one of prec, prec_left, and prec_right can be specified, but found: {}",
+                    found_attrs.join(", ")
+                ),
+            ));
+        }
+
+        if let Some(attr) = self.prec {
+            let expr: Expr = attr.parse_args()?;
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(i), ..
+            }) = expr
+            {
+                let value = i.base10_parse::<u32>().map_err(|e| {
+                    syn::Error::new(
+                        i.span(),
+                        format!(
+                            "Invalid integer literal for precedence: {} (must be a valid u32)",
+                            e
+                        ),
+                    )
+                })?;
+                Ok(json!({
+                    "type": "PREC",
+                    "value": value,
+                    "content": base_rule
+                }))
+            } else {
+                Err(syn::Error::new(
+                    expr.span(),
+                    "Expected integer literal for precedence. Use #[rust_sitter::prec(123)] with a positive integer (0 to 4294967295).",
+                ))
+            }
+        } else if let Some(attr) = self.prec_left {
+            let expr: Expr = attr.parse_args()?;
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(i), ..
+            }) = expr
+            {
+                let value = i
+                    .base10_parse::<u32>()
+                    .map_err(|e| syn::Error::new(
+                        i.span(),
+                        format!("Invalid integer literal for left-associative precedence: {} (must be a valid u32)", e)
+                    ))?;
+                Ok(json!({
+                    "type": "PREC_LEFT",
+                    "value": value,
+                    "content": base_rule
+                }))
+            } else {
+                Err(syn::Error::new(
+                    expr.span(),
+                    "Expected integer literal for left-associative precedence. Use #[rust_sitter::prec_left(123)] with a positive integer (0 to 4294967295).",
+                ))
+            }
+        } else if let Some(attr) = self.prec_right {
+            let expr: Expr = attr.parse_args()?;
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(i), ..
+            }) = expr
+            {
+                let value = i
+                    .base10_parse::<u32>()
+                    .map_err(|e| syn::Error::new(
+                        i.span(),
+                        format!("Invalid integer literal for right-associative precedence: {} (must be a valid u32)", e)
+                    ))?;
+                Ok(json!({
+                    "type": "PREC_RIGHT",
+                    "value": value,
+                    "content": base_rule
+                }))
+            } else {
+                Err(syn::Error::new(
+                    expr.span(),
+                    "Expected integer literal for right-associative precedence. Use #[rust_sitter::prec_right(123)] with a positive integer (0 to 4294967295).",
+                ))
+            }
+        } else {
+            Ok(base_rule)
+        }
     }
 }
 
@@ -291,7 +465,7 @@ fn gen_struct_or_variant(
     fields: Fields,
     out: &mut Map<String, Value>,
     word_rule: &mut Option<String>,
-) -> Option<Value> {
+) -> Result<Option<Value>> {
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
     if let Fields::Unnamed(fields_unnamed) = &fields {
         if fields_unnamed.unnamed.len() == 1 {
@@ -324,28 +498,25 @@ fn gen_struct_or_variant(
                                     "value": s.value(),
                                 }),
                             );
-                            return None;
+                            return Ok(None);
                         }
-                    } else if let Some(text) = params
+                    } else if let Some(Expr::Lit(ExprLit {
+                        lit: Lit::Str(s), ..
+                    })) = params
                         .iter()
                         .find(|param| param.path == "text")
                         .map(|p| p.expr.clone())
                     {
-                        if let Expr::Lit(ExprLit {
-                            lit: Lit::Str(s), ..
-                        }) = text
-                        {
-                            // For single-leaf variants, create a rule with the string
-                            // Don't return inline - we want a named rule for proper AST nodes
-                            out.insert(
-                                path,
-                                json!({
-                                    "type": "STRING",
-                                    "value": s.value(),
-                                }),
-                            );
-                            return None;
-                        }
+                        // For single-leaf variants, create a rule with the string
+                        // Don't return inline - we want a named rule for proper AST nodes
+                        out.insert(
+                            path,
+                            json!({
+                                "type": "STRING",
+                                "value": s.value(),
+                            }),
+                        );
+                        return Ok(None);
                     }
                 }
             }
@@ -365,14 +536,14 @@ fn gen_struct_or_variant(
         word_rule: &mut Option<String>,
         out: &mut Map<String, Value>,
         ident_str: String,
-    ) -> Value {
+    ) -> Result<Value> {
         let (field_contents, is_option) = gen_field(
             format!("{path}_{ident_str}"),
             field.ty.clone(),
             field.attrs.clone(),
             word_rule,
             out,
-        );
+        )?;
 
         let core = json!({
             "type": "FIELD",
@@ -380,7 +551,7 @@ fn gen_struct_or_variant(
             "content": field_contents
         });
 
-        if is_option {
+        Ok(if is_option {
             json!({
                 "type": "CHOICE",
                 "members": [
@@ -392,7 +563,7 @@ fn gen_struct_or_variant(
             })
         } else {
             core
-        }
+        })
     }
 
     let children = fields
@@ -491,29 +662,18 @@ fn gen_struct_or_variant(
                             })
                     });
 
-                    Some(gen_field_optional(&path, field, word_rule, out, ident_str))
+                    let ident_str_clone = ident_str.clone();
+                    match gen_field_optional(&path, field, word_rule, out, ident_str) {
+                        Ok(result) => Some(result),
+                        Err(e) => {
+                            eprintln!("Error generating field {}: {:?}", ident_str_clone, e);
+                            None // Skip this field on error
+                        }
+                    }
                 }
             }
         })
         .collect::<Vec<Value>>();
-
-    let prec_attr = attrs
-        .iter()
-        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec));
-
-    let prec_param = prec_attr.and_then(|a| a.parse_args_with(Expr::parse).ok());
-
-    let prec_left_attr = attrs
-        .iter()
-        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_left));
-
-    let prec_left_param = prec_left_attr.and_then(|a| a.parse_args_with(Expr::parse).ok());
-
-    let prec_right_attr = attrs
-        .iter()
-        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_right));
-
-    let prec_right_param = prec_right_attr.and_then(|a| a.parse_args_with(Expr::parse).ok());
 
     let base_rule = match fields {
         Fields::Unit => {
@@ -528,13 +688,13 @@ fn gen_struct_or_variant(
                     elems: Punctuated::new(),
                 }),
             };
-            gen_field_optional(&path, &dummy_field, word_rule, out, "unit".to_owned())
+            gen_field_optional(&path, &dummy_field, word_rule, out, "unit".to_owned())?
         }
         _ => {
             // If all children are optional, we need at least one to be present
             // to avoid the EmptyString error
             if children.is_empty() {
-                panic!("Struct {} has no non-skipped fields", path);
+                return Err(ToolError::StructHasNoFields { name: path });
             } else if children.len() == 1 {
                 // Single field - use it directly
                 children.into_iter().next().unwrap()
@@ -581,53 +741,15 @@ fn gen_struct_or_variant(
         );
     }
 
-    let rule = if let Some(Expr::Lit(lit)) = prec_param {
-        if prec_left_attr.is_some() || prec_right_attr.is_some() {
-            panic!("only one of prec, prec_left, and prec_right can be specified");
-        }
-
-        if let Lit::Int(i) = &lit.lit {
-            json!({
-                "type": "PREC",
-                "value": i.base10_parse::<u32>().unwrap(),
-                "content": base_rule
-            })
-        } else {
-            panic!("Expected integer literal for precedence");
-        }
-    } else if let Some(Expr::Lit(lit)) = prec_left_param {
-        if prec_right_attr.is_some() {
-            panic!("only one of prec, prec_left, and prec_right can be specified");
-        }
-
-        if let Lit::Int(i) = &lit.lit {
-            json!({
-                "type": "PREC_LEFT",
-                "value": i.base10_parse::<u32>().unwrap(),
-                "content": base_rule
-            })
-        } else {
-            panic!("Expected integer literal for precedence");
-        }
-    } else if let Some(Expr::Lit(lit)) = prec_right_param {
-        if let Lit::Int(i) = &lit.lit {
-            json!({
-                "type": "PREC_RIGHT",
-                "value": i.base10_parse::<u32>().unwrap(),
-                "content": base_rule
-            })
-        } else {
-            panic!("Expected integer literal for precedence");
-        }
-    } else {
-        base_rule
-    };
+    let rule = Precs::new(&attrs)
+        .apply(base_rule)
+        .map_err(|e| ToolError::SynError { syn_error: e })?;
 
     out.insert(path, rule);
-    None // Return None for non-single-leaf variants
+    Ok(None) // Return None for non-single-leaf variants
 }
 
-pub fn generate_grammar(module: &ItemMod) -> Value {
+pub fn generate_grammar(module: &ItemMod) -> Result<Value> {
     let mut rules_map = Map::new();
     // for some reason, source_file must be the first key for things to work
     // We'll insert it after we find the root type
@@ -688,22 +810,22 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
     // Optionally locate the rule annotated with `#[rust_sitter::word]`.
     let mut word_rule = None;
-    contents.iter().for_each(|c| {
+    for c in contents.iter() {
         let (symbol, attrs) = match c {
             Item::Enum(e) => {
                 let mut members: Vec<Value> = vec![];
 
-                e.variants.iter().for_each(|v| {
+                for v in e.variants.iter() {
                     let variant_path = format!("{}_{}", e.ident, v.ident);
 
-                    // Generate the variant rule - no need to capture result
+                    // Generate the variant rule - propagate errors
                     gen_struct_or_variant(
                         variant_path.clone(),
                         v.attrs.clone(),
                         v.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
-                    );
+                    )?;
 
                     // Always reference the variant by name, even for single-leaf variants
                     // This ensures we get proper node names in the parse tree
@@ -715,7 +837,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                     // For enum variants, precedence is already applied in gen_struct_or_variant
                     // Just use the variant reference directly
                     members.push(variant_ref);
-                });
+                }
 
                 // For precedence to work correctly with the LR algorithm,
                 // we need the CHOICE to be visible. This allows the parser to see
@@ -753,26 +875,26 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
 
                 if is_word {
                     if word_rule.is_some() {
-                        panic!("Multiple `word` rules specified");
+                        Err(ToolError::MultipleWordRules)?;
                     }
                     word_rule = Some(s.ident.to_string());
                 }
 
                 // Generate rules for non-external structs AND extra structs (even if they're not referenced)
                 if !is_external || is_extra {
-                    let _ = gen_struct_or_variant(
+                    gen_struct_or_variant(
                         s.ident.to_string(),
                         s.attrs.clone(),
                         s.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
-                    );
+                    )?;
                 }
 
                 (s.ident.to_string(), s.attrs.clone())
             }
 
-            _ => return,
+            _ => continue,
         };
 
         if attrs
@@ -796,7 +918,7 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
                 "name": symbol
             }));
         }
-    });
+    }
 
     // source_file rule already inserted above - don't overwrite it!
 
@@ -826,5 +948,5 @@ pub fn generate_grammar(module: &ItemMod) -> Value {
             .insert("externals".to_string(), json!(externals_list));
     }
 
-    grammar
+    Ok(grammar)
 }

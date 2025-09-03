@@ -376,7 +376,7 @@ fn main() {
     }
 
     println!("\nComputing FIRST/FOLLOW sets...");
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     println!("Building LR(1) automaton...");
     match build_lr1_automaton(&grammar, &first_follow) {

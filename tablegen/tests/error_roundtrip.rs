@@ -16,7 +16,7 @@ fn error_roundtrip_compiles_and_runs() -> Result<()> {
         .build();
 
     // These return Result<_, GLRError>; using `?` here exercises your `From<GLRError> for TableGenError`
-    let ff = FirstFollowSets::compute(&g);
+    let ff = FirstFollowSets::compute(&g).unwrap();
     let pt = build_lr1_automaton(&g, &ff)?;
 
     // And this must still be fine

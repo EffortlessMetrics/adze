@@ -452,6 +452,68 @@ rust-sitter migrate --interactive path/to/grammar.js
 - **JetBrains**: Evaluating for next-generation IDE parsers
 - **Cloudflare**: Running rust-sitter parsers at edge with Workers
 
+## API Breaking Changes (August 2025)
+
+### SymbolMetadata Struct Changes
+
+**Breaking Change**: The `SymbolMetadata` struct has been updated for GLR compatibility. Field names have been standardized and new fields added.
+
+**Before (v0.4.x):**
+```rust
+pub struct SymbolMetadata {
+    pub name: String,
+    pub is_visible: bool,  // OLD NAME
+    pub is_terminal: bool, // OLD NAME  
+    pub supertype: bool,
+}
+```
+
+**After (v0.5.x):**
+```rust
+pub struct SymbolMetadata {
+    pub name: String,
+    pub visible: bool,     // RENAMED from is_visible
+    pub named: bool,       // NEW FIELD
+    pub hidden: bool,      // NEW FIELD (for extras)
+    pub terminal: bool,    // RENAMED from is_terminal
+    // GLR-specific extensions
+    pub is_terminal: bool, // GLR core compatibility
+    pub is_extra: bool,    // NEW FIELD
+    pub is_fragile: bool,  // NEW FIELD (fragile tokens)
+    pub symbol_id: SymbolId, // NEW FIELD
+}
+```
+
+**Migration Steps:**
+1. **Field Renames**: Update `is_visible` → `visible`, `is_terminal` → `terminal`
+2. **New Fields**: Handle `named`, `hidden`, `is_extra`, `is_fragile`, `symbol_id` 
+3. **Backwards Compatibility**: Old field names are deprecated but still functional
+4. **GLR Features**: New fields enable advanced GLR parser capabilities
+
+**Example Migration:**
+```rust
+// Before
+let metadata = SymbolMetadata {
+    name: "identifier".to_string(),
+    is_visible: true,
+    is_terminal: true,
+    supertype: false,
+};
+
+// After
+let metadata = SymbolMetadata {
+    name: "identifier".to_string(),
+    visible: true,      // Renamed
+    named: false,       // New field
+    hidden: false,      // New field
+    terminal: true,     // Renamed
+    is_terminal: true,  // GLR compatibility
+    is_extra: false,    // New field
+    is_fragile: false,  // New field
+    symbol_id: SymbolId(42), // New field
+};
+```
+
 ## Performance Comparison
 
 | Metric | Tree-sitter | Rust Sitter | Improvement |

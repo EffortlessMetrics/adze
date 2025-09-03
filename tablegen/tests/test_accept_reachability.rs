@@ -3,6 +3,7 @@
 
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+#[allow(unused_imports)]
 use rust_sitter_tablegen::{
     AbiLanguageBuilder,
     abi::{TSLanguage, TSParseAction},
@@ -160,7 +161,7 @@ fn create_test_grammar() -> Grammar {
 fn test_accept_action_exists_in_generated_code() {
     // Create test grammar and build parse table
     let grammar = create_test_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Generate language using ABI builder
@@ -194,7 +195,7 @@ fn test_accept_action_exists_in_generated_code() {
 fn test_accept_action_in_parse_table() {
     // Create test grammar
     let grammar = create_test_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Check for Accept action in the parse table
@@ -236,7 +237,7 @@ fn test_accept_action_in_parse_table() {
 fn test_simple_parse_succeeds() {
     // This test verifies that a simple parse can complete successfully
     let grammar = create_test_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Build the language

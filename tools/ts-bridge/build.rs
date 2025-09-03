@@ -39,7 +39,9 @@ fn main() {
         b.file("ci/vendor/tree_sitter/lib/src/lookup.c"); // This has ts_language_lookup
     } else {
         // Fallback: headers only (will fail to link). Nudge the user.
-        println!("cargo:warning=No runtime selected. Enable 'vendored-ts-runtime' (default) or 'link-system-ts'.");
+        println!(
+            "cargo:warning=No runtime selected. Enable 'vendored-ts-runtime' (default) or 'link-system-ts'."
+        );
         println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/api.h");
         println!("cargo:rerun-if-changed=ci/vendor/tree_sitter/parser.h");
         b.include("ci/vendor");

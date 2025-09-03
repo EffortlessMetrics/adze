@@ -3,17 +3,21 @@ use core::ffi::c_void;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+/// Wrapper for the Tree-sitter lexer state value.
 pub struct TSLexState(pub u32);
 
 #[repr(C)]
+/// FFI-compatible lexer structure used by Tree-sitter.
 pub struct TsLexer {
-    // function pointers tree-sitter style
+    /// Function pointer to obtain the next lookahead character.
     pub lookahead: unsafe extern "C" fn(*mut TsLexer) -> u32,
+    /// Function pointer to advance the lexer.
     pub advance: unsafe extern "C" fn(*mut TsLexer, bool),
+    /// Function pointer to mark the end of the current token.
     pub mark_end: unsafe extern "C" fn(*mut TsLexer),
-    // results (adapter-managed)
+    /// Resulting symbol from the lexer.
     pub result_symbol: u16,
-    // opaque pointer to our backing state
+    /// Opaque pointer to our backing state.
     pub data: *mut c_void,
 }
 
@@ -58,6 +62,7 @@ unsafe extern "C" fn mark_end(lex: *mut TsLexer) {
     }
 }
 
+/// Adapter that exposes Tree-sitter's C-style lexing API over a byte slice.
 pub struct TsLexFnAdapter<'a> {
     lang_lex: unsafe extern "C" fn(*mut c_void, TSLexState) -> bool,
     backing: Backing<'a>,
@@ -68,6 +73,7 @@ pub struct TsLexFnAdapter<'a> {
 }
 
 impl<'a> TsLexFnAdapter<'a> {
+    /// Create a new [`TsLexFnAdapter`] for the given input and language lexer.
     pub fn new(
         input: &'a [u8],
         lang_lex: unsafe extern "C" fn(*mut c_void, TSLexState) -> bool,

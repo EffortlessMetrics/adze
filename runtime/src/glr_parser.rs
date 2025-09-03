@@ -53,8 +53,11 @@
 //! use rust_sitter_glr_core::ParseTable;
 //!
 //! // Create parser with grammar and parse table
-//! # let grammar: Grammar = Grammar::default();
-//! # let parse_table: ParseTable = ParseTable::default();
+//! # fn example() {
+//! let grammar: Grammar = /* ... */;
+//! # let grammar = Grammar::default();
+//! let parse_table: ParseTable = /* ... */;
+//! # let parse_table = ParseTable::default();
 //! let mut parser = GLRParser::new(grammar, parse_table);
 //!
 //! // Create lexer and tokenize input
@@ -72,6 +75,7 @@
 //!     Ok(tree) => println!("Parse successful!"),
 //!     Err(e) => println!("Parse failed: {}", e),
 //! }
+//! # }
 //! ```
 
 /// Default threshold for pointer-based dedup.
@@ -422,7 +426,8 @@ impl GLRParser {
         let initial_stack = ParseStack::new(StateId(0), 0);
 
         // Compute FIRST/FOLLOW sets for the resolver
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow =
+            FirstFollowSets::compute(&grammar).expect("Failed to compute FIRST/FOLLOW sets");
         let vec_wrapper_resolver = Some(VecWrapperResolver::new(&grammar, &first_follow));
 
         Self {
@@ -1298,10 +1303,10 @@ impl GLRParser {
             }
         }
 
-        // Update telemetry
+        #[cfg_attr(not(feature = "glr_telemetry"), allow(unused_variables))]
+        let input_count = stacks.len() + out.len();
         #[cfg(feature = "glr_telemetry")]
         {
-            let input_count = stacks.len() + out.len();
             self.bump_telemetry(|t| {
                 t.tops_before_compress += input_count;
                 t.tops_after_compress += out.len();

@@ -1,158 +1,238 @@
-# Migration Guide: rust-sitter v0.4 to v0.5
+# Migration Guide: Runtime to Runtime2 (GLR Integration)
 
-This guide covers the major architectural changes in rust-sitter v0.5 and how to update your code to work with the new APIs.
+This guide covers migrating from the original `runtime` crate to the new `runtime2` crate with production-ready GLR (Generalized LR) parser integration. The GLR runtime provides Tree-sitter API compatibility with enhanced capabilities for ambiguous grammars and incremental parsing.
 
 ## Major Changes
 
-### 1. Grammar Rules Storage Change
+### 1. Runtime Crate Replacement
 
-The most significant change is how grammar rules are stored internally.
+The most significant change is switching from `runtime` to `runtime2` with GLR integration.
 
-**Before (v0.4):**
+**Before (runtime):**
+```toml
+[dependencies]
+rust-sitter = { version = "0.5", features = ["runtime"] }
+```
+
+**After (runtime2):**
+```toml
+[dependencies]
+rust-sitter-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+```
+
+This change provides:
+- **GLR parsing capabilities**: Handle ambiguous grammars with conflicts
+- **Tree-sitter API compatibility**: Drop-in replacement for Tree-sitter parsers
+- **Enhanced incremental parsing**: Automatic subtree reuse optimization
+- **Performance monitoring**: Built-in forest-to-tree conversion metrics
+
+### 2. Parser API Changes
+
+The parser instantiation and usage pattern has evolved:
+
+**Before (runtime):**
 ```rust
-pub struct Grammar {
-    pub rules: HashMap<RuleId, Rule>,
-    // ...
+use rust_sitter::Parser;
+
+let parser = Parser::new();
+let result = parser.parse(input)?;
+```
+
+**After (runtime2):**
+```rust
+use rust_sitter_runtime::Parser;
+
+let mut parser = Parser::new();
+parser.set_language(glr_language)?;  // GLR language with parse table
+let tree = parser.parse_utf8(input, None)?;  // Optional incremental parsing
+let ast = grammar::extract_ast(&tree)?;      // Convert tree to AST
+```
+
+### 3. Language Definition Changes
+
+Language definition now requires GLR-specific components:
+
+**Before (runtime):**
+```rust
+// Generated automatically from grammar annotations
+let language = grammar::language();
+let parser = Parser::new(language);
+```
+
+**After (runtime2):**
+```rust
+// Generated with GLR support
+let language = grammar::language();  // Now includes parse_table and tokenizer
+let mut parser = Parser::new();
+parser.set_language(language)?;      // Validates GLR requirements
+```
+
+### 4. Incremental Parsing Integration
+
+Incremental parsing is now seamlessly integrated:
+
+**Before (runtime):**
+```rust
+// Manual incremental parsing (if available)
+let tree1 = parser.parse(input1)?;
+// Complex edit tracking and partial reparse logic
+```
+
+**After (runtime2):**
+```rust
+// Automatic incremental parsing
+let tree1 = parser.parse_utf8(input1, None)?;           // Initial parse
+let tree2 = parser.parse_utf8(input2, Some(&tree1))?;   // Incremental parse
+// Parser automatically reuses compatible subtrees
+```
+
+### 5. GLR Parser Features
+
+Runtime2 includes production-ready GLR capabilities:
+
+- **Multi-Action Cells**: Each (state, symbol) can hold multiple conflicting actions
+- **Runtime Forking**: Automatic parsing path forking on conflicts
+- **Forest Management**: Efficient handling of ambiguous parse forests
+- **Performance Monitoring**: Built-in metrics for forest-to-tree conversion
+- **Conservative Incremental**: Safe subtree reuse that maintains GLR correctness
+
+Example of GLR conflict handling:
+
+```rust
+// Grammar with shift/reduce conflicts (e.g., empty production)
+#[rust_sitter::language]
+struct Module {
+    statements: Vec<Statement>, // REPEAT(_statement) creates conflict
 }
+
+// GLR parser handles both cases automatically:
+let empty_tree = parser.parse_utf8("", None)?;         // Reduce to empty
+let stmt_tree = parser.parse_utf8("def main():", None)?; // Shift statement
 ```
 
-**After (v0.5):**
-```rust
-pub struct Grammar {
-    pub rules: BTreeMap<SymbolId, Vec<Rule>>,
-    // ...
-}
-```
+### 6. Feature Flag System
 
-This change groups all rules for a given non-terminal symbol together, which improves:
-- GLR parser performance 
-- Cache locality when accessing rules
-- Logical organization of the grammar
-
-### 2. Rule Construction Pattern
-
-When adding rules to a grammar, the API pattern has changed:
-
-**Before (v0.4):**
-```rust
-grammar.rules.insert(
-    rule_id,
-    Rule {
-        lhs: symbol_id,
-        rhs: vec![Symbol::Terminal(token_id)],
-        // ...
-    }
-);
-```
-
-**After (v0.5):**
-```rust
-grammar.rules
-    .entry(symbol_id)
-    .or_insert_with(Vec::new)
-    .push(Rule {
-        lhs: symbol_id,
-        rhs: vec![Symbol::Terminal(token_id)],
-        // ...
-    });
-```
-
-### 3. Rule Access Patterns
-
-Accessing rules for a specific symbol has changed:
-
-**Before (v0.4):**
-```rust
-// Get all rules (inefficient for large grammars)
-for (rule_id, rule) in &grammar.rules {
-    if rule.lhs == target_symbol {
-        // Process rule
-    }
-}
-```
-
-**After (v0.5):**
-```rust
-// Direct access to rules for a symbol (efficient)
-if let Some(rules) = grammar.rules.get(&target_symbol) {
-    for rule in rules {
-        // Process rule
-    }
-}
-```
-
-### 4. Rule Iteration
-
-The `all_rules()` method provides a flattened iterator:
-
-```rust
-// Iterate over all rules in the grammar
-for rule in grammar.all_rules() {
-    // Process rule
-}
-```
-
-### 5. GLR Parser Enhancements
-
-The v0.5 release includes a completely rewritten GLR parser with:
-
-- **Improved Conflict Resolution**: New `RuntimeConflictResolver` trait for custom conflict resolution strategies
-- **Vec Wrapper Support**: Built-in resolver for common repetition patterns
-- **Better Error Recovery**: Enhanced error recovery with scope tracking
-- **Performance Improvements**: Optimized fork/merge operations and better memory usage
-
-Example of using the new conflict resolver:
-
-```rust
-use rust_sitter_glr_core::VecWrapperResolver;
-
-let resolver = VecWrapperResolver::new(&grammar, &first_follow_sets);
-let parser = Parser::with_resolver(Box::new(resolver));
-```
-
-### 6. Pure Rust Implementation
-
-v0.5 introduces a pure Rust parser implementation alongside the C-based Tree-sitter backend:
+Runtime2 uses a comprehensive feature flag system:
 
 ```toml
-# Use pure Rust implementation (WASM-compatible)
-rust-sitter = { version = "0.5", features = ["pure-rust"] }
-
-# Use standard C-based Tree-sitter (default)
-rust-sitter = { version = "0.5" }
+[dependencies]
+rust-sitter-runtime = { version = "0.1", features = [
+    "glr-core",          # GLR parsing engine (default)
+    "incremental",       # Incremental parsing support
+    "arenas",           # Arena allocators for performance
+    "external-scanners", # Custom external scanner support
+    "queries"           # Tree-sitter query language (future)
+] }
 ```
 
 ## Migration Steps
 
-1. **Update Dependencies**: Change your `Cargo.toml` to use v0.5:
-   ```toml
-   rust-sitter = "0.5.0"
-   ```
+### 1. Update Dependencies
 
-2. **Update Grammar Construction**: Replace all `HashMap` insertions with the new `BTreeMap` pattern using `entry().or_insert_with(Vec::new).push()`.
+Change your `Cargo.toml` to use runtime2:
 
-3. **Update Rule Access**: Replace rule iteration patterns with direct symbol lookups where possible.
+```toml
+[dependencies]
+# Remove old runtime
+# rust-sitter = "0.5"
 
-4. **Test Thoroughly**: The parse behavior should remain the same, but the internal representation has changed significantly.
+# Add GLR runtime
+rust-sitter-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
 
-5. **Consider GLR Features**: If you have grammars with conflicts, consider implementing a custom `RuntimeConflictResolver` for better parse results.
+[build-dependencies]
+rust-sitter-tool = "0.6"  # Ensure build tool compatibility
+```
+
+### 2. Update Build Configuration
+
+Ensure your `build.rs` uses the latest tool:
+
+```rust
+fn main() {
+    rust_sitter_tool::build_parsers().unwrap();
+}
+```
+
+### 3. Update Parser Usage
+
+**Before:**
+```rust
+let result = grammar::parse(input)?;
+```
+
+**After:**
+```rust
+use rust_sitter_runtime::Parser;
+
+let mut parser = Parser::new();
+parser.set_language(grammar::language())?;
+let tree = parser.parse_utf8(input, None)?;
+let result = grammar::extract_ast(&tree)?;
+```
+
+### 4. Enable Performance Monitoring (Optional)
+
+```bash
+RUST_SITTER_LOG_PERFORMANCE=true cargo run
+```
+
+### 5. Test Incremental Parsing
+
+```rust
+let tree1 = parser.parse_utf8("initial input", None)?;
+let tree2 = parser.parse_utf8("modified input", Some(&tree1))?;  // Incremental!
+```
 
 ## Common Issues and Solutions
 
-### Issue: "cannot find method `insert` for `BTreeMap<SymbolId, Vec<Rule>>`"
-**Solution**: Use the `entry().or_insert_with(Vec::new).push()` pattern instead of `insert()`.
+### Issue: "Language has no parse table - GLR integration pending"
+**Solution**: Ensure your grammar generates GLR-compatible language with parse table:
+```rust
+// Generated function should include parse table
+let language = grammar::language();  // Must have parse_table: Some(...)
+```
 
-### Issue: "cannot iterate over rules with RuleId keys"
-**Solution**: Either use `grammar.all_rules()` for a flat iteration or iterate over `&grammar.rules` to get `(SymbolId, &Vec<Rule>)` pairs.
+### Issue: "Language has no tokenizer"
+**Solution**: The generated GLR language needs a tokenizer. This is automatically provided by `rust-sitter-tool`.
 
-### Issue: Performance regression after migration
-**Solution**: Ensure you're using direct symbol lookups (`grammar.rules.get(&symbol_id)`) instead of iterating over all rules when looking for rules for a specific symbol.
+### Issue: "GLR core feature not enabled"
+**Solution**: Add the `glr-core` feature to your dependencies:
+```toml
+rust-sitter-runtime = { version = "0.1", features = ["glr-core"] }
+```
+
+### Issue: Performance issues with large inputs
+**Solution**: 
+1. Enable arena allocators: `features = ["arenas")`
+2. Use incremental parsing for repeated edits
+3. Monitor performance with `RUST_SITTER_LOG_PERFORMANCE=true`
 
 ## New Features to Explore
 
-- **GLR Parsing**: Handles ambiguous grammars with multiple parse trees
-- **Conflict Resolution**: Implement custom strategies for handling parse conflicts
-- **Pure Rust Mode**: Deploy to WASM and other targets without C dependencies
-- **Enhanced Error Recovery**: Better handling of syntax errors with scope-aware recovery
+### GLR Capabilities
+- **Ambiguous Grammar Support**: Parse grammars with shift/reduce and reduce/reduce conflicts
+- **Multiple Parse Paths**: Automatic forking and merging of parse paths
+- **Tree-sitter Compatibility**: Drop-in replacement for existing Tree-sitter parsers
+- **Production Readiness**: Tested with complex grammars like Python (273 symbols, 57 fields)
 
-For more details on these features, see the main documentation.
+### Performance Features
+- **Forest-to-Tree Conversion**: High-performance conversion with real-time metrics
+- **Incremental Parsing**: Conservative subtree reuse maintaining GLR correctness
+- **Arena Allocators**: Optional memory optimization for parsing-heavy workloads
+- **Zero-Cost Monitoring**: Performance instrumentation with no runtime overhead when disabled
+
+### Development Features
+- **Comprehensive Error Handling**: `EditError` with overflow/underflow protection
+- **Feature-Gated Compilation**: Choose exactly the features you need
+- **Thread Safety**: Concurrent parsing support with bounded resource usage
+- **Debugging Support**: Built-in performance and parse state monitoring
+
+## Benefits of Migration
+
+1. **Enhanced Grammar Support**: Handle previously unparseable ambiguous grammars
+2. **Better Performance**: Incremental parsing with intelligent subtree reuse
+3. **Tree-sitter Ecosystem**: Compatible with existing Tree-sitter tooling and queries
+4. **Production Ready**: Battle-tested GLR implementation with comprehensive error handling
+5. **Future Proof**: Foundation for advanced features like query optimization and LSP generation
+
+For more details on GLR features and best practices, see the [Parser Generation Guide](../guide/parser-generation.md).

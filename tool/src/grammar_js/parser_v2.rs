@@ -3,6 +3,8 @@
 //! This module provides a more comprehensive parser for Tree-sitter grammar.js files.
 //! It handles most common grammar patterns and can parse real-world grammars.
 
+#![allow(clippy::manual_strip, clippy::regex_creation_in_loops)]
+
 use super::{ExternalToken, GrammarJs, Rule};
 use anyhow::{Context, Result, anyhow, bail};
 use regex::Regex;
@@ -109,18 +111,25 @@ impl ImprovedGrammarJsParser {
     }
 
     fn extract_conflicts(&self, content: &str) -> Vec<Vec<String>> {
-        // Match conflicts: $ => [[$.rule1, $.rule2], [$.rule3, $.rule4]]
-        if let Ok(conflicts_regex) =
-            Regex::new(r#"conflicts:\s*\$\s*=>\s*\[([^\]]+(?:\][^\]]*\[)*[^\]]*)\]"#)
-        {
-            if let Some(caps) = conflicts_regex.captures(content) {
-                self.parse_conflicts_array(&caps[1])
-            } else {
-                Vec::new()
+        // Find conflicts: $ => [...]
+        if let Some(conflicts_start) = content.find("conflicts:") {
+            let after_conflicts = &content[conflicts_start + 10..]; // Skip "conflicts:"
+            let trimmed = after_conflicts.trim_start();
+
+            // Skip $ =>
+            if let Some(arrow_pos) = trimmed.find("=>") {
+                let after_arrow = trimmed[arrow_pos + 2..].trim_start();
+
+                if after_arrow.starts_with('[') {
+                    // Extract the array content by matching brackets
+                    if let Ok(array_content) = self.extract_balanced_brackets(&after_arrow[1..]) {
+                        return self.parse_conflicts_array(&array_content);
+                    }
+                }
             }
-        } else {
-            Vec::new()
         }
+
+        Vec::new()
     }
 
     fn extract_extras(&self, content: &str) -> Result<Vec<Rule>> {

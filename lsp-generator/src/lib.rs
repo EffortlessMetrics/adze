@@ -1,7 +1,7 @@
 // LSP (Language Server Protocol) generator for rust-sitter
 // Automatically generates language servers from rust-sitter grammars
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use rust_sitter_ir::Grammar;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -164,15 +164,20 @@ impl LspBuilder {
     }
 }
 
-fn load_grammar(_path: &Path) -> Result<Grammar> {
-    // This would load the grammar from the compiled rust-sitter grammar
-    // For now, return a placeholder
-    todo!("Implement grammar loading from compiled rust-sitter parser")
+fn load_grammar(path: &Path) -> Result<Grammar> {
+    let contents = fs::read_to_string(path)
+        .with_context(|| format!("failed to read grammar file {}", path.display()))?;
+    let grammar = serde_json::from_str(&contents)
+        .with_context(|| format!("failed to parse grammar from {}", path.display()))?;
+    Ok(grammar)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
+    use rust_sitter_ir::builder::GrammarBuilder;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_lsp_builder() {
@@ -277,5 +282,25 @@ mod tests {
         assert!(b.features.contains(&"diagnostics".to_string()));
         assert!(b.features.contains(&"all".to_string()));
         assert!(b.features.contains(&"unknown".to_string()));
+    }
+
+    #[test]
+    fn test_load_grammar_from_file() -> Result<()> {
+        let grammar = GrammarBuilder::new("test")
+            .token("NUMBER", "[0-9]+")
+            .rule("expr", vec!["NUMBER"])
+            .start("expr")
+            .build();
+
+        let mut file = NamedTempFile::new()?;
+        serde_json::to_writer(file.as_file_mut(), &grammar)?;
+
+        let loaded = super::load_grammar(file.path())?;
+
+        assert_eq!(loaded.name, "test");
+        assert_eq!(loaded.tokens.len(), 1);
+        let start = loaded.start_symbol().expect("start symbol");
+        assert_eq!(loaded.rules.get(&start).map(|r| r.len()), Some(1));
+        Ok(())
     }
 }

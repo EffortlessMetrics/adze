@@ -92,7 +92,7 @@ fn create_epsilon_grammar() -> Grammar {
 
 fn parse_with_grammar(grammar: &Grammar, input: &str) -> Option<Arc<Subtree>> {
     // Generate parse table
-    let first_follow = FirstFollowSets::compute(grammar);
+    let first_follow = FirstFollowSets::compute(grammar).unwrap();
     let table = build_lr1_automaton(grammar, &first_follow).unwrap();
 
     // Create parser

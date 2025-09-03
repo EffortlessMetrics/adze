@@ -17,7 +17,7 @@ fn assert_state0_invariants(grammar: &Grammar, pt: &ParseTable) {
 
     // Invariant 1: EOF column must be in token_indices
     assert!(
-        token_indices.iter().any(|&i| i == eof_idx),
+        token_indices.contains(&eof_idx),
         "EOF column {} must be in token_indices",
         eof_idx
     );
@@ -34,13 +34,12 @@ fn assert_state0_invariants(grammar: &Grammar, pt: &ParseTable) {
 
     // Check if any token column has a shift action
     let has_token_shift = token_indices.iter().any(|&i| {
-        s0.get(i).map_or(false, |cell| {
-            cell.iter().any(|a| matches!(a, Action::Shift(_)))
-        })
+        s0.get(i)
+            .is_some_and(|cell| cell.iter().any(|a| matches!(a, Action::Shift(_))))
     });
 
     // Check if EOF cell has Accept or Reduce
-    let eof_accept_or_reduce = s0.get(eof_idx).map_or(false, |cell| {
+    let eof_accept_or_reduce = s0.get(eof_idx).is_some_and(|cell| {
         cell.iter()
             .any(|a| matches!(a, Action::Accept | Action::Reduce(_)))
     });
@@ -97,7 +96,7 @@ fn nullable_start_allows_eof_accept_or_reduce() {
     });
 
     // Build FIRST/FOLLOW sets and parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Assert invariants about state 0
@@ -183,7 +182,7 @@ fn non_nullable_start_has_no_eof_reduce() {
         production_id: ProductionId(1),
     });
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Assert invariants about state 0

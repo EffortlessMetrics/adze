@@ -35,7 +35,7 @@ fn test_minimal_grammar() {
     );
 
     // Compute FIRST/FOLLOW sets
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     println!("FIRST/FOLLOW sets computed");
 
     // Build parse table
@@ -115,7 +115,7 @@ fn test_simple_expression() {
     println!("  Rules: {}", grammar.rules.len());
     println!("  Tokens: {}", grammar.tokens.len());
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(table) => {

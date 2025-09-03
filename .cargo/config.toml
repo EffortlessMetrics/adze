@@ -52,3 +52,10 @@ ci = "clippy --workspace --all-targets --all-features -- -D warnings"
 test-all = "test --workspace --all-features"
 # Fixed recursive alias - renamed to 'nxt' to avoid shadowing
 nxt = "nextest run --workspace --all-features"
+
+# Concurrency-capped test aliases
+t2 = "test -- --test-threads=2"
+t1 = "test -- --test-threads=1"
+t4 = "test -- --test-threads=4"
+test-safe = "test -- --test-threads=2"
+test-ultra-safe = "test -- --test-threads=1"

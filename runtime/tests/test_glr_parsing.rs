@@ -115,8 +115,8 @@ fn create_ambiguous_grammar() -> Grammar {
 /// Create a parse table with conflicts for testing GLR
 fn create_conflicting_parse_table(grammar: &Grammar) -> ParseTable {
     // Use the proper LR1 automaton builder
-    let first_follow = FirstFollowSets::compute(&grammar);
-    build_lr1_automaton(&grammar, &first_follow).expect("Failed to build LR1 automaton")
+    let first_follow = FirstFollowSets::compute(grammar).unwrap();
+    build_lr1_automaton(grammar, &first_follow).expect("Failed to build LR1 automaton")
 }
 
 #[test]
@@ -230,7 +230,7 @@ fn test_ambiguous_expression_parsing() {
 
     // Verify the tree has the expected structure
     // Since this is ambiguous, we just verify it has children
-    assert!(tree.children.len() > 0, "Parse tree should have children");
+    assert!(!tree.children.is_empty(), "Parse tree should have children");
 }
 
 #[test]
@@ -317,7 +317,7 @@ fn test_glr_state_management() {
         let next_id = parser1.get_next_stack_id();
 
         // Create new parser and restore state
-        let mut parser2 = GLRParser::new(parse_table, grammar);
+        let mut parser2 = GLRParser::new(parse_table, grammar.clone());
         parser2.set_gss_state(saved_stacks);
         parser2.set_next_stack_id(next_id);
 

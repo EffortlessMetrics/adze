@@ -144,7 +144,7 @@ fn build_arithmetic_grammar() -> Grammar {
 #[test]
 fn test_parse_table_debug() {
     let grammar = build_arithmetic_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     println!("Symbol to index mapping:");

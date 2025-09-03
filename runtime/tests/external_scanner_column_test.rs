@@ -1,3 +1,4 @@
+#![allow(unused_unsafe)]
 use rust_sitter::external_scanner_ffi::{RustLexerAdapter, TSLexer};
 
 #[test]
@@ -12,10 +13,8 @@ fn test_column_tracking_basic() {
     let mut ts_lexer = adapter.as_ts_lexer();
 
     // Advance through "hello"
-    for i in 0..5 {
-        unsafe {
-            (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
-        }
+    for _i in 0..5 {
+        (ts_lexer.advance)(&mut ts_lexer as *mut TSLexer, false);
     }
 
     // After "hello", column should be 5

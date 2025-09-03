@@ -28,34 +28,40 @@ pub use pure_rust_builder::{
 pub mod cli;
 pub mod scanner_build;
 
+pub mod error;
+pub use error::{Result as ToolResult, ToolError};
+
 // Use tree-sitter-generate's version for compatibility
 // Version 0.25.1 is what we depend on in Cargo.toml
 const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 1));
 
 /// Generates JSON strings defining Tree Sitter grammars for every Rust Sitter
 /// grammar found in the given module and recursive submodules.
-pub fn generate_grammars(root_file: &Path) -> Vec<Value> {
+pub fn generate_grammars(root_file: &Path) -> ToolResult<Vec<Value>> {
     let root_file = syn_inline_mod::parse_and_inline_modules(root_file).items;
     let mut out = vec![];
-    root_file
-        .iter()
-        .for_each(|i| generate_all_grammars(i, &mut out));
-    out
+    for i in root_file.iter() {
+        generate_all_grammars(i, &mut out)?;
+    }
+    Ok(out)
 }
 
-fn generate_all_grammars(item: &Item, out: &mut Vec<Value>) {
+fn generate_all_grammars(item: &Item, out: &mut Vec<Value>) -> ToolResult<()> {
     if let Item::Mod(m) = item {
-        m.content
-            .iter()
-            .for_each(|(_, items)| items.iter().for_each(|i| generate_all_grammars(i, out)));
+        if let Some((_, items)) = &m.content {
+            for item in items {
+                generate_all_grammars(item, out)?;
+            }
+        }
 
         if m.attrs
             .iter()
             .any(|a| a.path() == &parse_quote!(rust_sitter::grammar))
         {
-            out.push(generate_grammar(m))
+            out.push(generate_grammar(m)?)
         }
     }
+    Ok(())
 }
 
 #[cfg(feature = "build_parsers")]
@@ -105,7 +111,6 @@ pub fn build_parsers(root_file: &Path) {
                     println!("cargo:rerun-if-changed={}", result.parser_path);
                     println!("Built pure-Rust parser for {}", result.grammar_name);
                 }
-                return;
             }
             Err(e) => {
                 eprintln!("Failed to build pure-Rust parser: {}", e);
@@ -118,7 +123,8 @@ pub fn build_parsers(root_file: &Path) {
                 panic!("FATAL: Pure-Rust parser generation failed: {:#}", e);
             }
         }
-        return; // Critical: don't fall through to C generation
+        // Critical: don't fall through to C generation
+        return;
     }
 
     // If we get here, use C-based generation exclusively
@@ -143,8 +149,8 @@ pub fn build_parsers(root_file: &Path) {
         }
     }
 
-    generate_grammars(root_file).iter().for_each(|grammar| {
-        let grammar_str = grammar.to_string();
+    for grammar in generate_grammars(root_file).unwrap() {
+        let grammar_str = serde_json::to_string(&grammar).unwrap();
         if emit_artifacts {
             eprintln!(
                 "Generated grammar JSON:\n{}",
@@ -161,7 +167,10 @@ pub fn build_parsers(root_file: &Path) {
         }
 
         // Better error handling for C generation
-        let (grammar_name, grammar_c) = match generate_parser_for_grammar(&grammar_str, GENERATED_SEMANTIC_VERSION) {
+        let (grammar_name, grammar_c) = match generate_parser_for_grammar(
+            &grammar_str,
+            GENERATED_SEMANTIC_VERSION,
+        ) {
             Ok(result) => {
                 // Also save a per-grammar copy for easier debugging
                 if let Some(base_path) = &dump_path {
@@ -169,11 +178,13 @@ pub fn build_parsers(root_file: &Path) {
                     let _ = std::fs::write(named_path, &grammar_str);
                 }
                 result
-            },
+            }
             Err(e) => {
                 eprintln!("ERROR: Tree-sitter C generation failed for grammar");
                 eprintln!("  Error: {}", e);
-                eprintln!("  Hint: Ensure tree-sitter CLI >= 0.22 is on PATH (run `tree-sitter --version`)");
+                eprintln!(
+                    "  Hint: Ensure tree-sitter CLI >= 0.22 is on PATH (run `tree-sitter --version`)"
+                );
                 eprintln!("  Hint: Check that the grammar JSON is valid");
                 if emit_artifacts {
                     eprintln!("  Debug: See generated grammar JSON above");
@@ -213,7 +224,7 @@ pub fn build_parsers(root_file: &Path) {
         let mut grammar_json_file =
             std::fs::File::create(dir.join(format!("{grammar_name}.json"))).unwrap();
         grammar_json_file
-            .write_all(serde_json::to_string_pretty(grammar).unwrap().as_bytes())
+            .write_all(serde_json::to_string_pretty(&grammar).unwrap().as_bytes())
             .unwrap();
         drop(grammar_json_file);
 
@@ -322,7 +333,7 @@ pub fn build_parsers(root_file: &Path) {
             .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
             .collect();
         c_config.compile(&lib_name);
-    });
+    }
 }
 
 #[cfg(test)]
@@ -356,9 +367,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -380,9 +395,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -409,9 +428,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -440,9 +463,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -470,9 +497,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -498,9 +529,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -510,6 +545,7 @@ mod tests {
             pub mod grammar {
                 #[rust_sitter::language]
                 pub struct NumberList {
+                    #[rust_sitter::repeat(non_empty = true)]
                     #[rust_sitter::delimited(
                         #[rust_sitter::leaf(text = ",")]
                         ()
@@ -534,9 +570,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -546,6 +586,7 @@ mod tests {
             pub mod grammar {
                 #[rust_sitter::language]
                 pub struct NumberList {
+                    #[rust_sitter::repeat(non_empty = true)]
                     numbers: Vec<Number>,
                 }
 
@@ -566,9 +607,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -603,9 +648,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -633,9 +682,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -662,9 +715,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -676,6 +733,7 @@ mod tests {
 
                 #[rust_sitter::language]
                 pub struct NumberList {
+                    #[rust_sitter::repeat(non_empty = true)]
                     #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     numbers: Vec<Spanned<i32>>,
                 }
@@ -692,9 +750,13 @@ mod tests {
             panic!()
         };
 
-        let grammar = generate_grammar(&m);
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
         insta::assert_snapshot!(grammar);
-        generate_parser_for_grammar(&grammar.to_string(), GENERATED_SEMANTIC_VERSION).unwrap();
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
     }
 
     #[cfg(feature = "build_parsers")]
