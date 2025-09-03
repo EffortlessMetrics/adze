@@ -1,5 +1,5 @@
 use super::Rule;
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 /// Common helper functions used in Tree-sitter grammars
 pub struct HelperFunctions;
