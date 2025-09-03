@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rust_sitter_common::*;
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, *};
 
 fn gen_field(
@@ -318,18 +318,43 @@ impl<'a> Precs<'a> {
                 .or_else(|| self.prec_left.map(|a| a.span()))
                 .or_else(|| self.prec_right.map(|a| a.span()))
                 .unwrap();
+
+            // Collect which attributes were found for a better error message
+            let mut found_attrs = Vec::new();
+            if self.prec.is_some() {
+                found_attrs.push("prec");
+            }
+            if self.prec_left.is_some() {
+                found_attrs.push("prec_left");
+            }
+            if self.prec_right.is_some() {
+                found_attrs.push("prec_right");
+            }
+
             return Err(syn::Error::new(
                 span,
-                "only one of prec, prec_left, and prec_right can be specified",
+                format!(
+                    "only one of prec, prec_left, and prec_right can be specified, but found: {}",
+                    found_attrs.join(", ")
+                ),
             ));
         }
 
         if let Some(attr) = self.prec {
             let expr: Expr = attr.parse_args()?;
-            if let Expr::Lit(ExprLit { lit: Lit::Int(i), .. }) = expr {
-                let value = i
-                    .base10_parse::<u32>()
-                    .map_err(|_| syn::Error::new(i.span(), "Invalid integer literal for precedence"))?;
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(i), ..
+            }) = expr
+            {
+                let value = i.base10_parse::<u32>().map_err(|e| {
+                    syn::Error::new(
+                        i.span(),
+                        format!(
+                            "Invalid integer literal for precedence: {} (must be a valid u32)",
+                            e
+                        ),
+                    )
+                })?;
                 Ok(json!({
                     "type": "PREC",
                     "value": value,
@@ -338,15 +363,21 @@ impl<'a> Precs<'a> {
             } else {
                 Err(syn::Error::new(
                     expr.span(),
-                    "Expected integer literal for precedence",
+                    "Expected integer literal for precedence. Use #[rust_sitter::prec(123)] with a positive integer (0 to 4294967295).",
                 ))
             }
         } else if let Some(attr) = self.prec_left {
             let expr: Expr = attr.parse_args()?;
-            if let Expr::Lit(ExprLit { lit: Lit::Int(i), .. }) = expr {
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(i), ..
+            }) = expr
+            {
                 let value = i
                     .base10_parse::<u32>()
-                    .map_err(|_| syn::Error::new(i.span(), "Invalid integer literal for precedence"))?;
+                    .map_err(|e| syn::Error::new(
+                        i.span(),
+                        format!("Invalid integer literal for left-associative precedence: {} (must be a valid u32)", e)
+                    ))?;
                 Ok(json!({
                     "type": "PREC_LEFT",
                     "value": value,
@@ -355,15 +386,21 @@ impl<'a> Precs<'a> {
             } else {
                 Err(syn::Error::new(
                     expr.span(),
-                    "Expected integer literal for precedence",
+                    "Expected integer literal for left-associative precedence. Use #[rust_sitter::prec_left(123)] with a positive integer (0 to 4294967295).",
                 ))
             }
         } else if let Some(attr) = self.prec_right {
             let expr: Expr = attr.parse_args()?;
-            if let Expr::Lit(ExprLit { lit: Lit::Int(i), .. }) = expr {
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(i), ..
+            }) = expr
+            {
                 let value = i
                     .base10_parse::<u32>()
-                    .map_err(|_| syn::Error::new(i.span(), "Invalid integer literal for precedence"))?;
+                    .map_err(|e| syn::Error::new(
+                        i.span(),
+                        format!("Invalid integer literal for right-associative precedence: {} (must be a valid u32)", e)
+                    ))?;
                 Ok(json!({
                     "type": "PREC_RIGHT",
                     "value": value,
@@ -372,7 +409,7 @@ impl<'a> Precs<'a> {
             } else {
                 Err(syn::Error::new(
                     expr.span(),
-                    "Expected integer literal for precedence",
+                    "Expected integer literal for right-associative precedence. Use #[rust_sitter::prec_right(123)] with a positive integer (0 to 4294967295).",
                 ))
             }
         } else {
