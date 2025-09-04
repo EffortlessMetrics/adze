@@ -547,32 +547,33 @@ impl Parser {
                             let below = &self.stack[self.stack.len() - 2];
 
                             // Check if we have the root symbol (source_file = 8) on top of state 0
-                            if below.state == 0 && top.subtree.is_some() {
-                                if let Some(ref subtree) = top.subtree {
-                                    if subtree.symbol == 8 && token.symbol == 0 {
-                                        // EOF
-                                        // Parse successful!
-                                        // eprintln!("DEBUG: Parse accepted! Root subtree:");
-                                        // fn print_subtree(subtree: &Subtree, indent: usize) {
-                                        //     eprintln!("{}symbol={}, children={}, bytes={}..{}",
-                                        //         "  ".repeat(indent), subtree.symbol, subtree.children.len(),
-                                        //         subtree.start_byte, subtree.end_byte
-                                        //     );
-                                        //     for child in &subtree.children {
-                                        //         print_subtree(child, indent + 1);
-                                        //     }
-                                        // }
-                                        // print_subtree(subtree, 1);
+                            if below.state == 0
+                                && top.subtree.is_some()
+                                && let Some(ref subtree) = top.subtree
+                                && subtree.symbol == 8
+                                && token.symbol == 0
+                            {
+                                // EOF
+                                // Parse successful!
+                                // eprintln!("DEBUG: Parse accepted! Root subtree:");
+                                // fn print_subtree(subtree: &Subtree, indent: usize) {
+                                //     eprintln!("{}symbol={}, children={}, bytes={}..{}",
+                                //         "  ".repeat(indent), subtree.symbol, subtree.children.len(),
+                                //         subtree.start_byte, subtree.end_byte
+                                //     );
+                                //     for child in &subtree.children {
+                                //         print_subtree(child, indent + 1);
+                                //     }
+                                // }
+                                // print_subtree(subtree, 1);
 
-                                        return ParseResult {
-                                            root: Some(subtree_to_node(
-                                                subtree.clone(),
-                                                Some(language as *const _),
-                                            )),
-                                            errors,
-                                        };
-                                    }
-                                }
+                                return ParseResult {
+                                    root: Some(subtree_to_node(
+                                        subtree.clone(),
+                                        Some(language as *const _),
+                                    )),
+                                    errors,
+                                };
                             }
                         }
                     }
@@ -584,13 +585,13 @@ impl Parser {
                 Action::Accept => {
                     ////eprintln!("DEBUG: Got ACCEPT action!");
                     // Parse successful
-                    if let Some(entry) = self.stack.pop() {
-                        if let Some(subtree) = entry.subtree {
-                            return ParseResult {
-                                root: Some(subtree_to_node(subtree, Some(language as *const _))),
-                                errors,
-                            };
-                        }
+                    if let Some(entry) = self.stack.pop()
+                        && let Some(subtree) = entry.subtree
+                    {
+                        return ParseResult {
+                            root: Some(subtree_to_node(subtree, Some(language as *const _))),
+                            errors,
+                        };
                     }
                     break;
                 }
@@ -1210,19 +1211,19 @@ impl Parser {
 
             // Pop children in reverse order
             for _ in 0..child_count {
-                if let Some(entry) = self.stack.pop() {
-                    if let Some(subtree) = entry.subtree {
-                        // Update bounds
-                        if subtree.start_byte < start_byte {
-                            start_byte = subtree.start_byte;
-                            start_point = subtree.start_point;
-                        }
-                        if subtree.end_byte > end_byte {
-                            end_byte = subtree.end_byte;
-                            end_point = subtree.end_point;
-                        }
-                        children.push(subtree);
+                if let Some(entry) = self.stack.pop()
+                    && let Some(subtree) = entry.subtree
+                {
+                    // Update bounds
+                    if subtree.start_byte < start_byte {
+                        start_byte = subtree.start_byte;
+                        start_point = subtree.start_point;
                     }
+                    if subtree.end_byte > end_byte {
+                        end_byte = subtree.end_byte;
+                        end_point = subtree.end_point;
+                    }
+                    children.push(subtree);
                 }
             }
 
@@ -1577,7 +1578,7 @@ impl ParsedNode {
     }
 
     /// Create a walker for this node's children
-    pub fn walk(&self) -> ChildWalker {
+    pub fn walk(&self) -> ChildWalker<'_> {
         ChildWalker {
             children: &self.children,
             index: 0,

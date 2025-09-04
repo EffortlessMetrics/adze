@@ -30,10 +30,10 @@ impl CompletionProvider {
 
         // Extract keywords from tokens
         for (_id, token) in &grammar.tokens {
-            if let TokenPattern::String(value) = &token.pattern {
-                if value.chars().all(|c| c.is_alphabetic() || c == '_') {
-                    keywords.push(value.clone());
-                }
+            if let TokenPattern::String(value) = &token.pattern
+                && value.chars().all(|c| c.is_alphabetic() || c == '_')
+            {
+                keywords.push(value.clone());
             }
         }
 
@@ -136,7 +136,7 @@ fn create_symbol_completions() -> Vec<lsp_types::CompletionItem> {{
 /// Hover provider for LSP
 pub struct HoverProvider {
     #[allow(dead_code)]
-    documentation: std::collections::HashMap<String, String>,
+    pub documentation: std::collections::HashMap<String, String>,
 }
 
 impl HoverProvider {
@@ -159,37 +159,102 @@ impl LspFeature for HoverProvider {
     }
 
     fn generate_handler(&self) -> String {
-        r#"
+        // Build the generated handler code with proper documentation lookup
+        let documentation_map = HoverProvider::build_documentation_map();
+
+        format!(
+            r#"
+use anyhow::{{Context, Result}};
+use lsp_types::{{HoverParams, Hover, HoverContents, MarkedString, Position}};
+use std::collections::HashMap;
+use std::fs;
+
 pub async fn handle_hover(
-    params: lsp_types::HoverParams,
-) -> Result<Option<lsp_types::Hover>> {
+    params: HoverParams,
+) -> Result<Option<Hover>> {{
     // Get the word under cursor
     let word = get_word_at_position(&params)?;
     
     // Look up documentation
-    let contents = match lookup_documentation(&word) {
-        Some(doc) => lsp_types::HoverContents::Scalar(
-            lsp_types::MarkedString::String(doc)
+    let contents = match lookup_documentation(&word) {{
+        Some(doc) => HoverContents::Scalar(
+            MarkedString::String(doc)
         ),
         None => return Ok(None),
-    };
+    }};
     
-    Ok(Some(lsp_types::Hover {
+    Ok(Some(Hover {{
         contents,
         range: None,
-    }))
-}
+    }}))
+}}
 
-fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {
-    // Implementation would extract word at cursor position
-    todo!("Extract word at position")
-}
+fn get_word_at_position(params: &HoverParams) -> Result<String> {{
+    // Extract position information
+    let position = params.text_document_position_params.position;
+    let uri = &params.text_document_position_params.text_document.uri;
+    
+    // Extract word from document at position
+    let word = extract_word_from_position(&uri.to_string(), position.line as usize, position.character as usize)?;
+    
+    Ok(word)
+}}
 
-fn lookup_documentation(word: &str) -> Option<String> {
-    // Implementation would look up documentation
-    todo!("Look up documentation for word")
-}"#
-        .to_string()
+fn extract_word_from_position(uri: &str, line: usize, character: usize) -> Result<String> {{
+    // Convert URI to file path (simplified - real implementation would handle URI properly)
+    let file_path = uri.strip_prefix("file://").unwrap_or(uri);
+    
+    // Read the file content
+    let content = fs::read_to_string(file_path)
+        .with_context(|| format!("Failed to read file: {{}}", file_path))?;
+    
+    // Find the line
+    let lines: Vec<&str> = content.lines().collect();
+    if line >= lines.len() {{
+        return Err(anyhow::anyhow!("Line {{}} out of bounds", line));
+    }}
+    
+    let line_content = lines[line];
+    
+    // Extract word at position (UTF-8 safe)
+    let chars: Vec<char> = line_content.chars().collect();
+    if character >= chars.len() {{
+        return Err(anyhow::anyhow!("Character position {{}} out of bounds", character));
+    }}
+    
+    // Find word boundaries
+    let mut start = character;
+    let mut end = character;
+    
+    // Go backwards to find start of word
+    while start > 0 && (chars[start - 1].is_alphanumeric() || chars[start - 1] == '_') {{
+        start -= 1;
+    }}
+    
+    // Go forwards to find end of word
+    while end < chars.len() && (chars[end].is_alphanumeric() || chars[end] == '_') {{
+        end += 1;
+    }}
+    
+    if start == end {{
+        return Err(anyhow::anyhow!("No word found at position"));
+    }}
+    
+    let word: String = chars[start..end].iter().collect();
+    Ok(word)
+}}
+
+fn lookup_documentation(word: &str) -> Option<String> {{
+    // Documentation map with common language constructs
+    let docs: HashMap<&str, &str> = [
+{}
+    ].into_iter().collect();
+    
+    docs.get(word).map(|doc| format!("**{{}}**: {{}}", word, doc))
+}}
+"#,
+            HoverProvider::format_documentation_entries(&documentation_map)
+        )
     }
 
     fn required_imports(&self) -> Vec<String> {
@@ -200,6 +265,64 @@ fn lookup_documentation(word: &str) -> Option<String> {
         serde_json::json!({
             "hoverProvider": true
         })
+    }
+}
+
+impl HoverProvider {
+    pub fn build_documentation_map() -> Vec<(&'static str, &'static str)> {
+        vec![
+            // Use the documentation from the grammar if available
+            // For now, provide common programming language keywords
+            ("fn", "Declares a function"),
+            ("let", "Declares a variable binding"),
+            ("mut", "Makes a binding mutable"),
+            ("if", "Conditional expression"),
+            ("else", "Alternative branch of conditional"),
+            ("match", "Pattern matching expression"),
+            ("struct", "Defines a struct type"),
+            ("enum", "Defines an enum type"),
+            ("impl", "Implements methods or traits"),
+            ("trait", "Defines a trait"),
+            ("pub", "Makes an item public"),
+            ("use", "Imports items into scope"),
+            ("mod", "Declares a module"),
+            ("String", "UTF-8 encoded, growable string type"),
+            ("str", "String slice type"),
+            ("i32", "32-bit signed integer type"),
+            ("u32", "32-bit unsigned integer type"),
+            ("bool", "Boolean type with values true and false"),
+            ("Vec", "Growable array type"),
+            ("Option", "Type representing optional values"),
+            ("Result", "Type for recoverable errors"),
+            ("function", "Declares a function"),
+            ("const", "Declares a constant"),
+            ("var", "Declares a variable"),
+            ("class", "Declares a class"),
+            ("interface", "Declares a TypeScript interface"),
+            ("type", "Declares a type alias"),
+            ("import", "Imports modules or values"),
+            ("export", "Exports values from module"),
+            ("def", "Defines a function"),
+            ("return", "Returns a value from function"),
+            ("yield", "Yields a value from generator"),
+            ("async", "Declares async function"),
+            ("await", "Waits for async operation"),
+            ("break", "Exits from a loop"),
+            ("continue", "Skips to next iteration of loop"),
+            ("while", "Loop that continues while condition is true"),
+            ("for", "Loop that iterates over a sequence"),
+            ("try", "Begins error handling block"),
+            ("catch", "Handles errors in try block"),
+            ("finally", "Code that always runs after try/catch"),
+        ]
+    }
+
+    pub fn format_documentation_entries(entries: &[(&str, &str)]) -> String {
+        entries
+            .iter()
+            .map(|(key, value)| format!("        (\"{}\", \"{}\")", key, value))
+            .collect::<Vec<_>>()
+            .join(",\n")
     }
 }
 

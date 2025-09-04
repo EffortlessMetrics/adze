@@ -303,4 +303,154 @@ mod tests {
         assert_eq!(loaded.rules.get(&start).map(|r| r.len()), Some(1));
         Ok(())
     }
+
+    #[test]
+    fn test_hover_provider_creation() {
+        let grammar = Grammar::default();
+        let hover_provider = features::HoverProvider::new(&grammar);
+
+        assert_eq!(hover_provider.name(), "hover");
+        assert!(hover_provider.documentation.is_empty());
+    }
+
+    #[test]
+    fn test_hover_provider_capabilities() {
+        let grammar = Grammar::default();
+        let hover_provider = features::HoverProvider::new(&grammar);
+        let capabilities = hover_provider.capabilities();
+
+        assert_eq!(capabilities["hoverProvider"], serde_json::json!(true));
+    }
+
+    #[test]
+    fn test_hover_provider_handler_generation() {
+        let grammar = Grammar::default();
+        let hover_provider = features::HoverProvider::new(&grammar);
+        let handler_code = hover_provider.generate_handler();
+
+        // Verify the generated code contains essential components
+        assert!(handler_code.contains("handle_hover"));
+        assert!(handler_code.contains("get_word_at_position"));
+        assert!(handler_code.contains("lookup_documentation"));
+        assert!(handler_code.contains("extract_word_from_position"));
+
+        // Verify it includes error handling
+        assert!(handler_code.contains("Result"));
+        assert!(handler_code.contains("Context"));
+
+        // Verify it includes LSP types
+        assert!(handler_code.contains("HoverParams"));
+        assert!(handler_code.contains("Hover"));
+        assert!(handler_code.contains("HoverContents"));
+    }
+
+    #[test]
+    fn test_hover_provider_documentation_map() {
+        let docs = features::HoverProvider::build_documentation_map();
+
+        // Should have common programming language keywords
+        assert!(!docs.is_empty());
+
+        // Verify some key entries
+        assert!(docs.contains(&("fn", "Declares a function")));
+        assert!(docs.contains(&("let", "Declares a variable binding")));
+        assert!(docs.contains(&("if", "Conditional expression")));
+        assert!(docs.contains(&("String", "UTF-8 encoded, growable string type")));
+
+        // Verify multiple languages are supported
+        assert!(docs.contains(&("def", "Defines a function"))); // Python
+        assert!(docs.contains(&("function", "Declares a function"))); // JavaScript
+        assert!(docs.contains(&("class", "Declares a class"))); // General
+    }
+
+    #[test]
+    fn test_hover_provider_format_entries() {
+        let test_entries = vec![
+            ("test1", "Test description 1"),
+            ("test2", "Test description 2"),
+        ];
+
+        let formatted = features::HoverProvider::format_documentation_entries(&test_entries);
+        let expected = "        (\"test1\", \"Test description 1\"),\n        (\"test2\", \"Test description 2\")";
+
+        assert_eq!(formatted, expected);
+    }
+
+    #[test]
+    fn test_hover_provider_required_imports() {
+        let grammar = Grammar::default();
+        let hover_provider = features::HoverProvider::new(&grammar);
+        let imports = hover_provider.required_imports();
+
+        assert!(!imports.is_empty());
+        assert!(imports[0].contains("HoverParams"));
+        assert!(imports[0].contains("Hover"));
+        assert!(imports[0].contains("HoverContents"));
+        assert!(imports[0].contains("MarkedString"));
+    }
+
+    #[test]
+    fn test_lsp_generator_with_hover() {
+        let grammar = Grammar::default();
+        let generator = LspGenerator::new(grammar).with_hover();
+
+        assert_eq!(generator.features.len(), 1);
+        assert_eq!(generator.features[0].name(), "hover");
+    }
+
+    #[test]
+    fn test_hover_utf8_word_boundaries() {
+        // Test that the generated handler code properly handles UTF-8
+        let grammar = Grammar::default();
+        let hover_provider = features::HoverProvider::new(&grammar);
+        let handler_code = hover_provider.generate_handler();
+
+        // Should use char-based iteration, not byte-based
+        assert!(handler_code.contains("chars: Vec<char>"));
+        assert!(handler_code.contains("line_content.chars()"));
+        assert!(handler_code.contains("is_alphanumeric()"));
+    }
+
+    #[test]
+    fn test_hover_error_handling_patterns() {
+        let grammar = Grammar::default();
+        let hover_provider = features::HoverProvider::new(&grammar);
+        let handler_code = hover_provider.generate_handler();
+
+        // Should have proper error handling for common cases
+        assert!(handler_code.contains("Line {} out of bounds"));
+        assert!(handler_code.contains("Character position {} out of bounds"));
+        assert!(handler_code.contains("No word found at position"));
+        assert!(handler_code.contains("Failed to read file"));
+    }
+
+    #[test]
+    fn test_lsp_builder_with_hover_feature() {
+        let builder = LspBuilder::new("test-lsp").feature("hover");
+
+        assert!(builder.features.contains(&"hover".to_string()));
+    }
+
+    #[test]
+    fn test_multiple_features_including_hover() {
+        let grammar = Grammar::default();
+        let generator = LspGenerator::new(grammar)
+            .with_completion()
+            .with_hover()
+            .with_diagnostics();
+
+        assert_eq!(generator.features.len(), 3);
+        assert!(generator.features.iter().any(|f| f.name() == "hover"));
+        assert!(generator.features.iter().any(|f| f.name() == "completion"));
+        assert!(generator.features.iter().any(|f| f.name() == "diagnostics"));
+    }
+
+    #[test]
+    fn test_with_all_features_includes_hover() {
+        let grammar = Grammar::default();
+        let generator = LspGenerator::new(grammar).with_all_features();
+
+        assert_eq!(generator.features.len(), 3);
+        assert!(generator.features.iter().any(|f| f.name() == "hover"));
+    }
 }

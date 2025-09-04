@@ -177,7 +177,7 @@ impl Tree {
     }
 
     /// Get the root node of this tree.
-    pub fn root_node(&self) -> Node {
+    pub fn root_node(&self) -> Node<'_> {
         Node {
             tree: &self.core,
             _index: 0,

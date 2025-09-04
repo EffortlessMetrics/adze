@@ -7,8 +7,8 @@
 use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
-use crate::scanner_registry::{DynExternalScanner, get_global_registry};
-use anyhow::{Result, anyhow, bail};
+use crate::scanner_registry::{get_global_registry, DynExternalScanner};
+use anyhow::{anyhow, bail, Result};
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::collections::HashSet;
@@ -365,7 +365,7 @@ impl Parser {
             } else {
                 // We're at EOF - use the table's EOF symbol
                 let eof_sym = self.parse_table.eof_symbol.0; // Extract u16 from SymbolId
-                // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
+                                                             // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
                 crate::lex::Token {
                     sym: eof_sym,
                     start: token_source.offset(),
@@ -501,13 +501,13 @@ impl Parser {
             }
 
             // Check for accept condition
-            if state_stack.len() == 2 && symbol_stack.len() == 1 {
-                if let Some(start) = self.grammar.start_symbol() {
-                    if symbol_stack[0] == start {
-                        // eprintln!("Parse complete! Accepted.");
-                        break;
-                    }
-                }
+            if state_stack.len() == 2
+                && symbol_stack.len() == 1
+                && let Some(start) = self.grammar.start_symbol()
+                && symbol_stack[0] == start
+            {
+                // eprintln!("Parse complete! Accepted.");
+                break;
             }
         }
 
@@ -546,11 +546,11 @@ impl Parser {
         }
         // Check if "def" is in the token list
         for (_symbol_id, pattern, _) in &tokens {
-            if let TokenPattern::String(s) = pattern {
-                if s == "def" {
-                    // eprintln!("Found 'def' pattern at symbol {}", symbol_id.0);
-                    break;
-                }
+            if let TokenPattern::String(s) = pattern
+                && s == "def"
+            {
+                // eprintln!("Found 'def' pattern at symbol {}", symbol_id.0);
+                break;
             }
         }
 
@@ -1179,19 +1179,18 @@ impl Parser {
     #[allow(dead_code)]
     fn get_action(&self, state: StateId, symbol: SymbolId) -> Result<Action> {
         let state_idx = state.0 as usize;
-        if state_idx < self.parse_table.action_table.len() {
-            if let Some(&symbol_idx) = self.parse_table.symbol_to_index.get(&symbol) {
-                if symbol_idx < self.parse_table.action_table[state_idx].len() {
-                    let action_cell = &self.parse_table.action_table[state_idx][symbol_idx];
-                    if action_cell.is_empty() {
-                        return Ok(Action::Error);
-                    } else if action_cell.len() == 1 {
-                        return Ok(action_cell[0].clone());
-                    } else {
-                        // Multiple actions - create a Fork
-                        return Ok(Action::Fork(action_cell.clone()));
-                    }
-                }
+        if state_idx < self.parse_table.action_table.len()
+            && let Some(&symbol_idx) = self.parse_table.symbol_to_index.get(&symbol)
+            && symbol_idx < self.parse_table.action_table[state_idx].len()
+        {
+            let action_cell = &self.parse_table.action_table[state_idx][symbol_idx];
+            if action_cell.is_empty() {
+                return Ok(Action::Error);
+            } else if action_cell.len() == 1 {
+                return Ok(action_cell[0].clone());
+            } else {
+                // Multiple actions - create a Fork
+                return Ok(Action::Fork(action_cell.clone()));
             }
         }
 
@@ -1404,15 +1403,14 @@ impl Parser {
     /// Get goto state for a given state and symbol
     #[allow(dead_code)]
     fn get_goto_for_state(&self, state: usize, symbol: SymbolId) -> Result<usize> {
-        if state < self.parse_table.goto_table.len() {
-            if let Some(&symbol_idx) = self.parse_table.symbol_to_index.get(&symbol) {
-                if symbol_idx < self.parse_table.goto_table[state].len() {
-                    let goto_state = self.parse_table.goto_table[state][symbol_idx];
-                    if goto_state != StateId(0) {
-                        // 0 typically means no transition
-                        return Ok(goto_state.0 as usize);
-                    }
-                }
+        if state < self.parse_table.goto_table.len()
+            && let Some(&symbol_idx) = self.parse_table.symbol_to_index.get(&symbol)
+            && symbol_idx < self.parse_table.goto_table[state].len()
+        {
+            let goto_state = self.parse_table.goto_table[state][symbol_idx];
+            if goto_state != StateId(0) {
+                // 0 typically means no transition
+                return Ok(goto_state.0 as usize);
             }
         }
         bail!("No goto action for symbol {:?} in state {}", symbol, state)

@@ -83,10 +83,10 @@ pub const DEFAULT_SAFE_DEDUP_THRESHOLD: usize = 10;
 
 #[inline]
 pub fn safe_dedup_threshold() -> usize {
-    if let Some(s) = option_env!("RUST_SITTER_SAFE_DEDUP_N") {
-        if let Ok(n) = s.parse::<usize>() {
-            return n;
-        }
+    if let Some(s) = option_env!("RUST_SITTER_SAFE_DEDUP_N")
+        && let Ok(n) = s.parse::<usize>()
+    {
+        return n;
     }
     std::env::var("RUST_SITTER_SAFE_DEDUP_N")
         .ok()
@@ -763,75 +763,73 @@ impl GLRParser {
                             // println!("    Action: Error");
 
                             // Try error recovery if enabled
-                            if let Some(recovery_state) = &mut self.recovery_state {
-                                if let Some(recovery_action) = recovery_state.suggest_recovery(
+                            if let Some(recovery_state) = &mut self.recovery_state
+                                && let Some(recovery_action) = recovery_state.suggest_recovery(
                                     state,
                                     token,
                                     &self.table,
                                     &self.grammar,
-                                ) {
-                                    match recovery_action {
-                                        RecoveryAction::InsertToken(missing_token) => {
-                                            // Try to shift the missing token
-                                            if let Some(&missing_idx) =
-                                                self.table.symbol_to_index.get(&missing_token)
-                                            {
-                                                let missing_action_cell = &self.table.action_table
-                                                    [state.0 as usize][missing_idx];
-                                                // Find shift action in cell
-                                                let shift_action = missing_action_cell
-                                                    .iter()
-                                                    .find(|a| matches!(a, Action::Shift(_)));
-                                                if let Some(Action::Shift(new_state)) = shift_action
-                                                {
-                                                    let mut recovery_stack = stack.clone();
-                                                    // Create dummy node for inserted token
-                                                    let error_node = Arc::new(Subtree::new(
-                                                        SubtreeNode {
-                                                            symbol_id: missing_token,
-                                                            is_error: true,
-                                                            byte_range: byte_offset..byte_offset,
-                                                        },
-                                                        vec![], // Empty children for error node
-                                                    ));
-                                                    recovery_stack.push(*new_state, error_node);
-                                                    recovery_stack.version.enter_error();
-                                                    // Re-queue the current token
-                                                    self.pending_stacks.push_back(
-                                                        self.stacks.len() + new_stacks.len(),
-                                                    );
-                                                    new_stacks.push(recovery_stack);
-                                                    continue;
-                                                }
+                                )
+                            {
+                                match recovery_action {
+                                    RecoveryAction::InsertToken(missing_token) => {
+                                        // Try to shift the missing token
+                                        if let Some(&missing_idx) =
+                                            self.table.symbol_to_index.get(&missing_token)
+                                        {
+                                            let missing_action_cell = &self.table.action_table
+                                                [state.0 as usize][missing_idx];
+                                            // Find shift action in cell
+                                            let shift_action = missing_action_cell
+                                                .iter()
+                                                .find(|a| matches!(a, Action::Shift(_)));
+                                            if let Some(Action::Shift(new_state)) = shift_action {
+                                                let mut recovery_stack = stack.clone();
+                                                // Create dummy node for inserted token
+                                                let error_node = Arc::new(Subtree::new(
+                                                    SubtreeNode {
+                                                        symbol_id: missing_token,
+                                                        is_error: true,
+                                                        byte_range: byte_offset..byte_offset,
+                                                    },
+                                                    vec![], // Empty children for error node
+                                                ));
+                                                recovery_stack.push(*new_state, error_node);
+                                                recovery_stack.version.enter_error();
+                                                // Re-queue the current token
+                                                self.pending_stacks.push_back(
+                                                    self.stacks.len() + new_stacks.len(),
+                                                );
+                                                new_stacks.push(recovery_stack);
+                                                continue;
                                             }
                                         }
-                                        RecoveryAction::DeleteToken => {
-                                            // Skip this token and continue with the same stack
-                                            new_stacks.push(stack.clone());
-                                            continue;
-                                        }
-                                        RecoveryAction::CreateErrorNode(_) => {
-                                            // Create an error node containing the unexpected token
-                                            let error_node = Arc::new(Subtree {
-                                                node: SubtreeNode {
-                                                    symbol_id: token,
-                                                    is_error: true,
-                                                    byte_range: byte_offset
-                                                        ..byte_offset + text.len(),
-                                                },
-                                                dynamic_prec: 0,
-                                                children: vec![],
-                                                alternatives: smallvec::SmallVec::new(),
-                                            });
-                                            let mut error_stack = stack.clone();
-                                            // Just add the error node without changing state
-                                            error_stack.nodes.push(error_node);
-                                            error_stack.version.enter_error();
-                                            new_stacks.push(error_stack);
-                                            continue;
-                                        }
-                                        _ => {} // Other recovery actions not implemented yet
                                     }
+                                    RecoveryAction::DeleteToken => {
+                                        // Skip this token and continue with the same stack
+                                        new_stacks.push(stack.clone());
+                                        continue;
+                                    }
+                                    RecoveryAction::CreateErrorNode(_) => {
+                                        // Create an error node containing the unexpected token
+                                        let error_node = Arc::new(Subtree {
+                                            node: SubtreeNode {
+                                                symbol_id: token,
+                                                is_error: true,
+                                                byte_range: byte_offset..byte_offset + text.len(),
+                                            },
+                                            dynamic_prec: 0,
+                                            children: vec![],
+                                            alternatives: smallvec::SmallVec::new(),
+                                        });
+                                        let mut error_stack = stack.clone();
+                                        // Just add the error node without changing state
+                                        error_stack.nodes.push(error_node);
+                                        error_stack.version.enter_error();
+                                        new_stacks.push(error_stack);
+                                        continue;
+                                    }
+                                    _ => {} // Other recovery actions not implemented yet
                                 }
                             }
 
@@ -1071,15 +1069,14 @@ impl GLRParser {
                     let mut _added_count = 0;
                     for actions in &self.table.action_table[state.0 as usize] {
                         for a in actions {
-                            if let Action::Reduce(rid) = a {
-                                if self.table.rules[rid.0 as usize].rhs_len == 0
-                                    && !reduces.iter().any(
-                                        |(b, _)| matches!(b, Action::Reduce(r2) if r2.0 == rid.0),
-                                    )
-                                {
-                                    reduces.push((a.clone(), self.action_priority(a)));
-                                    _added_count += 1;
-                                }
+                            if let Action::Reduce(rid) = a
+                                && self.table.rules[rid.0 as usize].rhs_len == 0
+                                && !reduces
+                                    .iter()
+                                    .any(|(b, _)| matches!(b, Action::Reduce(r2) if r2.0 == rid.0))
+                            {
+                                reduces.push((a.clone(), self.action_priority(a)));
+                                _added_count += 1;
                             }
                         }
                     }
@@ -2039,10 +2036,10 @@ impl GLRParser {
 
             // Check all possible actions from this state
             for symbol in self.table.symbol_to_index.keys() {
-                if let Some(_action) = self.get_action(state, *symbol) {
-                    if !symbols.contains(symbol) {
-                        symbols.push(*symbol);
-                    }
+                if let Some(_action) = self.get_action(state, *symbol)
+                    && !symbols.contains(symbol)
+                {
+                    symbols.push(*symbol);
                 }
             }
         }
@@ -2190,21 +2187,20 @@ impl GLRParser {
     fn get_action(&self, state: StateId, symbol: SymbolId) -> Option<Action> {
         let state_idx = state.0 as usize;
 
-        if state_idx < self.table.action_table.len() {
-            if let Some(&symbol_idx) = self.table.symbol_to_index.get(&symbol) {
-                if symbol_idx < self.table.action_table[state_idx].len() {
-                    let action_cell = &self.table.action_table[state_idx][symbol_idx];
-                    if action_cell.is_empty() {
-                        return Some(Action::Error);
-                    } else if action_cell.len() == 1 {
-                        return Some(action_cell[0].clone());
-                    } else {
-                        // Multiple actions - create a Fork with sorted actions
-                        let mut sorted_actions = action_cell.clone();
-                        sorted_actions.sort_by_key(|a| -self.action_priority(a));
-                        return Some(Action::Fork(sorted_actions));
-                    }
-                }
+        if state_idx < self.table.action_table.len()
+            && let Some(&symbol_idx) = self.table.symbol_to_index.get(&symbol)
+            && symbol_idx < self.table.action_table[state_idx].len()
+        {
+            let action_cell = &self.table.action_table[state_idx][symbol_idx];
+            if action_cell.is_empty() {
+                return Some(Action::Error);
+            } else if action_cell.len() == 1 {
+                return Some(action_cell[0].clone());
+            } else {
+                // Multiple actions - create a Fork with sorted actions
+                let mut sorted_actions = action_cell.clone();
+                sorted_actions.sort_by_key(|a| -self.action_priority(a));
+                return Some(Action::Fork(sorted_actions));
             }
         }
 

@@ -31,10 +31,10 @@ impl<'a> CharScanner<'a> {
 
 impl<'a> TokenSource for CharScanner<'a> {
     fn peek(&mut self) -> Option<Token> {
-        if self.cached_token.is_none() {
-            if let Some(lexer_token) = self.lexer.next_token(self.input, self.position) {
-                self.cached_token = Some(self.convert_token(lexer_token));
-            }
+        if self.cached_token.is_none()
+            && let Some(lexer_token) = self.lexer.next_token(self.input, self.position)
+        {
+            self.cached_token = Some(self.convert_token(lexer_token));
         }
         self.cached_token
     }

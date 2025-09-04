@@ -161,10 +161,10 @@ impl IncrementalParser {
         let result = self.parser.parse_string(source);
 
         // Store the tree for next parse
-        if let Some(root) = &result.root {
-            if let Some(language) = self.parser.language() {
-                self.previous_tree = Some(Tree::new(root.clone(), language, source.as_bytes()));
-            }
+        if let Some(root) = &result.root
+            && let Some(language) = self.parser.language()
+        {
+            self.previous_tree = Some(Tree::new(root.clone(), language, source.as_bytes()));
         }
 
         result
