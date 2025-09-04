@@ -3,7 +3,7 @@
 use rust_sitter_runtime::{
     language::SymbolMetadata,
     test_helpers::{multi_symbol_test_language, stub_language},
-    Language, Parser, Token, Tree,
+    Language, Parser, Tree,
 };
 
 /// Test GLR integration with a simple language
@@ -135,7 +135,7 @@ fn test_error_without_glr_core() {
 #[test]
 #[cfg(feature = "glr-core")]
 fn test_error_invalid_language() {
-    let mut parser = Parser::new();
+    let _parser = Parser::new();
     // Create an incomplete language that should fail validation
     let invalid_language = Language::builder()
         .symbol_names(vec!["placeholder".into()])

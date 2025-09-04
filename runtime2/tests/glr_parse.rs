@@ -40,25 +40,28 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
     let table: &'static _ = Box::leak(Box::new(table));
 
     let t_counter = counter.clone();
-    let tokenize = Box::new(
-        move |input: &[u8]| -> Box<dyn Iterator<Item = Token> + '_> {
-            t_counter.fetch_add(1, Ordering::SeqCst);
-            let mut toks = Vec::new();
-            if input == b"a" {
+
+    #[allow(clippy::type_complexity)]
+    let tokenize_fn: Box<dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = Token> + 'a>> =
+        Box::new(
+            move |input: &[u8]| -> Box<dyn Iterator<Item = Token> + '_> {
+                t_counter.fetch_add(1, Ordering::SeqCst);
+                let mut toks = Vec::new();
+                if input == b"a" {
+                    toks.push(Token {
+                        kind: 1,
+                        start: 0,
+                        end: 1,
+                    });
+                }
                 toks.push(Token {
-                    kind: 1,
-                    start: 0,
-                    end: 1,
+                    kind: 0,
+                    start: input.len() as u32,
+                    end: input.len() as u32,
                 });
-            }
-            toks.push(Token {
-                kind: 0,
-                start: input.len() as u32,
-                end: input.len() as u32,
-            });
-            Box::new(toks.into_iter())
-        },
-    );
+                Box::new(toks.into_iter())
+            },
+        );
 
     Language::builder()
         .parse_table(table)
@@ -81,7 +84,7 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
             },
         ])
         .field_names(vec![])
-        .tokenizer(tokenize)
+        .tokenizer(tokenize_fn)
         .build()
         .unwrap()
 }
