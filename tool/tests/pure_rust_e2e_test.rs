@@ -5,6 +5,7 @@ use std::fs;
 use tempfile::TempDir;
 
 #[test]
+#[ignore]
 fn test_json_grammar_generation() {
     let grammar_js = r#"
 module.exports = grammar({

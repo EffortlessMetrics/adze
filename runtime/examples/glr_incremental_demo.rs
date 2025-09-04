@@ -4,7 +4,7 @@ use rust_sitter::{
     glr_incremental::{ForestNode, GLREdit, GLRToken, IncrementalGLRParser},
     glr_parser::GLRParser,
 };
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 use std::ops::Range;
 use std::sync::Arc;

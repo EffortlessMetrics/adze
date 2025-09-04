@@ -6,7 +6,7 @@
 #![allow(clippy::manual_strip, clippy::regex_creation_in_loops)]
 
 use super::{ExternalToken, GrammarJs, Rule};
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{anyhow, bail, Context, Result};
 use regex::Regex;
 use std::collections::HashMap;
 

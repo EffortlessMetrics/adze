@@ -1,6 +1,6 @@
 //! Tree representation for parsed syntax trees
 
-use crate::{Language, node::Node};
+use crate::{node::Node, Language};
 use std::fmt;
 
 /// Errors that can occur during tree editing operations
@@ -176,7 +176,7 @@ impl Tree {
     }
 
     /// Get the root node of the tree
-    pub fn root_node(&self) -> Node {
+    pub fn root_node(&self) -> Node<'_> {
         Node::new(&self.root, self.language.as_ref())
     }
 
@@ -361,14 +361,14 @@ impl<'tree> TreeCursor<'tree> {
 
     /// Move to the first child
     pub fn goto_first_child(&mut self) -> bool {
-        if let Some(entry) = self.stack.last() {
-            if let Some(child) = entry.node.children.first() {
-                self.stack.push(CursorEntry {
-                    node: child,
-                    index: 0,
-                });
-                return true;
-            }
+        if let Some(entry) = self.stack.last()
+            && let Some(child) = entry.node.children.first()
+        {
+            self.stack.push(CursorEntry {
+                node: child,
+                index: 0,
+            });
+            return true;
         }
         false
     }

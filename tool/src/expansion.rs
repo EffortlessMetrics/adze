@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
 use rust_sitter_common::*;
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, *};
 
-use crate::error::{Result, ToolError};
+use crate::error::{Result as ToolResult, ToolError};
 
 fn gen_field(
     path: String,
@@ -12,7 +12,7 @@ fn gen_field(
     leaf_attrs: Vec<Attribute>,
     word_rule: &mut Option<String>,
     out: &mut Map<String, Value>,
-) -> Result<(Value, bool)> {
+) -> ToolResult<(Value, bool)> {
     let leaf_attr = leaf_attrs
         .iter()
         .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
@@ -465,7 +465,7 @@ fn gen_struct_or_variant(
     fields: Fields,
     out: &mut Map<String, Value>,
     word_rule: &mut Option<String>,
-) -> Result<Option<Value>> {
+) -> ToolResult<Option<Value>> {
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
     if let Fields::Unnamed(fields_unnamed) = &fields {
         if fields_unnamed.unnamed.len() == 1 {
@@ -536,7 +536,7 @@ fn gen_struct_or_variant(
         word_rule: &mut Option<String>,
         out: &mut Map<String, Value>,
         ident_str: String,
-    ) -> Result<Value> {
+    ) -> ToolResult<Value> {
         let (field_contents, is_option) = gen_field(
             format!("{path}_{ident_str}"),
             field.ty.clone(),
@@ -749,7 +749,7 @@ fn gen_struct_or_variant(
     Ok(None) // Return None for non-single-leaf variants
 }
 
-pub fn generate_grammar(module: &ItemMod) -> Result<Value> {
+pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
     let mut rules_map = Map::new();
     // for some reason, source_file must be the first key for things to work
     // We'll insert it after we find the root type

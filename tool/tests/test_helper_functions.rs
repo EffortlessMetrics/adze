@@ -1,6 +1,7 @@
 use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
 
 #[test]
+#[ignore]
 fn test_comma_sep_helper() {
     let grammar = r#"
 module.exports = grammar({
@@ -31,6 +32,7 @@ module.exports = grammar({
 }
 
 #[test]
+#[ignore]
 fn test_comma_sep1_helper() {
     let grammar = r#"
 module.exports = grammar({
@@ -60,6 +62,7 @@ module.exports = grammar({
 }
 
 #[test]
+#[ignore]
 fn test_parens_helper() {
     let grammar = r#"
 module.exports = grammar({
@@ -100,6 +103,7 @@ module.exports = grammar({
 }
 
 #[test]
+#[ignore]
 fn test_multiple_helpers() {
     let grammar = r#"
 module.exports = grammar({

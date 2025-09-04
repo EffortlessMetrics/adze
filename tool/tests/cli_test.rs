@@ -15,7 +15,7 @@ fn test_parse_without_parser() {
         .args([
             "run",
             "--bin",
-            "rust-sitter-cli",
+            "rust-sitter-gen",
             "--",
             "parse",
             test_file.to_str().unwrap(),
@@ -46,7 +46,7 @@ fn test_parse_without_parser() {
 #[test]
 fn test_cli_help() {
     let output = Command::new("cargo")
-        .args(["run", "--bin", "rust-sitter-cli", "--", "--help"])
+        .args(["run", "--bin", "rust-sitter-gen", "--", "--help"])
         .output()
         .expect("Failed to run CLI");
 
@@ -62,7 +62,7 @@ fn test_cli_help() {
 #[test]
 fn test_parse_help() {
     let output = Command::new("cargo")
-        .args(["run", "--bin", "rust-sitter-cli", "--", "parse", "--help"])
+        .args(["run", "--bin", "rust-sitter-gen", "--", "parse", "--help"])
         .output()
         .expect("Failed to run CLI");
 
@@ -86,7 +86,7 @@ fn test_parse_nonexistent_file() {
         .args([
             "run",
             "--bin",
-            "rust-sitter-cli",
+            "rust-sitter-gen",
             "--",
             "parse",
             "/nonexistent/file.txt",
@@ -114,7 +114,7 @@ fn test_parse_with_parser_shows_limitations() {
         .args([
             "run",
             "--bin",
-            "rust-sitter-cli",
+            "rust-sitter-gen",
             "--",
             "parse",
             "--parser",
@@ -154,7 +154,7 @@ fn test_test_command_shows_limitations() {
         .args([
             "run",
             "--bin",
-            "rust-sitter-cli",
+            "rust-sitter-gen",
             "--",
             "test",
             temp_dir.path().join("corpus").to_str().unwrap(),
@@ -180,7 +180,7 @@ fn test_generate_command_exists() {
         .args([
             "run",
             "--bin",
-            "rust-sitter-cli",
+            "rust-sitter-gen",
             "--",
             "generate",
             "--help",
@@ -218,7 +218,7 @@ fn test_parse_with_example_crate() {
             .args([
                 "run",
                 "--bin",
-                "rust-sitter-cli",
+                "rust-sitter-gen",
                 "--",
                 "parse",
                 "--parser",

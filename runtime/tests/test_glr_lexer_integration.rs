@@ -1,7 +1,7 @@
 // Integration test for GLR lexer and parser
-use rust_sitter::glr_lexer::{GLRLexer, tokenize_and_parse};
+use rust_sitter::glr_lexer::{tokenize_and_parse, GLRLexer};
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 

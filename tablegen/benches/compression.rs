@@ -1,12 +1,12 @@
 //! Benchmarks for table compression performance
 #![allow(clippy::let_and_return)]
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::builder::GrammarBuilder;
 use rust_sitter_tablegen::{
-    TableCompressor,
     helpers::{collect_token_indices, eof_accepts_or_reduces},
+    TableCompressor,
 };
 
 /// Benchmark small grammar compression
