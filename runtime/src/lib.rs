@@ -271,6 +271,55 @@ impl<L> Extract<L> for WithLeaf<L> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn index_valid_span() {
+        let source = "hello world";
+        let span = Spanned {
+            value: (),
+            span: (0, 5),
+        };
+        assert_eq!(&source[span], "hello");
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid span")]
+    fn index_invalid_span_panics() {
+        let source = "hello";
+        let span = Spanned {
+            value: (),
+            span: (0, 10),
+        };
+        let _ = &source[span];
+    }
+
+    #[test]
+    fn index_mut_valid_span() {
+        let mut source = String::from("hello world");
+        let span = Spanned {
+            value: (),
+            span: (6, 11),
+        };
+        source.as_mut_str()[span].make_ascii_uppercase();
+        assert_eq!(source, "hello WORLD");
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid span")]
+    fn index_mut_invalid_span_panics() {
+        let mut source = String::from("hello");
+        let span = Spanned {
+            value: (),
+            span: (6, 7),
+        };
+        let s = source.as_mut_str();
+        let _ = &mut s[span];
+    }
+}
+
 impl Extract<()> for () {
     type LeafFn = ();
 
@@ -495,6 +544,29 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
                 .map(|n| (n.start_byte, n.end_byte))
                 .unwrap_or((last_idx, last_idx)),
         }
+    }
+}
+
+impl<T> std::ops::Index<Spanned<T>> for str {
+    type Output = str;
+
+    fn index(&self, span: Spanned<T>) -> &Self::Output {
+        let (start, end) = span.span;
+        self.get(start..end).unwrap_or_else(|| {
+            panic!(
+                "Invalid span {start}..{end} for string of length {}",
+                self.len()
+            )
+        })
+    }
+}
+
+impl<T> std::ops::IndexMut<Spanned<T>> for str {
+    fn index_mut(&mut self, span: Spanned<T>) -> &mut Self::Output {
+        let (start, end) = span.span;
+        let len = self.len();
+        self.get_mut(start..end)
+            .unwrap_or_else(|| panic!("Invalid span {start}..{end} for string of length {len}",))
     }
 }
 

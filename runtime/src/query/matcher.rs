@@ -215,12 +215,11 @@ impl<'a> QueryMatcher<'a> {
         if node_idx >= nodes.len() {
             // Check if remaining patterns are all optional
             for i in pattern_idx..patterns.len() {
-                if let PatternChild::Node(ref pattern_node) = patterns[i] {
-                    if pattern_node.quantifier != Quantifier::Optional
-                        && pattern_node.quantifier != Quantifier::Star
-                    {
-                        return false;
-                    }
+                if let PatternChild::Node(ref pattern_node) = patterns[i]
+                    && pattern_node.quantifier != Quantifier::Optional
+                    && pattern_node.quantifier != Quantifier::Star
+                {
+                    return false;
                 }
             }
             return true;

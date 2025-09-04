@@ -95,6 +95,57 @@ This is normal for ambiguous grammars. Options:
 2. Refactor to remove ambiguity
 3. Use GLR parsing (automatic in v0.5)
 
+### How do I fix precedence errors?
+
+Common precedence errors and solutions:
+
+**Multiple precedence attributes:**
+```rust
+// ❌ Error
+#[rust_sitter::prec(1)]
+#[rust_sitter::prec_left(2)]
+struct Bad { }
+
+// ✅ Fix: Use only one
+#[rust_sitter::prec_left(2)]
+struct Good { }
+```
+
+**Invalid precedence value:**
+```rust
+// ❌ Error: String instead of integer
+#[rust_sitter::prec("high")]
+
+// ✅ Fix: Use integer literal
+#[rust_sitter::prec(10)]
+```
+
+**Variable instead of literal:**
+```rust
+// ❌ Error: Cannot use variables
+const HIGH: u32 = 10;
+#[rust_sitter::prec(HIGH)]
+
+// ✅ Fix: Use literal value directly
+#[rust_sitter::prec(10)]
+```
+
+### What precedence values should I use?
+
+**Guidelines:**
+- Range: `0` to `4294967295` (u32)
+- Zero is valid (lowest precedence)
+- Use meaningful gaps (10, 20, 30) for future expansion
+- Higher numbers bind tighter
+
+**Common patterns:**
+```rust
+#[rust_sitter::prec_left(10)]  // Addition, subtraction
+#[rust_sitter::prec_left(20)]  // Multiplication, division
+#[rust_sitter::prec_right(30)] // Exponentiation
+#[rust_sitter::prec(40)]       // Comparison operators
+```
+
 ### WASM build fails
 
 Make sure you're using the `pure-rust` feature:

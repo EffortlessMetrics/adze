@@ -1,7 +1,7 @@
 // Test GLR conflict resolution with classic ambiguous grammars
 
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
     Token, TokenPattern,
@@ -331,7 +331,7 @@ fn build_dynamic_precedence_grammar() -> Grammar {
 #[test]
 fn test_arithmetic_precedence() {
     let grammar = build_arithmetic_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(table, grammar);
@@ -353,7 +353,7 @@ fn test_arithmetic_precedence() {
 #[test]
 fn test_dangling_else() {
     let grammar = build_dangling_else_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(table, grammar);
@@ -378,7 +378,7 @@ fn test_dangling_else() {
 #[test]
 fn test_dynamic_precedence() {
     let grammar = build_dynamic_precedence_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let mut parser = GLRParser::new(table, grammar);

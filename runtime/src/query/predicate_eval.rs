@@ -45,10 +45,10 @@ impl<'a> PredicateContext<'a> {
                 if !captures.contains_key(capture1) {
                     return false;
                 }
-                if let Some(c2) = capture2 {
-                    if !captures.contains_key(c2) {
-                        return false;
-                    }
+                if let Some(c2) = capture2
+                    && !captures.contains_key(c2)
+                {
+                    return false;
                 }
                 !self.evaluate_eq(*capture1, capture2.as_ref(), value.as_ref(), captures)
             }

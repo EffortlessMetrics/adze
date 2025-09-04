@@ -4,6 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Use TDD. Red-Green-Refactor, spec driven design. User-story driven design.
 
+## Requirements
+
+### Minimum Rust Version (MSRV)
+- **Rust 1.89.0** or later
+- **Rust 2024 Edition** - all workspace crates use the latest edition
+- Components: `rustfmt`, `clippy` (automatically configured via `rust-toolchain.toml`)
+
+### System Dependencies
+- **libtree-sitter-dev**: Required for ts-bridge tool (production mode)
+- **libclang**: Required for binding generation in some features
+- **Git**: Version control and automated testing workflows
+
+### Supported Platforms
+- Linux (primary development and CI)
+- macOS (tested via CI)
+- Windows (tested via CI)
+- WebAssembly (wasm32-unknown-unknown, wasm32-wasi)
+
 ## Common Development Commands
 
 ### Building
@@ -161,9 +179,9 @@ The tool crate (`/tool/`) now includes:
 
 9. **`ts-bridge`** - Tree-sitter to GLR Bridge Tool
    - Located in `/tools/ts-bridge/`
-   - Extracts parse tables from compiled Tree-sitter grammars
+   - Extracts parse tables from compiled Tree-sitter grammars  
    - Features ABI stability guards (v15 pinning with SHA verification)
-   - Supports feature-gated development (stub) and production builds
+   - Production-ready with real Tree-sitter runtime linking (requires libtree-sitter-dev)
    - Includes comprehensive parity testing framework
 
 ### Key Design Patterns
@@ -387,7 +405,7 @@ Successfully transformed rust-sitter from a simple LR parser to a true GLR (Gene
    - **Grammar Loading Pipeline**: Completed parse table generation infrastructure for production use
 
 #### **GLR Runtime Integration - Production Complete** ✅ *(September 2025)*
-Successfully completed full GLR integration in runtime2 with PR #22 merge, delivering a production-ready parsing solution with Tree-sitter API compatibility and seamless incremental parsing.
+Successfully completed full GLR integration in runtime2 with PR #14 merge ("runtime2: wire parser to GLR engine"), delivering a production-ready parsing solution with Tree-sitter API compatibility and seamless incremental parsing.
 
 **Production Deployment Achievements:**
 1. **Complete GLR Runtime API**: Production-ready parser integration in `runtime2/src/parser.rs`
@@ -444,11 +462,8 @@ The ts-bridge tool extracts parse tables from compiled Tree-sitter grammars for 
 
 **Building:**
 ```bash
-# Production build (with vendored headers)
+# Production build (requires libtree-sitter-dev system package)
 cargo build -p ts-bridge
-
-# Development build (with stubs for testing)
-cargo build -p ts-bridge --features stub-ts
 
 # Run ABI verification
 cargo run -p ts-bridge --bin tsb-abi-check
@@ -457,8 +472,8 @@ cargo run -p ts-bridge --bin tsb-abi-check
 
 **Testing:**
 ```bash
-# Run basic tests (works with stubs)
-cargo test -p ts-bridge --test basic --features stub-ts
+# Run basic tests
+cargo test -p ts-bridge --test basic
 
 # Run parity tests (requires actual Tree-sitter libraries)
 cargo test -p ts-bridge --features with-grammars
@@ -471,9 +486,9 @@ cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter
 ```
 
 **Key Features:**
-- ABI stability with Tree-sitter v15 (vendored headers + SHA verification)
+- ABI stability with Tree-sitter v15 (SHA verification and runtime checks)
 - Dynamic buffer allocation (no truncation for large action cells)
-- Feature-gated builds for development vs production
+- Production-ready with real Tree-sitter runtime (libtree-sitter-dev required)
 - Comprehensive parity testing against Tree-sitter
 
 ### Known Issues (Being Addressed)
@@ -481,5 +496,4 @@ cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter
 1. **GLR Runtime Optimization**: Fork/merge logic needs performance tuning for large files
 2. **External Scanner FFI**: Integration with C scanners needs final touches  
 3. **Incremental Parsing**: GLR incremental parsing algorithms need implementation
-4. **ts-bridge Linking**: Production builds need actual Tree-sitter library linking (undefined symbols)
-5. **Disabled Test Re-enablement**: Several test files need to be re-enabled after GLR stabilization (see Test Connectivity section above)
+4. **Disabled Test Re-enablement**: Several test files need to be re-enabled after GLR stabilization (see Test Connectivity section above)

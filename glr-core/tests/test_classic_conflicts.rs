@@ -1,9 +1,9 @@
 // Test classic shift-reduce conflicts
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 #[test]
-fn test_classic_shift_reduce_conflict() {
+fn test_classic_shift_reduce_conflict() -> Result<(), Box<dyn std::error::Error>> {
     // Classic if-then-else grammar with dangling else problem
     let mut grammar = Grammar::new("if_then_else".to_string());
 
@@ -109,8 +109,8 @@ fn test_classic_shift_reduce_conflict() {
         ],
     );
 
-    let first_follow = FirstFollowSets::compute(&grammar);
-    let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
+    let first_follow = FirstFollowSets::compute(&grammar)?;
+    let parse_table = build_lr1_automaton(&grammar, &first_follow)?;
 
     println!("\n=== Testing Classic Shift-Reduce Conflict (Dangling Else) ===");
     println!("Grammar:");
@@ -148,10 +148,11 @@ fn test_classic_shift_reduce_conflict() {
         fork_count > 0,
         "Expected shift-reduce conflicts for dangling else problem, but found none"
     );
+    Ok(())
 }
 
 #[test]
-fn test_expression_ambiguity() {
+fn test_expression_ambiguity() -> Result<(), Box<dyn std::error::Error>> {
     // Arithmetic expression grammar: E → E + E | E * E | num
     let mut grammar = Grammar::new("expr".to_string());
 
@@ -233,8 +234,8 @@ fn test_expression_ambiguity() {
         ],
     );
 
-    let first_follow = FirstFollowSets::compute(&grammar);
-    let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
+    let first_follow = FirstFollowSets::compute(&grammar)?;
+    let parse_table = build_lr1_automaton(&grammar, &first_follow)?;
 
     println!("\n=== Testing Expression Ambiguity ===");
     println!("Grammar (no precedence):");
@@ -259,4 +260,5 @@ fn test_expression_ambiguity() {
         fork_count > 0,
         "Expected conflicts in expression grammar without precedence"
     );
+    Ok(())
 }

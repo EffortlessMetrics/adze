@@ -245,7 +245,7 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
 
     for grammar_json in grammars {
         // Convert serde_json::Value to string
-        let grammar_json_str = grammar_json.to_string();
+        let grammar_json_str = serde_json::to_string(&grammar_json).unwrap();
         let result = build_parser_from_json(grammar_json_str, options.clone())?;
         results.push(result);
     }
@@ -306,7 +306,8 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     desugar_pattern_wrappers(&mut grammar)?;
 
     // Step 1: Compute FIRST/FOLLOW sets
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar)
+        .with_context(|| "Failed to compute FIRST/FOLLOW sets")?;
 
     // Write debug info to a file
     let debug_file_path =

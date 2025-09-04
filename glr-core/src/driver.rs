@@ -177,17 +177,17 @@ impl<'t> Driver<'t> {
                     }
 
                     // Try external scanner if applicable
-                    if mode.external_lex_state != 0 {
-                        if let Some(ref mut ext) = external_scanner {
-                            // Build union of valid external symbols across all stacks
-                            let valid_ext = self.union_valid_external_symbols(&state.stacks);
+                    if mode.external_lex_state != 0
+                        && let Some(ref mut ext) = external_scanner
+                    {
+                        // Build union of valid external symbols across all stacks
+                        let valid_ext = self.union_valid_external_symbols(&state.stacks);
 
-                            // Only call external scanner if at least one symbol is valid
-                            if valid_ext.iter().any(|&b| b) {
-                                if let Some(token) = ext(input, pos, &valid_ext, mode) {
-                                    candidates.push((token, true)); // true = external
-                                }
-                            }
+                        // Only call external scanner if at least one symbol is valid
+                        if valid_ext.iter().any(|&b| b)
+                            && let Some(token) = ext(input, pos, &valid_ext, mode)
+                        {
+                            candidates.push((token, true)); // true = external
                         }
                     }
                 }
@@ -248,10 +248,10 @@ impl<'t> Driver<'t> {
                             new_stacks.push(s2);
                         }
                         Action::Accept => {
-                            if let Some(&root_id) = stk.nodes.last() {
-                                if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
-                                    state.forest.roots.push(root);
-                                }
+                            if let Some(&root_id) = stk.nodes.last()
+                                && let Some(root) = state.forest.nodes.get(&root_id).cloned()
+                            {
+                                state.forest.roots.push(root);
                             }
                             return Ok(Self::wrap_forest(state.forest));
                         }
@@ -479,18 +479,18 @@ impl<'t> Driver<'t> {
                         }
                         Action::Accept => {
                             // Accept on lookahead (rare, usually on EOF)
-                            if let Some(&root_id) = stk.nodes.last() {
-                                if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
-                                    // Assert the accepted root is the start symbol (catches table/config drift)
-                                    debug_assert_eq!(
-                                        root.symbol,
-                                        self.tables.start_symbol(),
-                                        "accepted non-start symbol: {:?} != {:?}",
-                                        root.symbol,
-                                        self.tables.start_symbol()
-                                    );
-                                    state.forest.roots.push(root);
-                                }
+                            if let Some(&root_id) = stk.nodes.last()
+                                && let Some(root) = state.forest.nodes.get(&root_id).cloned()
+                            {
+                                // Assert the accepted root is the start symbol (catches table/config drift)
+                                debug_assert_eq!(
+                                    root.symbol,
+                                    self.tables.start_symbol(),
+                                    "accepted non-start symbol: {:?} != {:?}",
+                                    root.symbol,
+                                    self.tables.start_symbol()
+                                );
+                                state.forest.roots.push(root);
                             }
                             return Ok(Self::wrap_forest(state.forest));
                         }
@@ -625,13 +625,13 @@ impl<'t> Driver<'t> {
             );
 
             // Check if we have the start symbol on top of the stack
-            if let Some(&root_id) = stk.nodes.last() {
-                if let Some(root) = state.forest.nodes.get(&root_id) {
-                    eprintln!("DEBUG: Top node has symbol {}", root.symbol.0);
-                    if root.symbol == self.tables.start_symbol() {
-                        eprintln!("DEBUG: Found start symbol! Adding as root");
-                        state.forest.roots.push(root.clone());
-                    }
+            if let Some(&root_id) = stk.nodes.last()
+                && let Some(root) = state.forest.nodes.get(&root_id)
+            {
+                eprintln!("DEBUG: Top node has symbol {}", root.symbol.0);
+                if root.symbol == self.tables.start_symbol() {
+                    eprintln!("DEBUG: Found start symbol! Adding as root");
+                    state.forest.roots.push(root.clone());
                 }
             }
 
@@ -640,18 +640,18 @@ impl<'t> Driver<'t> {
                 match *action {
                     Action::Accept => {
                         eprintln!("DEBUG: Accept action found");
-                        if let Some(&root_id) = stk.nodes.last() {
-                            if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
-                                // Assert the accepted root is the start symbol (catches table/config drift)
-                                debug_assert_eq!(
-                                    root.symbol,
-                                    self.tables.start_symbol(),
-                                    "accepted non-start symbol: {:?} != {:?}",
-                                    root.symbol,
-                                    self.tables.start_symbol()
-                                );
-                                state.forest.roots.push(root);
-                            }
+                        if let Some(&root_id) = stk.nodes.last()
+                            && let Some(root) = state.forest.nodes.get(&root_id).cloned()
+                        {
+                            // Assert the accepted root is the start symbol (catches table/config drift)
+                            debug_assert_eq!(
+                                root.symbol,
+                                self.tables.start_symbol(),
+                                "accepted non-start symbol: {:?} != {:?}",
+                                root.symbol,
+                                self.tables.start_symbol()
+                            );
+                            state.forest.roots.push(root);
                         }
                         return Ok(Self::wrap_forest(state.forest));
                     }
@@ -660,36 +660,34 @@ impl<'t> Driver<'t> {
                         let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
 
                         // Check if reduction produced start symbol
-                        if let Some(&root_id) = s2.nodes.last() {
-                            if let Some(root) = state.forest.nodes.get(&root_id) {
+                        #[allow(clippy::collapsible_if)]
+                        if let Some(&root_id) = s2.nodes.last()
+                            && let Some(root) = state.forest.nodes.get(&root_id)
+                        {
+                            #[cfg(feature = "debug_glr")]
+                            eprintln!("DEBUG: After reduction, top symbol is {}", root.symbol.0);
+                            if root.symbol == self.tables.start_symbol() {
                                 #[cfg(feature = "debug_glr")]
-                                eprintln!(
-                                    "DEBUG: After reduction, top symbol is {}",
-                                    root.symbol.0
-                                );
-                                if root.symbol == self.tables.start_symbol() {
-                                    #[cfg(feature = "debug_glr")]
-                                    eprintln!("DEBUG: Reduced to start symbol! Adding as root");
-                                    state.forest.roots.push(root.clone());
-                                }
+                                eprintln!("DEBUG: Reduced to start symbol! Adding as root");
+                                state.forest.roots.push(root.clone());
                             }
                         }
 
                         // Try accept after reduce
                         for a2 in self.tables.actions(*s2.states.last().unwrap(), eof) {
                             if let Action::Accept = *a2 {
-                                if let Some(&root_id) = s2.nodes.last() {
-                                    if let Some(root) = state.forest.nodes.get(&root_id).cloned() {
-                                        // Assert the accepted root is the start symbol (catches table/config drift)
-                                        debug_assert_eq!(
-                                            root.symbol,
-                                            self.tables.start_symbol(),
-                                            "accepted non-start symbol: {:?} != {:?}",
-                                            root.symbol,
-                                            self.tables.start_symbol()
-                                        );
-                                        state.forest.roots.push(root);
-                                    }
+                                if let Some(&root_id) = s2.nodes.last()
+                                    && let Some(root) = state.forest.nodes.get(&root_id).cloned()
+                                {
+                                    // Assert the accepted root is the start symbol (catches table/config drift)
+                                    debug_assert_eq!(
+                                        root.symbol,
+                                        self.tables.start_symbol(),
+                                        "accepted non-start symbol: {:?} != {:?}",
+                                        root.symbol,
+                                        self.tables.start_symbol()
+                                    );
+                                    state.forest.roots.push(root);
                                 }
                                 return Ok(Self::wrap_forest(state.forest));
                             }

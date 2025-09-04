@@ -1,9 +1,9 @@
 // Test LR(1) item set generation to understand why conflicts aren't appearing
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 #[test]
-fn test_lr1_conflict_detection() {
+fn test_lr1_conflict_detection() -> Result<(), Box<dyn std::error::Error>> {
     let mut grammar = Grammar::new("ambiguous".to_string());
 
     // Terminal 'a'
@@ -46,10 +46,10 @@ fn test_lr1_conflict_detection() {
         ],
     );
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar)?;
     println!("\n=== First/Follow Sets ===");
     // Build parse table to get internal state info
-    let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
+    let parse_table = build_lr1_automaton(&grammar, &first_follow)?;
 
     println!("\n=== Parse Table Analysis ===");
     println!("Total states: {}", parse_table.state_count);
@@ -76,10 +76,10 @@ fn test_lr1_conflict_detection() {
                     .iter()
                     .find(|(_, idx)| **idx == sym_idx)
                     .map(|(sym, _)| sym);
-                if let Some(sym) = symbol {
-                    if !matches!(actions[0], rust_sitter_glr_core::Action::Error) {
-                        println!("  Symbol {} (idx {}): {:?}", sym.0, sym_idx, actions[0]);
-                    }
+                if let Some(sym) = symbol
+                    && !matches!(actions[0], rust_sitter_glr_core::Action::Error)
+                {
+                    println!("  Symbol {} (idx {}): {:?}", sym.0, sym_idx, actions[0]);
                 }
             }
         }
@@ -98,4 +98,5 @@ fn test_lr1_conflict_detection() {
         has_forks,
         "Expected Fork actions in parse table for ambiguous grammar"
     );
+    Ok(())
 }

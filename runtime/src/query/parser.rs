@@ -499,10 +499,10 @@ impl<'a> QueryParser<'a> {
 
         // Try to find in rules
         for (&id, _) in &self.grammar.rules {
-            if let Some(rule_name) = self.grammar.rule_names.get(&id) {
-                if rule_name == name {
-                    return Ok(id);
-                }
+            if let Some(rule_name) = self.grammar.rule_names.get(&id)
+                && rule_name == name
+            {
+                return Ok(id);
             }
         }
 
@@ -520,10 +520,11 @@ impl<'a> QueryParser<'a> {
         let start = self.position;
 
         // First character must be alphabetic or underscore
-        if let Some(ch) = self.peek_char() {
-            if !ch.is_alphabetic() && ch != '_' {
-                return Err(self.syntax_error("Expected identifier"));
-            }
+        if let Some(ch) = self.peek_char()
+            && !ch.is_alphabetic()
+            && ch != '_'
+        {
+            return Err(self.syntax_error("Expected identifier"));
         }
 
         while let Some(ch) = self.peek_char() {

@@ -1,5 +1,5 @@
 use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
-use rust_sitter::ts_format::{TSActionTag, choose_action_with_precedence};
+use rust_sitter::ts_format::{choose_action_with_precedence, TSActionTag};
 use rust_sitter_glr_core::{Action, ParseTable};
 use rust_sitter_ir::{Grammar, StateId, Symbol, SymbolId};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -11,6 +11,7 @@ use std::os::raw::c_void;
 /// - Columns [0..tcols) are terminals, [tcols..N) are nonterminals
 /// - NT gotos added as Shift actions in the action table
 /// - Accept injected at GOTO(I0, start) on EOF
+#[allow(dead_code)]
 pub fn normalize_table_for_ts(table: &mut ParseTable) {
     // === Step 1: Dense remap with terminals first, then nonterminals ===
     let tcols = table.token_count + table.external_token_count;

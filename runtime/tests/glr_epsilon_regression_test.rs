@@ -116,7 +116,7 @@ fn create_epsilon_grammar() -> (Grammar, ParseTable) {
     });
 
     // Build parse table using the GLR core
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
@@ -239,7 +239,7 @@ fn create_rr_conflict_grammar() -> (Grammar, ParseTable) {
     });
 
     // Build parse table using the GLR core
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
@@ -410,7 +410,7 @@ fn test_epsilon_cycle_no_infinite_loop() {
         production_id: ProductionId(3),
     });
 
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
@@ -475,7 +475,7 @@ fn test_goto_indexing_direct_symbol_id() {
         }],
     );
 
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero()
@@ -602,7 +602,7 @@ fn test_goto_indexing_auto_detection() {
         }],
     );
 
-    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar);
+    let first_follow = rust_sitter_glr_core::FirstFollowSets::compute(&grammar).unwrap();
     let table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();

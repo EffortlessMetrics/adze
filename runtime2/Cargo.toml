@@ -1,7 +1,8 @@
 [package]
 name = "rust-sitter-runtime"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+rust-version.workspace = true
 authors = ["Steven Bal"]
 license = "MIT OR Apache-2.0"
 description = "GLR runtime for rust-sitter parsers with Tree-sitter API compatibility"

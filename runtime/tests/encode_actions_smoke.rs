@@ -5,7 +5,6 @@ mod support {
     pub mod language_builder; // encode_actions
 }
 
-use rust_sitter::pure_parser::TSParseAction;
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
 use support::language_builder::encode_actions;
@@ -106,7 +105,7 @@ fn encode_actions_minimal() {
     // (0,0) Shift, (0,1) Reduce(lhs=S1, rhs_len=2), (1,2) Accept
     let idx_00 = flat[0] as usize; // Row 0, column 0
     let idx_01 = flat[1] as usize; // Row 0, column 1
-    let idx_12 = flat[1 * table.symbol_count + 2] as usize;
+    let idx_12 = flat[table.symbol_count + 2] as usize;
 
     let a00 = ts_actions[idx_00];
     let a01 = ts_actions[idx_01];

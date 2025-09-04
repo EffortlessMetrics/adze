@@ -69,7 +69,7 @@ impl GLRTree {
     }
 
     /// Get root node
-    pub fn root_node(&self) -> GLRNode {
+    pub fn root_node(&self) -> GLRNode<'_> {
         GLRNode {
             subtree: self.root.clone(),
             tree: self,
@@ -343,13 +343,12 @@ impl<'tree> GLRTreeCursor<'tree> {
 
     /// Go to first child
     pub fn goto_first_child(&mut self) -> bool {
-        if let Some((current, _)) = self.stack.last() {
-            if current.child_count() > 0 {
-                if let Some(child) = current.child(0) {
-                    self.stack.push((child, 0));
-                    return true;
-                }
-            }
+        if let Some((current, _)) = self.stack.last()
+            && current.child_count() > 0
+            && let Some(child) = current.child(0)
+        {
+            self.stack.push((child, 0));
+            return true;
         }
         false
     }
@@ -360,15 +359,15 @@ impl<'tree> GLRTreeCursor<'tree> {
             return false;
         }
 
-        if let Some((_, index)) = self.stack.pop() {
-            if let Some((parent, _)) = self.stack.last() {
-                let next_index = index + 1;
-                if next_index < parent.child_count() {
-                    if let Some(sibling) = parent.child(next_index) {
-                        self.stack.push((sibling, next_index));
-                        return true;
-                    }
-                }
+        if let Some((_, index)) = self.stack.pop()
+            && let Some((parent, _)) = self.stack.last()
+        {
+            let next_index = index + 1;
+            if next_index < parent.child_count()
+                && let Some(sibling) = parent.child(next_index)
+            {
+                self.stack.push((sibling, next_index));
+                return true;
             }
         }
         false

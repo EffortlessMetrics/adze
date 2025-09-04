@@ -30,7 +30,8 @@ fn test_external_attribute() {
     .unwrap();
 
     // Generate grammar JSON
-    let grammars = rust_sitter_tool::generate_grammars(&grammar_path).unwrap();
+    let grammars =
+        rust_sitter_tool::generate_grammars(&grammar_path).expect("Failed to generate grammars");
     assert!(!grammars.is_empty(), "No grammars generated");
 
     let grammar_json = &grammars[0];
@@ -79,7 +80,8 @@ fn test_word_attribute() {
     .unwrap();
 
     // Generate grammar JSON
-    let grammars = rust_sitter_tool::generate_grammars(&grammar_path).unwrap();
+    let grammars =
+        rust_sitter_tool::generate_grammars(&grammar_path).expect("Failed to generate grammars");
     assert!(!grammars.is_empty(), "No grammars generated");
 
     let grammar_json = &grammars[0];
@@ -144,7 +146,8 @@ fn test_combined_attributes() {
     .unwrap();
 
     // Generate grammar JSON
-    let grammars = rust_sitter_tool::generate_grammars(&grammar_path).unwrap();
+    let grammars =
+        rust_sitter_tool::generate_grammars(&grammar_path).expect("Failed to generate grammars");
     assert!(!grammars.is_empty(), "No grammars generated");
 
     let grammar_json = &grammars[0];
@@ -154,17 +157,13 @@ fn test_combined_attributes() {
 
     // Check extras
     let extras = grammar_json["extras"].as_array().unwrap();
-    assert!(
-        extras
-            .iter()
-            .any(|e| e["name"].as_str() == Some("Whitespace"))
-    );
+    assert!(extras
+        .iter()
+        .any(|e| e["name"].as_str() == Some("Whitespace")));
 
     // Check externals
     let externals = grammar_json["externals"].as_array().unwrap();
-    assert!(
-        externals
-            .iter()
-            .any(|e| e["name"].as_str() == Some("Comment"))
-    );
+    assert!(externals
+        .iter()
+        .any(|e| e["name"].as_str() == Some("Comment")));
 }

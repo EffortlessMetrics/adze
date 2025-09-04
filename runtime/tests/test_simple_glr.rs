@@ -1,6 +1,6 @@
 // Simple test to debug GLR parse table generation
 
-use rust_sitter_glr_core::{ConflictResolver, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, ConflictResolver, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 #[test]
@@ -35,7 +35,7 @@ fn test_minimal_grammar() {
     );
 
     // Compute FIRST/FOLLOW sets
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     println!("FIRST/FOLLOW sets computed");
 
     // Build parse table
@@ -115,7 +115,7 @@ fn test_simple_expression() {
     println!("  Rules: {}", grammar.rules.len());
     println!("  Tokens: {}", grammar.tokens.len());
 
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(table) => {

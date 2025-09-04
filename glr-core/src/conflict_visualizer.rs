@@ -93,10 +93,10 @@ impl<'a> ConflictVisualizer<'a> {
         }
 
         // If we have item sets, show the conflicting items
-        if let Some(item_sets) = self.item_sets {
-            if let Some(item_set) = item_sets.sets.iter().find(|s| s.id == conflict.state) {
-                self.format_conflicting_items(output, item_set, conflict);
-            }
+        if let Some(item_sets) = self.item_sets
+            && let Some(item_set) = item_sets.sets.iter().find(|s| s.id == conflict.state)
+        {
+            self.format_conflicting_items(output, item_set, conflict);
         }
     }
 

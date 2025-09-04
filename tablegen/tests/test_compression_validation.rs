@@ -1,9 +1,9 @@
 // Comprehensive validation tests for table compression algorithms
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::compression::{
-    BitPackedActionTable, compress_action_table, compress_goto_table, decompress_action,
-    decompress_goto,
+    compress_action_table, compress_goto_table, decompress_action, decompress_goto,
+    BitPackedActionTable,
 };
 use std::collections::HashMap;
 
@@ -82,7 +82,7 @@ fn test_action_table_compression_round_trip() {
     });
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Compress the action table
@@ -173,7 +173,7 @@ fn test_goto_table_compression_round_trip() {
     });
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Extract goto table (transitions on nonterminals)
@@ -311,7 +311,7 @@ fn test_compression_with_fork_actions() {
     });
 
     // Build parse table with conflicts
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Debug output: Print table structure
@@ -627,7 +627,7 @@ fn test_compression_with_fork_actions() {
 #[ignore = "BitPackedActionTable has pre-existing bugs with decompression - needs separate fix"]
 fn test_bit_packed_round_trip() {
     let grammar = create_conflict_grammar(); // Grammar with Fork actions
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Convert GLR action table to legacy format for BitPackedActionTable
@@ -704,7 +704,7 @@ fn test_bit_packed_round_trip() {
 #[test]
 fn test_large_grammar_compression() {
     let grammar = create_large_grammar(50); // 50 rules
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let original_size = parse_table.state_count * parse_table.symbol_count;
@@ -789,7 +789,7 @@ fn test_compression_performance() {
 
     for size in sizes {
         let grammar = create_large_grammar(size);
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
         let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
         // Time compression

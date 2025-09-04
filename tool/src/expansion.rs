@@ -4,13 +4,15 @@ use rust_sitter_common::*;
 use serde_json::{json, Map, Value};
 use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, *};
 
+use crate::error::{Result as ToolResult, ToolError};
+
 fn gen_field(
     path: String,
     leaf_type: Type,
     leaf_attrs: Vec<Attribute>,
     word_rule: &mut Option<String>,
     out: &mut Map<String, Value>,
-) -> (Value, bool) {
+) -> ToolResult<(Value, bool)> {
     let leaf_attr = leaf_attrs
         .iter()
         .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
@@ -20,7 +22,7 @@ fn gen_field(
         .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::word))
     {
         if word_rule.is_some() {
-            panic!("Multiple `word` rules specified");
+            Err(ToolError::MultipleWordRules)?;
         }
 
         *word_rule = Some(path.clone());
@@ -55,10 +57,12 @@ fn gen_field(
             if let Lit::Str(s) = &lit.lit {
                 // Validate that the pattern is not empty
                 if s.value().is_empty() {
-                    panic!(
-                        "Empty patterns are not supported. Token '{}' has an empty pattern value.",
-                        path
-                    );
+                    return Err(ToolError::GrammarValidation {
+                        reason: format!(
+                            "Empty patterns are not supported. Token '{}' has an empty pattern value.",
+                            path
+                        ),
+                    });
                 }
 
                 out.insert(
@@ -69,15 +73,18 @@ fn gen_field(
                     }),
                 );
 
-                (
+                Ok((
                     json!({
                         "type": "SYMBOL",
                         "name": path
                     }),
                     is_option,
-                )
+                ))
             } else {
-                panic!("Expected string literal for pattern");
+                Err(ToolError::ExpectedStringLiteral {
+                    context: "pattern".to_string(),
+                    actual: format!("{:?}", lit.lit),
+                })
             }
         } else if let Some(Expr::Lit(lit)) = text_param {
             if let Lit::Str(s) = &lit.lit {
@@ -92,15 +99,18 @@ fn gen_field(
                     }),
                 );
 
-                (
+                Ok((
                     json!({
                         "type": "SYMBOL",
                         "name": path
                     }),
                     is_option,
-                )
+                ))
             } else {
-                panic!("Expected string literal for text");
+                return Err(ToolError::ExpectedStringLiteral {
+                    context: "text".to_string(),
+                    actual: format!("{:?}", lit.lit),
+                });
             }
         } else {
             let symbol_name = match filter_inner_type(&leaf_type, &skip_over) {
@@ -108,23 +118,29 @@ fn gen_field(
                     if p.path.segments.len() == 1 {
                         p.path.segments[0].ident.to_string()
                     } else {
-                        panic!("Expected a single segment path");
+                        return Err(ToolError::ExpectedSingleSegmentPath {
+                            actual: format!("{}", p.path.segments.len()),
+                        });
                     }
                 }
                 Type::Tuple(t) if t.elems.is_empty() => {
                     // Unit type () - generate a synthetic name
                     format!("{path}_unit")
                 }
-                _ => panic!("Expected a path or unit type"),
+                _ => {
+                    return Err(ToolError::ExpectedPathType {
+                        actual: "non-path type".to_string(),
+                    });
+                }
             };
 
-            (
+            Ok((
                 json!({
                     "type": "SYMBOL",
                     "name": symbol_name,
                 }),
                 false,
-            )
+            ))
         }
     } else if is_vec {
         // Check if we need to pass the inner element type name
@@ -142,7 +158,7 @@ fn gen_field(
             leaf_attrs.clone(),
             word_rule,
             out,
-        );
+        )?;
 
         let delimited_attr = leaf_attrs
             .iter()
@@ -151,15 +167,17 @@ fn gen_field(
         let delimited_params =
             delimited_attr.and_then(|a| a.parse_args_with(FieldThenParams::parse).ok());
 
-        let delimiter_json = delimited_params.map(|p| {
-            gen_field(
+        let delimiter_json = if let Some(p) = delimited_params {
+            Some(gen_field(
                 format!("{path}_vec_delimiter"),
                 p.field.ty,
                 p.field.attrs,
                 word_rule,
                 out,
-            )
-        });
+            )?)
+        } else {
+            None
+        };
 
         let repeat_attr = leaf_attrs
             .iter()
@@ -271,20 +289,29 @@ fn gen_field(
             })
         };
 
-        (reference, false) // Never mark as optional since we handle it in the reference
+        Ok((reference, false)) // Never mark as optional since we handle it in the reference
     } else {
         // is_option
         let (field_json, field_optional) =
-            gen_field(path, inner_type_option, leaf_attrs, word_rule, out);
+            gen_field(path, inner_type_option, leaf_attrs, word_rule, out)?;
 
         if field_optional {
-            panic!("Option<Option<_>> is not supported");
+            return Err(ToolError::NestedOptionType);
         }
 
-        (field_json, true)
+        Ok((field_json, true))
     }
 }
 
+/// Precedence attributes handler for grammar rules.
+///
+/// Manages the three types of precedence attributes:
+/// - `#[rust_sitter::prec(n)]`: Non-associative precedence
+/// - `#[rust_sitter::prec_left(n)]`: Left-associative precedence  
+/// - `#[rust_sitter::prec_right(n)]`: Right-associative precedence
+///
+/// Only one precedence attribute can be applied per rule. The precedence value
+/// must be an integer literal in the range 0 to 4294967295 (u32).
 #[derive(Default)]
 struct Precs<'a> {
     prec: Option<&'a Attribute>,
@@ -293,6 +320,10 @@ struct Precs<'a> {
 }
 
 impl<'a> Precs<'a> {
+    /// Extracts precedence attributes from a list of attributes.
+    ///
+    /// Searches for `prec`, `prec_left`, and `prec_right` attributes
+    /// and stores references to them for later validation and application.
     fn new(attrs: &'a [Attribute]) -> Self {
         Self {
             prec: attrs
@@ -307,6 +338,16 @@ impl<'a> Precs<'a> {
         }
     }
 
+    /// Applies precedence to a grammar rule, validating attribute usage.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `syn::Error` in the following cases:
+    /// - Multiple precedence attributes are specified on the same rule
+    /// - The precedence value is not an integer literal (e.g., string, float, variable)
+    /// - The precedence value is outside the valid u32 range (0 to 4294967295)
+    ///
+    /// Error messages include specific guidance on how to fix the issue.
     fn apply(&self, base_rule: Value) -> syn::Result<Value> {
         let count = self.prec.iter().count()
             + self.prec_left.iter().count()
@@ -424,7 +465,7 @@ fn gen_struct_or_variant(
     fields: Fields,
     out: &mut Map<String, Value>,
     word_rule: &mut Option<String>,
-) -> syn::Result<()> {
+) -> ToolResult<Option<Value>> {
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
     if let Fields::Unnamed(fields_unnamed) = &fields {
         if fields_unnamed.unnamed.len() == 1 {
@@ -457,7 +498,7 @@ fn gen_struct_or_variant(
                                     "value": s.value(),
                                 }),
                             );
-                            return Ok(());
+                            return Ok(None);
                         }
                     } else if let Some(Expr::Lit(ExprLit {
                         lit: Lit::Str(s), ..
@@ -475,7 +516,7 @@ fn gen_struct_or_variant(
                                 "value": s.value(),
                             }),
                         );
-                        return Ok(());
+                        return Ok(None);
                     }
                 }
             }
@@ -495,14 +536,14 @@ fn gen_struct_or_variant(
         word_rule: &mut Option<String>,
         out: &mut Map<String, Value>,
         ident_str: String,
-    ) -> Value {
+    ) -> ToolResult<Value> {
         let (field_contents, is_option) = gen_field(
             format!("{path}_{ident_str}"),
             field.ty.clone(),
             field.attrs.clone(),
             word_rule,
             out,
-        );
+        )?;
 
         let core = json!({
             "type": "FIELD",
@@ -510,7 +551,7 @@ fn gen_struct_or_variant(
             "content": field_contents
         });
 
-        if is_option {
+        Ok(if is_option {
             json!({
                 "type": "CHOICE",
                 "members": [
@@ -522,7 +563,7 @@ fn gen_struct_or_variant(
             })
         } else {
             core
-        }
+        })
     }
 
     let children = fields
@@ -621,7 +662,14 @@ fn gen_struct_or_variant(
                             })
                     });
 
-                    Some(gen_field_optional(&path, field, word_rule, out, ident_str))
+                    let ident_str_clone = ident_str.clone();
+                    match gen_field_optional(&path, field, word_rule, out, ident_str) {
+                        Ok(result) => Some(result),
+                        Err(e) => {
+                            eprintln!("Error generating field {}: {:?}", ident_str_clone, e);
+                            None // Skip this field on error
+                        }
+                    }
                 }
             }
         })
@@ -640,13 +688,13 @@ fn gen_struct_or_variant(
                     elems: Punctuated::new(),
                 }),
             };
-            gen_field_optional(&path, &dummy_field, word_rule, out, "unit".to_owned())
+            gen_field_optional(&path, &dummy_field, word_rule, out, "unit".to_owned())?
         }
         _ => {
             // If all children are optional, we need at least one to be present
             // to avoid the EmptyString error
             if children.is_empty() {
-                panic!("Struct {} has no non-skipped fields", path);
+                return Err(ToolError::StructHasNoFields { name: path });
             } else if children.len() == 1 {
                 // Single field - use it directly
                 children.into_iter().next().unwrap()
@@ -693,13 +741,15 @@ fn gen_struct_or_variant(
         );
     }
 
-    let rule = Precs::new(&attrs).apply(base_rule)?;
+    let rule = Precs::new(&attrs)
+        .apply(base_rule)
+        .map_err(|e| ToolError::SynError { syn_error: e })?;
 
     out.insert(path, rule);
-    Ok(())
+    Ok(None) // Return None for non-single-leaf variants
 }
 
-pub fn generate_grammar(module: &ItemMod) -> syn::Result<Value> {
+pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
     let mut rules_map = Map::new();
     // for some reason, source_file must be the first key for things to work
     // We'll insert it after we find the root type
@@ -768,7 +818,7 @@ pub fn generate_grammar(module: &ItemMod) -> syn::Result<Value> {
                 for v in e.variants.iter() {
                     let variant_path = format!("{}_{}", e.ident, v.ident);
 
-                    // Generate the variant rule - no need to capture result
+                    // Generate the variant rule - propagate errors
                     gen_struct_or_variant(
                         variant_path.clone(),
                         v.attrs.clone(),
@@ -825,7 +875,7 @@ pub fn generate_grammar(module: &ItemMod) -> syn::Result<Value> {
 
                 if is_word {
                     if word_rule.is_some() {
-                        panic!("Multiple `word` rules specified");
+                        Err(ToolError::MultipleWordRules)?;
                     }
                     word_rule = Some(s.ident.to_string());
                 }

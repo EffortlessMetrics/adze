@@ -1,5 +1,31 @@
 # Developer Guide - rust-sitter
 
+## Prerequisites
+
+### System Requirements
+- **Rust 1.89.0+** with 2024 edition support
+- **libtree-sitter-dev**: Required for ts-bridge tool functionality
+- **libclang-dev**: Required for some feature bindings
+- **Git**: For version control and automated workflows
+
+### Platform Support
+- Linux (primary development)
+- macOS (CI tested) 
+- Windows (CI tested)
+- WebAssembly targets
+
+### Installation
+```bash
+# On Ubuntu/Debian
+sudo apt-get install libtree-sitter-dev libclang-dev
+
+# On macOS via Homebrew  
+brew install tree-sitter
+
+# On Windows
+# Use vcpkg or manually install Tree-sitter development libraries
+```
+
 ## Quick Commands Cheat Sheet
 
 ### Default Build & Test
@@ -126,11 +152,8 @@ RUST_SITTER_EMIT_ARTIFACTS=true cargo build -p rust-sitter-example
 
 ### ts-bridge Tool
 ```bash
-# Build production version (requires Tree-sitter libs)
+# Build ts-bridge (requires Tree-sitter libs)
 cargo build -p ts-bridge
-
-# Build development version with stubs
-cargo build -p ts-bridge --features stub-ts
 
 # Run ABI verification
 cargo run -p ts-bridge --bin tsb-abi-check
@@ -247,7 +270,6 @@ cd runtime2 && cargo test --features glr-core -- forest
 ```bash
 # Some features are mutually exclusive
 # Build specific packages when needed:
-cargo build -p ts-bridge --features stub-ts
 cargo build -p example --features pure-rust
 ```
 

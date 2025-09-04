@@ -182,6 +182,74 @@ pub struct Compare {
 
 Higher precedence numbers bind more tightly.
 
+### Precedence Values
+
+- **Valid Range**: `0` to `4294967295` (u32 range)
+- **Zero is Valid**: `#[rust_sitter::prec(0)]` is a valid precedence level
+- **Integer Literals Only**: Must use literal integers, not variables or expressions
+
+```rust
+// ✅ Valid precedence values
+#[rust_sitter::prec(0)]        // Lowest precedence
+#[rust_sitter::prec(100)]      // Medium precedence
+#[rust_sitter::prec(4294967295)] // Highest precedence
+
+// ❌ Invalid - will produce clear error messages
+#[rust_sitter::prec("high")]   // String instead of integer
+#[rust_sitter::prec(3.14)]     // Float instead of integer
+#[rust_sitter::prec(HIGH_PREC)] // Variable instead of literal
+#[rust_sitter::prec(-1)]       // Negative number
+#[rust_sitter::prec(4294967296)] // Too large for u32
+```
+
+### Precedence Error Handling
+
+The grammar processor provides comprehensive error messages for common precedence mistakes:
+
+#### Multiple Precedence Attributes
+
+Only one precedence attribute can be used per rule:
+
+```rust
+// ❌ Error: Multiple precedence attributes
+#[rust_sitter::prec(1)]
+#[rust_sitter::prec_left(2)]
+pub struct Conflict {
+    // This will produce error:
+    // "only one of prec, prec_left, and prec_right can be specified, 
+    //  but found: prec, prec_left"
+}
+```
+
+#### Invalid Precedence Values
+
+Non-integer or out-of-range values produce specific error messages:
+
+```rust
+// ❌ Error: String literal instead of integer
+#[rust_sitter::prec("high")]
+pub struct StringPrec {
+    // Error: "Expected integer literal for precedence. 
+    //         Use #[rust_sitter::prec(123)] with a positive integer (0 to 4294967295)."
+}
+
+// ❌ Error: Float literal instead of integer  
+#[rust_sitter::prec_left(3.14)]
+pub struct FloatPrec {
+    // Error: "Expected integer literal for left-associative precedence. 
+    //         Use #[rust_sitter::prec_left(123)] with a positive integer (0 to 4294967295)."
+}
+```
+
+#### Troubleshooting Precedence Errors
+
+When you encounter precedence errors:
+
+1. **Check for Multiple Attributes**: Remove conflicting precedence attributes
+2. **Use Integer Literals**: Replace strings, floats, or variables with integer literals  
+3. **Validate Range**: Ensure values are between 0 and 4294967295
+4. **Review Compiler Output**: Error messages include the specific attributes found and expected formats
+
 ## Extra Tokens
 
 Define tokens that are automatically skipped:
