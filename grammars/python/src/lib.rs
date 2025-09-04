@@ -8,6 +8,18 @@ pub mod grammar_python {
     include!(concat!(env!("OUT_DIR"), "/grammar_python/parser_python.rs"));
 }
 
+/// Parse Python source code into a syntax tree
+pub fn parse(
+    source: &str,
+) -> Result<rust_sitter::pure_parser::ParsedNode, Box<dyn std::error::Error>> {
+    use rust_sitter::pure_parser::Parser;
+
+    let language = get_language();
+    let mut parser = Parser::new(language)?;
+    let result = parser.parse(source.as_bytes(), None)?;
+    Ok(result.root)
+}
+
 // Function to register the scanner - call this from build.rs or when loading the grammar
 pub fn register_scanner() {
     rust_sitter::scanner_registry::register_rust_scanner::<scanner::PythonScanner>("python");

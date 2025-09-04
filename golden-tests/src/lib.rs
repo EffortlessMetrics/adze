@@ -23,10 +23,16 @@ mod tests {
                 .join(self.fixture_name)
         }
 
+        fn base_name(&self) -> String {
+            std::path::Path::new(self.fixture_name)
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned()
+        }
+
         fn expected_hash_path(&self) -> PathBuf {
-            let base_name = self
-                .fixture_name
-                .replace(&format!(".{}", self.language), "");
+            let base_name = self.base_name();
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join(self.language)
                 .join("expected")
@@ -34,9 +40,7 @@ mod tests {
         }
 
         fn expected_sexp_path(&self) -> PathBuf {
-            let base_name = self
-                .fixture_name
-                .replace(&format!(".{}", self.language), "");
+            let base_name = self.base_name();
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join(self.language)
                 .join("expected")
@@ -56,10 +60,9 @@ mod tests {
     /// Parse Python source code and return S-expression
     #[cfg(feature = "python-grammar")]
     fn parse_python(source: &str) -> Result<String> {
-        use rust_sitter::Parse;
-
-        let tree = rust_sitter_python::parse(source)?;
-        Ok(tree_to_sexp(&tree, source))
+        let parsed_node = rust_sitter_python::parse(source)
+            .map_err(|e| anyhow::anyhow!("Python parse error: {}", e))?;
+        Ok(tree_to_sexp(&parsed_node, source))
     }
 
     #[cfg(not(feature = "python-grammar"))]
@@ -70,10 +73,9 @@ mod tests {
     /// Parse JavaScript source code and return S-expression
     #[cfg(feature = "javascript-grammar")]
     fn parse_javascript(source: &str) -> Result<String> {
-        use rust_sitter::Parse;
-
-        let tree = rust_sitter_javascript::parse(source)?;
-        Ok(tree_to_sexp(&tree, source))
+        let parsed_node = rust_sitter_javascript::parse(source)
+            .map_err(|e| anyhow::anyhow!("JavaScript parse error: {}", e))?;
+        Ok(tree_to_sexp(&parsed_node, source))
     }
 
     #[cfg(not(feature = "javascript-grammar"))]
@@ -81,38 +83,41 @@ mod tests {
         anyhow::bail!("JavaScript grammar feature not enabled")
     }
 
-    fn tree_to_sexp(tree: &rust_sitter::tree_sitter::Tree, source: &str) -> String {
-        fn node_to_sexp(node: &rust_sitter::tree_sitter::Node, source: &str, indent: usize) -> String {
+    fn tree_to_sexp(node: &rust_sitter::pure_parser::ParsedNode, source: &str) -> String {
+        fn node_to_sexp(
+            node: &rust_sitter::pure_parser::ParsedNode,
+            source: &str,
+            indent: usize,
+        ) -> String {
             let mut result = String::new();
             let spaces = " ".repeat(indent);
 
-            if node.is_named() {
-                result.push_str(&format!("{}({}", spaces, node.kind()));
+            if node.is_named {
+                // For named nodes, show the symbol ID for now (until we have proper symbol names)
+                result.push_str(&format!("{}(symbol_{})", spaces, node.symbol));
 
-                if node.child_count() == 0 {
-                    let text = &source[node.start_byte()..node.end_byte()];
+                if node.children.is_empty() {
+                    let text = &source[node.start_byte..node.end_byte];
                     result.push_str(&format!(" \"{}\")", escape_string(text)));
                 } else {
                     result.push('\n');
 
-                    for i in 0..node.child_count() {
-                        if let Some(child) = node.child(i) {
-                            result.push_str(&node_to_sexp(child, source, indent + 2));
-                            result.push('\n');
-                        }
+                    for child in &node.children {
+                        result.push_str(&node_to_sexp(child, source, indent + 2));
+                        result.push('\n');
                     }
 
                     result.push_str(&format!("{})", spaces));
                 }
             } else {
-                let text = &source[node.start_byte()..node.end_byte()];
+                let text = &source[node.start_byte..node.end_byte];
                 result.push_str(&format!("{}\"{}\"", spaces, escape_string(text)));
             }
 
             result
         }
 
-        node_to_sexp(tree.root_node(), source, 0)
+        node_to_sexp(node, source, 0)
     }
 
     fn escape_string(s: &str) -> String {
@@ -123,9 +128,7 @@ mod tests {
                 '\n' => vec!['\\', 'n'],
                 '\r' => vec!['\\', 'r'],
                 '\t' => vec!['\\', 't'],
-                c if c.is_control() => {
-                    format!("\\u{{{:04x}}}", c as u32).chars().collect()
-                }
+                c if c.is_control() => format!("\\u{{{:04x}}}", c as u32).chars().collect(),
                 c => vec![c],
             })
             .collect()
@@ -155,10 +158,18 @@ mod tests {
 
             // Note: In real implementation, we'd run tree-sitter here
             // For now, we just save what rust-sitter produces
-            fs::write(test.expected_sexp_path(), &sexp)?;
+            let sexp_path = test.expected_sexp_path();
+            let hash_path = test.expected_hash_path();
+
+            // Ensure parent directories exist
+            if let Some(dir) = sexp_path.parent() {
+                fs::create_dir_all(dir)?;
+            }
+
+            fs::write(&sexp_path, &sexp)?;
 
             let hash = compute_hash(&sexp);
-            fs::write(test.expected_hash_path(), &hash)?;
+            fs::write(&hash_path, &hash)?;
 
             return Ok(());
         }
