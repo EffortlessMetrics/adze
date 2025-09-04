@@ -3,6 +3,9 @@
 #[cfg(feature = "glr-core")]
 type TokenizerFn = dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = crate::Token> + 'a>;
 
+#[cfg(feature = "glr-core")]
+type TokenizerBoxed = Box<TokenizerFn>;
+
 /// A language definition containing parse tables and metadata
 pub struct Language {
     /// Language version for compatibility checking
@@ -169,7 +172,7 @@ pub struct LanguageBuilder {
     #[cfg(not(feature = "glr-core"))]
     parse_table: Option<ParseTable>,
     #[cfg(feature = "glr-core")]
-    tokenize: Option<Box<dyn Fn(&[u8]) -> Box<dyn Iterator<Item = crate::Token> + '_>>>,
+    tokenize: Option<TokenizerBoxed>,
     symbol_names: Option<Vec<String>>,
     symbol_metadata: Option<Vec<SymbolMetadata>>,
     field_names: Option<Vec<String>>,
@@ -235,7 +238,8 @@ impl LanguageBuilder {
     where
         F: Fn(&[u8]) -> Box<dyn Iterator<Item = crate::Token> + '_> + 'static,
     {
-        self.tokenize = Some(Box::new(f));
+        let boxed_fn: TokenizerBoxed = Box::new(f);
+        self.tokenize = Some(boxed_fn);
         self
     }
 
