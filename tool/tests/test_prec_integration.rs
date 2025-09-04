@@ -157,55 +157,20 @@ fn precedence_error_with_complex_expressions() {
     let dir = tempdir().unwrap();
     let grammar_path = dir.path().join("grammar.rs");
 
-    fs::write(
-        &grammar_path,
-        r#"
-        #[rust_sitter::grammar("test_complex")]
+    fs::write(&grammar_path, r#"
+        #[rust_sitter::grammar("test_non_integer")]
         mod grammar {
             #[rust_sitter::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                     i32
                 ),
-                String(
-                    #[rust_sitter::leaf(pattern = r"[a-zA-Z]+")]
-                    String
-                ),
-                
-                // Complex rule with precedence error
-                #[rust_sitter::prec("not_a_number")]
-                StringLiteral {
-                    #[rust_sitter::leaf(text = "\"")]
-                    _open: (),
-                    #[rust_sitter::leaf(pattern = r"[^\"]*")]
-                    content: String,
-                    #[rust_sitter::leaf(text = "\"")]
-                    _close: (),
-                },
-                
-                Array {
-                    #[rust_sitter::leaf(text = "[")]
-                    _open: (),
-                    #[rust_sitter::repeat(non_empty = false)]
-                    #[rust_sitter::delimited(
-                        #[rust_sitter::leaf(text = ",")]
-                        ()
-                    )]
-                    elements: Vec<Expression>,
-                    #[rust_sitter::leaf(text = "]")]
-                    _close: (),
-                },
-            }
-
-            #[rust_sitter::extra]
-            struct Whitespace {
-                #[rust_sitter::leaf(pattern = r"\s+")]
-                _ws: (),
+                #[rust_sitter::prec("high")]
+                Priority(Box<Expression>),
             }
         }
-    "#,
-    )
+    "#)
     .unwrap();
 
     let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();

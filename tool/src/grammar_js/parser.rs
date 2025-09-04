@@ -75,11 +75,11 @@ impl SimpleGrammarJsParser {
     fn extract_inline(&self) -> Vec<String> {
         let inline_regex = Regex::new(r#"inline:\s*\$\s*=>\s*\[([\s\S]*?)\]"#).ok();
 
-        if let Some(regex) = inline_regex {
-            if let Some(caps) = regex.captures(&self.content) {
-                let inline_content = &caps[1];
-                return self.parse_array_of_symbols(inline_content);
-            }
+        if let Some(regex) = inline_regex
+            && let Some(caps) = regex.captures(&self.content)
+        {
+            let inline_content = &caps[1];
+            return self.parse_array_of_symbols(inline_content);
         }
 
         Vec::new()
@@ -88,11 +88,11 @@ impl SimpleGrammarJsParser {
     fn extract_conflicts(&self) -> Vec<Vec<String>> {
         let conflicts_regex = Regex::new(r#"conflicts:\s*\$\s*=>\s*\[([\s\S]*?)\]"#).ok();
 
-        if let Some(regex) = conflicts_regex {
-            if let Some(caps) = regex.captures(&self.content) {
-                let conflicts_content = &caps[1];
-                return self.parse_conflicts_array(conflicts_content);
-            }
+        if let Some(regex) = conflicts_regex
+            && let Some(caps) = regex.captures(&self.content)
+        {
+            let conflicts_content = &caps[1];
+            return self.parse_conflicts_array(conflicts_content);
         }
 
         Vec::new()
@@ -164,13 +164,11 @@ impl SimpleGrammarJsParser {
                                 // Check if this comma is followed by a rule pattern
                                 let after_comma = &remaining[i + 1..];
                                 if let Some(next_rule) = after_comma.trim_start().split(':').next()
+                                    && next_rule.chars().all(|c| c.is_alphanumeric() || c == '_')
+                                    && !next_rule.is_empty()
                                 {
-                                    if next_rule.chars().all(|c| c.is_alphanumeric() || c == '_')
-                                        && !next_rule.is_empty()
-                                    {
-                                        body_end = i;
-                                        break;
-                                    }
+                                    body_end = i;
+                                    break;
                                 }
                             }
                             _ => {}
@@ -209,11 +207,12 @@ impl SimpleGrammarJsParser {
         }
 
         // Check for regex pattern
-        if trimmed.starts_with('/') && trimmed.contains('/') {
-            if let Some(end) = trimmed[1..].find('/') {
-                let value = trimmed[1..=end].to_string();
-                return Ok(Rule::Pattern { value });
-            }
+        if trimmed.starts_with('/')
+            && trimmed.contains('/')
+            && let Some(end) = trimmed[1..].find('/')
+        {
+            let value = trimmed[1..=end].to_string();
+            return Ok(Rule::Pattern { value });
         }
 
         // Check for symbol reference

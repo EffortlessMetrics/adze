@@ -135,18 +135,15 @@ pub fn build_parsers(root_file: &Path) {
         .unwrap_or(false);
 
     // Only check CLI if explicitly requested (for debugging)
-    if std::env::var("RUST_SITTER_REQUIRE_TS_CLI").is_ok() {
-        if let Err(e) = std::process::Command::new("tree-sitter")
+    if std::env::var("RUST_SITTER_REQUIRE_TS_CLI").is_ok()
+        && let Err(e) = std::process::Command::new("tree-sitter")
             .arg("--version")
             .output()
-        {
-            eprintln!("Warning: tree-sitter CLI not found or not executable");
-            eprintln!("  Details: {}", e);
-            eprintln!(
-                "  Hint: Install tree-sitter CLI >= 0.22 with: npm install -g tree-sitter-cli"
-            );
-            eprintln!("  Then verify with: tree-sitter --version");
-        }
+    {
+        eprintln!("Warning: tree-sitter CLI not found or not executable");
+        eprintln!("  Details: {}", e);
+        eprintln!("  Hint: Install tree-sitter CLI >= 0.22 with: npm install -g tree-sitter-cli");
+        eprintln!("  Then verify with: tree-sitter --version");
     }
 
     for grammar in generate_grammars(root_file).unwrap() {

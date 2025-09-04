@@ -22,90 +22,90 @@ pub fn from_tree_sitter_json(value: &Value) -> Result<GrammarJs> {
     let mut grammar_js = GrammarJs::new(name);
 
     // Parse word token
-    if let Some(word) = obj.get("word") {
-        if let Some(word_str) = word.as_str() {
-            grammar_js.word = Some(word_str.to_string());
-        }
+    if let Some(word) = obj.get("word")
+        && let Some(word_str) = word.as_str()
+    {
+        grammar_js.word = Some(word_str.to_string());
     }
 
     // Parse inline rules
-    if let Some(inline) = obj.get("inline") {
-        if let Some(inline_arr) = inline.as_array() {
-            for item in inline_arr {
-                if let Some(s) = item.as_str() {
-                    grammar_js.inline.push(s.to_string());
-                }
+    if let Some(inline) = obj.get("inline")
+        && let Some(inline_arr) = inline.as_array()
+    {
+        for item in inline_arr {
+            if let Some(s) = item.as_str() {
+                grammar_js.inline.push(s.to_string());
             }
         }
     }
 
     // Parse conflicts
-    if let Some(conflicts) = obj.get("conflicts") {
-        if let Some(conflicts_arr) = conflicts.as_array() {
-            for conflict_set in conflicts_arr {
-                if let Some(set_arr) = conflict_set.as_array() {
-                    let mut conflict_rules = Vec::new();
-                    for rule in set_arr {
-                        if let Some(s) = rule.as_str() {
-                            conflict_rules.push(s.to_string());
-                        }
+    if let Some(conflicts) = obj.get("conflicts")
+        && let Some(conflicts_arr) = conflicts.as_array()
+    {
+        for conflict_set in conflicts_arr {
+            if let Some(set_arr) = conflict_set.as_array() {
+                let mut conflict_rules = Vec::new();
+                for rule in set_arr {
+                    if let Some(s) = rule.as_str() {
+                        conflict_rules.push(s.to_string());
                     }
-                    grammar_js.conflicts.push(conflict_rules);
                 }
+                grammar_js.conflicts.push(conflict_rules);
             }
         }
     }
 
     // Parse extras
-    if let Some(extras) = obj.get("extras") {
-        if let Some(extras_arr) = extras.as_array() {
-            for extra in extras_arr {
-                if let Ok(rule) = parse_rule(extra) {
-                    grammar_js.extras.push(rule);
-                }
+    if let Some(extras) = obj.get("extras")
+        && let Some(extras_arr) = extras.as_array()
+    {
+        for extra in extras_arr {
+            if let Ok(rule) = parse_rule(extra) {
+                grammar_js.extras.push(rule);
             }
         }
     }
 
     // Parse externals
-    if let Some(externals) = obj.get("externals") {
-        if let Some(externals_arr) = externals.as_array() {
-            for (i, external) in externals_arr.iter().enumerate() {
-                if let Some(external_obj) = external.as_object() {
-                    if let Some(name) = external_obj.get("name").and_then(|v| v.as_str()) {
-                        grammar_js.externals.push(ExternalToken {
-                            name: name.to_string(),
-                            symbol: format!("external_{}", i),
-                        });
-                    }
-                } else if let Some(name) = external.get("name").and_then(|v| v.as_str()) {
+    if let Some(externals) = obj.get("externals")
+        && let Some(externals_arr) = externals.as_array()
+    {
+        for (i, external) in externals_arr.iter().enumerate() {
+            if let Some(external_obj) = external.as_object() {
+                if let Some(name) = external_obj.get("name").and_then(|v| v.as_str()) {
                     grammar_js.externals.push(ExternalToken {
                         name: name.to_string(),
                         symbol: format!("external_{}", i),
                     });
                 }
+            } else if let Some(name) = external.get("name").and_then(|v| v.as_str()) {
+                grammar_js.externals.push(ExternalToken {
+                    name: name.to_string(),
+                    symbol: format!("external_{}", i),
+                });
             }
         }
     }
 
     // Parse supertypes
-    if let Some(supertypes) = obj.get("supertypes") {
-        if let Some(supertypes_arr) = supertypes.as_array() {
-            for supertype in supertypes_arr {
-                if let Some(s) = supertype.as_str() {
-                    grammar_js.supertypes.push(s.to_string());
-                }
+    if let Some(supertypes) = obj.get("supertypes")
+        && let Some(supertypes_arr) = supertypes.as_array()
+    {
+        for supertype in supertypes_arr {
+            if let Some(s) = supertype.as_str() {
+                grammar_js.supertypes.push(s.to_string());
             }
         }
     }
 
     // Parse rules
-    if let Some(rules) = obj.get("rules") {
-        if let Some(rules_obj) = rules.as_object() {
-            for (rule_name, rule_value) in rules_obj {
-                if let Ok(rule) = parse_rule(rule_value) {
-                    grammar_js.rules.insert(rule_name.clone(), rule);
-                }
+    if let Some(rules) = obj.get("rules")
+        && let Some(rules_obj) = rules.as_object()
+    {
+        for (rule_name, rule_value) in rules_obj {
+            if let Ok(rule) = parse_rule(rule_value) {
+                grammar_js.rules.insert(rule_name.clone(), rule);
             }
         }
     }

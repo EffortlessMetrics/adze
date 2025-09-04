@@ -800,10 +800,10 @@ impl ImprovedGrammarJsParser {
                     if depth == 0 {
                         // End of a precedence group
                         let trimmed = current_item.trim();
-                        if !trimmed.is_empty() {
-                            if let Some(prec) = self.parse_precedence_item(trimmed) {
-                                current_group.push(prec);
-                            }
+                        if !trimmed.is_empty()
+                            && let Some(prec) = self.parse_precedence_item(trimmed)
+                        {
+                            current_group.push(prec);
                         }
                         if !current_group.is_empty() {
                             precedences.push(current_group.clone());
@@ -814,10 +814,10 @@ impl ImprovedGrammarJsParser {
                 ',' if !in_string && depth == 1 => {
                     // Item separator within a precedence group
                     let trimmed = current_item.trim();
-                    if !trimmed.is_empty() {
-                        if let Some(prec) = self.parse_precedence_item(trimmed) {
-                            current_group.push(prec);
-                        }
+                    if !trimmed.is_empty()
+                        && let Some(prec) = self.parse_precedence_item(trimmed)
+                    {
+                        current_group.push(prec);
                     }
                     current_item.clear();
                 }
@@ -839,20 +839,20 @@ impl ImprovedGrammarJsParser {
         let trimmed = item.trim();
 
         // Handle prec(value, $.rule) pattern
-        if trimmed.starts_with("prec(") {
-            if let Ok(content) = self.extract_function_args(trimmed, "prec") {
-                let parts: Vec<&str> = content.splitn(2, ',').collect();
-                if parts.len() == 2 {
-                    if let Ok(value) = parts[0].trim().parse::<i32>() {
-                        let rule = parts[1].trim();
-                        let name = if rule.starts_with("$.") {
-                            rule[2..].to_string()
-                        } else {
-                            rule.to_string()
-                        };
-                        return Some((name, value));
-                    }
-                }
+        if trimmed.starts_with("prec(")
+            && let Ok(content) = self.extract_function_args(trimmed, "prec")
+        {
+            let parts: Vec<&str> = content.splitn(2, ',').collect();
+            if parts.len() == 2
+                && let Ok(value) = parts[0].trim().parse::<i32>()
+            {
+                let rule = parts[1].trim();
+                let name = if rule.starts_with("$.") {
+                    rule[2..].to_string()
+                } else {
+                    rule.to_string()
+                };
+                return Some((name, value));
             }
         }
 

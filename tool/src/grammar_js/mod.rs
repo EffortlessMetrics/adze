@@ -160,10 +160,10 @@ impl GrammarJs {
         }
 
         // Check that word token exists if specified
-        if let Some(word) = &self.word {
-            if !self.rules.contains_key(word) {
-                bail!("Word token '{}' not found in rules", word);
-            }
+        if let Some(word) = &self.word
+            && !self.rules.contains_key(word)
+        {
+            bail!("Word token '{}' not found in rules", word);
         }
 
         // Check inline rules exist

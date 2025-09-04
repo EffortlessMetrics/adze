@@ -90,16 +90,16 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
             // This non-terminal has no rules - it's likely a wrapper for a pattern
             // For now, use a heuristic: if the name contains "Number", look for a number token
             // TODO: This should be improved to handle all pattern wrappers structurally
-            if let Some(nt_name) = grammar.rule_names.get(&nt_id) {
-                if nt_name.to_lowercase().contains("number") {
-                    // Find a number token (one with \d pattern)
-                    for (tid, token) in &grammar.tokens {
-                        if let TokenPattern::Regex(r) = &token.pattern {
-                            if r.contains(r"\d") || r.contains("[0-9]") {
-                                wrappers_needing_rules.push((nt_id, *tid));
-                                break;
-                            }
-                        }
+            if let Some(nt_name) = grammar.rule_names.get(&nt_id)
+                && nt_name.to_lowercase().contains("number")
+            {
+                // Find a number token (one with \d pattern)
+                for (tid, token) in &grammar.tokens {
+                    if let TokenPattern::Regex(r) = &token.pattern
+                        && (r.contains(r"\d") || r.contains("[0-9]"))
+                    {
+                        wrappers_needing_rules.push((nt_id, *tid));
+                        break;
                     }
                 }
             }
@@ -486,35 +486,34 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     if std::env::var("RUST_LOG")
         .unwrap_or_default()
         .contains("debug")
+        && let Some(state0_actions) = parse_table.action_table.first()
     {
-        if let Some(state0_actions) = parse_table.action_table.first() {
-            eprintln!(
-                "State 0 debug: {} action cells, {} tokens",
-                state0_actions.len(),
-                grammar.tokens.len()
-            );
+        eprintln!(
+            "State 0 debug: {} action cells, {} tokens",
+            state0_actions.len(),
+            grammar.tokens.len()
+        );
 
-            let mut token_actions = 0;
-            for (symbol_idx, action_cell) in state0_actions.iter().enumerate() {
-                if !action_cell.is_empty() {
-                    // Check if this is a token
-                    for (sym_id, idx) in &parse_table.symbol_to_index {
-                        if *idx == symbol_idx && grammar.tokens.contains_key(sym_id) {
-                            token_actions += 1;
-                            break;
-                        }
+        let mut token_actions = 0;
+        for (symbol_idx, action_cell) in state0_actions.iter().enumerate() {
+            if !action_cell.is_empty() {
+                // Check if this is a token
+                for (sym_id, idx) in &parse_table.symbol_to_index {
+                    if *idx == symbol_idx && grammar.tokens.contains_key(sym_id) {
+                        token_actions += 1;
+                        break;
                     }
                 }
             }
+        }
 
-            if token_actions > 0 {
-                eprintln!(
-                    "State 0 has {} token actions - parser can accept input ✓",
-                    token_actions
-                );
-            } else {
-                eprintln!("WARNING: State 0 has no token actions - parser cannot accept input!");
-            }
+        if token_actions > 0 {
+            eprintln!(
+                "State 0 has {} token actions - parser can accept input ✓",
+                token_actions
+            );
+        } else {
+            eprintln!("WARNING: State 0 has no token actions - parser cannot accept input!");
         }
     }
 

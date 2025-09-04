@@ -107,10 +107,10 @@ fn gen_field(
                     is_option,
                 ))
             } else {
-                return Err(ToolError::ExpectedStringLiteral {
+                Err(ToolError::ExpectedStringLiteral {
                     context: "text".to_string(),
                     actual: format!("{:?}", lit.lit),
-                });
+                })
             }
         } else {
             let symbol_name = match filter_inner_type(&leaf_type, &skip_over) {
@@ -467,57 +467,57 @@ fn gen_struct_or_variant(
     word_rule: &mut Option<String>,
 ) -> ToolResult<Option<Value>> {
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
-    if let Fields::Unnamed(fields_unnamed) = &fields {
-        if fields_unnamed.unnamed.len() == 1 {
-            let field = &fields_unnamed.unnamed[0];
-            if let Some(leaf_attrs) = field
-                .attrs
-                .iter()
-                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf))
-            {
-                // This is a single-leaf variant - return the token directly
-                let params = leaf_attrs
-                    .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
-                    .ok();
-                if let Some(params) = params {
-                    if let Some(pattern) = params
-                        .iter()
-                        .find(|param| param.path == "pattern")
-                        .map(|p| p.expr.clone())
-                    {
-                        if let Expr::Lit(ExprLit {
-                            lit: Lit::Str(s), ..
-                        }) = pattern
-                        {
-                            // For single-leaf variants, create a rule with the pattern
-                            // Don't return inline - we want a named rule for proper AST nodes
-                            out.insert(
-                                path,
-                                json!({
-                                    "type": "PATTERN",
-                                    "value": s.value(),
-                                }),
-                            );
-                            return Ok(None);
-                        }
-                    } else if let Some(Expr::Lit(ExprLit {
+    if let Fields::Unnamed(fields_unnamed) = &fields
+        && fields_unnamed.unnamed.len() == 1
+    {
+        let field = &fields_unnamed.unnamed[0];
+        if let Some(leaf_attrs) = field
+            .attrs
+            .iter()
+            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf))
+        {
+            // This is a single-leaf variant - return the token directly
+            let params = leaf_attrs
+                .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+                .ok();
+            if let Some(params) = params {
+                if let Some(pattern) = params
+                    .iter()
+                    .find(|param| param.path == "pattern")
+                    .map(|p| p.expr.clone())
+                {
+                    if let Expr::Lit(ExprLit {
                         lit: Lit::Str(s), ..
-                    })) = params
-                        .iter()
-                        .find(|param| param.path == "text")
-                        .map(|p| p.expr.clone())
+                    }) = pattern
                     {
-                        // For single-leaf variants, create a rule with the string
+                        // For single-leaf variants, create a rule with the pattern
                         // Don't return inline - we want a named rule for proper AST nodes
                         out.insert(
                             path,
                             json!({
-                                "type": "STRING",
+                                "type": "PATTERN",
                                 "value": s.value(),
                             }),
                         );
                         return Ok(None);
                     }
+                } else if let Some(Expr::Lit(ExprLit {
+                    lit: Lit::Str(s), ..
+                })) = params
+                    .iter()
+                    .find(|param| param.path == "text")
+                    .map(|p| p.expr.clone())
+                {
+                    // For single-leaf variants, create a rule with the string
+                    // Don't return inline - we want a named rule for proper AST nodes
+                    out.insert(
+                        path,
+                        json!({
+                            "type": "STRING",
+                            "value": s.value(),
+                        }),
+                    );
+                    return Ok(None);
                 }
             }
         }
