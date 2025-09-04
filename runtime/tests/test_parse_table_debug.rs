@@ -69,11 +69,11 @@ fn test_parse_table_has_conflicts() {
 
     println!("\n=== First/Follow Sets ===\nFirst sets:");
     for (symbol_id, _) in &grammar.rules {
-        if let Some(set) = first_follow.first(*symbol_id) {
-            if !set.is_empty() {
-                let symbols: Vec<u16> = set.ones().map(|idx| idx as u16).collect();
-                println!("  Symbol {}: {:?}", symbol_id.0, symbols);
-            }
+        if let Some(set) = first_follow.first(*symbol_id)
+            && !set.is_empty()
+        {
+            let symbols: Vec<u16> = set.ones().map(|idx| idx as u16).collect();
+            println!("  Symbol {}: {:?}", symbol_id.0, symbols);
         }
     }
 

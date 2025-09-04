@@ -94,20 +94,20 @@ fn extract_fields_from_rule(rule: &Value) -> HashMap<String, Vec<String>> {
         Some(rule)
     };
 
-    if let Some(seq) = content {
-        if let Some(members) = seq.get("members").and_then(|m| m.as_array()) {
-            for (idx, member) in members.iter().enumerate() {
-                if let Some(field_name) = member.get("name").and_then(|n| n.as_str()) {
-                    // Map numeric field names to semantic names
-                    let semantic_name = match (idx, field_name) {
-                        (0, _) => "left",
-                        (1, _) => "operator",
-                        (2, _) => "right",
-                        _ => field_name,
-                    };
+    if let Some(seq) = content
+        && let Some(members) = seq.get("members").and_then(|m| m.as_array())
+    {
+        for (idx, member) in members.iter().enumerate() {
+            if let Some(field_name) = member.get("name").and_then(|n| n.as_str()) {
+                // Map numeric field names to semantic names
+                let semantic_name = match (idx, field_name) {
+                    (0, _) => "left",
+                    (1, _) => "operator",
+                    (2, _) => "right",
+                    _ => field_name,
+                };
 
-                    fields.insert(semantic_name.to_string(), vec!["expression".to_string()]);
-                }
+                fields.insert(semantic_name.to_string(), vec!["expression".to_string()]);
             }
         }
     }

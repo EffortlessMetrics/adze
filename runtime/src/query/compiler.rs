@@ -73,10 +73,10 @@ mod tests {
         // Add field names to grammar and statement rule
         use rust_sitter_ir::FieldId;
         grammar.fields.insert(FieldId(1), "value".to_string());
-        if let Some(rules) = grammar.rules.get_mut(&SymbolId(11)) {
-            if let Some(rule) = rules.get_mut(0) {
-                rule.fields.push((FieldId(1), 0));
-            }
+        if let Some(rules) = grammar.rules.get_mut(&SymbolId(11))
+            && let Some(rule) = rules.get_mut(0)
+        {
+            rule.fields.push((FieldId(1), 0));
         }
 
         grammar
