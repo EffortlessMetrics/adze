@@ -1,9 +1,9 @@
-use rust_sitter_runtime::{Language, Parser, Token};
+use rust_sitter_runtime::{test_helpers::stub_language_with_tokens, Language, Parser, Token};
 
 fn main() {
     // Create a stub language with test tokens to validate the tokenizer hookup
     // This will error on actual parsing since we don't have real parse tables yet
-    let lang = Language::new_stub().with_static_tokens(vec![
+    let lang = stub_language_with_tokens(vec![
         Token {
             kind: 1,
             start: 0,

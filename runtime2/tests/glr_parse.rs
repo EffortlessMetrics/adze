@@ -1,4 +1,6 @@
+#[cfg(feature = "glr-core")]
 use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+#[cfg(feature = "glr-core")]
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern,
 };
@@ -8,6 +10,7 @@ use std::sync::{
     Arc,
 };
 
+#[cfg(feature = "glr-core")]
 fn make_language(counter: Arc<AtomicUsize>) -> Language {
     let mut grammar = Grammar::new("test".to_string());
     let a_id = SymbolId(1);
@@ -37,36 +40,33 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
     let table: &'static _ = Box::leak(Box::new(table));
 
     let t_counter = counter.clone();
-    #[allow(clippy::type_complexity)]
-    let tokenize: Box<dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = Token> + 'a>> = Box::new(
-        move |input: &[u8]| -> Box<dyn Iterator<Item = Token> + '_> {
-            t_counter.fetch_add(1, Ordering::SeqCst);
-            let mut toks = Vec::new();
-            if input == b"a" {
-                toks.push(Token {
-                    kind: 1,
-                    start: 0,
-                    end: 1,
-                });
-            }
-            toks.push(Token {
-                kind: 0,
-                start: input.len() as u32,
-                end: input.len() as u32,
-            });
-            Box::new(toks.into_iter())
-        },
-    );
 
-    Language {
-        version: 0,
-        symbol_count: 3,
-        field_count: 0,
-        max_alias_sequence_length: 0,
-        parse_table: Some(table),
-        tokenize: Some(tokenize),
-        symbol_names: vec!["EOF".into(), "a".into(), "start".into()],
-        symbol_metadata: vec![
+    #[allow(clippy::type_complexity)]
+    let tokenize_fn: Box<dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = Token> + 'a>> =
+        Box::new(
+            move |input: &[u8]| -> Box<dyn Iterator<Item = Token> + '_> {
+                t_counter.fetch_add(1, Ordering::SeqCst);
+                let mut toks = Vec::new();
+                if input == b"a" {
+                    toks.push(Token {
+                        kind: 1,
+                        start: 0,
+                        end: 1,
+                    });
+                }
+                toks.push(Token {
+                    kind: 0,
+                    start: input.len() as u32,
+                    end: input.len() as u32,
+                });
+                Box::new(toks.into_iter())
+            },
+        );
+
+    Language::builder()
+        .parse_table(table)
+        .symbol_names(vec!["EOF".into(), "a".into(), "start".into()])
+        .symbol_metadata(vec![
             SymbolMetadata {
                 is_terminal: true,
                 is_visible: false,
@@ -82,14 +82,15 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
                 is_visible: true,
                 is_supertype: false,
             },
-        ],
-        field_names: vec![],
-        #[cfg(feature = "external-scanners")]
-        external_scanner: None,
-    }
+        ])
+        .field_names(vec![])
+        .tokenizer(tokenize_fn)
+        .build()
+        .unwrap()
 }
 
 #[test]
+#[cfg(feature = "glr-core")]
 fn glr_parse_simple() {
     let counter = Arc::new(AtomicUsize::new(0));
     let lang = make_language(counter.clone());
@@ -100,7 +101,7 @@ fn glr_parse_simple() {
     assert_eq!(counter.load(Ordering::SeqCst), 1);
 }
 
-#[cfg(feature = "incremental")]
+#[cfg(all(feature = "glr-core", feature = "incremental"))]
 #[test]
 fn glr_incremental_reuse() {
     let counter = Arc::new(AtomicUsize::new(0));

@@ -3,6 +3,9 @@
 #[cfg(feature = "glr-core")]
 type TokenizerFn = dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = crate::Token> + 'a>;
 
+#[cfg(feature = "glr-core")]
+type TokenizerBoxed = Box<TokenizerFn>;
+
 /// A language definition containing parse tables and metadata
 pub struct Language {
     /// Language version for compatibility checking
@@ -124,32 +127,6 @@ impl Clone for Language {
 }
 
 impl Language {
-    /// Create a stub language for testing
-    pub fn new_stub() -> Self {
-        Self {
-            version: 0,
-            symbol_count: 0,
-            field_count: 0,
-            max_alias_sequence_length: 0,
-            #[cfg(feature = "glr-core")]
-            parse_table: None,
-            #[cfg(not(feature = "glr-core"))]
-            parse_table: ParseTable {
-                state_count: 0,
-                action_table: vec![],
-                small_parse_table: None,
-                small_parse_table_map: None,
-            },
-            symbol_names: vec![],
-            symbol_metadata: vec![],
-            field_names: vec![],
-            #[cfg(feature = "external-scanners")]
-            external_scanner: None,
-            #[cfg(feature = "glr-core")]
-            tokenize: None,
-        }
-    }
-
     /// Convenience: turn a `Vec<Token>` into a source for tests/examples.
     #[cfg(feature = "glr-core")]
     pub fn with_static_tokens(mut self, toks: Vec<crate::Token>) -> Self {
@@ -182,6 +159,118 @@ impl Language {
         self.symbol_metadata
             .get(symbol as usize)
             .is_some_and(|m| m.is_visible)
+    }
+}
+
+/// Builder for constructing `Language` instances.
+#[derive(Default)]
+pub struct LanguageBuilder {
+    version: u32,
+    max_alias_sequence_length: u32,
+    #[cfg(feature = "glr-core")]
+    parse_table: Option<&'static rust_sitter_glr_core::ParseTable>,
+    #[cfg(not(feature = "glr-core"))]
+    parse_table: Option<ParseTable>,
+    #[cfg(feature = "glr-core")]
+    tokenize: Option<TokenizerBoxed>,
+    symbol_names: Option<Vec<String>>,
+    symbol_metadata: Option<Vec<SymbolMetadata>>,
+    field_names: Option<Vec<String>>,
+    #[cfg(feature = "external-scanners")]
+    external_scanner: Option<Box<dyn crate::external_scanner::ExternalScanner>>,
+}
+
+impl Language {
+    /// Start building a `Language`.
+    pub fn builder() -> LanguageBuilder {
+        LanguageBuilder::default()
+    }
+}
+
+impl LanguageBuilder {
+    /// Set the language version.
+    pub fn version(mut self, version: u32) -> Self {
+        self.version = version;
+        self
+    }
+
+    /// Set the maximum alias sequence length.
+    pub fn max_alias_sequence_length(mut self, len: u32) -> Self {
+        self.max_alias_sequence_length = len;
+        self
+    }
+
+    /// Provide the parse table.
+    #[cfg(feature = "glr-core")]
+    pub fn parse_table(mut self, table: &'static rust_sitter_glr_core::ParseTable) -> Self {
+        self.parse_table = Some(table);
+        self
+    }
+
+    /// Provide the parse table.
+    #[cfg(not(feature = "glr-core"))]
+    pub fn parse_table(mut self, table: ParseTable) -> Self {
+        self.parse_table = Some(table);
+        self
+    }
+
+    /// Provide symbol names.
+    pub fn symbol_names(mut self, names: Vec<String>) -> Self {
+        self.symbol_names = Some(names);
+        self
+    }
+
+    /// Provide symbol metadata.
+    pub fn symbol_metadata(mut self, meta: Vec<SymbolMetadata>) -> Self {
+        self.symbol_metadata = Some(meta);
+        self
+    }
+
+    /// Provide field names.
+    pub fn field_names(mut self, names: Vec<String>) -> Self {
+        self.field_names = Some(names);
+        self
+    }
+
+    /// Provide a tokenizer.
+    #[cfg(feature = "glr-core")]
+    pub fn tokenizer<F>(mut self, f: F) -> Self
+    where
+        F: Fn(&[u8]) -> Box<dyn Iterator<Item = crate::Token> + '_> + 'static,
+    {
+        let boxed_fn: TokenizerBoxed = Box::new(f);
+        self.tokenize = Some(boxed_fn);
+        self
+    }
+
+    /// Build the language, failing if required components are missing.
+    pub fn build(self) -> Result<Language, &'static str> {
+        let parse_table = self.parse_table.ok_or("missing parse table")?;
+        let symbol_metadata = self.symbol_metadata.ok_or("missing symbol metadata")?;
+        let symbol_names = self
+            .symbol_names
+            .unwrap_or_else(|| vec![String::new(); symbol_metadata.len()]);
+        let field_names = self.field_names.unwrap_or_default();
+        let symbol_count = symbol_names.len() as u32;
+        let field_count = field_names.len() as u32;
+
+        Ok(Language {
+            version: self.version,
+            symbol_count,
+            field_count,
+            max_alias_sequence_length: self.max_alias_sequence_length,
+            #[cfg(feature = "glr-core")]
+            parse_table: Some(parse_table),
+            #[cfg(not(feature = "glr-core"))]
+            parse_table,
+            #[cfg(feature = "glr-core")]
+            tokenize: self.tokenize,
+            symbol_names,
+            symbol_metadata,
+            field_names,
+            #[cfg(feature = "external-scanners")]
+            external_scanner: self.external_scanner,
+        })
     }
 }
 
