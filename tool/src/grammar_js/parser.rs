@@ -4,7 +4,7 @@
 //! It starts with regex-based parsing for MVP and can be upgraded to a full JS parser later.
 
 use super::{GrammarJs, Rule};
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use regex::Regex;
 use std::collections::HashMap;
 
