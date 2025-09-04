@@ -27,10 +27,26 @@ static RAYON_INIT: Lazy<()> = Lazy::new(|| {
         .parse()
         .unwrap_or(4);
 
-    rayon::ThreadPoolBuilder::new()
+    match rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build_global()
-        .expect("Failed to initialize rayon global thread pool");
+    {
+        Ok(()) => {
+            eprintln!(
+                "Successfully initialized rayon global thread pool with {} threads",
+                num_threads
+            );
+        }
+        Err(e) => {
+            // Check if the error is about global pool already being initialized
+            let error_msg = e.to_string();
+            if error_msg.contains("global thread pool") && error_msg.contains("already") {
+                eprintln!("Rayon global thread pool already initialized, skipping");
+            } else {
+                panic!("Failed to initialize rayon global thread pool: {}", e);
+            }
+        }
+    }
 });
 
 /// Helper for bounded parallel iteration
@@ -63,7 +79,11 @@ mod tests {
 
     #[test]
     fn test_concurrency_caps_init() {
-        // This should not panic
+        // This should not panic, even if the global thread pool is already initialized
+        // The function should handle the case gracefully
+        init_concurrency_caps();
+
+        // Call it again to ensure it doesn't panic on repeated calls
         init_concurrency_caps();
     }
 
