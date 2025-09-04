@@ -1,6 +1,8 @@
 // Python grammar for rust-sitter
 // Simplified version for v0.5.0-beta (without indentation handling)
 
+#![allow(clippy::manual_non_exhaustive)]
+
 pub mod scanner;
 
 // Include the generated parser

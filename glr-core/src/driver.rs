@@ -316,10 +316,10 @@ impl<'t> Driver<'t> {
             } else {
                 // Track forks when we have multiple stacks from a single parent
                 #[cfg(feature = "glr_telemetry")]
-                if let Some(t) = self.telemetry {
-                    if new_stacks.len() > 1 {
-                        t.inc_fork_by((new_stacks.len() - 1) as u64);
-                    }
+                if let Some(t) = self.telemetry
+                    && new_stacks.len() > 1
+                {
+                    t.inc_fork_by((new_stacks.len() - 1) as u64);
                 }
                 // Commit the new frontier
                 state.stacks = new_stacks;

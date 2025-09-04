@@ -602,7 +602,9 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     writeln!(parser_file, "#[allow(unused_variables)]")?;
     writeln!(parser_file, "#[allow(unexpected_cfgs)]")?;
     writeln!(parser_file, "#[allow(unsafe_op_in_unsafe_fn)]")?;
-    writeln!(parser_file)?;
+    writeln!(parser_file, "#[allow(clippy::op_ref)]")?;
+    writeln!(parser_file, "#[allow(clippy::char_lit_as_u8)]")?;
+    writeln!(parser_file, "#[allow(clippy::unnecessary_cast)]")?;
 
     // Parse tokens to an AST and pretty-print to stable Rust source
     use prettyplease::unparse as pretty_unparse;
