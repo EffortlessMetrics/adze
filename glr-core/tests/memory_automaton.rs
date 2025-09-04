@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod memory_tests {
-    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
     use rust_sitter_ir::builder::GrammarBuilder;
 
     #[test]
@@ -17,7 +17,7 @@ mod memory_tests {
             .start("module")
             .build();
 
-        let ff = FirstFollowSets::compute(&g);
+        let ff = FirstFollowSets::compute(&g).unwrap();
         let _pt = build_lr1_automaton(&g, &ff).expect("build");
 
         // Drop profiler to get stats
@@ -58,7 +58,7 @@ mod memory_tests {
             .start("stmts")
             .build();
 
-        let ff = FirstFollowSets::compute(&g);
+        let ff = FirstFollowSets::compute(&g).unwrap();
         let pt = build_lr1_automaton(&g, &ff).expect("build");
 
         println!("States generated: {}", pt.state_count);

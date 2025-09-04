@@ -30,10 +30,10 @@ impl CompletionProvider {
 
         // Extract keywords from tokens
         for (_id, token) in &grammar.tokens {
-            if let TokenPattern::String(value) = &token.pattern {
-                if value.chars().all(|c| c.is_alphabetic() || c == '_') {
-                    keywords.push(value.clone());
-                }
+            if let TokenPattern::String(value) = &token.pattern
+                && value.chars().all(|c| c.is_alphabetic() || c == '_')
+            {
+                keywords.push(value.clone());
             }
         }
 
@@ -136,7 +136,7 @@ fn create_symbol_completions() -> Vec<lsp_types::CompletionItem> {{
 /// Hover provider for LSP
 pub struct HoverProvider {
     #[allow(dead_code)]
-    documentation: std::collections::HashMap<String, String>,
+    pub documentation: std::collections::HashMap<String, String>,
 }
 
 impl HoverProvider {
@@ -159,37 +159,37 @@ impl LspFeature for HoverProvider {
     }
 
     fn generate_handler(&self) -> String {
-        let docs = self
-            .documentation
-            .iter()
-            .map(|(k, v)| format!("(\"{}\", \"{}\")", k, v))
-            .collect::<Vec<_>>()
-            .join(",\n        ");
-
+        // Build the generated handler code with proper documentation lookup
+        let documentation_map = HoverProvider::build_documentation_map();
+        
         format!(
             r#"
+use anyhow::{{Context, Result}};
+use lsp_types::{{HoverParams, Hover, HoverContents, MarkedString, Position}};
+use std::collections::HashMap;
+use std::fs;
+
 pub async fn handle_hover(
-    params: lsp_types::HoverParams,
-) -> Result<Option<lsp_types::Hover>> {{
+    params: HoverParams,
+) -> Result<Option<Hover>> {{
     // Get the word under cursor
     let word = get_word_at_position(&params)?;
 
     // Look up documentation
     let contents = match lookup_documentation(&word) {{
-        Some(doc) => lsp_types::HoverContents::Scalar(
-            lsp_types::MarkedString::String(doc)
+        Some(doc) => HoverContents::Scalar(
+            MarkedString::String(doc)
         ),
         None => return Ok(None),
     }};
-
-    Ok(Some(lsp_types::Hover {{
+    
+    Ok(Some(Hover {{
         contents,
         range: None,
     }}))
 }}
 
-fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {{
-    use std::fs;
+fn get_word_at_position(params: &HoverParams) -> Result<String> {{
     use anyhow::anyhow;
     let uri = &params.text_document_position_params.text_document.uri;
     let path = uri.to_file_path().map_err(|_| anyhow("invalid uri"))?;
@@ -222,16 +222,15 @@ fn get_word_at_position(params: &lsp_types::HoverParams) -> Result<String> {{
 }}
 
 fn lookup_documentation(word: &str) -> Option<String> {{
-    use std::collections::HashMap;
+    // Documentation map with common language constructs
     let docs: HashMap<&str, &str> = [
-        {}
-    ]
-    .into_iter()
-    .collect();
-    docs.get(word).map(|s| s.to_string())
+{}
+    ].into_iter().collect();
+    
+    docs.get(word).map(|doc| format!("**{{}}**: {{}}", word, doc))
 }}
 "#,
-            docs
+            HoverProvider::format_documentation_entries(&documentation_map)
         )
     }
 
@@ -243,6 +242,64 @@ fn lookup_documentation(word: &str) -> Option<String> {{
         serde_json::json!({
             "hoverProvider": true
         })
+    }
+}
+
+impl HoverProvider {
+    pub fn build_documentation_map() -> Vec<(&'static str, &'static str)> {
+        vec![
+            // Use the documentation from the grammar if available
+            // For now, provide common programming language keywords
+            ("fn", "Declares a function"),
+            ("let", "Declares a variable binding"),
+            ("mut", "Makes a binding mutable"),
+            ("if", "Conditional expression"),
+            ("else", "Alternative branch of conditional"),
+            ("match", "Pattern matching expression"),
+            ("struct", "Defines a struct type"),
+            ("enum", "Defines an enum type"),
+            ("impl", "Implements methods or traits"),
+            ("trait", "Defines a trait"),
+            ("pub", "Makes an item public"),
+            ("use", "Imports items into scope"),
+            ("mod", "Declares a module"),
+            ("String", "UTF-8 encoded, growable string type"),
+            ("str", "String slice type"),
+            ("i32", "32-bit signed integer type"),
+            ("u32", "32-bit unsigned integer type"),
+            ("bool", "Boolean type with values true and false"),
+            ("Vec", "Growable array type"),
+            ("Option", "Type representing optional values"),
+            ("Result", "Type for recoverable errors"),
+            ("function", "Declares a function"),
+            ("const", "Declares a constant"),
+            ("var", "Declares a variable"),
+            ("class", "Declares a class"),
+            ("interface", "Declares a TypeScript interface"),
+            ("type", "Declares a type alias"),
+            ("import", "Imports modules or values"),
+            ("export", "Exports values from module"),
+            ("def", "Defines a function"),
+            ("return", "Returns a value from function"),
+            ("yield", "Yields a value from generator"),
+            ("async", "Declares async function"),
+            ("await", "Waits for async operation"),
+            ("break", "Exits from a loop"),
+            ("continue", "Skips to next iteration of loop"),
+            ("while", "Loop that continues while condition is true"),
+            ("for", "Loop that iterates over a sequence"),
+            ("try", "Begins error handling block"),
+            ("catch", "Handles errors in try block"),
+            ("finally", "Code that always runs after try/catch"),
+        ]
+    }
+
+    pub fn format_documentation_entries(entries: &[(&str, &str)]) -> String {
+        entries
+            .iter()
+            .map(|(key, value)| format!("        (\"{}\", \"{}\")", key, value))
+            .collect::<Vec<_>>()
+            .join(",\n")
     }
 }
 

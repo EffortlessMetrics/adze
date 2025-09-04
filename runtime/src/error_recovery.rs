@@ -176,25 +176,25 @@ impl ErrorRecoveryState {
         // Try strategies in order of preference
 
         // 1. Token insertion - if the missing token is insertable
-        if actual.is_none() || self.can_insert_token(expected) {
-            if let Some(_token) = self.find_insertable_token(expected) {
-                self.consecutive_errors = 0; // Reset on successful recovery
-                return RecoveryStrategy::TokenInsertion;
-            }
+        if (actual.is_none() || self.can_insert_token(expected))
+            && let Some(_token) = self.find_insertable_token(expected)
+        {
+            self.consecutive_errors = 0; // Reset on successful recovery
+            return RecoveryStrategy::TokenInsertion;
         }
 
         // 2. Token deletion - if current token is clearly wrong
-        if let Some(token) = actual {
-            if self.is_clearly_wrong(token, expected) {
-                return RecoveryStrategy::TokenDeletion;
-            }
+        if let Some(token) = actual
+            && self.is_clearly_wrong(token, expected)
+        {
+            return RecoveryStrategy::TokenDeletion;
         }
 
         // 3. Token substitution - if there's a clear candidate
-        if let Some(token) = actual {
-            if self.can_substitute_token(token, expected) {
-                return RecoveryStrategy::TokenSubstitution;
-            }
+        if let Some(token) = actual
+            && self.can_substitute_token(token, expected)
+        {
+            return RecoveryStrategy::TokenSubstitution;
         }
 
         // 4. Scope recovery - if we're in a scope mismatch
@@ -253,11 +253,11 @@ impl ErrorRecoveryState {
 
     /// Update scope stack when closing delimiter is found
     pub fn pop_scope(&mut self, token: u16) -> bool {
-        if let Some(expected_open) = self.find_matching_open(token) {
-            if self.scope_stack.last() == Some(&expected_open) {
-                self.scope_stack.pop();
-                return true;
-            }
+        if let Some(expected_open) = self.find_matching_open(token)
+            && self.scope_stack.last() == Some(&expected_open)
+        {
+            self.scope_stack.pop();
+            return true;
         }
         false
     }

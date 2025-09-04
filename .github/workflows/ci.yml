@@ -13,6 +13,16 @@ env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
   COVERAGE_THRESHOLD: 80
+  # Cap Concurrency - stabilize tests across CI environments (Balanced for stable testing)
+  RUST_TEST_THREADS: 2
+  RAYON_NUM_THREADS: 4
+  TOKIO_WORKER_THREADS: 2
+  TOKIO_BLOCKING_THREADS: 8
+  CARGO_BUILD_JOBS: 4
+  OMP_NUM_THREADS: 1
+  OPENBLAS_NUM_THREADS: 1
+  MKL_NUM_THREADS: 1
+  NUMEXPR_NUM_THREADS: 1
 
 jobs:
   lint:
@@ -137,10 +147,10 @@ jobs:
         run: cargo clippy -p rust-sitter-tablegen -- -D warnings
       
       - name: Example (pure-rust) tests
-        run: cargo test -p rust-sitter-example --features pure-rust
+        run: cargo test -p rust-sitter-example --features pure-rust -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test tablegen (small-table)
-        run: cargo test -p rust-sitter-tablegen --features "small-table" -- --nocapture
+        run: cargo test -p rust-sitter-tablegen --features "small-table" -- --test-threads=$RUST_TEST_THREADS --nocapture
       
       - name: Compile pure-rust golden tests (no-run)
         run: cargo test -p rust-sitter --test golden_tests --features pure-rust --no-run
@@ -154,11 +164,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
+      
       - name: Test (workspace, default features)
-        run: cargo test --workspace --locked --no-fail-fast
+        run: cargo test --workspace --locked --no-fail-fast -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test (workspace, all features)
-        run: cargo test --workspace --all-features --locked --no-fail-fast
+        run: cargo test --workspace --all-features --locked --no-fail-fast -- --test-threads=$RUST_TEST_THREADS
 
   # Test with debug assertions enabled to catch invariant violations
   test-debug-assertions:
@@ -173,18 +188,18 @@ jobs:
         env:
           RUSTFLAGS: '-C debug-assertions'
         run: |
-          cargo test -p rust-sitter-glr-core --lib
-          cargo test -p rust-sitter-glr-core --tests
+          cargo test -p rust-sitter-glr-core --lib -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p rust-sitter-glr-core --tests -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test runtime with debug assertions
         env:
           RUSTFLAGS: '-C debug-assertions'
-        run: cargo test -p rust-sitter --lib
+        run: cargo test -p rust-sitter --lib -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test tablegen with debug assertions
         env:
           RUSTFLAGS: '-C debug-assertions'
-        run: cargo test -p rust-sitter-tablegen --lib
+        run: cargo test -p rust-sitter-tablegen --lib -- --test-threads=$RUST_TEST_THREADS
 
   test-release:
     name: Test Release Mode (${{ matrix.features }})
@@ -202,15 +217,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       
       - name: Run tests in release mode
-        run: cargo test --workspace --release ${{ matrix.features }}
+        run: cargo test --workspace --release ${{ matrix.features }} -- --test-threads=$RUST_TEST_THREADS
       
       - name: Run invariant tests with strict-invariants
         if: contains(matrix.features, 'strict-invariants')
         run: |
-          cargo test -p rust-sitter-glr-core --release --features strict-invariants,test-helpers
-          cargo test -p rust-sitter-glr-core --release --test test_eof_fix --features strict-invariants
-          cargo test -p rust-sitter-glr-core --release --test test_eof_column_parity --features strict-invariants
-          cargo test -p rust-sitter-glr-core --release --test test_accept_via_insertion --features strict-invariants
+          cargo test -p rust-sitter-glr-core --release --features strict-invariants,test-helpers -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p rust-sitter-glr-core --release --test test_eof_fix --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p rust-sitter-glr-core --release --test test_eof_column_parity --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p rust-sitter-glr-core --release --test test_accept_via_insertion --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
 
   benchmarks:
     name: Benchmark Compilation
@@ -267,7 +282,7 @@ jobs:
         run: cargo build -p rust-sitter-example ${{ matrix.backend.flags }}
       
       - name: Test runtime with ${{ matrix.backend.name }}
-        run: cargo test -p rust-sitter ${{ matrix.backend.flags }}
+        run: cargo test -p rust-sitter ${{ matrix.backend.flags }} -- --test-threads=$RUST_TEST_THREADS
 
   miri:
     name: Miri (UB Detection)
@@ -310,13 +325,13 @@ jobs:
           cargo build -p rust-sitter-example --features "ts-compat pure-rust"
       
       - name: Test ts-compat API
-        run: cargo test -p rust-sitter --features "ts-compat pure-rust" --test ts_compat_equiv
+        run: cargo test -p rust-sitter --features "ts-compat pure-rust" --test ts_compat_equiv -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test ts-compat golden tests
-        run: cargo test -p rust-sitter --test golden_tests --features ts-compat
+        run: cargo test -p rust-sitter --test golden_tests --features ts-compat -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test ts-compat with incremental GLR
-        run: cargo test -p rust-sitter --features "ts-compat pure-rust incremental_glr" --test ts_compat_equiv
+        run: cargo test -p rust-sitter --features "ts-compat pure-rust incremental_glr" --test ts_compat_equiv -- --test-threads=$RUST_TEST_THREADS
 
   sanitizers:
     name: Sanitizers (ASAN/UBSAN)
@@ -454,11 +469,11 @@ jobs:
             --lib --tests
       
       - name: Test incremental_glr feature
-        run: cargo test --workspace --features incremental_glr
+        run: cargo test --workspace --features incremental_glr -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test experimental examples (opt-in)
         if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[test-examples]') }}
-        run: cargo test -p rust-sitter --examples --features experimental_examples
+        run: cargo test -p rust-sitter --examples --features experimental_examples -- --test-threads=$RUST_TEST_THREADS
 
   msrv:
     name: MSRV (1.89.0)
@@ -525,6 +540,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
+      
       - name: Build docs (deny warnings)
         env:
           RUSTDOCFLAGS: -D warnings
@@ -568,7 +588,7 @@ jobs:
         if: matrix.target == 'i686-unknown-linux-gnu'
         run: |
           # Ensure ChildEdge maintains expected size on 32-bit platforms
-          cargo test --target ${{ matrix.target }} --package rust-sitter --lib -- --nocapture child_edge_size || true
+          cargo test --target ${{ matrix.target }} --package rust-sitter --lib -- --test-threads=$RUST_TEST_THREADS --nocapture child_edge_size || true
 
   coverage:
     name: Code Coverage
@@ -577,6 +597,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
       
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@v2
@@ -682,11 +707,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       
-      - name: Install jq
+      - name: Install dependencies
         run: |
-          if ! command -v jq >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y jq
-          fi
+          sudo apt-get update
+          sudo apt-get install -y jq libtree-sitter-dev pkg-config
 
       # 1) Block silently disabled tests (files renamed to .disabled)
       - name: Fail on disabled test files

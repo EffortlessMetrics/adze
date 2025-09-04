@@ -26,8 +26,8 @@ use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::{Grammar, RuleId, SymbolId};
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 /// Simple edit descriptor for byte-based edits
 #[derive(Debug, Clone)]
@@ -200,7 +200,7 @@ pub fn reparse(
             );
             old
         };
-        let old_tokens = tokenize_source(&old_source, &grammar);
+        let old_tokens = tokenize_source(&old_source, grammar);
 
         // Find which old tokens are affected by the edit
         let mut affected_start_idx = 0;
@@ -226,7 +226,7 @@ pub fn reparse(
 
         // 2. Tokenize only the new edited text
         let new_text = &source[edit.start_byte..edit.new_end_byte];
-        let mut edited_tokens = tokenize_source(new_text, &grammar);
+        let mut edited_tokens = tokenize_source(new_text, grammar);
 
         // Adjust byte positions for the edited tokens
         for token in &mut edited_tokens {
@@ -321,14 +321,31 @@ impl ForestNode {
         self.byte_range.start < edit_range.end && self.byte_range.end > edit_range.start
     }
 
+    /// Check if this node's byte range overlaps with the given range
+    pub fn overlaps(&self, other: &Range<usize>) -> bool {
+        self.byte_range.start < other.end && self.byte_range.end > other.start
+    }
+
     /// Find reusable subtrees that don't overlap the edit
+    /// GLR-compatible implementation that collects valid subtrees for post-parse reuse
     pub fn find_reusable_subtrees(&self, edit_range: &Range<usize>) -> Vec<Arc<ForestNode>> {
-        // TEMPORARY: Disable all reuse to test if incremental parsing works without it
-        // The current approach of injecting subtrees during token processing is
-        // fundamentally incompatible with GLR forking. We need to redesign this
-        // to only reuse subtrees when building the final forest, not during parsing.
-        let _ = edit_range; // Suppress unused warning
-        Vec::new()
+        let mut reusable = Vec::new();
+
+        // Only collect subtrees that are completely outside the edit range
+        // This conservative approach ensures GLR forking compatibility
+        for alternative in &self.alternatives {
+            if !self.overlaps_edit(edit_range) {
+                // Check all children in this alternative
+                for child in &alternative.children {
+                    if !child.overlaps(edit_range) {
+                        // This child is completely unaffected by the edit
+                        reusable.push(child.clone());
+                    }
+                }
+            }
+        }
+
+        reusable
     }
 }
 
@@ -663,6 +680,31 @@ impl IncrementalGLRParser {
                 (edits[0].new_text.len() as isize) - (edits[0].old_range.len() as isize);
             let suffix_len = chunk_id.find_suffix_boundary(&old_tokens, tokens, edit_delta);
 
+            // Debug chunk boundaries for troubleshooting
+            if false {
+                // Enable for debugging
+                println!(
+                    "DEBUG: Chunk boundaries - prefix_len: {}, suffix_len: {}, total_tokens: {}",
+                    prefix_len,
+                    suffix_len,
+                    tokens.len()
+                );
+                println!(
+                    "DEBUG: Old tokens: {:?}",
+                    old_tokens
+                        .iter()
+                        .map(|t| String::from_utf8_lossy(&t.text))
+                        .collect::<Vec<_>>()
+                );
+                println!(
+                    "DEBUG: New tokens: {:?}",
+                    tokens
+                        .iter()
+                        .map(|t| String::from_utf8_lossy(&t.text))
+                        .collect::<Vec<_>>()
+                );
+            }
+
             // Determine if we should use forest splicing or fall back to full parse
             // Forest splicing is beneficial when we have significant unchanged regions
             let middle_len = tokens
@@ -670,6 +712,38 @@ impl IncrementalGLRParser {
                 .saturating_sub(prefix_len)
                 .saturating_sub(suffix_len);
             let should_splice = prefix_len > 0 || suffix_len > 0;
+
+            // CRITICAL FIX: For potentially ambiguous grammars, be very conservative about incremental parsing.
+            // Two cases to handle:
+            // 1. Old forest has ambiguity - we need to preserve it
+            // 2. Old forest is unambiguous but edit might introduce ambiguity
+            //
+            // The problem: If we only parse a small/medium segment, we lose the broader context
+            // that creates ambiguity. Examples:
+            // - "1-2-3" -> "1-5-3": ambiguity from entire expression structure
+            // - "if a then other" -> "if a then if b then c else d": edit introduces ambiguity
+
+            let had_ambiguity = old_forest.alternatives.len() > 1;
+            let might_introduce_ambiguity = middle_len > tokens.len() / 3; // Large edit
+            let middle_is_small = middle_len < tokens.len() / 2; // Less than half the tokens
+
+            if (had_ambiguity && middle_is_small) || might_introduce_ambiguity {
+                // Debug output for troubleshooting (enable when needed)
+                if false {
+                    println!(
+                        "DEBUG: Potentially ambiguous input detected - falling back to full parse"
+                    );
+                    println!(
+                        "DEBUG: Old alternatives: {}, Middle len: {}, Total len: {}, Might introduce ambiguity: {}",
+                        old_forest.alternatives.len(),
+                        middle_len,
+                        tokens.len(),
+                        might_introduce_ambiguity
+                    );
+                }
+                // Fall back to full parsing to ensure ambiguity is correctly handled
+                return self.parse_fresh(tokens);
+            }
 
             if should_splice && middle_len < tokens.len() {
                 // STEP 1: Parse ONLY the middle segment
@@ -722,10 +796,19 @@ impl IncrementalGLRParser {
                     // Get the parse result for the middle
                     match middle_parser.finish_all_alternatives() {
                         Ok(trees) if !trees.is_empty() => {
+                            // Debug output for troubleshooting (enable when needed)
+                            if false {
+                                println!(
+                                    "DEBUG: Middle segment parse produced {} alternatives",
+                                    trees.len()
+                                );
+                            }
                             if trees.len() == 1 {
+                                // Single alternative - create fork and build forest
+                                let fork_id = self.fork_tracker.create_fork(None);
                                 self.build_forest_from_subtree(
                                     trees[0].clone(),
-                                    middle_start,
+                                    fork_id,
                                     middle_tokens,
                                 )
                             } else {
@@ -742,7 +825,7 @@ impl IncrementalGLRParser {
                                         subtree: tree.clone(),
                                     });
                                 }
-                                Arc::new(ForestNode {
+                                let middle_forest = Arc::new(ForestNode {
                                     symbol: trees[0].node.symbol_id,
                                     alternatives,
                                     byte_range: middle_tokens
@@ -752,7 +835,15 @@ impl IncrementalGLRParser {
                                         ..middle_tokens.last().map(|t| t.end_byte).unwrap_or(0),
                                     token_range: middle_start..middle_end,
                                     cached_subtree: None,
-                                })
+                                });
+                                if false {
+                                    // Debug output
+                                    println!(
+                                        "DEBUG: Created middle forest with {} alternatives",
+                                        middle_forest.alternatives.len()
+                                    );
+                                }
+                                middle_forest
                             }
                         }
                         _ => {
@@ -772,12 +863,28 @@ impl IncrementalGLRParser {
                 );
 
                 // STEP 3: Splice the forests together
+                if false {
+                    // Debug output
+                    println!(
+                        "DEBUG: About to splice - prefix: {}, suffix: {}, middle alternatives: {}",
+                        prefix_nodes.len(),
+                        suffix_nodes.len(),
+                        middle_forest.alternatives.len()
+                    );
+                }
                 let spliced_forest = self.splice_forests(
                     prefix_nodes.clone(),
                     middle_forest,
                     suffix_nodes.clone(),
                     tokens,
                 );
+                if false {
+                    // Debug output
+                    println!(
+                        "DEBUG: After splice - result alternatives: {}",
+                        spliced_forest.alternatives.len()
+                    );
+                }
 
                 // Update reuse counter with actual node count, not token count
                 let reuse_count = prefix_nodes.len() + suffix_nodes.len();
@@ -901,6 +1008,8 @@ impl IncrementalGLRParser {
     }
 
     /// Splice prefix, middle, and suffix forests into a single forest
+    /// CRITICAL: This method must preserve all alternatives from the middle forest
+    /// to maintain ambiguity after incremental edits.
     fn splice_forests(
         &mut self,
         prefix_nodes: Vec<Arc<ForestNode>>,
@@ -908,66 +1017,118 @@ impl IncrementalGLRParser {
         suffix_nodes: Vec<Arc<ForestNode>>,
         tokens: &[GLRToken],
     ) -> Arc<ForestNode> {
-        // Combine all nodes into a single forest
-        let mut all_children = Vec::new();
+        // If the middle forest has no alternatives, handle the simple case first
+        if middle_forest.alternatives.is_empty() {
+            // Empty middle - just combine prefix and suffix if any
+            let mut all_children = Vec::new();
+            all_children.extend(prefix_nodes);
+            all_children.extend(suffix_nodes);
 
-        // Sort and add nodes in token order (prefix, middle, suffix)
-        all_children.extend(prefix_nodes);
-        all_children.push(middle_forest.clone());
-        all_children.extend(suffix_nodes);
+            if all_children.is_empty() {
+                return middle_forest;
+            }
 
-        // If we have no children, return an empty forest
-        if all_children.is_empty() {
-            return middle_forest;
+            if all_children.len() == 1 {
+                return all_children[0].clone();
+            }
+
+            // Multiple non-middle children - create synthetic parent
+            let byte_start = all_children
+                .first()
+                .map(|n| n.byte_range.start)
+                .unwrap_or(0);
+            let byte_end = all_children
+                .last()
+                .map(|n| n.byte_range.end)
+                .unwrap_or_else(|| tokens.last().map(|t| t.end_byte).unwrap_or(0));
+            let token_start = all_children
+                .first()
+                .map(|n| n.token_range.start)
+                .unwrap_or(0);
+            let token_end = all_children
+                .last()
+                .map(|n| n.token_range.end)
+                .unwrap_or(tokens.len());
+
+            return Arc::new(ForestNode {
+                symbol: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
+                alternatives: vec![ForkAlternative {
+                    fork_id: self.fork_tracker.create_fork(None),
+                    rule_id: None,
+                    children: all_children,
+                    subtree: Arc::new(crate::subtree::Subtree::new(
+                        crate::subtree::SubtreeNode {
+                            symbol_id: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
+                            is_error: false,
+                            byte_range: byte_start..byte_end,
+                        },
+                        vec![],
+                    )),
+                }],
+                byte_range: byte_start..byte_end,
+                token_range: token_start..token_end,
+                cached_subtree: None,
+            });
         }
 
-        // If we have only one child, return it directly
-        if all_children.len() == 1 {
-            return all_children[0].clone();
-        }
-
-        // For multiple children, we need to find or create a parent node
-        // that can contain all of them. In a full implementation, this would
-        // look up the grammar to find a matching production rule.
-        // For now, we create a synthetic parent node.
+        // CRITICAL FIX: Handle case where middle forest has alternatives (ambiguity)
+        // We need to create a new forest node that preserves ALL alternatives from the middle,
+        // but wraps them with the appropriate prefix and suffix nodes.
 
         // Calculate the combined byte and token ranges
-        let byte_start = all_children
+        let combined_start = prefix_nodes
             .first()
             .map(|n| n.byte_range.start)
+            .or_else(|| Some(middle_forest.byte_range.start))
             .unwrap_or(0);
-        let byte_end = all_children
+        let combined_end = suffix_nodes
             .last()
             .map(|n| n.byte_range.end)
+            .or_else(|| Some(middle_forest.byte_range.end))
             .unwrap_or_else(|| tokens.last().map(|t| t.end_byte).unwrap_or(0));
 
-        let token_start = all_children
+        let combined_token_start = prefix_nodes
             .first()
             .map(|n| n.token_range.start)
+            .or_else(|| Some(middle_forest.token_range.start))
             .unwrap_or(0);
-        let token_end = all_children
+        let combined_token_end = suffix_nodes
             .last()
             .map(|n| n.token_range.end)
+            .or_else(|| Some(middle_forest.token_range.end))
             .unwrap_or(tokens.len());
 
-        // Create the spliced forest node
-        Arc::new(ForestNode {
-            symbol: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
-            alternatives: vec![ForkAlternative {
-                fork_id: self.fork_tracker.create_fork(None),
-                rule_id: None, // In a full implementation, find the matching rule
+        // For each alternative in the middle forest, create a corresponding alternative
+        // in the result forest that includes the prefix and suffix nodes
+        let mut new_alternatives = Vec::new();
+
+        for middle_alt in &middle_forest.alternatives {
+            // Build the children list: prefix + middle_alternative_children + suffix
+            let mut all_children = Vec::new();
+            all_children.extend(prefix_nodes.iter().cloned());
+            all_children.extend(middle_alt.children.iter().cloned());
+            all_children.extend(suffix_nodes.iter().cloned());
+
+            // Create a new alternative that preserves the middle alternative's fork_id
+            // or creates a new one if needed
+            let fork_id = middle_alt.fork_id;
+
+            let new_alternative = ForkAlternative {
+                fork_id,
+                rule_id: middle_alt.rule_id, // Preserve rule_id from middle
                 children: all_children,
-                subtree: Arc::new(crate::subtree::Subtree::new(
-                    crate::subtree::SubtreeNode {
-                        symbol_id: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
-                        is_error: false,
-                        byte_range: byte_start..byte_end,
-                    },
-                    vec![],
-                )),
-            }],
-            byte_range: byte_start..byte_end,
-            token_range: token_start..token_end,
+                subtree: middle_alt.subtree.clone(), // This might need adjustment in a full implementation
+            };
+
+            new_alternatives.push(new_alternative);
+        }
+
+        // Create the result forest with all alternatives preserved
+        Arc::new(ForestNode {
+            symbol: middle_forest.symbol, // Use the middle forest's symbol as it's the "core" of the parse
+            alternatives: new_alternatives,
+            byte_range: combined_start..combined_end,
+            token_range: combined_token_start..combined_token_end,
             cached_subtree: None,
         })
     }

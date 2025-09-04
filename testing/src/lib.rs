@@ -125,17 +125,23 @@ impl BetaTester {
     }
 
     /// Load a grammar from disk
-    fn load_grammar(&self, _path: &Path) -> Result<Grammar> {
-        // TODO: Implement grammar loading
-        // This would parse the rust-sitter grammar definition
-        unimplemented!("Grammar loading not yet implemented")
+    pub fn load_grammar(&self, path: &Path) -> Result<Grammar> {
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("Failed to read grammar file at {}", path.display()))?;
+
+        let grammar: Grammar = serde_json::from_str(&content)
+            .with_context(|| format!("Failed to parse grammar JSON from {}", path.display()))?;
+        Ok(grammar)
     }
 
     /// Generate parse table for grammar
-    fn generate_parse_table(&self, _grammar: &Grammar) -> Result<ParseTable> {
-        // TODO: Implement parse table generation
-        // This would use the GLR core to generate tables
-        unimplemented!("Parse table generation not yet implemented")
+    pub fn generate_parse_table(&self, grammar: &Grammar) -> Result<ParseTable> {
+        use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+
+        let ff =
+            FirstFollowSets::compute(grammar).context("Failed to compute first/follow sets")?;
+        let table = build_lr1_automaton(grammar, &ff).context("Failed to build LR(1) automaton")?;
+        Ok(table)
     }
 
     /// Test a single file

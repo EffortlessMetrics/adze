@@ -1,9 +1,9 @@
 // Integration test for JSON parsing with GLR parser
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
-// Import from the crate root since we're in tests
+// Import from the glr_parser module
 use rust_sitter::glr_parser::GLRParser;
 
 #[test]
@@ -58,7 +58,7 @@ fn test_simple_json_grammar() {
     grammar.rule_names.insert(value_id, "value".to_string());
 
     let grammar = Arc::new(grammar);
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(parse_table) => {
@@ -118,7 +118,7 @@ fn test_json_object_grammar() {
     grammar.rule_names.insert(object_id, "object".to_string());
 
     let grammar = Arc::new(grammar);
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(parse_table) => {
@@ -232,7 +232,7 @@ fn test_json_array_with_numbers() {
         .insert(elements_id, "elements".to_string());
 
     let grammar = Arc::new(grammar);
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(parse_table) => {

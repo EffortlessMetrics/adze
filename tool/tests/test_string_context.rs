@@ -29,14 +29,18 @@ fn test_string_context() {
             let after_rules = &grammar_section[rules_pos + 6..];
             let trimmed = after_rules.trim_start();
 
-            if trimmed.starts_with('{') {
-                let content_after_brace = &trimmed[1..];
+            if let Some(content_after_brace) = trimmed.strip_prefix('{') {
                 let chars: Vec<char> = content_after_brace.chars().collect();
 
                 // Look around position 5000
                 println!("Context around position 5000:");
-                for i in 4990..5010.min(chars.len()) {
-                    println!("  [{}] char='{}' (U+{:04X})", i, chars[i], chars[i] as u32);
+                for (i, char) in chars
+                    .iter()
+                    .enumerate()
+                    .take(5010.min(chars.len()))
+                    .skip(4990)
+                {
+                    println!("  [{}] char='{}' (U+{:04X})", i + 4990, char, *char as u32);
                 }
 
                 // Find all quote characters

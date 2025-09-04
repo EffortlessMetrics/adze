@@ -1,7 +1,7 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Create a highly ambiguous arithmetic expression grammar
@@ -118,7 +118,7 @@ fn create_ambiguous_grammar() -> Grammar {
 
 fn benchmark_simple_expression(c: &mut Criterion) {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     c.bench_function("parse_simple_expression", |b| {
@@ -146,7 +146,7 @@ fn benchmark_simple_expression(c: &mut Criterion) {
 
 fn benchmark_deeply_nested_expression(c: &mut Criterion) {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Create a deeply nested expression: ((((1 + 2) * 3) + 4) * 5)
@@ -177,7 +177,7 @@ fn benchmark_deeply_nested_expression(c: &mut Criterion) {
 
 fn benchmark_highly_ambiguous_expression(c: &mut Criterion) {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Highly ambiguous expression that creates many parse trees
@@ -216,7 +216,7 @@ fn benchmark_highly_ambiguous_expression(c: &mut Criterion) {
 
 fn benchmark_fork_performance(c: &mut Criterion) {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Expression that causes maximum forking

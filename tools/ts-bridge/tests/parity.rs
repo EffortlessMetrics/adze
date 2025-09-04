@@ -1,4 +1,4 @@
-#![cfg(all(feature = "with-grammars", not(feature = "stub-ts")))]
+#![cfg(feature = "with-grammars")]
 
 use rand::{Rng, SeedableRng};
 use std::collections::HashMap;

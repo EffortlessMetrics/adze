@@ -1,7 +1,7 @@
 // Integration test for GLR lexer and parser
-use rust_sitter::glr_lexer::{GLRLexer, tokenize_and_parse};
+use rust_sitter::glr_lexer::{tokenize_and_parse, GLRLexer};
 use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -146,7 +146,7 @@ fn test_arithmetic_with_lexer() {
     grammar.rule_names.insert(factor_id, "factor".to_string());
 
     let grammar = Arc::new(grammar);
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(parse_table) => {
@@ -244,7 +244,7 @@ fn test_json_with_lexer() {
     grammar.rule_names.insert(object_id, "object".to_string());
 
     let grammar = Arc::new(grammar);
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     match build_lr1_automaton(&grammar, &first_follow) {
         Ok(parse_table) => {

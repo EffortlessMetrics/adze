@@ -196,7 +196,7 @@ module.exports = grammar({
         std::env::set_var("CARGO_FEATURE_PURE_RUST", "1");
     }
 
-    use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+    use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
 
     let options = BuildOptions {
         out_dir: temp_dir.path().to_str().unwrap().to_string(),
@@ -214,10 +214,10 @@ module.exports = grammar({
             if node_types_path.exists() {
                 println!("✓ NODE_TYPES.json generated");
                 let content = fs::read_to_string(&node_types_path).unwrap();
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                    if let Some(arr) = json.as_array() {
-                        println!("  Node types: {} entries", arr.len());
-                    }
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content)
+                    && let Some(arr) = json.as_array()
+                {
+                    println!("  Node types: {} entries", arr.len());
                 }
             }
         }

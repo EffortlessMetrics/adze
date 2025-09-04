@@ -58,7 +58,7 @@ pub struct TsbSymbolMetadata {
     pub named: bool,
 }
 
-extern "C" {
+unsafe extern "C" {
     pub fn tsb_language_version() -> u32;
     pub fn tsb_min_compatible_version() -> u32;
 

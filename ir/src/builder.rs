@@ -262,10 +262,10 @@ impl GrammarBuilder {
         // If a start symbol was specified, ensure its rules come first
         let mut ordered_rules = IndexMap::new();
 
-        if let Some(start_id) = self.start_symbol {
-            if let Some(rules) = self.rules.shift_remove(&start_id) {
-                ordered_rules.insert(start_id, rules);
-            }
+        if let Some(start_id) = self.start_symbol
+            && let Some(rules) = self.rules.shift_remove(&start_id)
+        {
+            ordered_rules.insert(start_id, rules);
         }
 
         // Add remaining rules
@@ -439,11 +439,9 @@ mod tests {
             .unwrap();
 
         let module_rules = &grammar.rules[&module_id];
-        assert!(
-            module_rules
-                .iter()
-                .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon))
-        );
+        assert!(module_rules
+            .iter()
+            .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon)));
     }
 
     #[test]
@@ -459,11 +457,9 @@ mod tests {
             .unwrap();
 
         let program_rules = &grammar.rules[&program_id];
-        assert!(
-            !program_rules
-                .iter()
-                .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon))
-        );
+        assert!(!program_rules
+            .iter()
+            .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon)));
     }
 
     #[test]

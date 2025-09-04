@@ -6,21 +6,21 @@
 mod support;
 
 use rust_sitter::decoder;
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 use rust_sitter_ir::SymbolId;
 
 #[test]
 fn external_indent_token_in_table() {
     // Build grammar with external INDENT token
     let grammar = support::indent_grammar::build_indent_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Normalize for Tree-sitter compatibility
     support::language_builder::normalize_table_for_ts(&mut parse_table);
 
     // Check that INDENT token appears in the parse table
-    let indent_id = SymbolId(1);
+    let _indent_id = SymbolId(1);
     let mut indent_found = false;
     let mut indent_states = Vec::new();
 
@@ -52,7 +52,7 @@ fn external_indent_token_in_table() {
 fn external_token_language_generation() {
     // Build grammar and parse table
     let grammar = support::indent_grammar::build_indent_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -67,7 +67,7 @@ fn external_token_language_generation() {
     );
 
     // Check that the language has the expected number of symbols
-    let total_symbols = grammar.tokens.len()
+    let _total_symbols = grammar.tokens.len()
         + grammar
             .rules
             .values()
@@ -87,7 +87,7 @@ fn external_token_language_generation() {
 fn external_indent_decode_and_validate() {
     // Full pipeline test: grammar -> table -> language -> decode
     let grammar = support::indent_grammar::build_indent_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -156,7 +156,7 @@ fn external_token_smoke_test() {
     assert_eq!(indent_token.name, "INDENT", "Wrong token name");
 
     // Build parse table should succeed
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow);
     assert!(
         parse_table.is_ok(),

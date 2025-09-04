@@ -3,7 +3,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use rust_sitter_testing::{BetaTester, TestConfig, TestSuite};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(name = "rust-sitter-test")]
@@ -251,7 +251,7 @@ fn test_corpus(
 }
 
 /// Find grammars in the Tree-sitter repository
-fn find_corpus_grammars(tree_sitter_path: &PathBuf) -> Result<Vec<CorpusGrammarInfo>> {
+fn find_corpus_grammars(tree_sitter_path: &Path) -> Result<Vec<CorpusGrammarInfo>> {
     let mut grammars = Vec::new();
 
     // Common grammar locations in tree-sitter repos

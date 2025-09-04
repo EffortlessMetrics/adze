@@ -1,14 +1,14 @@
 //! Simple example showing the Tree-sitter-compatible API
 
-use rust_sitter_runtime::{Language, Parser};
+use rust_sitter_runtime::{test_helpers::stub_language, Language, Parser};
 
 fn main() {
     // Create a parser
     let mut parser = Parser::new();
 
     // In a real scenario, you'd load a language from a generated crate
-    // For now, we use a stub
-    let language = Language::new_stub();
+    // For now, we build a stub language
+    let language = stub_language();
 
     // Set the language
     parser

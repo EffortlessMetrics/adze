@@ -71,10 +71,13 @@ Provides intelligent code completion based on your grammar:
 
 ### Hover
 
-Shows documentation on hover:
-- Grammar rule information
-- Symbol documentation
-- Type information
+Shows documentation on hover with UTF-8 safe word extraction:
+- **Grammar rule information**: Detailed descriptions of grammar rules
+- **Keyword documentation**: Built-in documentation for common language keywords
+- **Multi-language support**: Covers Rust, JavaScript/TypeScript, Python, and generic programming concepts
+- **UTF-8 safe text processing**: Properly handles multi-byte characters and Unicode
+- **Smart word boundaries**: Accurate word extraction at cursor position
+- **Error recovery**: Graceful handling of invalid positions and file access errors
 
 ### Diagnostics
 
@@ -159,6 +162,56 @@ rust-sitter-lsp-gen from-config --config lsp-config.json
 ```
 
 ## Examples
+
+### Basic Hover Example
+
+Generate an LSP server with enhanced hover support:
+
+```rust
+use rust_sitter_lsp_generator::{LspGenerator, LspConfig};
+use rust_sitter_ir::Grammar;
+
+fn main() -> anyhow::Result<()> {
+    // Load your grammar
+    let grammar = Grammar::load_from_file("my_grammar.json")?;
+    
+    // Configure the LSP server
+    let config = LspConfig {
+        name: "my-language-lsp".to_string(),
+        version: "1.0.0".to_string(),
+        language_id: "my-lang".to_string(),
+        file_extensions: vec![".mylang".to_string()],
+        ..Default::default()
+    };
+    
+    // Generate LSP server with hover support
+    LspGenerator::new(grammar)
+        .with_config(config)
+        .with_hover()
+        .generate("./generated-lsp")?;
+    
+    println!("✅ LSP server with hover support generated!");
+    Ok(())
+}
+```
+
+### Hover Features in Action
+
+The generated hover handler provides documentation for:
+
+- **Rust keywords**: `fn`, `let`, `mut`, `if`, `match`, `struct`, `enum`, etc.
+- **Common types**: `String`, `Vec`, `Option`, `Result`, `bool`, `i32`, etc. 
+- **JavaScript/TypeScript**: `function`, `const`, `class`, `interface`, `type`, etc.
+- **Python constructs**: `def`, `class`, `import`, `async`, `await`, etc.
+- **Generic programming**: `return`, `break`, `continue`, `while`, `for`, `try`, etc.
+
+When a user hovers over any of these keywords, they'll see formatted documentation like:
+
+```
+**fn**: Declares a function
+```
+
+### Complete Examples
 
 See the `examples/` directory for complete examples:
 - JavaScript LSP server

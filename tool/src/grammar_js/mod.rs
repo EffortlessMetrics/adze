@@ -3,7 +3,7 @@
 //! This module provides parsing and conversion of JavaScript-based grammar.js files
 //! to Rust-sitter's internal representation.
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -160,10 +160,10 @@ impl GrammarJs {
         }
 
         // Check that word token exists if specified
-        if let Some(word) = &self.word {
-            if !self.rules.contains_key(word) {
-                bail!("Word token '{}' not found in rules", word);
-            }
+        if let Some(word) = &self.word
+            && !self.rules.contains_key(word)
+        {
+            bail!("Word token '{}' not found in rules", word);
         }
 
         // Check inline rules exist

@@ -2,7 +2,6 @@
 ///
 /// These tests ensure that the public API remains stable and backwards compatible.
 /// Any changes to these tests indicate a breaking change that requires a major version bump.
-
 #[cfg(test)]
 mod api_contract_tests {
     /// Test that the Extract trait is accessible
@@ -13,7 +12,7 @@ mod api_contract_tests {
 
         // The type should exist in the public API
         let type_name = std::any::type_name::<rust_sitter::TSSymbol>();
-        assert!(type_name.len() > 0, "TSSymbol type should have a name");
+        assert!(!type_name.is_empty(), "TSSymbol type should have a name");
     }
 
     /// Test that commonly re-exported types exist

@@ -1,12 +1,12 @@
 #![cfg(feature = "unstable-benches")]
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use rust_sitter::{
     glr_incremental::{Edit, IncrementalGLRParser, Position},
     glr_lexer::{GLRLexer, TokenWithPosition},
     glr_parser::GLRParser,
 };
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -79,7 +79,7 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
     let grammar = create_arithmetic_grammar();
 
     // Build parse table
-    let ff_sets = FirstFollowSets::compute(&grammar);
+    let ff_sets = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &ff_sets).expect("Failed to build parse table");
 
     let mut group = c.benchmark_group("incremental_parsing");
@@ -199,7 +199,7 @@ fn benchmark_edit_location_impact(c: &mut Criterion) {
     let grammar = create_arithmetic_grammar();
 
     // Build parse table
-    let ff_sets = FirstFollowSets::compute(&grammar);
+    let ff_sets = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &ff_sets).expect("Failed to build parse table");
 
     let size = 50;

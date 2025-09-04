@@ -13,7 +13,9 @@ use std::fmt;
 pub struct Subtree {
     pub symbol: SymbolId,
     pub children: Vec<Subtree>,
+    #[allow(dead_code)]
     pub start_byte: usize,
+    #[allow(dead_code)]
     pub end_byte: usize,
 }
 
@@ -78,6 +80,7 @@ pub enum Quantifier {
 
 /// Predicates for additional matching constraints
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum Predicate {
     /// #eq? predicate - captures must be equal
     Equal(Vec<u32>),
@@ -549,10 +552,10 @@ impl<'a> QueryMatches<'a> {
     fn find_next_match(&mut self, pattern: &Pattern) -> Option<QueryMatch> {
         while let Some((node, depth)) = self.node_stack.pop() {
             // Check depth limit
-            if let Some(max) = self.max_depth {
-                if depth > max {
-                    continue;
-                }
+            if let Some(max) = self.max_depth
+                && depth > max
+            {
+                continue;
             }
 
             // Clear captures for new match attempt
@@ -589,20 +592,20 @@ impl<'a> QueryMatches<'a> {
         _depth: usize,
     ) -> bool {
         // Check symbol match
-        if let Some(expected_symbol) = pattern.symbol {
-            if node.symbol != expected_symbol {
-                return false;
-            }
+        if let Some(expected_symbol) = pattern.symbol
+            && node.symbol != expected_symbol
+        {
+            return false;
         }
 
         // Capture if needed
-        if let Some(ref capture_name) = pattern.capture {
-            if let Some(&capture_id) = self.query.capture_names.get(capture_name) {
-                self.captures.push(QueryCapture {
-                    index: capture_id,
-                    subtree: node.clone(),
-                });
-            }
+        if let Some(ref capture_name) = pattern.capture
+            && let Some(&capture_id) = self.query.capture_names.get(capture_name)
+        {
+            self.captures.push(QueryCapture {
+                index: capture_id,
+                subtree: node.clone(),
+            });
         }
 
         // Match children
@@ -683,10 +686,10 @@ impl<'a> QueryMatches<'a> {
 
     fn check_predicates(&self, pattern: &Pattern) -> bool {
         for &pred_index in &pattern.predicate_indices {
-            if let Some(predicate) = self.query.predicates.get(pred_index) {
-                if !self.check_predicate(predicate) {
-                    return false;
-                }
+            if let Some(predicate) = self.query.predicates.get(pred_index)
+                && !self.check_predicate(predicate)
+            {
+                return false;
             }
         }
         true

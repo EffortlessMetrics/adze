@@ -1,5 +1,5 @@
 // Test helper functions for creating valid ParseTable instances
-use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable, SymbolMetadata};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
@@ -13,6 +13,11 @@ pub fn create_minimal_parse_table(grammar: Grammar) -> ParseTable {
             visible: true,
             named: true,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: true, // EOF is typically a terminal
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(0),
         }],
         state_count: 1,
         symbol_count: 1,
@@ -69,6 +74,11 @@ pub fn create_test_parse_table_with_content(
                 visible: true,
                 named: true,
                 supertype: false,
+                // Additional fields required by GLR core API contracts
+                is_terminal: true, // Default to terminal for test symbols
+                is_extra: false,
+                is_fragile: false,
+                symbol_id: SymbolId(0), // Will be overwritten by loop logic if needed
             };
             symbol_count
         ],

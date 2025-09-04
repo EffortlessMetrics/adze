@@ -268,26 +268,26 @@ impl ExternalScanner for StringScanner {
             }
         }
 
-        if valid_symbols.get(STRING_END).copied().unwrap_or(false) {
-            if let Some(delim) = &self.delimiter {
-                // Look for matching delimiter
-                let delim_bytes = delim.as_bytes();
-                let mut matched = true;
+        if valid_symbols.get(STRING_END).copied().unwrap_or(false)
+            && let Some(delim) = &self.delimiter
+        {
+            // Look for matching delimiter
+            let delim_bytes = delim.as_bytes();
+            let mut matched = true;
 
-                for &b in delim_bytes {
-                    if lexer.lookahead() != Some(b) {
-                        matched = false;
-                        break;
-                    }
-                    lexer.advance(false);
+            for &b in delim_bytes {
+                if lexer.lookahead() != Some(b) {
+                    matched = false;
+                    break;
                 }
+                lexer.advance(false);
+            }
 
-                if matched {
-                    lexer.mark_end();
-                    lexer.result(STRING_END as u16);
-                    self.delimiter = None;
-                    return true;
-                }
+            if matched {
+                lexer.mark_end();
+                lexer.result(STRING_END as u16);
+                self.delimiter = None;
+                return true;
             }
         }
 

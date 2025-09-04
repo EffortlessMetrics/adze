@@ -5,7 +5,7 @@ mod support;
 
 #[cfg(all(test, feature = "pure-rust"))]
 mod tests {
-    use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+    use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
     use rust_sitter_ir::SymbolId;
 
     use super::support;
@@ -65,7 +65,7 @@ mod tests {
     fn test_accept_actually_executed() {
         // Build grammar and table
         let grammar = support::json_grammar::build_json_grammar();
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
         let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
         support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -101,7 +101,7 @@ mod tests {
     fn test_accept_on_eof() {
         // This test verifies that Accept is specifically on the EOF column
         let grammar = support::json_grammar::build_json_grammar();
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
         let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
         support::language_builder::normalize_table_for_ts(&mut parse_table);

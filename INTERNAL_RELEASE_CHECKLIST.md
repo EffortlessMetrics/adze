@@ -61,7 +61,6 @@ QUICK_BENCH=1 cargo bench -p rust-sitter-benchmarks --bench incremental_bench
 
 1. **wasm-demo**: Temporarily disabled arithmetic parser (needs API update)
 2. **tablegen example**: `debug_artifacts.rs` needs Grammar API update
-3. **ts-bridge**: Feature conflict between `stub-ts` and `with-grammars`
 
 These are non-blocking for internal use.
 

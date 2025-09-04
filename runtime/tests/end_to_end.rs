@@ -223,11 +223,17 @@ fn create_arithmetic_parse_table() -> ParseTable {
 
     // Add symbol metadata
     for i in 0..13 {
+        let is_terminal = i < 8; // Assume first 8 are terminals
         table.symbol_metadata.push(SymbolMetadata {
             name: format!("symbol_{}", i),
             visible: true,
             named: i != 7, // whitespace is unnamed
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal,
+            is_extra: i == 7, // whitespace is extra
+            is_fragile: false,
+            symbol_id: SymbolId(i as u16),
         });
     }
 

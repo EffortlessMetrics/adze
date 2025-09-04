@@ -170,12 +170,7 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
     let symbol_count = 6;
 
     // Initialize action table (states x symbols)
-    let mut action_table = vec![vec![]; state_count];
-    for state in 0..state_count {
-        for _ in 0..symbol_count {
-            action_table[state].push(vec![]); // ActionCell is Vec<Action>
-        }
-    }
+    let mut action_table = vec![vec![vec![]; symbol_count]; state_count];
 
     // Initialize goto table
     let goto_table = vec![vec![StateId(0); symbol_count]; state_count];
@@ -202,36 +197,66 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
             visible: true,
             named: true,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: false, // expression is a non-terminal
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(0),
         },
         SymbolMetadata {
             name: "number".to_string(),
             visible: true,
             named: true,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: true, // number is a terminal
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(1),
         },
         SymbolMetadata {
             name: "plus".to_string(),
             visible: true,
             named: false,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: true, // plus is a terminal
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(2),
         },
         SymbolMetadata {
             name: "mult".to_string(),
             visible: true,
             named: false,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: true, // mult is a terminal
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(3),
         },
         SymbolMetadata {
             name: "lparen".to_string(),
             visible: true,
             named: false,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: true, // lparen is a terminal
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(4),
         },
         SymbolMetadata {
             name: "rparen".to_string(),
             visible: true,
             named: false,
             supertype: false,
+            // Additional fields required by GLR core API contracts
+            is_terminal: true, // rparen is a terminal
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(5),
         },
     ];
 

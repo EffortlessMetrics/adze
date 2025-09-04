@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **LSP Generator**: Complete grammar loading infrastructure for automatic language server generation
+  - `load_grammar()` function with streaming JSON deserialization for memory efficiency
+  - Security hardening: 10MB file size limits, buffered I/O, comprehensive input validation  
+  - Production-ready LSP server generation from rust-sitter grammars
+  - Full Builder API with fluent configuration: completion, hover, diagnostics support
+  - Comprehensive test coverage with 6 test scenarios covering all error conditions
+  - Documentation updates with complete API reference and usage examples
+
+- **Precedence Error Handling**: Comprehensive validation and error reporting for precedence attributes
+  - Detect multiple precedence attributes (`prec`, `prec_left`, `prec_right`) on same rule
+  - Validate precedence values are integer literals in range 0 to 4294967295
+  - Provide specific error messages for common mistakes (strings, floats, variables, overflow)
+  - Enhanced test coverage for edge cases including zero, max u32, and negative values
+  - Integration tests verify precedence errors don't break other grammar processing
+
 ### ⚠️ Breaking Changes
 
 - **API**: Renamed `GlrStack::last()` to `GlrStack::peek()` to avoid trait method shadowing with `Vec::last()`
@@ -24,6 +41,7 @@ All notable changes to this project will be documented in this file.
 - **Code Robustness**: Added debug assertions to verify stack invariants (even-length head vectors)
 - **Stack Efficiency**: Rewrote `top()`, `depth()`, and `to_vec()` to use iterative algorithms instead of recursion
 - **Telemetry**: Added `inc_fork_by(n)` for efficient bulk fork counting
+- **Developer Experience**: Enhanced error messages for precedence attribute conflicts with specific attribute lists
 
 ### Testing
 

@@ -90,10 +90,10 @@ impl GrammarLexer {
 
         // Try to match patterns in priority order
         for symbol_id in &self.priority_order {
-            if let Some(pattern) = self.patterns.get(symbol_id) {
-                if let Some(token) = self.try_match(pattern, *symbol_id, input, position) {
-                    return Some(token);
-                }
+            if let Some(pattern) = self.patterns.get(symbol_id)
+                && let Some(token) = self.try_match(pattern, *symbol_id, input, position)
+            {
+                return Some(token);
             }
         }
 
@@ -109,12 +109,12 @@ impl GrammarLexer {
             let mut skipped_any = false;
 
             for skip_symbol in &self.skip_symbols {
-                if let Some(pattern) = self.patterns.get(skip_symbol) {
-                    if let Some(token) = self.try_match(pattern, *skip_symbol, input, pos) {
-                        pos = token.end;
-                        skipped_any = true;
-                        break;
-                    }
+                if let Some(pattern) = self.patterns.get(skip_symbol)
+                    && let Some(token) = self.try_match(pattern, *skip_symbol, input, pos)
+                {
+                    pos = token.end;
+                    skipped_any = true;
+                    break;
                 }
             }
 

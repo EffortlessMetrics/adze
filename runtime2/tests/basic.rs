@@ -1,6 +1,6 @@
 //! Basic tests to verify the runtime compiles and has the expected API
 
-use rust_sitter_runtime::{Language, Parser, Tree};
+use rust_sitter_runtime::{test_helpers::stub_language, Parser, Tree};
 
 #[test]
 fn can_create_parser() {
@@ -11,7 +11,7 @@ fn can_create_parser() {
 #[test]
 fn can_set_language() {
     let mut parser = Parser::new();
-    let language = Language::new_stub();
+    let language = stub_language();
     parser.set_language(language).unwrap();
     assert!(parser.language().is_some());
 }

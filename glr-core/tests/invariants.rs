@@ -17,7 +17,7 @@ fn assert_parse_table_invariants(t: &ParseTable) {
     );
 
     // EOF column index is token_count + external_token_count
-    let eof_col = (t.token_count + t.external_token_count) as usize;
+    let eof_col = t.token_count + t.external_token_count;
     assert_eq!(
         t.symbol_to_index.get(&t.eof_symbol),
         Some(&eof_col),

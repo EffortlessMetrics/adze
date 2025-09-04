@@ -1,20 +1,7 @@
-#[cfg(feature = "stub-ts")]
-fn main() -> anyhow::Result<()> {
-    eprintln!(
-        "ERROR: ts-bridge was built with --features stub-ts (dev stub).\n\
-         Rebuild without it to extract real tables."
-    );
-    std::process::exit(2);
-}
-
-#[cfg(not(feature = "stub-ts"))]
 use libloading::{Library, Symbol};
-#[cfg(not(feature = "stub-ts"))]
 use ts_bridge::extract;
-#[cfg(not(feature = "stub-ts"))]
 type LangFn = unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage;
 
-#[cfg(not(feature = "stub-ts"))]
 fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
