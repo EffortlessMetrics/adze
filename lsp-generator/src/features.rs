@@ -161,7 +161,7 @@ impl LspFeature for HoverProvider {
     fn generate_handler(&self) -> String {
         // Build the generated handler code with proper documentation lookup
         let documentation_map = HoverProvider::build_documentation_map();
-        
+
         format!(
             r#"
 use anyhow::{{Context, Result}};
@@ -398,7 +398,7 @@ fn offset_to_position(text: &str, offset: usize) -> lsp_types::Position {{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::{Result, anyhow};
+    use anyhow::{anyhow, Result};
     use lsp_types::{
         HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,
     };
