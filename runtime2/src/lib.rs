@@ -41,7 +41,7 @@ pub mod token;
 /// Test helper utilities for creating stub languages and parse tables.
 ///
 /// Available for tests and when the `test-utils` feature is enabled.
-#[cfg(any(test, feature = "test-utils"))]
+#[cfg(any(test, feature = "test-utils", all(debug_assertions, not(doc))))]
 pub mod test_helpers;
 
 // Re-exports for convenience
