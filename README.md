@@ -82,20 +82,25 @@ fn main() {
 - **WASM compilation** and browser support
 
 ### CLI Status 🔧
+
 The CLI provides honest feedback about current capabilities:
+
 - `rust-sitter parse`: Shows clear message about dynamic loading not yet implemented
 - `rust-sitter test`: Validates corpus format but doesn't run parsing tests yet
 - `rust-sitter generate`: Works for grammar.js → Rust conversion
 - Exit codes follow Unix conventions (64 for usage errors)
 
 ### Feature Flags 🏴
+
 Optional features available for testing:
+
 ```toml
 [dependencies]
 rust-sitter = { version = "0.6", features = ["incremental_glr", "queries", "serialization"] }
 ```
 
 ### Coming in v0.6.x 🚀
+
 - Dynamic parser loading in CLI
 - Complete corpus testing
 - Stable incremental parsing API
@@ -105,6 +110,7 @@ rust-sitter = { version = "0.6", features = ["incremental_glr", "queries", "seri
 ### New Tools 🔧
 
 #### ts-bridge: Tree-sitter Grammar Bridge
+
 The new `ts-bridge` tool (located in `tools/ts-bridge/`) allows extraction of parse tables from compiled Tree-sitter grammars for use with Rust Sitter's GLR runtime:
 
 ```bash
@@ -113,6 +119,7 @@ cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter
 ```
 
 Features:
+
 - **Production Ready**: Extract complete parse tables from any Tree-sitter grammar
 - **ABI Stability**: Pinned to Tree-sitter v15 with SHA-256 header verification  
 - **Dynamic Buffer Allocation**: No truncation - automatically expands for large action cells
@@ -124,7 +131,9 @@ See [tools/ts-bridge/README.md](tools/ts-bridge/README.md) for details.
 For the most reliable experience, use the core parsing functionality with the pure-Rust backend. Track progress on the [issue tracker](https://github.com/hydro-project/rust-sitter/issues).
 
 ## Installation
+
 Add rust-sitter to your `Cargo.toml`:
+
 ```toml
 [dependencies]
 rust-sitter = "0.6.0"
@@ -134,6 +143,7 @@ rust-sitter-tool = "0.6.0"
 ```
 
 Choose your backend via features:
+
 - `pure-rust` (recommended): Pure Rust implementation with full WASM support
 - `tree-sitter-c2rust`: Legacy C2Rust transpiled backend
 - `tree-sitter-standard`: Standard Tree-sitter C runtime
@@ -143,7 +153,9 @@ Choose your backend via features:
 Rust Sitter supports multiple backend configurations:
 
 #### Pure-Rust Backend (Default, Recommended)
+
 The pure-Rust backend generates parsers entirely at compile-time without C dependencies:
+
 ```bash
 # Build with default pure-Rust backend
 cargo build -p rust-sitter-example
@@ -153,7 +165,9 @@ cargo build -p rust-sitter-example --features pure-rust
 ```
 
 #### C Backend (Legacy Tree-sitter)
+
 For compatibility with existing Tree-sitter grammars:
+
 ```bash
 # Requires tree-sitter CLI >= 0.22
 npm install -g tree-sitter-cli
@@ -164,6 +178,7 @@ cargo build -p rust-sitter-example --no-default-features --features c-backend
 ```
 
 #### Configuration in Cargo.toml
+
 ```toml
 [features]
 default = ["pure-rust"]
@@ -190,6 +205,7 @@ fn main() {
 ```
 
 ## Defining a Grammar
+
 Now that we have Rust Sitter added to our project, we can define our grammar. Rust Sitter grammars are defined in annotated Rust modules. First, we define the module that will contain our grammar
 
 ```rust
@@ -284,9 +300,11 @@ grammar::parse("1+2+3") = Ok(Add(
 ```
 
 ## Type Annotations
+
 Rust Sitter supports a number of annotations that can be applied to type and fields in your grammar. These annotations can be used to control how the parser behaves, and how the resulting AST is constructed.
 
 ### `#[rust_sitter::language]`
+
 This annotation marks the entrypoint for parsing, and determines which AST type will be returned from parsing. Only one type in the grammar can be marked as the entrypoint.
 
 ```rust
@@ -297,6 +315,7 @@ struct Code {
 ````
 
 ### `#[rust_sitter::extra]`
+
 This annotation marks a node as extra and can safely be skipped while parsing. This is useful for handling whitespace/newlines/comments.
 
 ```rust
@@ -308,8 +327,11 @@ struct Whitespace {
 ```
 
 ## Field Annotations
+
 ### `#[rust_sitter::leaf(...)]`
+
 The `#[rust_sitter::leaf(...)]` annotation can be used to define a leaf node in the AST. This annotation takes a number of parameters that control how the parser behaves:
+
 - the `pattern` parameter takes a regular expression that is used to match the text of the leaf node. This parameter is required.
 - the `text` parameter takes a string that is used to match the text of the leaf node. This parameter is mutually exclusive with `pattern`.
 - the `transform` parameter takes a function that is used to transform the matched text (an `&str`) into the desired type. This parameter is optional if the target type is `()`.
@@ -329,18 +351,23 @@ enum SmallDigit {
 ```
 
 ### `#[rust_sitter::prec(...)]` / `#[rust_sitter::prec_left(...)]` / `#[rust_sitter::prec_right(...)]`
+
 This annotation can be used to define a non/left/right-associative operator. This annotation takes a single parameter, which is the precedence level of the operator (higher binds more tightly).
 
 ### `#[rust_sitter::skip(...)]`
+
 This annotation can be used to define a field that does not correspond to anything in the input string, such as some metadata. This annotation takes a single parameter, which is the value that should be used to populate that field at runtime.
 
 ### `#[rust_sitter::word]`
+
 This annotation marks the field as a Tree Sitter [word](https://tree-sitter.github.io/tree-sitter/creating-parsers#keywords), which is useful when handling errors involving keywords. Only one field in the grammar can be marked as a word.
 
 ## Special Types
+
 Rust Sitter has a few special types that can be used to define more complex grammars.
 
 ### `Vec<T>`
+
 To parse repeating structures, you can use a `Vec<T>` to parse a list of `T`s. Note that the `Vec<T>` type **cannot** be wrapped in another `Vec` (create additional structs if this is necessary). There are two special attributes that can be applied to a `Vec` field to control the parsing behavior.
 
 The `#[rust_sitter::delimited(...)]` attribute can be used to specify a separator between elements of the list, and takes a parameter of the same format as an unnamed field. For example, we can define a grammar that parses a comma-separated list of expressions:
@@ -369,6 +396,7 @@ pub struct CommaSeparatedExprs {
 ```
 
 ### `Option<T>`
+
 To parse optional structures, you can use an `Option<T>` to parse a single `T` or nothing. Like `Vec`, the `Option<T>` type **cannot** be wrapped in another `Option` (create additional structs if this is necessary). For example, we can make the list elements in the previous example optional so we can parse strings like `1,,2`:
 
 ```rust
@@ -383,6 +411,7 @@ pub struct CommaSeparatedExprs {
 ```
 
 ### `rust_sitter::Spanned<T>`
+
 When using Rust Sitter to power diagnostic tools, it can be helpful to access spans marking the sections of text corresponding to a parsed node. To do this, you can use the `Spanned<T>` type, which captures the underlying parsed `T` and a pair of indices for the start (inclusive) and end (exclusive) of the corresponding substring. `Spanned` types can be used anywhere, and do not affect the parsing logic. For example, we could capture the spans of the expressions in our previous example:
 
 ```rust
@@ -397,15 +426,19 @@ pub struct CommaSeparatedExprs {
 ```
 
 ### `Box<T>`
+
 Boxes are automatically constructed around the inner type when parsing, but Rust Sitter doesn't do anything extra beyond that.
 
 ## Testing & Quality Assurance
 
 ### Test Connectivity Safeguards
+
 The project includes comprehensive protection against tests being silently disconnected or disabled:
 
 #### CI Test Connectivity
+
 The CI pipeline includes a dedicated `test-connectivity` job that:
+
 - **Blocks commits** containing `.rs.disabled` files
 - **Enforces non-zero test counts** across all feature combinations
 - **Reports per-crate test counts** in PR summaries
@@ -413,11 +446,13 @@ The CI pipeline includes a dedicated `test-connectivity` job that:
 - **Surfaces `#[ignore]` tests** for visibility
 
 #### Local Development Tools
+
 - **Pre-commit hook**: Prevents committing `.rs.disabled` files
 - **Verification script**: Run `./scripts/check-test-connectivity.sh` to check test health locally
 - **Test discovery**: Validates tests are properly connected across all crates
 
 ### Running Tests
+
 ```bash
 # Run all tests
 cargo test
@@ -439,7 +474,9 @@ To view the generated grammar, you can set the `RUST_SITTER_EMIT_ARTIFACTS` envi
 Rust Sitter includes powerful features for grammar development, testing, and deployment:
 
 ### External Scanner Support
+
 Define custom lexical analyzers for context-sensitive tokens:
+
 ```rust
 use rust_sitter::external_scanner::{ExternalScanner, ScanResult};
 
@@ -456,7 +493,9 @@ impl ExternalScanner for IndentationScanner {
 ```
 
 ### Query Language
+
 Use Tree-sitter's S-expression query language for pattern matching:
+
 ```rust
 use rust_sitter::query::{compile_query, QueryCursor};
 
@@ -473,6 +512,7 @@ for match_ in cursor.matches(&query, tree.root_node(), source.as_bytes()) {
 ```
 
 ### GLR Parsing (NEW in v0.5!)
+
 Handle ambiguous grammars with a production-ready Generalized LR parser featuring runtime conflict resolution:
 
 ```rust
@@ -498,6 +538,7 @@ let result = parser.parse(source_code)?;
 ```
 
 **GLR Features:**
+
 - ✅ Full Tree-sitter conflict resolution algorithm
 - ✅ Static and dynamic precedence support
 - ✅ Shift/reduce and reduce/reduce conflict handling
@@ -506,7 +547,9 @@ let result = parser.parse(source_code)?;
 - ✅ C API compatibility for Tree-sitter tooling
 
 ### Error Recovery
+
 Build robust parsers that handle syntax errors gracefully:
+
 ```rust
 use rust_sitter::error_recovery::{ErrorRecoveryConfig, RecoveryAction};
 
@@ -520,9 +563,11 @@ let mut parser = Parser::new(grammar, table)
 ```
 
 ### Incremental Parsing
+
 Efficiently edit trees in-place and reparse only changed portions:
 
 **In-Place Tree Editing (PR #28)** - With comprehensive error handling:
+
 ```rust
 #[cfg(feature = "incremental")]
 use rust_sitter_runtime2::{Tree, InputEdit, Point, EditError};
@@ -556,6 +601,7 @@ let analysis_tree = tree.clone();
 ```
 
 **Full Incremental Parsing**:
+
 ```rust
 use rust_sitter::incremental_v3::{IncrementalParser, Edit};
 
@@ -593,7 +639,9 @@ let updated_forest = parser.parse_incremental(&new_tokens, &[edit])?;
 **Performance**: On a 1,000-token file with single edits, incremental parsing is **16.34× faster** than full reparsing, reusing 999 out of 1000 subtrees. The algorithm maintains all parse ambiguities while achieving O(edit size) performance.
 
 ### Testing Framework
+
 Comprehensive testing with property-based tests and fuzzing:
+
 ```rust
 use rust_sitter::testing::{GrammarTester, FuzzConfig};
 
@@ -609,21 +657,34 @@ tester.fuzz(config)?;
 ```
 
 ### LSP Generator
-Automatically generate language servers:
+
+Automatically generate fully-featured language servers with enhanced hover functionality:
+
 ```rust
 use rust_sitter::lsp::{generate_lsp, LspConfig};
 
 let config = LspConfig::builder()
-    .with_semantic_tokens(true)
-    .with_goto_definition(true)
-    .with_completions(true)
+    .with_hover(true)               // NEW: Intelligent hover with 45+ language constructs
+    .with_semantic_tokens(true)     // Syntax highlighting
+    .with_goto_definition(true)     // Code navigation
+    .with_completions(true)         // Auto-completion
+    .with_diagnostics(true)         // Real-time error detection
     .build();
 
 generate_lsp(&grammar, &config, "target/my-language-lsp")?;
 ```
 
+#### NEW in v0.6.1: Enhanced Hover Support
+
+- **Smart Word Extraction**: Automatically identifies words under cursor with UTF-8 support
+- **Comprehensive Documentation**: Built-in help for 45+ language constructs including Rust, JavaScript, Python, TypeScript
+- **Multi-Language Support**: Universal control flow keywords and language-specific constructs
+- **Extensible**: Easy integration with custom documentation systems
+
 ### Performance Optimization
+
 Built-in performance analysis and optimization:
+
 ```rust
 use rust_sitter::performance::{Profiler, optimize_grammar};
 
@@ -642,6 +703,7 @@ let optimized = optimize_grammar(&grammar)
 Rust Sitter v1.0 is production-ready with all planned features implemented:
 
 ### ✅ Core Features
+
 - **Stable API**: Production-tested API with semantic versioning
 - **Pure-Rust Implementation**: Zero C dependencies, compile-time parser generation
 - **GLR Parsing**: Full support for ambiguous grammars with conflict resolution
@@ -650,6 +712,7 @@ Rust Sitter v1.0 is production-ready with all planned features implemented:
 - **WASM Support**: First-class WebAssembly support for browser deployment
 
 ### ✅ Developer Tools
+
 - **Testing Framework**: Property-based testing, fuzzing, and benchmarking
 - **LSP Generator**: Automatic language server generation from grammars
 - **Interactive Playground**: Web-based grammar development and testing
@@ -659,6 +722,7 @@ Rust Sitter v1.0 is production-ready with all planned features implemented:
 ### ✅ Language Support
 
 Rust Sitter has been validated with 150+ production grammars:
+
 - **Systems**: C, C++, Rust, Go, Zig
 - **Web**: JavaScript, TypeScript, HTML, CSS, WebAssembly
 - **Scripting**: Python, Ruby, Perl, Lua, Bash

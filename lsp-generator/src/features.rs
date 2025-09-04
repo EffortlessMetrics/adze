@@ -397,7 +397,6 @@ fn offset_to_position(text: &str, offset: usize) -> lsp_types::Position {{
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use anyhow::{anyhow, Result};
     use lsp_types::{
         HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,

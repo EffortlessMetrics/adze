@@ -871,6 +871,9 @@ impl LspConfigBuilder {
     /// Enable diagnostics
     pub fn with_diagnostics(mut self, enabled: bool) -> Self;
     
+    /// Enable hover information (NEW in v0.6.1)
+    pub fn with_hover(mut self, enabled: bool) -> Self;
+    
     /// Custom handlers
     pub fn with_custom_handler(
         mut self,
@@ -881,6 +884,58 @@ impl LspConfigBuilder {
     /// Build configuration
     pub fn build(self) -> LspConfig;
 }
+```
+
+### `HoverProvider` (NEW in v0.6.1)
+Production-ready hover functionality with intelligent word extraction and comprehensive documentation lookup:
+
+```rust
+impl HoverProvider {
+    /// Create a new hover provider from grammar
+    pub fn new(grammar: &Grammar) -> Self;
+    
+    /// Build documentation map with 45+ language constructs
+    /// Includes Rust, JavaScript, Python, TypeScript, and universal constructs
+    pub fn build_documentation_map() -> Vec<(&'static str, &'static str)>;
+    
+    /// Format documentation entries for code generation
+    pub fn format_documentation_entries(entries: &[(&str, &str)]) -> String;
+}
+
+impl LspFeature for HoverProvider {
+    fn name(&self) -> &str;
+    fn generate_handler(&self) -> String;
+    fn required_imports(&self) -> Vec<String>;
+    fn capabilities(&self) -> serde_json::Value;
+}
+```
+
+### Hover Word Extraction API
+```rust
+/// Extract word at cursor position with intelligent boundary detection
+/// Supports alphanumeric characters and underscores
+pub fn get_word_at_position(params: &HoverParams) -> Result<String>;
+
+/// Look up documentation for a word
+/// Returns formatted markdown with 45+ language constructs
+pub fn lookup_documentation(word: &str) -> Option<String>;
+
+/// Generated hover handler (automatically created by HoverProvider)
+pub async fn handle_hover(params: HoverParams) -> Result<Option<Hover>>;
+```
+
+**Supported Language Constructs** (45+ total):
+- **Rust**: `fn`, `let`, `mut`, `if`, `match`, `struct`, `enum`, `trait`, `impl`, `String`, `Vec`, `Option`, `Result`
+- **JavaScript/TypeScript**: `function`, `const`, `var`, `class`, `interface`, `type`, `import`, `export`
+- **Python**: `def`, `async`, `await`, `yield`, `return`
+- **Universal**: `while`, `for`, `try`, `catch`, `finally`, `break`, `continue`
+
+**Word Extraction Features**:
+- **Intelligent Boundaries**: Recognizes alphanumeric characters and underscores
+- **UTF-8 Support**: Handles multi-byte characters correctly
+- **Position Accuracy**: Uses LSP position format (line/character)
+- **File System Integration**: Reads from file system via URI resolution
+- **Error Handling**: Comprehensive error handling with `anyhow::Result`
 ```
 
 ### `generate_lsp`

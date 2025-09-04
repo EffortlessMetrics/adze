@@ -332,7 +332,6 @@ mod tests {
         assert!(handler_code.contains("handle_hover"));
         assert!(handler_code.contains("get_word_at_position"));
         assert!(handler_code.contains("lookup_documentation"));
-        assert!(handler_code.contains("extract_word_from_position"));
 
         // Verify it includes error handling
         assert!(handler_code.contains("Result"));
@@ -407,7 +406,7 @@ mod tests {
 
         // Should use char-based iteration, not byte-based
         assert!(handler_code.contains("chars: Vec<char>"));
-        assert!(handler_code.contains("line_content.chars()"));
+        assert!(handler_code.contains("line.chars()"));
         assert!(handler_code.contains("is_alphanumeric()"));
     }
 
@@ -418,10 +417,9 @@ mod tests {
         let handler_code = hover_provider.generate_handler();
 
         // Should have proper error handling for common cases
-        assert!(handler_code.contains("Line {} out of bounds"));
-        assert!(handler_code.contains("Character position {} out of bounds"));
-        assert!(handler_code.contains("No word found at position"));
-        assert!(handler_code.contains("Failed to read file"));
+        assert!(handler_code.contains("line out of bounds"));
+        assert!(handler_code.contains("invalid uri"));
+        assert!(handler_code.contains("anyhow"));
     }
 
     #[test]

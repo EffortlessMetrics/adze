@@ -353,19 +353,10 @@ The `scripts/check-test-connectivity.sh` script allows developers to:
 - Detect potentially orphaned test modules
 - Get actionable recommendations for test health
 
-#### Currently Disabled Tests
-The following test files are currently disabled and need attention:
-- `runtime/tests/golden_tests.rs.disabled`
-- `runtime/tests/test_complete_example.rs.disabled`
-- `runtime/tests/test_glr_parsing.rs.disabled`
-- `runtime/tests/test_pure_rust_e2e.rs.disabled`
-- `runtime/tests/test_pure_rust_real_grammar.rs.disabled`
-- `runtime/tests/test_query_predicates.rs.disabled`
+#### Test Status Update (January 2025)
+All previously disabled test files have been successfully re-enabled and integrated back into the test suite. The test connectivity safeguards are now working correctly to prevent any tests from being silently disconnected in the future.
 
-**Action Required**: These files should either be:
-1. Re-enabled by removing the `.disabled` suffix and fixing any issues
-2. Marked with `#[ignore]` if they need to remain disabled temporarily
-3. Removed if they are no longer relevant
+**Current Status**: All test files are properly connected and running. No `.rs.disabled` files exist in the repository.
 
 To check test connectivity locally, run:
 ```bash

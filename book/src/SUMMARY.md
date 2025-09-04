@@ -15,6 +15,7 @@
 - [Incremental Parsing](guide/incremental-parsing.md)
 - [Query and Pattern Matching](guide/query-patterns.md)
 - [Error Recovery](guide/error-recovery.md)
+- [LSP Server Generation](guide/lsp-generation.md)
 - [Performance Optimization](guide/performance.md)
 
 # Advanced Topics
