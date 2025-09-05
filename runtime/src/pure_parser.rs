@@ -738,69 +738,76 @@ impl Parser {
         // Use built-in lexer
         if let Some(lex_fn) = language.lex_fn {
             unsafe {
-                let mut lex_state = LexerState {
-                    input: lexer.input.as_ptr(),
-                    input_len: lexer.input.len() - 1, // Exclude sentinel byte
-                    position,
-                    point_row: point.row,
-                    point_column: point.column,
-                    result_symbol: 0,
-                    result_length: 0,
-                };
+                // Minimal lexer implementation matching Tree-sitter's `TsLexer`
+                use crate::lex::ts_lexfn_adapter::TsLexer;
 
-                // Debug what character we're looking at
-                // if position < lexer.input.len() {
-                //     eprintln!(
-                //         "DEBUG lex_token: About to lex at position={}, char={:?} ({}), input_len={}",
-                //         position, lexer.input[position] as char, lexer.input[position], lexer.input.len()
-                //     );
-                // }
+                struct LexFnLexer<'a> {
+                    input: &'a [u8],
+                    position: usize,
+                    token_end: usize,
+                }
 
-                let lex_state_ptr = &mut lex_state as *mut _ as *mut c_void;
-                if lex_fn(lex_state_ptr, lex_mode) {
-                    let symbol = lex_state.result_symbol;
-                    let is_extra = self.is_extra_symbol(language, symbol);
-                    // eprintln!(
-                    //     "DEBUG lex_token: state={}, lex_mode={}, position={}, lexer returned symbol={}, length={}, is_extra={}",
-                    //     state, lex_mode.lex_state, position, symbol, lex_state.result_length, is_extra
-                    // );
+                extern "C" fn lookahead(lex: *mut TsLexer) -> u32 {
+                    unsafe {
+                        let st = &*((*lex).data as *const LexFnLexer);
+                        st.input.get(st.position).copied().map(u32::from).unwrap_or(0)
+                    }
+                }
 
-                    // Additional debug to understand symbol mapping
-                    {
-                        if symbol < language.symbol_count as u16 {
-                            let symbol_names = std::slice::from_raw_parts(
-                                language.symbol_names,
-                                language.symbol_count as usize,
-                            );
-                            let name_ptr = symbol_names[symbol as usize];
-                            if !name_ptr.is_null() {
-                                let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
-                                if let Ok(_name) = c_str.to_str() {
-                                    // eprintln!("DEBUG lex_token: symbol {} is '{}'", symbol, name);
-                                }
+                extern "C" fn advance(lex: *mut TsLexer, skip: bool) {
+                    unsafe {
+                        let st = &mut *((*lex).data as *mut LexFnLexer);
+                        if st.position < st.input.len() {
+                            if !skip {
+                                st.token_end = st.position + 1;
                             }
+                            st.position += 1;
                         }
                     }
+                }
 
-                    // The lexer already returns the correct symbol index
-                    // No additional mapping needed
+                extern "C" fn mark_end(lex: *mut TsLexer) {
+                    unsafe {
+                        let st = &mut *((*lex).data as *mut LexFnLexer);
+                        st.token_end = st.position;
+                    }
+                }
+
+                let mut state = LexFnLexer {
+                    input: &lexer.input[position..],
+                    position: 0,
+                    token_end: 0,
+                };
+
+                let mut ts_lexer = TsLexer {
+                    lookahead,
+                    advance,
+                    mark_end,
+                    result_symbol: 0,
+                    data: &mut state as *mut _ as *mut c_void,
+                };
+
+                let mode = TSLexState {
+                    lex_state: lex_mode.lex_state,
+                    external_lex_state: 0,
+                };
+
+                if lex_fn(&mut ts_lexer as *mut _ as *mut c_void, mode) {
+                    let symbol = ts_lexer.result_symbol;
+                    let is_extra = self.is_extra_symbol(language, symbol);
+                    let length = if state.token_end > 0 {
+                        state.token_end
+                    } else {
+                        state.position
+                    };
                     return Token {
                         symbol,
-                        length: lex_state.result_length,
+                        length,
                         is_extra,
                     };
                 } else {
-                    // lex_fn returned false - check if we're at EOF
-                    let at_eof = position >= lexer.input.len() - 1; // Account for sentinel
-                    let symbol = if at_eof {
-                        // EOF is column 0 in Tree-sitter convention
-                        0
-                    } else {
-                        // Return error token for non-EOF failures
-                        // For now using 0, but this should be language-specific
-                        0
-                    };
-
+                    let at_eof = position >= lexer.input.len() - 1;
+                    let symbol = if at_eof { 0 } else { 0 };
                     return Token {
                         symbol,
                         length: 0,
@@ -1458,18 +1465,6 @@ struct Token {
     symbol: TSSymbol,
     length: usize,
     is_extra: bool,
-}
-
-/// Lexer state for C callback
-#[repr(C)]
-struct LexerState {
-    input: *const u8,
-    input_len: usize,
-    position: usize,
-    point_row: u32,
-    point_column: u32,
-    result_symbol: TSSymbol,
-    result_length: usize,
 }
 
 /// Minimal lexer implementation passed to external scanners

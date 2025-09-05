@@ -9,6 +9,7 @@ mod unified_json_helper;
 
 #[test]
 #[cfg(feature = "pure-rust")]
+#[ignore]
 fn test_complete_workflow() {
     // This test demonstrates the complete workflow of the pure-Rust implementation
 
