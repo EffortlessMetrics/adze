@@ -26,8 +26,11 @@ const DEDENT_INDEX: usize = 2;
 const STRING_START_INDEX: usize = 3;
 const STRING_END_INDEX: usize = 4;
 const STRING_CONTENT_INDEX: usize = 5;
+#[allow(dead_code)]
 const COMMENT_INDEX: usize = 6;
+#[allow(dead_code)]
 const LINE_JOINING_INDEX: usize = 7;
+#[allow(dead_code)]
 const ERROR_RECOVERY_INDEX: usize = 8;
 
 #[derive(Debug, Clone)]
@@ -236,15 +239,13 @@ impl ExternalScanner for PythonScanner {
         }
 
         // Handle newlines and indentation
-        if valid_symbols.get(NEWLINE_INDEX) == Some(&true) {
-            if lexer.lookahead() == Some(b'\n') {
-                lexer.advance(1);
-                lexer.mark_end();
-                return Some(ScanResult {
-                    symbol: TokenType::Newline as u16,
-                    length: 1,
-                });
-            }
+        if valid_symbols.get(NEWLINE_INDEX) == Some(&true) && lexer.lookahead() == Some(b'\n') {
+            lexer.advance(1);
+            lexer.mark_end();
+            return Some(ScanResult {
+                symbol: TokenType::Newline as u16,
+                length: 1,
+            });
         }
 
         // Handle indentation at the beginning of a line (column 0)
