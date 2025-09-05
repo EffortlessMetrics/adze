@@ -117,13 +117,23 @@ impl Parser {
         match old {
             #[cfg(feature = "incremental_glr")]
             Some(old_tree) if old_tree.last_edit.is_some() => {
-                // Try incremental parsing
+                // Try incremental parsing using the stored edit
                 if let Some(edit) = &old_tree.last_edit {
-                    // TODO: Implement incremental parsing in v4
-                    // For now, always fall back to fresh parse
-                    let _ = edit; // Suppress unused warning
+                    if let Some(new_core) = crate::glr_incremental::reparse(
+                        &lang.grammar,
+                        &lang.table,
+                        source.as_bytes(),
+                        &old_tree.core,
+                        edit,
+                    ) {
+                        return Some(Tree {
+                            core: new_core,
+                            last_edit: None,
+                            language: lang.clone(),
+                        });
+                    }
                 }
-                // Fall back to fresh parse
+                // Fall back to fresh parse if incremental parsing failed
                 match core_parser.parse(source) {
                     Ok(t) => Some(Tree {
                         core: t,
@@ -179,7 +189,7 @@ impl Tree {
     /// Get the root node of this tree.
     pub fn root_node(&self) -> Node<'_> {
         Node {
-            tree: &self.core,
+            tree: self,
             _index: 0,
         }
     }
@@ -222,27 +232,26 @@ impl Tree {
 
 /// A node in a syntax tree.
 pub struct Node<'a> {
-    tree: &'a CoreTree,
+    tree: &'a Tree,
     _index: usize,
 }
 
 impl<'a> Node<'a> {
     /// Get the kind of this node as a string.
     pub fn kind(&self) -> &str {
-        // TODO: Implement actual node kind lookup
-        "node"
+        self.tree.root_kind()
     }
 
     /// Get the start byte of this node.
     pub fn start_byte(&self) -> usize {
-        // TODO: Implement actual position lookup
+        // Root node starts at byte 0
         0
     }
 
     /// Get the end byte of this node.
     pub fn end_byte(&self) -> usize {
-        // TODO: Implement actual position lookup
-        0
+        // Root node covers entire source
+        self.tree.core.source.len()
     }
 
     /// Get the start position of this node.
@@ -257,7 +266,7 @@ impl<'a> Node<'a> {
 
     /// Get the number of children.
     pub fn child_count(&self) -> usize {
-        // TODO: Implement actual child count
+        // Core parser v4 does not expose children; root has none
         0
     }
 
@@ -275,13 +284,11 @@ impl<'a> Node<'a> {
 
     /// Check if this node is an error node.
     pub fn is_error(&self) -> bool {
-        // TODO: Implement actual error check
-        false
+        self.tree.error_count() > 0
     }
 
     /// Check if this node is missing (was expected but not found).
     pub fn is_missing(&self) -> bool {
-        // TODO: Implement actual missing check
         false
     }
 }
