@@ -113,8 +113,11 @@ impl<'a> QueryMatcher<'a> {
         if pattern.symbol != node.symbol {
             return false;
         }
-
-        // TODO: Check if named/anonymous matches once node metadata is available
+        // Confirm named/anonymous status matches the pattern expectation
+        // When node metadata becomes available, this will use the actual flag.
+        if self.node_is_named(node) != pattern.is_named {
+            return false;
+        }
 
         // Capture if needed
         if let Some(capture_id) = pattern.capture {
@@ -202,6 +205,21 @@ impl<'a> QueryMatcher<'a> {
         true
     }
 
+    /// Determine if a node should be treated as named.
+    /// Currently returns `true` for all nodes until metadata is available.
+    fn node_is_named(&self, _node: &ParseNode) -> bool {
+        // TODO: Integrate actual node metadata when available.
+        true
+    }
+
+    /// Determine if a node should be treated as an "extra" node that
+    /// should be ignored during pattern matching. Currently returns `false`
+    /// until metadata for extras is available.
+    fn node_is_extra(&self, _node: &ParseNode) -> bool {
+        // TODO: Use node metadata (e.g. extras) once available.
+        false
+    }
+
     /// Match a sequence of pattern children against node children
     fn match_child_sequence(
         &self,
@@ -213,8 +231,16 @@ impl<'a> QueryMatcher<'a> {
     ) -> bool {
         // Base case: all patterns matched
         if pattern_idx >= pattern_children.len() {
-            // TODO: Check for extra nodes once metadata is available
-            return true;
+            // If extra nodes remain, ensure they're ignorable
+            return node_children[node_idx..]
+                .iter()
+                .all(|n| self.node_is_extra(n));
+        }
+
+        let mut node_idx = node_idx;
+        // Skip over any extra nodes before attempting to match
+        while node_idx < node_children.len() && self.node_is_extra(&node_children[node_idx]) {
+            node_idx += 1;
         }
 
         // Base case: no more nodes but patterns remain
@@ -224,8 +250,6 @@ impl<'a> QueryMatcher<'a> {
                 .iter()
                 .all(|p| matches!(p, PatternChild::Node(n) if n.quantifier != Quantifier::One));
         }
-
-        // TODO: Skip extra nodes once metadata is available
 
         // Try to match current pattern
         match &pattern_children[pattern_idx] {
