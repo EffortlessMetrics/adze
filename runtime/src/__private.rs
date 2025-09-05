@@ -73,6 +73,9 @@ impl<'a> TreeCursor<'a> {
             if field_id >= lang.field_count as u16 {
                 return None;
             }
+            if lang.field_names.is_null() {
+                return None;
+            }
             let field_names =
                 core::slice::from_raw_parts(lang.field_names, lang.field_count as usize);
             let name_ptr = field_names[field_id as usize];
