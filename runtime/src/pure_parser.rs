@@ -431,9 +431,9 @@ impl Parser {
 
             // Handle extra tokens (like whitespace)
             if token.is_extra {
-                // Create an extra node representing the token and stash it for later
+                // Create a subtree for the extra token
                 let end_point = advance_point(point, &source[position..position + token.length]);
-                extra_nodes.push(Subtree {
+                let extra = Subtree {
                     symbol: token.symbol,
                     children: Vec::new(),
                     start_byte: position,
@@ -444,7 +444,20 @@ impl Parser {
                     is_error: false,
                     is_missing: false,
                     production_id: 0,
-                });
+                };
+
+                // Attach to current stack node if possible, otherwise stash for later
+                if let Some(top) = self.stack.last_mut() {
+                    if let Some(ref mut node) = top.subtree {
+                        node.end_byte = extra.end_byte;
+                        node.end_point = extra.end_point;
+                        node.children.push(extra);
+                    } else {
+                        extra_nodes.push(extra);
+                    }
+                } else {
+                    extra_nodes.push(extra);
+                }
 
                 // Advance position and point
                 position += token.length;
