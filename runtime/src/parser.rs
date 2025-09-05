@@ -639,41 +639,38 @@ impl Parser {
     where
         F: FnMut(usize, Point) -> &[u8],
     {
-        // Basic panic-free recovery strategy:
-        //   1. If we're sitting on whitespace, consume it and continue.
-        //   2. Otherwise, skip ahead to the next likely token boundary
-        //      (whitespace or punctuation) so the parser can resume.
+        // Drop the current stack entry if possible to avoid being stuck in an
+        // invalid state. If the stack is empty there's nothing we can do.
+        if self.stack.pop().is_none() {
+            return false;
+        }
 
         // Inspect remaining input at the current position.
         let input = callback(*position, *point);
         if input.is_empty() {
-            return false; // no input left – nothing to recover
+            return false; // no input left – nothing to recover from
         }
 
-        // Consume any leading ASCII whitespace, treating it as insertion of
-        // a missing insignificant token.
-        if let Some(len) = input.iter().position(|c| !c.is_ascii_whitespace()) {
-            if len > 0 {
-                *position += len;
-                *point = advance_point(*point, &input[..len]);
-                return true;
-            }
-        } else {
-            // Input is entirely whitespace; consume all of it.
-            let len = input.len();
-            *position += len;
-            *point = advance_point(*point, input);
+        // Consume contiguous ASCII whitespace, treating it as an inserted
+        // missing token.
+        let ws_len = input
+            .iter()
+            .position(|c| !c.is_ascii_whitespace())
+            .unwrap_or(input.len());
+        if ws_len > 0 {
+            *point = advance_point(*point, &input[..ws_len]);
+            *position += ws_len;
             return true;
         }
 
-        // No whitespace found at the start. Skip forward to the next
-        // whitespace or punctuation character to resynchronize.
+        // Otherwise skip a single byte (or the next punctuation boundary) to
+        // ensure the parser makes forward progress.
         let skip = input
             .iter()
             .position(|c| c.is_ascii_whitespace() || matches!(c, b',' | b';' | b')' | b'}' | b']'))
             .unwrap_or(1);
-        *position += skip;
         *point = advance_point(*point, &input[..skip]);
+        *position += skip;
         true
     }
 }
