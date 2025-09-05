@@ -373,6 +373,8 @@ impl Parser {
         let mut position = 0;
         let mut point = Point { row: 0, column: 0 };
         let start_time = Instant::now();
+        // Collect extra tokens so they can be attached to the final tree after parsing
+        let mut extra_nodes: Vec<Subtree> = Vec::new();
 
         // Main parsing loop
         let mut iteration_count = 0;
@@ -429,9 +431,9 @@ impl Parser {
 
             // Handle extra tokens (like whitespace)
             if token.is_extra {
-                // Create an extra node representing the token
+                // Create an extra node representing the token and stash it for later
                 let end_point = advance_point(point, &source[position..position + token.length]);
-                let extra_subtree = Subtree {
+                extra_nodes.push(Subtree {
                     symbol: token.symbol,
                     children: Vec::new(),
                     start_byte: position,
@@ -442,25 +444,7 @@ impl Parser {
                     is_error: false,
                     is_missing: false,
                     production_id: 0,
-                };
-
-                // Attach extra tokens to the current node on the stack if possible
-                if let Some(entry) = self.stack.last_mut() {
-                    if let Some(ref mut subtree) = entry.subtree {
-                        subtree.end_byte = extra_subtree.end_byte;
-                        subtree.end_point = extra_subtree.end_point;
-                        subtree.children.push(extra_subtree);
-                    } else {
-                        entry.subtree = Some(extra_subtree);
-                    }
-                } else {
-                    // As a fallback (shouldn't normally happen), create a new stack entry
-                    self.stack.push(StackEntry {
-                        state: current_state,
-                        subtree: Some(extra_subtree),
-                        position: position + token.length,
-                    });
-                }
+                });
 
                 // Advance position and point
                 position += token.length;
@@ -580,9 +564,17 @@ impl Parser {
                                 // }
                                 // print_subtree(subtree, 1);
 
+                                let mut root = subtree.clone();
+                                if !extra_nodes.is_empty() {
+                                    for extra in extra_nodes.drain(..) {
+                                        root.end_byte = extra.end_byte;
+                                        root.end_point = extra.end_point;
+                                        root.children.push(extra);
+                                    }
+                                }
                                 return ParseResult {
                                     root: Some(subtree_to_node(
-                                        subtree.clone(),
+                                        root,
                                         Some(language as *const _),
                                     )),
                                     errors,
@@ -601,8 +593,16 @@ impl Parser {
                     if let Some(entry) = self.stack.pop()
                         && let Some(subtree) = entry.subtree
                     {
+                        let mut root = subtree;
+                        if !extra_nodes.is_empty() {
+                            for extra in extra_nodes.drain(..) {
+                                root.end_byte = extra.end_byte;
+                                root.end_point = extra.end_point;
+                                root.children.push(extra);
+                            }
+                        }
                         return ParseResult {
-                            root: Some(subtree_to_node(subtree, Some(language as *const _))),
+                            root: Some(subtree_to_node(root, Some(language as *const _))),
                             errors,
                         };
                     }
