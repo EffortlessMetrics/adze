@@ -429,13 +429,9 @@ impl Parser {
 
             // Handle extra tokens (like whitespace)
             if token.is_extra {
-                ////eprintln!($
-                //"DEBUG: Skipping extra token symbol={} at position={}",
-                //token.symbol, position
-                //);
-                // Create extra node and attach it to the previous node on stack
+                // Create an extra node representing the token
                 let end_point = advance_point(point, &source[position..position + token.length]);
-                let _extra_subtree = Subtree {
+                let extra_subtree = Subtree {
                     symbol: token.symbol,
                     children: Vec::new(),
                     start_byte: position,
@@ -448,10 +444,26 @@ impl Parser {
                     production_id: 0,
                 };
 
-                // TODO: Attach extra tokens to the parse tree properly
-                // For now, just skip them
+                // Attach extra tokens to the current node on the stack if possible
+                if let Some(entry) = self.stack.iter_mut().rev().find(|e| e.subtree.is_some()) {
+                    if let Some(ref mut subtree) = entry.subtree {
+                        subtree.children.push(extra_subtree);
+                    }
+                } else if let Some(entry) = self.stack.last_mut() {
+                    // If no subtree exists yet, attach to the current stack entry
+                    entry.subtree = Some(extra_subtree);
+                } else {
+                    // As a fallback (shouldn't normally happen), create a new stack entry
+                    self.stack.push(StackEntry {
+                        state: current_state,
+                        subtree: Some(extra_subtree),
+                        position: position + token.length,
+                    });
+                }
+
+                // Advance position and point
                 position += token.length;
-                point = advance_point(point, &source[position - token.length..position]);
+                point = end_point;
                 continue;
             }
 
