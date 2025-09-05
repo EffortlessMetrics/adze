@@ -2,7 +2,7 @@
 // This module implements the runtime parsing logic for the pure-Rust Tree-sitter
 
 use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId, TokenPattern};
+use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 
 /// Parser state during execution
 #[derive(Debug, Clone)]
@@ -442,21 +442,43 @@ impl Parser {
 /// Simple lexer implementation for testing
 pub struct SimpleLexer {
     /// Token patterns keyed by symbol ID
-    patterns: Vec<(SymbolId, TokenPattern)>,
+    patterns: Vec<(SymbolId, Pattern)>,
+}
+
+/// Matcher for a token pattern
+enum Pattern {
+    /// Literal string match
+    String(String),
+    /// Precompiled regular expression
+    Regex(regex::Regex),
 }
 
 impl SimpleLexer {
     pub fn new() -> Self {
         Self {
             patterns: vec![
-                (SymbolId(1), TokenPattern::Regex(r"\d+".to_string())), // Numbers
-                (SymbolId(2), TokenPattern::String("+".to_string())),   // Plus
-                (SymbolId(3), TokenPattern::String("-".to_string())),   // Minus
-                (SymbolId(4), TokenPattern::String("*".to_string())),   // Multiply
-                (SymbolId(5), TokenPattern::String("/".to_string())),   // Divide
-                (SymbolId(6), TokenPattern::String("(".to_string())),   // Left paren
-                (SymbolId(7), TokenPattern::String(")".to_string())),   // Right paren
-                (SymbolId(8), TokenPattern::Regex(r"\s+".to_string())), // Whitespace (ignored)
+                // Numbers
+                (
+                    SymbolId(1),
+                    Pattern::Regex(regex::Regex::new(r"^\d+").unwrap()),
+                ),
+                // Plus
+                (SymbolId(2), Pattern::String("+".to_string())),
+                // Minus
+                (SymbolId(3), Pattern::String("-".to_string())),
+                // Multiply
+                (SymbolId(4), Pattern::String("*".to_string())),
+                // Divide
+                (SymbolId(5), Pattern::String("/".to_string())),
+                // Left paren
+                (SymbolId(6), Pattern::String("(".to_string())),
+                // Right paren
+                (SymbolId(7), Pattern::String(")".to_string())),
+                // Whitespace (ignored)
+                (
+                    SymbolId(8),
+                    Pattern::Regex(regex::Regex::new(r"^\s+").unwrap()),
+                ),
             ],
         }
     }
@@ -464,47 +486,49 @@ impl SimpleLexer {
 
 impl Lexer for SimpleLexer {
     fn next_token(&mut self, input: &[u8], position: usize) -> Option<Token> {
-        // Skip whitespace
         let mut pos = position;
-        while pos < input.len() && input[pos].is_ascii_whitespace() {
-            pos += 1;
-        }
 
-        if pos >= input.len() {
-            return None;
-        }
+        while pos < input.len() {
+            let remaining = std::str::from_utf8(&input[pos..]).ok()?;
 
-        let remaining = std::str::from_utf8(&input[pos..]).ok()?;
-
-        // Try to match each pattern
-        for (symbol_id, pattern) in &self.patterns {
-            match pattern {
-                TokenPattern::String(s) => {
-                    if remaining.starts_with(s) {
-                        let start = pos;
-                        let end = pos + s.len();
-                        return Some(Token {
-                            symbol: *symbol_id,
-                            text: input[start..end].to_vec(),
-                            start,
-                            end,
-                        });
+            for (symbol_id, pattern) in &self.patterns {
+                match pattern {
+                    Pattern::String(s) => {
+                        if remaining.starts_with(s) {
+                            let start = pos;
+                            let end = pos + s.len();
+                            if *symbol_id == SymbolId(8) {
+                                pos = end;
+                                continue;
+                            }
+                            return Some(Token {
+                                symbol: *symbol_id,
+                                text: input[start..end].to_vec(),
+                                start,
+                                end,
+                            });
+                        }
                     }
-                }
-                TokenPattern::Regex(r) => {
-                    let regex = regex::Regex::new(&format!("^{}", r)).ok()?;
-                    if let Some(mat) = regex.find(remaining) {
-                        let start = pos;
-                        let end = pos + mat.end();
-                        return Some(Token {
-                            symbol: *symbol_id,
-                            text: input[start..end].to_vec(),
-                            start,
-                            end,
-                        });
+                    Pattern::Regex(re) => {
+                        if let Some(mat) = re.find(remaining) {
+                            let start = pos;
+                            let end = pos + mat.end();
+                            if *symbol_id == SymbolId(8) {
+                                pos = end;
+                                continue;
+                            }
+                            return Some(Token {
+                                symbol: *symbol_id,
+                                text: input[start..end].to_vec(),
+                                start,
+                                end,
+                            });
+                        }
                     }
                 }
             }
+
+            break;
         }
 
         None
