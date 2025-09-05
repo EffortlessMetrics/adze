@@ -1,12 +1,12 @@
 ---
-source: example/src/repetitions.rs
+source: src/repetitions.rs
 expression: "grammar3::parse(\"1,\")"
 ---
 Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "symbol 2",
+                "symbol 1",
             ),
             start: 0,
             end: 0,

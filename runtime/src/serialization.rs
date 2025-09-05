@@ -316,6 +316,187 @@ impl<'a> SExpressionSerializer<'a> {
     }
 }
 
+/// S-expression deserialization support
+#[derive(Debug, Clone, PartialEq)]
+pub enum SExpr {
+    Atom(String),
+    List(Vec<SExpr>),
+}
+
+/// Parse S-expression from string
+pub fn parse_sexpr(input: &str) -> Result<SExpr, String> {
+    let mut chars = input.trim().chars().peekable();
+    parse_sexpr_inner(&mut chars)
+}
+
+fn parse_sexpr_inner(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<SExpr, String> {
+    skip_whitespace(chars);
+
+    match chars.peek() {
+        Some('(') => {
+            chars.next(); // consume '('
+            let mut items = Vec::new();
+
+            loop {
+                skip_whitespace(chars);
+                if chars.peek() == Some(&')') {
+                    chars.next(); // consume ')'
+                    break;
+                }
+                items.push(parse_sexpr_inner(chars)?);
+            }
+
+            Ok(SExpr::List(items))
+        }
+        Some('"') => {
+            chars.next(); // consume opening '"'
+            let mut atom = String::new();
+            let mut escaped = false;
+
+            while let Some(ch) = chars.next() {
+                if escaped {
+                    match ch {
+                        '"' => atom.push('"'),
+                        '\\' => atom.push('\\'),
+                        'n' => atom.push('\n'),
+                        't' => atom.push('\t'),
+                        'r' => atom.push('\r'),
+                        _ => {
+                            atom.push('\\');
+                            atom.push(ch);
+                        }
+                    }
+                    escaped = false;
+                } else if ch == '\\' {
+                    escaped = true;
+                } else if ch == '"' {
+                    return Ok(SExpr::Atom(atom));
+                } else {
+                    atom.push(ch);
+                }
+            }
+
+            Err("Unterminated string literal".to_string())
+        }
+        Some(_) => {
+            let mut atom = String::new();
+            while let Some(&ch) = chars.peek() {
+                if ch.is_whitespace() || ch == '(' || ch == ')' {
+                    break;
+                }
+                atom.push(chars.next().unwrap());
+            }
+
+            if atom.is_empty() {
+                Err("Empty atom".to_string())
+            } else {
+                Ok(SExpr::Atom(atom))
+            }
+        }
+        None => Err("Unexpected end of input".to_string()),
+    }
+}
+
+fn skip_whitespace(chars: &mut std::iter::Peekable<std::str::Chars>) {
+    while chars.peek().map_or(false, |c| c.is_whitespace()) {
+        chars.next();
+    }
+}
+
+/// Convert S-expression back to SerializedNode for roundtrip testing
+pub fn sexpr_to_serialized_node(sexpr: &SExpr) -> Result<SerializedNode, String> {
+    match sexpr {
+        SExpr::Atom(text) => Ok(SerializedNode {
+            kind: "text".to_string(),
+            is_named: false,
+            field_name: None,
+            start_position: (0, 0),
+            end_position: (0, text.len()),
+            start_byte: 0,
+            end_byte: text.len(),
+            text: Some(text.clone()),
+            children: vec![],
+            is_error: false,
+            is_missing: false,
+        }),
+        SExpr::List(items) => {
+            if items.is_empty() {
+                return Err("Empty list not allowed".to_string());
+            }
+
+            let kind = match &items[0] {
+                SExpr::Atom(name) => name.clone(),
+                _ => return Err("First element of list must be node kind".to_string()),
+            };
+
+            let mut children = Vec::new();
+            for item in &items[1..] {
+                children.push(sexpr_to_serialized_node(item)?);
+            }
+
+            Ok(SerializedNode {
+                kind,
+                is_named: true,
+                field_name: None,
+                start_position: (0, 0),
+                end_position: (0, 0),
+                start_byte: 0,
+                end_byte: 0,
+                text: None,
+                children,
+                is_error: false,
+                is_missing: false,
+            })
+        }
+    }
+}
+
+/// Tree statistics for analysis
+#[derive(Debug, Clone, Default)]
+pub struct TreeStatistics {
+    pub total_nodes: usize,
+    pub named_nodes: usize,
+    pub error_nodes: usize,
+    pub missing_nodes: usize,
+    pub max_depth: usize,
+    pub node_types: HashMap<String, usize>,
+}
+
+impl TreeStatistics {
+    pub fn from_tree(tree: &Tree) -> Self {
+        let mut stats = Self::default();
+        stats.analyze_node(tree.root_node(), 0);
+        stats
+    }
+
+    fn analyze_node(&mut self, node: &Node, depth: usize) {
+        self.total_nodes += 1;
+        self.max_depth = self.max_depth.max(depth);
+
+        if node.is_named() {
+            self.named_nodes += 1;
+        }
+        if node.is_error() {
+            self.error_nodes += 1;
+        }
+        if node.is_missing() {
+            self.missing_nodes += 1;
+        }
+
+        *self.node_types.entry(node.kind().to_string()).or_insert(0) += 1;
+
+        let mut cursor = node.walk();
+        if cursor.goto_first_child() {
+            loop {
+                self.analyze_node(cursor.node(), depth + 1);
+                if !cursor.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
+    }
+}
+
 /// Binary format for efficient storage
 #[derive(Debug, Clone)]
 pub struct BinaryFormat {
