@@ -175,7 +175,6 @@ fn create_arithmetic_grammar() -> Grammar {
         },
     );
 
-    grammar.start_symbol = SymbolId(10);
     grammar
 }
 

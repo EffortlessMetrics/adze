@@ -120,22 +120,22 @@ fn test_simple_insertion() {
     let (grammar, table) = create_test_grammar();
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
-    // Initial parse
-    let source1 = b"hello";
+    // Initial parse using numeric input accepted by the grammar
+    let source1 = b"12345";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Insert " world" at position 5
-    let source2 = b"hello world";
+    // Insert additional digits at the end
+    let source2 = b"1234567890";
     let _edit = Edit {
         start_byte: 5,
         old_end_byte: 5,
-        new_end_byte: 11,
+        new_end_byte: 10,
         start_point: Point { row: 0, column: 5 },
         old_end_point: Point { row: 0, column: 5 },
-        new_end_point: Point { row: 0, column: 11 },
+        new_end_point: Point { row: 0, column: 10 },
     };
 
     // Attempt incremental parse
@@ -171,21 +171,21 @@ fn test_deletion() {
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
     // Initial parse
-    let source1 = b"foo bar baz";
+    let source1 = b"123456";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Delete "bar " (positions 4-8)
-    let source2 = b"foo baz";
+    // Delete the last three digits
+    let source2 = b"123";
     let _edit = Edit {
-        start_byte: 4,
-        old_end_byte: 8,
-        new_end_byte: 4,
-        start_point: Point { row: 0, column: 4 },
-        old_end_point: Point { row: 0, column: 8 },
-        new_end_point: Point { row: 0, column: 4 },
+        start_byte: 3,
+        old_end_byte: 6,
+        new_end_byte: 3,
+        start_point: Point { row: 0, column: 3 },
+        old_end_point: Point { row: 0, column: 6 },
+        new_end_point: Point { row: 0, column: 3 },
     };
 
     // Attempt incremental parse
@@ -220,21 +220,21 @@ fn test_replacement() {
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
     // Initial parse
-    let source1 = b"let x = 5";
+    let source1 = b"12345";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Replace "5" with "10" (positions 8-9 -> 8-10)
-    let source2 = b"let x = 10";
+    // Replace the final digit with two digits
+    let source2 = b"12367";
     let _edit = Edit {
-        start_byte: 8,
-        old_end_byte: 9,
-        new_end_byte: 10,
-        start_point: Point { row: 0, column: 8 },
-        old_end_point: Point { row: 0, column: 9 },
-        new_end_point: Point { row: 0, column: 10 },
+        start_byte: 4,
+        old_end_byte: 5,
+        new_end_byte: 6,
+        start_point: Point { row: 0, column: 4 },
+        old_end_point: Point { row: 0, column: 5 },
+        new_end_point: Point { row: 0, column: 6 },
     };
 
     // Attempt incremental parse
