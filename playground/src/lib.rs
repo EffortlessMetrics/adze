@@ -1,8 +1,8 @@
 // Interactive grammar playground for rust-sitter
 // Provides web-based and CLI interfaces for testing grammars
 
-use anyhow::Result;
-use rust_sitter_glr_core::ParseTable;
+use anyhow::{Context, Result};
+use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use rust_sitter_ir::Grammar;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -124,8 +124,11 @@ impl PlaygroundSession {
 
     /// Initialize the parse table
     pub fn initialize(&mut self) -> Result<()> {
-        // TODO: Implement parse table building when API is stable
-        // For now, we'll use a placeholder implementation
+        let ff = FirstFollowSets::compute(&self.grammar)
+            .context("Failed to compute first/follow sets")?;
+        let table =
+            build_lr1_automaton(&self.grammar, &ff).context("Failed to build LR(1) automaton")?;
+        self.parse_table = Some(table);
         Ok(())
     }
 
