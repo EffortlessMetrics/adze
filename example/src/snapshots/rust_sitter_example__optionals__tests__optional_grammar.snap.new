@@ -1,5 +1,5 @@
 ---
-source: example/src/optionals.rs
+source: src/optionals.rs
 assertion_line: 31
 expression: "grammar::parse(\"_\")"
 ---

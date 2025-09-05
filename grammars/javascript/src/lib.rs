@@ -21,9 +21,10 @@ pub fn parse(
     use rust_sitter::pure_parser::Parser;
 
     let language = get_language();
-    let mut parser = Parser::new(language)?;
-    let result = parser.parse(source.as_bytes(), None)?;
-    Ok(result.root)
+    let mut parser = Parser::new();
+    parser.set_language(language)?;
+    let result = parser.parse_string(source);
+    result.root.ok_or_else(|| "Parsing failed".into())
 }
 
 #[rust_sitter::grammar("javascript")]

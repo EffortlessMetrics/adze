@@ -65,9 +65,9 @@ pub mod grammar {
 
     #[rust_sitter::language]
     pub struct Module {
-        // For an empty module, we need at least one statement
-        // Python allows pass statement or empty lines
-        #[rust_sitter::repeat(non_empty = true)]
+        // Allow empty modules - this is crucial for GLR compatibility
+        // Empty Python files are valid and should parse successfully
+        #[rust_sitter::repeat]
         pub statements: Vec<Statement>,
     }
 
