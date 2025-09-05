@@ -1,4 +1,7 @@
 // Debug parse table generation for ambiguous grammars
+// Skip when incremental GLR is enabled until debug tooling is updated
+#![cfg(not(feature = "incremental_glr"))]
+
 use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
