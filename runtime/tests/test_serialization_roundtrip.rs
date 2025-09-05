@@ -303,21 +303,21 @@ mod property_based_tests {
 
     /// Generate random SerializedNode for property testing
     fn gen_random_node(depth: usize, rng: &mut impl rand::Rng) -> SerializedNode {
-        let kind = format!("kind_{}", rng.gen::<u16>() % 10);
+        let kind = format!("kind_{}", rng.r#gen::<u16>() % 10);
         let is_leaf = depth == 0 || rng.gen_bool(0.3);
 
         let mut node = SerializedNode {
             kind,
             is_named: rng.gen_bool(0.8),
             field_name: if rng.gen_bool(0.3) {
-                Some(format!("field_{}", rng.gen::<u8>() % 5))
+                Some(format!("field_{}", rng.r#gen::<u8>() % 5))
             } else {
                 None
             },
-            start_position: (rng.gen::<usize>() % 100, rng.gen::<usize>() % 100),
-            end_position: (rng.gen::<usize>() % 100, rng.gen::<usize>() % 100),
-            start_byte: rng.gen::<usize>() % 1000,
-            end_byte: rng.gen::<usize>() % 1000,
+            start_position: (rng.r#gen::<usize>() % 100, rng.r#gen::<usize>() % 100),
+            end_position: (rng.r#gen::<usize>() % 100, rng.r#gen::<usize>() % 100),
+            start_byte: rng.r#gen::<usize>() % 1000,
+            end_byte: rng.r#gen::<usize>() % 1000,
             text: None,
             children: vec![],
             is_error: rng.gen_bool(0.1),
@@ -326,9 +326,9 @@ mod property_based_tests {
 
         if is_leaf {
             let text_options = vec!["hello", "world", "test", "42", "true", "null"];
-            node.text = Some(text_options[rng.gen::<usize>() % text_options.len()].to_string());
+            node.text = Some(text_options[rng.r#gen::<usize>() % text_options.len()].to_string());
         } else if depth > 0 {
-            let child_count = rng.gen::<usize>() % 4;
+            let child_count = rng.r#gen::<usize>() % 4;
             for _ in 0..child_count {
                 node.children.push(gen_random_node(depth - 1, rng));
             }
@@ -417,9 +417,9 @@ mod property_based_tests {
     fn gen_random_sexpr(depth: usize, rng: &mut impl rand::Rng) -> SExpr {
         if depth == 0 || rng.gen_bool(0.5) {
             let atoms = vec!["hello", "world", "test", "function", "if", "else", "return"];
-            SExpr::Atom(atoms[rng.gen::<usize>() % atoms.len()].to_string())
+            SExpr::Atom(atoms[rng.r#gen::<usize>() % atoms.len()].to_string())
         } else {
-            let child_count = rng.gen::<usize>() % 4 + 1;
+            let child_count = rng.r#gen::<usize>() % 4 + 1;
             let mut children = vec![SExpr::Atom("list_head".to_string())];
             for _ in 0..child_count {
                 children.push(gen_random_sexpr(depth - 1, rng));
@@ -502,7 +502,7 @@ mod performance_tests {
 #[cfg(test)]
 mod rand {
     pub trait Rng {
-        fn gen<T>(&mut self) -> T
+        fn r#gen<T>(&mut self) -> T
         where
             T: rand_core::RngCore;
         fn gen_bool(&mut self, p: f64) -> bool;
@@ -522,7 +522,7 @@ mod rand {
         }
 
         impl Rng for SmallRng {
-            fn gen<T>(&mut self) -> T
+            fn r#gen<T>(&mut self) -> T
             where
                 T: rand_core::RngCore,
             {
@@ -532,7 +532,7 @@ mod rand {
             }
 
             fn gen_bool(&mut self, p: f64) -> bool {
-                (self.gen::<u64>() as f64 / u64::MAX as f64) < p
+                (self.r#gen::<u64>() as f64 / u64::MAX as f64) < p
             }
         }
     }
