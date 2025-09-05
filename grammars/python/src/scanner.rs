@@ -41,6 +41,7 @@ pub struct PythonScanner {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 enum StringDelimiter {
     SingleQuote,
     DoubleQuote,
