@@ -2,7 +2,7 @@
 // This module implements the runtime parsing logic for the pure-Rust Tree-sitter
 
 use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId, TokenPattern};
 
 /// Parser state during execution
 #[derive(Debug, Clone)]
@@ -441,22 +441,22 @@ impl Parser {
 
 /// Simple lexer implementation for testing
 pub struct SimpleLexer {
-    /// Token patterns (symbol_id, regex_pattern)
-    patterns: Vec<(SymbolId, String)>,
+    /// Token patterns keyed by symbol ID
+    patterns: Vec<(SymbolId, TokenPattern)>,
 }
 
 impl SimpleLexer {
     pub fn new() -> Self {
         Self {
             patterns: vec![
-                (SymbolId(1), r"\d+".to_string()), // Numbers
-                (SymbolId(2), r"\+".to_string()),  // Plus
-                (SymbolId(3), r"-".to_string()),   // Minus
-                (SymbolId(4), r"\*".to_string()),  // Multiply
-                (SymbolId(5), r"/".to_string()),   // Divide
-                (SymbolId(6), r"\(".to_string()),  // Left paren
-                (SymbolId(7), r"\)".to_string()),  // Right paren
-                (SymbolId(8), r"\s+".to_string()), // Whitespace (ignored)
+                (SymbolId(1), TokenPattern::Regex(r"\d+".to_string())), // Numbers
+                (SymbolId(2), TokenPattern::String("+".to_string())),   // Plus
+                (SymbolId(3), TokenPattern::String("-".to_string())),   // Minus
+                (SymbolId(4), TokenPattern::String("*".to_string())),   // Multiply
+                (SymbolId(5), TokenPattern::String("/".to_string())),   // Divide
+                (SymbolId(6), TokenPattern::String("(".to_string())),   // Left paren
+                (SymbolId(7), TokenPattern::String(")".to_string())),   // Right paren
+                (SymbolId(8), TokenPattern::Regex(r"\s+".to_string())), // Whitespace (ignored)
             ],
         }
     }
@@ -474,49 +474,36 @@ impl Lexer for SimpleLexer {
             return None;
         }
 
+        let remaining = std::str::from_utf8(&input[pos..]).ok()?;
+
         // Try to match each pattern
-        for (symbol_id, _pattern) in &self.patterns {
-            // TODO: Implement actual regex matching
-            // For now, just do simple character matching
-            match input[pos] {
-                b'0'..=b'9' => {
-                    // Match number
-                    let start = pos;
-                    while pos < input.len() && input[pos].is_ascii_digit() {
-                        pos += 1;
+        for (symbol_id, pattern) in &self.patterns {
+            match pattern {
+                TokenPattern::String(s) => {
+                    if remaining.starts_with(s) {
+                        let start = pos;
+                        let end = pos + s.len();
+                        return Some(Token {
+                            symbol: *symbol_id,
+                            text: input[start..end].to_vec(),
+                            start,
+                            end,
+                        });
                     }
-                    return Some(Token {
-                        symbol: *symbol_id,
-                        text: input[start..pos].to_vec(),
-                        start,
-                        end: pos,
-                    });
                 }
-                b'+' if *symbol_id == SymbolId(2) => {
-                    return Some(Token {
-                        symbol: *symbol_id,
-                        text: vec![b'+'],
-                        start: pos,
-                        end: pos + 1,
-                    });
+                TokenPattern::Regex(r) => {
+                    let regex = regex::Regex::new(&format!("^{}", r)).ok()?;
+                    if let Some(mat) = regex.find(remaining) {
+                        let start = pos;
+                        let end = pos + mat.end();
+                        return Some(Token {
+                            symbol: *symbol_id,
+                            text: input[start..end].to_vec(),
+                            start,
+                            end,
+                        });
+                    }
                 }
-                b'-' if *symbol_id == SymbolId(3) => {
-                    return Some(Token {
-                        symbol: *symbol_id,
-                        text: vec![b'-'],
-                        start: pos,
-                        end: pos + 1,
-                    });
-                }
-                b'*' if *symbol_id == SymbolId(4) => {
-                    return Some(Token {
-                        symbol: *symbol_id,
-                        text: vec![b'*'],
-                        start: pos,
-                        end: pos + 1,
-                    });
-                }
-                _ => continue,
             }
         }
 
