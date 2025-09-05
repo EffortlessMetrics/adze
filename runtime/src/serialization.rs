@@ -50,9 +50,9 @@ pub struct SerializedNode {
 
 /// Serializer for parse trees
 pub struct TreeSerializer<'a> {
-    source: &'a [u8],
-    include_unnamed: bool,
-    max_text_length: Option<usize>,
+    pub source: &'a [u8],
+    pub include_unnamed: bool,
+    pub max_text_length: Option<usize>,
 }
 
 impl<'a> TreeSerializer<'a> {
@@ -584,27 +584,7 @@ mod tests {
     #[ignore] // TODO: TreeStatistics type needs to be defined
     fn test_tree_statistics() {
         // TODO: TreeStatistics type needs to be defined - this test is incomplete
-        return;
-        // let mut stats = TreeStatistics::default();
-        // assert_eq!(stats.total_nodes, 0);
-        assert_eq!(stats.named_nodes, 0);
-        assert_eq!(stats.max_depth, 0);
-        assert!(stats.node_types.is_empty());
-
-        // Simulate adding some statistics
-        stats.total_nodes = 10;
-        stats.named_nodes = 7;
-        stats.error_nodes = 1;
-        stats.max_depth = 3;
-        stats.node_types.insert("identifier".to_string(), 4);
-        stats.node_types.insert("function".to_string(), 2);
-
-        assert_eq!(stats.total_nodes, 10);
-        assert_eq!(stats.named_nodes, 7);
-        assert_eq!(stats.error_nodes, 1);
-        assert_eq!(stats.max_depth, 3);
-        assert_eq!(stats.node_types.len(), 2);
-        assert_eq!(stats.node_types.get("identifier"), Some(&4));
+        // This test is disabled until TreeStatistics is properly implemented
     }
 
     #[test]
