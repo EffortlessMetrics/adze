@@ -238,28 +238,35 @@ pub use grammar::*;
     fs::write(project_dir.join("src/lib.rs"), lib_rs)?;
 
     // Create example test
-    let test_rs = r#"use insta::assert_snapshot;
+    let test_rs = format!(
+        r#"use insta::assert_debug_snapshot;
+use {0}::parse;
 
 #[test]
-fn test_simple_program() {
-    let input = "42; foo;";
-    // TODO: Add parsing logic once grammar is built
-    assert_snapshot!(input);
-}
-"#;
+fn test_simple_program() {{
+    assert_debug_snapshot!(parse("42; foo;"));
+}}
+"#,
+        name
+    );
 
     fs::write(project_dir.join("tests/basic.rs"), test_rs)?;
 
     // Create README
     let readme = format!(
-        r#"# {}
+        r#"# {0}
 
-A rust-sitter grammar for {}.
+A rust-sitter grammar for {0}.
 
 ## Usage
 
 ```rust
-// TODO: Add usage example
+use {0}::parse;
+
+fn main() {{
+    let ast = parse("42; foo;").expect("parse error");
+    println!("{{:#?}}", ast);
+}}
 ```
 
 ## Development
@@ -278,7 +285,7 @@ cargo test
 
 MIT
 "#,
-        name, name
+        name
     );
 
     fs::write(project_dir.join("README.md"), readme)?;
