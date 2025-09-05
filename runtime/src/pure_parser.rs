@@ -683,13 +683,15 @@ impl Parser {
             unsafe {
                 let scan_fn = language.external_scanner.scan.unwrap();
 
-                // Build valid symbols array from external_lex_state bitset
-                // `Vec<bool>` is bitpacked and unsuitable for FFI; use `u8`
+                // Build valid symbols array from external_lex_state bitset.
+                // Tree-sitter's external scanners expect a 1-based array of flags
+                // with index 0 unused, so allocate an extra slot and shift bits.
+                // `Vec<bool>` is bitpacked and unsuitable for FFI; use `u8`.
                 let external_count = language.external_token_count as usize;
-                let mut valid_symbols = vec![0u8; external_count];
+                let mut valid_symbols = vec![0u8; external_count + 1];
                 for i in 0..external_count {
                     if (lex_mode.external_lex_state >> i) & 1 != 0 {
-                        valid_symbols[i] = 1;
+                        valid_symbols[i + 1] = 1;
                     }
                 }
 
@@ -708,7 +710,7 @@ impl Parser {
                 let success = scan_fn(
                     scanner_instance,
                     &mut ts_lexer as *mut _ as *mut c_void,
-                    valid_symbols.as_ptr() as *const bool,
+                    valid_symbols.as_ptr().cast::<bool>(),
                 );
                 ext_lexer.result_symbol = ts_lexer.result_symbol;
 
