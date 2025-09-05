@@ -7,15 +7,14 @@ publish = false
 [dependencies]
 anyhow = "1.0"
 sha2 = "0.10"
-
-rust-sitter = { path = "../runtime" }
 rust-sitter-python = { path = "../grammars/python", optional = true }
 rust-sitter-javascript = { path = "../grammars/javascript", optional = true }
+rust-sitter = { path = "../runtime", optional = true }
 
 [features]
 default = []
-python-grammar = ["rust-sitter-python"]
-javascript-grammar = ["rust-sitter-javascript"]
+python-grammar = ["rust-sitter-python", "rust-sitter"]
+javascript-grammar = ["rust-sitter-javascript", "rust-sitter"]
 all-grammars = ["python-grammar", "javascript-grammar"]
 
 [dev-dependencies]

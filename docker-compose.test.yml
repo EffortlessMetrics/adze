@@ -1,0 +1,81 @@
+version: "3.9"
+
+# Optional container limits for Cap Concurrency implementation
+# Provides hard resource ceilings for test isolation
+# Usage: docker-compose -f docker-compose.test.yml up --build
+
+services:
+  rust-tests:
+    build: 
+      context: .
+      dockerfile: .docker/rust.dockerfile
+    command: |
+      bash -c "
+        source scripts/preflight.sh
+        RUST_TEST_THREADS=$$RUST_TEST_THREADS cargo test -- --test-threads=$$RUST_TEST_THREADS
+      "
+    # Resource limits (adjust based on your system capacity)
+    cpus: "4.0"
+    mem_limit: 16g
+    pids_limit: 1024
+    ulimits:
+      nofile:
+        soft: 8192
+        hard: 8192
+    # Concurrency environment variables
+    environment:
+      - RUST_TEST_THREADS=2
+      - RAYON_NUM_THREADS=4
+      - TOKIO_WORKER_THREADS=2  
+      - TOKIO_BLOCKING_THREADS=8
+      - CARGO_BUILD_JOBS=4
+      - OMP_NUM_THREADS=1
+      - OPENBLAS_NUM_THREADS=1
+      - MKL_NUM_THREADS=1
+      - NUMEXPR_NUM_THREADS=1
+      - RUST_BACKTRACE=1
+      - CARGO_TERM_COLOR=always
+    volumes:
+      - .:/workspace:Z
+      - rust-target-cache:/workspace/target
+      - rust-cargo-cache:/usr/local/cargo/registry
+    working_dir: /workspace
+
+  rust-tests-safe:
+    extends: rust-tests
+    command: |
+      bash -c "
+        source scripts/preflight.sh  
+        RUST_TEST_THREADS=1 cargo test -- --test-threads=1
+      "
+    # Ultra-safe resource limits for problematic tests
+    cpus: "2.0"
+    mem_limit: 8g
+    pids_limit: 512
+    environment:
+      - RUST_TEST_THREADS=1
+      - RAYON_NUM_THREADS=1
+      - TOKIO_WORKER_THREADS=1
+      - TOKIO_BLOCKING_THREADS=4
+      - CARGO_BUILD_JOBS=2
+
+  rust-bench:
+    extends: rust-tests
+    command: |
+      bash -c "
+        source scripts/preflight.sh
+        cargo bench
+      "
+    # More resources for benchmarks
+    cpus: "6.0"
+    mem_limit: 24g
+    environment:
+      - RUST_TEST_THREADS=4
+      - RAYON_NUM_THREADS=6
+      - TOKIO_WORKER_THREADS=4
+
+volumes:
+  rust-target-cache:
+    driver: local
+  rust-cargo-cache:
+    driver: local

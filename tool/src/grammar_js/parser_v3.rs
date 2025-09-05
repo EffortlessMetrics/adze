@@ -1,4 +1,6 @@
-use anyhow::{Context, Result, bail};
+#![allow(clippy::manual_strip)]
+
+use anyhow::{bail, Context, Result};
 use regex::Regex;
 use std::collections::HashMap;
 

@@ -217,6 +217,7 @@ fn position_to_line_col(src: &[u8], pos: usize, line_starts: &[usize]) -> (u32, 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::external_scanner::Lexer;
 
     #[test]
     fn test_advance_crlf() {
@@ -227,18 +228,18 @@ mod tests {
 
         // Advance through "hello"
         for _ in 0..5 {
-            assert!(adapter.advance(false));
+            adapter.advance(1);
         }
         assert_eq!(adapter.row, 0);
         assert_eq!(adapter.col, 5);
 
         // Advance through CRLF
-        assert!(adapter.advance(false)); // Should consume both \r\n
+        adapter.advance(1); // Should consume both \r\n
         assert_eq!(adapter.row, 1);
         assert_eq!(adapter.col, 0);
 
         // Verify we're at 'w'
-        assert_eq!(adapter.lookahead(), b'w' as i32);
+        assert_eq!(adapter.lookahead(), Some(b'w'));
     }
 
     #[test]
@@ -250,13 +251,14 @@ mod tests {
 
         // Advance to end of first range
         for _ in 0..5 {
-            assert!(adapter.advance(false));
+            adapter.advance(1);
         }
 
         // At end of first range
         assert_eq!(adapter.cursor, 5);
-        assert!(!adapter.advance(false)); // Can't advance past range
-        assert_eq!(adapter.lookahead(), 0); // EOF for this range
+        adapter.advance(1); // Try to advance past range (should be no-op)
+        assert_eq!(adapter.cursor, 5); // Should remain at end
+        assert_eq!(adapter.lookahead(), None); // EOF for this range
     }
 
     #[test]

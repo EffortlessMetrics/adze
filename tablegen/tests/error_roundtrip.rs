@@ -1,8 +1,8 @@
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::builder::GrammarBuilder;
 use rust_sitter_tablegen::{
-    Result, TableCompressor,
     helpers::{collect_token_indices, eof_accepts_or_reduces},
+    Result, TableCompressor,
 };
 
 #[test]
@@ -16,7 +16,7 @@ fn error_roundtrip_compiles_and_runs() -> Result<()> {
         .build();
 
     // These return Result<_, GLRError>; using `?` here exercises your `From<GLRError> for TableGenError`
-    let ff = FirstFollowSets::compute(&g);
+    let ff = FirstFollowSets::compute(&g).unwrap();
     let pt = build_lr1_automaton(&g, &ff)?;
 
     // And this must still be fine

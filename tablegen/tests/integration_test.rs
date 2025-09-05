@@ -1,6 +1,6 @@
 // Integration tests for the pure-Rust parser generation
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::*;
 use rust_sitter_tablegen::AbiLanguageBuilder;
 
@@ -56,7 +56,7 @@ fn test_parentheses_grammar_generation() {
     grammar.add_rule(rule2);
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Generate language using ABI builder
@@ -172,7 +172,7 @@ fn test_arithmetic_grammar_generation() {
     grammar.rule_names.insert(factor_id, "factor".to_string());
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Generate language using ABI builder
@@ -243,7 +243,7 @@ fn test_field_mapping_generation() {
         .insert(assignment_id, "assignment".to_string());
 
     // Build parse table
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Generate language using ABI builder

@@ -5,28 +5,20 @@ This tool extracts parse tables from compiled Tree-sitter grammars and converts 
 ## Features
 
 - **Production-ready**: Full extraction of Tree-sitter parse tables with ABI guards
-- **Feature-gated builds**: Separate development (stub) and production modes
 - **ABI stability**: Pinned to Tree-sitter v15 with header hash verification
 - **Comprehensive testing**: Parity tests ensure extracted tables match Tree-sitter exactly
 
 ## Building
 
-### Production Build (default)
+### Production Build
 ```bash
-# Build with real Tree-sitter headers (vendored)
+# Build with real Tree-sitter headers (requires libtree-sitter-dev system package)
 cargo build -p ts-bridge
 
 # Run the ABI verification
 cargo run -p ts-bridge --bin tsb-abi-check
 ```
 
-### Development Build (stub mode)
-```bash
-# Build with stub headers for development (outputs dummy data)
-cargo build -p ts-bridge --features stub-ts
-
-# NOTE: CLI will fail-fast with stub builds to prevent accidental misuse
-```
 
 ## Usage
 
@@ -75,21 +67,20 @@ The bridge works by:
 - `ffi/shim.c`: C shim that interfaces with Tree-sitter API
 - `src/extract.rs`: Core extraction logic with width checks and buffer safety
 - `src/schema.rs`: Data structures for parse table representation
-- `ci/vendor/`: Vendored Tree-sitter headers with SHA pinning
+- Production builds link against system libtree-sitter-dev
 
 ### Safety Features
 
 - **Width checks**: All values verified to fit in u16 with debug assertions
 - **Dynamic buffer allocation**: Action buffers expand as needed (no truncation)
 - **ABI guards**: Runtime version checks prevent silent breakage
-- **Feature gates**: Stub builds clearly marked and fail-fast in production
 
 ## ABI Stability
 
 We pin to Tree-sitter language version 15 and use multiple layers of protection:
-- Vendored headers with SHA-256 hashes
+- System library integration with libtree-sitter-dev
 - Runtime ABI version checks via `tsb_language_version()`
-- CI script to detect header drift
+- SHA-256 hash verification of critical headers
 
 ## Buffer Management
 
@@ -105,8 +96,7 @@ We pin to Tree-sitter language version 15 and use multiple layers of protection:
 
 ## Production Checklist
 
-✅ Build without `stub-ts` feature
-✅ Run `tsb-abi-check` to verify ABI compatibility  
+✅ Run `tsb-abi-check` to verify ABI compatibility
 ✅ Execute `abi-hash.sh` to verify header integrity
 ✅ Run parity tests with actual grammars
 ✅ Verify extracted JSON contains valid data (non-zero counts)

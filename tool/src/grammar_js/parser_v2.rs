@@ -3,8 +3,10 @@
 //! This module provides a more comprehensive parser for Tree-sitter grammar.js files.
 //! It handles most common grammar patterns and can parse real-world grammars.
 
+#![allow(clippy::manual_strip, clippy::regex_creation_in_loops)]
+
 use super::{ExternalToken, GrammarJs, Rule};
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{anyhow, bail, Context, Result};
 use regex::Regex;
 use std::collections::HashMap;
 
@@ -109,18 +111,25 @@ impl ImprovedGrammarJsParser {
     }
 
     fn extract_conflicts(&self, content: &str) -> Vec<Vec<String>> {
-        // Match conflicts: $ => [[$.rule1, $.rule2], [$.rule3, $.rule4]]
-        if let Ok(conflicts_regex) =
-            Regex::new(r#"conflicts:\s*\$\s*=>\s*\[([^\]]+(?:\][^\]]*\[)*[^\]]*)\]"#)
-        {
-            if let Some(caps) = conflicts_regex.captures(content) {
-                self.parse_conflicts_array(&caps[1])
-            } else {
-                Vec::new()
+        // Find conflicts: $ => [...]
+        if let Some(conflicts_start) = content.find("conflicts:") {
+            let after_conflicts = &content[conflicts_start + 10..]; // Skip "conflicts:"
+            let trimmed = after_conflicts.trim_start();
+
+            // Skip $ =>
+            if let Some(arrow_pos) = trimmed.find("=>") {
+                let after_arrow = trimmed[arrow_pos + 2..].trim_start();
+
+                if after_arrow.starts_with('[') {
+                    // Extract the array content by matching brackets
+                    if let Ok(array_content) = self.extract_balanced_brackets(&after_arrow[1..]) {
+                        return self.parse_conflicts_array(&array_content);
+                    }
+                }
             }
-        } else {
-            Vec::new()
         }
+
+        Vec::new()
     }
 
     fn extract_extras(&self, content: &str) -> Result<Vec<Rule>> {
@@ -791,10 +800,10 @@ impl ImprovedGrammarJsParser {
                     if depth == 0 {
                         // End of a precedence group
                         let trimmed = current_item.trim();
-                        if !trimmed.is_empty() {
-                            if let Some(prec) = self.parse_precedence_item(trimmed) {
-                                current_group.push(prec);
-                            }
+                        if !trimmed.is_empty()
+                            && let Some(prec) = self.parse_precedence_item(trimmed)
+                        {
+                            current_group.push(prec);
                         }
                         if !current_group.is_empty() {
                             precedences.push(current_group.clone());
@@ -805,10 +814,10 @@ impl ImprovedGrammarJsParser {
                 ',' if !in_string && depth == 1 => {
                     // Item separator within a precedence group
                     let trimmed = current_item.trim();
-                    if !trimmed.is_empty() {
-                        if let Some(prec) = self.parse_precedence_item(trimmed) {
-                            current_group.push(prec);
-                        }
+                    if !trimmed.is_empty()
+                        && let Some(prec) = self.parse_precedence_item(trimmed)
+                    {
+                        current_group.push(prec);
                     }
                     current_item.clear();
                 }
@@ -830,20 +839,20 @@ impl ImprovedGrammarJsParser {
         let trimmed = item.trim();
 
         // Handle prec(value, $.rule) pattern
-        if trimmed.starts_with("prec(") {
-            if let Ok(content) = self.extract_function_args(trimmed, "prec") {
-                let parts: Vec<&str> = content.splitn(2, ',').collect();
-                if parts.len() == 2 {
-                    if let Ok(value) = parts[0].trim().parse::<i32>() {
-                        let rule = parts[1].trim();
-                        let name = if rule.starts_with("$.") {
-                            rule[2..].to_string()
-                        } else {
-                            rule.to_string()
-                        };
-                        return Some((name, value));
-                    }
-                }
+        if trimmed.starts_with("prec(")
+            && let Ok(content) = self.extract_function_args(trimmed, "prec")
+        {
+            let parts: Vec<&str> = content.splitn(2, ',').collect();
+            if parts.len() == 2
+                && let Ok(value) = parts[0].trim().parse::<i32>()
+            {
+                let rule = parts[1].trim();
+                let name = if rule.starts_with("$.") {
+                    rule[2..].to_string()
+                } else {
+                    rule.to_string()
+                };
+                return Some((name, value));
             }
         }
 

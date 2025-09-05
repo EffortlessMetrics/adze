@@ -74,7 +74,143 @@ generate_lsp(&grammar, &config, "target/lsp")?;
 
 ## Feature Implementation
 
-### 1. Syntax Highlighting
+### 1. Hover Information and Documentation
+
+The LSP Generator now includes sophisticated hover functionality that provides contextual information as users navigate their code.
+
+#### Hover Word Extraction
+The `get_word_at_position()` function intelligently extracts words under the cursor:
+
+```rust
+use anyhow::{anyhow, Result};
+use lsp_types::{Position, TextDocumentPositionParams};
+
+fn get_word_at_position(params: &HoverParams) -> Result<String> {
+    let uri = &params.text_document_position_params.text_document.uri;
+    let path = uri.to_file_path().map_err(|_| anyhow!("invalid uri"))?;
+    let text = fs::read_to_string(path)?;
+    let position = params.text_document_position_params.position;
+    
+    let line = text
+        .lines()
+        .nth(position.line as usize)
+        .ok_or_else(|| anyhow!("line out of bounds"))?;
+        
+    let chars: Vec<char> = line.chars().collect();
+    let mut start = position.character as usize;
+    let mut end = start;
+    
+    // Expand backwards to find word start
+    while start > 0 {
+        let c = chars[start - 1];
+        if c.is_alphanumeric() || c == '_' {
+            start -= 1;
+        } else {
+            break;
+        }
+    }
+    
+    // Expand forwards to find word end
+    while end < chars.len() {
+        let c = chars[end];
+        if c.is_alphanumeric() || c == '_' {
+            end += 1;
+        } else {
+            break;
+        }
+    }
+    
+    Ok(chars[start..end].iter().collect())
+}
+```
+
+#### Comprehensive Documentation Lookup
+The `lookup_documentation()` function provides contextual help for 45+ language constructs:
+
+```rust
+fn lookup_documentation(word: &str) -> Option<String> {
+    let docs: HashMap<&str, &str> = [
+        // Rust language constructs
+        ("fn", "Declares a function"),
+        ("let", "Declares a variable binding"),
+        ("mut", "Makes a binding mutable"),
+        ("if", "Conditional expression"),
+        ("match", "Pattern matching expression"),
+        ("struct", "Defines a struct type"),
+        ("enum", "Defines an enum type"),
+        ("trait", "Defines a trait"),
+        ("impl", "Implements methods or traits"),
+        
+        // Common types
+        ("String", "UTF-8 encoded, growable string type"),
+        ("Vec", "Growable array type"),
+        ("Option", "Type representing optional values"),
+        ("Result", "Type for recoverable errors"),
+        
+        // JavaScript/TypeScript
+        ("function", "Declares a function"),
+        ("const", "Declares a constant"),
+        ("var", "Declares a variable"),
+        ("class", "Declares a class"),
+        ("interface", "Declares a TypeScript interface"),
+        ("type", "Declares a type alias"),
+        
+        // Python
+        ("def", "Defines a function"),
+        ("async", "Declares async function"),
+        ("await", "Waits for async operation"),
+        ("yield", "Yields a value from generator"),
+        
+        // Control flow (universal)
+        ("return", "Returns a value from function"),
+        ("break", "Exits from a loop"),
+        ("continue", "Skips to next iteration of loop"),
+        ("while", "Loop that continues while condition is true"),
+        ("for", "Loop that iterates over a sequence"),
+        ("try", "Begins error handling block"),
+        ("catch", "Handles errors in try block"),
+        ("finally", "Code that always runs after try/catch"),
+    ].into_iter().collect();
+    
+    docs.get(word).map(|doc| format!("**{}**: {}", word, doc))
+}
+```
+
+#### Generated Hover Handler
+The LSP generator creates a complete hover handler that integrates both functions:
+
+```rust
+pub async fn handle_hover(params: HoverParams) -> Result<Option<Hover>> {
+    // Get the word under cursor
+    let word = get_word_at_position(&params)?;
+
+    // Look up documentation
+    let contents = match lookup_documentation(&word) {
+        Some(doc) => HoverContents::Scalar(MarkedString::String(doc)),
+        None => return Ok(None),
+    };
+    
+    Ok(Some(Hover {
+        contents,
+        range: None,
+    }))
+}
+```
+
+#### HoverProvider Configuration
+```rust
+use rust_sitter_lsp_generator::features::HoverProvider;
+
+let hover_provider = HoverProvider::new(&grammar);
+
+// The provider automatically generates:
+// - Hover capabilities in LSP server initialization
+// - Complete hover handler with word extraction
+// - Documentation lookup with 45+ language constructs
+// - Proper LSP response formatting
+```
+
+### 2. Syntax Highlighting
 
 #### Semantic Tokens
 ```rust

@@ -113,18 +113,18 @@ impl<'a> NodeTypesGenerator<'a> {
                 let mut fields = HashMap::new();
                 for rule in rules {
                     for (field_id, position) in &rule.fields {
-                        if let Some(field_name) = self.grammar.fields.get(field_id) {
-                            if let Some(symbol) = rule.rhs.get(*position) {
-                                let type_ref = self.symbol_to_type_ref(symbol, &symbol_names);
-                                fields.insert(
-                                    field_name.clone(),
-                                    FieldInfo {
-                                        multiple: false, // TODO: Detect repetition
-                                        required: true,  // TODO: Detect optionality
-                                        types: vec![type_ref],
-                                    },
-                                );
-                            }
+                        if let Some(field_name) = self.grammar.fields.get(field_id)
+                            && let Some(symbol) = rule.rhs.get(*position)
+                        {
+                            let type_ref = self.symbol_to_type_ref(symbol, &symbol_names);
+                            fields.insert(
+                                field_name.clone(),
+                                FieldInfo {
+                                    multiple: false, // TODO: Detect repetition
+                                    required: true,  // TODO: Detect optionality
+                                    types: vec![type_ref],
+                                },
+                            );
                         }
                     }
                 }

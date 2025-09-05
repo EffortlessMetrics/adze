@@ -547,32 +547,33 @@ impl Parser {
                             let below = &self.stack[self.stack.len() - 2];
 
                             // Check if we have the root symbol (source_file = 8) on top of state 0
-                            if below.state == 0 && top.subtree.is_some() {
-                                if let Some(ref subtree) = top.subtree {
-                                    if subtree.symbol == 8 && token.symbol == 0 {
-                                        // EOF
-                                        // Parse successful!
-                                        // eprintln!("DEBUG: Parse accepted! Root subtree:");
-                                        // fn print_subtree(subtree: &Subtree, indent: usize) {
-                                        //     eprintln!("{}symbol={}, children={}, bytes={}..{}",
-                                        //         "  ".repeat(indent), subtree.symbol, subtree.children.len(),
-                                        //         subtree.start_byte, subtree.end_byte
-                                        //     );
-                                        //     for child in &subtree.children {
-                                        //         print_subtree(child, indent + 1);
-                                        //     }
-                                        // }
-                                        // print_subtree(subtree, 1);
+                            if below.state == 0
+                                && top.subtree.is_some()
+                                && let Some(ref subtree) = top.subtree
+                                && subtree.symbol == 8
+                                && token.symbol == 0
+                            {
+                                // EOF
+                                // Parse successful!
+                                // eprintln!("DEBUG: Parse accepted! Root subtree:");
+                                // fn print_subtree(subtree: &Subtree, indent: usize) {
+                                //     eprintln!("{}symbol={}, children={}, bytes={}..{}",
+                                //         "  ".repeat(indent), subtree.symbol, subtree.children.len(),
+                                //         subtree.start_byte, subtree.end_byte
+                                //     );
+                                //     for child in &subtree.children {
+                                //         print_subtree(child, indent + 1);
+                                //     }
+                                // }
+                                // print_subtree(subtree, 1);
 
-                                        return ParseResult {
-                                            root: Some(subtree_to_node(
-                                                subtree.clone(),
-                                                Some(language as *const _),
-                                            )),
-                                            errors,
-                                        };
-                                    }
-                                }
+                                return ParseResult {
+                                    root: Some(subtree_to_node(
+                                        subtree.clone(),
+                                        Some(language as *const _),
+                                    )),
+                                    errors,
+                                };
                             }
                         }
                     }
@@ -584,13 +585,13 @@ impl Parser {
                 Action::Accept => {
                     ////eprintln!("DEBUG: Got ACCEPT action!");
                     // Parse successful
-                    if let Some(entry) = self.stack.pop() {
-                        if let Some(subtree) = entry.subtree {
-                            return ParseResult {
-                                root: Some(subtree_to_node(subtree, Some(language as *const _))),
-                                errors,
-                            };
-                        }
+                    if let Some(entry) = self.stack.pop()
+                        && let Some(subtree) = entry.subtree
+                    {
+                        return ParseResult {
+                            root: Some(subtree_to_node(subtree, Some(language as *const _))),
+                            errors,
+                        };
                     }
                     break;
                 }
@@ -1210,19 +1211,19 @@ impl Parser {
 
             // Pop children in reverse order
             for _ in 0..child_count {
-                if let Some(entry) = self.stack.pop() {
-                    if let Some(subtree) = entry.subtree {
-                        // Update bounds
-                        if subtree.start_byte < start_byte {
-                            start_byte = subtree.start_byte;
-                            start_point = subtree.start_point;
-                        }
-                        if subtree.end_byte > end_byte {
-                            end_byte = subtree.end_byte;
-                            end_point = subtree.end_point;
-                        }
-                        children.push(subtree);
+                if let Some(entry) = self.stack.pop()
+                    && let Some(subtree) = entry.subtree
+                {
+                    // Update bounds
+                    if subtree.start_byte < start_byte {
+                        start_byte = subtree.start_byte;
+                        start_point = subtree.start_point;
                     }
+                    if subtree.end_byte > end_byte {
+                        end_byte = subtree.end_byte;
+                        end_point = subtree.end_point;
+                    }
+                    children.push(subtree);
                 }
             }
 
@@ -1336,26 +1337,16 @@ impl Parser {
         }
     }
 
-    /// Get goto state after reduction
-    ///
-    /// NOTE: This function is not used in the pure-Rust parser implementation.
-    /// The GLR parser (parser_v4) determines goto states directly during parsing.
-    /// This function exists for API compatibility but is never invoked.
-    ///
-    /// If this function were to be called, it would panic to catch any misuse.
+    /// Look up the goto state for a non-terminal using the parse table.
+    /// Returns `0` when no transition exists, mirroring Tree-sitter's ABI.
     #[allow(dead_code)]
     fn get_goto_state(
         &self,
-        _language: &TSLanguage,
-        _state: TSStateId,
-        _symbol: TSSymbol,
+        language: &TSLanguage,
+        state: TSStateId,
+        symbol: TSSymbol,
     ) -> TSStateId {
-        // This function should never be called in the pure-Rust implementation
-        // The GLR parser (parser_v4) handles goto states internally
-        panic!(
-            "get_goto_state called on pure_parser::Parser - this is a bug! \
-             The GLR parser should handle goto states internally."
-        );
+        self.get_goto(language, state, symbol).unwrap_or(0)
     }
 
     /// Get expected symbols for error reporting
@@ -1587,7 +1578,7 @@ impl ParsedNode {
     }
 
     /// Create a walker for this node's children
-    pub fn walk(&self) -> ChildWalker {
+    pub fn walk(&self) -> ChildWalker<'_> {
         ChildWalker {
             children: &self.children,
             index: 0,
@@ -1692,5 +1683,113 @@ mod tests {
         let result = parser.parse_string("");
         assert!(result.root.is_none());
         assert!(!result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_get_goto_handles_missing_entries() {
+        // Minimal language with a single token and no goto entries.
+        static PARSE_TABLE: [u16; 1] = [0];
+        static SMALL_PARSE_TABLE: [u16; 1] = [0];
+        static SMALL_PARSE_TABLE_MAP: [u32; 1] = [0];
+        static LANGUAGE: TSLanguage = TSLanguage {
+            version: TREE_SITTER_LANGUAGE_VERSION,
+            symbol_count: 1,
+            alias_count: 0,
+            token_count: 1,
+            external_token_count: 0,
+            state_count: 1,
+            large_state_count: 1,
+            production_id_count: 0,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            production_id_map: std::ptr::null(),
+            parse_table: PARSE_TABLE.as_ptr(),
+            small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
+            small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
+            parse_actions: std::ptr::null(),
+            symbol_names: std::ptr::null(),
+            field_names: std::ptr::null(),
+            field_map_slices: std::ptr::null(),
+            field_map_entries: std::ptr::null(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: std::ptr::null(),
+            lex_fn: None,
+            keyword_lex_fn: None,
+            keyword_capture_token: 0,
+            external_scanner: ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            eof_symbol: 0,
+            rules: std::ptr::null(),
+            rule_count: 0,
+        };
+
+        let parser = Parser {
+            language: None,
+            stack: Vec::new(),
+            timeout_micros: 0,
+            cancellation_flag: None,
+            lexer: None,
+        };
+
+        // Symbol 0 is a token; there is no goto entry. The helper should
+        // return None instead of panicking.
+        assert!(parser.get_goto(&LANGUAGE, 0, 0).is_none());
+    }
+
+    #[test]
+    fn test_get_goto_state_returns_zero_when_missing() {
+        // Language with one token and one non-terminal but no goto entries.
+        static PARSE_TABLE: [u16; 2] = [0, 0];
+        static SMALL_PARSE_TABLE: [u16; 1] = [0];
+        static SMALL_PARSE_TABLE_MAP: [u32; 1] = [0];
+        static LEX_MODES: [TSLexState; 1] = [TSLexState {
+            lex_state: 0,
+            external_lex_state: 0,
+        }];
+        static LANGUAGE: TSLanguage = TSLanguage {
+            version: TREE_SITTER_LANGUAGE_VERSION,
+            symbol_count: 2,
+            alias_count: 0,
+            token_count: 1,
+            external_token_count: 0,
+            state_count: 1,
+            large_state_count: 1,
+            production_id_count: 0,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            production_id_map: std::ptr::null(),
+            parse_table: PARSE_TABLE.as_ptr(),
+            small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
+            small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
+            parse_actions: std::ptr::null(),
+            symbol_names: std::ptr::null(),
+            field_names: std::ptr::null(),
+            field_map_slices: std::ptr::null(),
+            field_map_entries: std::ptr::null(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: LEX_MODES.as_ptr(),
+            lex_fn: None,
+            keyword_lex_fn: None,
+            keyword_capture_token: 0,
+            external_scanner: ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            eof_symbol: 0,
+            rules: std::ptr::null(),
+            rule_count: 0,
+        };
+
+        let parser = Parser::new();
+        // Symbol 1 is the lone non-terminal; with no table entry this should return 0.
+        assert_eq!(parser.get_goto_state(&LANGUAGE, 0, 1), 0);
     }
 }

@@ -316,15 +316,13 @@ fn test_arithmetic_parser_e2e() {
                 print_tree(&root, 0);
             } else {
                 println!("✗ Expected success but got errors: {:?}", result.errors);
-                assert!(false, "Parse should have succeeded for '{}'", input);
+                panic!("Parse should have succeeded for '{}'", input);
             }
+        } else if result.errors.is_empty() {
+            println!("✗ Expected errors but parsing succeeded");
+            panic!("Parse should have failed for '{}'", input);
         } else {
-            if result.errors.is_empty() {
-                println!("✗ Expected errors but parsing succeeded");
-                assert!(false, "Parse should have failed for '{}'", input);
-            } else {
-                println!("✓ Got expected errors: {} errors", result.errors.len());
-            }
+            println!("✓ Got expected errors: {} errors", result.errors.len());
         }
     }
 }

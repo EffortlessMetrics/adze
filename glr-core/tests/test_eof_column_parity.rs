@@ -1,4 +1,5 @@
 //! Test that EOF column matches TS end column
+#![allow(unused_imports, clippy::ptr_arg, clippy::useless_vec)]
 
 #[test]
 #[cfg(feature = "test-helpers")]

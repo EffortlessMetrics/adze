@@ -19,7 +19,7 @@ impl NestedCommentScanner {
 }
 
 impl ExternalScanner for NestedCommentScanner {
-    fn scan(&self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
+    fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
         // Only scan if comment token is valid
         if valid_symbols.get(COMMENT as usize) != Some(&true) {
             return None;
@@ -88,9 +88,8 @@ impl ExternalScanner for NestedCommentScanner {
         None
     }
 
-    fn serialize(&self, buffer: &mut Vec<u8>) -> usize {
+    fn serialize(&self, buffer: &mut Vec<u8>) {
         buffer.extend_from_slice(&(self.depth as u32).to_le_bytes());
-        4
     }
 
     fn deserialize(&mut self, buffer: &[u8]) {

@@ -265,7 +265,7 @@ module.exports = grammar({
             // Try to convert
             let converter = GrammarJsConverter::new(grammar_js.clone());
             match converter.convert() {
-                Ok(ir_grammar) => {
+                Ok(_ir_grammar) => {
                     println!("✓ Successfully converted to IR!");
 
                     // Try to build (will likely fail without scanner implementation)

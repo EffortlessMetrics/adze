@@ -6,13 +6,13 @@
 mod support;
 
 use rust_sitter::decoder;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 
 #[test]
 fn test_rule_count_preservation() {
     // Build a JSON grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     let original_rule_count = parse_table.rules.len();
@@ -52,7 +52,7 @@ fn test_rule_count_preservation() {
 fn test_token_lhs_invariant() {
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -84,7 +84,7 @@ fn test_token_lhs_invariant() {
 fn test_dense_column_mapping() {
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -121,7 +121,7 @@ fn test_dense_column_mapping() {
 fn test_no_sentinel_symbols() {
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -150,7 +150,7 @@ fn test_no_sentinel_symbols() {
 fn test_reduce_action_child_count() {
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -183,7 +183,7 @@ fn test_accept_action_existence() {
 
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -238,7 +238,7 @@ fn test_accept_goto_shape() {
 
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -339,7 +339,7 @@ fn test_accept_goto_shape() {
 fn test_eof_column_placement() {
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -377,7 +377,7 @@ fn test_eof_column_placement() {
 fn test_no_sentinel_leakage() {
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -425,7 +425,7 @@ fn test_no_sentinel_leakage() {
 fn test_lhs_production_agreement() {
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Capture original rule count before normalization
@@ -450,10 +450,10 @@ fn test_lhs_production_agreement() {
     // Verify each rule's LHS is valid and in the symbol table
     for (i, r) in decoded_table.rules.iter().enumerate() {
         // Check that the LHS symbol exists in the symbol_to_index mapping
-        let lhs_col = decoded_table.symbol_to_index.get(&r.lhs).expect(&format!(
-            "Rule {} LHS symbol {:?} not in symbol_to_index",
-            i, r.lhs
-        ));
+        let lhs_col = decoded_table
+            .symbol_to_index
+            .get(&r.lhs)
+            .unwrap_or_else(|| panic!("Rule {} LHS symbol {:?} not in symbol_to_index", i, r.lhs));
 
         // Verify the reverse mapping is consistent
         if *lhs_col < decoded_table.index_to_symbol.len() {
@@ -491,7 +491,7 @@ fn test_lhs_production_agreement() {
 fn test_external_scanner_array_sizes() {
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     support::language_builder::normalize_table_for_ts(&mut parse_table);
@@ -534,7 +534,7 @@ fn test_normalization_performance_bound() {
 
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let mut parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
     // Capture table dimensions for bound calculation

@@ -26,12 +26,9 @@ const DEDENT_INDEX: usize = 2;
 const STRING_START_INDEX: usize = 3;
 const STRING_END_INDEX: usize = 4;
 const STRING_CONTENT_INDEX: usize = 5;
-#[allow(dead_code)]
-const COMMENT_INDEX: usize = 6;
-#[allow(dead_code)]
-const LINE_JOINING_INDEX: usize = 7;
-#[allow(dead_code)]
-const ERROR_RECOVERY_INDEX: usize = 8;
+const _COMMENT_INDEX: usize = 6;
+const _LINE_JOINING_INDEX: usize = 7;
+const _ERROR_RECOVERY_INDEX: usize = 8;
 
 #[derive(Debug, Clone)]
 pub struct PythonScanner {

@@ -9,8 +9,8 @@ cargo test --workspace \
   --exclude ts-c-harness \
   --exclude rust-sitter-runtime
 
-echo "Testing ts-bridge with stub-ts..."
-cargo test -p ts-bridge --features stub-ts
+echo "Testing ts-bridge..."
+cargo test -p ts-bridge
 
 echo "Testing ts-bridge with with-grammars (if available)..."
 cargo test -p ts-bridge --features with-grammars 2>/dev/null || echo "Skipping (requires Tree-sitter libraries)"

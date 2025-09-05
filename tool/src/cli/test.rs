@@ -1,9 +1,8 @@
-use anyhow::{Context, Result, bail};
+use anyhow::Result;
 use glob::glob;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use std::time::Instant;
 
 /// Test result for a single file
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -157,50 +156,6 @@ pub fn run_tests(
     println!("      Use integration tests in your parser crate instead.");
 
     Ok(())
-}
-
-/// Run a single test file
-fn run_single_test(test_file: &Path, _parser_path: Option<&Path>) -> Result<TestResult> {
-    let file_name = test_file.to_string_lossy().to_string();
-    let start = Instant::now();
-
-    // Read test file
-    let content = fs::read_to_string(test_file)
-        .with_context(|| format!("Failed to read test file: {:?}", test_file))?;
-
-    // Parse test format
-    let test_cases = parse_test_format(&content)?;
-
-    // For now, we'll check if the test cases are valid
-    // Real implementation would need to compile and run the parser
-    let mut passed = true;
-    let mut error_msg = None;
-
-    for test_case in &test_cases {
-        // Basic validation
-        if test_case.source.is_empty() {
-            passed = false;
-            error_msg = Some(format!("Test '{}' has empty source", test_case.name));
-            break;
-        }
-        if test_case.expected.is_empty() {
-            passed = false;
-            error_msg = Some(format!(
-                "Test '{}' has empty expected output",
-                test_case.name
-            ));
-            break;
-        }
-    }
-
-    let parse_time_ms = start.elapsed().as_secs_f64() * 1000.0;
-
-    Ok(TestResult {
-        file: file_name,
-        passed,
-        parse_time_ms,
-        error: error_msg,
-    })
 }
 
 /// Parse Tree-sitter test format

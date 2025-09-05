@@ -30,10 +30,10 @@ impl VecWrapperResolver {
         let mut statement_starters = FixedBitSet::with_capacity(max_symbol_id);
 
         // Find FIRST(Statement) - you already compute this
-        if let Some(stmt_id) = grammar.find_symbol_by_name("Statement") {
-            if let Some(first_set) = first_follow.first(stmt_id) {
-                statement_starters.union_with(first_set);
-            }
+        if let Some(stmt_id) = grammar.find_symbol_by_name("Statement")
+            && let Some(first_set) = first_follow.first(stmt_id)
+        {
+            statement_starters.union_with(first_set);
         }
 
         // Also check for other common statement starters
@@ -43,10 +43,10 @@ impl VecWrapperResolver {
             "Primary",
             "Number",
         ] {
-            if let Some(id) = grammar.find_symbol_by_name(name) {
-                if let Some(first_set) = first_follow.first(id) {
-                    statement_starters.union_with(first_set);
-                }
+            if let Some(id) = grammar.find_symbol_by_name(name)
+                && let Some(first_set) = first_follow.first(id)
+            {
+                statement_starters.union_with(first_set);
             }
         }
 
@@ -82,30 +82,27 @@ impl VecWrapperResolver {
                                 grammar.all_rules().find(|r| r.production_id.0 == rule_id.0)
                             {
                                 // Check if this is a vec wrapper empty rule
-                                if let Some(rule_name) = grammar.rule_names.get(&rule.lhs) {
-                                    if rule_name.ends_with("_vec_contents") && rule.rhs.is_empty() {
-                                        result = Some(ProductionId(rule_id.0));
-                                        break;
-                                    }
+                                if let Some(rule_name) = grammar.rule_names.get(&rule.lhs)
+                                    && rule_name.ends_with("_vec_contents")
+                                    && rule.rhs.is_empty()
+                                {
+                                    result = Some(ProductionId(rule_id.0));
+                                    break;
                                 }
                             }
                         }
                         Action::Fork(actions) => {
                             // Check fork actions too
                             for fork_action in actions {
-                                if let Action::Reduce(rule_id) = fork_action {
-                                    if let Some(rule) =
+                                if let Action::Reduce(rule_id) = fork_action
+                                    && let Some(rule) =
                                         grammar.all_rules().find(|r| r.production_id.0 == rule_id.0)
-                                    {
-                                        if let Some(rule_name) = grammar.rule_names.get(&rule.lhs) {
-                                            if rule_name.ends_with("_vec_contents")
-                                                && rule.rhs.is_empty()
-                                            {
-                                                result = Some(ProductionId(rule_id.0));
-                                                break;
-                                            }
-                                        }
-                                    }
+                                    && let Some(rule_name) = grammar.rule_names.get(&rule.lhs)
+                                    && rule_name.ends_with("_vec_contents")
+                                    && rule.rhs.is_empty()
+                                {
+                                    result = Some(ProductionId(rule_id.0));
+                                    break;
                                 }
                             }
                         }

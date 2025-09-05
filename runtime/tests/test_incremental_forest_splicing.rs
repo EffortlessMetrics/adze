@@ -1,7 +1,7 @@
 //! Test for the new forest splicing incremental parsing approach
 
 use rust_sitter::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -110,7 +110,7 @@ fn tokenize(input: &str) -> Vec<GLRToken> {
 #[test]
 fn test_forest_splicing_simple_edit() {
     let grammar = Arc::new(create_test_grammar());
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = Arc::new(build_lr1_automaton(&grammar, &first_follow).unwrap());
 
     // Initial parse: "1 + 2 + 3"
@@ -138,7 +138,7 @@ fn test_forest_splicing_simple_edit() {
     let new_forest = parser.parse_incremental(&new_tokens, &[edit]).unwrap();
 
     // Verify that we got a valid parse tree
-    assert!(new_forest.alternatives.len() > 0);
+    assert!(!new_forest.alternatives.is_empty());
 
     // The forest should represent the expression "1 + 5 + 3"
     println!("Incremental parse successful!");
@@ -148,7 +148,7 @@ fn test_forest_splicing_simple_edit() {
 #[test]
 fn test_forest_splicing_prefix_reuse() {
     let grammar = Arc::new(create_test_grammar());
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = Arc::new(build_lr1_automaton(&grammar, &first_follow).unwrap());
 
     // Initial parse: "1 + 2 + 3 + 4"
@@ -176,14 +176,14 @@ fn test_forest_splicing_prefix_reuse() {
     let new_forest = parser.parse_incremental(&new_tokens, &[edit]).unwrap();
 
     // Verify parsing succeeded
-    assert!(new_forest.alternatives.len() > 0);
+    assert!(!new_forest.alternatives.is_empty());
     println!("Prefix reuse test successful!");
 }
 
 #[test]
 fn test_forest_splicing_suffix_reuse() {
     let grammar = Arc::new(create_test_grammar());
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let table = Arc::new(build_lr1_automaton(&grammar, &first_follow).unwrap());
 
     // Initial parse: "1 + 2 + 3 + 4"
@@ -211,6 +211,6 @@ fn test_forest_splicing_suffix_reuse() {
     let new_forest = parser.parse_incremental(&new_tokens, &[edit]).unwrap();
 
     // Verify parsing succeeded
-    assert!(new_forest.alternatives.len() > 0);
+    assert!(!new_forest.alternatives.is_empty());
     println!("Suffix reuse test successful!");
 }

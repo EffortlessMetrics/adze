@@ -1,5 +1,5 @@
 // Debug parse table generation for ambiguous grammars
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_ambiguous_grammar() -> Grammar {
@@ -55,7 +55,7 @@ fn create_ambiguous_grammar() -> Grammar {
 #[test]
 fn test_parse_table_has_conflicts() {
     let grammar = create_ambiguous_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
 
     println!("\n=== Grammar Rules ===");
     for (symbol_id, rules) in &grammar.rules {
@@ -69,11 +69,11 @@ fn test_parse_table_has_conflicts() {
 
     println!("\n=== First/Follow Sets ===\nFirst sets:");
     for (symbol_id, _) in &grammar.rules {
-        if let Some(set) = first_follow.first(*symbol_id) {
-            if !set.is_empty() {
-                let symbols: Vec<u16> = set.ones().map(|idx| idx as u16).collect();
-                println!("  Symbol {}: {:?}", symbol_id.0, symbols);
-            }
+        if let Some(set) = first_follow.first(*symbol_id)
+            && !set.is_empty()
+        {
+            let symbols: Vec<u16> = set.ones().map(|idx| idx as u16).collect();
+            println!("  Symbol {}: {:?}", symbol_id.0, symbols);
         }
     }
 

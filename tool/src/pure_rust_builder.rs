@@ -1,9 +1,9 @@
 // Pure-Rust parser builder that uses the new IR and GLR infrastructure
 // This module replaces the old Tree-sitter C generation with pure Rust code
 
-use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
+use crate::grammar_js::{parse_grammar_js_v2, GrammarJsConverter};
 use anyhow::{Context, Result};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, TokenPattern};
 use rust_sitter_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
 use serde_json::Value;
@@ -61,17 +61,6 @@ fn alloc_production_id(grammar: &Grammar) -> Result<ProductionId> {
     Ok(ProductionId(next))
 }
 
-/// Allocate a valid SymbolId safely
-fn alloc_token_id(grammar: &Grammar) -> Result<SymbolId> {
-    let max_tok = grammar.tokens.keys().map(|k| k.0).max().unwrap_or(0);
-    let max_rule = grammar.rules.keys().map(|k| k.0).max().unwrap_or(0);
-    let max_id = max_tok.max(max_rule);
-    let next = max_id
-        .checked_add(1)
-        .context("too many symbols (u16 overflow)")?;
-    Ok(SymbolId(next))
-}
-
 /// Ensures every wrapper non-terminal that directly produces a pattern has an explicit unit rule N -> T.
 /// This guarantees LR items expose terminal lookaheads, enabling token shifts from initial states.
 ///
@@ -101,16 +90,16 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
             // This non-terminal has no rules - it's likely a wrapper for a pattern
             // For now, use a heuristic: if the name contains "Number", look for a number token
             // TODO: This should be improved to handle all pattern wrappers structurally
-            if let Some(nt_name) = grammar.rule_names.get(&nt_id) {
-                if nt_name.to_lowercase().contains("number") {
-                    // Find a number token (one with \d pattern)
-                    for (tid, token) in &grammar.tokens {
-                        if let TokenPattern::Regex(r) = &token.pattern {
-                            if r.contains(r"\d") || r.contains("[0-9]") {
-                                wrappers_needing_rules.push((nt_id, *tid));
-                                break;
-                            }
-                        }
+            if let Some(nt_name) = grammar.rule_names.get(&nt_id)
+                && nt_name.to_lowercase().contains("number")
+            {
+                // Find a number token (one with \d pattern)
+                for (tid, token) in &grammar.tokens {
+                    if let TokenPattern::Regex(r) = &token.pattern
+                        && (r.contains(r"\d") || r.contains("[0-9]"))
+                    {
+                        wrappers_needing_rules.push((nt_id, *tid));
+                        break;
                     }
                 }
             }
@@ -120,7 +109,7 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
     // Second pass: Look for existing unit rules that might need desugaring
     // (This handles cases where the wrapper has a rule but it's to an inline pattern)
     let mut rules_to_add = Vec::new();
-    for (nt_id, rules) in &grammar.rules {
+    for (_, rules) in &grammar.rules {
         for rule in rules {
             if rule.rhs.len() == 1 {
                 // This is a unit rule
@@ -176,15 +165,14 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
     if std::env::var("RUST_LOG")
         .unwrap_or_default()
         .contains("debug")
+        && !rules_to_add.is_empty()
     {
-        if !rules_to_add.is_empty() {
-            eprintln!(
-                "Desugaring: Added {} unit rules for pattern wrappers",
-                rules_to_add.len()
-            );
-            for (nt, tok) in rules_to_add {
-                eprintln!("  {} -> Terminal({})", nt.0, tok.0);
-            }
+        eprintln!(
+            "Desugaring: Added {} unit rules for pattern wrappers",
+            rules_to_add.len()
+        );
+        for (nt, tok) in rules_to_add {
+            eprintln!("  {} -> Terminal({})", nt.0, tok.0);
         }
     }
 
@@ -216,18 +204,17 @@ pub fn build_parser_from_grammar_js(
 
     // Convert to IR
     let converter = GrammarJsConverter::new(grammar_js);
-    let mut grammar = converter
+    let grammar = converter
         .convert()
         .context("Failed to convert grammar.js to IR")?;
 
     // Grammar converted successfully
 
-    // Optimize the grammar
     #[cfg(feature = "optimize")]
-    {
+    let grammar = {
         use rust_sitter_ir::optimizer::optimize_grammar;
-        grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
-    }
+        optimize_grammar(grammar).context("Failed to optimize grammar")?
+    };
 
     // Grammar optimized successfully
 
@@ -240,7 +227,7 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
     let mut results = Vec::new();
 
     // Find all grammar definitions
-    let grammars = crate::generate_grammars(root_file);
+    let grammars = crate::generate_grammars(root_file)?;
 
     // Debug: write to file
     {
@@ -258,7 +245,7 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
 
     for grammar_json in grammars {
         // Convert serde_json::Value to string
-        let grammar_json_str = grammar_json.to_string();
+        let grammar_json_str = serde_json::to_string(&grammar_json).unwrap();
         let result = build_parser_from_json(grammar_json_str, options.clone())?;
         results.push(result);
     }
@@ -319,7 +306,8 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     desugar_pattern_wrappers(&mut grammar)?;
 
     // Step 1: Compute FIRST/FOLLOW sets
-    let first_follow = FirstFollowSets::compute(&grammar);
+    let first_follow = FirstFollowSets::compute(&grammar)
+        .with_context(|| "Failed to compute FIRST/FOLLOW sets")?;
 
     // Write debug info to a file
     let debug_file_path =
@@ -409,11 +397,9 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
 
             // Ensure invariants
             debug_assert_eq!(normalized.eof_symbol, SymbolId(0));
-            debug_assert!(
-                normalized
-                    .symbol_to_index
-                    .contains_key(&normalized.eof_symbol)
-            );
+            debug_assert!(normalized
+                .symbol_to_index
+                .contains_key(&normalized.eof_symbol));
 
             normalized
         }
@@ -500,35 +486,34 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     if std::env::var("RUST_LOG")
         .unwrap_or_default()
         .contains("debug")
+        && let Some(state0_actions) = parse_table.action_table.first()
     {
-        if let Some(state0_actions) = parse_table.action_table.get(0) {
-            eprintln!(
-                "State 0 debug: {} action cells, {} tokens",
-                state0_actions.len(),
-                grammar.tokens.len()
-            );
+        eprintln!(
+            "State 0 debug: {} action cells, {} tokens",
+            state0_actions.len(),
+            grammar.tokens.len()
+        );
 
-            let mut token_actions = 0;
-            for (symbol_idx, action_cell) in state0_actions.iter().enumerate() {
-                if !action_cell.is_empty() {
-                    // Check if this is a token
-                    for (sym_id, idx) in &parse_table.symbol_to_index {
-                        if *idx == symbol_idx && grammar.tokens.contains_key(sym_id) {
-                            token_actions += 1;
-                            break;
-                        }
+        let mut token_actions = 0;
+        for (symbol_idx, action_cell) in state0_actions.iter().enumerate() {
+            if !action_cell.is_empty() {
+                // Check if this is a token
+                for (sym_id, idx) in &parse_table.symbol_to_index {
+                    if *idx == symbol_idx && grammar.tokens.contains_key(sym_id) {
+                        token_actions += 1;
+                        break;
                     }
                 }
             }
+        }
 
-            if token_actions > 0 {
-                eprintln!(
-                    "State 0 has {} token actions - parser can accept input ✓",
-                    token_actions
-                );
-            } else {
-                eprintln!("WARNING: State 0 has no token actions - parser cannot accept input!");
-            }
+        if token_actions > 0 {
+            eprintln!(
+                "State 0 has {} token actions - parser can accept input ✓",
+                token_actions
+            );
+        } else {
+            eprintln!("WARNING: State 0 has no token actions - parser cannot accept input!");
         }
     }
 
@@ -617,11 +602,13 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     writeln!(parser_file, "#[allow(unused_variables)]")?;
     writeln!(parser_file, "#[allow(unexpected_cfgs)]")?;
     writeln!(parser_file, "#[allow(unsafe_op_in_unsafe_fn)]")?;
-    writeln!(parser_file)?;
+    writeln!(parser_file, "#[allow(clippy::op_ref)]")?;
+    writeln!(parser_file, "#[allow(clippy::char_lit_as_u8)]")?;
+    writeln!(parser_file, "#[allow(clippy::unnecessary_cast)]")?;
 
     // Parse tokens to an AST and pretty-print to stable Rust source
     use prettyplease::unparse as pretty_unparse;
-    use syn::{File, parse2};
+    use syn::{parse2, File};
 
     let file_ast: File =
         parse2(language_code.clone()).expect("generator must produce a parsable Rust file");

@@ -439,14 +439,13 @@ impl GrammarJsConverter {
                 let field_id = self.get_or_create_field(name);
 
                 // First, ensure the content rule is converted if it's a symbol
-                if let JsRule::Symbol { name: content_name } = content.as_ref() {
-                    if let Some(&content_symbol_id) = self.symbol_names.get(content_name) {
-                        // Check if this symbol needs its rule converted
-                        if let Some(content_rule) = self.grammar_js.rules.get(content_name).cloned()
-                        {
-                            eprintln!("Debug: Converting nested rule {} for field", content_name);
-                            self.convert_rule_body(grammar, &content_rule, content_symbol_id)?;
-                        }
+                if let JsRule::Symbol { name: content_name } = content.as_ref()
+                    && let Some(&content_symbol_id) = self.symbol_names.get(content_name)
+                {
+                    // Check if this symbol needs its rule converted
+                    if let Some(content_rule) = self.grammar_js.rules.get(content_name).cloned() {
+                        eprintln!("Debug: Converting nested rule {} for field", content_name);
+                        self.convert_rule_body(grammar, &content_rule, content_symbol_id)?;
                     }
                 }
 
@@ -578,10 +577,10 @@ impl GrammarJsConverter {
     fn get_or_create_string_token(&mut self, grammar: &mut Grammar, value: &str) -> SymbolId {
         // Check if we already have this token
         for (id, token) in &grammar.tokens {
-            if let TokenPattern::String(s) = &token.pattern {
-                if s == value {
-                    return *id;
-                }
+            if let TokenPattern::String(s) = &token.pattern
+                && s == value
+            {
+                return *id;
             }
         }
 
@@ -600,10 +599,10 @@ impl GrammarJsConverter {
     fn get_or_create_pattern_token(&mut self, grammar: &mut Grammar, pattern: &str) -> SymbolId {
         // Check if we already have this token
         for (id, token) in &grammar.tokens {
-            if let TokenPattern::Regex(p) = &token.pattern {
-                if p == pattern {
-                    return *id;
-                }
+            if let TokenPattern::Regex(p) = &token.pattern
+                && p == pattern
+            {
+                return *id;
             }
         }
 
@@ -640,14 +639,12 @@ impl GrammarJsConverter {
                     if let Some(rules) = grammar.rules.get(&symbol_id) {
                         eprintln!("    Symbol is a rule with {} alternatives", rules.len());
                         // If there's exactly one rule and it's a simple sequence with one token
-                        if rules.len() == 1 && rules[0].rhs.len() == 1 {
-                            if let Symbol::Terminal(token_id) = &rules[0].rhs[0] {
-                                eprintln!(
-                                    "    Rule wraps token {:?}, using that for extra",
-                                    token_id
-                                );
-                                return Some(*token_id);
-                            }
+                        if rules.len() == 1
+                            && rules[0].rhs.len() == 1
+                            && let Symbol::Terminal(token_id) = &rules[0].rhs[0]
+                        {
+                            eprintln!("    Rule wraps token {:?}, using that for extra", token_id);
+                            return Some(*token_id);
                         }
                     }
                 }

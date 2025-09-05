@@ -25,8 +25,8 @@ pub(crate) mod test {
     ) -> ParseTable {
         // Dimensions
         let state_count = actions.len().max(1);
-        let symbol_cols_from_actions = actions.get(0).map(|r| r.len()).unwrap_or(0);
-        let symbol_cols_from_gotos = gotos.get(0).map(|r| r.len()).unwrap_or(0);
+        let symbol_cols_from_actions = actions.first().map(|r| r.len()).unwrap_or(0);
+        let symbol_cols_from_gotos = gotos.first().map(|r| r.len()).unwrap_or(0);
         // Cover the columns referenced by start_symbol and eof_symbol too.
         let min_needed = (start_symbol.0 as usize + 1).max(eof_symbol.0 as usize + 1);
         let symbol_count = symbol_cols_from_actions
@@ -40,7 +40,7 @@ pub(crate) mod test {
         } else {
             for row in &mut actions {
                 if row.len() < symbol_count {
-                    row.resize_with(symbol_count, || Vec::new());
+                    row.resize_with(symbol_count, Vec::new);
                 }
             }
         }
@@ -166,15 +166,14 @@ pub(crate) mod test {
         fn empty_is_constructible() {
             let _ = make_empty_table(2, 1, 0, 0);
         }
-    }
-}
 
-// Handy macro for the simple case.
-#[cfg(test)]
-#[macro_export]
-macro_rules! empty_table {
-    (states: $s:expr, terms: $t:expr, nonterms: $n:expr $(, externals: $e:expr)? ) => {{
-        let e = 0 $(+ $e)?;
-        $crate::test_helpers::test::make_empty_table($s, $t, $n, e)
-    }};
+        // Handy macro for the simple case.
+        #[macro_export]
+        macro_rules! empty_table {
+            (states: $s:expr, terms: $t:expr, nonterms: $n:expr $(, externals: $e:expr)? ) => {{
+                let e = 0 $(+ $e)?;
+                $crate::test_helpers::test::make_empty_table($s, $t, $n, e)
+            }};
+        }
+    }
 }

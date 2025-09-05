@@ -724,21 +724,22 @@ impl<'a> AbiLanguageBuilder<'a> {
                 }
 
                 // If all actions are the same reduce, emit a default reduce entry
-                if let Some(prod_id) = default_reduce {
-                    if !has_non_reduce && !non_error_actions.is_empty() {
-                        eprintln!(
-                            "DEBUG: State {} has default reduce to production {}",
-                            state_idx, prod_id.0
-                        );
-                        // Emit default reduce entry with high bit set in symbol
-                        // The symbol field is 0x8000 to indicate default reduce
-                        // The action value contains the 1-based production ID with high bit set
-                        table_data.push(quote! { 0x8000u16 });
-                        let reduce_action = 0x8000u16 | (prod_id.0 + 1);
-                        table_data.push(quote! { #reduce_action });
-                        current_offset += 2;
-                        continue; // Skip to next state
-                    }
+                if let Some(prod_id) = default_reduce
+                    && !has_non_reduce
+                    && !non_error_actions.is_empty()
+                {
+                    eprintln!(
+                        "DEBUG: State {} has default reduce to production {}",
+                        state_idx, prod_id.0
+                    );
+                    // Emit default reduce entry with high bit set in symbol
+                    // The symbol field is 0x8000 to indicate default reduce
+                    // The action value contains the 1-based production ID with high bit set
+                    table_data.push(quote! { 0x8000u16 });
+                    let reduce_action = 0x8000u16 | (prod_id.0 + 1);
+                    table_data.push(quote! { #reduce_action });
+                    current_offset += 2;
+                    continue; // Skip to next state
                 }
 
                 // Check if all non-error actions are the same reduce

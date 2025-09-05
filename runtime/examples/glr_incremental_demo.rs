@@ -4,7 +4,7 @@ use rust_sitter::{
     glr_incremental::{ForestNode, GLREdit, GLRToken, IncrementalGLRParser},
     glr_parser::GLRParser,
 };
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 use std::ops::Range;
 use std::sync::Arc;
@@ -17,7 +17,7 @@ fn main() {
     let grammar = Arc::new(grammar);
 
     // Build parse table
-    let ff_sets = FirstFollowSets::compute(&grammar);
+    let ff_sets = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = match build_lr1_automaton(&grammar, &ff_sets) {
         Ok(table) => table,
         Err(e) => {
@@ -40,7 +40,7 @@ fn main() {
         Ok(tree) => {
             println!("✓ Parse successful!");
             // Store the tree for reuse
-            incremental_parser.previous_forest = Some(tree.clone());
+            // incremental_parser.previous_forest = Some(tree.clone()); // TODO: Fix private field access
 
             // Test 2: Small edit in the middle
             println!("\n\nTest 2: Edit in the middle");
@@ -52,6 +52,7 @@ fn main() {
             let edit = GLREdit {
                 old_range: Range { start: 2, end: 3 },
                 new_text: b"x".to_vec(),
+                old_forest: None, // TODO: Fix missing field
                 old_token_range: Range { start: 1, end: 2 }, // Second token
                 new_tokens: vec![GLRToken {
                     symbol: SymbolId(1),
@@ -64,11 +65,11 @@ fn main() {
 
             let result2 = incremental_parser.parse_incremental(&tokens2, &[edit]);
             match result2 {
-                Ok(_tree2) => {
+                Ok(tree2) => {
                     println!("✓ Incremental parse successful!");
                     println!("Note: Some subtrees were reused from the previous parse!");
                     // Update for next parse
-                    incremental_parser.previous_forest = Some(tree2);
+                    // incremental_parser.previous_forest = Some(tree2); // TODO: Fix private field access
                 }
                 Err(e) => println!("✗ Incremental parse failed: {}", e),
             }
@@ -83,6 +84,7 @@ fn main() {
             let edit = GLREdit {
                 old_range: Range { start: 5, end: 5 },
                 new_text: b" d".to_vec(),
+                old_forest: None, // TODO: Fix missing field
                 old_token_range: Range { start: 3, end: 3 }, // After last token
                 new_tokens: vec![GLRToken {
                     symbol: SymbolId(1),

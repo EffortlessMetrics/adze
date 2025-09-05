@@ -4,7 +4,6 @@ use rust_sitter_glr_core::stack::StackNode;
 use rust_sitter_glr_core::stack::test_helpers::GlrStack;
 
 // For tests that don't require test-api feature, use struct literals
-use std::sync::Arc;
 
 #[test]
 #[cfg(feature = "test-api")]

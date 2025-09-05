@@ -17,7 +17,8 @@ fn main() {
     }
 
     // Generate grammars first to see what's being generated
-    let grammars = rust_sitter_tool::generate_grammars(Path::new("src/lib.rs"));
+    let grammars = rust_sitter_tool::generate_grammars(Path::new("src/lib.rs"))
+        .expect("failed to generate grammars");
 
     // Print the generated grammar for debugging
     for grammar in &grammars {

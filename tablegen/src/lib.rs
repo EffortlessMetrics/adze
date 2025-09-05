@@ -1378,7 +1378,7 @@ mod tests {
         });
 
         // Build LR(1) automaton
-        let first_follow = FirstFollowSets::compute(&grammar);
+        let first_follow = FirstFollowSets::compute(&grammar).unwrap();
         let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
 
         // The arithmetic grammar should have at least 9 states (GLR may compress states)
