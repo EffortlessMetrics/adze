@@ -216,42 +216,40 @@ fn test_replacement() {
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
     // Initial parse
-    let source1 = b"let x = 5";
+    let source1 = b"123456";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Replace "5" with "10" (positions 8-9 -> 8-10)
-    let source2 = b"let x = 10";
-    let _edit = Edit {
-        start_byte: 8,
-        old_end_byte: 9,
-        new_end_byte: 10,
-        start_point: Point { row: 0, column: 8 },
-        old_end_point: Point { row: 0, column: 9 },
-        new_end_point: Point { row: 0, column: 10 },
+    // Replace "456" with "7890" (positions 3-6 -> 3-7)
+    let source2 = b"1237890";
+    let edit = Edit {
+        start_byte: 3,
+        old_end_byte: 6,
+        new_end_byte: 7,
+        start_point: Point { row: 0, column: 3 },
+        old_end_point: Point { row: 0, column: 6 },
+        new_end_point: Point { row: 0, column: 7 },
     };
 
     // Attempt incremental parse
-    // TODO: Implement incremental parsing
-    // let tree2 = parser.reparse(source2, &tree1, &edit);
-    let tree2: Option<Tree> = None;
+    let tree2_incremental = parser
+        .reparse(std::str::from_utf8(source2).unwrap(), &tree1, &edit)
+        .ok();
 
-    if let Some(tree) = tree2 {
+    // Fresh parse for comparison
+    let tree2_fresh = parser
+        .parse(std::str::from_utf8(source2).unwrap())
+        .expect("Fresh parse should succeed");
+
+    if let Some(tree) = tree2_incremental {
         assert_eq!(
-            tree.error_count, 0,
-            "Incremental parse should have no errors"
+            tree.error_count, tree2_fresh.error_count,
+            "Incremental and fresh parse error counts should match",
         );
     } else {
-        // For now, just parse fresh and verify that works
-        let tree_fresh = parser
-            .parse(std::str::from_utf8(source2).unwrap())
-            .expect("Fresh parse should succeed");
-        assert_eq!(
-            tree_fresh.error_count, 0,
-            "Fresh parse should have no errors"
-        );
+        panic!("Incremental parse failed");
     }
 }
 
