@@ -901,15 +901,26 @@ impl Parser {
         }
     }
 
-    /// Temporary fallback: do a full reparse. Keeps tests stable while
-    /// incremental engine wiring lands.
+    /// Parse with incremental reuse when possible
     pub fn reparse(
         &mut self,
         input: &str,
-        _old: &Tree,
-        _edit: &crate::pure_incremental::Edit,
+        old: &Tree,
+        edit: &crate::pure_incremental::Edit,
     ) -> Result<Tree> {
-        self.parse(input)
+        // Try incremental parsing first
+        if let Some(incremental_tree) = crate::glr_incremental::reparse(
+            &self.grammar,
+            &self.parse_table,
+            input.as_bytes(),
+            old,
+            edit,
+        ) {
+            Ok(incremental_tree)
+        } else {
+            // Fall back to full reparse if incremental parsing fails
+            self.parse(input)
+        }
     }
 
     /// Get the parse actions for a state and symbol
