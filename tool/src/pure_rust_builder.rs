@@ -1,9 +1,9 @@
 // Pure-Rust parser builder that uses the new IR and GLR infrastructure
 // This module replaces the old Tree-sitter C generation with pure Rust code
 
-use crate::grammar_js::{parse_grammar_js_v2, GrammarJsConverter};
+use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 use anyhow::{Context, Result};
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, TokenPattern};
 use rust_sitter_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
 use serde_json::Value;
@@ -397,9 +397,11 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
 
             // Ensure invariants
             debug_assert_eq!(normalized.eof_symbol, SymbolId(0));
-            debug_assert!(normalized
-                .symbol_to_index
-                .contains_key(&normalized.eof_symbol));
+            debug_assert!(
+                normalized
+                    .symbol_to_index
+                    .contains_key(&normalized.eof_symbol)
+            );
 
             normalized
         }
@@ -608,7 +610,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
 
     // Parse tokens to an AST and pretty-print to stable Rust source
     use prettyplease::unparse as pretty_unparse;
-    use syn::{parse2, File};
+    use syn::{File, parse2};
 
     let file_ast: File =
         parse2(language_code.clone()).expect("generator must produce a parsable Rust file");

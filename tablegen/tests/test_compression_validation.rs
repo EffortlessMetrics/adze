@@ -1,9 +1,9 @@
 // Comprehensive validation tests for table compression algorithms
-use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
+use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use rust_sitter_tablegen::compression::{
-    compress_action_table, compress_goto_table, decompress_action, decompress_goto,
-    BitPackedActionTable,
+    BitPackedActionTable, compress_action_table, compress_goto_table, decompress_action,
+    decompress_goto,
 };
 use std::collections::HashMap;
 

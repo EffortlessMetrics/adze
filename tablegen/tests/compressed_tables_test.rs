@@ -1,8 +1,8 @@
 // Tests for compressed table generation
 
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::*;
-use rust_sitter_tablegen::{abi_builder::AbiLanguageBuilder, TableCompressor};
+use rust_sitter_tablegen::{TableCompressor, abi_builder::AbiLanguageBuilder};
 
 #[test]
 fn test_compressed_table_generation() {
