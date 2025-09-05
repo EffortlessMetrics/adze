@@ -506,7 +506,7 @@ mod property_based_tests {
     use super::*;
 
     /// Generate random SerializedNode for property testing
-    fn gen_random_node(depth: usize, rng: &mut impl rand::Rng) -> SerializedNode {
+    fn gen_random_node(depth: usize, rng: &mut rand::SmallRng) -> SerializedNode {
         let kind = format!("kind_{}", rng.r#gen::<u16>() % 10);
         let is_leaf = depth == 0 || rng.gen_bool(0.3);
 
@@ -544,8 +544,7 @@ mod property_based_tests {
     /// Property test: serialization roundtrip should be identity
     #[test]
     fn property_test_json_roundtrip() {
-        use rand::SeedableRng;
-        let mut rng = rand::rngs::SmallRng::seed_from_u64(12345);
+        let mut rng = rand::SmallRng::seed_from_u64(12345);
 
         for i in 0..100 {
             let original = gen_random_node(i % 5, &mut rng);
@@ -596,8 +595,7 @@ mod property_based_tests {
     /// Property test: S-expression parsing is inverse of formatting
     #[test]
     fn property_test_sexpr_roundtrip() {
-        use rand::SeedableRng;
-        let mut rng = rand::rngs::SmallRng::seed_from_u64(54321);
+        let mut rng = rand::SmallRng::seed_from_u64(54321);
 
         for _ in 0..50 {
             // Generate random S-expression
@@ -618,7 +616,7 @@ mod property_based_tests {
         }
     }
 
-    fn gen_random_sexpr(depth: usize, rng: &mut impl rand::Rng) -> SExpr {
+    fn gen_random_sexpr(depth: usize, rng: &mut rand::SmallRng) -> SExpr {
         if depth == 0 || rng.gen_bool(0.5) {
             let atoms = vec!["hello", "world", "test", "function", "if", "else", "return"];
             SExpr::Atom(atoms[rng.r#gen::<usize>() % atoms.len()].to_string())
@@ -727,7 +725,9 @@ mod rand {
         }
     }
 
-    pub use SmallRng as rngs;
+    pub mod rngs {
+        pub use super::SmallRng;
+    }
 }
 
 // Feature-gated tests that only run when serialization is enabled
