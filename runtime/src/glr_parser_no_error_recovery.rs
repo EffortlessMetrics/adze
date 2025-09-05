@@ -60,48 +60,15 @@ impl GLRParser {
                 }
 
                 for action in actions {
-                    match action {
-                        Action::Shift(next_state) => {
-                            // Create leaf node for the token
-                            let node_id = self.create_leaf(*symbol, position, &mut forest);
-                            let mut new_stack = stack.clone();
-                            new_stack.states.push(next_state);
-                            new_stack.nodes.push(node_id);
-                            new_stacks.push(new_stack);
-                        }
-                        Action::Accept => {
-                            if let Some(&root_id) = stack.nodes.last() {
-                                if let Some(node) = forest.nodes.get(&root_id).cloned() {
-                                    forest.roots.push(node);
-                                    accepted = true;
-                                }
-                            }
-                        }
-                        Action::Fork(fork_actions) => {
-                            for fork_action in fork_actions {
-                                match fork_action {
-                                    Action::Shift(next_state) => {
-                                        let node_id =
-                                            self.create_leaf(*symbol, position, &mut forest);
-                                        let mut new_stack = stack.clone();
-                                        new_stack.states.push(next_state);
-                                        new_stack.nodes.push(node_id);
-                                        new_stacks.push(new_stack);
-                                    }
-                                    Action::Accept => {
-                                        if let Some(&root_id) = stack.nodes.last() {
-                                            if let Some(node) = forest.nodes.get(&root_id).cloned() {
-                                                forest.roots.push(node);
-                                                accepted = true;
-                                            }
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
+                    self.handle_terminal_action(
+                        &stack,
+                        &action,
+                        *symbol,
+                        position,
+                        &mut new_stacks,
+                        &mut forest,
+                        &mut accepted,
+                    );
                 }
             }
 
@@ -138,6 +105,50 @@ impl GLRParser {
             self.table.action_table[state_idx][symbol_idx].clone()
         } else {
             vec![]
+        }
+    }
+
+    /// Handle a terminal action (shift/accept/fork) and update parser state.
+    fn handle_terminal_action(
+        &self,
+        stack: &ParseStack,
+        action: &Action,
+        symbol: SymbolId,
+        position: usize,
+        new_stacks: &mut Vec<ParseStack>,
+        forest: &mut ParseForest,
+        accepted: &mut bool,
+    ) {
+        match action {
+            Action::Shift(next_state) => {
+                let node_id = self.create_leaf(symbol, position, forest);
+                let mut new_stack = stack.clone();
+                new_stack.states.push(*next_state);
+                new_stack.nodes.push(node_id);
+                new_stacks.push(new_stack);
+            }
+            Action::Accept => {
+                if let Some(&root_id) = stack.nodes.last() {
+                    if let Some(node) = forest.nodes.get(&root_id).cloned() {
+                        forest.roots.push(node);
+                        *accepted = true;
+                    }
+                }
+            }
+            Action::Fork(fork_actions) => {
+                for fork_action in fork_actions {
+                    self.handle_terminal_action(
+                        stack,
+                        fork_action,
+                        symbol,
+                        position,
+                        new_stacks,
+                        forest,
+                        accepted,
+                    );
+                }
+            }
+            _ => {}
         }
     }
 
