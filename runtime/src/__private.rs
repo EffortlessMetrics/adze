@@ -5,6 +5,8 @@
 //! they are not intended to actually be called in any other circumstance.
 
 use crate::Extract;
+#[cfg(feature = "pure-rust")]
+use core::ffi::{c_char, CStr};
 
 #[cfg(feature = "pure-rust")]
 use crate::pure_parser::ParsedNode;
@@ -59,7 +61,7 @@ impl<'a> TreeCursor<'a> {
         }
     }
 
-    fn field_name(&self) -> Option<&str> {
+    pub fn field_name(&self) -> Option<&'static str> {
         if self.current_index >= self.children.len() {
             return None;
         }
@@ -77,9 +79,7 @@ impl<'a> TreeCursor<'a> {
             if name_ptr.is_null() {
                 return None;
             }
-            core::ffi::CStr::from_ptr(name_ptr as *const i8)
-                .to_str()
-                .ok()
+            CStr::from_ptr(name_ptr as *const c_char).to_str().ok()
         }
     }
 }
