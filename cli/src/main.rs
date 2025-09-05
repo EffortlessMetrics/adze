@@ -664,8 +664,13 @@ fn parse_file_dynamic(
                         }
                     } else {
                         match format {
-                            OutputFormat::Json => println!("{{\"status\":\"error\",\"message\":\"Parse tree contains errors\"}}"),
-                            _ => println!("Parsing completed but tree contains errors. Total nodes: {}", nodes),
+                            OutputFormat::Json => println!(
+                                "{{\"status\":\"error\",\"message\":\"Parse tree contains errors\"}}"
+                            ),
+                            _ => println!(
+                                "Parsing completed but tree contains errors. Total nodes: {}",
+                                nodes
+                            ),
                         }
                     }
                 }
