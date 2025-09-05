@@ -488,7 +488,7 @@ impl Lexer for SimpleLexer {
     fn next_token(&mut self, input: &[u8], position: usize) -> Option<Token> {
         let mut pos = position;
 
-        while pos < input.len() {
+        'outer: while pos < input.len() {
             let remaining = std::str::from_utf8(&input[pos..]).ok()?;
 
             for (symbol_id, pattern) in &self.patterns {
@@ -499,7 +499,7 @@ impl Lexer for SimpleLexer {
                             let end = pos + s.len();
                             if *symbol_id == SymbolId(8) {
                                 pos = end;
-                                continue;
+                                continue 'outer;
                             }
                             return Some(Token {
                                 symbol: *symbol_id,
@@ -511,18 +511,20 @@ impl Lexer for SimpleLexer {
                     }
                     Pattern::Regex(re) => {
                         if let Some(mat) = re.find(remaining) {
-                            let start = pos;
-                            let end = pos + mat.end();
-                            if *symbol_id == SymbolId(8) {
-                                pos = end;
-                                continue;
+                            if mat.start() == 0 && mat.end() > 0 {
+                                let start = pos;
+                                let end = pos + mat.end();
+                                if *symbol_id == SymbolId(8) {
+                                    pos = end;
+                                    continue 'outer;
+                                }
+                                return Some(Token {
+                                    symbol: *symbol_id,
+                                    text: input[start..end].to_vec(),
+                                    start,
+                                    end,
+                                });
                             }
-                            return Some(Token {
-                                symbol: *symbol_id,
-                                text: input[start..end].to_vec(),
-                                start,
-                                end,
-                            });
                         }
                     }
                 }
