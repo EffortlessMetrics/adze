@@ -723,6 +723,12 @@ mod rand {
             let val = (self.state as usize) % (max - min);
             min + val
         }
+
+        pub fn r#gen<T>(&mut self) -> T {
+            self.state = self.state.wrapping_mul(1103515245).wrapping_add(12345);
+            // Simple type-specific implementation for testing
+            unsafe { std::mem::transmute_copy(&self.state) }
+        }
     }
 
     pub mod rngs {
