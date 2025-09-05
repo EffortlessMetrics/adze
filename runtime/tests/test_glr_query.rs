@@ -484,6 +484,115 @@ fn parse_expression(_grammar: &Grammar, input: &str) -> Option<Subtree> {
             start_byte: 0,
             end_byte: 9,
         })
+    } else if input == "1 + 2 * 3" {
+        // Create tree for "1 + 2 * 3"
+        let mul_expr_id = SymbolId(14);
+        let times_id = SymbolId(2);
+
+        Some(Subtree {
+            symbol: add_expr_id,
+            children: vec![
+                // Left: 1 as expression
+                Subtree {
+                    symbol: expr_id,
+                    children: vec![Subtree {
+                        symbol: term_id,
+                        children: vec![Subtree {
+                            symbol: factor_id,
+                            children: vec![Subtree {
+                                symbol: number_id,
+                                children: vec![],
+                                start_byte: 0,
+                                end_byte: 1,
+                            }],
+                            start_byte: 0,
+                            end_byte: 1,
+                        }],
+                        start_byte: 0,
+                        end_byte: 1,
+                    }],
+                    start_byte: 0,
+                    end_byte: 1,
+                },
+                Subtree {
+                    symbol: plus_id,
+                    children: vec![],
+                    start_byte: 2,
+                    end_byte: 3,
+                },
+                // Right: 2 * 3 as mul_expression inside term
+                Subtree {
+                    symbol: term_id,
+                    children: vec![Subtree {
+                        symbol: mul_expr_id,
+                        children: vec![
+                            Subtree {
+                                symbol: term_id,
+                                children: vec![Subtree {
+                                    symbol: factor_id,
+                                    children: vec![Subtree {
+                                        symbol: number_id,
+                                        children: vec![],
+                                        start_byte: 4,
+                                        end_byte: 5,
+                                    }],
+                                    start_byte: 4,
+                                    end_byte: 5,
+                                }],
+                                start_byte: 4,
+                                end_byte: 5,
+                            },
+                            Subtree {
+                                symbol: times_id,
+                                children: vec![],
+                                start_byte: 6,
+                                end_byte: 7,
+                            },
+                            Subtree {
+                                symbol: factor_id,
+                                children: vec![Subtree {
+                                    symbol: number_id,
+                                    children: vec![],
+                                    start_byte: 8,
+                                    end_byte: 9,
+                                }],
+                                start_byte: 8,
+                                end_byte: 9,
+                            },
+                        ],
+                        start_byte: 4,
+                        end_byte: 9,
+                    }],
+                    start_byte: 4,
+                    end_byte: 9,
+                },
+            ],
+            start_byte: 0,
+            end_byte: 9,
+        })
+    } else if input == "((1 + 2) * 3) + 4" {
+        // Simplified nested tree to test depth limiting
+        Some(Subtree {
+            symbol: expr_id,
+            children: vec![Subtree {
+                symbol: expr_id,
+                children: vec![Subtree {
+                    symbol: expr_id,
+                    children: vec![Subtree {
+                        symbol: expr_id,
+                        children: vec![],
+                        start_byte: 0,
+                        end_byte: 0,
+                    }],
+                    start_byte: 0,
+                    end_byte: 0,
+                }],
+                start_byte: 0,
+                end_byte: 0,
+            }],
+            start_byte: 0,
+            end_byte: 0,
+        })
     } else {
         // Default tree structure
         Some(Subtree {
