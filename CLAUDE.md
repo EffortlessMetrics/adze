@@ -115,6 +115,13 @@ Rust Sitter is a Rust workspace consisting of multiple interconnected crates tha
    - Contains arithmetic, optional, repetition, and word grammar examples
    - Uses snapshot testing with `insta` for parser output verification
 
+6. **`golden-tests`** - Integration testing with production grammars
+   - Located in `/golden-tests/`
+   - Tests rust-sitter-generated parsers against Tree-sitter reference implementations
+   - Supports Python and JavaScript grammar validation
+   - Uses SHA256 hash verification for parse tree consistency
+   - Provides UPDATE_GOLDEN mode for reference generation
+
 ### Pure-Rust Implementation Status
 
 **Major Achievement (August 2025)**: The pure-Rust implementation successfully compiles the Python grammar with:
@@ -127,21 +134,21 @@ This demonstrates that the pure-Rust toolchain can handle production-grade, comp
 
 ### New Pure-Rust Implementation Components
 
-6. **`rust-sitter-ir`** - Grammar Intermediate Representation
+7. **`rust-sitter-ir`** - Grammar Intermediate Representation
    - Located in `/ir/`
    - Defines the IR for representing grammars with GLR support
    - Supports precedence, associativity, field mappings, and fragile tokens
    - Includes grammar optimization (`optimizer.rs`)
    - Includes grammar validation (`validation.rs`)
 
-7. **`rust-sitter-glr-core`** - GLR Parser Generation Core
+8. **`rust-sitter-glr-core`** - GLR Parser Generation Core
    - Located in `/glr-core/`
    - Implements FIRST/FOLLOW set computation
    - LR(1) item sets and canonical collection building
    - Conflict detection and GLR fork/merge logic
    - Advanced conflict resolution strategies (`advanced_conflict.rs`)
 
-8. **`rust-sitter-tablegen`** - Table Generation and Compression
+9. **`rust-sitter-tablegen`** - Table Generation and Compression
    - Located in `/tablegen/`
    - Implements Tree-sitter's table compression algorithms
    - Generates static Language objects with FFI compatibility
@@ -177,7 +184,7 @@ The runtime2 crate (`/runtime2/`) - **Production Ready GLR Runtime** - includes:
 The tool crate (`/tool/`) now includes:
 - **`visualization.rs`** - Grammar and tree visualization tools
 
-9. **`ts-bridge`** - Tree-sitter to GLR Bridge Tool
+10. **`ts-bridge`** - Tree-sitter to GLR Bridge Tool
    - Located in `/tools/ts-bridge/`
    - Extracts parse tables from compiled Tree-sitter grammars  
    - Features ABI stability guards (v15 pinning with SHA verification)
@@ -245,6 +252,8 @@ When working on the pure-Rust implementation:
 5. **GLR Runtime Tests**: Test GLR integration and performance with `runtime2/tests/glr_parse.rs`
 6. **Incremental Parsing Tests**: Verify subtree reuse with `runtime/tests/property_incremental_test.rs`
 7. **Feature Flag Tests**: Test all feature combinations (`default`, `glr-core`, `incremental`, `all-features`)
+8. **Golden Tests**: Validate rust-sitter parsers against Tree-sitter reference implementations with `cargo test -p rust-sitter-golden-tests`
+9. **Serialization Tests**: Comprehensive roundtrip testing for JSON and S-expression formats with `runtime/tests/test_serialization_roundtrip.rs`
 
 ### Cap Concurrency Implementation
 
@@ -363,7 +372,29 @@ To check test connectivity locally, run:
 ./scripts/check-test-connectivity.sh
 ```
 
-### Recent Achievements (August 2025)
+### Recent Achievements (September 2025)
+
+#### **Golden Test Integration Complete** ✅ *(PR #11)*
+Successfully completed comprehensive golden test integration with rust-sitter-generated parsers, establishing robust validation infrastructure against Tree-sitter reference implementations.
+
+**Key Accomplishments:**
+1. **Production Grammar Integration**: Connected golden tests to rust-sitter Python and JavaScript parsers with full feature wiring
+2. **Comprehensive Serialization Framework**: Added robust roundtrip testing with 100+ test cases covering:
+   - JSON and S-expression serialization identity verification
+   - Unicode edge cases (emoji, RTL text, combining marks)
+   - Performance testing for large trees (10K+ nodes, 1000+ depth)
+   - Property-based testing with random structure generation
+3. **CI Infrastructure Hardening**: Enhanced test connectivity monitoring and process management
+   - Eliminated `EAGAIN` errors through process group management
+   - Added global locking to prevent duplicate agent invocations
+   - Implemented exponential backoff retry mechanisms
+4. **Code Quality Improvements**: Resolved clippy warnings and import ordering across the codebase
+
+**Testing Infrastructure:**
+- Golden tests validate parse tree consistency using SHA256 hash verification
+- Serialization tests ensure roundtrip identity for complex nested structures
+- Performance tests guarantee sub-second serialization for production-scale trees
+- Unicode tests handle international text, mathematical symbols, and script mixing
 
 #### **GLR Parser Implementation - Production Ready** ✅
 Successfully transformed rust-sitter from a simple LR parser to a true GLR (Generalized LR) parser that can handle ambiguous grammars. The implementation is now production-ready with complete runtime integration and comprehensive API stabilization.

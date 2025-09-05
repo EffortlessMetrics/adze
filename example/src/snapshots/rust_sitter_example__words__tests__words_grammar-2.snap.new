@@ -1,7 +1,7 @@
 ---
-source: src/arithmetic.rs
-assertion_line: 169
-expression: "grammar::parse(\"1 + 2\")"
+source: src/words.rs
+assertion_line: 27
+expression: "grammar::parse(\"hello\")"
 ---
 Err(
     [
@@ -9,8 +9,15 @@ Err(
             reason: UnexpectedToken(
                 "symbol 0",
             ),
-            start: 2,
-            end: 2,
+            start: 0,
+            end: 0,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 0",
+            ),
+            start: 1,
+            end: 1,
         },
         ParseError {
             reason: UnexpectedToken(
@@ -23,8 +30,15 @@ Err(
             reason: UnexpectedToken(
                 "symbol 0",
             ),
-            start: 5,
-            end: 5,
+            start: 3,
+            end: 3,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "symbol 0",
+            ),
+            start: 4,
+            end: 4,
         },
         ParseError {
             reason: UnexpectedToken(
