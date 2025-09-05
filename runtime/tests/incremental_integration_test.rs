@@ -3,7 +3,7 @@
 
 mod common;
 
-use rust_sitter::parser_v4::{Parser, Tree};
+use rust_sitter::parser_v4::Parser;
 use rust_sitter::pure_incremental::Edit;
 use rust_sitter::pure_parser::Point;
 use rust_sitter_glr_core::ParseTable;
