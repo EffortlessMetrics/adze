@@ -61,8 +61,11 @@ impl<'a> TreeCursor<'a> {
 
     #[allow(dead_code)]
     fn field_name(&self) -> Option<&str> {
-        // TODO: Implement field names
-        None
+        if self.current_index < self.children.len() {
+            self.children[self.current_index].field_name.as_deref()
+        } else {
+            None
+        }
     }
 }
 
