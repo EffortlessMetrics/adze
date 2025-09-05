@@ -1,6 +1,6 @@
 // Integration tests for the pure-Rust parser generation
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::*;
 use rust_sitter_tablegen::AbiLanguageBuilder;
 

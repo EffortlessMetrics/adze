@@ -2,7 +2,10 @@
 use rust_sitter::external_scanner::ScanResult;
 use rust_sitter::unified_parser::Parser;
 
-// Include the unified_json_helper module directly
+// Include the support modules directly
+#[cfg(feature = "pure-rust")]
+#[path = "support/language_builder.rs"]
+mod language_builder;
 #[cfg(feature = "pure-rust")]
 #[path = "support/unified_json_helper.rs"]
 mod unified_json_helper;
@@ -99,8 +102,8 @@ fn test_error_recovery() {
 #[test]
 #[cfg(feature = "pure-rust")]
 fn test_cancellation() {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
 
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();
@@ -175,16 +178,16 @@ fn test_external_scanner_integration() {
             self.count += 1;
 
             // Simple scanner that accepts any letter as token 1
-            if valid_symbols.len() > 1 && valid_symbols[1] {
-                if let Some(ch) = lexer.lookahead() {
-                    if (ch as char).is_alphabetic() {
-                        lexer.advance(1);
-                        return Some(ScanResult {
-                            symbol: 1,
-                            length: 1,
-                        });
-                    }
-                }
+            if valid_symbols.len() > 1
+                && valid_symbols[1]
+                && let Some(ch) = lexer.lookahead()
+                && (ch as char).is_alphabetic()
+            {
+                lexer.advance(1);
+                return Some(ScanResult {
+                    symbol: 1,
+                    length: 1,
+                });
             }
             None
         }

@@ -1,6 +1,6 @@
 //! Tree representation for parsed syntax trees
 
-use crate::{Language, node::Node};
+use crate::{node::Node, Language};
 use std::fmt;
 
 /// Errors that can occur during tree editing operations

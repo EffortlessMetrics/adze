@@ -3,7 +3,7 @@
 //! This module provides common functionality for tests and examples that need
 //! to create minimal Language instances for testing purposes.
 
-use crate::{Language, Token, language::SymbolMetadata};
+use crate::{language::SymbolMetadata, Language, Token};
 
 #[cfg(feature = "glr-core")]
 fn empty_parse_table() -> &'static rust_sitter_glr_core::ParseTable {

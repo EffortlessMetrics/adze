@@ -10,7 +10,7 @@ use rust_sitter_ir::{
     SymbolId, Token, TokenPattern,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::ffi::{CStr, c_char};
+use std::ffi::{c_char, CStr};
 use std::path::Path;
 
 use crate::pure_parser::{TSLanguage, TSParseAction};

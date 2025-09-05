@@ -4,10 +4,10 @@
 #[cfg(feature = "incremental_glr")]
 mod ambiguous_incremental_tests {
     use rust_sitter::glr_incremental::{
-        GLREdit, GLRToken, IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
+        get_reuse_count, reset_reuse_counter, GLREdit, GLRToken, IncrementalGLRParser,
     };
     use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
-    use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
     use rust_sitter_ir::{
         Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
     };

@@ -1,4 +1,6 @@
-mod language_builder;
+// Note: This module requires that language_builder is imported by the parent test file
+// Import it with: #[path = "support/language_builder.rs"] mod language_builder;
+use crate::language_builder;
 
 use rust_sitter::pure_parser::TSLanguage;
 use rust_sitter_glr_core::GotoIndexing;

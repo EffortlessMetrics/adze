@@ -330,11 +330,9 @@ mod tests {
         assert!(result.is_err());
 
         let errors = result.unwrap_err();
-        assert!(
-            errors
-                .iter()
-                .any(|e| matches!(e, ValidationError::InvalidVersion { .. }))
-        );
+        assert!(errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::InvalidVersion { .. })));
     }
 
     #[test]
@@ -347,10 +345,8 @@ mod tests {
         assert!(result.is_err());
 
         let errors = result.unwrap_err();
-        assert!(
-            errors
-                .iter()
-                .any(|e| matches!(e, ValidationError::NullPointer(_)))
-        );
+        assert!(errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::NullPointer(_))));
     }
 }

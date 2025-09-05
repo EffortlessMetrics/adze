@@ -5,7 +5,7 @@ mod support;
 
 #[cfg(all(test, feature = "pure-rust"))]
 mod tests {
-    use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+    use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
     use rust_sitter_ir::SymbolId;
 
     use super::support;

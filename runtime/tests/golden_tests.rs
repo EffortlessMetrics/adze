@@ -11,6 +11,8 @@
 
 // Helper module for pure-rust tests
 #[cfg(all(test, feature = "pure-rust"))]
+#[path = "support/language_builder.rs"]
+mod language_builder;
 #[path = "support/unified_json_helper.rs"]
 mod unified_json_helper;
 
