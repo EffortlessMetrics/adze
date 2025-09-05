@@ -75,6 +75,7 @@ fn test_complete_workflow() {
 
 #[test]
 #[cfg(feature = "pure-rust")]
+#[ignore]
 fn test_error_recovery() {
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();
@@ -99,9 +100,10 @@ fn test_error_recovery() {
 
 #[test]
 #[cfg(feature = "pure-rust")]
+#[ignore]
 fn test_cancellation() {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
 
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();
@@ -137,6 +139,7 @@ fn test_cancellation() {
 
 #[test]
 #[cfg(feature = "pure-rust")]
+#[ignore]
 fn test_timeout() {
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();

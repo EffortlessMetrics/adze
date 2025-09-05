@@ -401,7 +401,11 @@ pub fn decode_grammar_with_patterns(
 
     // Process external tokens
     for i in 0..lang.external_token_count as usize {
-        let symbol_id = unsafe { *lang.external_scanner.symbol_map.add(i) };
+        let symbol_id = if lang.external_scanner.symbol_map.is_null() {
+            i as u16
+        } else {
+            unsafe { *lang.external_scanner.symbol_map.add(i) }
+        };
         if (symbol_id as u32) < lang.symbol_count {
             let name = symbol_names
                 .get(symbol_id as usize)

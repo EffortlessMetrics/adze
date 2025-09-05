@@ -684,11 +684,12 @@ impl Parser {
                 let scan_fn = language.external_scanner.scan.unwrap();
 
                 // Build valid symbols array from external_lex_state bitset
+                // `Vec<bool>` is bitpacked and unsuitable for FFI; use `u8`
                 let external_count = language.external_token_count as usize;
-                let mut valid_symbols = vec![false; external_count];
+                let mut valid_symbols = vec![0u8; external_count];
                 for i in 0..external_count {
                     if (lex_mode.external_lex_state >> i) & 1 != 0 {
-                        valid_symbols[i] = true;
+                        valid_symbols[i] = 1;
                     }
                 }
 
@@ -700,13 +701,14 @@ impl Parser {
                 };
 
                 // Prepare lexer adapter
-                let mut ext_lexer = ExternalLexer::new(&lexer.input[position..], point.row, point.column);
+                let mut ext_lexer =
+                    ExternalLexer::new(&lexer.input[position..], point.row, point.column);
                 let mut ts_lexer = create_ts_lexer(&mut ext_lexer);
 
                 let success = scan_fn(
                     scanner_instance,
                     &mut ts_lexer as *mut _ as *mut c_void,
-                    valid_symbols.as_ptr(),
+                    valid_symbols.as_ptr() as *const bool,
                 );
                 ext_lexer.result_symbol = ts_lexer.result_symbol;
 
@@ -716,7 +718,10 @@ impl Parser {
                     }
                 }
 
-                if success && ext_lexer.result_symbol > 0 {
+                if success
+                    && ext_lexer.result_symbol > 0
+                    && (ext_lexer.result_symbol as usize) <= external_count
+                {
                     let symbol = if !language.external_scanner.symbol_map.is_null() {
                         *language
                             .external_scanner
@@ -750,7 +755,11 @@ impl Parser {
                 extern "C" fn lookahead(lex: *mut TsLexer) -> u32 {
                     unsafe {
                         let st = &*((*lex).data as *const LexFnLexer);
-                        st.input.get(st.position).copied().map(u32::from).unwrap_or(0)
+                        st.input
+                            .get(st.position)
+                            .copied()
+                            .map(u32::from)
+                            .unwrap_or(0)
                     }
                 }
 
@@ -1523,7 +1532,9 @@ unsafe fn create_ts_lexer<'a>(lexer: &mut ExternalLexer<'a>) -> TSLexer {
                         lexer.column = 0;
                     }
                     b'\r' => {
-                        if lexer.position < lexer.input.len() && lexer.input[lexer.position] == b'\n' {
+                        if lexer.position < lexer.input.len()
+                            && lexer.input[lexer.position] == b'\n'
+                        {
                             lexer.position += 1;
                         }
                         lexer.row += 1;
