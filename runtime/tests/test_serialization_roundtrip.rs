@@ -1,17 +1,171 @@
-//! Comprehensive S-expression and serialization roundtrip tests
+//! Comprehensive serialization roundtrip tests
 //!
 //! These tests ensure that:
-//! 1. parse(serialize(ast)) structurally equals original ast
-//! 2. Unicode edge cases are handled correctly
-//! 3. Canonicalization rules are stable
-//! 4. Deep and wide structures don't break
-//! 5. Property-based testing catches edge cases
+//! 1. Serialization APIs work correctly with the rust-sitter types
+//! 2. SerializedNode roundtrips through JSON properly
+//! 3. S-expression parsing roundtrips correctly
+//! 4. TreeSerializer produces valid output
+//! 5. Unicode edge cases are handled correctly
+//! 6. Property-based testing catches edge cases
 
 use rust_sitter::serialization::*;
 use std::collections::HashMap;
 
 #[cfg(test)]
-mod roundtrip_tests {
+mod serialized_node_tests {
+    #[cfg(feature = "serialization")]
+    use super::*;
+
+    /// Test 1: SerializedNode JSON roundtrip
+    #[test]
+    #[cfg(feature = "serialization")]
+    fn test_serialized_node_json_roundtrip() {
+        let original_node = SerializedNode {
+            kind: "identifier".to_string(),
+            is_named: true,
+            field_name: Some("name".to_string()),
+            start_position: (0, 0),
+            end_position: (0, 5),
+            start_byte: 0,
+            end_byte: 5,
+            text: Some("hello".to_string()),
+            children: vec![],
+            is_error: false,
+            is_missing: false,
+        };
+
+        // Serialize to JSON
+        let json = serde_json::to_string(&original_node).unwrap();
+
+        // Deserialize back
+        let decoded: SerializedNode = serde_json::from_str(&json).unwrap();
+
+        // Verify roundtrip identity
+        assert_eq!(original_node.kind, decoded.kind);
+        assert_eq!(original_node.is_named, decoded.is_named);
+        assert_eq!(original_node.field_name, decoded.field_name);
+        assert_eq!(original_node.start_position, decoded.start_position);
+        assert_eq!(original_node.end_position, decoded.end_position);
+        assert_eq!(original_node.start_byte, decoded.start_byte);
+        assert_eq!(original_node.end_byte, decoded.end_byte);
+        assert_eq!(original_node.text, decoded.text);
+        assert_eq!(original_node.children.len(), decoded.children.len());
+        assert_eq!(original_node.is_error, decoded.is_error);
+        assert_eq!(original_node.is_missing, decoded.is_missing);
+    }
+
+    /// Test 2: TreeSerializer configuration
+    #[test]
+    #[cfg(feature = "serialization")]
+    fn test_tree_serializer_configuration() {
+        let source = b"test source code";
+        let serializer = TreeSerializer::new(source)
+            .with_unnamed_nodes()
+            .with_max_text_length(Some(50));
+
+        assert!(serializer.include_unnamed);
+        assert_eq!(serializer.max_text_length, Some(50));
+        assert_eq!(serializer.source, source);
+    }
+
+    /// Test 3: Complex nested structure JSON roundtrip
+    #[test]
+    #[cfg(feature = "serialization")]
+    fn test_complex_nested_structure() {
+        let child1 = SerializedNode {
+            kind: "identifier".to_string(),
+            is_named: true,
+            field_name: Some("left".to_string()),
+            start_position: (0, 0),
+            end_position: (0, 3),
+            start_byte: 0,
+            end_byte: 3,
+            text: Some("foo".to_string()),
+            children: vec![],
+            is_error: false,
+            is_missing: false,
+        };
+
+        let child2 = SerializedNode {
+            kind: "identifier".to_string(),
+            is_named: true,
+            field_name: Some("right".to_string()),
+            start_position: (0, 6),
+            end_position: (0, 9),
+            start_byte: 6,
+            end_byte: 9,
+            text: Some("bar".to_string()),
+            children: vec![],
+            is_error: false,
+            is_missing: false,
+        };
+
+        let parent = SerializedNode {
+            kind: "binary_expression".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, 0),
+            end_position: (0, 9),
+            start_byte: 0,
+            end_byte: 9,
+            text: None,
+            children: vec![child1, child2],
+            is_error: false,
+            is_missing: false,
+        };
+
+        // JSON roundtrip
+        let json = serde_json::to_string_pretty(&parent).unwrap();
+        let decoded: SerializedNode = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parent.kind, decoded.kind);
+        assert_eq!(parent.children.len(), decoded.children.len());
+        assert_eq!(parent.children[0].text, decoded.children[0].text);
+        assert_eq!(parent.children[1].text, decoded.children[1].text);
+        assert_eq!(
+            parent.children[0].field_name,
+            decoded.children[0].field_name
+        );
+        assert_eq!(
+            parent.children[1].field_name,
+            decoded.children[1].field_name
+        );
+    }
+
+    /// Test 4: CompactNode JSON roundtrip
+    #[test]
+    #[cfg(feature = "serialization")]
+    fn test_compact_node_roundtrip() {
+        let compact = CompactNode {
+            kind: "function".to_string(),
+            start: Some(10),
+            end: Some(20),
+            field: Some("body".to_string()),
+            children: vec![CompactNode {
+                kind: "identifier".to_string(),
+                start: None,
+                end: None,
+                field: Some("name".to_string()),
+                children: vec![],
+                text: Some("main".to_string()),
+            }],
+            text: None,
+        };
+
+        let json = serde_json::to_string(&compact).unwrap();
+        let decoded: CompactNode = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(compact.kind, decoded.kind);
+        assert_eq!(compact.start, decoded.start);
+        assert_eq!(compact.end, decoded.end);
+        assert_eq!(compact.field, decoded.field);
+        assert_eq!(compact.children.len(), decoded.children.len());
+        assert_eq!(compact.children[0].text, decoded.children[0].text);
+    }
+}
+
+#[cfg(test)]
+mod s_expr_tests {
     use super::*;
 
     /// Test 1: Round-trip identity for basic structures
@@ -245,6 +399,53 @@ mod roundtrip_tests {
         assert_eq!(original.field_name, decoded.field_name);
         assert_eq!(original.text, decoded.text);
     }
+}
+
+#[cfg(test)]
+mod unicode_tests {
+    #[cfg(feature = "serialization")]
+    use super::*;
+
+    /// Test: Unicode handling in serialization
+    #[test]
+    #[cfg(feature = "serialization")]
+    fn test_unicode_text_handling() {
+        let unicode_cases = vec![
+            "Hello, 世界!",
+            "🦀 Rust 🚀",
+            "עברית",
+            "العربية",
+            "🎉✨🌟",
+            "Mixed: Hello 世界 🦀",
+        ];
+
+        for text in unicode_cases {
+            let node = SerializedNode {
+                kind: "string_literal".to_string(),
+                is_named: true,
+                field_name: None,
+                start_position: (0, 0),
+                end_position: (0, text.chars().count()),
+                start_byte: 0,
+                end_byte: text.len(),
+                text: Some(text.to_string()),
+                children: vec![],
+                is_error: false,
+                is_missing: false,
+            };
+
+            let json = serde_json::to_string(&node).unwrap();
+            let decoded: SerializedNode = serde_json::from_str(&json).unwrap();
+
+            assert_eq!(node.text, decoded.text);
+            assert_eq!(text, decoded.text.unwrap());
+        }
+    }
+}
+
+#[cfg(test)]
+mod error_tests {
+    use super::*;
 
     /// Test 9: Error node serialization
     #[test]
@@ -538,6 +739,16 @@ mod rand {
     }
 
     pub use rngs::*;
+
+    pub trait SeedableRng: Rng {
+        fn seed_from_u64(seed: u64) -> Self;
+    }
+
+    impl SeedableRng for rngs::SmallRng {
+        fn seed_from_u64(seed: u64) -> Self {
+            Self::seed_from_u64(seed)
+        }
+    }
 }
 
 // Mock rand_core for the simple RNG
@@ -548,4 +759,14 @@ mod rand_core {
     impl RngCore for u16 {}
     impl RngCore for u64 {}
     impl RngCore for usize {}
+}
+
+// Feature-gated tests that only run when serialization is enabled
+#[cfg(not(feature = "serialization"))]
+#[test]
+fn test_serialization_feature_disabled() {
+    // This test exists to ensure the test suite runs even when serialization is disabled
+    // In that case, the serialization-dependent tests are skipped but we should still
+    // have at least one passing test. The fact that this compiles and runs confirms
+    // proper feature gating.
 }

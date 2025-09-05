@@ -3,7 +3,7 @@
 //! This module provides parsing and conversion of JavaScript-based grammar.js files
 //! to Rust-sitter's internal representation.
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;

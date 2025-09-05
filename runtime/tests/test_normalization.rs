@@ -4,7 +4,7 @@ mod support;
 
 use rust_sitter::decoder;
 use rust_sitter::ts_format::TSActionTag;
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 
 #[test]
 fn ts_action_tags_match_ts_runtime() {
