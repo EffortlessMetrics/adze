@@ -639,19 +639,31 @@ impl Parser {
     where
         F: FnMut(usize, Point) -> &[u8],
     {
-        // Panic-free error recovery strategy: skip a single byte of input when the
-        // parser encounters an unexpected token. This advances the position and
-        // point so that parsing can continue without panicking or entering an
-        // infinite loop.
+        // Attempt a simple panic-free recovery strategy:
+        //   1. Skip over any immediate whitespace so the parser can resume at the
+        //      next significant token.
+        //   2. If no whitespace is present, skip a single unexpected byte.
 
         // Get the remaining input from the callback at the current position.
         let input = callback(*position, *point);
         if input.is_empty() {
-            // No more input to skip; recovery failed.
+            // No more input to consume; recovery failed.
             return false;
         }
 
-        // Advance by one byte and update the line/column information.
+        // First, skip any consecutive ASCII whitespace characters. Treating this
+        // as insertion of missing insignificant tokens helps the parser make
+        // progress without consuming meaningful input.
+        let whitespace_len = input.iter().take_while(|c| c.is_ascii_whitespace()).count();
+
+        if whitespace_len > 0 {
+            *position += whitespace_len;
+            *point = advance_point(*point, &input[..whitespace_len]);
+            return true;
+        }
+
+        // Otherwise, skip a single byte and update the line/column information so
+        // that parsing can continue.
         *position += 1;
         *point = advance_point(*point, &input[..1]);
         true
