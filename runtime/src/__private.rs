@@ -59,7 +59,6 @@ impl<'a> TreeCursor<'a> {
         }
     }
 
-    #[allow(dead_code)]
     fn field_name(&self) -> Option<&str> {
         if self.current_index >= self.children.len() {
             return None;
@@ -167,20 +166,13 @@ pub fn extract_field<LT: Extract<T>, T>(
     cursor_opt: &mut Option<TreeCursor>,
     source: &[u8],
     last_idx: &mut usize,
-    _field_name: &str,
+    field_name: &str,
     closure_ref: Option<&LT::LeafFn>,
 ) -> T {
     if let Some(cursor) = cursor_opt.as_mut() {
-        // Since field names are not available in pure-rust parser,
-        // we extract from the current child and advance the cursor
+        // Handle special case where a node has no children and represents a single-field struct
         let n = cursor.node();
-
-        // Check if we're dealing with a node that has no children
-        // This happens when a struct has a single leaf field - the node IS the field value
         if n.children.is_empty() && cursor.current_index == 0 {
-            // eprintln!("  Special case: node has no children, likely a single-field struct");
-            // The parent node itself contains the field value
-            // Don't advance cursor since there are no siblings
             let parent_node = cursor.node;
             let end_byte = parent_node.end_byte;
             *cursor_opt = None;
@@ -188,17 +180,31 @@ pub fn extract_field<LT: Extract<T>, T>(
             return LT::extract(Some(parent_node), source, *last_idx, closure_ref);
         }
 
-        let out = LT::extract(Some(n), source, *last_idx, closure_ref);
+        loop {
+            let n = cursor.node();
+            if let Some(name) = cursor.field_name() {
+                if name == field_name {
+                    let out = LT::extract(Some(n), source, *last_idx, closure_ref);
 
-        if !cursor.goto_next_sibling() {
-            *cursor_opt = None;
+                    if !cursor.goto_next_sibling() {
+                        *cursor_opt = None;
+                    }
+
+                    *last_idx = n.end_byte;
+
+                    return out;
+                } else {
+                    return LT::extract(None, source, *last_idx, closure_ref);
+                }
+            } else {
+                *last_idx = n.end_byte;
+            }
+
+            if !cursor.goto_next_sibling() {
+                return LT::extract(None, source, *last_idx, closure_ref);
+            }
         }
-
-        *last_idx = n.end_byte;
-
-        out
     } else {
-        // eprintln!("DEBUG extract_field: No cursor for field '{}'", _field_name);
         LT::extract(None, source, *last_idx, closure_ref)
     }
 }
