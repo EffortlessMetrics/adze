@@ -445,13 +445,14 @@ impl Parser {
                 };
 
                 // Attach extra tokens to the current node on the stack if possible
-                if let Some(entry) = self.stack.iter_mut().rev().find(|e| e.subtree.is_some()) {
+                if let Some(entry) = self.stack.last_mut() {
                     if let Some(ref mut subtree) = entry.subtree {
+                        subtree.end_byte = extra_subtree.end_byte;
+                        subtree.end_point = extra_subtree.end_point;
                         subtree.children.push(extra_subtree);
+                    } else {
+                        entry.subtree = Some(extra_subtree);
                     }
-                } else if let Some(entry) = self.stack.last_mut() {
-                    // If no subtree exists yet, attach to the current stack entry
-                    entry.subtree = Some(extra_subtree);
                 } else {
                     // As a fallback (shouldn't normally happen), create a new stack entry
                     self.stack.push(StackEntry {
