@@ -421,6 +421,7 @@ fn parse_file_dynamic(
     symbol: &str,
 ) -> Result<()> {
     use libloading::Library;
+    use rust_sitter::{pure_parser::ParsedNode, Parser, Language};
 
     println!(
         "{} Loading dynamic grammar: {}",
@@ -430,13 +431,11 @@ fn parse_file_dynamic(
     let input_content = fs::read_to_string(input)?;
 
     unsafe {
-        // Check if file exists
         if !grammar.exists() {
             anyhow::bail!("dynamic grammar not found: {}", grammar.display());
         }
 
         let lib = Library::new(grammar)?;
-        // Build symbol name with null terminator
         let sym_name = {
             let mut s = symbol.as_bytes().to_vec();
             if !s.ends_with(b"\0") {
@@ -444,11 +443,24 @@ fn parse_file_dynamic(
             }
             s
         };
-        let get_language: libloading::Symbol<unsafe extern "C" fn() -> *const u8> =
+        let get_language: libloading::Symbol<unsafe extern "C" fn() -> *const Language> =
             lib.get(&sym_name)?;
-        let _lang_ptr = get_language();
+        let lang_ptr = get_language();
+        if lang_ptr.is_null() {
+            anyhow::bail!("language symbol returned null pointer");
+        }
 
-        // TODO: Bridge to rust-sitter's pure parser using the language pointer
+        let language: &'static Language = &*lang_ptr;
+        let mut parser = Parser::new();
+        parser
+            .set_language(language)
+            .map_err(|e| anyhow::anyhow!(e))?;
+        let result = parser.parse_string(&input_content);
+
+        fn count_nodes(node: &ParsedNode) -> usize {
+            node.children.iter().map(count_nodes).sum::<usize>() + 1
+        }
+
         println!(
             "{} Loaded language from: {}",
             "✓".green(),
@@ -456,10 +468,34 @@ fn parse_file_dynamic(
         );
         println!("Input size: {} bytes", input_content.len());
 
-        // For now, just show we loaded it successfully
-        match format {
-            OutputFormat::Json => println!("{{\"status\": \"dynamic loading successful\"}}"),
-            _ => println!("Dynamic loading successful - parser integration pending"),
+        if result.errors.is_empty() {
+            if let Some(root) = result.root {
+                let nodes = count_nodes(&root);
+                match format {
+                    OutputFormat::Json => println!(
+                        "{{\"status\":\"ok\",\"root_symbol\":{},\"nodes\":{}}}",
+                        root.symbol, nodes
+                    ),
+                    _ => println!(
+                        "Parsed successfully. Root symbol: {}, nodes: {}",
+                        root.symbol, nodes
+                    ),
+                }
+            } else {
+                match format {
+                    OutputFormat::Json => println!("{\"status\":\"ok\",\"nodes\":0}"),
+                    _ => println!("Parsed successfully but produced empty tree"),
+                }
+            }
+        } else {
+            let err_count = result.errors.len();
+            match format {
+                OutputFormat::Json => println!(
+                    "{{\"status\":\"error\",\"errors\":{}}}",
+                    err_count
+                ),
+                _ => println!("Parsing completed with {} error(s)", err_count),
+            }
         }
     }
 
