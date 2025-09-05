@@ -12,6 +12,8 @@ use std::ffi::c_void;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
+use crate::external_scanner_ffi::TSLexer;
+
 // Import ABI types from tablegen
 type TSSymbol = u16;
 type TSStateId = u16;
@@ -632,7 +634,7 @@ impl Parser {
         position: usize,
         point: &mut Point,
     ) -> Token {
-        let lexer = match self.lexer.as_mut() {
+        let lexer = match self.lexer.as_ref() {
             Some(l) => l,
             None => {
                 debug_assert!(
@@ -678,7 +680,59 @@ impl Parser {
 
         // Try external scanner first if available
         if lex_mode.external_lex_state != 0 && language.external_scanner.scan.is_some() {
-            // TODO: Implement external scanner support
+            unsafe {
+                let scan_fn = language.external_scanner.scan.unwrap();
+
+                // Build valid symbols array from external_lex_state bitset
+                let external_count = language.external_token_count as usize;
+                let mut valid_symbols = vec![false; external_count];
+                for i in 0..external_count {
+                    if (lex_mode.external_lex_state >> i) & 1 != 0 {
+                        valid_symbols[i] = true;
+                    }
+                }
+
+                // Create scanner instance if provided
+                let scanner_instance = if let Some(create_fn) = language.external_scanner.create {
+                    create_fn()
+                } else {
+                    std::ptr::null_mut()
+                };
+
+                // Prepare lexer adapter
+                let mut ext_lexer = ExternalLexer::new(&lexer.input[position..], point.row, point.column);
+                let mut ts_lexer = create_ts_lexer(&mut ext_lexer);
+
+                let success = scan_fn(
+                    scanner_instance,
+                    &mut ts_lexer as *mut _ as *mut c_void,
+                    valid_symbols.as_ptr(),
+                );
+                ext_lexer.result_symbol = ts_lexer.result_symbol;
+
+                if !scanner_instance.is_null() {
+                    if let Some(destroy_fn) = language.external_scanner.destroy {
+                        destroy_fn(scanner_instance);
+                    }
+                }
+
+                if success && ext_lexer.result_symbol > 0 {
+                    let symbol = if !language.external_scanner.symbol_map.is_null() {
+                        *language
+                            .external_scanner
+                            .symbol_map
+                            .add(ext_lexer.result_symbol as usize)
+                    } else {
+                        ext_lexer.result_symbol
+                    };
+                    let is_extra = self.is_extra_symbol(language, symbol);
+                    return Token {
+                        symbol,
+                        length: ext_lexer.token_end,
+                        is_extra,
+                    };
+                }
+            }
         }
 
         // Use built-in lexer
@@ -1416,6 +1470,113 @@ struct LexerState {
     point_column: u32,
     result_symbol: TSSymbol,
     result_length: usize,
+}
+
+/// Minimal lexer implementation passed to external scanners
+struct ExternalLexer<'a> {
+    input: &'a [u8],
+    position: usize,
+    token_end: usize,
+    result_symbol: u16,
+    row: u32,
+    column: u32,
+}
+
+impl<'a> ExternalLexer<'a> {
+    fn new(input: &'a [u8], row: u32, column: u32) -> Self {
+        Self {
+            input,
+            position: 0,
+            token_end: 0,
+            result_symbol: 0,
+            row,
+            column,
+        }
+    }
+
+    fn get_column(&self) -> u32 {
+        self.column + self.position as u32
+    }
+}
+
+/// Create a TSLexer wrapper for calling external scanners
+unsafe fn create_ts_lexer<'a>(lexer: &mut ExternalLexer<'a>) -> TSLexer {
+    extern "C" fn lookahead(lexer_ptr: *mut TSLexer) -> u32 {
+        unsafe {
+            let lexer = &*((*lexer_ptr).context as *const ExternalLexer);
+            lexer
+                .input
+                .get(lexer.position)
+                .copied()
+                .map(|b| b as u32)
+                .unwrap_or(0)
+        }
+    }
+
+    extern "C" fn advance(lexer_ptr: *mut TSLexer, skip: bool) {
+        unsafe {
+            let lexer = &mut *((*lexer_ptr).context as *mut ExternalLexer);
+            if lexer.position < lexer.input.len() {
+                let byte = lexer.input[lexer.position];
+                lexer.position += 1;
+                if !skip {
+                    lexer.token_end = lexer.position;
+                }
+                match byte {
+                    b'\n' => {
+                        lexer.row += 1;
+                        lexer.column = 0;
+                    }
+                    b'\r' => {
+                        if lexer.position < lexer.input.len() && lexer.input[lexer.position] == b'\n' {
+                            lexer.position += 1;
+                        }
+                        lexer.row += 1;
+                        lexer.column = 0;
+                    }
+                    _ => {
+                        lexer.column += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    extern "C" fn mark_end(lexer_ptr: *mut TSLexer) {
+        unsafe {
+            let lexer = &mut *((*lexer_ptr).context as *mut ExternalLexer);
+            lexer.token_end = lexer.position;
+        }
+    }
+
+    extern "C" fn get_column(lexer_ptr: *mut TSLexer) -> u32 {
+        unsafe {
+            let lexer = &*((*lexer_ptr).context as *const ExternalLexer);
+            lexer.get_column()
+        }
+    }
+
+    extern "C" fn is_at_included_range_start(_lexer_ptr: *const TSLexer) -> bool {
+        false
+    }
+
+    extern "C" fn eof(lexer_ptr: *const TSLexer) -> bool {
+        unsafe {
+            let lexer = &*((*lexer_ptr).context as *const ExternalLexer);
+            lexer.position >= lexer.input.len()
+        }
+    }
+
+    TSLexer {
+        lookahead,
+        advance,
+        mark_end,
+        get_column,
+        is_at_included_range_start,
+        eof,
+        context: (lexer as *mut ExternalLexer<'a>).cast(),
+        result_symbol: 0,
+    }
 }
 
 /// Parse action
