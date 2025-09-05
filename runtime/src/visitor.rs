@@ -516,7 +516,7 @@ mod tests2 {
             is_error: false,
             is_missing: false,
             is_named: true,
-            field_name: None,
+            field_id: None,
             language: None,
         }
     }

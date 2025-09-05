@@ -61,10 +61,26 @@ impl<'a> TreeCursor<'a> {
 
     #[allow(dead_code)]
     fn field_name(&self) -> Option<&str> {
-        if self.current_index < self.children.len() {
-            self.children[self.current_index].field_name.as_deref()
-        } else {
-            None
+        if self.current_index >= self.children.len() {
+            return None;
+        }
+        let child = &self.children[self.current_index];
+        let field_id = child.field_id?;
+        let lang_ptr = self.node.language?;
+        unsafe {
+            let lang = &*lang_ptr;
+            if field_id >= lang.field_count as u16 {
+                return None;
+            }
+            let field_names =
+                core::slice::from_raw_parts(lang.field_names, lang.field_count as usize);
+            let name_ptr = field_names[field_id as usize];
+            if name_ptr.is_null() {
+                return None;
+            }
+            core::ffi::CStr::from_ptr(name_ptr as *const i8)
+                .to_str()
+                .ok()
         }
     }
 }
