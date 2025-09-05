@@ -164,7 +164,7 @@ fn test_timeout() {
 
 #[test]
 fn test_external_scanner_integration() {
-    use rust_sitter::external_scanner::{ExternalScanner, Lexer};
+    use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
     use std::sync::{Arc, Mutex};
 
     // Create a simple external scanner
