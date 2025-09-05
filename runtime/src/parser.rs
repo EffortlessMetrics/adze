@@ -639,33 +639,41 @@ impl Parser {
     where
         F: FnMut(usize, Point) -> &[u8],
     {
-        // Attempt a simple panic-free recovery strategy:
-        //   1. Skip over any immediate whitespace so the parser can resume at the
-        //      next significant token.
-        //   2. If no whitespace is present, skip a single unexpected byte.
+        // Basic panic-free recovery strategy:
+        //   1. If we're sitting on whitespace, consume it and continue.
+        //   2. Otherwise, skip ahead to the next likely token boundary
+        //      (whitespace or punctuation) so the parser can resume.
 
-        // Get the remaining input from the callback at the current position.
+        // Inspect remaining input at the current position.
         let input = callback(*position, *point);
         if input.is_empty() {
-            // No more input to consume; recovery failed.
-            return false;
+            return false; // no input left – nothing to recover
         }
 
-        // First, skip any consecutive ASCII whitespace characters. Treating this
-        // as insertion of missing insignificant tokens helps the parser make
-        // progress without consuming meaningful input.
-        let whitespace_len = input.iter().take_while(|c| c.is_ascii_whitespace()).count();
-
-        if whitespace_len > 0 {
-            *position += whitespace_len;
-            *point = advance_point(*point, &input[..whitespace_len]);
+        // Consume any leading ASCII whitespace, treating it as insertion of
+        // a missing insignificant token.
+        if let Some(len) = input.iter().position(|c| !c.is_ascii_whitespace()) {
+            if len > 0 {
+                *position += len;
+                *point = advance_point(*point, &input[..len]);
+                return true;
+            }
+        } else {
+            // Input is entirely whitespace; consume all of it.
+            let len = input.len();
+            *position += len;
+            *point = advance_point(*point, input);
             return true;
         }
 
-        // Otherwise, skip a single byte and update the line/column information so
-        // that parsing can continue.
-        *position += 1;
-        *point = advance_point(*point, &input[..1]);
+        // No whitespace found at the start. Skip forward to the next
+        // whitespace or punctuation character to resynchronize.
+        let skip = input
+            .iter()
+            .position(|c| c.is_ascii_whitespace() || matches!(c, b',' | b';' | b')' | b'}' | b']'))
+            .unwrap_or(1);
+        *position += skip;
+        *point = advance_point(*point, &input[..skip]);
         true
     }
 }
