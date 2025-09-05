@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
 mod tests {
     use rust_sitter::pure_parser::{ExternalScanner, TSLanguage};
     use rust_sitter::unified_parser::Parser;

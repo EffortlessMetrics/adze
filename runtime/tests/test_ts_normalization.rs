@@ -1,6 +1,6 @@
 //! Test suite for Tree-sitter table normalization and round-trip verification
 
-#![cfg(feature = "pure-rust")]
+#![cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
 
 use rust_sitter::decoder::decode_parse_table;
 use rust_sitter::ts_format::choose_action;

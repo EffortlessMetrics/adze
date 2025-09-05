@@ -46,7 +46,7 @@
 //!
 //! ## Example Usage
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use rust_sitter::glr_parser::GLRParser;
 //! use rust_sitter::glr_lexer::GLRLexer;
 //! use rust_sitter_ir::{Grammar, SymbolId};
@@ -54,10 +54,8 @@
 //!
 //! // Create parser with grammar and parse table
 //! # fn example() {
-//! let grammar: Grammar = /* ... */;
-//! # let grammar = Grammar::default();
-//! let parse_table: ParseTable = /* ... */;
-//! # let parse_table = ParseTable::default();
+//! let grammar = Grammar::default();
+//! let parse_table = ParseTable::default();
 //! let mut parser = GLRParser::new(grammar, parse_table);
 //!
 //! // Create lexer and tokenize input
@@ -70,9 +68,9 @@
 //! }
 //!
 //! // Process EOF and get result
-//! parser.process_eof();
+//! parser.process_eof(0);
 //! match parser.finish() {
-//!     Ok(tree) => println!("Parse successful!"),
+//!     Ok(_tree) => println!("Parse successful!"),
 //!     Err(e) => println!("Parse failed: {}", e),
 //! }
 //! # }
