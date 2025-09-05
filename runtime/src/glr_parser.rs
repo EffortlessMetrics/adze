@@ -1813,7 +1813,7 @@ impl GLRParser {
         );
 
         // Hard bound: at most a few iterations (guards infinite loops).
-        for _i in 0..8 {
+        for _iteration in 0..8 {
             // Close first with EOF as lookahead to expose any reduces
             let stacks = std::mem::take(&mut self.stacks);
             let stacks = self.reduce_until_saturated(stacks, eof, self.input_length);
@@ -1823,14 +1823,14 @@ impl GLRParser {
             if self.any_stack_has_action(eof) {
                 debug_glr!(
                     "drive_recovery_until_eof_action: found action for EOF after {} iterations",
-                    i
+                    _iteration
                 );
                 break;
             }
 
             debug_glr!(
                 "drive_recovery_until_eof_action: iteration {} with {} stacks",
-                i,
+                iteration,
                 self.stacks.len()
             );
 
