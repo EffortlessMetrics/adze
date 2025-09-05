@@ -116,48 +116,46 @@ fn test_fresh_parse_equals_incremental() {
     not(feature = "incremental_glr"),
     ignore = "incremental parsing not enabled"
 )]
-fn test_simple_insertion() {
+fn test_insertion() {
     let (grammar, table) = create_test_grammar();
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
     // Initial parse
-    let source1 = b"hello";
+    let source1 = b"123";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Insert " world" at position 5
-    let source2 = b"hello world";
-    let _edit = Edit {
-        start_byte: 5,
-        old_end_byte: 5,
-        new_end_byte: 11,
-        start_point: Point { row: 0, column: 5 },
-        old_end_point: Point { row: 0, column: 5 },
-        new_end_point: Point { row: 0, column: 11 },
+    // Insert "456" at position 3
+    let source2 = b"123456";
+    let edit = Edit {
+        start_byte: 3,
+        old_end_byte: 3,
+        new_end_byte: 6,
+        start_point: Point { row: 0, column: 3 },
+        old_end_point: Point { row: 0, column: 3 },
+        new_end_point: Point { row: 0, column: 6 },
     };
 
     // Attempt incremental parse
-    // TODO: Implement incremental parsing
-    // let tree2 = parser.reparse(source2, &tree1, &edit);
-    let tree2: Option<Tree> = None;
+    let tree2_incremental = parser
+        .reparse(std::str::from_utf8(source2).unwrap(), &tree1, &edit)
+        .ok();
 
-    // Verify the result (when implemented)
-    if let Some(tree) = tree2 {
+    // Fresh parse for comparison
+    let tree2_fresh = parser
+        .parse(std::str::from_utf8(source2).unwrap())
+        .expect("Fresh parse should succeed");
+
+    // Verify both parses have identical error counts
+    if let Some(tree) = tree2_incremental {
         assert_eq!(
-            tree.error_count, 0,
-            "Incremental parse should have no errors"
+            tree.error_count, tree2_fresh.error_count,
+            "Incremental and fresh parse error counts should match",
         );
     } else {
-        // For now, just parse fresh and verify that works
-        let tree_fresh = parser
-            .parse(std::str::from_utf8(source2).unwrap())
-            .expect("Fresh parse should succeed");
-        assert_eq!(
-            tree_fresh.error_count, 0,
-            "Fresh parse should have no errors"
-        );
+        panic!("Incremental parse failed");
     }
 }
 
@@ -171,42 +169,40 @@ fn test_deletion() {
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
     // Initial parse
-    let source1 = b"foo bar baz";
+    let source1 = b"123456";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Delete "bar " (positions 4-8)
-    let source2 = b"foo baz";
-    let _edit = Edit {
-        start_byte: 4,
-        old_end_byte: 8,
-        new_end_byte: 4,
-        start_point: Point { row: 0, column: 4 },
-        old_end_point: Point { row: 0, column: 8 },
-        new_end_point: Point { row: 0, column: 4 },
+    // Delete "456" (positions 3-6)
+    let source2 = b"123";
+    let edit = Edit {
+        start_byte: 3,
+        old_end_byte: 6,
+        new_end_byte: 3,
+        start_point: Point { row: 0, column: 3 },
+        old_end_point: Point { row: 0, column: 6 },
+        new_end_point: Point { row: 0, column: 3 },
     };
 
     // Attempt incremental parse
-    // TODO: Implement incremental parsing
-    // let tree2 = parser.reparse(source2, &tree1, &edit);
-    let tree2: Option<Tree> = None;
+    let tree2_incremental = parser
+        .reparse(std::str::from_utf8(source2).unwrap(), &tree1, &edit)
+        .ok();
 
-    if let Some(tree) = tree2 {
+    // Fresh parse for comparison
+    let tree2_fresh = parser
+        .parse(std::str::from_utf8(source2).unwrap())
+        .expect("Fresh parse should succeed");
+
+    if let Some(tree) = tree2_incremental {
         assert_eq!(
-            tree.error_count, 0,
-            "Incremental parse should have no errors"
+            tree.error_count, tree2_fresh.error_count,
+            "Incremental and fresh parse error counts should match",
         );
     } else {
-        // For now, just parse fresh and verify that works
-        let tree_fresh = parser
-            .parse(std::str::from_utf8(source2).unwrap())
-            .expect("Fresh parse should succeed");
-        assert_eq!(
-            tree_fresh.error_count, 0,
-            "Fresh parse should have no errors"
-        );
+        panic!("Incremental parse failed");
     }
 }
 
