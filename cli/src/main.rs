@@ -4,6 +4,7 @@ use colored::Colorize;
 use rust_sitter_tool::build_parsers;
 use std::fs;
 use std::path::{Path, PathBuf};
+use tempfile::TempDir;
 use walkdir::WalkDir;
 
 mod parse;
@@ -421,7 +422,7 @@ fn parse_file_dynamic(
     symbol: &str,
 ) -> Result<()> {
     use libloading::Library;
-    use rust_sitter::{pure_parser::ParsedNode, Parser, Language};
+    use rust_sitter::{Language, Parser, pure_parser::ParsedNode};
 
     println!(
         "{} Loading dynamic grammar: {}",
@@ -490,10 +491,7 @@ fn parse_file_dynamic(
         } else {
             let err_count = result.errors.len();
             match format {
-                OutputFormat::Json => println!(
-                    "{{\"status\":\"error\",\"errors\":{}}}",
-                    err_count
-                ),
+                OutputFormat::Json => println!("{{\"status\":\"error\",\"errors\":{}}}", err_count),
                 _ => println!("Parsing completed with {} error(s)", err_count),
             }
         }
@@ -555,10 +553,22 @@ fn generate_docs(grammar: &Path, output: Option<PathBuf>) -> Result<()> {
 fn check_grammar(grammar: &Path) -> Result<()> {
     println!("{} Checking grammar syntax...", "🔍".blue());
 
+    // Ensure required env vars for build_parsers
+    let temp = TempDir::new()?;
+    let target =
+        std::env::var("TARGET").unwrap_or_else(|_| String::from("x86_64-unknown-linux-gnu"));
+    unsafe {
+        std::env::set_var("OUT_DIR", temp.path());
+        std::env::set_var("TARGET", &target);
+        std::env::set_var("HOST", &target);
+        std::env::set_var("OPT_LEVEL", "0");
+        std::env::set_var("PROFILE", "debug");
+    }
+
     // Try to build the grammar
     match std::panic::catch_unwind(|| build_parsers(grammar)) {
         Ok(_) => {
-            println!("{} Grammar syntax is valid!", "✅".green());
+            println!("{} Grammar syntax is valid", "✅".green());
             Ok(())
         }
         Err(_) => {

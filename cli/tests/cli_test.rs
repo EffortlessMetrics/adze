@@ -9,7 +9,9 @@ fn test_cli_help() {
     cmd.arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Rust-sitter CLI"));
+        .stdout(predicate::str::contains(
+            "CLI tools for rust-sitter grammar development",
+        ));
 }
 
 #[test]
