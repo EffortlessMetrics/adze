@@ -631,7 +631,7 @@ impl Parser {
     /// Error recovery
     fn recover_from_error<F>(
         &mut self,
-        language: Language,
+        _language: Language,
         position: &mut usize,
         point: &mut Point,
         callback: &mut F,
@@ -639,51 +639,19 @@ impl Parser {
     where
         F: FnMut(usize, Point) -> &[u8],
     {
-        // Basic panic-mode error recovery. Try inserting a zero-length whitespace
-        // token if it would be accepted. Otherwise skip a single unexpected byte.
+        // Panic-free error recovery strategy: skip a single byte of input when the
+        // parser encounters an unexpected token. This advances the position and
+        // point so that parsing can continue without panicking or entering an
+        // infinite loop.
 
-        // Current parser state. If we have no state, give up.
-        let state = match self.stack.last() {
-            Some(entry) => entry.state,
-            None => return false,
-        };
-
-        // Try to "insert" a whitespace token (symbol 1) without consuming input.
-        if let Some(action) = self.get_action(language, state, 1) {
-            match action {
-                Action::Shift(next_state) => {
-                    // Push a synthetic zero-length token onto the stack.
-                    self.stack.push(StackEntry {
-                        state: next_state,
-                        node: Some(Subtree {
-                            symbol: 1,
-                            children: Vec::new(),
-                            start_byte: *position,
-                            end_byte: *position,
-                            start_point: *point,
-                            end_point: *point,
-                            field_id: None,
-                        }),
-                        position: *position,
-                    });
-                    return true;
-                }
-                Action::Reduce(rule) => {
-                    // Apply the reduction and indicate progress if successful.
-                    if self.reduce(language, rule).is_some() {
-                        return true;
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        // Fallback: skip one byte of input.
+        // Get the remaining input from the callback at the current position.
         let input = callback(*position, *point);
         if input.is_empty() {
-            return false; // No more input to skip.
+            // No more input to skip; recovery failed.
+            return false;
         }
 
+        // Advance by one byte and update the line/column information.
         *position += 1;
         *point = advance_point(*point, &input[..1]);
         true
