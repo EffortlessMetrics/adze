@@ -1,6 +1,19 @@
 // JavaScript grammar for rust-sitter
 // Simplified version for v0.5.0-beta
 
+// Include the generated parser
+pub mod grammar_javascript {
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_javascript/parser_javascript.rs"
+    ));
+}
+
+// Expose the generated LANGUAGE struct for external use
+pub fn get_language() -> &'static rust_sitter::pure_parser::TSLanguage {
+    &grammar_javascript::LANGUAGE
+}
+
 #[rust_sitter::grammar("javascript")]
 pub mod grammar {
     #[rust_sitter::language]
