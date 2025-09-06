@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use rust_sitter::pure_parser::ParsedNode;
 use rust_sitter_tool::build_parsers;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -8,6 +9,30 @@ use tempfile::TempDir;
 use walkdir::WalkDir;
 
 mod parse;
+
+/// Convert a ParsedNode to S-expression format
+#[allow(dead_code)] // Used in conditional compilation branches
+fn node_to_sexp(node: &ParsedNode, source: &str, indent: usize) -> String {
+    let indent_str = "  ".repeat(indent);
+    if node.is_named() {
+        let mut out = format!("{}({}", indent_str, node.kind());
+        if node.child_count() == 0 {
+            let text = node.utf8_text(source.as_bytes()).unwrap_or("");
+            out.push_str(&format!(" \"{}\")", text));
+        } else {
+            out.push('\n');
+            for child in node.children() {
+                out.push_str(&node_to_sexp(child, source, indent + 1));
+                out.push('\n');
+            }
+            out.push_str(&format!("{indent_str})"));
+        }
+        out
+    } else {
+        let text = node.utf8_text(source.as_bytes()).unwrap_or("");
+        format!("{}\"{}\"", indent_str, text)
+    }
+}
 
 /// Rust-sitter CLI - Tools for grammar development
 #[derive(Parser)]
@@ -374,6 +399,8 @@ fn parse_file(
     dynamic: bool,
     _symbol: &str,
 ) -> Result<()> {
+    #[allow(unused_variables)]
+    let (grammar, input, format) = (grammar, input, format);
     if dynamic {
         #[cfg(feature = "dynamic")]
         {
@@ -388,30 +415,68 @@ fn parse_file(
             std::process::exit(2);
         }
     }
-    println!("{} Parsing file: {}", "📄".blue(), input.display());
 
-    // Convert clap OutputFormat to our parse module's format
-    let parse_format = match format {
-        OutputFormat::Tree => parse::OutputFormat::Tree,
-        OutputFormat::Json => parse::OutputFormat::Json,
-        OutputFormat::Sexp => parse::OutputFormat::Sexp,
-        OutputFormat::Dot => parse::OutputFormat::Dot,
-    };
+    // Parse with statically linked grammars
+    #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
+    {
+        let text = fs::read_to_string(input)?;
+        let grammar_name = grammar
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("unknown");
 
-    // Try to parse with the generated parser
-    match parse::parse_file_with_generated_parser(grammar, input, parse_format) {
-        Ok(()) => Ok(()),
-        Err(e) => {
-            // If parsing fails, provide helpful guidance
-            eprintln!("{} Failed to parse: {}", "❌".red(), e);
-            eprintln!("\n{} Alternative approaches:", "💡".yellow());
-            eprintln!("1. Ensure your grammar file is valid");
-            eprintln!("2. Build your grammar with `rust-sitter build`");
-            eprintln!("3. Use the generated parse() function in your Rust code:");
-            eprintln!("\n   use my_grammar::parse;\n   let result = parse(\"input text\");\n");
-            Err(e)
+        let language: &'static rust_sitter::pure_parser::TSLanguage = match grammar_name {
+            #[cfg(feature = "python-grammar")]
+            "python" => rust_sitter_python::get_language(),
+            #[cfg(feature = "javascript-grammar")]
+            "javascript" => rust_sitter_javascript::get_language(),
+            _ => {
+                eprintln!("Unknown grammar: {}", grammar_name);
+                eprintln!("Available grammars:");
+                #[cfg(feature = "python-grammar")]
+                eprintln!("  - python");
+                #[cfg(feature = "javascript-grammar")]
+                eprintln!("  - javascript");
+                std::process::exit(1);
+            }
+        };
+
+        let mut parser = rust_sitter::pure_parser::Parser::new();
+        parser
+            .set_language(language)
+            .map_err(|e| anyhow::anyhow!("Failed to set language: {}", e))?;
+
+        let result = parser.parse_string(&text);
+        if let Some(root) = result.root {
+            match format {
+                OutputFormat::Json => {
+                    println!(
+                        "{{\"status\": \"parsing successful\", \"nodes\": \"{}\"}}",
+                        node_to_sexp(&root, &text, 0).replace('"', "\\\"")
+                    );
+                }
+                OutputFormat::Sexp => {
+                    println!("{}", node_to_sexp(&root, &text, 0));
+                }
+                _ => {
+                    println!("{}", node_to_sexp(&root, &text, 0));
+                }
+            }
+        } else {
+            eprintln!("Parse failed: {:?}", result.errors);
+            std::process::exit(1);
         }
     }
+    #[cfg(not(any(feature = "python-grammar", feature = "javascript-grammar")))]
+    {
+        eprintln!(
+            "Error: No static grammars enabled. Build with --features python-grammar or --features javascript-grammar"
+        );
+        std::process::exit(2);
+    }
+
+    #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
+    Ok(())
 }
 
 #[cfg(feature = "dynamic")]
@@ -637,7 +702,6 @@ fn parse_file_dynamic(
                 }
                 Ok(count)
             }
-
             println!(
                 "{} Loaded language from: {}",
                 "✓".green(),

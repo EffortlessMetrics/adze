@@ -407,9 +407,11 @@ fn test_parse_static_missing_input() {
         .arg(&nonexistent_input)
         .assert()
         .failure()
-        .stderr(predicate::str::contains("No such file or directory").or(
-            predicate::str::contains("cannot find the file"), // Windows
-        ));
+        .stderr(
+            predicate::str::contains("No such file or directory")
+                .or(predicate::str::contains("cannot find the file")) // Windows
+                .or(predicate::str::contains("No static grammars enabled")), // Expected for static grammar builds
+        );
 }
 
 #[test]

@@ -26,7 +26,6 @@ pub fn parse(
     let result = parser.parse_string(source);
     result.root.ok_or_else(|| "Parsing failed".into())
 }
-
 #[rust_sitter::grammar("javascript")]
 pub mod grammar {
     #[rust_sitter::language]

@@ -1920,6 +1920,8 @@ dependencies = [
  "rust-sitter",
  "rust-sitter-common",
  "rust-sitter-ir",
+ "rust-sitter-javascript",
+ "rust-sitter-python",
  "rust-sitter-tool",
  "serde_json",
  "tempfile",
