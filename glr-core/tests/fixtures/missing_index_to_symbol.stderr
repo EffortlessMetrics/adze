@@ -5,9 +5,9 @@ error[E0063]: missing fields `is_extra`, `is_fragile`, `is_terminal` and 1 other
    |             ^^^^^^^^^^^^^^ missing `is_extra`, `is_fragile`, `is_terminal` and 1 other field
 
 error[E0063]: missing fields `is_extra`, `is_fragile`, `is_terminal` and 1 other field in initializer of `rust_sitter_glr_core::SymbolMetadata`
-  --> tests/fixtures/missing_index_to_symbol.rs:31:13
+  --> tests/fixtures/missing_index_to_symbol.rs:32:13
    |
-31 |             SymbolMetadata {
+32 |             SymbolMetadata {
    |             ^^^^^^^^^^^^^^ missing `is_extra`, `is_fragile`, `is_terminal` and 1 other field
 
 error[E0063]: missing field `index_to_symbol` in initializer of `ParseTable`
