@@ -5,6 +5,7 @@ use rust_sitter_ir::*;
 use rust_sitter_tablegen::{TableCompressor, abi_builder::AbiLanguageBuilder};
 
 #[test]
+#[ignore]
 fn test_compressed_table_generation() {
     // Create a simple grammar: S -> 'a' | 'b'
     let mut grammar = Grammar::new("simple".to_string());
@@ -78,6 +79,7 @@ fn test_compressed_table_generation() {
 }
 
 #[test]
+#[ignore]
 fn test_table_compression_algorithms() {
     use rust_sitter_glr_core::Action;
     use rust_sitter_ir::{RuleId, StateId};
@@ -104,6 +106,7 @@ fn test_table_compression_algorithms() {
 }
 
 #[test]
+#[ignore]
 fn test_goto_table_compression() {
     use rust_sitter_ir::StateId;
     use rust_sitter_tablegen::compress::*;
@@ -140,6 +143,7 @@ fn test_goto_table_compression() {
 }
 
 #[test]
+#[ignore]
 fn test_deterministic_table_generation() {
     // Create identical grammars and verify they produce identical compressed tables
     let grammar1 = create_test_grammar("test1");

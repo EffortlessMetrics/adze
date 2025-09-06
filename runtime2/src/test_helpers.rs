@@ -3,7 +3,8 @@
 //! This module provides common functionality for tests and examples that need
 //! to create minimal Language instances for testing purposes.
 
-use crate::{Language, Token, language::SymbolMetadata};
+use crate::{language::SymbolMetadata, Language, Token};
+use std::sync::LazyLock;
 
 #[cfg(feature = "glr-core")]
 fn empty_parse_table() -> &'static rust_sitter_glr_core::ParseTable {
@@ -11,7 +12,7 @@ fn empty_parse_table() -> &'static rust_sitter_glr_core::ParseTable {
     use rust_sitter_ir::{Grammar, StateId, SymbolId};
     use std::collections::BTreeMap;
 
-    Box::leak(Box::new(ParseTable {
+    static EMPTY_TABLE: LazyLock<ParseTable> = LazyLock::new(|| ParseTable {
         action_table: vec![],
         goto_table: vec![],
         symbol_metadata: vec![],
@@ -36,7 +37,9 @@ fn empty_parse_table() -> &'static rust_sitter_glr_core::ParseTable {
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),
-    }))
+    });
+
+    &EMPTY_TABLE
 }
 
 #[cfg(not(feature = "glr-core"))]
