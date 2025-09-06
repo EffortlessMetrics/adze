@@ -239,8 +239,10 @@ pub fn decode_grammar_with_patterns(
 
             // Build RHS from alias_sequences if available
             let mut rhs = Vec::with_capacity(rhs_len);
-            let has_alias_data = !lang.alias_map.is_null() && !lang.alias_sequences.is_null();
-            if has_alias_data && i < lang.rule_count as usize {
+            let has_alias_data = !lang.alias_map.is_null()
+                && !lang.alias_sequences.is_null()
+                && lang.alias_count > 0;
+            if has_alias_data && (i as u32) < lang.alias_count {
                 let offset = unsafe { *lang.alias_map.add(i) } as usize;
                 for j in 0..rhs_len {
                     let sym_idx = unsafe { *lang.alias_sequences.add(offset + j) };
@@ -400,17 +402,19 @@ pub fn decode_grammar_with_patterns(
     }
 
     // Process external tokens
-    for i in 0..lang.external_token_count as usize {
-        let symbol_id = unsafe { *lang.external_scanner.symbol_map.add(i) };
-        if (symbol_id as u32) < lang.symbol_count {
-            let name = symbol_names
-                .get(symbol_id as usize)
-                .cloned()
-                .unwrap_or_else(|| format!("external_{}", i));
-            externals.push(ExternalToken {
-                name,
-                symbol_id: SymbolId(symbol_id),
-            });
+    if !lang.external_scanner.symbol_map.is_null() {
+        for i in 0..lang.external_token_count as usize {
+            let symbol_id = unsafe { *lang.external_scanner.symbol_map.add(i) };
+            if (symbol_id as u32) < lang.symbol_count {
+                let name = symbol_names
+                    .get(symbol_id as usize)
+                    .cloned()
+                    .unwrap_or_else(|| format!("external_{}", i));
+                externals.push(ExternalToken {
+                    name,
+                    symbol_id: SymbolId(symbol_id),
+                });
+            }
         }
     }
 
