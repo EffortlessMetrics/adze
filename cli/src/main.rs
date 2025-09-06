@@ -468,7 +468,9 @@ fn parse_file(
     }
     #[cfg(not(any(feature = "python-grammar", feature = "javascript-grammar")))]
     {
-        eprintln!("Error: No static grammars enabled. Build with --features python-grammar or --features javascript-grammar");
+        eprintln!(
+            "Error: No static grammars enabled. Build with --features python-grammar or --features javascript-grammar"
+        );
         std::process::exit(2);
     }
 
