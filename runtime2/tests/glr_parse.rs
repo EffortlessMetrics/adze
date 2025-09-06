@@ -4,7 +4,7 @@ use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern,
 };
-use rust_sitter_runtime::{Language, Parser, Token, language::SymbolMetadata};
+use rust_sitter_runtime::{language::SymbolMetadata, Language, Parser, Token};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, LazyLock,
