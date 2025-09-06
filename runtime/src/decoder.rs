@@ -239,8 +239,9 @@ pub fn decode_grammar_with_patterns(
 
             // Build RHS from alias_sequences if available
             let mut rhs = Vec::with_capacity(rhs_len);
-            let has_alias_data =
-                !lang.alias_map.is_null() && !lang.alias_sequences.is_null() && lang.alias_count > 0;
+            let has_alias_data = !lang.alias_map.is_null()
+                && !lang.alias_sequences.is_null()
+                && lang.alias_count > 0;
             if has_alias_data && (i as u32) < lang.alias_count {
                 let offset = unsafe { *lang.alias_map.add(i) } as usize;
                 for j in 0..rhs_len {
