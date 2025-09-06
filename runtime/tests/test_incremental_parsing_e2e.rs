@@ -6,7 +6,7 @@
 #[cfg(feature = "incremental_glr")]
 #[cfg(test)]
 mod incremental_e2e_tests {
-    use rust_sitter::glr_incremental::{GLREdit, GLRToken, get_reuse_count, reset_reuse_counter};
+    use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter, GLREdit, GLRToken};
     use rust_sitter_ir::SymbolId;
 
     #[test]

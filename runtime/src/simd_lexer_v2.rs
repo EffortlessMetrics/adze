@@ -327,7 +327,11 @@ impl SimdLexer {
             }
         }
 
-        if len > 0 { Some(len) } else { None }
+        if len > 0 {
+            Some(len)
+        } else {
+            None
+        }
     }
 
     /// Fast digit matching
@@ -364,7 +368,11 @@ impl SimdLexer {
             }
         }
 
-        if len > 0 { Some(len) } else { None }
+        if len > 0 {
+            Some(len)
+        } else {
+            None
+        }
     }
 
     /// Fast identifier matching
@@ -411,7 +419,11 @@ impl SimdLexer {
             }
         }
 
-        if len > 0 { Some(len) } else { None }
+        if len > 0 {
+            Some(len)
+        } else {
+            None
+        }
     }
 }
 

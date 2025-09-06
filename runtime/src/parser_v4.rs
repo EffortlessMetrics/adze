@@ -7,8 +7,8 @@
 use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
-use crate::scanner_registry::{DynExternalScanner, get_global_registry};
-use anyhow::{Result, anyhow, bail};
+use crate::scanner_registry::{get_global_registry, DynExternalScanner};
+use anyhow::{anyhow, bail, Result};
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::collections::HashSet;
@@ -365,7 +365,7 @@ impl Parser {
             } else {
                 // We're at EOF - use the table's EOF symbol
                 let eof_sym = self.parse_table.eof_symbol.0; // Extract u16 from SymbolId
-                // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
+                                                             // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
                 crate::lex::Token {
                     sym: eof_sym,
                     start: token_source.offset(),

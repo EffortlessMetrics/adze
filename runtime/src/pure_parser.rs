@@ -701,7 +701,7 @@ impl Parser {
         language: &TSLanguage,
         state: TSStateId,
         position: usize,
-        _point: &mut Point,
+        point: &mut Point,
     ) -> Token {
         let lexer = match self.lexer.as_mut() {
             Some(l) => l,
@@ -749,7 +749,69 @@ impl Parser {
 
         // Try external scanner first if available
         if lex_mode.external_lex_state != 0 && language.external_scanner.scan.is_some() {
-            // TODO: Implement external scanner support
+            unsafe {
+                let scan_fn = language.external_scanner.scan.unwrap();
+
+                // Build valid symbols array from external_lex_state bitset.
+                // Tree-sitter's external scanners expect a 1-based array of flags
+                // with index 0 unused, so allocate an extra slot and shift bits.
+                // `Vec<bool>` is bitpacked and unsuitable for FFI; use `u8`.
+                let external_count = language.external_token_count as usize;
+                let mut valid_symbols = vec![0u8; external_count + 1];
+                for i in 0..external_count {
+                    if (lex_mode.external_lex_state >> i) & 1 != 0 {
+                        valid_symbols[i + 1] = 1;
+                    }
+                }
+
+                // Create scanner instance if provided
+                let scanner_instance = if let Some(create_fn) = language.external_scanner.create {
+                    create_fn()
+                } else {
+                    std::ptr::null_mut()
+                };
+
+                // Prepare lexer adapter
+                let mut ext_lexer = ExternalLexer::new(
+                    &lexer.input[position..],
+                    point.row as usize,
+                    point.column as usize,
+                );
+                let mut ts_lexer = create_ts_lexer(&mut ext_lexer);
+
+                let success = scan_fn(
+                    scanner_instance,
+                    &mut ts_lexer as *mut _ as *mut c_void,
+                    valid_symbols.as_ptr().cast::<bool>(),
+                );
+                ext_lexer.result_symbol = ts_lexer.result_symbol;
+
+                if !scanner_instance.is_null()
+                    && let Some(destroy_fn) = language.external_scanner.destroy
+                {
+                    destroy_fn(scanner_instance);
+                }
+
+                if success
+                    && ext_lexer.result_symbol > 0
+                    && (ext_lexer.result_symbol as usize) <= external_count
+                {
+                    let symbol = if !language.external_scanner.symbol_map.is_null() {
+                        *language
+                            .external_scanner
+                            .symbol_map
+                            .add(ext_lexer.result_symbol as usize)
+                    } else {
+                        ext_lexer.result_symbol
+                    };
+
+                    return Token {
+                        symbol,
+                        length: ext_lexer.token_end,
+                        is_extra: false,
+                    };
+                }
+            }
         }
 
         // Use built-in lexer
@@ -1867,5 +1929,110 @@ mod tests {
         let parser = Parser::new();
         // Symbol 1 is the lone non-terminal; with no table entry this should return 0.
         assert_eq!(parser.get_goto_state(&LANGUAGE, 0, 1), 0);
+    }
+}
+
+/// Minimal lexer implementation passed to external scanners
+#[allow(dead_code)]
+struct ExternalLexer<'a> {
+    input: &'a [u8],
+    position: usize,
+    token_end: usize,
+    row: usize,
+    column: usize,
+    result_symbol: TSSymbol,
+}
+
+impl<'a> ExternalLexer<'a> {
+    fn new(input: &'a [u8], row: usize, column: usize) -> Self {
+        Self {
+            input,
+            position: 0,
+            token_end: 0,
+            row,
+            column,
+            result_symbol: 0,
+        }
+    }
+
+    unsafe extern "C" fn lookahead(lexer: *mut crate::lex::TsLexer) -> u32 {
+        if lexer.is_null() {
+            return 0;
+        }
+
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return 0;
+        }
+
+        let ext_lexer = unsafe { &*(data as *const ExternalLexer) };
+        ext_lexer
+            .input
+            .get(ext_lexer.position)
+            .copied()
+            .map(u32::from)
+            .unwrap_or(0)
+    }
+
+    unsafe extern "C" fn advance(lexer: *mut crate::lex::TsLexer, skip: bool) {
+        if lexer.is_null() {
+            return;
+        }
+
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return;
+        }
+
+        let ext_lexer = unsafe { &mut *(data as *mut ExternalLexer) };
+        if ext_lexer.position < ext_lexer.input.len() {
+            if !skip {
+                ext_lexer.token_end = ext_lexer.position + 1;
+            }
+            ext_lexer.position += 1;
+        }
+    }
+
+    unsafe extern "C" fn mark_end(lexer: *mut crate::lex::TsLexer) {
+        if lexer.is_null() {
+            return;
+        }
+
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return;
+        }
+
+        let ext_lexer = unsafe { &mut *(data as *mut ExternalLexer) };
+        ext_lexer.token_end = ext_lexer.position;
+    }
+
+    // Additional methods for external scanner compatibility
+    #[allow(dead_code)]
+    unsafe extern "C" fn get_column(_lexer: *mut crate::lex::TsLexer) -> u32 {
+        // TODO: Implement proper column tracking
+        0
+    }
+
+    #[allow(dead_code)]
+    unsafe extern "C" fn is_at_included_range_start(_lexer: *mut crate::lex::TsLexer) -> bool {
+        false
+    }
+
+    #[allow(dead_code)]
+    unsafe extern "C" fn eof(_lexer: *mut crate::lex::TsLexer) -> bool {
+        // TODO: Implement EOF detection
+        false
+    }
+}
+
+/// Create a TSLexer adapter for external scanners
+fn create_ts_lexer(ext_lexer: &mut ExternalLexer) -> crate::lex::TsLexer {
+    crate::lex::TsLexer {
+        lookahead: ExternalLexer::lookahead,
+        advance: ExternalLexer::advance,
+        mark_end: ExternalLexer::mark_end,
+        result_symbol: 0,
+        data: ext_lexer as *mut _ as *mut c_void,
     }
 }

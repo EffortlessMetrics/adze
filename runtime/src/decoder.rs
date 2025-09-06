@@ -10,7 +10,7 @@ use rust_sitter_ir::{
     SymbolId, Token, TokenPattern,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::ffi::{CStr, c_char};
+use std::ffi::{c_char, CStr};
 use std::path::Path;
 
 use crate::pure_parser::{TSLanguage, TSParseAction};
@@ -401,20 +401,22 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Process external tokens
-    if !lang.external_scanner.symbol_map.is_null() {
-        for i in 0..lang.external_token_count as usize {
-            let symbol_id = unsafe { *lang.external_scanner.symbol_map.add(i) };
-            if (symbol_id as u32) < lang.symbol_count {
-                let name = symbol_names
-                    .get(symbol_id as usize)
-                    .cloned()
-                    .unwrap_or_else(|| format!("external_{}", i));
-                externals.push(ExternalToken {
-                    name,
-                    symbol_id: SymbolId(symbol_id),
-                });
-            }
+    // Process external tokens with null-safe symbol map handling
+    for i in 0..lang.external_token_count as usize {
+        let symbol_id = if lang.external_scanner.symbol_map.is_null() {
+            i as u16
+        } else {
+            unsafe { *lang.external_scanner.symbol_map.add(i) }
+        };
+        if (symbol_id as u32) < lang.symbol_count {
+            let name = symbol_names
+                .get(symbol_id as usize)
+                .cloned()
+                .unwrap_or_else(|| format!("external_{}", i));
+            externals.push(ExternalToken {
+                name,
+                symbol_id: SymbolId(symbol_id),
+            });
         }
     }
 

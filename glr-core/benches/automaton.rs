@@ -1,5 +1,5 @@
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::builder::GrammarBuilder;
 
 fn small_nullable() -> rust_sitter_ir::Grammar {

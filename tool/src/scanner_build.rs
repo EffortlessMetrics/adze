@@ -1,7 +1,7 @@
 // Build system integration for external scanners
 // This module provides functionality to discover and compile user-provided scanner implementations
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 

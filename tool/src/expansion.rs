@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rust_sitter_common::*;
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, *};
 
 use crate::error::{Result as ToolResult, ToolError};

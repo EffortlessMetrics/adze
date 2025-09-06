@@ -244,13 +244,13 @@ fn test_grammar_with_fields() {
     grammar.fields.insert(FieldId(1), "right".to_string());
 
     // Update rule to have fields
-    if let Some(rules) = grammar.rules.get_mut(&SymbolId(10)) {
-        if let Some(rule) = rules.get_mut(0) {
-            rule.fields = vec![
-                (FieldId(0), 0), // left field at position 0
-                (FieldId(1), 2), // right field at position 2
-            ];
-        }
+    if let Some(rules) = grammar.rules.get_mut(&SymbolId(10))
+        && let Some(rule) = rules.get_mut(0)
+    {
+        rule.fields = vec![
+            (FieldId(0), 0), // left field at position 0
+            (FieldId(1), 2), // right field at position 2
+        ];
     }
 
     let parse_table = create_test_parse_table();

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::errors::IteratorExt as _;
 use proc_macro2::Span;
-use quote::{ToTokens, quote};
+use quote::{quote, ToTokens};
 use rust_sitter_common::*;
 use syn::{parse::Parse, punctuated::Punctuated, *};
 

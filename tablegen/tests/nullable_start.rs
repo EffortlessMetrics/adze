@@ -1,5 +1,5 @@
 // Test for nullable start symbol handling in table compression
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets, ParseTable};
 use rust_sitter_ir::*;
 use rust_sitter_tablegen::{compress::TableCompressor, helpers::collect_token_indices};
 use rustc_hash::FxHashSet;

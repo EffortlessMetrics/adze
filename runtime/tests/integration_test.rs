@@ -109,8 +109,8 @@ fn test_error_recovery() {
 #[serial]
 #[ignore]
 fn test_cancellation() {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
 
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();

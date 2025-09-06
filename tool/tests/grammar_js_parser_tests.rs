@@ -1,6 +1,6 @@
 //! Tests for grammar.js parser
 
-use rust_sitter_tool::grammar_js::{Rule, parse_grammar_js_v2};
+use rust_sitter_tool::grammar_js::{parse_grammar_js_v2, Rule};
 
 #[test]
 fn test_javascript_like_grammar() {

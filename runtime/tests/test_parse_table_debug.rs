@@ -1,5 +1,5 @@
 // Debug parse table generation for ambiguous grammars
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_ambiguous_grammar() -> Grammar {

@@ -196,7 +196,7 @@ module.exports = grammar({
         std::env::set_var("CARGO_FEATURE_PURE_RUST", "1");
     }
 
-    use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+    use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
 
     let options = BuildOptions {
         out_dir: temp_dir.path().to_str().unwrap().to_string(),
