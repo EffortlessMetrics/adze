@@ -714,10 +714,10 @@ impl Parser {
                 );
                 ext_lexer.result_symbol = ts_lexer.result_symbol;
 
-                if !scanner_instance.is_null() {
-                    if let Some(destroy_fn) = language.external_scanner.destroy {
-                        destroy_fn(scanner_instance);
-                    }
+                if !scanner_instance.is_null()
+                    && let Some(destroy_fn) = language.external_scanner.destroy
+                {
+                    destroy_fn(scanner_instance);
                 }
 
                 if success
@@ -817,8 +817,8 @@ impl Parser {
                         is_extra,
                     };
                 } else {
-                    let at_eof = position >= lexer.input.len() - 1;
-                    let symbol = if at_eof { 0 } else { 0 };
+                    let _at_eof = position >= lexer.input.len() - 1;
+                    let symbol = 0;
                     return Token {
                         symbol,
                         length: 0,
