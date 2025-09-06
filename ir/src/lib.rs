@@ -16,7 +16,7 @@ pub use error::{IrError, Result as IrResult};
 
 /// Grammar optimization utilities
 pub mod optimizer;
-pub use optimizer::{optimize_grammar, GrammarOptimizer, OptimizationStats};
+pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
 
 /// Grammar validation utilities
 pub mod validation;

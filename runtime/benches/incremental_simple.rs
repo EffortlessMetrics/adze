@@ -1,12 +1,12 @@
 #![cfg(feature = "unstable-benches")]
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::{
     glr_incremental::{Edit, GLRToken, IncrementalGLRParser},
     glr_lexer::TokenWithPosition,
     glr_parser::GLRParser,
 };
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 use std::sync::Arc;
 
