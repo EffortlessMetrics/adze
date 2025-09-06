@@ -61,6 +61,7 @@ impl<'a> TreeCursor<'a> {
         }
     }
 
+    /// Returns the field name for the current child node if available
     pub fn field_name(&self) -> Option<&'static str> {
         if self.current_index >= self.children.len() {
             return None;
