@@ -1,14 +1,19 @@
 // Integration tests for the pure-Rust Tree-sitter implementation
 use rust_sitter::external_scanner::ScanResult;
 use rust_sitter::unified_parser::Parser;
+use serial_test::serial;
 
-// Include the unified_json_helper module directly
+// Include the support modules directly
+#[cfg(feature = "pure-rust")]
+#[path = "support/language_builder.rs"]
+mod language_builder;
 #[cfg(feature = "pure-rust")]
 #[path = "support/unified_json_helper.rs"]
 mod unified_json_helper;
 
 #[test]
 #[cfg(feature = "pure-rust")]
+#[serial]
 #[ignore]
 fn test_complete_workflow() {
     // This test demonstrates the complete workflow of the pure-Rust implementation
@@ -75,6 +80,7 @@ fn test_complete_workflow() {
 
 #[test]
 #[cfg(feature = "pure-rust")]
+#[serial]
 #[ignore]
 fn test_error_recovery() {
     let mut parser = Parser::new();
@@ -100,6 +106,7 @@ fn test_error_recovery() {
 
 #[test]
 #[cfg(feature = "pure-rust")]
+#[serial]
 #[ignore]
 fn test_cancellation() {
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -139,6 +146,7 @@ fn test_cancellation() {
 
 #[test]
 #[cfg(feature = "pure-rust")]
+#[serial]
 #[ignore]
 fn test_timeout() {
     let mut parser = Parser::new();
@@ -164,6 +172,7 @@ fn test_timeout() {
 }
 
 #[test]
+#[serial]
 fn test_external_scanner_integration() {
     use rust_sitter::external_scanner::{ExternalScanner, Lexer};
     use std::sync::{Arc, Mutex};
@@ -236,6 +245,7 @@ fn generate_large_source(size: usize) -> String {
 }
 
 #[test]
+#[serial]
 fn test_table_compression() {
     // Test that table compression is properly implemented
     // The compression happens at build time in tablegen
@@ -250,6 +260,7 @@ fn test_table_compression() {
 
 #[test]
 #[cfg(feature = "serialization")]
+#[serial]
 fn test_serialization_feature() {
     use rust_sitter::serialization::*;
 
@@ -269,6 +280,7 @@ fn test_serialization_feature() {
 }
 
 #[test]
+#[serial]
 fn test_external_scanner_column_tracking() {
     // External scanner column tracking is tested in external_scanner_column_test.rs
     // This test just verifies the basic API works
@@ -294,6 +306,7 @@ fn test_external_scanner_column_tracking() {
 }
 
 #[test]
+#[serial]
 fn test_field_names_infrastructure() {
     // Field names are now set up with infrastructure in place
     // The ParsedNode structure has a field_name field

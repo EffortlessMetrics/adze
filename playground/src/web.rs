@@ -77,10 +77,10 @@ async fn parse_handler(
 
     match session.parse(&req.input) {
         Ok(mut result) => {
-            if req.visualize.unwrap_or(false) {
-                if let Some(tree) = &result.tree {
-                    result.visualization = session.visualize_tree(tree).ok();
-                }
+            if req.visualize.unwrap_or(false)
+                && let Some(tree) = &result.tree
+            {
+                result.visualization = session.visualize_tree(tree).ok();
             }
             Json(result).into_response()
         }

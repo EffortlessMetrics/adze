@@ -1,0 +1,5 @@
+error: expected `mod`
+ --> tests/ui/invalid_grammar_missing_start.rs:4:5
+  |
+4 | pub struct Grammar {
+  |     ^^^^^^
