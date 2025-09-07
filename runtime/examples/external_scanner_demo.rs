@@ -20,7 +20,9 @@ impl ExternalScanner for PythonStringsScanner {
 }
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "1");
+    unsafe {
+        std::env::set_var("RUST_BACKTRACE", "1");
+    }
 
     println!("A: about to take &PY_LANGUAGE");
     let res_a = panic::catch_unwind(|| {

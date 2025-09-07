@@ -108,6 +108,7 @@ fn test_incremental_feature_disabled() {
     // When the incremental_glr feature is disabled, the module shouldn't be available
     // This test ensures proper feature gating works by simply compiling and running
 
+    // Just a simple test to verify feature gating works
     // Feature is disabled, so incremental functionality shouldn't be available
-    // The fact that this test compiles and runs confirms proper feature gating
+    // Test passes by not panicking
 }

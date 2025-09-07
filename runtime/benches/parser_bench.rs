@@ -3,7 +3,7 @@
 #![cfg(feature = "unstable-benches")]
 #![allow(unused_imports, dead_code)]
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rust_sitter::lexer::{ErrorRecoveringLexer, ErrorRecoveryMode, GrammarLexer};
 use rust_sitter::parser_v4::{ParserV4 as ParserV2, Token};
 // use rust_sitter::incremental::{IncrementalParser, Edit, IncrementalTree};
@@ -175,7 +175,6 @@ fn create_arithmetic_grammar() -> Grammar {
         },
     );
 
-    grammar.start_symbol = SymbolId(10);
     grammar
 }
 

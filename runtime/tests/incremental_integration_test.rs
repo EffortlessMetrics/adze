@@ -120,22 +120,22 @@ fn test_insertion() {
     let (grammar, table) = create_test_grammar();
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
-    // Initial parse
-    let source1 = b"123";
+    // Initial parse using numeric input accepted by the grammar
+    let source1 = b"12345";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Insert "456" at position 3
-    let source2 = b"123456";
+    // Insert additional digits at the end
+    let source2 = b"1234567890";
     let edit = Edit {
-        start_byte: 3,
-        old_end_byte: 3,
-        new_end_byte: 6,
-        start_point: Point { row: 0, column: 3 },
-        old_end_point: Point { row: 0, column: 3 },
-        new_end_point: Point { row: 0, column: 6 },
+        start_byte: 5,
+        old_end_byte: 5,
+        new_end_byte: 10,
+        start_point: Point { row: 0, column: 5 },
+        old_end_point: Point { row: 0, column: 5 },
+        new_end_point: Point { row: 0, column: 10 },
     };
 
     // Attempt incremental parse
@@ -175,7 +175,7 @@ fn test_deletion() {
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Delete "456" (positions 3-6)
+    // Delete the last three digits
     let source2 = b"123";
     let edit = Edit {
         start_byte: 3,
@@ -216,21 +216,21 @@ fn test_replacement() {
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
     // Initial parse
-    let source1 = b"123456";
+    let source1 = b"12345";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Replace "456" with "7890" (positions 3-6 -> 3-7)
-    let source2 = b"1237890";
+    // Replace the final digit with two digits
+    let source2 = b"12367";
     let edit = Edit {
-        start_byte: 3,
-        old_end_byte: 6,
-        new_end_byte: 7,
-        start_point: Point { row: 0, column: 3 },
-        old_end_point: Point { row: 0, column: 6 },
-        new_end_point: Point { row: 0, column: 7 },
+        start_byte: 4,
+        old_end_byte: 5,
+        new_end_byte: 6,
+        start_point: Point { row: 0, column: 4 },
+        old_end_point: Point { row: 0, column: 5 },
+        new_end_point: Point { row: 0, column: 6 },
     };
 
     // Attempt incremental parse

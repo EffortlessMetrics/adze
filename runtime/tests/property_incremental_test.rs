@@ -164,8 +164,6 @@ mod incremental_properties {
         };
         grammar.add_rule(rule3);
 
-        // Start symbol is inferred from the rules structure
-
         let table = build_table(&grammar);
         (grammar, table)
     }

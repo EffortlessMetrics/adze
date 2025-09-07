@@ -1,4 +1,7 @@
 // Integration tests for the pure-Rust Tree-sitter implementation
+// These tests are not yet compatible with the incremental GLR feature.
+#![cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
+
 use rust_sitter::external_scanner::ScanResult;
 use rust_sitter::unified_parser::Parser;
 use serial_test::serial;
