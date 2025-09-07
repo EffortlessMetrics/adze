@@ -224,10 +224,53 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     parser.set_language(language)?;
     
     let tree = parser.parse_utf8("ambiguous input", None)?;
-    println!("Parsed with GLR: root kind = {}", tree.root_kind());
+    let root = tree.root_node();
+    println!("Parsed with GLR: root kind = {}", root.kind());
+    
+    // GLR parsers root trees at grammar start symbols
+    // Navigate to actual content via children
+    if root.child_count() > 0 {
+        let content = root.child(0).expect("Grammar start symbol should have content");
+        println!("Content type: {}", content.kind());
+    }
     Ok(())
 }
 ```
+
+### GLR Tree Structure (Important)
+
+GLR parsers produce trees with different structure than traditional parsers. Following PR #64 corrections:
+
+```rust
+// ✅ Correct GLR expectations
+let tree = parser.parse_utf8("42", None)?;
+let root = tree.root_node();
+
+// Root is always the grammar start symbol (e.g., "program", "value")
+assert_eq!(root.kind(), "program");        // Grammar start symbol
+assert_eq!(root.child_count(), 1);         // Contains actual content as child
+
+// Navigate to actual content
+let content = root.child(0).unwrap();       // Get content child
+assert_eq!(content.kind(), "number");      // Content type at child level
+
+// ❌ Incorrect: expecting content directly as root
+// assert_eq!(root.kind(), "number");      // Wrong - this is content-centric thinking
+```
+
+**GLR Tree Navigation Pattern:**
+```rust
+let mut cursor = tree.root_node().walk();
+assert_eq!(cursor.node().kind(), "program");   // Start at grammar root
+assert!(cursor.goto_first_child());            // Navigate to content
+assert_eq!(cursor.node().kind(), "statement"); // Content types appear as children
+```
+
+**Key Points:**
+- Root node = Grammar start symbol (not content)
+- Content appears as children of grammar symbols  
+- Use `node.child(0)` to access actual content
+- Tree structure follows grammar productions, not content layout
 
 ### Incremental Parsing
 Enable true incremental parsing for large files:

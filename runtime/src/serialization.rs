@@ -400,7 +400,7 @@ fn parse_sexpr_inner(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result
             let mut atom = String::new();
             let mut escaped = false;
 
-            while let Some(ch) = chars.next() {
+            for ch in chars.by_ref() {
                 if escaped {
                     match ch {
                         '"' => atom.push('"'),
@@ -445,7 +445,7 @@ fn parse_sexpr_inner(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result
 }
 
 fn skip_whitespace(chars: &mut std::iter::Peekable<std::str::Chars>) {
-    while chars.peek().map_or(false, |c| c.is_whitespace()) {
+    while chars.peek().is_some_and(|c| c.is_whitespace()) {
         chars.next();
     }
 }
@@ -558,6 +558,7 @@ pub struct BinaryFormat {
 /// Binary serializer for compact storage
 pub struct BinarySerializer {
     node_type_map: HashMap<String, u16>,
+    #[allow(dead_code)]
     field_name_map: HashMap<String, u16>,
     node_types: Vec<String>,
     field_names: Vec<String>,
@@ -601,6 +602,7 @@ impl BinarySerializer {
         }
     }
 
+    #[allow(dead_code)]
     fn get_field_name_id(&mut self, name: &str) -> u16 {
         if let Some(&id) = self.field_name_map.get(name) {
             id

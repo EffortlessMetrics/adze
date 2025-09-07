@@ -258,6 +258,76 @@ Outputs forest-to-tree conversion statistics:
 🚀 Forest->Tree conversion: 247 nodes, depth 12, took 0.8ms
 ```
 
+## GLR Tree Structure Understanding
+
+GLR parsers produce trees with different structure than traditional parsers. Following PR #64 analysis, here's how to work with GLR trees:
+
+### Grammar-Rooted Trees
+
+GLR parsers always root trees at the grammar's start symbol, not the content:
+
+```rust
+let tree = parser.parse_utf8("42", None)?;
+let root = tree.root_node();
+
+// ✅ Correct: Grammar start symbol as root
+assert_eq!(root.kind(), "expr");           // Grammar start rule
+assert_eq!(root.child_count(), 1);         // Contains content as child
+
+// Navigate to actual content  
+let content = root.child(0).unwrap();       // Get actual number
+assert_eq!(content.kind(), "number");      // Content type
+
+// ❌ Incorrect: Expecting content directly
+// assert_eq!(root.kind(), "number");      // Wrong - content-centric thinking
+```
+
+### Tree Navigation Pattern
+
+When traversing GLR trees, always navigate through the grammar hierarchy:
+
+```rust
+let mut cursor = tree.root_node().walk();
+
+// Start at grammar root
+assert_eq!(cursor.node().kind(), "expr");      // Grammar symbol
+assert!(cursor.goto_first_child());            // Navigate to content
+assert_eq!(cursor.node().kind(), "number");    // Actual content
+
+// For complex expressions:
+// expr (root)
+// └── add_expr  
+//     ├── number ("1")
+//     ├── "+"
+//     └── number ("2")
+```
+
+### Testing GLR Trees
+
+When writing tests for GLR functionality:
+
+```rust
+#[test]
+fn test_glr_arithmetic() {
+    let tree = parser.parse_utf8("1 + 2", None).unwrap();
+    let root = tree.root_node();
+    
+    // Root is grammar start symbol
+    assert_eq!(root.kind(), "expr");
+    
+    // Content is child of grammar symbol
+    let add_expr = root.child(0).unwrap();
+    assert_eq!(add_expr.kind(), "add");
+    
+    // Navigate through production structure
+    let left_operand = add_expr.child(0).unwrap();
+    assert_eq!(left_operand.kind(), "number");
+    assert_eq!(left_operand.text(source), "1");
+}
+```
+
+This structure reflects the actual grammar productions rather than a content-centric view, which enables GLR's ambiguity handling capabilities.
+
 ## GLR Features Available
 
 With runtime2, you get:

@@ -355,10 +355,10 @@ impl<'a> IncrementalParserState<'a> {
         let (state, _) = self.stack.last().unwrap();
 
         // Get next state after shifting this symbol
-        if let Some(gotos) = self.table.goto_table.get(state.0 as usize) {
-            if let Some(&goto_state) = gotos.get(reusable.node.symbol.0 as usize) {
-                self.stack.push((goto_state, Some(reusable.node.clone())));
-            }
+        if let Some(gotos) = self.table.goto_table.get(state.0 as usize)
+            && let Some(&goto_state) = gotos.get(reusable.node.symbol.0 as usize)
+        {
+            self.stack.push((goto_state, Some(reusable.node.clone())));
         }
     }
 

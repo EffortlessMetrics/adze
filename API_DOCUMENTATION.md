@@ -739,6 +739,54 @@ let child_count = root.child_count();                     // 0 (parser_v4 limita
 let first_child = root.child(0);                          // None (parser_v4 limitation)
 ```
 
+### GLR Parser Tree Structure Expectations
+
+**Important**: GLR parsers produce trees with different structure than traditional parsers. PR #64 established these patterns:
+
+```rust
+use rust_sitter::glr_tree_bridge::subtree_to_tree;
+
+// GLR parsers root trees at grammar start symbols
+let tree = subtree_to_tree(subtree, source_bytes, grammar);
+let root = tree.root_node();
+
+// ✅ Correct: Grammar-compliant expectations
+assert_eq!(root.kind(), "value");           // Grammar start symbol (not content)
+assert_eq!(root.child_count(), 1);          // Start symbol contains content
+let content_node = root.child(0).unwrap();  // Navigate to actual content
+assert_eq!(content_node.kind(), "number"); // Content type at child level
+
+// Example: JSON number parsing
+// Input: "42"
+// Tree structure:
+//   value (root - grammar start symbol)
+//   └── number (child - actual content)
+
+// Example: JSON object parsing  
+// Input: {"key": 123}
+// Tree structure:
+//   value (root - grammar start symbol)
+//   └── object (child - actual content)
+//       ├── lbrace
+//       ├── members
+//       └── rbrace
+
+// Tree navigation with GLR expectations
+let mut cursor = tree.root_node().walk();
+assert_eq!(cursor.node().kind(), "value");      // Start at grammar root
+assert!(cursor.goto_first_child());             // Navigate to content
+assert_eq!(cursor.node().kind(), "object");     // Content type
+assert!(cursor.goto_first_child());             // Navigate into structure  
+assert_eq!(cursor.node().kind(), "lbrace");     // Terminal symbols
+```
+
+**Key GLR Tree Structure Principles:**
+- **Grammar Start Symbol Root**: Root node represents the grammar's start rule (e.g., `value`, `module`, `source_file`)
+- **Multi-Level Hierarchy**: Actual content appears as children of grammar symbols, not directly as root
+- **Production-Based Structure**: Tree structure reflects grammar productions rather than content-centric views
+- **Consistent Navigation**: Use `cursor.goto_first_child()` to navigate from grammar symbols to content
+- **Terminal vs Non-Terminal**: Terminal symbols (like `"number"`, `"lbrace"`) are leaf nodes; non-terminals contain children
+
 ### `Point` - Position in Source Text
 ```rust
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

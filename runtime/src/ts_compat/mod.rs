@@ -118,20 +118,20 @@ impl Parser {
             #[cfg(feature = "incremental_glr")]
             Some(old_tree) if old_tree.last_edit.is_some() => {
                 // Try incremental parsing using the stored edit
-                if let Some(edit) = &old_tree.last_edit {
-                    if let Some(new_core) = crate::glr_incremental::reparse(
+                if let Some(edit) = &old_tree.last_edit
+                    && let Some(new_core) = crate::glr_incremental::reparse(
                         &lang.grammar,
                         &lang.table,
                         source.as_bytes(),
                         &old_tree.core,
                         edit,
-                    ) {
-                        return Some(Tree {
-                            core: new_core,
-                            last_edit: None,
-                            language: lang.clone(),
-                        });
-                    }
+                    )
+                {
+                    return Some(Tree {
+                        core: new_core,
+                        last_edit: None,
+                        language: lang.clone(),
+                    });
                 }
                 // Fall back to fresh parse if incremental parsing failed
                 match core_parser.parse(source) {

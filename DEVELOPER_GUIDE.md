@@ -269,6 +269,46 @@ cd runtime2 && cargo test glr_parse_simple
 cd runtime2 && cargo test --features glr-core -- forest
 ```
 
+#### GLR Test Patterns and Expectations
+GLR parsers produce trees with different structure than traditional parsers. When writing tests for GLR functionality, follow these patterns established in PR #64:
+
+```bash
+# GLR tests should expect grammar start symbol as root
+# For JSON grammar with start rule "value":
+assert_eq!(root.kind(), "value");  // Root is start symbol
+let content = root.child(0);       // Content is child of start symbol
+assert_eq!(content.kind(), "number" | "object" | "array");
+
+# GLR tree navigation expects multi-level hierarchies  
+let mut cursor = tree.root_node().walk();
+assert_eq!(cursor.node().kind(), "value");      // Start at grammar root
+assert!(cursor.goto_first_child());             // Navigate to content
+assert_eq!(cursor.node().kind(), "array");      // Content type
+assert!(cursor.goto_first_child());             // Navigate into content structure
+assert_eq!(cursor.node().kind(), "lbracket");   // Terminal symbols
+```
+
+**Key GLR Testing Principles:**
+- **Grammar-Compliant Structure**: Trees reflect grammar productions, not content-centric views
+- **Start Symbol Root**: Root node is always the grammar's start symbol (e.g., `value`, `module`)  
+- **Multi-Level Navigation**: Content appears as children of grammar symbols, not directly as root
+- **Feature Gating**: Use `#![cfg(not(feature = "incremental_glr"))]` for tests not yet compatible
+- **Proper Assertions**: Test both tree structure and content at appropriate levels
+
+**Example Test Structure (from PR #64):**
+```rust
+// ✅ Correct: Grammar-compliant expectations
+let root = tree.root_node();
+assert_eq!(root.kind(), "value");           // Grammar start symbol
+assert_eq!(root.child_count(), 1);          // Contains one child
+let number_node = root.child(0).unwrap();   // Get content child
+assert_eq!(number_node.kind(), "number");   // Verify content type
+
+// ❌ Incorrect: Content-centric expectations  
+let root = tree.root_node();
+assert_eq!(root.kind(), "number");          // Wrong - expects content directly
+```
+
 ### Breaking Change Detected
 ```bash
 # If intentional, document in CHANGELOG and bump version
