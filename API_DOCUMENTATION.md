@@ -1160,9 +1160,9 @@ pub struct ProfileStats {
 }
 ```
 
-### Grammar Optimization
+### Grammar Optimization (Enhanced in PR #4)
 ```rust
-/// Optimize grammar for performance
+/// Optimize grammar for performance with improved left recursion transformation
 pub fn optimize_grammar(grammar: &Grammar) -> GrammarOptimizer;
 
 impl GrammarOptimizer {
@@ -1177,6 +1177,22 @@ impl GrammarOptimizer {
     
     /// Build optimized grammar
     pub fn build(self) -> Result<Grammar>;
+    
+    /// Transform left-recursive rules with comprehensive metadata preservation (PR #4)
+    /// 
+    /// Key improvements:
+    /// - Preserves conflict declarations for both original and auxiliary symbols
+    /// - Adjusts field indices during rule transformation  
+    /// - Uses Grammar rule map API for cleaner symbol management
+    /// - Provides readable names for auxiliary symbols (e.g., "expr__rec")
+    fn transform_left_recursion(
+        &mut self,
+        grammar: &mut Grammar,
+        original_symbol: SymbolId,
+        new_symbol: SymbolId,
+        recursive_rules: Vec<Rule>,
+        base_rules: Vec<Rule>,
+    );
 }
 ```
 

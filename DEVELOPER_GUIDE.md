@@ -110,6 +110,24 @@ cargo test -p rust-sitter-runtime test_incremental_forest_splicing -- --nocaptur
 RUST_SITTER_LOG_PERFORMANCE=true cargo test -p rust-sitter-runtime incremental_glr_comprehensive_test -- --nocapture
 ```
 
+### Grammar Optimizer Testing (Enhanced in PR #4)
+```bash
+# Run all optimizer tests
+cargo test -p rust-sitter-ir
+
+# Test specific left recursion transformation regression (PR #4)
+cargo test -p rust-sitter-ir test_transform_left_recursion_rewrites_grammar
+
+# Test optimizer with debug artifacts to inspect transformations
+RUST_SITTER_EMIT_ARTIFACTS=true cargo test -p rust-sitter-ir test_optimization_stats
+
+# Test optimizer safety (ensure no language changes)
+cargo test -p rust-sitter-ir test_optimizer_safety
+
+# Run full optimizer integration test  
+cargo test -p rust-sitter-tool --features optimize build_with_optimization
+```
+
 ### Benchmarks (Unstable)
 ```bash
 # Build benchmarks without running (faster)
