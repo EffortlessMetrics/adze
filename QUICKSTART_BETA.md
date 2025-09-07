@@ -178,7 +178,183 @@ Add to your `Cargo.toml`:
 rust-sitter = { version = "0.6", features = ["ts-compat", "incremental_glr"] }
 ```
 
-## Beta Limitations
+## GLR Parser - Ambiguous Grammar Support ✨
+
+**NEW in PR #56**: Rust-sitter now includes a production-ready GLR (Generalized LR) parser that can handle ambiguous grammars with multiple valid interpretations.
+
+### When to Use GLR Parsing
+
+GLR parsing is beneficial when:
+- Your grammar has unavoidable ambiguities
+- Multiple valid interpretations exist for the same input
+- Traditional LR parsing fails due to shift/reduce or reduce/reduce conflicts
+- You want to analyze all possible parse trees
+
+### Basic GLR Usage
+
+```rust
+use rust_sitter::glr_parser_no_error_recovery::GLRParser;
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseForest};
+use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, Token, TokenPattern, ProductionId};
+
+// Create an ambiguous expression grammar: E -> E + E | E * E | num
+fn create_ambiguous_grammar() -> Grammar {
+    let mut grammar = Grammar::new("ambiguous_expr".to_string());
+    
+    // Define tokens
+    grammar.tokens.insert(SymbolId(1), Token {
+        name: "number".to_string(),
+        pattern: TokenPattern::Regex(r"\d+".to_string()),
+        fragile: false,
+    });
+    
+    grammar.tokens.insert(SymbolId(2), Token {
+        name: "plus".to_string(),
+        pattern: TokenPattern::String("+".to_string()),
+        fragile: false,
+    });
+    
+    grammar.tokens.insert(SymbolId(3), Token {
+        name: "mult".to_string(),
+        pattern: TokenPattern::String("*".to_string()),
+        fragile: false,
+    });
+    
+    // Define ambiguous rules (no precedence = multiple interpretations)
+    let expr_symbol = SymbolId(10);
+    
+    // E -> num
+    grammar.rules.entry(expr_symbol).or_default().push(Rule {
+        lhs: expr_symbol,
+        rhs: vec![Symbol::Terminal(SymbolId(1))],
+        production_id: ProductionId(0),
+        precedence: None,  // No precedence allows ambiguity
+        associativity: None,
+        fields: vec![],
+    });
+    
+    // E -> E + E (creates conflicts)
+    grammar.rules.entry(expr_symbol).or_default().push(Rule {
+        lhs: expr_symbol,
+        rhs: vec![
+            Symbol::NonTerminal(expr_symbol),
+            Symbol::Terminal(SymbolId(2)),
+            Symbol::NonTerminal(expr_symbol),
+        ],
+        production_id: ProductionId(1),
+        precedence: None,  // Intentionally ambiguous
+        associativity: None,
+        fields: vec![],
+    });
+    
+    // E -> E * E (more conflicts)
+    grammar.rules.entry(expr_symbol).or_default().push(Rule {
+        lhs: expr_symbol,
+        rhs: vec![
+            Symbol::NonTerminal(expr_symbol),
+            Symbol::Terminal(SymbolId(3)),
+            Symbol::NonTerminal(expr_symbol),
+        ],
+        production_id: ProductionId(2),
+        precedence: None,  // Intentionally ambiguous
+        associativity: None,
+        fields: vec![],
+    });
+    
+    grammar
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create grammar and build parse table
+    let grammar = create_ambiguous_grammar();
+    let first_follow = FirstFollowSets::compute(&grammar)?;
+    let parse_table = build_lr1_automaton(&grammar, &first_follow)?;
+    
+    // Create GLR parser
+    let mut parser = GLRParser::new(parse_table);
+    
+    // Parse ambiguous input "1+2*3"
+    // This has two interpretations: ((1+2)*3) = 9 or (1+(2*3)) = 7
+    let tokens = vec![
+        SymbolId(1), // number "1"
+        SymbolId(2), // plus "+"
+        SymbolId(1), // number "2"  
+        SymbolId(3), // mult "*"
+        SymbolId(1), // number "3"
+    ];
+    
+    let forest = parser.parse(&tokens)?;
+    
+    println!("GLR parsing completed!");
+    println!("Number of parse alternatives: {}", forest.roots.len());
+    println!("Total nodes in forest: {}", forest.nodes.len());
+    
+    // Analyze each alternative interpretation
+    for (i, root) in forest.roots.iter().enumerate() {
+        println!("Parse alternative {}: Symbol {} spanning {:?}", 
+                 i, root.symbol.0, root.span);
+        println!("  Alternatives: {}", root.alternatives.len());
+    }
+    
+    Ok(())
+}
+```
+
+### GLR Parse Forest Structure
+
+Unlike traditional parsers that return a single parse tree, GLR parsers return a **parse forest** containing all valid interpretations:
+
+```rust
+// Parse forest contains multiple parse trees efficiently
+pub struct ParseForest {
+    pub roots: Vec<ForestNode>,           // All complete parse interpretations
+    pub nodes: HashMap<usize, ForestNode>, // Shared node storage (memory efficient)
+    pub grammar: Grammar,                  // Grammar used for parsing
+    pub source: String,                   // Original source text
+    pub next_node_id: usize,              // Node ID allocator
+}
+
+// Each node can have multiple derivation alternatives
+pub struct ForestNode {
+    pub id: usize,                        // Unique node ID
+    pub symbol: SymbolId,                 // Grammar symbol
+    pub span: (usize, usize),            // Position in source text
+    pub alternatives: Vec<ForestAlternative>, // Different ways to parse this
+    pub error_meta: ErrorMeta,           // Error tracking info
+}
+```
+
+### ActionCell Architecture
+
+The GLR parser uses **ActionCells** - each parser state/symbol combination can hold multiple conflicting actions:
+
+```rust
+// Traditional LR: action_table[state][symbol] = single Action (fails on conflicts)
+// GLR ActionCell: action_table[state][symbol] = Vec<Action> (explores all)
+
+let actions = parser.get_actions(current_state, current_symbol);
+println!("Possible actions: {}", actions.len());
+
+for action in actions {
+    match action {
+        Action::Shift(next_state) => {
+            // Create new parse stack and continue
+            println!("Can shift to state {}", next_state.0);
+        }
+        Action::Reduce(rule_id) => {
+            // Can reduce using this rule
+            println!("Can reduce using rule {}", rule_id.0);
+        }
+        Action::Fork(fork_actions) => {
+            // Handle nested conflicts
+            println!("Fork with {} sub-actions", fork_actions.len());
+        }
+        _ => {}
+    }
+}
+```
+
+### Beta Limitations
 
 ### ❌ Not Yet Supported
 - Precedence declarations (`#[rust_sitter::prec_left(1)]`)
@@ -193,6 +369,8 @@ rust-sitter = { version = "0.6", features = ["ts-compat", "incremental_glr"] }
 - Pattern matching for tokens
 - Simple parsing
 - **GLR parsing** (ambiguous grammar support) ✨
+- **ActionCell architecture** for multiple parse paths ✨
+- **Parse forest** generation and analysis ✨
 - **True incremental parsing** with subtree reuse ✨
 - **Performance monitoring** and optimization ✨
 

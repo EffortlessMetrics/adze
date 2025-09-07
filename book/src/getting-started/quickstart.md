@@ -223,6 +223,52 @@ pub struct StringLiteral {
 }
 ```
 
+## GLR Parser Integration (PR #56) ✨
+
+The new GLR parser brings advanced capabilities for handling ambiguous grammars:
+
+### ActionCell Support
+The GLR parser uses **ActionCells** - each parser state can hold multiple conflicting actions:
+
+```rust
+use rust_sitter::glr_parser_no_error_recovery::GLRParser;
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+
+// Build GLR parser with ActionCell support
+let grammar = create_grammar();
+let first_follow = FirstFollowSets::compute(&grammar)?;
+let parse_table = build_lr1_automaton(&grammar, &first_follow)?;
+let mut glr_parser = GLRParser::new(parse_table);
+
+// GLR parser returns parse forests for ambiguous grammars
+let forest = glr_parser.parse(&tokens)?;
+println!("Parse alternatives: {}", forest.roots.len());
+
+// Traditional single-tree extraction
+let tree = runtime_parser.parse_utf8("1 + 2", None)?;
+```
+
+### Parse Forest Analysis
+When dealing with ambiguous grammars, analyze all interpretations:
+
+```rust
+// Example: Ambiguous expression "1+2*3"  
+// Can be parsed as ((1+2)*3) or (1+(2*3))
+let forest = glr_parser.parse(&ambiguous_tokens)?;
+
+for (i, root) in forest.roots.iter().enumerate() {
+    println!("Interpretation {}: Symbol {} at {:?}", 
+             i, root.symbol.0, root.span);
+    println!("  Child alternatives: {}", root.alternatives.len());
+}
+
+// Use forest analyzer for complex ambiguity analysis
+let ambiguous_nodes = forest.nodes.values()
+    .filter(|node| node.alternatives.len() > 1)
+    .count();
+println!("Ambiguous decision points: {}", ambiguous_nodes);
+```
+
 ## Error Handling
 
 The GLR runtime provides comprehensive error information:

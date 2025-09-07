@@ -165,8 +165,85 @@ struct Whitespace {
 
 ## Parser API
 
-### `Parser` (GLR Runtime - `runtime2/`)
-The main parser API with Tree-sitter compatibility and production-ready GLR engine integration:
+### `GLRParser` (Basic GLR Implementation - Production Ready)
+The new GLR parser from PR #56 with ActionCell architecture support for ambiguous grammars:
+
+```rust
+use rust_sitter::glr_parser_no_error_recovery::GLRParser;
+use rust_sitter_glr_core::{ParseTable, ParseForest};
+use rust_sitter_ir::SymbolId;
+
+impl GLRParser {
+    /// Create a new GLR parser from a parse table
+    pub fn new(table: ParseTable) -> Self;
+    
+    /// Parse a sequence of input tokens and produce a parse forest
+    /// Input should be a sequence of SymbolId tokens (terminals)
+    /// EOF symbol will be appended automatically
+    pub fn parse(&mut self, tokens: &[SymbolId]) -> Result<ParseForest, ParseError>;
+    
+    /// Get actions for a state and symbol (ActionCell support)
+    /// Returns Vec<Action> supporting multiple conflicting actions
+    pub fn get_actions(&self, state: StateId, symbol: SymbolId) -> Vec<Action>;
+}
+```
+
+**GLR ActionCell Architecture** ✨ **New in PR #56**:
+- **Multi-Action Cells**: Each `action_table[state][symbol]` now returns `Vec<Action>` instead of single Action
+- **Runtime Forking**: Parser creates multiple parse stacks when conflicts occur (shift/reduce, reduce/reduce)
+- **Parse Forest Construction**: Produces `ParseForest` with HashMap-based node storage for ambiguous parses
+- **No Error Recovery**: This implementation focuses on core GLR functionality without error recovery
+
+**Key GLR Features:**
+- **Ambiguous Grammar Support**: Can parse inherently ambiguous grammars like `E -> E + E | E * E | num`
+- **Multiple Parse Paths**: Maintains all valid parse interpretations simultaneously
+- **Forest-Based Output**: Returns `ParseForest` structure instead of single parse tree
+- **Action Cell Support**: Full support for multiple actions per parser state/symbol combination
+
+```rust
+// Example: Parsing ambiguous expression "1+2*3"
+let mut parser = GLRParser::new(parse_table);
+let tokens = vec![SYM_NUMBER, SYM_PLUS, SYM_NUMBER, SYM_STAR, SYM_NUMBER];
+let forest = parser.parse(&tokens)?;
+
+// Forest contains all valid parse interpretations
+println!("Parse forest roots: {}", forest.roots.len());
+for root in &forest.roots {
+    println!("Alternative parse: {:?}", root);
+}
+```
+
+### `ParseForest` - GLR Parse Forest Structure
+```rust
+pub struct ParseForest {
+    pub roots: Vec<ForestNode>,           // All valid parse trees
+    pub nodes: HashMap<usize, ForestNode>, // Node storage by ID
+    pub grammar: Grammar,                  // Grammar used for parsing
+    pub source: String,                   // Original source text
+    pub next_node_id: usize,              // Node ID counter
+}
+
+pub struct ForestNode {
+    pub id: usize,                        // Unique node identifier
+    pub symbol: SymbolId,                 // Symbol this node represents
+    pub span: (usize, usize),            // Byte span in source text
+    pub alternatives: Vec<ForestAlternative>, // Multiple derivations for ambiguity
+    pub error_meta: ErrorMeta,           // Error tracking metadata
+}
+
+pub struct ForestAlternative {
+    pub children: Vec<usize>,            // Child node IDs for this derivation
+}
+```
+
+**Parse Forest vs Parse Tree:**
+- **Parse Tree**: Single interpretation of input (traditional parsing)
+- **Parse Forest**: Multiple valid interpretations stored efficiently
+- **Shared Structure**: Common subtrees shared between alternatives
+- **Memory Efficient**: HashMap storage prevents duplication of identical subtrees
+
+### `Parser` (GLR Runtime - `runtime2/`) 
+The high-level parser API with Tree-sitter compatibility and GLR engine integration:
 
 ```rust
 impl Parser {
@@ -202,7 +279,7 @@ impl Parser {
 
 **GLR Integration Status**: **Production Ready** ✅
 - Complete GLR engine routing with Tree-sitter API compatibility
-- Feature-gated compilation for different GLR capabilities
+- Feature-gated compilation for different GLR capabilities  
 - Memory-safe GLR forest management with performance monitoring
 - Incremental parsing optimization with subtree reuse
 
