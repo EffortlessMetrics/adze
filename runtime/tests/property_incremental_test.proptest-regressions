@@ -7,3 +7,5 @@
 cc 472143d1e0cf5967191f9cfc000f5e62627686506a4aadaf96de4ab286c27ec9 # shrinks to original = "0", (edit_pos, del_len, insert) = (0, 0, "")
 cc 7b33d14fd38e8b526d51604d65d492cb852d455e2ddc0658a58fde0dde586200 # shrinks to original = " ", edits = [(0, 0, "0")]
 cc 1e1df79a68f5ca7e4dff3517d43a7186da5e11efa0cec0003a3ad41ac4e59de1 # shrinks to original = "00 0aaa00", (edit_pos, del_len, insert) = (0, 0, "0")
+cc 79b4aa77c51cc9e6a85ac608b3811c67dd80e6dbee33155ff6a699c62381a04d # shrinks to original = "a0 aa a0a", (edit_pos, del_len, insert) = (0, 0, "0")
+cc 92af0ac17da1766d002a2c154e4b132ed72fe65f2ab3534ac70a1e81a571aab3 # shrinks to original = "a 0  00aa0  a0a0 ", (edit_pos, del_len, insert) = (0, 0, "a  a0")
