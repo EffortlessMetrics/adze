@@ -414,6 +414,6 @@ mod tests {
     #[test]
     fn test_simple_program() {
         // Grammar builds successfully
-        assert!(true);
+        // Placeholder test - remove this when actual tests are added
     }
 }
