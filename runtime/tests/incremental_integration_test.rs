@@ -223,14 +223,14 @@ fn test_replacement() {
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
     // Replace the final digit with two digits
-    let source2 = b"12367";
+    let source2 = b"123467"; // Correctly replace '5' with '67' -> "12345" becomes "123467"
     let edit = Edit {
         start_byte: 4,
         old_end_byte: 5,
-        new_end_byte: 6,
+        new_end_byte: 6, // Correct: source2 now has 6 bytes (0-5)
         start_point: Point { row: 0, column: 4 },
         old_end_point: Point { row: 0, column: 5 },
-        new_end_point: Point { row: 0, column: 6 },
+        new_end_point: Point { row: 0, column: 6 }, // Correct: column 6 for 6-byte string
     };
 
     // Attempt incremental parse

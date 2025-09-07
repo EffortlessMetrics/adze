@@ -193,6 +193,14 @@ pub fn reparse(
         // In a real implementation, we'd store the old source or tokens
         let old_source = {
             let mut old = source.to_vec();
+
+            // Bounds checking for the edit
+            if edit.start_byte > old.len() || edit.new_end_byte > old.len() {
+                // Invalid edit bounds - fallback to full reparse
+                eprintln!("Warning: Edit bounds out of range, falling back to full reparse");
+                return None;
+            }
+
             // Apply inverse edit to get old source
             old.splice(
                 edit.start_byte..edit.new_end_byte,
@@ -225,6 +233,12 @@ pub fn reparse(
         }
 
         // 2. Tokenize only the new edited text
+        // Additional bounds check for source slicing
+        if edit.start_byte > source.len() || edit.new_end_byte > source.len() {
+            eprintln!("Warning: Edit bounds exceed source length, falling back to full reparse");
+            return None;
+        }
+
         let new_text = &source[edit.start_byte..edit.new_end_byte];
         let mut edited_tokens = tokenize_source(new_text, grammar);
 

@@ -486,6 +486,15 @@ impl FirstFollowSets {
     }
     /// Compute FIRST/FOLLOW sets for the given grammar
     pub fn compute(grammar: &Grammar) -> Result<Self, GLRError> {
+        // Clone and normalize the grammar if it contains complex symbols
+        let normalized_grammar = {
+            let mut cloned = grammar.clone();
+            cloned.normalize().map_err(GLRError::GrammarError)?;
+            cloned
+        };
+
+        // Use the normalized grammar for computation
+        let grammar = &normalized_grammar;
         // Find the maximum symbol ID to determine the size needed
         let max_rule_id = grammar.rules.keys().map(|id| id.0).max().unwrap_or(0);
         let max_token_id = grammar.tokens.keys().map(|id| id.0).max().unwrap_or(0);
@@ -2629,7 +2638,9 @@ pub fn build_lr1_automaton(
                     // For now, keep both for GLR
                 }
                 PrecDecision::NoInfo => {
-                    // leave GLR behavior (keep both)
+                    // For GLR: when no precedence information is available, keep both actions
+                    // This preserves conflicts for GLR runtime to handle via forking
+                    // Don't resolve the conflict - let GLR handle it at runtime
                 }
             }
         }
