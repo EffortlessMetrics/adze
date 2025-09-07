@@ -102,8 +102,8 @@ fn test_error_recovery() {
 #[test]
 #[cfg(feature = "pure-rust")]
 fn test_cancellation() {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
 
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();
@@ -178,16 +178,16 @@ fn test_external_scanner_integration() {
             self.count += 1;
 
             // Simple scanner that accepts any letter as token 1
-            if valid_symbols.len() > 1 && valid_symbols[1] {
-                if let Some(ch) = lexer.lookahead() {
-                    if (ch as char).is_alphabetic() {
-                        lexer.advance(1);
-                        return Some(ScanResult {
-                            symbol: 1,
-                            length: 1,
-                        });
-                    }
-                }
+            if valid_symbols.len() > 1
+                && valid_symbols[1]
+                && let Some(ch) = lexer.lookahead()
+                && (ch as char).is_alphabetic()
+            {
+                lexer.advance(1);
+                return Some(ScanResult {
+                    symbol: 1,
+                    length: 1,
+                });
             }
             None
         }

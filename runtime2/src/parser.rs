@@ -121,10 +121,10 @@ impl Parser {
         #[cfg(all(feature = "glr-core", feature = "incremental"))]
         {
             // Optimization: return early if input hasn't changed
-            if let Some(old_src) = old_tree.source_bytes() {
-                if old_src == input {
-                    return Ok(old_tree.clone());
-                }
+            if let Some(old_src) = old_tree.source_bytes()
+                && old_src == input
+            {
+                return Ok(old_tree.clone());
             }
             let forest = engine_parse_incremental(language, input, old_tree)?;
             Ok(forest_to_tree(forest))

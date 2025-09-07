@@ -98,6 +98,16 @@ cargo bench --features incremental_glr -- incremental
 
 # Test with concurrency caps for stability
 RUST_TEST_THREADS=2 RAYON_NUM_THREADS=4 cargo test --workspace
+
+# PR #58 Validation Testing - Node Metadata & Incremental Parsing
+cargo test -p rust-sitter-runtime pr58_validation_test -- --nocapture
+cargo test -p rust-sitter-runtime ts_compat_node_test -- --nocapture
+
+# Test Direct Forest Splicing incremental algorithm
+cargo test -p rust-sitter-runtime test_incremental_forest_splicing -- --nocapture
+
+# Validate 16x performance improvements with performance logging
+RUST_SITTER_LOG_PERFORMANCE=true cargo test -p rust-sitter-runtime incremental_glr_comprehensive_test -- --nocapture
 ```
 
 ### Benchmarks (Unstable)

@@ -1,6 +1,6 @@
 // Test the pure-Rust parser implementation
-use rust_sitter::pure_parser::{ExternalScanner, Parser, SyncPtr, TSLanguage, TSParseAction};
 use rust_sitter::ffi::TSSymbolMetadata;
+use rust_sitter::pure_parser::{ExternalScanner, Parser, SyncPtr, TSLanguage, TSParseAction};
 use std::ptr;
 
 // Create a simple test language
@@ -104,13 +104,41 @@ fn create_test_language() -> &'static TSLanguage {
         SyncPtr::new(SYMBOL_NAME_6.as_ptr()),
     ];
     static SYMBOL_METADATA: [TSSymbolMetadata; 7] = [
-        TSSymbolMetadata { visible: true, named: true, supertype: false },
-        TSSymbolMetadata { visible: true, named: true, supertype: false },
-        TSSymbolMetadata { visible: true, named: true, supertype: false },
-        TSSymbolMetadata { visible: true, named: true, supertype: false },
-        TSSymbolMetadata { visible: true, named: true, supertype: false },
-        TSSymbolMetadata { visible: true, named: true, supertype: false },
-        TSSymbolMetadata { visible: true, named: true, supertype: false },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
     ];
 
     static LANGUAGE: TSLanguage = TSLanguage {

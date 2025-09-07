@@ -6,7 +6,7 @@
 #[cfg(feature = "incremental_glr")]
 #[cfg(test)]
 mod incremental_e2e_tests {
-    use rust_sitter::glr_incremental::{GLREdit, GLRToken, get_reuse_count, reset_reuse_counter};
+    use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter, GLREdit, GLRToken};
     use rust_sitter_ir::SymbolId;
 
     #[test]
@@ -109,5 +109,6 @@ fn test_incremental_feature_disabled() {
     // This test ensures proper feature gating
 
     // Just a simple test to verify feature gating works
-    assert!(true); // Feature is disabled, so incremental functionality shouldn't be available
+    // Feature is disabled, so incremental functionality shouldn't be available
+    // Test passes by not panicking
 }
