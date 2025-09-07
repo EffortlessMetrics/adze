@@ -524,7 +524,7 @@ impl GrammarOptimizer {
         base_rules: Vec<Rule>,
     ) {
         // Remove all original rules for the symbol using the current Grammar APIs
-        grammar.rules.remove(&original_symbol);
+        grammar.rules.shift_remove(&original_symbol);
 
         // Any conflict declarations referencing the original symbol should also
         // reference the new helper symbol to preserve conflict metadata
@@ -913,9 +913,7 @@ impl OptimizationStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        Associativity, ConflictDeclaration, ConflictResolution, FieldId, PrecedenceKind,
-    };
+    use crate::{Associativity, ConflictDeclaration, ConflictResolution, FieldId, PrecedenceKind};
 
     fn create_test_grammar() -> Grammar {
         let mut grammar = Grammar::new("test".to_string());
