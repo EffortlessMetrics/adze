@@ -660,6 +660,46 @@ cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter
 
 ### Recent Achievements (September 2025)
 
+#### **Basic GLR Parser Implementation - Production Ready** ✅ *(PR #56)*
+Successfully completed basic GLR parser implementation with ActionCell architecture, enabling parsing of ambiguous grammars and establishing foundation for advanced GLR features.
+
+**Key Accomplishments:**
+1. **ActionCell Architecture**: Multi-action parsing infrastructure
+   - **Action Table Restructure**: From `Vec<Vec<Action>>` to `Vec<Vec<Vec<Action>>>` supporting multiple conflicting actions per state/symbol
+   - **Runtime Forking**: Parser dynamically forks on conflicts, exploring all valid parse paths simultaneously
+   - **Conflict Handling**: Shift/reduce and reduce/reduce conflicts handled through parallel stack exploration
+   - **Parse Forest Generation**: GLR parser produces parse forests containing all valid interpretations
+
+2. **Production Grammar Success**: Complex grammar compatibility demonstrated
+   - **Python Grammar**: Successfully parses Python files with 273 symbols and 57 fields
+   - **State 0 Bug Resolution**: Fixed critical issue where Python files starting with `def` couldn't be parsed
+   - **Empty Module Support**: Proper handling of empty files and files starting with statements
+   - **External Scanner Integration**: Full support for indentation tracking and context-sensitive parsing
+
+3. **Comprehensive Implementation**: Updated 20+ files across the entire codebase
+   - **Core Parser Logic**: Complete GLR implementation in `glr-core/lib.rs`
+   - **Table Compression**: Updated compression algorithms in `tablegen/compress.rs`
+   - **Runtime Integration**: GLR decoders in `runtime/decoder.rs` and all parser implementations
+   - **Error Recovery**: GLR-compatible error handling, incremental parsing, and visitor patterns
+
+4. **Complete Documentation**: Comprehensive GLR parsing guide with practical examples
+   - **Advanced GLR Guide**: Complete documentation in `book/src/advanced/glr-parsing.md`
+   - **API Integration**: GLR methods documented in API_DOCUMENTATION.md
+   - **Grammar Examples**: Ambiguous grammar patterns in GRAMMAR_EXAMPLES.md
+   - **Quickstart Updates**: GLR integration examples in quickstart guides
+
+**Technical Implementation:**
+- **Multi-Action Cells**: Each state/symbol pair can hold multiple valid actions enabling runtime conflict resolution
+- **Dynamic Stack Management**: Parser maintains multiple parse stacks with efficient fork/merge operations
+- **Ambiguity Preservation**: Precedence/associativity order actions but don't eliminate them, preserving all valid interpretations
+- **Memory Efficiency**: Shared subtrees in parse forests reduce duplication while maintaining complete parse information
+
+**What This Enables:**
+- **Complex Language Support**: Can now parse languages like C++, Rust, and other inherently ambiguous grammars
+- **Better Error Recovery**: Multiple parse paths significantly improve error recovery strategies
+- **Research Applications**: Solid foundation for grammar inference and advanced language analysis tools
+- **WASM Compatibility**: Pure-Rust implementation enables efficient browser-based parsing capabilities
+
 #### **Incremental Parsing & Node Metadata API - Production Ready** ✅ *(PR #58)*
 Successfully completed production-ready PR #58 integration bringing incremental parsing with Direct Forest Splicing algorithm and Tree-sitter compatible Node metadata API.
 
