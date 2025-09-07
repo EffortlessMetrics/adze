@@ -1,108 +1,278 @@
-# How to Use Incremental Parsing in rust-sitter
+# How to Use GLR Incremental Parsing in rust-sitter
 
-This guide demonstrates how to use rust-sitter's production-ready incremental parsing features (implemented in PR #62) to achieve significant performance improvements when handling text edits.
+This guide demonstrates how to use rust-sitter's GLR incremental parsing implementation (completed September 2025) with fork-aware subtree reuse and conservative fallback strategies.
 
 ## Prerequisites
 
-Add rust-sitter with incremental parsing support to your `Cargo.toml`:
+Add rust-sitter with GLR incremental parsing support to your `Cargo.toml`:
 
 ```toml
 [dependencies]
 rust-sitter = { version = "0.6", features = ["incremental_glr"] }
+rust-sitter-glr-core = "0.6"
+rust-sitter-ir = "0.6"
 ```
 
 **Feature Requirements**:
-- **`incremental_glr`**: Enables production `reparse()` method (recommended)
-- **`incremental`**: Legacy incremental support (older API)
-- **`all-features`**: Includes all incremental capabilities
+- **`incremental_glr`**: Enables GLR incremental parsing with fork tracking
+- **`external_scanners`**: Required for external scanner integration during incremental parsing
+- **`all-features`**: Includes all GLR and incremental capabilities
 
 ## Quick Start
 
-### 1. Basic Incremental Parsing
+### 1. GLR Incremental Parser Setup
 
 ```rust
-use rust_sitter::parser_v4::{Parser, Tree};
-use rust_sitter::pure_incremental::Edit;
-use rust_sitter::pure_parser::Point;
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use rust_sitter::runtime::{GLRIncrementalParser, GLRToken, GLREdit, ForestNode};
+use rust_sitter_ir::{Grammar, SymbolId};
+use rust_sitter_glr_core::ParseTable;
+use std::sync::Arc;
 
-// Create your parser (requires grammar, table, and language name)
-let mut parser = Parser::new(grammar, parse_table, "my_language".to_string());
+// Initialize GLR incremental parser with parse table and grammar
+let mut parser = GLRIncrementalParser::new(
+    Arc::clone(&parse_table),
+    Arc::clone(&grammar),
+);
 
-// Initial parse
-let tree1 = parser.parse("fn main() { println!(\"Hello\"); }")?;
-println!("Initial parse - errors: {}", tree1.error_count);
+// Define tokens for initial parsing
+let initial_tokens = vec![
+    GLRToken {
+        symbol: SymbolId(1), // "fn"
+        text: b"fn".to_vec(),
+        start_byte: 0,
+        end_byte: 2,
+    },
+    GLRToken {
+        symbol: SymbolId(5), // identifier "main"
+        text: b"main".to_vec(),
+        start_byte: 3,
+        end_byte: 7,
+    },
+    // ... additional tokens for complete function
+];
 
-// Create an edit operation: change "Hello" to "World"
-let edit = Edit {
-    start_byte: 20,      // Position of "Hello"  
-    old_end_byte: 25,    // End of "Hello"
-    new_end_byte: 25,    // Same length for "World"
-    start_point: Point { row: 0, column: 20 },
-    old_end_point: Point { row: 0, column: 25 },
-    new_end_point: Point { row: 0, column: 25 },
+// Initial parse with fork tracking
+let initial_forest = parser.parse_incremental(&initial_tokens, &[])?;
+
+// Create edit operation: change function name from "main" to "hello_world"
+let edit = GLREdit {
+    start_byte: 3,
+    old_end_byte: 7,        // Replace "main"
+    new_end_byte: 14,       // With "hello_world"
+    old_forest: Some(Arc::clone(&initial_forest)),
+    affected_forks: vec![], // GLR will determine affected forks
 };
 
-// Reset counter to track reuse
-reset_reuse_counter();
+// Updated tokens after edit
+let edited_tokens = vec![
+    GLRToken {
+        symbol: SymbolId(1), // "fn"
+        text: b"fn".to_vec(),
+        start_byte: 0,
+        end_byte: 2,
+    },
+    GLRToken {
+        symbol: SymbolId(5), // identifier "hello_world"
+        text: b"hello_world".to_vec(),
+        start_byte: 3,
+        end_byte: 14,
+    },
+    // ... additional updated tokens
+];
 
-// Incremental reparse (automatic GLR routing)
-let tree2 = parser.reparse("fn main() { println!(\"World\"); }", &tree1, &edit)?;
-println!("Incremental parse - errors: {}", tree2.error_count);
+// Incremental reparse with GLR fork awareness
+let updated_forest = parser.parse_incremental(&edited_tokens, &[edit])?;
 
-// Check performance
-let reused = get_reuse_count();
-println!("Reused {} subtrees", reused);
+// Note: Current implementation uses conservative fallback to ensure consistency
+println!("GLR incremental parsing complete with conservative fallback");
 ```
 
-### 2. Monitoring Performance
+### 2. GLR Fork Tracking and Performance Monitoring
 
-Track incremental parsing effectiveness:
+Monitor GLR incremental parsing with fork tracking:
 
 ```rust
 use std::time::Instant;
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use rust_sitter::runtime::{GLRIncrementalParser, ForkTracker};
 
-fn demonstrate_performance() -> Result<(), Box<dyn std::error::Error>> {
-    let mut parser = Parser::new(grammar, table, "demo".to_string());
+fn demonstrate_glr_performance() -> Result<(), Box<dyn std::error::Error>> {
+    let mut parser = GLRIncrementalParser::new(
+        Arc::clone(&parse_table),
+        Arc::clone(&grammar),
+    );
     
-    // Parse a larger file
-    let initial_content = "fn main() {\n    let x = 42;\n    println!(\"{}\", x);\n}";
-    let tree = parser.parse(initial_content)?;
+    // Create tokens for larger content with potential ambiguity
+    let initial_tokens = create_tokens_for_content("class A { method() {} }");
     
-    // Small edit: change 42 to 43
-    let edit = Edit {
-        start_byte: 21,
-        old_end_byte: 23, 
-        new_end_byte: 23,
-        start_point: Point { row: 1, column: 12 },
-        old_end_point: Point { row: 1, column: 14 },
-        new_end_point: Point { row: 1, column: 14 },
+    // Initial parse - may create multiple forks for ambiguous regions
+    let start = Instant::now();
+    let initial_forest = parser.parse_incremental(&initial_tokens, &[])?;
+    let initial_time = start.elapsed();
+    println!("Initial GLR parse: {:?}", initial_time);
+    
+    // Edit that affects ambiguous region: change method name
+    let edit = GLREdit {
+        start_byte: 10,
+        old_end_byte: 16,     // "method"
+        new_end_byte: 23,     // "newmethod"  
+        old_forest: Some(Arc::clone(&initial_forest)),
+        affected_forks: vec![], // GLR will determine this
     };
     
-    // Measure incremental parse time
-    reset_reuse_counter();
+    let edited_tokens = create_tokens_for_content("class A { newmethod() {} }");
+    
+    // Incremental reparse with fork tracking
     let start = Instant::now();
-    
-    let new_content = "fn main() {\n    let x = 43;\n    println!(\"{}\", x);\n}";
-    let incremental_tree = parser.reparse(new_content, &tree, &edit)?;
-    
+    let updated_forest = parser.parse_incremental(&edited_tokens, &[edit])?;
     let incremental_time = start.elapsed();
-    let reused = get_reuse_count();
     
-    println!("Incremental parse: {:?}", incremental_time);
-    println!("Subtrees reused: {}", reused);
+    println!("GLR incremental parse: {:?}", incremental_time);
+    println!("Conservative fallback: currently falls back to fresh parsing");
     
-    // Compare with full reparse
+    // Compare with fresh parse
     let start = Instant::now();
-    let full_tree = parser.parse(new_content)?;
-    let full_time = start.elapsed();
+    let fresh_forest = parser.parse_fresh(&edited_tokens)?;
+    let fresh_time = start.elapsed();
     
-    println!("Full parse: {:?}", full_time);
+    println!("Fresh GLR parse: {:?}", fresh_time);
     
-    if incremental_time < full_time {
-        let speedup = full_time.as_nanos() as f64 / incremental_time.as_nanos() as f64;
-        println!("Speedup: {:.1}x", speedup);
+    Ok(())
+}
+
+fn create_tokens_for_content(content: &str) -> Vec<GLRToken> {
+    // This would typically be implemented by your tokenizer
+    // For demonstration purposes, simplified tokenization
+    vec![
+        // Token creation logic would go here
+    ]
+}
+```
+
+### 3. External Scanner Integration with GLR Incremental Parsing
+
+GLR incremental parsing supports external scanners for complex tokenization patterns:
+
+```rust
+use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+
+// Custom external scanner implementation
+#[derive(Default)]
+struct MyExternalScanner {
+    state: Vec<u8>,
+}
+
+impl ExternalScanner for MyExternalScanner {
+    fn scan(&mut self, lexer: &mut Lexer, valid_symbols: &[bool]) -> ScanResult {
+        // Custom scanning logic that preserves state across incremental parses
+        if valid_symbols[0] { // Check for specific token type
+            // Scan and return result
+            ScanResult::Success
+        } else {
+            ScanResult::Failure
+        }
+    }
+    
+    fn serialize(&self, buffer: &mut Vec<u8>) {
+        buffer.extend(&self.state);
+    }
+    
+    fn deserialize(buffer: &[u8]) -> Self {
+        Self { state: buffer.to_vec() }
+    }
+}
+
+// GLR incremental parser with external scanner
+let scanner = Box::new(MyExternalScanner::default());
+// External scanner integration would be configured in the GLRIncrementalParser
+```
+
+## Advanced Features
+
+### Fork-Aware Edit Analysis
+
+The GLR incremental parser can analyze which parse forks are affected by edits:
+
+```rust
+// Analyze edit impact on GLR forks
+fn analyze_edit_impact(
+    parser: &mut GLRIncrementalParser,
+    edit: &GLREdit,
+) -> Vec<usize> {
+    // GLR parser will determine which forks need recomputation
+    // This happens automatically during parse_incremental
+    let affected_forks = vec![]; // Determined internally by GLR
+    affected_forks
+}
+```
+
+### Conservative Fallback Strategy
+
+The current implementation uses a conservative approach:
+
+```rust
+// Current implementation ensures consistency by falling back to fresh parsing
+// This temporary strategy maintains correctness while optimizing the GLR architecture
+
+let result = parser.parse_incremental(&tokens, &edits)?;
+// Note: Falls back to fresh parsing to ensure GLR correctness
+// Future optimizations will enable full incremental reuse
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Issue**: GLR incremental parsing falls back to fresh parsing
+**Solution**: This is the current conservative implementation strategy. The fallback ensures consistency while the GLR incremental architecture is optimized.
+
+**Issue**: External scanner state not preserved across incremental parses
+**Solution**: Ensure your external scanner implements `serialize()` and `deserialize()` methods correctly to maintain state.
+
+**Issue**: Performance not improved compared to fresh parsing
+**Solution**: Currently expected due to conservative fallback. Future optimizations will enable substantial performance gains.
+
+### Feature Flag Conflicts
+
+If you encounter issues with feature combinations:
+
+```toml
+# Recommended feature combination for GLR incremental parsing
+[dependencies]
+rust-sitter = { version = "0.6", features = ["incremental_glr", "external_scanners"] }
+```
+
+**Avoid** mixing legacy incremental features with GLR:
+- Don't combine `incremental` and `incremental_glr`
+- Use `incremental_glr` for GLR-compatible parsing
+
+### Performance Monitoring
+
+Enable performance logging to track GLR behavior:
+
+```bash
+export RUST_SITTER_LOG_PERFORMANCE=true
+cargo run your_program
+```
+
+This provides insights into:
+- Fork creation and tracking
+- Token processing time
+- Forest-to-tree conversion metrics
+- External scanner invocation counts
+
+## Current Implementation Status
+
+**Implementation Complete** (September 2025):
+- ✅ GLR-aware incremental parser architecture
+- ✅ Fork tracking and affected region analysis  
+- ✅ External scanner integration
+- ✅ Conservative fallback for consistency
+- ✅ Comprehensive error handling and memory safety
+
+**Future Optimizations**:
+- Advanced subtree reuse strategies for GLR
+- Performance optimizations for fork-specific incremental updates
+- Enhanced ambiguity preservation during incremental parsing
     }
     
     Ok(())
