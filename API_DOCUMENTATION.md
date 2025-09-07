@@ -26,22 +26,36 @@ Complete API reference for rust-sitter v0.6.0 - the production-ready pure-Rust p
 
 ## Core Types
 
-### `Grammar`
+### `Grammar` (GLR-Compatible with Symbol Normalization)
 ```rust
 pub struct Grammar {
     pub name: String,
-    pub rules: IndexMap<String, Rule>,
-    pub extras: Vec<RuleId>,
-    pub conflicts: Vec<Vec<RuleId>>,
-    pub externals: Vec<ExternalToken>,
-    pub inline: Vec<RuleId>,
-    pub supertypes: Vec<RuleId>,
-    pub word: Option<RuleId>,
-    pub precedences: Vec<PrecedenceLevel>,
+    pub rules: IndexMap<SymbolId, Vec<Rule>>,  // Rules indexed by symbol ID, not string
+    pub tokens: IndexMap<SymbolId, Token>,     // Token definitions
+    pub precedences: Vec<Precedence>,          // Precedence declarations
+    pub conflicts: Vec<ConflictDeclaration>,   // Conflict resolution declarations
+    pub externals: Vec<ExternalToken>,         // External scanner tokens
+    pub extras: Vec<SymbolId>,                 // Extra tokens (whitespace, comments)
+    pub fields: IndexMap<FieldId, String>,     // Field names in lexicographic order
+    pub supertypes: Vec<SymbolId>,            // Supertype symbols
+    pub inline_rules: Vec<SymbolId>,          // Rules to inline during generation
+    pub alias_sequences: IndexMap<ProductionId, AliasSequence>, // Alias sequences for productions
+    pub production_ids: IndexMap<RuleId, ProductionId>,         // Rule ID to production ID mapping
+    pub rule_names: IndexMap<SymbolId, String>,                // Symbol ID to rule name mapping
+    pub symbol_registry: Option<SymbolRegistry>,                // Centralized symbol registry
+}
+
+impl Grammar {
+    /// Normalize complex symbols by creating auxiliary rules
+    /// This expands Optional, Repeat, Choice, Sequence into standard rules for GLR compatibility
+    /// 
+    /// Complex symbols like `Repeat(Sequence([Terminal(a), Terminal(b)]))` are converted
+    /// to auxiliary non-terminal rules that contain only Terminal, NonTerminal, External, and Epsilon symbols.
+    pub fn normalize(&mut self) -> Result<(), GrammarError>;
 }
 ```
 
-The main grammar structure containing all rules and metadata.
+The main grammar structure containing all rules and metadata. **Production Ready**: Includes comprehensive symbol normalization for GLR parser compatibility, converting complex symbols into auxiliary rules automatically.
 
 ### `Rule`
 ```rust
@@ -978,7 +992,62 @@ pub enum ParseError {
     /// Grammar error
     GrammarError(String),
 }
+
+/// GLR-specific grammar errors (Symbol Normalization)
+pub enum GrammarError {
+    /// Complex symbols found that need normalization
+    ComplexSymbolsNotNormalized {
+        symbols: Vec<String>,
+        message: String,
+    },
+    
+    /// Symbol ID overflow during auxiliary symbol creation
+    SymbolIdOverflow {
+        max_id: u16,
+        requested_id: u16,
+    },
+    
+    /// Invalid grammar structure
+    InvalidGrammar(String),
+    
+    /// Recursive symbol definitions
+    RecursiveDefinition {
+        symbol: String,
+        chain: Vec<String>,
+    },
+}
 ```
+
+### Symbol Normalization Error Handling
+
+The GLR parser requires all grammar symbols to be in normalized form. Complex symbols like `Optional`, `Repeat`, `Sequence`, and `Choice` must be converted to auxiliary rules:
+
+```rust
+use rust_sitter_ir::{Grammar, GrammarError};
+
+let mut grammar = create_complex_grammar();
+
+match grammar.normalize() {
+    Ok(()) => {
+        // Grammar successfully normalized - can now use with GLR parser
+        let first_follow = FirstFollowSets::compute(&grammar)?;
+    }
+    Err(GrammarError::SymbolIdOverflow { max_id, requested_id }) => {
+        eprintln!("Too many auxiliary symbols: max={}, requested={}", max_id, requested_id);
+        // Consider reducing grammar complexity or using symbol ID optimization
+    }
+    Err(GrammarError::ComplexSymbolsNotNormalized { symbols, message }) => {
+        eprintln!("Complex symbols found: {:?}", symbols);
+        eprintln!("Details: {}", message);
+        // This should not happen after calling normalize() - indicates a bug
+    }
+    Err(e) => {
+        eprintln!("Grammar normalization failed: {}", e);
+    }
+}
+```
+
+**Automatic Normalization**: The GLR core automatically normalizes grammars during `FirstFollowSets::compute()`, so manual normalization is typically not required. However, explicit normalization is useful for debugging and validation.
 
 ## Testing Framework
 

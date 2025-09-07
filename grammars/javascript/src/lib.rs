@@ -27,6 +27,7 @@ pub fn parse(
     result.root.ok_or_else(|| "Parsing failed".into())
 }
 #[rust_sitter::grammar("javascript")]
+#[allow(clippy::manual_non_exhaustive)]
 pub mod grammar {
     #[rust_sitter::language]
     pub struct Program {

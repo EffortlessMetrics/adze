@@ -177,7 +177,7 @@ fn build_prec_tables(
     use rust_sitter_ir::{Associativity, PrecedenceKind};
 
     // Guard rail: ensure we have the right table structure
-    debug_assert!(token_count > 0, "token_count must be positive");
+    // Note: token_count can be 0 for empty grammars (only EOF token)
     debug_assert!(production_count > 0, "production_count must be positive");
 
     // token precedence by table index
@@ -766,6 +766,12 @@ impl LRItem {
             .all_rules()
             .find(|r| r.production_id.0 == self.rule_id.0)
         {
+            // Special case: epsilon rules (A -> epsilon) are reduce items at position 0
+            // because epsilon doesn't need to be "consumed" - it represents empty string
+            if rule.rhs.len() == 1 && matches!(rule.rhs[0], Symbol::Epsilon) {
+                return true; // Always a reduce item for epsilon rules
+            }
+
             self.position >= rule.rhs.len()
         } else {
             false
@@ -2558,7 +2564,8 @@ pub fn build_lr1_automaton(
 
     // Build precedence tables once
     let production_count = augmented_grammar.all_rules().count() as u32;
-    let token_count = token_symbols.len() as u32;
+    // Ensure token_count includes at least EOF (symbol 0) for empty grammars
+    let token_count = std::cmp::max(1, token_symbols.len()) as u32;
     let prec_tables = build_prec_tables(
         &augmented_grammar,
         &symbol_to_index,

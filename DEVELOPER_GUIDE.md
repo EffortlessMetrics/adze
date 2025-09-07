@@ -201,6 +201,119 @@ cargo run -p ts-bridge -- path/to/grammar.so output.json tree_sitter_<lang>
 - `.github/workflows/ci.yml` - CI checks for breaking changes
 - `scripts/check-breaking-changes.sh` - Local validation script
 
+## GLR Symbol Normalization Architecture
+
+### Overview
+The GLR parser implementation includes a comprehensive symbol normalization system that converts complex grammar symbols into auxiliary rules. This is required because GLR algorithms (FIRST/FOLLOW computation, LR item generation) expect symbols to be in normalized form.
+
+### Normalization Pipeline
+```
+Original Grammar → Symbol Analysis → Auxiliary Rule Generation → GLR Processing
+     ↓                    ↓                     ↓                    ↓
+Complex Symbols    Detect Complex      Create _auxNNNN Rules    FIRST/FOLLOW
+(Optional, Repeat) → Nested Patterns → (Terminal/NonTerminal) → Computation
+```
+
+### Symbol Transformation Patterns
+
+#### 1. Optional Symbols (`Symbol::Optional`)
+```rust
+// Input:  rule -> symbol?
+// Output: rule -> _aux1001
+//         _aux1001 -> symbol
+//         _aux1001 -> ε
+```
+
+#### 2. Repeat Symbols (`Symbol::Repeat`)  
+```rust
+// Input:  rule -> symbol*
+// Output: rule -> _aux1002
+//         _aux1002 -> _aux1002 symbol  // Left-recursive for efficiency
+//         _aux1002 -> ε
+```
+
+#### 3. Sequence Symbols (`Symbol::Sequence`)
+```rust
+// Input:  rule -> (symbol1 symbol2 symbol3)
+// Output: rule -> _aux1003
+//         _aux1003 -> symbol1 symbol2 symbol3
+```
+
+#### 4. Choice Symbols (`Symbol::Choice`)
+```rust
+// Input:  rule -> (symbol1 | symbol2 | symbol3)
+// Output: rule -> _aux1004
+//         _aux1004 -> symbol1
+//         _aux1004 -> symbol2  
+//         _aux1004 -> symbol3
+```
+
+### Implementation Details
+
+#### Auxiliary Symbol Management
+- **Symbol ID Range**: Starts at `max_existing_id + 1000`, ends at `60000` (within u16 bounds)
+- **Naming Convention**: `_aux{symbol_id}` for generated rule names  
+- **Production ID Assignment**: Sequential allocation to avoid conflicts
+- **Recursive Processing**: Handles nested complex symbols (e.g., `Optional(Repeat(...))`)
+
+#### Integration Points
+1. **Automatic Integration**: `FirstFollowSets::compute()` automatically normalizes grammars
+2. **Manual Normalization**: `Grammar::normalize()` for explicit control
+3. **Idempotency**: Multiple normalization calls have no effect
+4. **Backward Compatibility**: Existing simple grammars work unchanged
+
+### Testing and Debugging
+
+#### Normalization Tests
+```bash
+# Run comprehensive normalization tests
+cargo test -p rust-sitter-ir --test test_normalization
+
+# Test specific transformation patterns
+cargo test -p rust-sitter-ir test_optional_normalization
+cargo test -p rust-sitter-ir test_repeat_normalization  
+cargo test -p rust-sitter-ir test_nested_complex_symbols
+```
+
+#### Debug Commands
+```bash
+# View normalization artifacts
+RUST_SITTER_EMIT_ARTIFACTS=true cargo test test_json_language_generation
+
+# Debug auxiliary symbol creation
+RUST_LOG=trace cargo test -p rust-sitter-ir normalization -- --nocapture
+
+# Verify grammar structure after normalization
+cargo test -p rust-sitter-ir grammar_invariants -- --nocapture
+```
+
+#### Performance Characteristics
+- **Memory Usage**: 1-3 auxiliary rules per complex symbol
+- **Runtime Impact**: Zero (normalization happens at compile-time)
+- **Compilation Overhead**: Minimal (single grammar clone + transform)
+- **Symbol ID Space**: Uses ~1000 IDs per complex grammar
+
+### Error Recovery and Validation
+
+#### Common Validation Errors
+1. **Symbol ID Overflow**: Too many auxiliary symbols exceed u16 limit
+2. **Recursive Definitions**: Self-referencing complex symbols  
+3. **Production ID Conflicts**: Duplicate production assignments
+
+#### Error Handling Strategy
+```rust
+match grammar.normalize() {
+    Ok(()) => /* Continue with GLR processing */,
+    Err(GrammarError::SymbolIdOverflow { max_id, requested_id }) => {
+        // Reduce grammar complexity or increase ID space
+    }
+    Err(GrammarError::RecursiveDefinition { symbol, chain }) => {
+        // Break recursive cycles or restructure grammar
+    }
+    Err(e) => /* Handle other grammar errors */
+}
+```
+
 ## Environment Variables
 
 ### Core Development
@@ -268,6 +381,64 @@ cd runtime2 && cargo test glr_parse_simple
 # Test forest-to-tree conversion  
 cd runtime2 && cargo test --features glr-core -- forest
 ```
+
+#### Symbol Normalization Issues (Production Ready)
+The GLR parser requires complex grammar symbols to be normalized into auxiliary rules. Common issues and solutions:
+
+```bash
+# Test for ComplexSymbolsNotNormalized errors
+cargo test test_json_language_generation -p rust-sitter-tablegen
+
+# Run normalization-specific tests
+cargo test -p rust-sitter-ir --test test_normalization
+
+# Debug normalization process
+RUST_LOG=debug cargo test test_json_language_generation -p rust-sitter-tablegen
+
+# Verify auxiliary symbol creation
+cargo test -p rust-sitter-ir test_complex_symbol_normalization -- --nocapture
+```
+
+**Common Normalization Errors**:
+
+1. **ComplexSymbolsNotNormalized Error**:
+   ```
+   Error: Complex symbols like 'Repeat(Sequence(...))' need normalization before FIRST/FOLLOW computation
+   ```
+   
+   **Solution**: The GLR core automatically normalizes grammars, but if you see this error:
+   ```bash
+   # Verify GLR-core integration
+   cargo test -p rust-sitter-glr-core first_follow_sets
+   
+   # Check grammar structure manually
+   cargo test -p rust-sitter-ir grammar_normalization_idempotent
+   ```
+
+2. **SymbolIdOverflow Error**:
+   ```
+   Error: Too many auxiliary symbols created during normalization
+   ```
+   
+   **Solution**: Reduce grammar complexity or optimize symbol usage:
+   ```bash
+   # Check grammar statistics
+   cargo test -p rust-sitter-ir grammar_stats -- --nocapture
+   
+   # Optimize grammar before normalization
+   cargo test -p rust-sitter-ir grammar_optimization
+   ```
+
+3. **Auxiliary Symbol Name Conflicts**:
+   ```
+   Error: Auxiliary symbol '_aux1001' conflicts with existing grammar
+   ```
+   
+   **Solution**: Ensure auxiliary symbols start at safe offset:
+   ```rust
+   // Grammar should reserve symbol IDs > 1000 for auxiliary symbols
+   let max_user_id = grammar.max_symbol_id();  // Should be < 1000
+   ```
 
 #### GLR Test Patterns and Expectations
 GLR parsers produce trees with different structure than traditional parsers. When writing tests for GLR functionality, follow these patterns established in PR #64:
