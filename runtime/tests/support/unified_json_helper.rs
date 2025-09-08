@@ -15,8 +15,19 @@ use ts_bridge::{extract, schema::Action as TsAction};
 #[allow(dead_code)]
 pub fn unified_json_language() -> &'static TSLanguage {
     // Extract parse table data from upstream Tree-sitter JSON grammar
-    #[allow(clippy::missing_transmute_annotations)]
-    let lang_fn = unsafe { std::mem::transmute(tree_sitter_json::LANGUAGE.into_raw()) };
+    let raw_lang_fn = tree_sitter_json::LANGUAGE.into_raw();
+
+    // Convert function pointer to correct type expected by extract()
+    let lang_fn: unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage =
+        unsafe { std::mem::transmute(raw_lang_fn) };
+
+    // Validate that calling the language function returns a non-null pointer
+    let lang_ptr = unsafe { lang_fn() };
+    if lang_ptr.is_null() {
+        panic!("Tree-sitter JSON language pointer is null");
+    }
+    eprintln!("Language Pointer from function: {:p}", lang_ptr);
+
     let data = extract(lang_fn).expect("extract tree-sitter json");
 
     // Find the document symbol - this should be the start symbol for JSON
