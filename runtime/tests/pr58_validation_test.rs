@@ -4,7 +4,7 @@
 #[cfg(all(feature = "ts-compat", feature = "incremental_glr"))]
 mod pr58_validation {
     use rust_sitter::ts_compat::{Language, Parser};
-    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
     use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::sync::Arc;
 

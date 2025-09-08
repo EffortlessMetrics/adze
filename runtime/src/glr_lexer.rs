@@ -51,11 +51,7 @@ impl TokenMatcher {
             TokenMatcher::Regex(re) => {
                 // Ensure regex matches at start of string slice
                 if let Some(m) = re.find(&input[pos..]) {
-                    if m.start() == 0 {
-                        Some(m.len())
-                    } else {
-                        None
-                    }
+                    if m.start() == 0 { Some(m.len()) } else { None }
                 } else {
                     None
                 }

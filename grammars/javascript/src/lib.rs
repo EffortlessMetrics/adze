@@ -1,6 +1,10 @@
 // JavaScript grammar for rust-sitter
 // Simplified version for v0.5.0-beta
 
+// Allow clippy::manual_non_exhaustive since underscore fields are semantic tokens in rust-sitter grammar,
+// not actual non-exhaustive pattern implementations
+#![allow(clippy::manual_non_exhaustive)]
+
 // Include the generated parser
 pub mod grammar_javascript {
     include!(concat!(
@@ -413,7 +417,7 @@ pub mod grammar {
 mod tests {
     #[test]
     fn test_simple_program() {
-        // Grammar builds successfully
+        // Grammar builds successfully - this test ensures the grammar compiles without issues
         // Placeholder test - remove this when actual tests are added
     }
 }

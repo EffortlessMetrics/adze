@@ -128,6 +128,33 @@ cargo test -p rust-sitter-ir test_optimizer_safety
 cargo test -p rust-sitter-tool --features optimize build_with_optimization
 ```
 
+### Error Recovery Testing (PR #55) ✅
+```bash
+# Test SpanError system and validation
+cargo test --lib "span_error" -- --nocapture
+
+# Test safe span operations with malformed input
+cargo test --lib "try_slice_str" -- --nocapture
+
+# Run all error recovery related tests
+cargo test --lib "span_error\|try_slice\|validate_for_str" -- --nocapture
+
+# Test error recovery functionality across workspace
+cargo test --workspace "error_recovery" -- --nocapture
+
+# Test incremental parsing error recovery
+cargo test --workspace "edit_error\|EditError" -- --nocapture
+
+# Test all SpanError-related functionality
+cargo test --lib span_error_validation_valid_range
+cargo test --lib span_error_validation_invalid_range  
+cargo test --lib span_error_validation_out_of_bounds
+cargo test --lib span_error_display
+
+# Run comprehensive error-related test patterns
+cargo test --workspace -- --nocapture | grep -i "error\|span\|recovery"
+```
+
 ### Benchmarks (Unstable)
 ```bash
 # Build benchmarks without running (faster)

@@ -226,7 +226,9 @@ impl GLRParser {
                 id: node_id,
                 symbol: rule.lhs,
                 span: (start, end),
-                alternatives: vec![ForestAlternative { children: children.clone() }],
+                alternatives: vec![ForestAlternative {
+                    children: children.clone(),
+                }],
                 error_meta: ErrorMeta::default(),
             },
         );
@@ -249,12 +251,7 @@ impl GLRParser {
     }
 
     /// Create a leaf node for a token
-    fn create_leaf(
-        &self,
-        symbol: SymbolId,
-        position: usize,
-        forest: &mut ParseForest,
-    ) -> usize {
+    fn create_leaf(&self, symbol: SymbolId, position: usize, forest: &mut ParseForest) -> usize {
         let node_id = forest.next_node_id;
         forest.next_node_id += 1;
         forest.nodes.insert(

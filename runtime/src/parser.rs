@@ -632,15 +632,46 @@ impl Parser {
     fn recover_from_error<F>(
         &mut self,
         _language: Language,
-        _position: &mut usize,
-        _point: &mut Point,
-        _callback: &mut F,
+        position: &mut usize,
+        point: &mut Point,
+        callback: &mut F,
     ) -> bool
     where
         F: FnMut(usize, Point) -> &[u8],
     {
-        // TODO: Implement error recovery
-        false
+        // Drop the current stack entry if possible to avoid being stuck in an
+        // invalid state. If the stack is empty there's nothing we can do.
+        if self.stack.pop().is_none() {
+            return false;
+        }
+
+        // Inspect remaining input at the current position.
+        let input = callback(*position, *point);
+        if input.is_empty() {
+            return false; // no input left – nothing to recover from
+        }
+
+        // Consume contiguous ASCII whitespace, treating it as an inserted
+        // missing token.
+        let ws_len = input
+            .iter()
+            .position(|c| !c.is_ascii_whitespace())
+            .unwrap_or(input.len());
+        if ws_len > 0 {
+            *point = advance_point(*point, &input[..ws_len]);
+            *position += ws_len;
+            return true;
+        }
+
+        // Otherwise skip a single byte (or the next punctuation boundary) to
+        // ensure the parser makes forward progress.
+        let skip = input
+            .iter()
+            .position(|c| c.is_ascii_whitespace() || matches!(c, b',' | b';' | b')' | b'}' | b']'))
+            .unwrap_or(1);
+        *point = advance_point(*point, &input[..skip]);
+        *position += skip;
+        true
     }
 }
 

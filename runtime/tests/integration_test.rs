@@ -10,6 +10,7 @@ use serial_test::serial;
 #[cfg(feature = "pure-rust")]
 #[path = "support/language_builder.rs"]
 mod language_builder;
+
 #[cfg(feature = "pure-rust")]
 #[path = "support/unified_json_helper.rs"]
 mod unified_json_helper;
@@ -112,8 +113,8 @@ fn test_error_recovery() {
 #[serial]
 #[ignore]
 fn test_cancellation() {
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();

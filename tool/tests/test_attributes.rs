@@ -157,13 +157,17 @@ fn test_combined_attributes() {
 
     // Check extras
     let extras = grammar_json["extras"].as_array().unwrap();
-    assert!(extras
-        .iter()
-        .any(|e| e["name"].as_str() == Some("Whitespace")));
+    assert!(
+        extras
+            .iter()
+            .any(|e| e["name"].as_str() == Some("Whitespace"))
+    );
 
     // Check externals
     let externals = grammar_json["externals"].as_array().unwrap();
-    assert!(externals
-        .iter()
-        .any(|e| e["name"].as_str() == Some("Comment")));
+    assert!(
+        externals
+            .iter()
+            .any(|e| e["name"].as_str() == Some("Comment"))
+    );
 }
