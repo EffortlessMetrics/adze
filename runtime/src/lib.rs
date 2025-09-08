@@ -318,6 +318,86 @@ mod tests {
         let s = source.as_mut_str();
         let _ = &mut s[span];
     }
+
+    #[test]
+    fn span_error_validation_valid_range() {
+        let source = "hello world";
+        let span = Spanned::new((), (0, 5));
+        assert!(span.validate_for_str(source).is_ok());
+    }
+
+    #[test]
+    fn span_error_validation_invalid_range() {
+        let source = "hello";
+        let span = Spanned::new((), (3, 2)); // start > end
+        let err = span.validate_for_str(source).unwrap_err();
+        assert_eq!(err, SpanError::InvalidRange { start: 3, end: 2 });
+    }
+
+    #[test]
+    fn span_error_validation_out_of_bounds() {
+        let source = "hello";
+        let span = Spanned::new((), (0, 10)); // end > source.len()
+        let err = span.validate_for_str(source).unwrap_err();
+        assert_eq!(
+            err,
+            SpanError::OutOfBounds {
+                span: (0, 10),
+                length: 5
+            }
+        );
+    }
+
+    #[test]
+    fn try_slice_str_success() {
+        let source = "hello world";
+        let span = Spanned::new((), (6, 11));
+        let result = span.try_slice_str(source).unwrap();
+        assert_eq!(result, "world");
+    }
+
+    #[test]
+    fn try_slice_str_failure() {
+        let source = "hello";
+        let span = Spanned::new((), (0, 10));
+        let err = span.try_slice_str(source).unwrap_err();
+        assert!(matches!(err, SpanError::OutOfBounds { .. }));
+    }
+
+    #[test]
+    fn try_slice_str_mut_success() {
+        let mut source = String::from("hello world");
+        let span = Spanned::new((), (6, 11));
+        let result = span.try_slice_str_mut(&mut source).unwrap();
+        result.make_ascii_uppercase();
+        assert_eq!(source, "hello WORLD");
+    }
+
+    #[test]
+    fn try_slice_str_mut_failure() {
+        let mut source = String::from("hello");
+        let span = Spanned::new((), (0, 10));
+        let err = span.try_slice_str_mut(&mut source).unwrap_err();
+        assert!(matches!(err, SpanError::OutOfBounds { .. }));
+    }
+
+    #[test]
+    fn span_error_display() {
+        let error1 = SpanError::InvalidRange { start: 5, end: 3 };
+        assert_eq!(
+            error1.to_string(),
+            "Invalid span range: start (5) > end (3)"
+        );
+
+        let error2 = SpanError::OutOfBounds {
+            span: (0, 10),
+            length: 5,
+        };
+        assert_eq!(
+            error2.to_string(),
+            "Span 0..10 is out of bounds for length 5"
+        );
+    }
 }
 
 impl Extract<()> for () {
@@ -495,6 +575,46 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Error type for span validation operations
+pub enum SpanError {
+    /// The span start index is greater than the span end index
+    InvalidRange {
+        /// Start index of the invalid span
+        start: usize,
+        /// End index of the invalid span
+        end: usize,
+    },
+    /// The span extends beyond the bounds of the target string or buffer
+    OutOfBounds {
+        /// The span range (start, end) that is out of bounds
+        span: (usize, usize),
+        /// The actual length of the target string or buffer
+        length: usize,
+    },
+}
+
+impl std::fmt::Display for SpanError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SpanError::InvalidRange { start, end } => {
+                write!(f, "Invalid span range: start ({start}) > end ({end})")
+            }
+            SpanError::OutOfBounds {
+                span: (start, end),
+                length,
+            } => {
+                write!(
+                    f,
+                    "Span {start}..{end} is out of bounds for length {length}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for SpanError {}
+
 #[derive(Clone, Debug)]
 /// A wrapper around a value that also contains the span of the value in the source.
 pub struct Spanned<T> {
@@ -510,6 +630,40 @@ impl<T> Deref for Spanned<T> {
 
     fn deref(&self) -> &T {
         &self.value
+    }
+}
+
+impl<T> Spanned<T> {
+    /// Create a new Spanned value with the given span
+    pub fn new(value: T, span: (usize, usize)) -> Self {
+        Self { value, span }
+    }
+
+    /// Validate that this span is within the bounds of the given string
+    pub fn validate_for_str(&self, s: &str) -> Result<(), SpanError> {
+        let (start, end) = self.span;
+        if start > end {
+            return Err(SpanError::InvalidRange { start, end });
+        }
+        if end > s.len() {
+            return Err(SpanError::OutOfBounds {
+                span: self.span,
+                length: s.len(),
+            });
+        }
+        Ok(())
+    }
+
+    /// Safely extract a substring using this span, returning a Result instead of panicking
+    pub fn try_slice_str<'a>(&self, s: &'a str) -> Result<&'a str, SpanError> {
+        self.validate_for_str(s)?;
+        Ok(&s[self.span.0..self.span.1])
+    }
+
+    /// Safely extract a mutable substring using this span, returning a Result instead of panicking
+    pub fn try_slice_str_mut<'a>(&self, s: &'a mut str) -> Result<&'a mut str, SpanError> {
+        self.validate_for_str(s)?;
+        Ok(&mut s[self.span.0..self.span.1])
     }
 }
 

@@ -1,12 +1,23 @@
 //! Parse command implementation for rust-sitter CLI
 
 use anyhow::{Context, Result};
+// Pure parser imports commented out as they're not used in this module currently
+// use rust_sitter::pure_parser::{ParsedNode, Parser, TSLanguage};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
 
+// S-expression conversion function moved to main.rs where it's actually used
+// Keeping this commented for reference:
+/*
+fn node_to_sexp(node: &ParsedNode, source: &str, indent: usize) -> String {
+    // Implementation in main.rs
+}
+*/
+
 /// Formats for output
+#[allow(dead_code)] // Legacy code - keeping for reference
 #[derive(Clone)]
 pub enum OutputFormat {
     Tree,
@@ -16,6 +27,7 @@ pub enum OutputFormat {
 }
 
 /// Parse a file using a generated parser
+#[allow(dead_code)] // Legacy code - keeping for reference
 pub fn parse_file_with_generated_parser(
     grammar_path: &Path,
     input_path: &Path,
@@ -100,6 +112,7 @@ fn main() {
 }
 
 /// Generate the main.rs file content based on output format
+#[allow(dead_code)] // Legacy code - keeping for reference
 fn generate_parser_main(input_content: &str, format: OutputFormat) -> Result<String> {
     let input_escaped = input_content.replace('\\', "\\\\").replace('"', "\\\"");
 

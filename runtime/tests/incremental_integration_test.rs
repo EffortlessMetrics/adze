@@ -3,7 +3,7 @@
 
 mod common;
 
-use rust_sitter::parser_v4::{Parser, Tree};
+use rust_sitter::parser_v4::Parser;
 use rust_sitter::pure_incremental::Edit;
 use rust_sitter::pure_parser::Point;
 use rust_sitter_glr_core::ParseTable;
@@ -116,48 +116,46 @@ fn test_fresh_parse_equals_incremental() {
     not(feature = "incremental_glr"),
     ignore = "incremental parsing not enabled"
 )]
-fn test_simple_insertion() {
+fn test_insertion() {
     let (grammar, table) = create_test_grammar();
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
-    // Initial parse
-    let source1 = b"hello";
+    // Initial parse using numeric input accepted by the grammar
+    let source1 = b"12345";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Insert " world" at position 5
-    let source2 = b"hello world";
-    let _edit = Edit {
+    // Insert additional digits at the end
+    let source2 = b"1234567890";
+    let edit = Edit {
         start_byte: 5,
         old_end_byte: 5,
-        new_end_byte: 11,
+        new_end_byte: 10,
         start_point: Point { row: 0, column: 5 },
         old_end_point: Point { row: 0, column: 5 },
-        new_end_point: Point { row: 0, column: 11 },
+        new_end_point: Point { row: 0, column: 10 },
     };
 
     // Attempt incremental parse
-    // TODO: Implement incremental parsing
-    // let tree2 = parser.reparse(source2, &tree1, &edit);
-    let tree2: Option<Tree> = None;
+    let tree2_incremental = parser
+        .reparse(std::str::from_utf8(source2).unwrap(), &tree1, &edit)
+        .ok();
 
-    // Verify the result (when implemented)
-    if let Some(tree) = tree2 {
+    // Fresh parse for comparison
+    let tree2_fresh = parser
+        .parse(std::str::from_utf8(source2).unwrap())
+        .expect("Fresh parse should succeed");
+
+    // Verify both parses have identical error counts
+    if let Some(tree) = tree2_incremental {
         assert_eq!(
-            tree.error_count, 0,
-            "Incremental parse should have no errors"
+            tree.error_count, tree2_fresh.error_count,
+            "Incremental and fresh parse error counts should match",
         );
     } else {
-        // For now, just parse fresh and verify that works
-        let tree_fresh = parser
-            .parse(std::str::from_utf8(source2).unwrap())
-            .expect("Fresh parse should succeed");
-        assert_eq!(
-            tree_fresh.error_count, 0,
-            "Fresh parse should have no errors"
-        );
+        panic!("Incremental parse failed");
     }
 }
 
@@ -171,42 +169,40 @@ fn test_deletion() {
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
     // Initial parse
-    let source1 = b"foo bar baz";
+    let source1 = b"123456";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Delete "bar " (positions 4-8)
-    let source2 = b"foo baz";
-    let _edit = Edit {
-        start_byte: 4,
-        old_end_byte: 8,
-        new_end_byte: 4,
-        start_point: Point { row: 0, column: 4 },
-        old_end_point: Point { row: 0, column: 8 },
-        new_end_point: Point { row: 0, column: 4 },
+    // Delete the last three digits
+    let source2 = b"123";
+    let edit = Edit {
+        start_byte: 3,
+        old_end_byte: 6,
+        new_end_byte: 3,
+        start_point: Point { row: 0, column: 3 },
+        old_end_point: Point { row: 0, column: 6 },
+        new_end_point: Point { row: 0, column: 3 },
     };
 
     // Attempt incremental parse
-    // TODO: Implement incremental parsing
-    // let tree2 = parser.reparse(source2, &tree1, &edit);
-    let tree2: Option<Tree> = None;
+    let tree2_incremental = parser
+        .reparse(std::str::from_utf8(source2).unwrap(), &tree1, &edit)
+        .ok();
 
-    if let Some(tree) = tree2 {
+    // Fresh parse for comparison
+    let tree2_fresh = parser
+        .parse(std::str::from_utf8(source2).unwrap())
+        .expect("Fresh parse should succeed");
+
+    if let Some(tree) = tree2_incremental {
         assert_eq!(
-            tree.error_count, 0,
-            "Incremental parse should have no errors"
+            tree.error_count, tree2_fresh.error_count,
+            "Incremental and fresh parse error counts should match",
         );
     } else {
-        // For now, just parse fresh and verify that works
-        let tree_fresh = parser
-            .parse(std::str::from_utf8(source2).unwrap())
-            .expect("Fresh parse should succeed");
-        assert_eq!(
-            tree_fresh.error_count, 0,
-            "Fresh parse should have no errors"
-        );
+        panic!("Incremental parse failed");
     }
 }
 
@@ -220,42 +216,40 @@ fn test_replacement() {
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
     // Initial parse
-    let source1 = b"let x = 5";
+    let source1 = b"12345";
     let tree1 = parser
         .parse(std::str::from_utf8(source1).unwrap())
         .expect("Initial parse should succeed");
     assert_eq!(tree1.error_count, 0, "Initial parse should have no errors");
 
-    // Replace "5" with "10" (positions 8-9 -> 8-10)
-    let source2 = b"let x = 10";
-    let _edit = Edit {
-        start_byte: 8,
-        old_end_byte: 9,
-        new_end_byte: 10,
-        start_point: Point { row: 0, column: 8 },
-        old_end_point: Point { row: 0, column: 9 },
-        new_end_point: Point { row: 0, column: 10 },
+    // Replace the final digit with two digits
+    let source2 = b"123467"; // Correctly replace '5' with '67' -> "12345" becomes "123467"
+    let edit = Edit {
+        start_byte: 4,
+        old_end_byte: 5,
+        new_end_byte: 6, // Correct: source2 now has 6 bytes (0-5)
+        start_point: Point { row: 0, column: 4 },
+        old_end_point: Point { row: 0, column: 5 },
+        new_end_point: Point { row: 0, column: 6 }, // Correct: column 6 for 6-byte string
     };
 
     // Attempt incremental parse
-    // TODO: Implement incremental parsing
-    // let tree2 = parser.reparse(source2, &tree1, &edit);
-    let tree2: Option<Tree> = None;
+    let tree2_incremental = parser
+        .reparse(std::str::from_utf8(source2).unwrap(), &tree1, &edit)
+        .ok();
 
-    if let Some(tree) = tree2 {
+    // Fresh parse for comparison
+    let tree2_fresh = parser
+        .parse(std::str::from_utf8(source2).unwrap())
+        .expect("Fresh parse should succeed");
+
+    if let Some(tree) = tree2_incremental {
         assert_eq!(
-            tree.error_count, 0,
-            "Incremental parse should have no errors"
+            tree.error_count, tree2_fresh.error_count,
+            "Incremental and fresh parse error counts should match",
         );
     } else {
-        // For now, just parse fresh and verify that works
-        let tree_fresh = parser
-            .parse(std::str::from_utf8(source2).unwrap())
-            .expect("Fresh parse should succeed");
-        assert_eq!(
-            tree_fresh.error_count, 0,
-            "Fresh parse should have no errors"
-        );
+        panic!("Incremental parse failed");
     }
 }
 

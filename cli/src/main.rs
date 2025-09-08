@@ -1,12 +1,38 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use rust_sitter::pure_parser::ParsedNode;
 use rust_sitter_tool::build_parsers;
 use std::fs;
 use std::path::{Path, PathBuf};
+use tempfile::TempDir;
 use walkdir::WalkDir;
 
 mod parse;
+
+/// Convert a ParsedNode to S-expression format
+#[allow(dead_code)] // Used in conditional compilation branches
+fn node_to_sexp(node: &ParsedNode, source: &str, indent: usize) -> String {
+    let indent_str = "  ".repeat(indent);
+    if node.is_named() {
+        let mut out = format!("{}({}", indent_str, node.kind());
+        if node.child_count() == 0 {
+            let text = node.utf8_text(source.as_bytes()).unwrap_or("");
+            out.push_str(&format!(" \"{}\")", text));
+        } else {
+            out.push('\n');
+            for child in node.children() {
+                out.push_str(&node_to_sexp(child, source, indent + 1));
+                out.push('\n');
+            }
+            out.push_str(&format!("{indent_str})"));
+        }
+        out
+    } else {
+        let text = node.utf8_text(source.as_bytes()).unwrap_or("");
+        format!("{}\"{}\"", indent_str, text)
+    }
+}
 
 /// Rust-sitter CLI - Tools for grammar development
 #[derive(Parser)]
@@ -373,6 +399,8 @@ fn parse_file(
     dynamic: bool,
     _symbol: &str,
 ) -> Result<()> {
+    #[allow(unused_variables)]
+    let (grammar, input, format) = (grammar, input, format);
     if dynamic {
         #[cfg(feature = "dynamic")]
         {
@@ -387,30 +415,68 @@ fn parse_file(
             std::process::exit(2);
         }
     }
-    println!("{} Parsing file: {}", "📄".blue(), input.display());
 
-    // Convert clap OutputFormat to our parse module's format
-    let parse_format = match format {
-        OutputFormat::Tree => parse::OutputFormat::Tree,
-        OutputFormat::Json => parse::OutputFormat::Json,
-        OutputFormat::Sexp => parse::OutputFormat::Sexp,
-        OutputFormat::Dot => parse::OutputFormat::Dot,
-    };
+    // Parse with statically linked grammars
+    #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
+    {
+        let text = fs::read_to_string(input)?;
+        let grammar_name = grammar
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("unknown");
 
-    // Try to parse with the generated parser
-    match parse::parse_file_with_generated_parser(grammar, input, parse_format) {
-        Ok(()) => Ok(()),
-        Err(e) => {
-            // If parsing fails, provide helpful guidance
-            eprintln!("{} Failed to parse: {}", "❌".red(), e);
-            eprintln!("\n{} Alternative approaches:", "💡".yellow());
-            eprintln!("1. Ensure your grammar file is valid");
-            eprintln!("2. Build your grammar with `rust-sitter build`");
-            eprintln!("3. Use the generated parse() function in your Rust code:");
-            eprintln!("\n   use my_grammar::parse;\n   let result = parse(\"input text\");\n");
-            Err(e)
+        let language: &'static rust_sitter::pure_parser::TSLanguage = match grammar_name {
+            #[cfg(feature = "python-grammar")]
+            "python" => rust_sitter_python::get_language(),
+            #[cfg(feature = "javascript-grammar")]
+            "javascript" => rust_sitter_javascript::get_language(),
+            _ => {
+                eprintln!("Unknown grammar: {}", grammar_name);
+                eprintln!("Available grammars:");
+                #[cfg(feature = "python-grammar")]
+                eprintln!("  - python");
+                #[cfg(feature = "javascript-grammar")]
+                eprintln!("  - javascript");
+                std::process::exit(1);
+            }
+        };
+
+        let mut parser = rust_sitter::pure_parser::Parser::new();
+        parser
+            .set_language(language)
+            .map_err(|e| anyhow::anyhow!("Failed to set language: {}", e))?;
+
+        let result = parser.parse_string(&text);
+        if let Some(root) = result.root {
+            match format {
+                OutputFormat::Json => {
+                    println!(
+                        "{{\"status\": \"parsing successful\", \"nodes\": \"{}\"}}",
+                        node_to_sexp(&root, &text, 0).replace('"', "\\\"")
+                    );
+                }
+                OutputFormat::Sexp => {
+                    println!("{}", node_to_sexp(&root, &text, 0));
+                }
+                _ => {
+                    println!("{}", node_to_sexp(&root, &text, 0));
+                }
+            }
+        } else {
+            eprintln!("Parse failed: {:?}", result.errors);
+            std::process::exit(1);
         }
     }
+    #[cfg(not(any(feature = "python-grammar", feature = "javascript-grammar")))]
+    {
+        eprintln!(
+            "Error: No static grammars enabled. Build with --features python-grammar or --features javascript-grammar"
+        );
+        std::process::exit(2);
+    }
+
+    #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
+    Ok(())
 }
 
 #[cfg(feature = "dynamic")]
@@ -422,44 +488,264 @@ fn parse_file_dynamic(
 ) -> Result<()> {
     use libloading::Library;
 
+    // Validate inputs before proceeding
+    if !grammar.exists() {
+        anyhow::bail!("dynamic grammar not found: {}", grammar.display());
+    }
+
+    if !input.exists() {
+        anyhow::bail!("input file not found: {}", input.display());
+    }
+
+    // Validate symbol name (basic checks)
+    if symbol.is_empty() {
+        anyhow::bail!("symbol name cannot be empty");
+    }
+
+    if !symbol
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        anyhow::bail!("symbol name contains invalid characters: '{}'", symbol);
+    }
+
     println!(
         "{} Loading dynamic grammar: {}",
         "🔧".blue(),
         grammar.display()
     );
-    let input_content = fs::read_to_string(input)?;
 
+    let input_content = fs::read_to_string(input)
+        .map_err(|e| anyhow::anyhow!("Failed to read input file: {}", e))?;
+
+    // Validate input size (prevent extremely large inputs that could cause issues)
+    const MAX_INPUT_SIZE: usize = 100 * 1024 * 1024; // 100MB
+    if input_content.len() > MAX_INPUT_SIZE {
+        anyhow::bail!(
+            "Input file too large: {} bytes (max: {} bytes)",
+            input_content.len(),
+            MAX_INPUT_SIZE
+        );
+    }
+
+    // Load library safely
+    let lib = Library::new(grammar)
+        .map_err(|e| anyhow::anyhow!("Failed to load dynamic library: {}", e))?;
+
+    // Prepare symbol name with proper null termination
+    let sym_name = {
+        let mut s = symbol.as_bytes().to_vec();
+        if !s.ends_with(b"\0") {
+            s.push(0);
+        }
+        s
+    };
+
+    // We need unsafe for FFI, but we'll be very careful about it
     unsafe {
-        // Check if file exists
-        if !grammar.exists() {
-            anyhow::bail!("dynamic grammar not found: {}", grammar.display());
+        // For dynamic loading, we need to bridge between Tree-sitter C library
+        // and rust-sitter's pure parser. This requires two approaches:
+
+        #[cfg(feature = "pure-rust")]
+        {
+            // Pure-Rust approach: Load TSLanguage struct and use pure parser
+            use rust_sitter::pure_parser::{ParseResult, ParsedNode, Parser, TSLanguage};
+
+            // Load the language function symbol with proper error handling
+            let get_language: libloading::Symbol<unsafe extern "C" fn() -> *const TSLanguage> = lib
+                .get(&sym_name)
+                .map_err(|e| anyhow::anyhow!("Failed to find symbol '{}': {}", symbol, e))?;
+
+            // Call the function to get language pointer
+            let lang_ptr = get_language();
+            if lang_ptr.is_null() {
+                anyhow::bail!("Language symbol '{}' returned null pointer", symbol);
+            }
+
+            // Validate pointer alignment (basic sanity check)
+            if (lang_ptr as usize) % std::mem::align_of::<TSLanguage>() != 0 {
+                anyhow::bail!("Language pointer is not properly aligned");
+            }
+
+            // Convert to reference with lifetime tied to library
+            // Safety: We've checked the pointer is not null and appears to be valid
+            // The lifetime is managed by keeping the library alive
+            let language: &'static TSLanguage = &*lang_ptr;
+
+            // Validate basic language structure (sanity checks)
+            if language.version == 0 {
+                anyhow::bail!("Language appears to have invalid version (0)");
+            }
+
+            if language.symbol_count == 0 {
+                anyhow::bail!("Language appears to have no symbols");
+            }
+
+            // Create parser with validated language
+            let mut parser = Parser::new(language);
+
+            // Parse with timeout protection (via signal handling would be ideal, but for CLI this is reasonable)
+            let result: ParseResult = parser.parse_string(&input_content);
+
+            // Safe recursive node counting with stack overflow protection
+            fn count_nodes_safe(node: &ParsedNode, depth: usize) -> Result<usize> {
+                const MAX_DEPTH: usize = 10000;
+                if depth > MAX_DEPTH {
+                    anyhow::bail!("Parse tree too deep (possible infinite recursion)");
+                }
+
+                let mut count = 1;
+                for child in &node.children {
+                    count += count_nodes_safe(child, depth + 1)?;
+                }
+                Ok(count)
+            }
+
+            println!(
+                "{} Loaded language from: {}",
+                "✓".green(),
+                grammar.display()
+            );
+            println!("Input size: {} bytes", input_content.len());
+
+            if result.errors.is_empty() {
+                if let Some(root) = result.root {
+                    match count_nodes_safe(&root, 0) {
+                        Ok(nodes) => match format {
+                            OutputFormat::Json => println!(
+                                "{{\"status\":\"ok\",\"root_symbol\":{},\"nodes\":{}}}",
+                                root.symbol, nodes
+                            ),
+                            _ => println!(
+                                "Parsed successfully. Root symbol: {}, nodes: {}",
+                                root.symbol, nodes
+                            ),
+                        },
+                        Err(e) => match format {
+                            OutputFormat::Json => println!(
+                                "{{\"status\":\"error\",\"message\":\"Tree too complex: {}\"}}",
+                                e.to_string().replace('"', "\\\"")
+                            ),
+                            _ => println!("Error analyzing tree: {}", e),
+                        },
+                    }
+                } else {
+                    match format {
+                        OutputFormat::Json => println!("{{\"status\":\"ok\",\"nodes\":0}}"),
+                        _ => println!("Parsed successfully but produced empty tree"),
+                    }
+                }
+            } else {
+                let err_count = result.errors.len();
+                match format {
+                    OutputFormat::Json => {
+                        println!("{{\"status\":\"error\",\"errors\":{}}}", err_count)
+                    }
+                    _ => {
+                        println!("Parsing completed with {} error(s)", err_count);
+                        for (i, error) in result.errors.iter().enumerate().take(3) {
+                            println!(
+                                "  Error {}: {:?} at {}..{}",
+                                i + 1,
+                                error.kind,
+                                error.start,
+                                error.end
+                            );
+                        }
+                        if result.errors.len() > 3 {
+                            println!("  ... and {} more errors", result.errors.len() - 3);
+                        }
+                    }
+                }
+            }
         }
 
-        let lib = Library::new(grammar)?;
-        // Build symbol name with null terminator
-        let sym_name = {
-            let mut s = symbol.as_bytes().to_vec();
-            if !s.ends_with(b"\0") {
-                s.push(0);
+        #[cfg(not(feature = "pure-rust"))]
+        {
+            // Tree-sitter compatibility approach using tree_sitter crate
+            use rust_sitter::tree_sitter::{Language, Node, Parser};
+
+            // Load language function with error handling
+            let get_language: libloading::Symbol<unsafe extern "C" fn() -> Language> = lib
+                .get(&sym_name)
+                .map_err(|e| anyhow::anyhow!("Failed to find symbol '{}': {}", symbol, e))?;
+
+            let language = get_language();
+
+            let mut parser = Parser::new();
+            parser
+                .set_language(&language)
+                .map_err(|e| anyhow::anyhow!("Failed to set language: {}", e))?;
+
+            let tree = parser
+                .parse(&input_content, None)
+                .ok_or_else(|| anyhow::anyhow!("Failed to parse input"))?;
+
+            let root_node = tree.root_node();
+
+            // Safe recursive node counting with depth protection
+            fn count_tree_nodes_safe(node: Node, depth: usize) -> Result<usize> {
+                const MAX_DEPTH: usize = 10000;
+                if depth > MAX_DEPTH {
+                    anyhow::bail!("Parse tree too deep");
+                }
+
+                let mut count = 1;
+                let mut cursor = node.walk();
+                if cursor.goto_first_child() {
+                    loop {
+                        count += count_tree_nodes_safe(cursor.node(), depth + 1)?;
+                        if !cursor.goto_next_sibling() {
+                            break;
+                        }
+                    }
+                }
+                Ok(count)
             }
-            s
-        };
-        let get_language: libloading::Symbol<unsafe extern "C" fn() -> *const u8> =
-            lib.get(&sym_name)?;
-        let _lang_ptr = get_language();
+            println!(
+                "{} Loaded language from: {}",
+                "✓".green(),
+                grammar.display()
+            );
+            println!("Input size: {} bytes", input_content.len());
 
-        // TODO: Bridge to rust-sitter's pure parser using the language pointer
-        println!(
-            "{} Loaded language from: {}",
-            "✓".green(),
-            grammar.display()
-        );
-        println!("Input size: {} bytes", input_content.len());
+            match count_tree_nodes_safe(root_node, 0) {
+                Ok(nodes) => {
+                    let has_error = root_node.has_error();
 
-        // For now, just show we loaded it successfully
-        match format {
-            OutputFormat::Json => println!("{{\"status\": \"dynamic loading successful\"}}"),
-            _ => println!("Dynamic loading successful - parser integration pending"),
+                    if !has_error {
+                        match format {
+                            OutputFormat::Json => println!(
+                                "{{\"status\":\"ok\",\"root_symbol\":\"{}\",\"nodes\":{}}}",
+                                root_node.kind(),
+                                nodes
+                            ),
+                            _ => println!(
+                                "Parsed successfully. Root symbol: {}, nodes: {}",
+                                root_node.kind(),
+                                nodes
+                            ),
+                        }
+                    } else {
+                        match format {
+                            OutputFormat::Json => println!(
+                                "{{\"status\":\"error\",\"message\":\"Parse tree contains errors\"}}"
+                            ),
+                            _ => println!(
+                                "Parsing completed but tree contains errors. Total nodes: {}",
+                                nodes
+                            ),
+                        }
+                    }
+                }
+                Err(e) => match format {
+                    OutputFormat::Json => println!(
+                        "{{\"status\":\"error\",\"message\":\"Tree analysis failed: {}\"}}",
+                        e.to_string().replace('"', "\\\"")
+                    ),
+                    _ => println!("Error analyzing tree: {}", e),
+                },
+            }
         }
     }
 
@@ -519,10 +805,22 @@ fn generate_docs(grammar: &Path, output: Option<PathBuf>) -> Result<()> {
 fn check_grammar(grammar: &Path) -> Result<()> {
     println!("{} Checking grammar syntax...", "🔍".blue());
 
+    // Ensure required env vars for build_parsers
+    let temp = TempDir::new()?;
+    let target =
+        std::env::var("TARGET").unwrap_or_else(|_| String::from("x86_64-unknown-linux-gnu"));
+    unsafe {
+        std::env::set_var("OUT_DIR", temp.path());
+        std::env::set_var("TARGET", &target);
+        std::env::set_var("HOST", &target);
+        std::env::set_var("OPT_LEVEL", "0");
+        std::env::set_var("PROFILE", "debug");
+    }
+
     // Try to build the grammar
     match std::panic::catch_unwind(|| build_parsers(grammar)) {
         Ok(_) => {
-            println!("{} Grammar syntax is valid!", "✅".green());
+            println!("{} Grammar syntax is valid", "✅".green());
             Ok(())
         }
         Err(_) => {

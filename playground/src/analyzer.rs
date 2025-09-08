@@ -47,17 +47,17 @@ fn compute_stats(grammar: &Grammar) -> GrammarStats {
             }
 
             // Check for left recursion
-            if let Some(first) = rule.rhs.first() {
-                if is_left_recursive(symbol_id, first) {
-                    left_recursive_rules += 1;
-                }
+            if let Some(first) = rule.rhs.first()
+                && is_left_recursive(symbol_id, first)
+            {
+                left_recursive_rules += 1;
             }
 
             // Check for right recursion
-            if let Some(last) = rule.rhs.last() {
-                if is_right_recursive(symbol_id, last) {
-                    right_recursive_rules += 1;
-                }
+            if let Some(last) = rule.rhs.last()
+                && is_right_recursive(symbol_id, last)
+            {
+                right_recursive_rules += 1;
             }
 
             // Collect terminals

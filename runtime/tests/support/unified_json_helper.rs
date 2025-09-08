@@ -1,4 +1,4 @@
-mod language_builder;
+use crate::language_builder;
 
 use rust_sitter::pure_parser::TSLanguage;
 use rust_sitter_glr_core::GotoIndexing;

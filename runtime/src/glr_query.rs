@@ -45,14 +45,14 @@ pub struct Pattern {
 #[derive(Debug, Clone)]
 pub struct PatternNode {
     /// The symbol to match (None for wildcard)
-    symbol: Option<SymbolId>,
+    pub symbol: Option<SymbolId>,
     /// Capture name if this node should be captured
-    capture: Option<String>,
+    pub capture: Option<String>,
     /// Child patterns
-    children: Vec<PatternChild>,
+    pub children: Vec<PatternChild>,
     /// Whether this is an anchor (must match at root)
     #[allow(dead_code)]
-    is_anchor: bool,
+    pub is_anchor: bool,
 }
 
 /// A child in a pattern can be required or have quantifiers
@@ -540,25 +540,27 @@ impl<'a> Iterator for QueryMatches<'a> {
     type Item = QueryMatch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while self.pattern_index < self.query.patterns.len() {
-            let pattern = &self.query.patterns[self.pattern_index];
-
-            // Try to match pattern at current position
-            if let Some(result) = self.find_next_match(pattern) {
+        loop {
+            // Continue searching for more matches with current pattern
+            if let Some(result) = self.find_next_match() {
                 return Some(result);
             }
 
-            // Move to next pattern
+            // If no more matches for current pattern, move to next pattern
+            if self.pattern_index + 1 >= self.query.patterns.len() {
+                return None;
+            }
+
             self.pattern_index += 1;
             self.node_stack = vec![(self.root, 0)];
+            self.captures.clear();
         }
-
-        None
     }
 }
 
 impl<'a> QueryMatches<'a> {
-    fn find_next_match(&mut self, pattern: &Pattern) -> Option<QueryMatch> {
+    fn find_next_match(&mut self) -> Option<QueryMatch> {
+        let pattern = &self.query.patterns[self.pattern_index];
         while let Some((node, depth)) = self.node_stack.pop() {
             // Check depth limit
             if let Some(max) = self.max_depth
@@ -574,20 +576,18 @@ impl<'a> QueryMatches<'a> {
             if self.match_pattern_node(&pattern.root, node, depth) {
                 // Check predicates
                 if self.check_predicates(pattern) {
-                    // Found a match!
-                    let result = QueryMatch {
-                        pattern_index: self.pattern_index,
-                        captures: self.captures.clone(),
-                    };
-
-                    // Continue searching from children
+                    // Add children to stack for continued traversal (depth-first)
                     self.add_children_to_stack(node, depth + 1);
 
-                    return Some(result);
+                    // Found a match!
+                    return Some(QueryMatch {
+                        pattern_index: self.pattern_index,
+                        captures: self.captures.clone(),
+                    });
                 }
             }
 
-            // Add children to continue depth-first search
+            // Add children to stack for continued traversal (depth-first)
             self.add_children_to_stack(node, depth + 1);
         }
 
@@ -630,6 +630,7 @@ impl<'a> QueryMatches<'a> {
         pattern_children: &[PatternChild],
         node_children: &'a [Subtree],
     ) -> bool {
+        // If no pattern children were specified, match regardless of node children
         if pattern_children.is_empty() {
             return true;
         }

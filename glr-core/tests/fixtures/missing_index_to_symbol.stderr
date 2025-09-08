@@ -1,17 +1,17 @@
-error[E0063]: missing fields `named`, `supertype` and `visible` in initializer of `SymbolMetadata`
+error[E0063]: missing fields `is_extra`, `is_fragile`, `is_terminal` and 1 other field in initializer of `rust_sitter_glr_core::SymbolMetadata`
   --> tests/fixtures/missing_index_to_symbol.rs:25:13
    |
 25 |             SymbolMetadata {
-   |             ^^^^^^^^^^^^^^ missing `named`, `supertype` and `visible`
+   |             ^^^^^^^^^^^^^^ missing `is_extra`, `is_fragile`, `is_terminal` and 1 other field
 
-error[E0063]: missing fields `named`, `supertype` and `visible` in initializer of `SymbolMetadata`
+error[E0063]: missing fields `is_extra`, `is_fragile`, `is_terminal` and 1 other field in initializer of `rust_sitter_glr_core::SymbolMetadata`
   --> tests/fixtures/missing_index_to_symbol.rs:32:13
    |
 32 |             SymbolMetadata {
-   |             ^^^^^^^^^^^^^^ missing `named`, `supertype` and `visible`
+   |             ^^^^^^^^^^^^^^ missing `is_extra`, `is_fragile`, `is_terminal` and 1 other field
 
-error[E0063]: missing fields `goto_indexing` and `index_to_symbol` in initializer of `ParseTable`
-  --> tests/fixtures/missing_index_to_symbol.rs:17:24
+error[E0063]: missing field `index_to_symbol` in initializer of `ParseTable`
+  --> tests/fixtures/missing_index_to_symbol.rs:16:24
    |
-17 |     let _parse_table = ParseTable {
-   |                        ^^^^^^^^^^ missing `goto_indexing` and `index_to_symbol`
+16 |     let _parse_table = ParseTable {
+   |                        ^^^^^^^^^^ missing `index_to_symbol`

@@ -132,11 +132,15 @@ uint32_t tsb_detect_start_symbol(const TSLanguage* lang) {
   return 1;
 }
 
-// Field maps stubs - will be implemented in PR2
-const struct TSFieldMapSlice* tsb_field_map_slices(const TSLanguage* lang) { 
-  return NULL; 
+// Field map accessors
+// NOTE: these pointers reference data owned by the language and are valid for
+// the entire lifetime of `lang`.
+const struct TSFieldMapSlice* tsb_field_map_slices(const TSLanguage* lang) {
+  const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
+  return (const struct TSFieldMapSlice*)lang_internal->field_map_slices;
 }
 
-const struct TSFieldMapEntry* tsb_field_map_entries(const TSLanguage* lang) { 
-  return NULL; 
+const struct TSFieldMapEntry* tsb_field_map_entries(const TSLanguage* lang) {
+  const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
+  return (const struct TSFieldMapEntry*)lang_internal->field_map_entries;
 }

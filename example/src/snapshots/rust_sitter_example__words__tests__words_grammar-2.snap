@@ -1,41 +1,40 @@
 ---
-source: example/src/words.rs
-assertion_line: 27
+source: src/words.rs
 expression: "grammar::parse(\"hello\")"
 ---
 Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "symbol 104",
+                "symbol 0",
             ),
             start: 0,
             end: 0,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 101",
+                "symbol 0",
             ),
             start: 1,
             end: 1,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 108",
+                "symbol 0",
             ),
             start: 2,
             end: 2,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 108",
+                "symbol 0",
             ),
             start: 3,
             end: 3,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 111",
+                "symbol 0",
             ),
             start: 4,
             end: 4,

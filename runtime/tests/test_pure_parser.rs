@@ -1,5 +1,6 @@
 // Test the pure-Rust parser implementation
-use rust_sitter::pure_parser::{ExternalScanner, Parser, TSLanguage, TSParseAction};
+use rust_sitter::ffi::TSSymbolMetadata;
+use rust_sitter::pure_parser::{ExternalScanner, Parser, SyncPtr, TSLanguage, TSParseAction};
 use std::ptr;
 
 // Create a simple test language
@@ -85,6 +86,61 @@ fn create_test_language() -> &'static TSLanguage {
     static LEX_MODES: [u32; 10] = [0; 10];
     static PRODUCTION_ID_MAP: [u16; 10] = [0; 10];
 
+    // Minimal symbol metadata and names so set_language validation passes
+    static SYMBOL_NAME_0: &[u8] = b"sym0\0";
+    static SYMBOL_NAME_1: &[u8] = b"sym1\0";
+    static SYMBOL_NAME_2: &[u8] = b"sym2\0";
+    static SYMBOL_NAME_3: &[u8] = b"sym3\0";
+    static SYMBOL_NAME_4: &[u8] = b"sym4\0";
+    static SYMBOL_NAME_5: &[u8] = b"sym5\0";
+    static SYMBOL_NAME_6: &[u8] = b"sym6\0";
+    static SYMBOL_NAMES: [SyncPtr; 7] = [
+        SyncPtr::new(SYMBOL_NAME_0.as_ptr()),
+        SyncPtr::new(SYMBOL_NAME_1.as_ptr()),
+        SyncPtr::new(SYMBOL_NAME_2.as_ptr()),
+        SyncPtr::new(SYMBOL_NAME_3.as_ptr()),
+        SyncPtr::new(SYMBOL_NAME_4.as_ptr()),
+        SyncPtr::new(SYMBOL_NAME_5.as_ptr()),
+        SyncPtr::new(SYMBOL_NAME_6.as_ptr()),
+    ];
+    static SYMBOL_METADATA: [TSSymbolMetadata; 7] = [
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+        TSSymbolMetadata {
+            visible: true,
+            named: true,
+            supertype: false,
+        },
+    ];
+
     static LANGUAGE: TSLanguage = TSLanguage {
         version: 15,
         symbol_count: 7,
@@ -106,11 +162,11 @@ fn create_test_language() -> &'static TSLanguage {
         small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
         small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
         parse_actions: PARSE_ACTIONS.as_ptr(),
-        symbol_names: ptr::null(),
+        symbol_names: SYMBOL_NAMES.as_ptr() as *const *const u8,
         field_names: ptr::null(),
         field_map_slices: ptr::null(),
         field_map_entries: ptr::null(),
-        symbol_metadata: ptr::null(),
+        symbol_metadata: SYMBOL_METADATA.as_ptr() as *const u8,
         public_symbol_map: ptr::null(),
         alias_map: ptr::null(),
         alias_sequences: ptr::null(),

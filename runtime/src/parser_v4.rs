@@ -623,9 +623,11 @@ impl Parser {
                 // #[cfg(feature = "debug")]
                 {
                     // eprintln!("  Available actions in state 0:");
-                    for act_cell in self.parse_table.action_table[0].iter() {
-                        if !act_cell.is_empty() {
-                            // eprintln!("    Symbol {} -> {:?}", sym_idx, act_cell);
+                    if !self.parse_table.action_table.is_empty() {
+                        for act_cell in self.parse_table.action_table[0].iter() {
+                            if !act_cell.is_empty() {
+                                // eprintln!("    Symbol {} -> {:?}", sym_idx, act_cell);
+                            }
                         }
                     }
                     // eprintln!(
@@ -901,15 +903,60 @@ impl Parser {
         }
     }
 
-    /// Temporary fallback: do a full reparse. Keeps tests stable while
-    /// incremental engine wiring lands.
+    /// Parse with incremental reuse when possible
+    ///
+    /// This method attempts to reuse parts of the previous parse tree when parsing
+    /// text that has been edited. It provides better performance for small edits
+    /// by avoiding reparsing unchanged portions of the text.
+    ///
+    /// # Arguments
+    /// * `input` - The new source text after the edit
+    /// * `old` - The previous parse tree before the edit  
+    /// * `edit` - Description of the edit operation
+    ///
+    /// # Returns
+    /// A new parse tree for the edited text, or an error if parsing fails
     pub fn reparse(
         &mut self,
         input: &str,
-        _old: &Tree,
-        _edit: &crate::pure_incremental::Edit,
+        old: &Tree,
+        edit: &crate::pure_incremental::Edit,
     ) -> Result<Tree> {
-        self.parse(input)
+        // Validate edit parameters
+        if edit.start_byte > input.len() || edit.new_end_byte > input.len() {
+            // Invalid edit bounds, fall back to full reparse
+            return self.parse(input);
+        }
+
+        // For very large changes, incremental parsing may not be beneficial
+        // Fall back to full reparse to avoid overhead
+        let change_size = edit.new_end_byte.saturating_sub(edit.start_byte);
+
+        if change_size > input.len() / 2 {
+            // More than half the input changed, use full reparse
+            return self.parse(input);
+        }
+
+        // Try incremental parsing first
+        if let Some(incremental_tree) = crate::glr_incremental::reparse(
+            &self.grammar,
+            &self.parse_table,
+            input.as_bytes(),
+            old,
+            edit,
+        ) {
+            // Validate the result has reasonable structure
+            if incremental_tree.error_count <= old.error_count + 10 {
+                // Reasonable error count, accept the incremental result
+                Ok(incremental_tree)
+            } else {
+                // Too many errors introduced, fall back to full reparse
+                self.parse(input)
+            }
+        } else {
+            // Fall back to full reparse if incremental parsing fails
+            self.parse(input)
+        }
     }
 
     /// Get the parse actions for a state and symbol
