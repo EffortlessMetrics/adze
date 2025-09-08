@@ -502,139 +502,253 @@ impl Grammar {
 
     /// Normalize complex symbols by creating auxiliary rules
     /// This expands Optional, Repeat, Choice, etc. into standard rules
-    pub fn normalize(&mut self) -> Vec<Rule> {
-        let mut new_rules = Vec::new();
-        let mut aux_counter = 0;
+    pub fn normalize(&mut self) -> Result<(), GrammarError> {
+        let mut new_rules_to_add = Vec::new();
 
-        // Process each existing rule
-        let rules_to_process: Vec<(SymbolId, Rule)> = self
+        // First, find the max symbol ID to avoid conflicts
+        let max_id = self
             .rules
-            .iter()
-            .flat_map(|(lhs, rules)| rules.iter().map(|r| (*lhs, r.clone())))
-            .collect();
+            .keys()
+            .chain(self.tokens.keys())
+            .map(|id| id.0)
+            .max()
+            .unwrap_or(0);
 
-        for (_lhs, mut rule) in rules_to_process {
-            let mut new_rhs = Vec::new();
+        // Start auxiliary symbols well above existing ones, but within u16 range
+        let mut aux_counter: u16 = (max_id + 1000).min(60000);
 
-            for symbol in rule.rhs {
-                match symbol {
-                    Symbol::Optional(inner) => {
-                        // Create aux rule: aux -> inner | ε
-                        let aux_id = SymbolId(9000 + aux_counter);
-                        aux_counter += 1;
+        // Process each existing rule and normalize its RHS
+        let mut rules_to_replace = Vec::new();
+        for (lhs, rules) in &self.rules {
+            for rule in rules {
+                let (normalized_rhs, new_aux_rules) =
+                    self.normalize_symbol_list(&rule.rhs, &mut aux_counter)?;
 
-                        // aux -> inner
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![*inner.clone()],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
+                // If normalization produced auxiliary rules, we need to replace this rule
+                if !new_aux_rules.is_empty() || normalized_rhs != rule.rhs {
+                    let new_rule = Rule {
+                        lhs: *lhs,
+                        rhs: normalized_rhs,
+                        precedence: rule.precedence,
+                        associativity: rule.associativity,
+                        fields: rule.fields.clone(),
+                        production_id: rule.production_id,
+                    };
 
-                        // aux -> ε
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![Symbol::Epsilon],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
-
-                        new_rhs.push(Symbol::NonTerminal(aux_id));
-                    }
-                    Symbol::Repeat(inner) => {
-                        // Create aux rule: aux -> aux inner | ε
-                        let aux_id = SymbolId(9000 + aux_counter);
-                        aux_counter += 1;
-
-                        // aux -> aux inner
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![Symbol::NonTerminal(aux_id), *inner.clone()],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
-
-                        // aux -> ε
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![Symbol::Epsilon],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
-
-                        new_rhs.push(Symbol::NonTerminal(aux_id));
-                    }
-                    Symbol::RepeatOne(inner) => {
-                        // Create aux rule: aux -> aux inner | inner
-                        let aux_id = SymbolId(9000 + aux_counter);
-                        aux_counter += 1;
-
-                        // aux -> aux inner
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![Symbol::NonTerminal(aux_id), *inner.clone()],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
-
-                        // aux -> inner
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![*inner],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
-
-                        new_rhs.push(Symbol::NonTerminal(aux_id));
-                    }
-                    Symbol::Choice(choices) => {
-                        // Create aux rules: aux -> choice1 | choice2 | ...
-                        let aux_id = SymbolId(9000 + aux_counter);
-                        aux_counter += 1;
-
-                        for choice in choices {
-                            new_rules.push(Rule {
-                                lhs: aux_id,
-                                rhs: vec![choice],
-                                precedence: None,
-                                associativity: None,
-                                fields: vec![],
-                                production_id: ProductionId(0),
-                            });
-                        }
-
-                        new_rhs.push(Symbol::NonTerminal(aux_id));
-                    }
-                    Symbol::Sequence(seq) => {
-                        // Flatten sequence into the current rule
-                        new_rhs.extend(seq);
-                    }
-                    other => new_rhs.push(other),
+                    rules_to_replace.push((*lhs, rule.clone(), new_rule));
+                    new_rules_to_add.extend(new_aux_rules);
                 }
             }
-
-            rule.rhs = new_rhs;
-            new_rules.push(rule);
         }
 
-        // Add new rules to the grammar
-        for rule in &new_rules {
-            self.add_rule(rule.clone());
+        // Replace rules with their normalized versions
+        for (lhs, old_rule, new_rule) in rules_to_replace {
+            if let Some(rules) = self.rules.get_mut(&lhs)
+                && let Some(pos) = rules
+                    .iter()
+                    .position(|r| r.production_id == old_rule.production_id)
+            {
+                rules[pos] = new_rule;
+            }
         }
 
-        new_rules
+        // Add all the new auxiliary rules
+        for rule in new_rules_to_add {
+            let lhs = rule.lhs;
+            self.rules.entry(lhs).or_default().push(rule);
+
+            // Add rule name for the auxiliary symbol
+            if !self.rule_names.contains_key(&lhs) {
+                self.rule_names.insert(lhs, format!("_aux{}", lhs.0));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Helper function to normalize a list of symbols recursively
+    fn normalize_symbol_list(
+        &self,
+        symbols: &[Symbol],
+        aux_counter: &mut u16,
+    ) -> Result<(Vec<Symbol>, Vec<Rule>), GrammarError> {
+        let mut normalized_symbols = Vec::new();
+        let mut auxiliary_rules = Vec::new();
+
+        for symbol in symbols {
+            let (norm_symbol, mut aux_rules) = self.normalize_symbol(symbol, aux_counter)?;
+            normalized_symbols.push(norm_symbol);
+            auxiliary_rules.append(&mut aux_rules);
+        }
+
+        Ok((normalized_symbols, auxiliary_rules))
+    }
+
+    /// Helper function to normalize a single symbol recursively
+    fn normalize_symbol(
+        &self,
+        symbol: &Symbol,
+        aux_counter: &mut u16,
+    ) -> Result<(Symbol, Vec<Rule>), GrammarError> {
+        match symbol {
+            Symbol::Terminal(_)
+            | Symbol::NonTerminal(_)
+            | Symbol::External(_)
+            | Symbol::Epsilon => {
+                // These are already normalized
+                Ok((symbol.clone(), Vec::new()))
+            }
+            Symbol::Optional(inner) => {
+                // First recursively normalize the inner symbol
+                let (norm_inner, mut inner_rules) = self.normalize_symbol(inner, aux_counter)?;
+
+                // Create aux rule: aux -> inner | ε
+                let aux_id = SymbolId(*aux_counter);
+                *aux_counter += 1;
+
+                // aux -> inner
+                inner_rules.push(Rule {
+                    lhs: aux_id,
+                    rhs: vec![norm_inner],
+                    precedence: None,
+                    associativity: None,
+                    fields: vec![],
+                    production_id: ProductionId(*aux_counter), // Use unique production IDs
+                });
+
+                // aux -> ε
+                inner_rules.push(Rule {
+                    lhs: aux_id,
+                    rhs: vec![Symbol::Epsilon],
+                    precedence: None,
+                    associativity: None,
+                    fields: vec![],
+                    production_id: ProductionId(*aux_counter + 1),
+                });
+
+                *aux_counter += 2; // Used 2 production IDs
+
+                Ok((Symbol::NonTerminal(aux_id), inner_rules))
+            }
+            Symbol::Repeat(inner) => {
+                // First recursively normalize the inner symbol
+                let (norm_inner, mut inner_rules) = self.normalize_symbol(inner, aux_counter)?;
+
+                // Create aux rule: aux -> aux inner | ε
+                let aux_id = SymbolId(*aux_counter);
+                *aux_counter += 1;
+
+                // aux -> aux inner (left-recursive for efficiency)
+                inner_rules.push(Rule {
+                    lhs: aux_id,
+                    rhs: vec![Symbol::NonTerminal(aux_id), norm_inner],
+                    precedence: None,
+                    associativity: None,
+                    fields: vec![],
+                    production_id: ProductionId(*aux_counter),
+                });
+
+                // aux -> ε
+                inner_rules.push(Rule {
+                    lhs: aux_id,
+                    rhs: vec![Symbol::Epsilon],
+                    precedence: None,
+                    associativity: None,
+                    fields: vec![],
+                    production_id: ProductionId(*aux_counter + 1),
+                });
+
+                *aux_counter += 2;
+
+                Ok((Symbol::NonTerminal(aux_id), inner_rules))
+            }
+            Symbol::RepeatOne(inner) => {
+                // First recursively normalize the inner symbol
+                let (norm_inner, mut inner_rules) = self.normalize_symbol(inner, aux_counter)?;
+
+                // Create aux rule: aux -> aux inner | inner
+                let aux_id = SymbolId(*aux_counter);
+                *aux_counter += 1;
+
+                // aux -> aux inner (left-recursive)
+                inner_rules.push(Rule {
+                    lhs: aux_id,
+                    rhs: vec![Symbol::NonTerminal(aux_id), norm_inner.clone()],
+                    precedence: None,
+                    associativity: None,
+                    fields: vec![],
+                    production_id: ProductionId(*aux_counter),
+                });
+
+                // aux -> inner
+                inner_rules.push(Rule {
+                    lhs: aux_id,
+                    rhs: vec![norm_inner],
+                    precedence: None,
+                    associativity: None,
+                    fields: vec![],
+                    production_id: ProductionId(*aux_counter + 1),
+                });
+
+                *aux_counter += 2;
+
+                Ok((Symbol::NonTerminal(aux_id), inner_rules))
+            }
+            Symbol::Choice(choices) => {
+                // Create aux rules: aux -> choice1 | choice2 | ...
+                let aux_id = SymbolId(*aux_counter);
+                *aux_counter += 1;
+
+                let mut choice_rules = Vec::new();
+
+                for choice in choices {
+                    // Recursively normalize each choice
+                    let (norm_choice, mut choice_aux_rules) =
+                        self.normalize_symbol(choice, aux_counter)?;
+                    choice_rules.append(&mut choice_aux_rules);
+
+                    choice_rules.push(Rule {
+                        lhs: aux_id,
+                        rhs: vec![norm_choice],
+                        precedence: None,
+                        associativity: None,
+                        fields: vec![],
+                        production_id: ProductionId(*aux_counter),
+                    });
+
+                    *aux_counter += 1;
+                }
+
+                Ok((Symbol::NonTerminal(aux_id), choice_rules))
+            }
+            Symbol::Sequence(seq) => {
+                // Normalize each element of the sequence and flatten
+                let (norm_seq, aux_rules) = self.normalize_symbol_list(seq, aux_counter)?;
+                // For sequences, we can return the flattened sequence directly
+                // But we need to handle the case where there are multiple symbols
+                if norm_seq.len() == 1 {
+                    Ok((norm_seq.into_iter().next().unwrap(), aux_rules))
+                } else {
+                    // Create an auxiliary rule for the sequence
+                    let aux_id = SymbolId(*aux_counter);
+                    *aux_counter += 1;
+
+                    let mut seq_rules = aux_rules;
+                    seq_rules.push(Rule {
+                        lhs: aux_id,
+                        rhs: norm_seq,
+                        precedence: None,
+                        associativity: None,
+                        fields: vec![],
+                        production_id: ProductionId(*aux_counter),
+                    });
+
+                    *aux_counter += 1;
+
+                    Ok((Symbol::NonTerminal(aux_id), seq_rules))
+                }
+            }
+        }
     }
 }
 

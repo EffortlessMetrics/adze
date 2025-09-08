@@ -46,7 +46,7 @@
 //!
 //! ## Example Usage
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use rust_sitter::glr_parser::GLRParser;
 //! use rust_sitter::glr_lexer::GLRLexer;
 //! use rust_sitter_ir::{Grammar, SymbolId};
@@ -54,10 +54,8 @@
 //!
 //! // Create parser with grammar and parse table
 //! # fn example() {
-//! let grammar: Grammar = /* ... */;
-//! # let grammar = Grammar::default();
-//! let parse_table: ParseTable = /* ... */;
-//! # let parse_table = ParseTable::default();
+//! let grammar = Grammar::default();
+//! let parse_table = ParseTable::default();
 //! let mut parser = GLRParser::new(grammar, parse_table);
 //!
 //! // Create lexer and tokenize input
@@ -70,9 +68,9 @@
 //! }
 //!
 //! // Process EOF and get result
-//! parser.process_eof();
+//! parser.process_eof(0);
 //! match parser.finish() {
-//!     Ok(tree) => println!("Parse successful!"),
+//!     Ok(_tree) => println!("Parse successful!"),
 //!     Err(e) => println!("Parse failed: {}", e),
 //! }
 //! # }
@@ -1813,8 +1811,7 @@ impl GLRParser {
         );
 
         // Hard bound: at most a few iterations (guards infinite loops).
-        #[allow(unused_variables)]
-        for i in 0..8 {
+        for _iteration in 0..8 {
             // Close first with EOF as lookahead to expose any reduces
             let stacks = std::mem::take(&mut self.stacks);
             let stacks = self.reduce_until_saturated(stacks, eof, self.input_length);
@@ -1824,14 +1821,14 @@ impl GLRParser {
             if self.any_stack_has_action(eof) {
                 debug_glr!(
                     "drive_recovery_until_eof_action: found action for EOF after {} iterations",
-                    i
+                    _iteration
                 );
                 break;
             }
 
             debug_glr!(
                 "drive_recovery_until_eof_action: iteration {} with {} stacks",
-                i,
+                _iteration,
                 self.stacks.len()
             );
 

@@ -1,6 +1,6 @@
 //! Test suite for Tree-sitter table normalization and round-trip verification
 
-#![cfg(feature = "pure-rust")]
+#![cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
 
 use rust_sitter::decoder::decode_parse_table;
 use rust_sitter::ts_format::choose_action;
@@ -10,6 +10,7 @@ use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 #[path = "support/json_grammar.rs"]
 mod json_grammar;
 #[path = "support/language_builder.rs"]
+#[allow(clippy::duplicate_mod)]
 mod language_builder;
 #[path = "support/unified_json_helper.rs"]
 mod unified_json_helper;

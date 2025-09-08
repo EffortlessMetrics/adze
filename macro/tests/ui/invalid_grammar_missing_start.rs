@@ -1,7 +1,5 @@
 //! Test case: Grammar without a start symbol should fail
 
-use rust_sitter::rust_sitter;
-
 #[rust_sitter::grammar("test")]
 pub struct Grammar {
     // Missing #[rust_sitter::language] attribute

@@ -12,6 +12,8 @@ path = "src/main.rs"
 
 [features]
 dynamic = ["libloading"]
+python-grammar = ["rust-sitter-python"]
+javascript-grammar = ["rust-sitter-javascript"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
@@ -28,6 +30,8 @@ walkdir = "2.5"
 notify = "8"
 tempfile = "3.8"
 libloading = { version = "0.8", optional = true }
+rust-sitter-python = { path = "../grammars/python", optional = true }
+rust-sitter-javascript = { path = "../grammars/javascript", optional = true }
 
 [dev-dependencies]
 assert_cmd = "2.0"

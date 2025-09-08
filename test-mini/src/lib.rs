@@ -16,6 +16,9 @@ mod tests {
     #[test]
     fn test_number() {
         let result = grammar::parse("42");
+        if let Err(e) = &result {
+            eprintln!("Parse error: {:?}", e);
+        }
         assert!(result.is_ok());
         let program: grammar::Program = result.unwrap();
         assert_eq!(program.number, "42");

@@ -1,7 +1,5 @@
 //! Test case: Valid simple grammar should compile
 
-use rust_sitter::rust_sitter;
-
 #[rust_sitter::grammar("arithmetic")]
 #[rust_sitter::language]
 pub struct Arithmetic {

@@ -164,9 +164,6 @@ mod incremental_properties {
         };
         grammar.add_rule(rule3);
 
-        // Set the start symbol
-        grammar.start_symbol = Some(start_id);
-
         let table = build_table(&grammar);
         (grammar, table)
     }

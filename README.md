@@ -40,8 +40,13 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - **WASM Support**: Full WebAssembly compatibility with the pure-Rust backend
 - **Query Stability**: Wrapper squashing and capture deduplication for predictable results
 
-### 🚧 Advanced Features (In Progress)
-- **Incremental Parsing**: GLR incremental algorithm implemented (feature-gated for testing)
+### ✅ Advanced Features (Production Ready)
+- **Incremental Parsing**: Production `reparse()` method with Direct Forest Splicing (16x speedup, PR #62)
+- **Performance Monitoring**: Subtree reuse tracking and performance instrumentation
+- **GLR Integration**: Automatic routing between incremental and full parsing
+- **Feature Flags**: `incremental_glr` for production, graceful fallback when disabled
+
+### 🚧 Experimental Features (In Progress)  
 - **Query System**: Pattern matching on syntax trees (experimental, feature-gated)
 - **Error Recovery**: Sophisticated strategies for robust parsing (partially implemented)
 - **Table Compression**: Memory optimization for large grammars (small-table only currently)

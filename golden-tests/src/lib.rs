@@ -23,10 +23,16 @@ mod tests {
                 .join(self.fixture_name)
         }
 
+        fn base_name(&self) -> String {
+            std::path::Path::new(self.fixture_name)
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned()
+        }
+
         fn expected_hash_path(&self) -> PathBuf {
-            let base_name = self
-                .fixture_name
-                .replace(&format!(".{}", self.language), "");
+            let base_name = self.base_name();
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join(self.language)
                 .join("expected")
@@ -34,9 +40,7 @@ mod tests {
         }
 
         fn expected_sexp_path(&self) -> PathBuf {
-            let base_name = self
-                .fixture_name
-                .replace(&format!(".{}", self.language), "");
+            let base_name = self.base_name();
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join(self.language)
                 .join("expected")
@@ -199,10 +203,18 @@ mod tests {
 
             // Note: In real implementation, we'd run tree-sitter here
             // For now, we just save what rust-sitter produces
-            fs::write(test.expected_sexp_path(), &sexp)?;
+            let sexp_path = test.expected_sexp_path();
+            let hash_path = test.expected_hash_path();
+
+            // Ensure parent directories exist
+            if let Some(dir) = sexp_path.parent() {
+                fs::create_dir_all(dir)?;
+            }
+
+            fs::write(&sexp_path, &sexp)?;
 
             let hash = compute_hash(&sexp);
-            fs::write(test.expected_hash_path(), &hash)?;
+            fs::write(&hash_path, &hash)?;
 
             return Ok(());
         }

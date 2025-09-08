@@ -213,14 +213,12 @@ impl BetaTester {
         // Format: "Parse time: X.XXXms"
         let stderr_str = String::from_utf8_lossy(stderr);
 
-        if let Some(line) = stderr_str.lines().find(|l| l.contains("Parse time:")) {
-            if let Some(time_str) = line.split(':').nth(1) {
-                if let Some(ms_str) = time_str.trim().strip_suffix("ms") {
-                    if let Ok(ms) = ms_str.parse::<f64>() {
-                        return ms;
-                    }
-                }
-            }
+        if let Some(line) = stderr_str.lines().find(|l| l.contains("Parse time:"))
+            && let Some(time_str) = line.split(':').nth(1)
+            && let Some(ms_str) = time_str.trim().strip_suffix("ms")
+            && let Ok(ms) = ms_str.parse::<f64>()
+        {
+            return ms;
         }
 
         0.0

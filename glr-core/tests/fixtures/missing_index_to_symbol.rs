@@ -27,12 +27,14 @@ fn main() {
                 visible: true,
                 named: false,
                 supertype: false,
+                // MISSING: is_terminal, is_extra, is_fragile, symbol_id
             },
             SymbolMetadata {
                 name: "S".to_string(),
                 visible: true,
                 named: true,
                 supertype: false,
+                // MISSING: is_terminal, is_extra, is_fragile, symbol_id
             },
         ],
         external_scanner_states: vec![],

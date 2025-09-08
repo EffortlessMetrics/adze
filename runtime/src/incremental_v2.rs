@@ -241,60 +241,60 @@ impl<'a> IncrementalParserState<'a> {
             let (state, _) = self.stack.last().unwrap();
 
             // Get action for current state and token
-            if let Some(actions) = self.table.action_table.get(state.0 as usize) {
-                if let Some(action_cell) = actions.get(token.symbol.0 as usize) {
-                    // Handle Vec<Action> - prefer shift over reduce for now
-                    // TODO: Implement full GLR-aware incremental re-parse
-                    let action = if action_cell.is_empty() {
-                        &Action::Error
-                    } else {
-                        // Prefer shift actions over reduce actions for better parsing behavior
-                        action_cell
-                            .iter()
-                            .find(|a| matches!(a, Action::Shift(_)))
-                            .unwrap_or(&action_cell[0])
-                    };
+            if let Some(actions) = self.table.action_table.get(state.0 as usize)
+                && let Some(action_cell) = actions.get(token.symbol.0 as usize)
+            {
+                // Handle Vec<Action> - prefer shift over reduce for now
+                // TODO: Implement full GLR-aware incremental re-parse
+                let action = if action_cell.is_empty() {
+                    &Action::Error
+                } else {
+                    // Prefer shift actions over reduce actions for better parsing behavior
+                    action_cell
+                        .iter()
+                        .find(|a| matches!(a, Action::Shift(_)))
+                        .unwrap_or(&action_cell[0])
+                };
 
-                    match action {
-                        Action::Shift(next_state) => {
-                            let node = ParseNode {
-                                symbol: token.symbol,
-                                rule_id: None,
-                                children: vec![],
-                                start_byte: token.start,
-                                end_byte: token.end,
-                                text: Some(token.text.clone()),
-                            };
-                            self.stack.push((*next_state, Some(node)));
-                            self.position += 1;
+                match action {
+                    Action::Shift(next_state) => {
+                        let node = ParseNode {
+                            symbol: token.symbol,
+                            rule_id: None,
+                            children: vec![],
+                            start_byte: token.start,
+                            end_byte: token.end,
+                            text: Some(token.text.clone()),
+                        };
+                        self.stack.push((*next_state, Some(node)));
+                        self.position += 1;
+                    }
+                    Action::Reduce(rule_id) => {
+                        self.reduce(*rule_id)?;
+                    }
+                    Action::Accept => {
+                        if let Some((_, Some(node))) = self.stack.pop() {
+                            return Ok(node);
                         }
-                        Action::Reduce(rule_id) => {
-                            self.reduce(*rule_id)?;
-                        }
-                        Action::Accept => {
-                            if let Some((_, Some(node))) = self.stack.pop() {
-                                return Ok(node);
-                            }
-                        }
-                        Action::Error => {
-                            return Err(ParseError::UnexpectedToken {
-                                expected: vec![],
-                                found: token.symbol,
-                                position: self.position,
-                            });
-                        }
-                        Action::Fork(_) => {
-                            // TODO: Implement GLR fork handling
-                            return Err(ParseError::UnexpectedToken {
-                                expected: vec![],
-                                found: token.symbol,
-                                position: self.position,
-                            });
-                        }
-                        _ => {
-                            // Action is #[non_exhaustive] - required wildcard
-                            continue;
-                        }
+                    }
+                    Action::Error => {
+                        return Err(ParseError::UnexpectedToken {
+                            expected: vec![],
+                            found: token.symbol,
+                            position: self.position,
+                        });
+                    }
+                    Action::Fork(_) => {
+                        // TODO: Implement GLR fork handling
+                        return Err(ParseError::UnexpectedToken {
+                            expected: vec![],
+                            found: token.symbol,
+                            position: self.position,
+                        });
+                    }
+                    _ => {
+                        // Action is #[non_exhaustive] - required wildcard
+                        continue;
                     }
                 }
             }
@@ -355,10 +355,10 @@ impl<'a> IncrementalParserState<'a> {
         let (state, _) = self.stack.last().unwrap();
 
         // Get next state after shifting this symbol
-        if let Some(gotos) = self.table.goto_table.get(state.0 as usize) {
-            if let Some(&goto_state) = gotos.get(reusable.node.symbol.0 as usize) {
-                self.stack.push((goto_state, Some(reusable.node.clone())));
-            }
+        if let Some(gotos) = self.table.goto_table.get(state.0 as usize)
+            && let Some(&goto_state) = gotos.get(reusable.node.symbol.0 as usize)
+        {
+            self.stack.push((goto_state, Some(reusable.node.clone())));
         }
     }
 

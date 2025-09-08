@@ -14,6 +14,7 @@ pub mod grammar {
     }
 
     #[rust_sitter::extra]
+    #[allow(dead_code)]
     struct Whitespace {
         #[rust_sitter::leaf(pattern = r"\s")]
         _whitespace: (),

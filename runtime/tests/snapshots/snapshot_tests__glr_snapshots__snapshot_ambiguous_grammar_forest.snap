@@ -1,0 +1,6 @@
+---
+source: runtime/tests/snapshot_tests.rs
+assertion_line: 37
+expression: input
+---
+if a then if b then c else d

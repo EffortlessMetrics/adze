@@ -43,14 +43,14 @@ pub struct Pattern {
 #[derive(Debug, Clone)]
 pub struct PatternNode {
     /// The symbol to match (None for wildcard)
-    symbol: Option<SymbolId>,
+    pub symbol: Option<SymbolId>,
     /// Capture name if this node should be captured
-    capture: Option<String>,
+    pub capture: Option<String>,
     /// Child patterns
-    children: Vec<PatternChild>,
+    pub children: Vec<PatternChild>,
     /// Whether this is an anchor (must match at root)
     #[allow(dead_code)]
-    is_anchor: bool,
+    pub is_anchor: bool,
 }
 
 /// A child in a pattern can be required or have quantifiers
@@ -531,25 +531,27 @@ impl<'a> Iterator for QueryMatches<'a> {
     type Item = QueryMatch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while self.pattern_index < self.query.patterns.len() {
-            let pattern = &self.query.patterns[self.pattern_index];
-
-            // Try to match pattern at current position
-            if let Some(result) = self.find_next_match(pattern) {
+        loop {
+            // Continue searching for more matches with current pattern
+            if let Some(result) = self.find_next_match() {
                 return Some(result);
             }
 
-            // Move to next pattern
+            // If no more matches for current pattern, move to next pattern
+            if self.pattern_index + 1 >= self.query.patterns.len() {
+                return None;
+            }
+
             self.pattern_index += 1;
             self.node_stack = vec![(self.root, 0)];
+            self.captures.clear();
         }
-
-        None
     }
 }
 
 impl<'a> QueryMatches<'a> {
-    fn find_next_match(&mut self, pattern: &Pattern) -> Option<QueryMatch> {
+    fn find_next_match(&mut self) -> Option<QueryMatch> {
+        let pattern = &self.query.patterns[self.pattern_index];
         while let Some((node, depth)) = self.node_stack.pop() {
             // Check depth limit
             if let Some(max) = self.max_depth
@@ -565,20 +567,18 @@ impl<'a> QueryMatches<'a> {
             if self.match_pattern_node(&pattern.root, node, depth) {
                 // Check predicates
                 if self.check_predicates(pattern) {
-                    // Found a match!
-                    let result = QueryMatch {
-                        pattern_index: self.pattern_index,
-                        captures: self.captures.clone(),
-                    };
-
-                    // Continue searching from children
+                    // Add children to stack for continued traversal (depth-first)
                     self.add_children_to_stack(node, depth + 1);
 
-                    return Some(result);
+                    // Found a match!
+                    return Some(QueryMatch {
+                        pattern_index: self.pattern_index,
+                        captures: self.captures.clone(),
+                    });
                 }
             }
 
-            // Add children to continue depth-first search
+            // Add children to stack for continued traversal (depth-first)
             self.add_children_to_stack(node, depth + 1);
         }
 
@@ -621,67 +621,64 @@ impl<'a> QueryMatches<'a> {
         pattern_children: &[PatternChild],
         node_children: &'a [Subtree],
     ) -> bool {
-        let mut node_index = 0;
+        // If no pattern children were specified, match regardless of node children
+        if pattern_children.is_empty() {
+            return true;
+        }
+
+        // For now, implement a simplified version that looks for pattern children anywhere in node children
+        // This is not a complete implementation of Tree-sitter semantics but covers basic cases
 
         for pattern_child in pattern_children {
+            let mut found = false;
+
             match pattern_child.quantifier {
                 Quantifier::One => {
-                    if node_index >= node_children.len() {
+                    // Must find exactly one match among node children
+                    for node_child in node_children {
+                        if self.match_pattern_node(&pattern_child.node, node_child, 0) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
                         return false;
                     }
-                    if !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
-                    {
-                        return false;
-                    }
-                    node_index += 1;
                 }
                 Quantifier::ZeroOrOne => {
-                    if node_index < node_children.len()
-                        && self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        )
-                    {
-                        node_index += 1;
+                    // May find zero or one match - always succeeds
+                    for node_child in node_children {
+                        if self.match_pattern_node(&pattern_child.node, node_child, 0) {
+                            break;
+                        }
                     }
                 }
                 Quantifier::ZeroOrMore => {
-                    while node_index < node_children.len()
-                        && self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        )
-                    {
-                        node_index += 1;
+                    // May find zero or more matches - always succeeds
+                    // For now, just check if any matches exist
+                    for node_child in node_children {
+                        if self.match_pattern_node(&pattern_child.node, node_child, 0) {
+                            // Found at least one
+                            break;
+                        }
                     }
                 }
                 Quantifier::OneOrMore => {
-                    if node_index >= node_children.len() {
-                        return false;
+                    // Must find at least one match
+                    for node_child in node_children {
+                        if self.match_pattern_node(&pattern_child.node, node_child, 0) {
+                            found = true;
+                            break;
+                        }
                     }
-                    if !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
-                    {
+                    if !found {
                         return false;
-                    }
-                    node_index += 1;
-
-                    while node_index < node_children.len()
-                        && self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        )
-                    {
-                        node_index += 1;
                     }
                 }
             }
         }
 
-        // All remaining children must be optional
-        node_index == node_children.len()
+        true
     }
 
     fn check_predicates(&self, pattern: &Pattern) -> bool {

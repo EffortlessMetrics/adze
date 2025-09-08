@@ -5,7 +5,33 @@
 // not actual non-exhaustive pattern implementations
 #![allow(clippy::manual_non_exhaustive)]
 
+// Include the generated parser
+pub mod grammar_javascript {
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_javascript/parser_javascript.rs"
+    ));
+}
+
+/// Expose the generated LANGUAGE struct for external use
+pub fn get_language() -> &'static rust_sitter::pure_parser::TSLanguage {
+    &grammar_javascript::LANGUAGE
+}
+
+/// Parse JavaScript source code into a syntax tree
+pub fn parse(
+    source: &str,
+) -> Result<rust_sitter::pure_parser::ParsedNode, Box<dyn std::error::Error>> {
+    use rust_sitter::pure_parser::Parser;
+
+    let language = get_language();
+    let mut parser = Parser::new();
+    parser.set_language(language)?;
+    let result = parser.parse_string(source);
+    result.root.ok_or_else(|| "Parsing failed".into())
+}
 #[rust_sitter::grammar("javascript")]
+#[allow(clippy::manual_non_exhaustive)]
 pub mod grammar {
     #[rust_sitter::language]
     pub struct Program {
@@ -392,5 +418,6 @@ mod tests {
     #[test]
     fn test_simple_program() {
         // Grammar builds successfully - this test ensures the grammar compiles without issues
+        // Placeholder test - remove this when actual tests are added
     }
 }
