@@ -79,8 +79,8 @@ mod tests {
     use super::*;
     use crate::external_scanner::ScanResult;
     use std::sync::{
-        Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
     };
 
     struct TestScanner {

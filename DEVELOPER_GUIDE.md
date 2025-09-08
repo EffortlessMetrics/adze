@@ -532,6 +532,58 @@ assert_eq!(root.kind(), "number");          // Wrong - expects content directly
 # Move baseline tag after release
 ```
 
+### Query Matching Breaking Changes (PR #54 - v0.6.0)
+
+**API Changes**: The `QueryMatcher` constructor signature has changed to require symbol metadata:
+
+```bash
+# These breaking changes affect all users of the query system:
+
+# Before (v0.5.x):
+let matcher = QueryMatcher::new(&query, source);
+
+# After (v0.6.x): 
+let metadata = language.symbol_metadata();
+let matcher = QueryMatcher::new(&query, source, &metadata);
+```
+
+**Behavioral Changes**: Query matching now properly validates node types:
+
+```bash
+# Pattern matching behavior has changed:
+# 1. Named patterns only match nodes where metadata.named == true
+# 2. Anonymous patterns match tokens where metadata.named == false  
+# 3. Extra nodes (metadata.is_extra == true) are automatically skipped
+# 4. Memory-safe metadata access prevents SIGSEGV crashes
+```
+
+**Migration Strategy**:
+```rust
+// Add this wrapper to ease migration:
+fn create_safe_matcher<'a>(
+    query: &'a Query,
+    source: &'a str,
+    language: &Language,
+) -> QueryMatcher<'a> {
+    let metadata = language.symbol_metadata();
+    QueryMatcher::new(query, source, metadata)
+}
+
+// Update all query usage sites:
+// OLD: QueryMatcher::new(&query, source)
+// NEW: create_safe_matcher(&query, source, &language)
+```
+
+**Testing Breaking Changes**:
+```bash
+# Test both old and new behavior:
+cargo test --features legacy_query_api  # If maintaining compatibility
+cargo test                              # Test new behavior
+
+# Check for query regressions:
+cargo test -p runtime --test test_glr_query
+```
+
 ### Feature Conflicts
 ```bash
 # Some features are mutually exclusive

@@ -5,7 +5,7 @@
 // Implements Tree-sitter's query language for pattern matching on GLR trees
 
 use rust_sitter_ir::{Grammar, SymbolId};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 /// A simple tree representation for query matching
@@ -28,6 +28,8 @@ pub struct Query {
     pub capture_names: HashMap<String, u32>,
     /// Predicate functions
     pub predicates: Vec<Predicate>,
+    /// Set of symbols considered "named" (non-terminals)
+    pub named_symbols: HashSet<SymbolId>,
 }
 
 /// A pattern is a tree structure to match
@@ -159,10 +161,14 @@ impl<'a> QueryParser<'a> {
             return Err(QueryError::EmptyQuery);
         }
 
+        // Collect named symbol ids from grammar for quick lookup during matching
+        let named_symbols = self.grammar.rule_names.keys().cloned().collect();
+
         Ok(Query {
             patterns,
             capture_names,
             predicates,
+            named_symbols,
         })
     }
 
@@ -198,6 +204,9 @@ impl<'a> QueryParser<'a> {
         next_capture_id: &mut u32,
     ) -> Result<PatternNode, QueryError> {
         self.skip_whitespace();
+        if self.peek_char() == Some('#') {
+            return Err(QueryError::ExpectedOpenParen(self.position));
+        }
 
         // Check for anchor
         let is_anchor = self.consume_char('.');
@@ -626,59 +635,123 @@ impl<'a> QueryMatches<'a> {
             return true;
         }
 
-        // For now, implement a simplified version that looks for pattern children anywhere in node children
-        // This is not a complete implementation of Tree-sitter semantics but covers basic cases
+        let mut node_index = 0;
 
         for pattern_child in pattern_children {
-            let mut found = false;
+            let expected_named = pattern_child
+                .node
+                .symbol
+                .map(|s| self.query.named_symbols.contains(&s))
+                .unwrap_or(false);
 
             match pattern_child.quantifier {
                 Quantifier::One => {
-                    // Must find exactly one match among node children
-                    for node_child in node_children {
-                        if self.match_pattern_node(&pattern_child.node, node_child, 0) {
-                            found = true;
-                            break;
+                    if expected_named {
+                        while node_index < node_children.len()
+                            && !self.node_is_named(&node_children[node_index])
+                        {
+                            node_index += 1;
                         }
                     }
-                    if !found {
+                    if node_index >= node_children.len()
+                        || !self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        )
+                    {
                         return false;
                     }
+                    node_index += 1;
                 }
                 Quantifier::ZeroOrOne => {
-                    // May find zero or one match - always succeeds
-                    for node_child in node_children {
-                        if self.match_pattern_node(&pattern_child.node, node_child, 0) {
-                            break;
+                    if expected_named {
+                        while node_index < node_children.len()
+                            && !self.node_is_named(&node_children[node_index])
+                        {
+                            node_index += 1;
                         }
+                    }
+                    if node_index < node_children.len()
+                        && self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        )
+                    {
+                        node_index += 1;
                     }
                 }
                 Quantifier::ZeroOrMore => {
-                    // May find zero or more matches - always succeeds
-                    // For now, just check if any matches exist
-                    for node_child in node_children {
-                        if self.match_pattern_node(&pattern_child.node, node_child, 0) {
-                            // Found at least one
+                    while node_index < node_children.len() {
+                        if expected_named && !self.node_is_named(&node_children[node_index]) {
+                            node_index += 1;
+                            continue;
+                        }
+                        if self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        ) {
+                            node_index += 1;
+                        } else {
                             break;
                         }
                     }
                 }
                 Quantifier::OneOrMore => {
-                    // Must find at least one match
-                    for node_child in node_children {
-                        if self.match_pattern_node(&pattern_child.node, node_child, 0) {
-                            found = true;
-                            break;
+                    if expected_named {
+                        while node_index < node_children.len()
+                            && !self.node_is_named(&node_children[node_index])
+                        {
+                            node_index += 1;
                         }
                     }
-                    if !found {
+                    if node_index >= node_children.len()
+                        || !self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        )
+                    {
                         return false;
+                    }
+                    node_index += 1;
+                    loop {
+                        if node_index >= node_children.len() {
+                            break;
+                        }
+                        if expected_named && !self.node_is_named(&node_children[node_index]) {
+                            node_index += 1;
+                            continue;
+                        }
+                        if self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        ) {
+                            node_index += 1;
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
         }
 
+        // Ensure remaining named children are ignorable
+        while node_index < node_children.len() {
+            if self.node_is_named(&node_children[node_index]) {
+                return false;
+            }
+            node_index += 1;
+        }
+
         true
+    }
+
+    fn node_is_named(&self, node: &Subtree) -> bool {
+        self.query.named_symbols.contains(&node.symbol)
     }
 
     fn check_predicates(&self, pattern: &Pattern) -> bool {

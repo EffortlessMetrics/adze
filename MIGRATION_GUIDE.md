@@ -514,6 +514,56 @@ let metadata = SymbolMetadata {
 };
 ```
 
+### Query Matching API Changes (PR #54)
+
+**Breaking Change**: The `QueryMatcher` constructor now requires a `symbol_metadata` parameter for proper node metadata validation during pattern matching.
+
+**Before (v0.5.x):**
+```rust
+let matcher = QueryMatcher::new(&query, source);
+let matches = matcher.matches(&parse_tree);
+```
+
+**After (v0.6.x):**
+```rust
+let metadata = language.symbol_metadata(); // Get symbol metadata array
+let matcher = QueryMatcher::new(&query, source, &metadata);
+let matches = matcher.matches(&parse_tree);
+```
+
+**QueryMatches Iterator Changes:**
+```rust
+// Before
+let matches = QueryMatches::new(&query, &root, source);
+
+// After - with symbol metadata support
+let matches = QueryMatches::new(&query, &root, source, &metadata);
+```
+
+**Behavioral Changes:**
+1. **Named Node Filtering**: Patterns now properly distinguish between named and anonymous nodes based on metadata
+2. **Extra Node Skipping**: Comments and whitespace nodes marked as "extra" are automatically skipped
+3. **Memory Safety**: Null-safe metadata access prevents crashes with malformed grammars
+4. **Performance**: Efficient symbol lookup using SymbolId indexing
+
+**Migration Strategy:**
+```rust
+// Add this helper to get metadata from your language
+fn get_symbol_metadata(language: &Language) -> Vec<SymbolMetadata> {
+    // Implementation depends on your specific language struct
+    language.symbol_metadata().to_vec()
+}
+
+// Update all QueryMatcher usage sites
+let metadata = get_symbol_metadata(&language);
+let matcher = QueryMatcher::new(&query, source, &metadata);
+```
+
+**Pattern Matching Improvements:**
+- Patterns targeting named nodes (like `(function_definition)`) now only match actual named symbols
+- Patterns targeting anonymous tokens (like `"{"`, `"}"`) work as before
+- Mixed patterns automatically filter between named and anonymous nodes based on context
+
 ## Performance Comparison
 
 | Metric | Tree-sitter | Rust Sitter | Improvement |

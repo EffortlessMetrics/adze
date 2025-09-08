@@ -448,7 +448,44 @@ let query = compile_query(r#"
 "#)?;
 ```
 
-### `QueryCursor`
+### `QueryMatcher` (v0.6+)
+```rust
+impl<'a> QueryMatcher<'a> {
+    /// Create a new query matcher with source text and symbol metadata
+    /// 
+    /// The symbol_metadata parameter enables proper node metadata validation
+    /// during pattern matching, ensuring named/anonymous node distinctions
+    /// are respected.
+    pub fn new(
+        query: &'a Query, 
+        source: &'a str, 
+        symbol_metadata: &'a [SymbolMetadata]
+    ) -> Self;
+    
+    /// Match all patterns in the query against a parse tree
+    pub fn matches(&self, root: &ParseNode) -> Vec<QueryMatch>;
+}
+```
+
+### `QueryMatches` Iterator
+```rust
+impl<'a> QueryMatches<'a> {
+    /// Create a new query matches iterator with symbol metadata support
+    pub fn new(
+        query: &'a Query,
+        root: &'a ParseNode,
+        source: &'a str,
+        symbol_metadata: &'a [SymbolMetadata],
+    ) -> Self;
+}
+
+impl<'a> Iterator for QueryMatches<'a> {
+    type Item = QueryMatch;
+    fn next(&mut self) -> Option<Self::Item>;
+}
+```
+
+### `QueryCursor` (Legacy - v0.5 compatible)
 ```rust
 impl QueryCursor {
     /// Create new cursor
@@ -465,6 +502,53 @@ impl QueryCursor {
     /// Set match limit
     pub fn set_match_limit(&mut self, limit: u32);
 }
+```
+
+### Node Metadata Validation (v0.6+)
+
+The query engine now uses symbol metadata to properly validate node properties during pattern matching:
+
+```rust
+/// Node metadata validation patterns
+let source = "function test_func() { return 42; }";
+let metadata = language.symbol_metadata(); // SymbolMetadata array
+
+let matcher = QueryMatcher::new(&query, source, &metadata);
+let matches = matcher.matches(&parse_tree);
+
+// The matcher automatically:
+// 1. Uses metadata.named to determine if nodes should match named patterns
+// 2. Uses metadata.is_extra to skip "extra" nodes (whitespace, comments)
+// 3. Validates symbol visibility and properties
+```
+
+**Key Improvements:**
+- **Named/Anonymous Distinction**: Patterns only match appropriately typed nodes
+- **Extra Node Filtering**: Comments and whitespace are properly ignored
+- **Memory Safety**: Null-safe metadata access prevents crashes
+- **Performance**: Efficient symbol lookup using SymbolId indexing
+
+### Pattern Matching Behavior
+
+**Named Node Patterns** (match only named symbols):
+```rust
+// Matches only named nodes like function_definition, identifier
+(function_definition name: (identifier) @func_name)
+```
+
+**Anonymous Node Patterns** (match terminals and anonymous nodes):
+```rust  
+// Matches literal tokens like "{", "}", "return"
+("{" @open_brace "}" @close_brace)
+```
+
+**Mixed Patterns** (automatic filtering based on metadata):
+```rust
+// Engine automatically skips unnamed nodes to find named ones
+(function_definition 
+  parameters: (parameter_list) @params  // Named node required
+  "{" @body_start                      // Anonymous token accepted
+  body: (block) @body)                 // Named node required
 ```
 
 ### Predicates
@@ -1653,6 +1737,69 @@ fn edit_tree(_tree: &mut Tree, _edit: InputEdit) -> Result<(), EditError> {
 - Enable `arenas` for reduced allocation overhead
 - Use `glr-core` for complex grammars with conflicts
 - Consider `external-scanners` for languages with significant whitespace semantics
+
+## Memory Safety & Error Prevention
+
+### Null-Safe Metadata Access (PR #54)
+
+Rust-sitter now implements comprehensive null-safe patterns for accessing symbol metadata, preventing SIGSEGV crashes that could occur with malformed or missing metadata:
+
+#### Symbol Metadata Access Pattern
+```rust
+// Safe access with fallback to defaults
+fn node_is_named(&self, node: &ParseNode) -> bool {
+    self.symbol_metadata
+        .get(node.symbol.0 as usize)  // Bounds-checked array access
+        .map(|m| m.named)             // Safe field access if metadata exists
+        .unwrap_or(true)              // Conservative fallback if missing
+}
+
+fn node_is_extra(&self, node: &ParseNode) -> bool {
+    self.symbol_metadata
+        .get(node.symbol.0 as usize)  // Bounds-checked array access
+        .map(|m| m.is_extra)          // Safe field access
+        .unwrap_or(false)             // Safe default for missing metadata
+}
+```
+
+#### Decoder Memory Safety
+```rust
+// Safe symbol name access with null pointer checks
+let symbol_names = if language.symbol_names.is_null() {
+    return Err(DecodeError::NullSymbolNames);
+} else {
+    unsafe { std::slice::from_raw_parts(language.symbol_names, symbol_count) }
+};
+
+// Safe symbol metadata access
+let metadata = if language.symbol_metadata.is_null() {
+    return Err(DecodeError::NullSymbolMetadata);
+} else {
+    unsafe { std::slice::from_raw_parts(language.symbol_metadata, symbol_count) }
+};
+```
+
+#### External Scanner Safety
+```rust
+// Null-safe scanner symbol map access
+fn get_scanner_symbols(scanner: &ExternalScanner) -> Result<&[SymbolId]> {
+    if scanner.symbol_map.is_null() {
+        return Err(ScannerError::NullSymbolMap);
+    }
+    
+    // Safe bounds-checked slice creation
+    let symbols = unsafe { 
+        std::slice::from_raw_parts(scanner.symbol_map, scanner.symbol_count) 
+    };
+    Ok(symbols)
+}
+```
+
+**Key Safety Improvements:**
+1. **Bounds Checking**: All array accesses use `.get()` instead of direct indexing
+2. **Null Pointer Validation**: FFI pointers checked before dereferencing  
+3. **Conservative Fallbacks**: Missing metadata defaults to safe values
+4. **Error Propagation**: Unsafe conditions return `Result` types with specific errors
 
 ## Thread Safety
 

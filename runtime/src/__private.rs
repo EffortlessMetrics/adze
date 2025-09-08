@@ -6,7 +6,7 @@
 
 use crate::Extract;
 #[cfg(feature = "pure-rust")]
-use core::ffi::{CStr, c_char};
+use core::ffi::{c_char, CStr};
 
 #[cfg(feature = "pure-rust")]
 use crate::pure_parser::ParsedNode;

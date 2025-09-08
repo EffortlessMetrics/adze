@@ -439,11 +439,9 @@ mod tests {
             .unwrap();
 
         let module_rules = &grammar.rules[&module_id];
-        assert!(
-            module_rules
-                .iter()
-                .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon))
-        );
+        assert!(module_rules
+            .iter()
+            .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon)));
     }
 
     #[test]
@@ -459,11 +457,9 @@ mod tests {
             .unwrap();
 
         let program_rules = &grammar.rules[&program_id];
-        assert!(
-            !program_rules
-                .iter()
-                .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon))
-        );
+        assert!(!program_rules
+            .iter()
+            .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon)));
     }
 
     #[test]

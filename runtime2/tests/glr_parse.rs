@@ -1,13 +1,13 @@
 #[cfg(feature = "glr-core")]
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
 #[cfg(feature = "glr-core")]
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern,
 };
-use rust_sitter_runtime::{Language, Parser, Token, language::SymbolMetadata};
+use rust_sitter_runtime::{language::SymbolMetadata, Language, Parser, Token};
 use std::sync::{
-    Arc, LazyLock,
     atomic::{AtomicUsize, Ordering},
+    Arc, LazyLock,
 };
 
 #[cfg(feature = "glr-core")]

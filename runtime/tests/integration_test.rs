@@ -16,6 +16,7 @@ mod language_builder;
 mod unified_json_helper;
 
 #[test]
+#[ignore = "pure-rust parser integration unstable"]
 #[cfg(feature = "pure-rust")]
 #[serial]
 #[ignore]
@@ -83,6 +84,7 @@ fn test_complete_workflow() {
 }
 
 #[test]
+#[ignore = "pure-rust parser integration unstable"]
 #[cfg(feature = "pure-rust")]
 #[serial]
 #[ignore]
@@ -109,12 +111,13 @@ fn test_error_recovery() {
 }
 
 #[test]
+#[ignore = "pure-rust parser integration unstable"]
 #[cfg(feature = "pure-rust")]
 #[serial]
 #[ignore]
 fn test_cancellation() {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
 
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();
@@ -149,6 +152,7 @@ fn test_cancellation() {
 }
 
 #[test]
+#[ignore = "pure-rust parser integration unstable"]
 #[cfg(feature = "pure-rust")]
 #[serial]
 #[ignore]
@@ -178,7 +182,7 @@ fn test_timeout() {
 #[test]
 #[serial]
 fn test_external_scanner_integration() {
-    use rust_sitter::external_scanner::{ExternalScanner, Lexer};
+    use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
     use std::sync::{Arc, Mutex};
 
     // Create a simple external scanner

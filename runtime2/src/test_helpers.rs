@@ -3,7 +3,7 @@
 //! This module provides common functionality for tests and examples that need
 //! to create minimal Language instances for testing purposes.
 
-use crate::{Language, Token, language::SymbolMetadata};
+use crate::{language::SymbolMetadata, Language, Token};
 use std::sync::LazyLock;
 
 #[cfg(feature = "glr-core")]
