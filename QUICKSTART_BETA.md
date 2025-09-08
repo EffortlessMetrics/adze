@@ -177,6 +177,86 @@ let tree = parser.parse_utf8(large_input, None)?;
 - Set `RUST_TEST_THREADS=2` for consistent benchmarking
 - Enable `RUST_SITTER_LOG_PERFORMANCE` during development
 
+## Query Matching with Node Metadata (v0.6+)
+
+### Basic Query Usage
+Use queries to pattern match against parsed trees with proper node metadata validation:
+
+```rust
+use rust_sitter_runtime::{Parser, query::QueryMatcher};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let language = my_language::language();
+    let metadata = language.symbol_metadata(); // Get symbol metadata for validation
+    let mut parser = Parser::new();
+    parser.set_language(language)?;
+    
+    let source = "function test() { return 42; }";
+    let tree = parser.parse_utf8(source, None)?;
+    
+    // Create a query pattern
+    let query_text = r#"
+    (function_definition
+      name: (identifier) @func_name
+      body: (block) @func_body)
+    "#;
+    
+    let query = rust_sitter_runtime::query::compile_query(query_text)?;
+    
+    // Create matcher with metadata for proper node validation
+    let matcher = QueryMatcher::new(&query, source, &metadata);
+    let matches = matcher.matches(&tree.root());
+    
+    for m in matches {
+        for capture in m.captures {
+            println!("Captured {}: {:?}", capture.index, capture.node);
+        }
+    }
+    
+    Ok(())
+}
+```
+
+### Node Metadata Validation
+The query engine automatically uses symbol metadata to:
+
+```rust
+// Example: Only match named nodes vs anonymous tokens
+let query = compile_query(r#"
+  (function_definition          ; Only matches named "function_definition" nodes  
+    "function"                  ; Matches anonymous "function" token
+    name: (identifier) @name    ; Only matches named "identifier" nodes
+    "(" @lparen                 ; Matches anonymous "(" token  
+    ")" @rparen                 ; Matches anonymous ")" token
+    body: (block) @body)        ; Only matches named "block" nodes
+"#)?;
+
+let matcher = QueryMatcher::new(&query, source, &metadata);
+// Engine automatically filters based on node metadata:
+// - metadata.named determines if patterns match named vs anonymous nodes
+// - metadata.is_extra causes extra nodes (whitespace/comments) to be skipped
+// - Null-safe access prevents crashes on malformed metadata
+```
+
+### Advanced Query Patterns
+
+```rust
+// Pattern with predicates and node type filtering
+let query = compile_query(r#"
+  (function_definition 
+    name: (identifier) @func_name
+    parameters: (parameter_list) @params)
+    
+  ; Only match functions starting with "test_"
+  (#match? @func_name "^test_")
+"#)?;
+
+// Query execution with performance monitoring
+env::set_var("RUST_SITTER_LOG_PERFORMANCE", "true");
+let matches = matcher.matches(&root);
+println!("Found {} test functions", matches.len());
+```
+
 ## Common Patterns
 
 ### Optional Fields
