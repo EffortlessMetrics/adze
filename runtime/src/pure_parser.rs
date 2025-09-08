@@ -1793,7 +1793,6 @@ impl Default for Parser {
 }
 
 /// Minimal lexer implementation passed to external scanners
-#[allow(dead_code)]
 struct ExternalLexer<'a> {
     input: &'a [u8],
     position: usize,
@@ -1846,10 +1845,29 @@ impl<'a> ExternalLexer<'a> {
 
         let ext_lexer = unsafe { &mut *(data as *mut ExternalLexer) };
         if ext_lexer.position < ext_lexer.input.len() {
-            if !skip {
-                ext_lexer.token_end = ext_lexer.position + 1;
-            }
+            let byte = ext_lexer.input[ext_lexer.position];
             ext_lexer.position += 1;
+
+            // Update row/column information
+            if byte == b'\n' {
+                ext_lexer.row += 1;
+                ext_lexer.column = 0;
+            } else if byte == b'\r' {
+                // Handle CRLF by consuming the following LF if present
+                if ext_lexer.position < ext_lexer.input.len()
+                    && ext_lexer.input[ext_lexer.position] == b'\n'
+                {
+                    ext_lexer.position += 1;
+                }
+                ext_lexer.row += 1;
+                ext_lexer.column = 0;
+            } else {
+                ext_lexer.column += 1;
+            }
+
+            if !skip {
+                ext_lexer.token_end = ext_lexer.position;
+            }
         }
     }
 
@@ -1868,21 +1886,40 @@ impl<'a> ExternalLexer<'a> {
     }
 
     // Additional methods for external scanner compatibility
-    #[allow(dead_code)]
-    unsafe extern "C" fn get_column(_lexer: *mut crate::lex::TsLexer) -> u32 {
-        // TODO: Implement proper column tracking
-        0
+    unsafe extern "C" fn get_column(lexer: *mut crate::lex::TsLexer) -> u32 {
+        if lexer.is_null() {
+            return 0;
+        }
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return 0;
+        }
+        let ext_lexer = unsafe { &*(data as *const ExternalLexer) };
+        ext_lexer.column as u32
     }
 
-    #[allow(dead_code)]
-    unsafe extern "C" fn is_at_included_range_start(_lexer: *mut crate::lex::TsLexer) -> bool {
-        false
+    unsafe extern "C" fn is_at_included_range_start(lexer: *mut crate::lex::TsLexer) -> bool {
+        if lexer.is_null() {
+            return false;
+        }
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return false;
+        }
+        let ext_lexer = unsafe { &*(data as *const ExternalLexer) };
+        ext_lexer.position == 0
     }
 
-    #[allow(dead_code)]
-    unsafe extern "C" fn eof(_lexer: *mut crate::lex::TsLexer) -> bool {
-        // TODO: Implement EOF detection
-        false
+    unsafe extern "C" fn eof(lexer: *mut crate::lex::TsLexer) -> bool {
+        if lexer.is_null() {
+            return true;
+        }
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return true;
+        }
+        let ext_lexer = unsafe { &*(data as *const ExternalLexer) };
+        ext_lexer.position >= ext_lexer.input.len()
     }
 }
 
@@ -2034,5 +2071,47 @@ mod tests {
         let parser = Parser::new();
         // Symbol 1 is the lone non-terminal; with no table entry this should return 0.
         assert_eq!(parser.get_goto_state(&LANGUAGE, 0, 1), 0);
+    }
+
+    #[test]
+    fn test_external_lexer_column_tracking() {
+        let input = b"hello\nworld";
+        let mut ext = ExternalLexer::new(input, 0, 0);
+        let mut ts = create_ts_lexer(&mut ext);
+
+        // Initial column at start
+        assert_eq!(unsafe { ExternalLexer::get_column(&mut ts) }, 0);
+
+        // Advance over "hello"
+        for _ in 0..5 {
+            unsafe { ExternalLexer::advance(&mut ts, false) };
+        }
+        assert_eq!(unsafe { ExternalLexer::get_column(&mut ts) }, 5);
+
+        // Advance over newline
+        unsafe { ExternalLexer::advance(&mut ts, false) };
+        assert_eq!(unsafe { ExternalLexer::get_column(&mut ts) }, 0);
+    }
+
+    #[test]
+    fn test_external_lexer_included_range_start() {
+        let input = b"abc";
+        let mut ext = ExternalLexer::new(input, 0, 0);
+        let mut ts = create_ts_lexer(&mut ext);
+
+        assert!(unsafe { ExternalLexer::is_at_included_range_start(&mut ts) });
+        unsafe { ExternalLexer::advance(&mut ts, true) };
+        assert!(!unsafe { ExternalLexer::is_at_included_range_start(&mut ts) });
+    }
+
+    #[test]
+    fn test_external_lexer_eof() {
+        let input = b"a";
+        let mut ext = ExternalLexer::new(input, 0, 0);
+        let mut ts = create_ts_lexer(&mut ext);
+
+        assert!(!unsafe { ExternalLexer::eof(&mut ts) });
+        unsafe { ExternalLexer::advance(&mut ts, true) };
+        assert!(unsafe { ExternalLexer::eof(&mut ts) });
     }
 }
