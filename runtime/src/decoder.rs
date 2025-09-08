@@ -10,7 +10,7 @@ use rust_sitter_ir::{
     SymbolId, Token, TokenPattern,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::ffi::{CStr, c_char};
+use std::ffi::{c_char, CStr};
 use std::path::Path;
 
 use crate::pure_parser::{TSLanguage, TSParseAction};
@@ -191,7 +191,12 @@ pub fn decode_grammar_with_patterns(
 
     // Process symbols to determine tokens
     for i in 0..lang.symbol_count as usize {
-        let metadata = unsafe { *lang.symbol_metadata.add(i) };
+        let metadata = if lang.symbol_metadata.is_null() {
+            // If symbol_metadata pointer is null, assume all symbols are non-terminal
+            0u8
+        } else {
+            unsafe { *lang.symbol_metadata.add(i) }
+        };
         let name = &symbol_names[i];
         let symbol_id = SymbolId(i as u16);
 
@@ -540,14 +545,23 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
         // Decode symbol metadata
         let (ts_metadata, name) = unsafe {
-            let ts_metadata = *lang.symbol_metadata.add(i);
-            let name_ptr = *lang.symbol_names.add(i);
-            let name = if name_ptr.is_null() {
+            let ts_metadata = if lang.symbol_metadata.is_null() {
+                // If symbol_metadata pointer is null, assume all symbols are non-terminal
+                0u8
+            } else {
+                *lang.symbol_metadata.add(i)
+            };
+            let name = if lang.symbol_names.is_null() {
                 format!("symbol_{}", i)
             } else {
-                CStr::from_ptr(name_ptr as *const c_char)
-                    .to_string_lossy()
-                    .into_owned()
+                let name_ptr = *lang.symbol_names.add(i);
+                if name_ptr.is_null() {
+                    format!("symbol_{}", i)
+                } else {
+                    CStr::from_ptr(name_ptr as *const c_char)
+                        .to_string_lossy()
+                        .into_owned()
+                }
             };
             (ts_metadata, name)
         };
