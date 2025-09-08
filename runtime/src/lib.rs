@@ -579,9 +579,19 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
 /// Error type for span validation operations
 pub enum SpanError {
     /// The span start index is greater than the span end index
-    InvalidRange { start: usize, end: usize },
+    InvalidRange {
+        /// Start index of the invalid span
+        start: usize,
+        /// End index of the invalid span
+        end: usize,
+    },
     /// The span extends beyond the bounds of the target string or buffer
-    OutOfBounds { span: (usize, usize), length: usize },
+    OutOfBounds {
+        /// The span range (start, end) that is out of bounds
+        span: (usize, usize),
+        /// The actual length of the target string or buffer
+        length: usize,
+    },
 }
 
 impl std::fmt::Display for SpanError {

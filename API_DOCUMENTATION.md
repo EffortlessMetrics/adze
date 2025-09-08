@@ -363,7 +363,110 @@ impl QueryCursor {
 
 ## Error Recovery
 
-### `ErrorRecoveryConfig`
+### `SpanError` - Span Validation and Safe Operations ✅ *(PR #55 - Production Ready)*
+The `SpanError` type provides comprehensive error handling for span-based operations, eliminating panic-prone indexing and enabling robust error recovery patterns:
+
+```rust
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SpanError {
+    /// The span start index is greater than the span end index
+    InvalidRange { start: usize, end: usize },
+    /// The span extends beyond the bounds of the target string or buffer
+    OutOfBounds { span: (usize, usize), length: usize },
+}
+
+impl std::fmt::Display for SpanError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SpanError::InvalidRange { start, end } => {
+                write!(f, "Invalid span range: start ({start}) > end ({end})")
+            }
+            SpanError::OutOfBounds {
+                span: (start, end),
+                length,
+            } => {
+                write!(
+                    f,
+                    "Span {start}..{end} is out of bounds for length {length}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for SpanError {}
+```
+
+### `Spanned<T>` - Enhanced with Error Recovery Methods
+The `Spanned<T>` type now includes comprehensive error recovery capabilities for safe span operations:
+
+```rust
+impl<T> Spanned<T> {
+    /// Create a new Spanned value with the given span
+    pub fn new(value: T, span: (usize, usize)) -> Self;
+
+    /// Validate that this span is within the bounds of the given string
+    /// Returns Ok(()) if valid, SpanError if invalid range or out of bounds
+    pub fn validate_for_str(&self, s: &str) -> Result<(), SpanError>;
+
+    /// Safely extract a substring using this span, returning a Result instead of panicking
+    /// Returns the substring if valid, SpanError if the span is invalid
+    pub fn try_slice_str<'a>(&self, s: &'a str) -> Result<&'a str, SpanError>;
+
+    /// Safely extract a mutable substring using this span, returning a Result instead of panicking
+    /// Returns the mutable substring if valid, SpanError if the span is invalid
+    pub fn try_slice_str_mut<'a>(&self, s: &'a mut str) -> Result<&'a mut str, SpanError>;
+}
+```
+
+**Key Features**:
+- **Panic Prevention**: All span operations return `Result<T, SpanError>` instead of panicking
+- **Comprehensive Validation**: Checks both range validity (`start <= end`) and bounds (`end <= length`)
+- **Backward Compatibility**: Original panicking methods remain available for existing code
+- **Rich Error Information**: Detailed error messages with specific ranges and expected bounds
+- **Memory Safety**: Prevents buffer overruns and underruns through checked arithmetic
+
+**Common Usage Patterns**:
+```rust
+use rust_sitter::{Spanned, SpanError};
+
+// Safe span validation
+let span = Spanned::new("hello", (0, 5));
+match span.validate_for_str("hello world") {
+    Ok(()) => println!("Span is valid"),
+    Err(SpanError::InvalidRange { start, end }) => {
+        println!("Invalid range: {} > {}", start, end);
+    }
+    Err(SpanError::OutOfBounds { span, length }) => {
+        println!("Span {:?} exceeds length {}", span, length);
+    }
+}
+
+// Safe substring extraction
+let text = "fn main() { println!(\"Hello\"); }";
+let function_name_span = Spanned::new((), (3, 7)); // "main"
+
+match function_name_span.try_slice_str(text) {
+    Ok(name) => println!("Function name: {}", name),
+    Err(e) => println!("Failed to extract function name: {}", e),
+}
+
+// Safe mutable operations
+let mut source = String::from("let x = 42;");
+let var_name_span = Spanned::new((), (4, 5)); // "x"
+
+match var_name_span.try_slice_str_mut(&mut source) {
+    Ok(var_name) => {
+        var_name.make_ascii_uppercase(); // Changes "x" to "X"
+    }
+    Err(e) => println!("Cannot modify variable name: {}", e),
+}
+```
+
+### Legacy Error Recovery Components
+The following components provide additional error recovery capabilities for advanced use cases:
+
+#### `ErrorRecoveryConfig`
 ```rust
 impl ErrorRecoveryConfig {
     /// Create builder
@@ -391,7 +494,7 @@ impl ErrorRecoveryConfigBuilder {
 }
 ```
 
-### Recovery Actions
+#### Recovery Actions
 ```rust
 pub enum RecoveryAction {
     /// Insert a token
