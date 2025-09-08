@@ -4,8 +4,8 @@
 
 use rust_sitter::decoder::decode_parse_table;
 use rust_sitter::ts_format::choose_action;
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseRule, ParseTable, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId, Token};
+use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
+use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 
 #[path = "support/json_grammar.rs"]
 mod json_grammar;
