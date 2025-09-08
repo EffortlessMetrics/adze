@@ -136,7 +136,7 @@ impl BetaTester {
 
     /// Generate parse table for grammar
     pub fn generate_parse_table(&self, grammar: &Grammar) -> Result<ParseTable> {
-        use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+        use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 
         let ff =
             FirstFollowSets::compute(grammar).context("Failed to compute first/follow sets")?;

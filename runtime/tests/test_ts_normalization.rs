@@ -81,7 +81,7 @@ fn test_accept_injection() {
 #[test]
 fn test_round_trip_preservation() {
     // Get the normalized JSON language
-    let lang = unified_json_language();
+    let lang = unified_json_language().expect("Failed to get unified JSON language");
 
     // Decode it back
     let decoded = decode_parse_table(lang);

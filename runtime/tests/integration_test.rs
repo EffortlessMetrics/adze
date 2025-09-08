@@ -16,7 +16,7 @@ fn test_complete_workflow() {
     let mut parser = Parser::new();
 
     // 2. Set a language (use the real LR(1) → TSLanguage)
-    let language = unified_json_helper::unified_json_language();
+    let language = unified_json_helper::unified_json_language().expect("Failed to get unified JSON language");
     eprintln!("Language symbol_count: {}", language.symbol_count);
     eprintln!("Language state_count: {}", language.state_count);
     eprintln!("Language large_state_count: {}", language.large_state_count);
@@ -76,7 +76,7 @@ fn test_complete_workflow() {
 #[cfg(feature = "pure-rust")]
 fn test_error_recovery() {
     let mut parser = Parser::new();
-    let language = unified_json_helper::unified_json_language();
+    let language = unified_json_helper::unified_json_language().expect("Failed to get unified JSON language");
     parser
         .set_language(language)
         .expect("Failed to set language");
@@ -99,11 +99,11 @@ fn test_error_recovery() {
 #[test]
 #[cfg(feature = "pure-rust")]
 fn test_cancellation() {
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     let mut parser = Parser::new();
-    let language = unified_json_helper::unified_json_language();
+    let language = unified_json_helper::unified_json_language().expect("Failed to get unified JSON language");
     parser
         .set_language(language)
         .expect("Failed to set language");
@@ -138,7 +138,7 @@ fn test_cancellation() {
 #[cfg(feature = "pure-rust")]
 fn test_timeout() {
     let mut parser = Parser::new();
-    let language = unified_json_helper::unified_json_language();
+    let language = unified_json_helper::unified_json_language().expect("Failed to get unified JSON language");
     parser
         .set_language(language)
         .expect("Failed to set language");

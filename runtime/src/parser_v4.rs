@@ -7,8 +7,8 @@
 use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
-use crate::scanner_registry::{get_global_registry, DynExternalScanner};
-use anyhow::{anyhow, bail, Result};
+use crate::scanner_registry::{DynExternalScanner, get_global_registry};
+use anyhow::{Result, anyhow, bail};
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::collections::HashSet;
@@ -311,13 +311,14 @@ impl Parser {
         language: &crate::pure_parser::TSLanguage,
     ) -> Result<Tree> {
         // Check if language has a custom lexer
-        if let Some(lex_fn) = language.lex_fn {
-            // Convert pure_parser::TSLexState to lex::TSLexState
-            let converted_lex_fn: unsafe extern "C" fn(
-                *mut core::ffi::c_void,
-                crate::lex::TSLexState,
-            ) -> bool = unsafe { std::mem::transmute(lex_fn) };
-            self.parse_with_custom_lexer(input, converted_lex_fn)
+        if let Some(_lex_fn) = language.lex_fn {
+            // TODO: Need to implement proper type-safe conversion between TSLexState types
+            // For now, fall back to regular parsing to avoid unsafe transmute
+            // The different TSLexState types are not directly compatible
+            eprintln!(
+                "Warning: Custom lexer function provided but type conversion not yet implemented safely"
+            );
+            self.parse(input)
         } else {
             self.parse(input)
         }
@@ -346,8 +347,31 @@ impl Parser {
         // Create the TsLexFnAdapter directly - no type conversion needed
         let mut token_source = TsLexFnAdapter::new(input.as_bytes(), lex_fn);
 
-        // Main parsing loop
+        // Main parsing loop with safety limits
+        let mut loop_iterations = 0;
+        const MAX_LOOP_ITERATIONS: usize = 1_000_000; // Prevent infinite loops
+
         loop {
+            // Safety check to prevent infinite loops
+            loop_iterations += 1;
+            if loop_iterations > MAX_LOOP_ITERATIONS {
+                bail!(
+                    "Parser exceeded maximum iteration limit ({}), possible infinite loop",
+                    MAX_LOOP_ITERATIONS
+                );
+            }
+
+            // Enhanced safety checks to prevent various attack vectors
+            if state_stack.len() > 10000 {
+                bail!("Parse stack overflow: {} states", state_stack.len());
+            }
+            if symbol_stack.len() > 10000 {
+                bail!("Symbol stack overflow: {} symbols", symbol_stack.len());
+            }
+            if node_stack.len() > 10000 {
+                bail!("Node stack overflow: {} nodes", node_stack.len());
+            }
+
             // Get current state
             let current_state = *state_stack
                 .last()
@@ -365,7 +389,7 @@ impl Parser {
             } else {
                 // We're at EOF - use the table's EOF symbol
                 let eof_sym = self.parse_table.eof_symbol.0; // Extract u16 from SymbolId
-                                                             // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
+                // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
                 crate::lex::Token {
                     sym: eof_sym,
                     start: token_source.offset(),
@@ -560,8 +584,20 @@ impl Parser {
         let input_bytes = input.as_bytes();
         let mut current_position = 0;
 
-        // Main parsing loop
+        // Main parsing loop with safety limits
+        let mut loop_iterations = 0;
+        const MAX_LOOP_ITERATIONS: usize = 1_000_000; // Prevent infinite loops
+
         loop {
+            // Safety check to prevent infinite loops
+            loop_iterations += 1;
+            if loop_iterations > MAX_LOOP_ITERATIONS {
+                bail!(
+                    "Parser exceeded maximum iteration limit ({}), possible infinite loop",
+                    MAX_LOOP_ITERATIONS
+                );
+            }
+
             // Get current state
             let current_state = *state_stack
                 .last()
@@ -894,9 +930,24 @@ impl Parser {
                 }
             }
 
-            // Safety check to prevent infinite loops
+            // Enhanced safety checks to prevent various attack vectors
             if state_stack.len() > 10000 {
-                return Err(anyhow!("Parse stack overflow"));
+                bail!("Parse stack overflow: {} states", state_stack.len());
+            }
+            if symbol_stack.len() > 10000 {
+                bail!("Symbol stack overflow: {} symbols", symbol_stack.len());
+            }
+            if node_stack.len() > 10000 {
+                bail!("Node stack overflow: {} nodes", node_stack.len());
+            }
+
+            // Prevent parser from getting stuck at the same position
+            if current_position > input_bytes.len() {
+                bail!(
+                    "Parser position beyond input bounds: {} > {}",
+                    current_position,
+                    input_bytes.len()
+                );
             }
         }
     }
@@ -1324,7 +1375,10 @@ impl Parser {
         Ok(new_heads)
     }
 
-    /// Recursively perform GLR reduction
+    /// Maximum recursion depth to prevent stack overflow attacks
+    const MAX_RECURSION_DEPTH: usize = 1000;
+
+    /// Recursively perform GLR reduction with stack overflow protection
     #[allow(dead_code)]
     fn perform_glr_reduce(
         &mut self,
@@ -1332,11 +1386,51 @@ impl Parser {
         rule_lhs: SymbolId,
         rule_id: RuleId,
         remaining: usize,
-        mut children: Vec<Rc<ForestNode>>,
+        children: Vec<Rc<ForestNode>>,
         new_heads: &mut Vec<usize>,
     ) -> Result<()> {
+        self.perform_glr_reduce_with_depth(
+            current_gss,
+            rule_lhs,
+            rule_id,
+            remaining,
+            children,
+            new_heads,
+            0,
+        )
+    }
+
+    /// Internal recursive function with depth tracking
+    #[allow(dead_code, clippy::too_many_arguments)]
+    fn perform_glr_reduce_with_depth(
+        &mut self,
+        current_gss: usize,
+        rule_lhs: SymbolId,
+        rule_id: RuleId,
+        remaining: usize,
+        children: Vec<Rc<ForestNode>>,
+        new_heads: &mut Vec<usize>,
+        depth: usize,
+    ) -> Result<()> {
+        // Check recursion depth to prevent stack overflow
+        if depth >= Self::MAX_RECURSION_DEPTH {
+            bail!(
+                "Maximum recursion depth exceeded in GLR reduction (depth: {})",
+                depth
+            );
+        }
+
+        // Validate current_gss index to prevent out-of-bounds access
+        if current_gss >= self.glr_state.gss_nodes.len() {
+            bail!(
+                "Invalid GSS node index: {} (max: {})",
+                current_gss,
+                self.glr_state.gss_nodes.len()
+            );
+        }
         if remaining == 0 {
             // Reduction complete - create non-terminal node
+            let mut children = children; // Make mutable for reverse
             children.reverse(); // Children were collected in reverse order
 
             let start = if children.is_empty() {
@@ -1381,18 +1475,43 @@ impl Parser {
 
             new_heads.push(new_gss);
         } else {
-            // Continue reduction - follow all parent links
+            // Continue reduction - follow all parent links with bounds checking
             let parents = self.glr_state.gss_nodes[current_gss].parents.clone();
+
+            // Prevent excessive branching that could lead to exponential explosion
+            if parents.len() > 100 {
+                bail!(
+                    "Excessive parent links in GSS node: {} (current: {})",
+                    parents.len(),
+                    current_gss
+                );
+            }
+
             for link in parents {
+                // Validate parent index
+                if link.parent >= self.glr_state.gss_nodes.len() {
+                    continue; // Skip invalid parent link
+                }
+
                 let mut new_children = children.clone();
                 new_children.push(link.tree_node.clone());
-                self.perform_glr_reduce(
+
+                // Check for reasonable children count to prevent memory exhaustion
+                if new_children.len() > 10000 {
+                    bail!(
+                        "Excessive children count in GLR reduction: {}",
+                        new_children.len()
+                    );
+                }
+
+                self.perform_glr_reduce_with_depth(
                     link.parent,
                     rule_lhs,
                     rule_id,
-                    remaining - 1,
+                    remaining.saturating_sub(1), // Prevent underflow
                     new_children,
                     new_heads,
+                    depth + 1,
                 )?;
             }
         }
@@ -1454,7 +1573,8 @@ impl Parser {
 
     /// Advance from scanner result
     pub fn advance_from_scanner(&mut self, length: usize) {
-        self.position += length;
+        // Use saturating arithmetic and bounds checking to prevent overflow
+        self.position = self.position.saturating_add(length).min(self.input.len());
     }
 
     /// Get TS lexer pointer (for FFI compatibility)
@@ -1497,7 +1617,8 @@ impl crate::external_scanner::Lexer for Parser {
     }
 
     fn advance(&mut self, n: usize) {
-        self.position = std::cmp::min(self.position + n, self.input.len());
+        // Use saturating arithmetic to prevent overflow
+        self.position = self.position.saturating_add(n).min(self.input.len());
     }
 
     fn mark_end(&mut self) {

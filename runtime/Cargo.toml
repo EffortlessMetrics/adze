@@ -72,7 +72,7 @@ rust-sitter-python = { path = "../grammars/python" }
 
 # Tree-sitter dependencies for ts-compat golden tests
 tree-sitter-json = "0.24.8"
-ts-bridge = { path = "../tools/ts-bridge" }
+ts-bridge = { path = "../tools/ts-bridge", features = ["with-grammars"] }
 
 [[bench]]
 name = "simple_bench"

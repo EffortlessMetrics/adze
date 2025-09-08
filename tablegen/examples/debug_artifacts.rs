@@ -1,5 +1,5 @@
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
-use rust_sitter_ir::{builder::GrammarBuilder, SymbolId};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_ir::{SymbolId, builder::GrammarBuilder};
 use rust_sitter_tablegen::{collect_token_indices, eof_accepts_or_reduces};
 use std::collections::BTreeMap;
 

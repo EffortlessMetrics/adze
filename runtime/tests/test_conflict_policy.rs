@@ -7,7 +7,7 @@ mod support;
 
 use rust_sitter::decoder;
 use rust_sitter::ts_format::choose_action as ts_choose;
-use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
+use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::StateId;
 
 #[test]

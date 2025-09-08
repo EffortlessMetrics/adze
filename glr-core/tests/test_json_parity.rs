@@ -128,6 +128,10 @@ fn test_json_simple_object() {
                 visible: sym["visible"].as_bool().unwrap_or(false),
                 named: sym["named"].as_bool().unwrap_or(false),
                 supertype: false,
+                is_terminal: sym["type"].as_str().unwrap_or("") == "REGULAR",
+                is_extra: false,
+                is_fragile: false,
+                symbol_id: rust_sitter_ir::SymbolId(0), // Default value
             });
         }
     }

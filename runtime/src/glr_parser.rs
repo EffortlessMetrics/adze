@@ -96,7 +96,7 @@ pub fn safe_dedup_threshold() -> usize {
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
-use rust_sitter_glr_core::{compare_versions, Action, CompareResult, ParseTable, VersionInfo};
+use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
 use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
@@ -1813,7 +1813,8 @@ impl GLRParser {
         );
 
         // Hard bound: at most a few iterations (guards infinite loops).
-        for _i in 0..8 {
+        #[allow(unused_variables)] // Used in debug_glr! macro calls
+        for i in 0..8 {
             // Close first with EOF as lookahead to expose any reduces
             let stacks = std::mem::take(&mut self.stacks);
             let stacks = self.reduce_until_saturated(stacks, eof, self.input_length);

@@ -1,5 +1,6 @@
 mod language_builder;
 
+use anyhow::Result;
 use rust_sitter::pure_parser::TSLanguage;
 use rust_sitter_glr_core::GotoIndexing;
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
@@ -13,22 +14,36 @@ use ts_bridge::{extract, schema::Action as TsAction};
 /// to decode the Tree-sitter parse tables and rebuild a fresh language using
 /// our pure-Rust layout.
 #[allow(dead_code)]
-pub fn unified_json_language() -> &'static TSLanguage {
+pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
     // Extract parse table data from upstream Tree-sitter JSON grammar
+    // tree_sitter_json::LANGUAGE.into_raw() returns a function pointer that needs to be called
     let raw_lang_fn = tree_sitter_json::LANGUAGE.into_raw();
 
-    // Convert function pointer to correct type expected by extract()
-    let lang_fn: unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage =
-        unsafe { std::mem::transmute(raw_lang_fn) };
+    // Add ABI compatibility verification before any unsafe operations
+    ts_bridge::ffi::assert_abi_compatible();
 
-    // Validate that calling the language function returns a non-null pointer
+    // Convert function pointer with proper safety checks
+    // The returned function has type: unsafe extern "C" fn() -> *const tree_sitter::Language
+    // We need to transmute to the ts_bridge expected signature
+    let lang_fn: unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage = {
+        // Validate pointer size compatibility
+        if std::mem::size_of_val(&raw_lang_fn) != std::mem::size_of::<unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage>() {
+            return Err(anyhow::anyhow!("Function pointer size mismatch: got {} bytes, expected {} bytes",
+                std::mem::size_of_val(&raw_lang_fn),
+                std::mem::size_of::<unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage>()));
+        }
+        // Use transmute (not transmute_copy) for function pointers - they're Copy by nature
+        unsafe { std::mem::transmute(raw_lang_fn) }
+    };
+
+    // Call the function to get the actual language pointer and validate it
     let lang_ptr = unsafe { lang_fn() };
     if lang_ptr.is_null() {
-        panic!("Tree-sitter JSON language pointer is null");
+        return Err(anyhow::anyhow!("Tree-sitter JSON language pointer is null after function call"));
     }
     eprintln!("Language Pointer from function: {:p}", lang_ptr);
 
-    let data = extract(lang_fn).expect("extract tree-sitter json");
+    let data = extract(lang_fn).map_err(|e| anyhow::anyhow!("Failed to extract tree-sitter json: {}", e))?;
 
     // Find the document symbol - this should be the start symbol for JSON
     let mut document_id = None;
@@ -196,5 +211,5 @@ pub fn unified_json_language() -> &'static TSLanguage {
     language_builder::normalize_table_for_ts(&mut table);
 
     let lang = language_builder::build_json_ts_language(&grammar, &table);
-    Box::leak(Box::new(lang))
+    Ok(Box::leak(Box::new(lang)))
 }

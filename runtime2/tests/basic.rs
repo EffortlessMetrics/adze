@@ -1,6 +1,6 @@
 //! Basic tests to verify the runtime compiles and has the expected API
 
-use rust_sitter_runtime::{test_helpers::stub_language, Parser, Tree};
+use rust_sitter_runtime::{Parser, Tree, test_helpers::stub_language};
 
 #[test]
 fn can_create_parser() {
