@@ -503,138 +503,155 @@ impl Grammar {
     /// Normalize complex symbols by creating auxiliary rules
     /// This expands Optional, Repeat, Choice, etc. into standard rules
     pub fn normalize(&mut self) -> Vec<Rule> {
-        let mut new_rules = Vec::new();
-        let mut aux_counter = 0;
+        let max_id = self.rules.keys().map(|id| id.0).max().unwrap_or(0);
+        let mut aux_counter = max_id + 1000; // Start auxiliary IDs well above existing ones
 
-        // Process each existing rule
-        let rules_to_process: Vec<(SymbolId, Rule)> = self
-            .rules
-            .iter()
-            .flat_map(|(lhs, rules)| rules.iter().map(|r| (*lhs, r.clone())))
-            .collect();
+        // We need to keep processing until no complex symbols remain
+        loop {
+            let mut found_complex = false;
+            let mut all_rules = Vec::new();
 
-        for (_lhs, mut rule) in rules_to_process {
-            let mut new_rhs = Vec::new();
+            // Collect all current rules
+            for (_lhs, rules) in &self.rules {
+                for rule in rules {
+                    all_rules.push(rule.clone());
+                }
+            }
 
-            for symbol in rule.rhs {
-                match symbol {
-                    Symbol::Optional(inner) => {
-                        // Create aux rule: aux -> inner | ε
-                        let aux_id = SymbolId(9000 + aux_counter);
-                        aux_counter += 1;
+            // Clear existing rules
+            self.rules.clear();
 
-                        // aux -> inner
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![*inner.clone()],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
+            // Process each rule
+            for mut rule in all_rules {
+                let mut new_rhs = Vec::new();
 
-                        // aux -> ε
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![Symbol::Epsilon],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
+                for symbol in rule.rhs {
+                    match symbol {
+                        Symbol::Optional(inner) => {
+                            found_complex = true;
+                            // Create aux rule: aux -> inner | ε
+                            let aux_id = SymbolId(aux_counter);
+                            aux_counter += 1;
 
-                        new_rhs.push(Symbol::NonTerminal(aux_id));
-                    }
-                    Symbol::Repeat(inner) => {
-                        // Create aux rule: aux -> aux inner | ε
-                        let aux_id = SymbolId(9000 + aux_counter);
-                        aux_counter += 1;
-
-                        // aux -> aux inner
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![Symbol::NonTerminal(aux_id), *inner.clone()],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
-
-                        // aux -> ε
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![Symbol::Epsilon],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
-
-                        new_rhs.push(Symbol::NonTerminal(aux_id));
-                    }
-                    Symbol::RepeatOne(inner) => {
-                        // Create aux rule: aux -> aux inner | inner
-                        let aux_id = SymbolId(9000 + aux_counter);
-                        aux_counter += 1;
-
-                        // aux -> aux inner
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![Symbol::NonTerminal(aux_id), *inner.clone()],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
-
-                        // aux -> inner
-                        new_rules.push(Rule {
-                            lhs: aux_id,
-                            rhs: vec![*inner],
-                            precedence: None,
-                            associativity: None,
-                            fields: vec![],
-                            production_id: ProductionId(0),
-                        });
-
-                        new_rhs.push(Symbol::NonTerminal(aux_id));
-                    }
-                    Symbol::Choice(choices) => {
-                        // Create aux rules: aux -> choice1 | choice2 | ...
-                        let aux_id = SymbolId(9000 + aux_counter);
-                        aux_counter += 1;
-
-                        for choice in choices {
-                            new_rules.push(Rule {
+                            // aux -> inner (recursively normalize the inner symbol)
+                            let inner_rule = Rule {
                                 lhs: aux_id,
-                                rhs: vec![choice],
+                                rhs: vec![*inner.clone()],
+                                precedence: None,
+                                associativity: None,
+                                fields: vec![],
+                                production_id: ProductionId(0),
+                            };
+                            self.add_rule(inner_rule);
+
+                            // aux -> ε
+                            self.add_rule(Rule {
+                                lhs: aux_id,
+                                rhs: vec![Symbol::Epsilon],
                                 precedence: None,
                                 associativity: None,
                                 fields: vec![],
                                 production_id: ProductionId(0),
                             });
-                        }
 
-                        new_rhs.push(Symbol::NonTerminal(aux_id));
+                            new_rhs.push(Symbol::NonTerminal(aux_id));
+                        }
+                        Symbol::Repeat(inner) => {
+                            found_complex = true;
+                            // Create aux rule: aux -> aux inner | ε
+                            let aux_id = SymbolId(aux_counter);
+                            aux_counter += 1;
+
+                            // aux -> aux inner (recursively normalize)
+                            self.add_rule(Rule {
+                                lhs: aux_id,
+                                rhs: vec![Symbol::NonTerminal(aux_id), *inner.clone()],
+                                precedence: None,
+                                associativity: None,
+                                fields: vec![],
+                                production_id: ProductionId(0),
+                            });
+
+                            // aux -> ε
+                            self.add_rule(Rule {
+                                lhs: aux_id,
+                                rhs: vec![Symbol::Epsilon],
+                                precedence: None,
+                                associativity: None,
+                                fields: vec![],
+                                production_id: ProductionId(0),
+                            });
+
+                            new_rhs.push(Symbol::NonTerminal(aux_id));
+                        }
+                        Symbol::RepeatOne(inner) => {
+                            found_complex = true;
+                            // Create aux rule: aux -> aux inner | inner
+                            let aux_id = SymbolId(aux_counter);
+                            aux_counter += 1;
+
+                            // aux -> aux inner
+                            self.add_rule(Rule {
+                                lhs: aux_id,
+                                rhs: vec![Symbol::NonTerminal(aux_id), *inner.clone()],
+                                precedence: None,
+                                associativity: None,
+                                fields: vec![],
+                                production_id: ProductionId(0),
+                            });
+
+                            // aux -> inner
+                            self.add_rule(Rule {
+                                lhs: aux_id,
+                                rhs: vec![*inner],
+                                precedence: None,
+                                associativity: None,
+                                fields: vec![],
+                                production_id: ProductionId(0),
+                            });
+
+                            new_rhs.push(Symbol::NonTerminal(aux_id));
+                        }
+                        Symbol::Choice(choices) => {
+                            found_complex = true;
+                            // Create aux rules: aux -> choice1 | choice2 | ...
+                            let aux_id = SymbolId(aux_counter);
+                            aux_counter += 1;
+
+                            for choice in choices {
+                                self.add_rule(Rule {
+                                    lhs: aux_id,
+                                    rhs: vec![choice],
+                                    precedence: None,
+                                    associativity: None,
+                                    fields: vec![],
+                                    production_id: ProductionId(0),
+                                });
+                            }
+
+                            new_rhs.push(Symbol::NonTerminal(aux_id));
+                        }
+                        Symbol::Sequence(seq) => {
+                            found_complex = true;
+                            // Flatten sequence into the current rule
+                            new_rhs.extend(seq);
+                        }
+                        other => new_rhs.push(other),
                     }
-                    Symbol::Sequence(seq) => {
-                        // Flatten sequence into the current rule
-                        new_rhs.extend(seq);
-                    }
-                    other => new_rhs.push(other),
                 }
+
+                rule.rhs = new_rhs;
+                self.add_rule(rule);
             }
 
-            rule.rhs = new_rhs;
-            new_rules.push(rule);
+            // If no complex symbols were found in this iteration, we're done
+            if !found_complex {
+                break;
+            }
         }
 
-        // Add new rules to the grammar
-        for rule in &new_rules {
-            self.add_rule(rule.clone());
-        }
-
-        new_rules
+        // Return all rules for compatibility (though caller probably doesn't need this)
+        self.rules.values().flatten().cloned().collect()
     }
 }
 

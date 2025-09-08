@@ -484,6 +484,17 @@ impl FirstFollowSets {
             Symbol::Epsilon => 0,
         }
     }
+
+    /// Compute FIRST/FOLLOW sets for the given grammar with automatic normalization
+    /// This method automatically normalizes complex symbols (Repeat, Choice, etc.) before computation
+    pub fn compute_normalized(grammar: &mut Grammar) -> Result<Self, GLRError> {
+        // Normalize the grammar to convert complex symbols to simple rules
+        grammar.normalize();
+
+        // Now compute FIRST/FOLLOW sets on the normalized grammar
+        Self::compute(grammar)
+    }
+
     /// Compute FIRST/FOLLOW sets for the given grammar
     pub fn compute(grammar: &Grammar) -> Result<Self, GLRError> {
         // Find the maximum symbol ID to determine the size needed

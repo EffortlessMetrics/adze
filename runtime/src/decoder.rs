@@ -190,27 +190,53 @@ pub fn decode_grammar_with_patterns(
     }
 
     // Process symbols to determine tokens
-    for i in 0..lang.symbol_count as usize {
-        let metadata = unsafe { *lang.symbol_metadata.add(i) };
-        let name = &symbol_names[i];
-        let symbol_id = SymbolId(i as u16);
+    if !lang.symbol_metadata.is_null() {
+        for i in 0..lang.symbol_count as usize {
+            let metadata = unsafe { *lang.symbol_metadata.add(i) };
+            let name = &symbol_names[i];
+            let symbol_id = SymbolId(i as u16);
 
-        if is_terminal(metadata, name) {
-            // This is a token
-            let pattern = if let Some(real_pattern) = token_patterns.get(name) {
-                real_pattern.clone()
-            } else {
-                rust_sitter_ir::TokenPattern::String(name.clone())
-            };
+            if is_terminal(metadata, name) {
+                // This is a token
+                let pattern = if let Some(real_pattern) = token_patterns.get(name) {
+                    real_pattern.clone()
+                } else {
+                    rust_sitter_ir::TokenPattern::String(name.clone())
+                };
 
-            tokens.insert(
-                symbol_id,
-                Token {
-                    name: name.clone(),
-                    pattern,
-                    fragile: false,
-                },
-            );
+                tokens.insert(
+                    symbol_id,
+                    Token {
+                        name: name.clone(),
+                        pattern,
+                        fragile: false,
+                    },
+                );
+            }
+        }
+    } else {
+        // If symbol_metadata is null, assume all symbols with certain patterns are tokens
+        for i in 0..lang.symbol_count as usize {
+            let name = &symbol_names[i];
+            let symbol_id = SymbolId(i as u16);
+
+            // Heuristic: symbols that are likely terminals based on name patterns
+            if is_likely_terminal_by_name(name) {
+                let pattern = if let Some(real_pattern) = token_patterns.get(name) {
+                    real_pattern.clone()
+                } else {
+                    rust_sitter_ir::TokenPattern::String(name.clone())
+                };
+
+                tokens.insert(
+                    symbol_id,
+                    Token {
+                        name: name.clone(),
+                        pattern,
+                        fragile: false,
+                    },
+                );
+            }
         }
     }
 
@@ -534,8 +560,16 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
         // Decode symbol metadata
         let (ts_metadata, name) = unsafe {
-            let ts_metadata = *lang.symbol_metadata.add(i);
-            let name_ptr = *lang.symbol_names.add(i);
+            let ts_metadata = if !lang.symbol_metadata.is_null() {
+                *lang.symbol_metadata.add(i)
+            } else {
+                0 // Default metadata when not available
+            };
+            let name_ptr = if !lang.symbol_names.is_null() {
+                *lang.symbol_names.add(i)
+            } else {
+                std::ptr::null()
+            };
             let name = if name_ptr.is_null() {
                 format!("symbol_{}", i)
             } else {
@@ -878,6 +912,63 @@ fn is_terminal(metadata: u8, name: &str) -> bool {
                 | "string_content"
                 | "string_end"
         )
+}
+
+/// Heuristic to determine if a symbol is likely a terminal when metadata is unavailable
+fn is_likely_terminal_by_name(name: &str) -> bool {
+    // When metadata is not available, use name-based heuristics
+    // This mirrors the logic from is_terminal but without metadata bits
+
+    // Obvious terminal patterns
+    if name.starts_with("anon_sym_")
+        || name.starts_with("aux_sym_")
+        || name.starts_with("sym_")
+        || name == "ERROR"
+        || name.starts_with("ts_builtin_sym_")
+    {
+        return true;
+    }
+
+    // Common terminal names
+    if matches!(
+        name,
+        "identifier"
+            | "integer"
+            | "float"
+            | "string"
+            | "comment"
+            | "newline"
+            | "indent"
+            | "dedent"
+            | "string_start"
+            | "string_content"
+            | "string_end"
+    ) {
+        return true;
+    }
+
+    // Exclude patterns that are definitely non-terminals
+    if name.starts_with("_") && name[1..].chars().all(|c| c.is_ascii_digit()) {
+        // Names like _119, _26 are non-terminals
+        return false;
+    }
+
+    // Single character symbols are usually terminals
+    if name.len() == 1 {
+        return true;
+    }
+
+    // Multi-character punctuation is usually terminal
+    if name.len() <= 3
+        && name
+            .chars()
+            .all(|c| !c.is_alphanumeric() && !c.is_whitespace())
+    {
+        return true;
+    }
+
+    // Default to non-terminal for safety
+    false
 }
 
 /// Check if a symbol is hidden based on metadata
