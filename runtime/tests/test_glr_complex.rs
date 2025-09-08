@@ -2,7 +2,7 @@
 
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter_glr_core::{
-    build_lr1_automaton, compare_versions_with_symbols, CompareResult, FirstFollowSets, VersionInfo,
+    CompareResult, FirstFollowSets, VersionInfo, build_lr1_automaton, compare_versions_with_symbols,
 };
 use rust_sitter_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,

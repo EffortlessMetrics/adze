@@ -1,7 +1,7 @@
 use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
 use rust_sitter_ir::{ExternalToken, Grammar, StateId, SymbolId};
-use rust_sitter_tablegen::external_scanner::ExternalScannerGenerator;
 use rust_sitter_tablegen::StaticLanguageGenerator;
+use rust_sitter_tablegen::external_scanner::ExternalScannerGenerator;
 
 #[test]
 #[ignore]

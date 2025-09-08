@@ -3,7 +3,7 @@
 mod support;
 
 use rust_sitter::decoder;
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use support::{expr_grammar, language_builder};
 
 #[test]
