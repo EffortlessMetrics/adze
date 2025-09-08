@@ -162,12 +162,7 @@ impl<'a> QueryParser<'a> {
         }
 
         // Collect named symbol ids from grammar for quick lookup during matching
-        let named_symbols = self
-            .grammar
-            .rule_names
-            .keys()
-            .cloned()
-            .collect();
+        let named_symbols = self.grammar.rule_names.keys().cloned().collect();
 
         Ok(Query {
             patterns,
@@ -658,7 +653,11 @@ impl<'a> QueryMatches<'a> {
                         }
                     }
                     if node_index >= node_children.len()
-                        || !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
+                        || !self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        )
                     {
                         return false;
                     }
@@ -673,7 +672,11 @@ impl<'a> QueryMatches<'a> {
                         }
                     }
                     if node_index < node_children.len()
-                        && self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
+                        && self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        )
                     {
                         node_index += 1;
                     }
@@ -684,8 +687,11 @@ impl<'a> QueryMatches<'a> {
                             node_index += 1;
                             continue;
                         }
-                        if self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
-                        {
+                        if self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        ) {
                             node_index += 1;
                         } else {
                             break;
@@ -701,7 +707,11 @@ impl<'a> QueryMatches<'a> {
                         }
                     }
                     if node_index >= node_children.len()
-                        || !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
+                        || !self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        )
                     {
                         return false;
                     }
@@ -714,8 +724,11 @@ impl<'a> QueryMatches<'a> {
                             node_index += 1;
                             continue;
                         }
-                        if self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
-                        {
+                        if self.match_pattern_node(
+                            &pattern_child.node,
+                            &node_children[node_index],
+                            0,
+                        ) {
                             node_index += 1;
                         } else {
                             break;
