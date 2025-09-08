@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod memory_tests {
-    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
     use rust_sitter_ir::builder::GrammarBuilder;
 
     #[test]

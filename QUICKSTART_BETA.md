@@ -339,6 +339,73 @@ pub struct StringLiteral {
 }
 ```
 
+## Error Recovery & Robust Parsing
+
+### Safe Span Operations (PR #55) ✅
+Rust-sitter now includes comprehensive error recovery for span operations, preventing panics when working with malformed code:
+
+```rust
+use rust_sitter::{Spanned, SpanError};
+
+// Safe span extraction with error handling
+fn extract_function_name(source: &str, span: &Spanned<()>) -> Option<String> {
+    match span.try_slice_str(source) {
+        Ok(name) => Some(name.to_string()),
+        Err(SpanError::OutOfBounds { span, length }) => {
+            eprintln!("Span {:?} exceeds source length {}", span, length);
+            None
+        },
+        Err(SpanError::InvalidRange { start, end }) => {
+            eprintln!("Invalid span range: {} > {}", start, end);
+            None
+        }
+    }
+}
+```
+
+### Graceful Parser Error Handling
+```rust
+use rust_sitter_runtime::{Parser, ParseError};
+
+fn parse_with_recovery(source: &str) -> Result<Program, String> {
+    match Program::parse(source) {
+        Ok(tree) => Ok(tree),
+        Err(ParseError::UnexpectedToken { expected, found, location }) => {
+            eprintln!("Parse error at {}:{}: expected {:?}, found '{}'", 
+                location.line, location.column, expected, found);
+            Err("Parse failed - try fixing syntax errors".to_string())
+        },
+        Err(e) => {
+            eprintln!("Parse error: {}", e);
+            Err("Parse failed".to_string())
+        }
+    }
+}
+```
+
+### Incremental Parsing with Error Recovery
+```rust
+use rust_sitter_runtime::{InputEdit, EditError, Point};
+
+fn apply_edit_safely(source: &mut String, edit: InputEdit) -> Result<(), EditError> {
+    // Validate edit bounds before applying
+    if edit.start_byte > source.len() {
+        return Err(EditError::InvalidRange { 
+            start: edit.start_byte, 
+            old_end: edit.old_end_byte 
+        });
+    }
+    
+    // Apply edit to source
+    let start = edit.start_byte;
+    let old_end = edit.old_end_byte.min(source.len());
+    let new_text = &source[edit.start_byte..edit.new_end_byte];
+    
+    source.replace_range(start..old_end, new_text);
+    Ok(())
+}
+```
+
 ## Troubleshooting
 
 ### Grammar Conflicts
@@ -346,6 +413,54 @@ If you see "conflict" errors during build:
 1. Simplify your grammar
 2. Make optional elements explicit
 3. Avoid ambiguous patterns
+
+### Error Recovery Issues
+If your parser crashes on malformed input:
+
+1. **Use Safe Span Operations**:
+   ```rust
+   // ❌ Can panic on malformed input
+   let text = &source[span.0..span.1];
+   
+   // ✅ Safe with error recovery
+   let text = match span.try_slice_str(source) {
+       Ok(text) => text,
+       Err(e) => {
+           eprintln!("Span error: {}", e);
+           return Err("Invalid span");
+       }
+   };
+   ```
+
+2. **Handle Edit Errors**:
+   ```rust
+   // ✅ Always check edit results
+   match tree.edit(&edit) {
+       Ok(()) => { /* proceed with reparse */ },
+       Err(EditError::InvalidRange { start, old_end }) => {
+           eprintln!("Invalid edit range: {} -> {}", start, old_end);
+       },
+       Err(e) => eprintln!("Edit error: {}", e),
+   }
+   ```
+
+3. **Test with Malformed Input**:
+   ```rust
+   #[test]
+   fn test_malformed_input() {
+       let bad_inputs = vec![
+           "fn main(",           // Missing paren
+           "let x = ;",         // Missing expr
+           "",                  // Empty
+       ];
+       
+       for input in bad_inputs {
+           // Should not panic, even on bad input
+           let result = Program::parse(input);
+           assert!(result.is_err());
+       }
+   }
+   ```
 
 ### Missing Features
 If a Tree-sitter feature isn't working:

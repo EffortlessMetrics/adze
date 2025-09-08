@@ -83,7 +83,7 @@ pub fn generate_lexer(
         let byte_values = bytes.to_vec();
         token_matches.push(quote! {
             if position + #len <= input.len() &&
-               &input[position..position + #len] == &[#(#byte_values),*] &&
+               input[position..position + #len] == [#(#byte_values),*] &&
                (position + #len >= input.len() ||
                 (!input[position + #len].is_ascii_alphanumeric() && input[position + #len] != b'_')) {
                 state.result_symbol = #symbol_index;
@@ -96,9 +96,9 @@ pub fn generate_lexer(
     // Second: Add other string patterns (operators, punctuation)
     for (symbol_index, s) in other_strings {
         if s.len() == 1 {
-            let ch = s.chars().next().unwrap();
+            let ch_byte = s.as_bytes()[0];
             token_matches.push(quote! {
-                if input[position] == #ch as u8 {
+                if input[position] == #ch_byte {
                     state.result_symbol = #symbol_index;
                     state.result_length = 1;
                     return true;
@@ -109,7 +109,7 @@ pub fn generate_lexer(
             let len = bytes.len();
             let byte_values = bytes.to_vec();
             token_matches.push(quote! {
-                if position + #len <= input.len() && &input[position..position + #len] == &[#(#byte_values),*] {
+                if position + #len <= input.len() && input[position..position + #len] == [#(#byte_values),*] {
                     state.result_symbol = #symbol_index;
                     state.result_length = #len;
                     return true;
