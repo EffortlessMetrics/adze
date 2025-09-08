@@ -387,7 +387,11 @@ pub mod grammar {
 mod tests {
     #[test]
     fn test_simple_program() {
-        // Grammar builds successfully
-        assert!(true);
+        // Grammar builds successfully - this test just ensures the grammar compiles
+        // The assertion is intentionally trivial as the real test is compilation
+        #[allow(clippy::assertions_on_constants)]
+        {
+            assert!(true);
+        }
     }
 }
