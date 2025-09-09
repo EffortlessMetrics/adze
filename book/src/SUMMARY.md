@@ -12,6 +12,7 @@
 
 - [Grammar Definition](guide/grammar-definition.md)
 - [Parser Generation](guide/parser-generation.md)
+- [GLR Precedence Resolution](guide/glr-precedence-resolution.md)
 - [Incremental Parsing](guide/incremental-parsing.md)
 - [Query and Pattern Matching](guide/query-patterns.md)
 - [Error Recovery](guide/error-recovery.md)

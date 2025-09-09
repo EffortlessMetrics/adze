@@ -93,6 +93,7 @@ impl ExternalScannerGenerator {
             static EXTERNAL_SCANNER_SYMBOL_MAP: &[u16] = &[#(#symbol_map),*];
 
             // External scanner data
+            #[allow(dead_code)]
             static EXTERNAL_SCANNER_DATA: rust_sitter::ffi::TSExternalScannerData = rust_sitter::ffi::TSExternalScannerData {
                 states: EXTERNAL_SCANNER_STATES.as_ptr(),
                 symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr(),
@@ -155,7 +156,7 @@ impl ExternalScannerGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+    use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets};
     use rust_sitter_ir::{ProductionId, Rule, Symbol, Token, TokenPattern};
 
     #[test]

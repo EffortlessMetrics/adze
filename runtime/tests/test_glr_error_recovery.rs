@@ -4,7 +4,7 @@ use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilde
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
@@ -157,14 +157,6 @@ fn parse_with_recovery(
 
     // Parse
     parser.reset();
-    println!(
-        "Parsing '{}' with tokens: {:?}",
-        input,
-        tokens
-            .iter()
-            .map(|t| (t.symbol_id, &t.text))
-            .collect::<Vec<_>>()
-    );
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
@@ -174,7 +166,6 @@ fn parse_with_recovery(
         .unwrap_or(0);
     parser.process_eof(total_bytes);
     let result = parser.finish();
-    println!("Parse result: {:?}", result.is_ok());
     result.ok()
 }
 

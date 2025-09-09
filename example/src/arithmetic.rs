@@ -18,18 +18,29 @@ extern "C" {
 }
 
 // The grammar definition - in pure-rust mode, this generates the parser
+// GLR Precedence Configuration (v0.6.1):
+// - Level 1 (lower): Subtraction (-) - left associative
+// - Level 2 (higher): Multiplication (*) - left associative
+// This ensures "1 - 2 * 3" parses as "1 - (2 * 3)" due to precedence
 #[rust_sitter::grammar("arithmetic")]
 pub mod grammar {
     #[rust_sitter::language]
     #[derive(PartialEq, Eq, Debug)]
     pub enum Expression {
         Number(#[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+
+        /// Subtraction: precedence level 1 (lower precedence, looser binding)
+        /// Left associative: "1 - 2 - 3" → "(1 - 2) - 3"
         #[rust_sitter::prec_left(1)]
         Sub(
             Box<Expression>,
             #[rust_sitter::leaf(text = "-")] (),
             Box<Expression>,
         ),
+
+        /// Multiplication: precedence level 2 (higher precedence, tighter binding)
+        /// Left associative: "1 * 2 * 3" → "(1 * 2) * 3"
+        /// Higher precedence than subtraction: "1 - 2 * 3" → "1 - (2 * 3)"
         #[rust_sitter::prec_left(2)]
         Mul(
             Box<Expression>,
@@ -240,5 +251,87 @@ mod tests {
         }
 
         println!("Test completed!");
+    }
+
+    /// Test demonstrating GLR precedence disambiguation fixes (v0.6.1)
+    /// This test validates that the GLR parser correctly resolves operator precedence
+    #[test]
+    fn test_glr_precedence_disambiguation() {
+        // Test 1: Basic precedence - multiplication should bind tighter than subtraction
+        // Input: "1 - 2 * 3" should parse as "1 - (2 * 3)", not "(1 - 2) * 3"
+        let result = grammar::parse("1 - 2 * 3").unwrap();
+        match result {
+            Expression::Sub(left, _, right) => {
+                assert_eq!(**left, Expression::Number(1));
+                assert!(matches!(**right, Expression::Mul(_, _, _)));
+                if let Expression::Mul(mul_left, _, mul_right) = &**right {
+                    assert_eq!(**mul_left, Expression::Number(2));
+                    assert_eq!(**mul_right, Expression::Number(3));
+                }
+            }
+            _ => panic!("Expected Sub at top level, got {:?}", result),
+        }
+
+        // Test 2: Multiple operators with same precedence (left associativity)
+        // Input: "1 - 2 - 3" should parse as "(1 - 2) - 3"
+        let result = grammar::parse("1 - 2 - 3").unwrap();
+        match result {
+            Expression::Sub(left, _, right) => {
+                assert!(matches!(**left, Expression::Sub(_, _, _)));
+                assert_eq!(**right, Expression::Number(3));
+                if let Expression::Sub(sub_left, _, sub_right) = &**left {
+                    assert_eq!(**sub_left, Expression::Number(1));
+                    assert_eq!(**sub_right, Expression::Number(2));
+                }
+            }
+            _ => panic!("Expected left-associative Sub, got {:?}", result),
+        }
+
+        // Test 3: Mixed precedence with left associativity
+        // Input: "1 * 2 * 3" should parse as "(1 * 2) * 3"
+        let result = grammar::parse("1 * 2 * 3").unwrap();
+        match result {
+            Expression::Mul(left, _, right) => {
+                assert!(matches!(**left, Expression::Mul(_, _, _)));
+                assert_eq!(**right, Expression::Number(3));
+            }
+            _ => panic!("Expected left-associative Mul, got {:?}", result),
+        }
+
+        // Test 4: Complex precedence interaction
+        // Input: "1 * 2 - 3" should parse as "(1 * 2) - 3"
+        let result = grammar::parse("1 * 2 - 3").unwrap();
+        match result {
+            Expression::Sub(left, _, right) => {
+                assert!(matches!(**left, Expression::Mul(_, _, _)));
+                assert_eq!(**right, Expression::Number(3));
+            }
+            _ => panic!("Expected (1 * 2) - 3 structure, got {:?}", result),
+        }
+    }
+
+    /// Test demonstrating GLR error recovery improvements (v0.6.1)
+    /// These tests show how the parser handles malformed input gracefully
+    #[test]
+    fn test_glr_error_recovery() {
+        // Test malformed expressions that should produce errors but not crash
+        let error_cases = vec![
+            "1 - - 2", // Double operator
+            "1 - 2 -", // Trailing operator
+            "- 2",     // Leading operator (not supported in this grammar)
+            "1 2",     // Missing operator
+            "1 - * 2", // Operator sequence
+        ];
+
+        for case in error_cases {
+            let result = grammar::parse(case);
+            // These should fail gracefully, not panic
+            assert!(
+                result.is_err(),
+                "Expected parse error for '{}', got {:?}",
+                case,
+                result
+            );
+        }
     }
 }

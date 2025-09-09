@@ -196,8 +196,11 @@ impl Parser {
 }
 ```
 
-**GLR Integration Status**: **Production Ready** ✅
+**GLR Integration Status**: **Production Ready** ✅ (Enhanced v0.6.1)
 - Complete GLR engine routing with Tree-sitter API compatibility
+- **Precedence Disambiguation**: Correctly resolves operator precedence conflicts
+- **Error Recovery**: Graceful handling of malformed input with error node insertion
+- **EOF Processing**: Fixed parameter usage for proper end-of-input handling
 - Feature-gated compilation for different GLR capabilities
 - Memory-safe GLR forest management with performance monitoring
 - Incremental parsing optimization with subtree reuse
@@ -728,7 +731,7 @@ pub enum ParseError {
         location: Location,
     },
     
-    /// Ambiguous parse
+    /// Ambiguous parse (preserved for compatibility)
     AmbiguousParse {
         alternatives: Vec<ParseNode>,
     },
@@ -738,6 +741,47 @@ pub enum ParseError {
     
     /// Grammar error
     GrammarError(String),
+    
+    /// Precedence attribute error (Enhanced v0.6.1)
+    PrecedenceError {
+        message: String,
+        attribute: String,
+        suggestion: String,
+    },
+    
+    /// EOF processing error (Enhanced v0.6.1)
+    EOFError {
+        expected_actions: Vec<String>,
+        context: String,
+    },
+}
+```
+
+### Enhanced Error Handling (v0.6.1)
+
+The GLR parser now provides comprehensive error information:
+
+#### Precedence Errors
+```rust
+// Enhanced precedence validation with actionable messages:
+match parse_result {
+    Err(ParseError::PrecedenceError { message, attribute, suggestion }) => {
+        eprintln!("Precedence error: {}", message);
+        eprintln!("Problem attribute: {}", attribute);
+        eprintln!("Suggestion: {}", suggestion);
+    }
+    _ => {}
+}
+```
+
+#### Error Recovery Context
+```rust
+// Parser continues after errors, providing context:
+let tree = parser.parse_utf8("1 + + 2", None)?;
+if tree.has_error() {
+    for error_node in tree.error_nodes() {
+        println!("Error at {}: {}", error_node.range(), error_node.error_type());
+    }
 }
 ```
 

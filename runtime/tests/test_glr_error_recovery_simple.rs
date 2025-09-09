@@ -4,7 +4,7 @@ use rust_sitter::error_recovery::ErrorRecoveryConfigBuilder;
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::subtree::Subtree;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_simple_grammar() -> Grammar {
@@ -84,7 +84,8 @@ fn test_basic_parsing_without_errors() {
     let mut parser = GLRParser::new(table, grammar.clone());
 
     // Tokenize valid input
-    let mut lexer = GLRLexer::new(&grammar, "1 + 2".to_string()).unwrap();
+    let input = "1 + 2";
+    let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
     let tokens = lexer.tokenize_all();
 
     // Parse
@@ -92,9 +93,12 @@ fn test_basic_parsing_without_errors() {
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
-    parser.process_eof(10);
+    parser.process_eof(input.len());
     let result = parser.finish();
 
+    if let Err(e) = &result {
+        println!("Parse error: {:?}", e);
+    }
     assert!(result.is_ok(), "Failed to parse valid input '1 + 2'");
 }
 
@@ -114,7 +118,8 @@ fn test_error_recovery_double_operator() {
     parser.enable_error_recovery(config);
 
     // Tokenize input with error (double plus)
-    let mut lexer = GLRLexer::new(&grammar, "1 + + 2".to_string()).unwrap();
+    let input = "1 + + 2";
+    let mut lexer = GLRLexer::new(&grammar, input.to_string()).unwrap();
     let tokens = lexer.tokenize_all();
 
     println!(
@@ -130,7 +135,7 @@ fn test_error_recovery_double_operator() {
     for token in &tokens {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
-    parser.process_eof(10);
+    parser.process_eof(input.len());
     let result = parser.finish();
 
     println!("Parse result: {:?}", result.is_ok());
