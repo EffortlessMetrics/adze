@@ -1,8 +1,9 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rust_sitter_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };
+#[allow(unused_imports)]
 use std::collections::HashMap;
 
 /// Build a simple ambiguous grammar: S -> S S | 'a'
@@ -137,13 +138,13 @@ fn benchmark_ambiguous_grammar(c: &mut Criterion) {
     let mut group = c.benchmark_group("glr_ambiguous");
 
     // Build the grammar once
-    let grammar = build_ambiguous_grammar();
+    let _grammar = build_ambiguous_grammar();
 
     // Benchmark different input sizes
     for size in &[5, 10, 15, 20] {
-        let input = generate_input(*size);
+        let _input = generate_input(*size);
 
-        group.bench_function(&format!("parse_{}_tokens", size), |b| {
+        group.bench_function(format!("parse_{}_tokens", size), |b| {
             b.iter(|| {
                 // TODO: Actually run GLR parser here once integrated
                 // For now, simulate the workload
@@ -169,7 +170,7 @@ fn benchmark_ambiguous_grammar(c: &mut Criterion) {
 fn benchmark_expression_parsing(c: &mut Criterion) {
     let mut group = c.benchmark_group("glr_expression");
 
-    let grammar = build_expression_grammar();
+    let _grammar = build_expression_grammar();
 
     // Test expression of form: 1 + 2 * 3 + 4 * 5 ...
     for num_ops in &[10, 50, 100, 500] {
@@ -241,7 +242,9 @@ fn benchmark_fork_merge_operations(c: &mut Criterion) {
 
             // Simulate checking if stacks can merge (same prefix)
             let can_merge = stacks.windows(2).all(|w| {
-                w[0].len() > 0 && w[1].len() > 0 && w[0][..w[0].len() - 1] == w[1][..w[1].len() - 1]
+                !w[0].is_empty()
+                    && !w[1].is_empty()
+                    && w[0][..w[0].len() - 1] == w[1][..w[1].len() - 1]
             });
 
             if can_merge {
