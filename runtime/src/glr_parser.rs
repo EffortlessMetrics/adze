@@ -2167,6 +2167,12 @@ impl GLRParser {
         self.stacks.push(initial_stack);
         self.pending_stacks.clear();
         self.pending_stacks.push_back(0);
+
+        // Reset error recovery state if present
+        if let Some(ref mut recovery_state) = self.recovery_state {
+            recovery_state.reset_consecutive_errors();
+            recovery_state.clear_errors();
+        }
     }
 
     /// Get expected symbols at current parse state
