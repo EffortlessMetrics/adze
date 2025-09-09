@@ -10,6 +10,8 @@ use rust_sitter_ir::StateId;
 use rust_sitter_ir::{Grammar, SymbolId};
 use smallvec::SmallVec;
 use std::collections::{HashSet, VecDeque};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 
 /// Error recovery strategies that can be applied during parsing
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,17 +111,17 @@ impl Default for ErrorRecoveryConfig {
 pub struct ErrorRecoveryState {
     /// Configuration for error recovery
     config: ErrorRecoveryConfig,
-    /// Number of consecutive errors encountered
-    consecutive_errors: usize,
-    /// Stack of open scopes for scope-based recovery
-    scope_stack: Vec<u16>,
-    /// Recent tokens for context-aware recovery
-    recent_tokens: VecDeque<u16>,
+    /// Number of consecutive errors encountered (thread-safe atomic counter)
+    consecutive_errors: AtomicUsize,
+    /// Stack of open scopes for scope-based recovery (thread-safe)
+    scope_stack: Arc<Mutex<Vec<u16>>>,
+    /// Recent tokens for context-aware recovery (thread-safe)
+    recent_tokens: Arc<Mutex<VecDeque<u16>>>,
     /// Indentation levels for indentation-based recovery
     #[allow(dead_code)]
-    indentation_stack: Vec<usize>,
-    /// Error nodes created during recovery
-    error_nodes: Vec<ErrorNode>,
+    indentation_stack: Arc<Mutex<Vec<usize>>>,
+    /// Error nodes created during recovery (thread-safe)
+    error_nodes: Arc<Mutex<Vec<ErrorNode>>>,
 }
 
 /// Represents an error node in the parse tree
@@ -150,11 +152,11 @@ impl ErrorRecoveryState {
     pub fn new(config: ErrorRecoveryConfig) -> Self {
         Self {
             config,
-            consecutive_errors: 0,
-            scope_stack: Vec::new(),
-            recent_tokens: VecDeque::with_capacity(10),
-            indentation_stack: vec![0],
-            error_nodes: Vec::new(),
+            consecutive_errors: AtomicUsize::new(0),
+            scope_stack: Arc::new(Mutex::new(Vec::new())),
+            recent_tokens: Arc::new(Mutex::new(VecDeque::with_capacity(10))),
+            indentation_stack: Arc::new(Mutex::new(vec![0])),
+            error_nodes: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -166,10 +168,10 @@ impl ErrorRecoveryState {
         _position: (usize, usize),
         _byte_offset: usize,
     ) -> RecoveryStrategy {
-        self.consecutive_errors += 1;
+        let current_errors = self.consecutive_errors.fetch_add(1, Ordering::SeqCst) + 1;
 
         // Check if we've hit the error limit
-        if self.consecutive_errors > self.config.max_consecutive_errors {
+        if current_errors > self.config.max_consecutive_errors {
             return RecoveryStrategy::PanicMode;
         }
 
@@ -179,7 +181,7 @@ impl ErrorRecoveryState {
         if (actual.is_none() || self.can_insert_token(expected))
             && let Some(_token) = self.find_insertable_token(expected)
         {
-            self.consecutive_errors = 0; // Reset on successful recovery
+            self.consecutive_errors.store(0, Ordering::SeqCst); // Reset on successful recovery
             return RecoveryStrategy::TokenInsertion;
         }
 
@@ -224,59 +226,72 @@ impl ErrorRecoveryState {
         recovery: RecoveryStrategy,
         skipped_tokens: Vec<u16>,
     ) {
-        self.error_nodes.push(ErrorNode {
-            start_byte,
-            end_byte,
-            start_position,
-            end_position,
-            expected,
-            actual,
-            recovery,
-            skipped_tokens,
-        });
+        if let Ok(mut nodes) = self.error_nodes.lock() {
+            nodes.push(ErrorNode {
+                start_byte,
+                end_byte,
+                start_position,
+                end_position,
+                expected,
+                actual,
+                recovery,
+                skipped_tokens,
+            });
+        }
     }
 
     /// Update recent tokens for context-aware recovery
     pub fn add_recent_token(&mut self, token: u16) {
-        if self.recent_tokens.len() >= 10 {
-            self.recent_tokens.pop_front();
+        if let Ok(mut tokens) = self.recent_tokens.lock() {
+            if tokens.len() >= 10 {
+                tokens.pop_front();
+            }
+            tokens.push_back(token);
         }
-        self.recent_tokens.push_back(token);
     }
 
     /// Update scope stack for scope-based recovery
     pub fn push_scope(&mut self, token: u16) {
-        if self.is_opening_delimiter(token) {
-            self.scope_stack.push(token);
+        if self.is_opening_delimiter(token)
+            && let Ok(mut stack) = self.scope_stack.lock()
+        {
+            stack.push(token);
         }
     }
 
     /// Update scope stack when closing delimiter is found
     pub fn pop_scope(&mut self, token: u16) -> bool {
         if let Some(expected_open) = self.find_matching_open(token)
-            && self.scope_stack.last() == Some(&expected_open)
+            && let Ok(mut stack) = self.scope_stack.lock()
+            && stack.last() == Some(&expected_open)
         {
-            self.scope_stack.pop();
+            stack.pop();
             return true;
         }
         false
     }
 
     /// Get error nodes collected during parsing
-    pub fn get_error_nodes(&self) -> &[ErrorNode] {
-        &self.error_nodes
+    pub fn get_error_nodes(&self) -> Vec<ErrorNode> {
+        if let Ok(nodes) = self.error_nodes.lock() {
+            nodes.clone()
+        } else {
+            Vec::new()
+        }
     }
 
     /// Reset consecutive error count (called on successful parse)
     #[allow(dead_code)]
     pub fn reset_consecutive_errors(&mut self) {
-        self.consecutive_errors = 0;
+        self.consecutive_errors.store(0, Ordering::SeqCst);
     }
 
     /// Clear all error nodes
     #[allow(dead_code)]
     pub fn clear_errors(&mut self) {
-        self.error_nodes.clear();
+        if let Ok(mut nodes) = self.error_nodes.lock() {
+            nodes.clear();
+        }
     }
 
     // Helper methods
@@ -311,12 +326,16 @@ impl ErrorRecoveryState {
             // Check if it's a closing delimiter without matching open
             self.config.scope_delimiters.iter().any(|(_, close)| {
                 token == *close
-                    && !self.scope_stack.iter().any(|open| {
-                        self.config
-                            .scope_delimiters
-                            .iter()
-                            .any(|(o, c)| o == open && c == close)
-                    })
+                    && if let Ok(stack) = self.scope_stack.lock() {
+                        !stack.iter().any(|open| {
+                            self.config
+                                .scope_delimiters
+                                .iter()
+                                .any(|(o, c)| o == open && c == close)
+                        })
+                    } else {
+                        true // If we can't lock, assume mismatch for safety
+                    }
             })
         } else {
             false
@@ -340,20 +359,24 @@ impl ErrorRecoveryState {
 
     // Test helper methods
     pub fn increment_error_count(&mut self) {
-        self.consecutive_errors += 1;
+        self.consecutive_errors.fetch_add(1, Ordering::SeqCst);
     }
 
     pub fn reset_error_count(&mut self) {
-        self.consecutive_errors = 0;
+        self.consecutive_errors.store(0, Ordering::SeqCst);
     }
 
     pub fn should_give_up(&self) -> bool {
-        self.consecutive_errors >= self.config.max_consecutive_errors
+        self.consecutive_errors.load(Ordering::SeqCst) >= self.config.max_consecutive_errors
     }
 
     // Legacy pop_scope method for tests
     pub fn pop_scope_test(&mut self) -> Option<u16> {
-        self.scope_stack.pop()
+        if let Ok(mut stack) = self.scope_stack.lock() {
+            stack.pop()
+        } else {
+            None
+        }
     }
 
     pub fn update_recent_tokens(&mut self, token: SymbolId) {
@@ -473,9 +496,9 @@ mod tests {
     fn test_recovery_state_creation() {
         let config = ErrorRecoveryConfig::default();
         let state = ErrorRecoveryState::new(config);
-        assert_eq!(state.consecutive_errors, 0);
-        assert!(state.scope_stack.is_empty());
-        assert_eq!(state.indentation_stack, vec![0]);
+        assert_eq!(state.consecutive_errors.load(Ordering::SeqCst), 0);
+        assert!(state.scope_stack.lock().unwrap().is_empty());
+        assert_eq!(*state.indentation_stack.lock().unwrap(), vec![0]);
     }
 
     #[test]
@@ -510,7 +533,7 @@ mod tests {
         assert_eq!(strategy, RecoveryStrategy::TokenInsertion);
 
         // Test panic mode after too many errors
-        state.consecutive_errors = 11;
+        state.consecutive_errors.store(11, Ordering::SeqCst);
         let strategy = state.determine_recovery_strategy(&[10, 11], Some(15), (0, 0), 0);
         assert_eq!(strategy, RecoveryStrategy::PanicMode);
     }
@@ -526,19 +549,19 @@ mod tests {
         // Push opening delimiters
         state.push_scope(1);
         state.push_scope(3);
-        assert_eq!(state.scope_stack, vec![1, 3]);
+        assert_eq!(*state.scope_stack.lock().unwrap(), vec![1, 3]);
 
         // Pop matching delimiter
         assert!(state.pop_scope(4));
-        assert_eq!(state.scope_stack, vec![1]);
+        assert_eq!(*state.scope_stack.lock().unwrap(), vec![1]);
 
         // Try to pop non-matching delimiter
         assert!(!state.pop_scope(4));
-        assert_eq!(state.scope_stack, vec![1]);
+        assert_eq!(*state.scope_stack.lock().unwrap(), vec![1]);
 
         // Pop correct delimiter
         assert!(state.pop_scope(2));
-        assert!(state.scope_stack.is_empty());
+        assert!(state.scope_stack.lock().unwrap().is_empty());
     }
 
     #[test]
@@ -576,17 +599,19 @@ impl ErrorRecoveryState {
         table: &ParseTable,
         _grammar: &Grammar,
     ) -> Option<RecoveryAction> {
-        self.consecutive_errors += 1;
+        let current_errors = self.consecutive_errors.fetch_add(1, Ordering::SeqCst) + 1;
 
         // Check if we've hit the error limit
-        if self.consecutive_errors > self.config.max_consecutive_errors {
+        if current_errors > self.config.max_consecutive_errors {
             return None;
         }
 
         // Record the token in recent history
-        self.recent_tokens.push_back(unexpected_token.0);
-        if self.recent_tokens.len() > 10 {
-            self.recent_tokens.pop_front();
+        if let Ok(mut tokens) = self.recent_tokens.lock() {
+            tokens.push_back(unexpected_token.0);
+            if tokens.len() > 10 {
+                tokens.pop_front();
+            }
         }
 
         // Find expected tokens in this state
@@ -605,7 +630,7 @@ impl ErrorRecoveryState {
             .iter()
             .find(|&&token| self.config.insert_candidates.iter().any(|t| t == &token))
         {
-            self.consecutive_errors = 0; // Reset on successful recovery
+            self.consecutive_errors.store(0, Ordering::SeqCst); // Reset on successful recovery
             return Some(RecoveryAction::InsertToken(*insertable));
         }
 
@@ -691,10 +716,10 @@ mod tests2 {
         let config = ErrorRecoveryConfig::default();
         let state = ErrorRecoveryState::new(config.clone());
 
-        assert_eq!(state.consecutive_errors, 0);
-        assert!(state.scope_stack.is_empty());
-        assert!(state.recent_tokens.is_empty());
-        assert!(state.error_nodes.is_empty());
+        assert_eq!(state.consecutive_errors.load(Ordering::SeqCst), 0);
+        assert!(state.scope_stack.lock().unwrap().is_empty());
+        assert!(state.recent_tokens.lock().unwrap().is_empty());
+        assert!(state.error_nodes.lock().unwrap().is_empty());
     }
 
     #[test]
@@ -702,11 +727,11 @@ mod tests2 {
         let config = ErrorRecoveryConfig::default();
         let mut state = ErrorRecoveryState::new(config);
 
-        assert_eq!(state.consecutive_errors, 0);
+        assert_eq!(state.consecutive_errors.load(Ordering::SeqCst), 0);
         state.increment_error_count();
-        assert_eq!(state.consecutive_errors, 1);
+        assert_eq!(state.consecutive_errors.load(Ordering::SeqCst), 1);
         state.increment_error_count();
-        assert_eq!(state.consecutive_errors, 2);
+        assert_eq!(state.consecutive_errors.load(Ordering::SeqCst), 2);
     }
 
     #[test]
@@ -714,9 +739,9 @@ mod tests2 {
         let config = ErrorRecoveryConfig::default();
         let mut state = ErrorRecoveryState::new(config);
 
-        state.consecutive_errors = 5;
+        state.consecutive_errors.store(5, Ordering::SeqCst);
         state.reset_error_count();
-        assert_eq!(state.consecutive_errors, 0);
+        assert_eq!(state.consecutive_errors.load(Ordering::SeqCst), 0);
     }
 
     #[test]
@@ -725,14 +750,14 @@ mod tests2 {
             max_consecutive_errors: 3,
             ..Default::default()
         };
-        let mut state = ErrorRecoveryState::new(config);
+        let state = ErrorRecoveryState::new(config);
 
         assert!(!state.should_give_up());
-        state.consecutive_errors = 2;
+        state.consecutive_errors.store(2, Ordering::SeqCst);
         assert!(!state.should_give_up());
-        state.consecutive_errors = 3;
+        state.consecutive_errors.store(3, Ordering::SeqCst);
         assert!(state.should_give_up());
-        state.consecutive_errors = 4;
+        state.consecutive_errors.store(4, Ordering::SeqCst);
         assert!(state.should_give_up());
     }
 
@@ -746,18 +771,18 @@ mod tests2 {
 
         // Push scope
         state.push_scope(100);
-        assert_eq!(state.scope_stack.len(), 1);
-        assert_eq!(state.scope_stack[0], 100);
+        assert_eq!(state.scope_stack.lock().unwrap().len(), 1);
+        assert_eq!(state.scope_stack.lock().unwrap()[0], 100);
 
         // Push another
         state.push_scope(200);
-        assert_eq!(state.scope_stack.len(), 2);
+        assert_eq!(state.scope_stack.lock().unwrap().len(), 2);
 
         // Pop scope
         assert_eq!(state.pop_scope_test(), Some(200));
-        assert_eq!(state.scope_stack.len(), 1);
+        assert_eq!(state.scope_stack.lock().unwrap().len(), 1);
         assert_eq!(state.pop_scope_test(), Some(100));
-        assert_eq!(state.scope_stack.len(), 0);
+        assert_eq!(state.scope_stack.lock().unwrap().len(), 0);
         assert_eq!(state.pop_scope_test(), None);
     }
 
@@ -768,7 +793,7 @@ mod tests2 {
 
         // Add tokens
         state.update_recent_tokens(SymbolId(1));
-        assert_eq!(state.recent_tokens.len(), 1);
+        assert_eq!(state.recent_tokens.lock().unwrap().len(), 1);
 
         // Add more tokens
         for i in 2..15 {
@@ -776,10 +801,11 @@ mod tests2 {
         }
 
         // Should maintain max of 10
-        assert_eq!(state.recent_tokens.len(), 10);
+        let tokens = state.recent_tokens.lock().unwrap();
+        assert_eq!(tokens.len(), 10);
         // First token should be removed
-        assert_eq!(state.recent_tokens[0], 5);
-        assert_eq!(state.recent_tokens[9], 14);
+        assert_eq!(tokens[0], 5);
+        assert_eq!(tokens[9], 14);
     }
 
     #[test]
