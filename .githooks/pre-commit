@@ -67,10 +67,13 @@ run_with_timeout() {
     shift 2
     local cmd=("$@")
     
-    # Adjust timeout in conservative mode - wait longer but still enforce limits
+    # Adjust timeout in conservative mode - but cap at reasonable limits
     if [ "${HOOK_CONSERVATIVE_MODE:-0}" = "1" ]; then
-        # In conservative mode, extend timeouts significantly but still cap them
-        timeout_duration=$((timeout_duration * 3))
+        # In conservative mode, extend timeouts but cap at 120s max
+        timeout_duration=$((timeout_duration * 2))
+        if [ "$timeout_duration" -gt 120 ]; then
+            timeout_duration=120
+        fi
         echo -e "${BLUE}  →${NC} Running: $description (conservative timeout: ${timeout_duration}s - waiting for system resources)"
         echo -e "${YELLOW}    ⚠${NC} System under load, this may take longer than usual"
     else
@@ -241,18 +244,14 @@ else
     # Step 3: Format only staged Rust files
     echo -e "${YELLOW}→${NC} Formatting staged Rust files..."
     
-    # Format the specific files
+    # Format the specific files (batch processing for speed)
     if [ ${#STAGED_RUST_FILES[@]} -gt 0 ]; then
-        # Use rustfmt directly on specific files to avoid formatting everything
-        for file in "${STAGED_RUST_FILES[@]}"; do
-            if [ -f "$file" ]; then
-                echo -e "${BLUE}  →${NC} Formatting $file"
-                run_with_timeout 60 "rustfmt $file" rustfmt "$file" || {
-                    echo -e "${RED}✖ Failed to format $file${NC}"
-                    exit 1
-                }
-            fi
-        done
+        echo -e "${BLUE}  →${NC} Formatting ${#STAGED_RUST_FILES[@]} files in batch"
+        # Use rustfmt in batch mode - much faster than per-file processing
+        run_with_timeout 30 "rustfmt (batch)" rustfmt "${STAGED_RUST_FILES[@]}" || {
+            echo -e "${RED}✖ Failed to format staged files${NC}"
+            exit 1
+        }
         
         # Check if formatting made any changes to staged files
         FORMATTING_CHANGES=false
