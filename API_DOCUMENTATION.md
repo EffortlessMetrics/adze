@@ -333,6 +333,73 @@ let scanner = HeredocScanner::new()
     .with_end_token(HEREDOC_END);
 ```
 
+### External Lexer Utilities
+
+> **New in PR #67**: External lexer utilities provide FFI-compatible lexer functionality for integrating with external scanners and Tree-sitter compatible systems.
+
+#### `ExternalLexer`
+```rust
+pub struct ExternalLexer {
+    input: &'static [u8],
+    position: usize,
+    column: u32,
+    // ... internal fields
+}
+
+impl ExternalLexer {
+    /// Create a new external lexer
+    pub fn new(input: &'static [u8], start_byte: usize, start_column: u32) -> Self;
+    
+    /// Get current character (Tree-sitter FFI compatible)
+    pub unsafe extern "C" fn lookahead(lexer: *mut c_void) -> u32;
+    
+    /// Advance to next character (Tree-sitter FFI compatible)
+    pub unsafe extern "C" fn advance(lexer: *mut c_void, skip: bool);
+    
+    /// Mark end of current token (Tree-sitter FFI compatible)
+    pub unsafe extern "C" fn mark_end(lexer: *mut c_void);
+    
+    /// Get current column position
+    #[allow(dead_code)]
+    pub unsafe extern "C" fn get_column(lexer: *mut c_void) -> u32;
+    
+    /// Check if at start of included range
+    #[allow(dead_code)]
+    pub unsafe extern "C" fn is_at_included_range_start(lexer: *mut c_void) -> bool;
+    
+    /// Check if at end of input
+    #[allow(dead_code)]
+    pub unsafe extern "C" fn eof(lexer: *mut c_void) -> bool;
+}
+```
+
+**Usage Example - Creating Tree-sitter Compatible Lexer**:
+```rust
+use rust_sitter::external_lexer::ExternalLexer;
+
+// Create external lexer for use with Tree-sitter external scanners
+let input = b"hello\nworld";
+let mut ext_lexer = ExternalLexer::new(input, 0, 0);
+
+// Convert to Tree-sitter TSLexer for FFI compatibility
+let ts_lexer = create_ts_lexer(&mut ext_lexer);
+
+// Use with external scanner functions
+unsafe {
+    let ch = ExternalLexer::lookahead(&mut ts_lexer as *mut _ as *mut c_void);
+    ExternalLexer::advance(&mut ts_lexer as *mut _ as *mut c_void, false);
+    let col = ExternalLexer::get_column(&mut ts_lexer as *mut _ as *mut c_void);
+    let at_eof = ExternalLexer::eof(&mut ts_lexer as *mut _ as *mut c_void);
+}
+```
+
+**FFI Safety Features**:
+- **Column Tracking**: Accurate column position tracking with newline handling
+- **Range Detection**: Support for included range boundaries
+- **EOF Handling**: Robust end-of-input detection
+- **Memory Safety**: Safe pointer handling with null checks
+- **Tree-sitter Compatibility**: Full compatibility with Tree-sitter external scanner interface
+
 ## Query Language
 
 ### Query Compilation
@@ -377,6 +444,72 @@ impl QueryCursor {
 - `#not-eq?` - Inequality
 - `#not-match?` - Negative regex
 
+### Query Error Handling
+
+> **Enhanced in PR #67**: Query parser error handling has been significantly improved with robust predicate validation and precise error reporting.
+
+#### `QueryError` - Enhanced Error Types
+```rust
+#[derive(Debug, Clone, PartialEq)]
+pub enum QueryError {
+    /// Expected opening parenthesis at position
+    ExpectedOpenParen(usize),
+    
+    /// Expected closing parenthesis at position
+    ExpectedCloseParen(usize),
+    
+    /// Expected hash symbol for predicate at position
+    ExpectedHash(usize),
+    
+    /// Expected identifier at position (enhanced error handling)
+    ExpectedIdentifier(usize),
+    
+    /// Invalid predicate syntax
+    InvalidPredicate(String),
+    
+    /// Syntax error with descriptive message
+    SyntaxError(String),
+    
+    // ... other error variants
+}
+```
+
+**Error Handling Improvements**:
+
+1. **Robust Predicate Validation**: Enhanced predicate parsing validates predicate identifiers and returns `ExpectedIdentifier` for unknown predicate names:
+   ```rust
+   // Query: "(#unknown?)" -> QueryError::ExpectedIdentifier
+   match query_parser.parse("(#unknown?)") {
+       Err(QueryError::ExpectedIdentifier(pos)) => {
+           println!("Unknown predicate at position {}", pos);
+       }
+       _ => {}
+   }
+   ```
+
+2. **Standalone Predicate Detection**: Parser now detects standalone predicates and provides appropriate error messages:
+   ```rust
+   // Query: "(#eq? @node value)" (without pattern) -> InvalidPredicate
+   match query_parser.parse("(#eq? @node value)") {
+       Err(QueryError::InvalidPredicate(msg)) => {
+           println!("Error: {}", msg); // "Predicates must be attached to patterns"
+       }
+       _ => {}
+   }
+   ```
+
+3. **Precise Error Positioning**: All error types now include accurate byte positions for debugging:
+   ```rust
+   let query = "(function_definition (#invalid_pred";
+   match parse_query(query) {
+       Err(QueryError::ExpectedIdentifier(pos)) => {
+           println!("Error at position {}: {}", pos, &query[pos..]);
+       }
+       _ => {}
+   }
+   ```
+
+**Tree-sitter Compatibility**: The error handling maintains full compatibility with Tree-sitter query language expectations, ensuring consistent behavior across parsing systems.
 
 ## Error Recovery
 

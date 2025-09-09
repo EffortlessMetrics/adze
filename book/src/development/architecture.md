@@ -366,6 +366,75 @@ impl ExternalScanner for CustomScanner {
 }
 ```
 
+#### External Lexer Integration (New in PR #67)
+
+The architecture now supports external lexer utilities for seamless integration with Tree-sitter compatible systems:
+
+**Integration Pattern**:
+```rust
+use rust_sitter::external_lexer::ExternalLexer;
+
+// Create FFI-compatible lexer for external scanners
+fn create_tree_sitter_lexer(input: &'static [u8]) -> TsLexer {
+    let mut ext_lexer = ExternalLexer::new(input, 0, 0);
+    create_ts_lexer(&mut ext_lexer)
+}
+
+// Usage in external scanner integration
+impl ExternalScanner for TreeSitterCompatibleScanner {
+    fn scan(&mut self, lexer: &mut Lexer, valid_symbols: &[bool]) -> ScanResult {
+        // Create FFI-compatible lexer
+        let ts_lexer = create_tree_sitter_lexer(lexer.input());
+        
+        // Use Tree-sitter FFI functions
+        unsafe {
+            let ch = ExternalLexer::lookahead(&ts_lexer as *const _ as *mut c_void);
+            ExternalLexer::advance(&ts_lexer as *const _ as *mut c_void, false);
+            let col = ExternalLexer::get_column(&ts_lexer as *const _ as *mut c_void);
+        }
+        
+        // Return scan result
+        ScanResult::Success(token_type)
+    }
+}
+```
+
+**Architecture Benefits**:
+- **FFI Compatibility**: Direct integration with Tree-sitter external scanners
+- **Column Tracking**: Accurate position tracking for diagnostics
+- **Memory Safety**: Safe pointer handling with comprehensive null checks  
+- **Range Detection**: Support for included range boundaries
+- **EOF Handling**: Robust end-of-input detection
+
+**Testing Integration**:
+```rust
+#[cfg(test)]
+mod external_lexer_tests {
+    use super::*;
+    
+    #[test]
+    fn test_column_tracking() {
+        let input = b"hello\nworld";
+        let mut ext = ExternalLexer::new(input, 0, 0);
+        let mut ts = create_ts_lexer(&mut ext);
+        
+        // Test column advancement and newline handling
+        assert_eq!(unsafe { ExternalLexer::get_column(&mut ts) }, 0);
+        // ... column tracking tests
+    }
+    
+    #[test] 
+    fn test_eof_detection() {
+        // Test EOF boundary detection
+    }
+    
+    #[test]
+    fn test_range_boundaries() {
+        // Test included range detection
+    }
+}
+```
+
 ### Parser Extensions
 
 The architecture supports multiple extension points:
