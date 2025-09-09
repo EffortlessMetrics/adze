@@ -19,7 +19,7 @@ use tree_sitter::TreeCursor;
 use tree_sitter_c2rust::TreeCursor;
 
 #[cfg(feature = "serialization")]
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 /// Serializable representation of a parse tree node
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -584,27 +584,28 @@ mod tests {
     #[ignore] // TODO: TreeStatistics type needs to be defined
     fn test_tree_statistics() {
         // TODO: TreeStatistics type needs to be defined - this test is incomplete
-        return;
+        // When TreeStatistics is implemented, uncomment and fix the test below:
+        //
         // let mut stats = TreeStatistics::default();
         // assert_eq!(stats.total_nodes, 0);
-        assert_eq!(stats.named_nodes, 0);
-        assert_eq!(stats.max_depth, 0);
-        assert!(stats.node_types.is_empty());
-
-        // Simulate adding some statistics
-        stats.total_nodes = 10;
-        stats.named_nodes = 7;
-        stats.error_nodes = 1;
-        stats.max_depth = 3;
-        stats.node_types.insert("identifier".to_string(), 4);
-        stats.node_types.insert("function".to_string(), 2);
-
-        assert_eq!(stats.total_nodes, 10);
-        assert_eq!(stats.named_nodes, 7);
-        assert_eq!(stats.error_nodes, 1);
-        assert_eq!(stats.max_depth, 3);
-        assert_eq!(stats.node_types.len(), 2);
-        assert_eq!(stats.node_types.get("identifier"), Some(&4));
+        // assert_eq!(stats.named_nodes, 0);
+        // assert_eq!(stats.max_depth, 0);
+        // assert!(stats.node_types.is_empty());
+        //
+        // // Simulate adding some statistics
+        // stats.total_nodes = 10;
+        // stats.named_nodes = 7;
+        // stats.error_nodes = 1;
+        // stats.max_depth = 3;
+        // stats.node_types.insert("identifier".to_string(), 4);
+        // stats.node_types.insert("function".to_string(), 2);
+        //
+        // assert_eq!(stats.total_nodes, 10);
+        // assert_eq!(stats.named_nodes, 7);
+        // assert_eq!(stats.error_nodes, 1);
+        // assert_eq!(stats.max_depth, 3);
+        // assert_eq!(stats.node_types.len(), 2);
+        // assert_eq!(stats.node_types.get("identifier"), Some(&4));
     }
 
     #[test]

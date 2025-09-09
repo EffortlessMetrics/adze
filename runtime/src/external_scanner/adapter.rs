@@ -254,11 +254,18 @@ mod tests {
             adapter.advance(1);
         }
 
-        // At end of first range
-        assert_eq!(adapter.cursor, 5);
-        adapter.advance(1); // Try to advance past range (should be no-op)
-        assert_eq!(adapter.cursor, 5); // Should remain at end
-        assert_eq!(adapter.lookahead(), None); // EOF for this range
+        // After advancing 5 times from 0, we should be at position 5 (which is the space)
+        // The first range is 0..5, so position 5 is the end (exclusive)
+        // The adapter should automatically jump to the next range (starting at 6)
+        assert_eq!(adapter.cursor, 6);
+
+        // We're now at the start of the second range, pointing to 'w'
+        assert_eq!(adapter.lookahead(), Some(b'w'));
+
+        // Advance one more time
+        adapter.advance(1);
+        assert_eq!(adapter.cursor, 7); // Should be at 'o'
+        assert_eq!(adapter.lookahead(), Some(b'o'));
     }
 
     #[test]

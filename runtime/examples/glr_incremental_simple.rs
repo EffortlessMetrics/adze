@@ -1,6 +1,6 @@
 //! Simple demonstration of incremental parsing capabilities
 
-use rust_sitter::glr_incremental::{Edit, Position, ReuseStats};
+use rust_sitter::glr_incremental::Edit;
 
 fn main() {
     println!("=== Incremental Parsing Feature Demo ===\n");
@@ -13,32 +13,13 @@ fn main() {
     // Demonstrate the key data structures
     println!("Key Components:");
     println!("1. Edit struct - describes what changed:");
-    let edit = Edit {
-        start_byte: 10,
-        old_end_byte: 15,
-        new_end_byte: 17,
-        start_position: Position {
-            line: 1,
-            column: 10,
-        },
-        old_end_position: Position {
-            line: 1,
-            column: 15,
-        },
-        new_end_position: Position {
-            line: 1,
-            column: 17,
-        },
-    };
+    let edit = Edit::new(10, 15, 17);
     println!("   {:?}\n", edit);
 
-    println!("2. ReuseStats - tracks parsing efficiency:");
-    let stats = ReuseStats {
-        subtrees_reused: 45,
-        bytes_reused: 850,
-        total_bytes: 1000,
-    };
-    print_stats(&stats);
+    println!("2. GLR Incremental Parsing Features:");
+    println!("   - Byte-based edit tracking");
+    println!("   - Subtree reuse optimization");
+    println!("   - Fork-aware incremental parsing");
 
     println!("\n3. IncrementalGLRParser API:");
     println!("   - parse_incremental(tokens, edits, previous_tree)");
@@ -63,12 +44,5 @@ fn main() {
     println!("- Optimize subtree matching heuristics");
 }
 
-fn print_stats(stats: &ReuseStats) {
-    println!("   Subtrees reused: {}", stats.subtrees_reused);
-    println!(
-        "   Bytes reused: {} / {} ({:.1}%)",
-        stats.bytes_reused,
-        stats.total_bytes,
-        (stats.bytes_reused as f64 / stats.total_bytes as f64) * 100.0
-    );
-}
+// Note: ReuseStats and Position types are internal implementation details
+// This example demonstrates the public API for incremental parsing
