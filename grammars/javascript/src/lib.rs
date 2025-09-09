@@ -1,6 +1,8 @@
 // JavaScript grammar for rust-sitter
 // Simplified version for v0.5.0-beta
 
+#![allow(clippy::manual_non_exhaustive)]
+
 #[rust_sitter::grammar("javascript")]
 pub mod grammar {
     #[rust_sitter::language]

@@ -27,10 +27,14 @@ pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
     // We need to transmute to the ts_bridge expected signature
     let lang_fn: unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage = {
         // Validate pointer size compatibility
-        if std::mem::size_of_val(&raw_lang_fn) != std::mem::size_of::<unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage>() {
-            return Err(anyhow::anyhow!("Function pointer size mismatch: got {} bytes, expected {} bytes",
+        if std::mem::size_of_val(&raw_lang_fn)
+            != std::mem::size_of::<unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage>()
+        {
+            return Err(anyhow::anyhow!(
+                "Function pointer size mismatch: got {} bytes, expected {} bytes",
                 std::mem::size_of_val(&raw_lang_fn),
-                std::mem::size_of::<unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage>()));
+                std::mem::size_of::<unsafe extern "C" fn() -> *const ts_bridge::ffi::TSLanguage>()
+            ));
         }
         // Use transmute (not transmute_copy) for function pointers - they're Copy by nature
         unsafe { std::mem::transmute(raw_lang_fn) }
@@ -39,11 +43,14 @@ pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
     // Call the function to get the actual language pointer and validate it
     let lang_ptr = unsafe { lang_fn() };
     if lang_ptr.is_null() {
-        return Err(anyhow::anyhow!("Tree-sitter JSON language pointer is null after function call"));
+        return Err(anyhow::anyhow!(
+            "Tree-sitter JSON language pointer is null after function call"
+        ));
     }
     eprintln!("Language Pointer from function: {:p}", lang_ptr);
 
-    let data = extract(lang_fn).map_err(|e| anyhow::anyhow!("Failed to extract tree-sitter json: {}", e))?;
+    let data = extract(lang_fn)
+        .map_err(|e| anyhow::anyhow!("Failed to extract tree-sitter json: {}", e))?;
 
     // Find the document symbol - this should be the start symbol for JSON
     let mut document_id = None;

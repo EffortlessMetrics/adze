@@ -680,8 +680,9 @@ impl<'a> QueryMatches<'a> {
             }
         }
 
-        // All remaining children must be optional
-        node_index == node_children.len()
+        // If no pattern children are specified, match regardless of node children
+        // Otherwise, all remaining children must be consumed by optional patterns
+        pattern_children.is_empty() || node_index == node_children.len()
     }
 
     fn check_predicates(&self, pattern: &Pattern) -> bool {
