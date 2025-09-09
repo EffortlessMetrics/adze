@@ -434,6 +434,35 @@ Boxes are automatically constructed around the inner type when parsing, but Rust
 
 ## Testing & Quality Assurance
 
+### Golden Tests: Tree-sitter Compatibility
+
+Golden tests ensure byte-for-byte compatibility between rust-sitter and official Tree-sitter parsers:
+
+```bash
+# Generate reference files (one-time setup)
+cd golden-tests
+./generate_references.sh
+
+# Run all golden tests
+cargo test --features all-grammars
+
+# Test specific languages
+cargo test --features python-grammar
+cargo test --features javascript-grammar
+```
+
+**Features:**
+- **Perfect Compatibility**: SHA256 hash comparison for exact Tree-sitter output matching
+- **Multi-Language Support**: Python and JavaScript grammar integration
+- **Real-World Testing**: Tests actual code samples, not just synthetic examples  
+- **Fast CI Integration**: Hash-based comparison for efficient regression detection
+- **Easy Updates**: `UPDATE_GOLDEN=1` flag for reference file regeneration
+
+**Supported Languages:**
+- **Python**: Complete grammar with external scanner for indentation
+- **JavaScript**: Full ECMAScript parsing support
+- **Extensible**: Framework ready for additional language grammars
+
 ### Test Connectivity Safeguards
 
 The project includes comprehensive protection against tests being silently disconnected or disabled:

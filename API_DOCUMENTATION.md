@@ -787,6 +787,70 @@ if tree.has_error() {
 
 ## Testing Framework - Enhanced Safety and GLR Support
 
+### Golden Tests - Tree-sitter Compatibility Verification
+Golden tests ensure byte-for-byte compatibility with official Tree-sitter parsers through S-expression comparison:
+
+```rust
+// Located in golden-tests crate
+pub struct GoldenTest {
+    pub language: &'static str,
+    pub fixture_name: &'static str,
+}
+
+impl GoldenTest {
+    /// Get path to fixture file
+    pub fn fixture_path(&self) -> PathBuf;
+    
+    /// Get path to expected S-expression file
+    pub fn expected_sexp_path(&self) -> PathBuf;
+    
+    /// Get path to expected hash file
+    pub fn expected_hash_path(&self) -> PathBuf;
+}
+
+/// Run a golden test with rust-sitter parser
+pub fn run_golden_test(test: GoldenTest) -> anyhow::Result<()>;
+
+/// Parse source with rust-sitter and return S-expression
+pub fn parse_with_rust_sitter(language: &str, source: &str) -> anyhow::Result<String>;
+
+/// Convert parse tree to S-expression format
+pub fn tree_to_sexp(node: &ParsedNode, source: &str) -> String;
+
+/// Compute SHA256 hash for fast comparison
+pub fn compute_hash(content: &str) -> String;
+
+/// Escape string for S-expression format
+pub fn escape_string(s: &str) -> String;
+```
+
+**Feature Flags:**
+```toml
+[dependencies]
+rust-sitter-golden-tests = { path = "golden-tests" }
+
+[features]
+python-grammar = ["rust-sitter-python", "rust-sitter"]
+javascript-grammar = ["rust-sitter-javascript", "rust-sitter"] 
+all-grammars = ["python-grammar", "javascript-grammar"]
+```
+
+**Usage:**
+```bash
+# Generate reference files (one-time setup)
+cd golden-tests && ./generate_references.sh
+
+# Run all golden tests
+cargo test --features all-grammars
+
+# Run specific language tests  
+cargo test --features python-grammar
+cargo test --features javascript-grammar
+
+# Update references when parser behavior changes
+UPDATE_GOLDEN=1 cargo test --features all-grammars
+```
+
 ### `GrammarTester` - Production-Ready Testing
 ```rust
 impl GrammarTester {
