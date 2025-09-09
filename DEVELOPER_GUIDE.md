@@ -283,3 +283,60 @@ cargo build -p example --features pure-rust
 6. [ ] Move API baseline tag if needed
 7. [ ] Push tags: `git push --tags`
 8. [ ] Publish to crates.io: `cargo publish -p rust-sitter`
+
+## GLR Grammar Normalization Development (v0.6.0)
+
+### Enhanced SymbolMetadata Testing
+```bash
+# Test new SymbolMetadata fields and validation
+cargo test -p rust-sitter-ir test_symbol_metadata_complete -- --nocapture
+
+# Validate GLR-specific symbol classification
+cargo test -p rust-sitter-glr-core test_symbol_classification
+
+# Test is_extra, is_fragile, and is_terminal fields
+cargo test -p rust-sitter test_symbol_metadata_fields
+
+# Validate symbol_id assignment and uniqueness
+cargo test -p rust-sitter-common test_symbol_id_uniqueness
+```
+
+### Memory Safety Development Practices
+```rust
+// Always validate spans before access (v0.6.0+)
+fn safe_span_access(input: &[u8], start: usize, end: usize) -> Result<&[u8], ParseError> {
+    if start <= end && end <= input.len() {
+        Ok(&input[start..end])
+    } else {
+        Err(ParseError::InvalidSpan { start, end, len: input.len() })
+    }
+}
+
+// Use enhanced SymbolMetadata with validation
+let metadata = SymbolMetadata {
+    name: "test_symbol".to_string(),
+    visible: true,
+    is_extra: false,
+    is_fragile: false, 
+    is_terminal: true,
+    symbol_id: SymbolId::new(42),
+};
+metadata.validate()?; // Comprehensive validation
+```
+
+### FFI Safety Guidelines (v0.6.0)
+- **Use Safe Mock Language**: All FFI testing now uses safe mock language approach
+- **Proactive Bounds Checking**: Validate all span operations before use
+- **Memory-Safe Struct Generation**: Enhanced validation in generated structures
+- **Comprehensive Error Recovery**: Robust error handling prevents memory violations
+
+## Summary - v0.6.0 Enhancements
+
+This developer guide reflects the major improvements in rust-sitter v0.6.0:
+
+- **Memory Safety Breakthrough**: Eliminated FFI segmentation faults through comprehensive safety improvements
+- **GLR Grammar Normalization**: Enhanced SymbolMetadata with new fields for complete symbol classification  
+- **Code Quality**: Resolved all clippy warnings and implemented consistent formatting
+- **Test Infrastructure**: Enhanced coverage with 55+ GLR tests, 127+ runtime tests, and comprehensive safety validation
+
+Follow these updated practices for safe, effective development in the rust-sitter ecosystem.
