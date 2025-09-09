@@ -1,0 +1,84 @@
+# CRITICAL ISSUES DOCUMENTED IN PERFORMANCE_GUIDE.md
+
+## ❌ COMPLETELY FALSE PERFORMANCE METRICS (Issue #76)
+
+The PERFORMANCE_GUIDE.md contains fictional performance data based on mocked implementations:
+
+### Lines 19-25: Fictional Baseline Performance Table
+```markdown
+<!-- CURRENT (COMPLETELY WRONG): -->
+| Language | File Size | Parse Time | Memory | Tokens/sec |
+|----------|-----------|------------|---------|------------|
+| Rust | 10KB | 0.5ms | 150KB | 2M |
+| JavaScript | 50KB | 2ms | 500KB | 1.8M |
+| Python | 100KB | 3ms | 800KB | 2.2M |
+| C++ | 500KB | 15ms | 3MB | 1.5M |
+```
+
+**REALITY**: These numbers are completely fictional. No real parsing benchmarks exist.
+The actual performance is unknown because:
+- Lexer cannot execute transform functions (Issue #74)
+- Benchmarks measure character counting, not parsing (Issue #73)
+- GLR benchmarks measure Vec::clone(), not GLR operations (Issue #75)
+
+### Lines 28-34: False Incremental Parsing Claims
+```markdown
+<!-- CURRENT (WRONG): -->
+| Edit Type | Reparse Time | Speedup |
+|-----------|--------------|---------|
+| Single char | 0.05ms | 100x |
+| Line change | 0.2ms | 25x |
+```
+
+**REALITY**: Incremental parsing exists architecturally but cannot be benchmarked because basic parsing doesn't work.
+
+## ROOT CAUSES OF FALSE METRICS:
+
+### Issue #73: Benchmark measures character counting
+```rust
+// benchmarks/benches/glr_performance.rs:48-57
+// Claims to measure "parse_python" but actually does:
+for char in source.chars() {
+    if char.is_alphanumeric() || char.is_whitespace() {
+        tokens += 1;
+    }
+}
+// This creates false "815 MB/sec" claims
+```
+
+### Issue #74: Lexer cannot parse real code
+```rust
+// runtime/src/parser_v4.rs
+eprintln!("Warning: Custom lexer function provided but type conversion not yet implemented safely");
+// All grammars with transforms fall back to broken parsing
+```
+
+### Issue #75: GLR benchmarks are fake
+```rust
+// benchmarks/benches/glr_performance.rs
+let forked = stacks[0].clone(); // NOT a GLR fork, just Vec::clone()
+stacks.push(forked); // NOT parse state management
+```
+
+## REQUIRED PERFORMANCE_GUIDE.md FIXES:
+
+1. **Replace all performance tables** with honest disclaimer:
+   ```markdown
+   ⚠️ **Performance metrics are not yet available.**
+   Current benchmarks measure mock implementations, not real parsing.
+   Real performance testing will be added once core parsing works.
+   ```
+
+2. **Add section explaining current limitations**:
+   - Lexer type conversion not implemented
+   - Transform functions not executed
+   - Benchmarks measure mocks
+
+3. **Remove optimization suggestions** until there's something real to optimize
+
+4. **Add roadmap** for when real benchmarks will be available
+
+## IMPACT:
+- Developers optimize based on fictional bottlenecks
+- Performance expectations completely unrealistic  
+- Technical credibility damaged when users discover the truth

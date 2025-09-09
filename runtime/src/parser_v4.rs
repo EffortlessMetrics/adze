@@ -7,8 +7,8 @@
 use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
-use crate::scanner_registry::{DynExternalScanner, get_global_registry};
-use anyhow::{Result, anyhow, bail};
+use crate::scanner_registry::{get_global_registry, DynExternalScanner};
+use anyhow::{anyhow, bail, Result};
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::collections::HashSet;
@@ -312,13 +312,45 @@ impl Parser {
     ) -> Result<Tree> {
         // Check if language has a custom lexer
         if let Some(_lex_fn) = language.lex_fn {
+            // ❌ CRITICAL BLOCKER: This is why parsing doesn't work! (Issue #74)
+            //
+            // PROBLEM: All grammars with custom lexers (transform functions) fall back
+            // to this broken path. The "type conversion not yet implemented safely"
+            // means NO REAL PARSING HAPPENS for grammars like:
+            //   #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
+            //
+            // IMPACT:
+            // - Python grammar can't parse numbers, strings, or identifiers
+            // - All performance benchmarks are measuring fallback behavior
+            // - Users get thousands of warning messages instead of parsed trees
+            // - Project appears functional but actually cannot parse real code
+            //
+            // ROOT CAUSE: TSLexState type incompatibility between:
+            // - Generated grammar lexer functions (expect one TSLexState layout)
+            // - Runtime lexer state management (uses different TSLexState layout)
+            // - Unsafe transmute was avoided, but no safe alternative was implemented
+            //
+            // REQUIRED FIX (HIGH PRIORITY):
+            // 1. Implement safe TSLexState type conversion system
+            // 2. Create proper lexer function call interface with error handling
+            // 3. Add transform function execution pipeline
+            // 4. Replace eprintln! warning with proper Result<> error handling
+            //
+            // TEMPORARY WORKAROUND NEEDED:
+            // Until fixed, this should return an Error instead of silently falling back:
+            // ```rust
+            // return Err(ParseError::LexerNotImplemented(
+            //     "Custom lexer functions require TSLexState type conversion - see Issue #74"
+            // ));
+            // ```
+            //
             // TODO: Need to implement proper type-safe conversion between TSLexState types
             // For now, fall back to regular parsing to avoid unsafe transmute
             // The different TSLexState types are not directly compatible
             eprintln!(
                 "Warning: Custom lexer function provided but type conversion not yet implemented safely"
             );
-            self.parse(input)
+            self.parse(input) // ❌ WRONG: This fallback doesn't work either!
         } else {
             self.parse(input)
         }
@@ -389,7 +421,7 @@ impl Parser {
             } else {
                 // We're at EOF - use the table's EOF symbol
                 let eof_sym = self.parse_table.eof_symbol.0; // Extract u16 from SymbolId
-                // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
+                                                             // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
                 crate::lex::Token {
                     sym: eof_sym,
                     start: token_source.offset(),

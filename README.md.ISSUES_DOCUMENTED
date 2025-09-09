@@ -1,0 +1,59 @@
+# CRITICAL ISSUES DOCUMENTED IN README.md
+
+## ❌ FALSE PERFORMANCE CLAIMS (Issue #76)
+
+The README.md contains multiple false performance claims that need immediate correction:
+
+### Lines 7-8: False Status Claims
+```markdown
+<!-- CURRENT (WRONG): -->
+> **v0.6.1-beta Status**: The GLR parser is now **algorithmically correct** with 100% pass rates
+
+<!-- REALITY: -->
+> **v0.6.1-beta Status**: GLR parser architecture implemented, lexer integration incomplete
+```
+
+### Lines 33-44: False Production-Ready Claims  
+```markdown
+<!-- CURRENT (WRONG): -->
+### ✅ Production-Ready
+- **GLR Parsing**: Algorithmically correct GLR with multi-action cells (100% test pass rate)
+- **Python Grammar Support**: Successfully parses Python with 273 symbols and external scanner
+
+<!-- REALITY: -->  
+### 🚧 Early Development Status
+- **GLR Parsing**: Architecture implemented, lexer type conversion incomplete (Issue #74)
+- **Python Grammar Support**: Grammar compiles but cannot parse due to lexer warnings
+```
+
+### Lines 80-85: False "What Works Today" Claims
+```markdown
+<!-- CURRENT (WRONG): -->
+### What Works Today ✅
+- **Core GLR parsing** with full ambiguity support
+- **Basic external scanner** infrastructure
+
+<!-- REALITY: -->
+### What Works Today ✅  
+- **GLR architecture** and design patterns
+- **Grammar macro definitions** and build-time generation
+- **Basic test infrastructure** with mock implementations
+
+### What Doesn't Work Yet ❌
+- **Real parsing**: Lexer shows "type conversion not yet implemented safely" warnings
+- **Transform functions**: Closures captured but never executed
+- **Performance**: All benchmarks measure mocks, not parsing
+```
+
+## REQUIRED README.md FIXES:
+
+1. **Add prominent disclaimer** at top of file
+2. **Remove all performance metrics** until real benchmarks exist
+3. **Change status** from "Production-Ready" to "Early Development" 
+4. **Update Quick Start** with warnings about current limitations
+5. **Correct feature descriptions** to reflect actual implementation state
+
+## IMPACT:
+- Users make adoption decisions based on false information
+- Performance claims are 100x inflated due to measuring character counting instead of parsing
+- Project credibility damaged when users discover reality vs documentation
