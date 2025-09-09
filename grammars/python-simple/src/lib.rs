@@ -88,6 +88,9 @@ pub mod grammar {
 pub use grammar::*;
 
 #[cfg(test)]
+mod perf_test;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
