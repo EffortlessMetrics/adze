@@ -103,6 +103,32 @@ use rust_sitter_ir::{RuleId, StateId, SymbolId};
 use std::collections::VecDeque;
 use std::sync::Arc;
 
+/// Error types specific to GLR parsing operations.
+#[derive(Debug, thiserror::Error)]
+pub enum GLRError {
+    /// Complex symbol found in rule that should have been normalized during grammar preprocessing.
+    ///
+    /// GLR parsing requires that all complex symbols (Optional, Repeat, RepeatOne, Choice, Sequence, Epsilon)
+    /// are normalized into simpler forms during grammar compilation. If this error occurs, it indicates
+    /// that the grammar preprocessing step did not complete properly.
+    ///
+    /// ## Resolution
+    /// Ensure that grammar normalization is run before GLR parsing. Complex symbols should be
+    /// expanded into equivalent rules with only Terminal, NonTerminal, and External symbols.
+    #[error("Complex symbol '{symbol_type}' not normalized in rule {production_id:?} at position {position}. Complex symbols must be normalized before GLR parsing.")]
+    ComplexSymbolNotNormalized {
+        /// The type of complex symbol that was encountered
+        symbol_type: String,
+        /// The production ID where the symbol was found
+        production_id: rust_sitter_ir::ProductionId,
+        /// The position within the rule's RHS where the symbol occurred
+        position: usize,
+    },
+}
+
+/// Result type for GLR parsing operations.
+pub type GLRResult<T> = Result<T, GLRError>;
+
 // Debug macro for GLR parser
 #[cfg(feature = "debug_glr")]
 macro_rules! debug_glr {
@@ -2196,8 +2222,12 @@ impl GLRParser {
     }
 
     /// Perform all possible reductions on a stack until no more are possible
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GLRError::ComplexSymbolNotNormalized`] if any rule contains unnormalized complex symbols.
     #[allow(dead_code)]
-    fn perform_all_reductions(&self, stack: ParseStack) -> Vec<ParseStack> {
+    fn perform_all_reductions(&self, stack: ParseStack) -> GLRResult<Vec<ParseStack>> {
         let mut result_stacks = vec![];
         let mut work_list = vec![stack];
 
@@ -2209,84 +2239,94 @@ impl GLRParser {
             for (_symbol_id, rules) in &self.grammar.rules {
                 for rule in rules {
                     // Check if we can reduce by this rule
-                    if self.can_reduce(&current_stack, rule) {
-                        // After reduction, we need to find the goto state
-                        // First get the state we'll be in after popping the RHS symbols
-                        let base_state_idx = if current_stack.states.len() > rule.rhs.len() {
-                            current_stack.states[current_stack.states.len() - rule.rhs.len() - 1].0
-                                as usize
-                        } else {
-                            0
-                        };
+                    match self.can_reduce(&current_stack, rule) {
+                        Ok(true) => {
+                            // After reduction, we need to find the goto state
+                            // First get the state we'll be in after popping the RHS symbols
+                            let base_state_idx = if current_stack.states.len() > rule.rhs.len() {
+                                current_stack.states
+                                    [current_stack.states.len() - rule.rhs.len() - 1]
+                                    .0 as usize
+                            } else {
+                                0
+                            };
 
-                        // Get the nonterminal index for the LHS non-terminal
-                        if let Some(&lhs_idx) = self.table.nonterminal_to_index.get(&rule.lhs) {
-                            // Look up the goto state
-                            if base_state_idx < self.table.goto_table.len()
-                                && lhs_idx < self.table.goto_table[base_state_idx].len()
-                            {
-                                let goto_state = self.table.goto_table[base_state_idx][lhs_idx];
-                                if goto_state.0 != 0 {
-                                    // Valid goto state
-                                    has_reduction = true;
+                            // Get the nonterminal index for the LHS non-terminal
+                            if let Some(&lhs_idx) = self.table.nonterminal_to_index.get(&rule.lhs) {
+                                // Look up the goto state
+                                if base_state_idx < self.table.goto_table.len()
+                                    && lhs_idx < self.table.goto_table[base_state_idx].len()
+                                {
+                                    let goto_state = self.table.goto_table[base_state_idx][lhs_idx];
+                                    if goto_state.0 != 0 {
+                                        // Valid goto state
+                                        has_reduction = true;
 
-                                    // Perform the reduction
-                                    let mut reduced_stack = current_stack.clone();
-                                    let children: Vec<Arc<Subtree>> = (0..rule.rhs.len())
-                                        .filter_map(|_| reduced_stack.nodes.pop())
-                                        .collect::<Vec<_>>()
-                                        .into_iter()
-                                        .rev()
-                                        .collect();
+                                        // Perform the reduction
+                                        let mut reduced_stack = current_stack.clone();
+                                        let children: Vec<Arc<Subtree>> = (0..rule.rhs.len())
+                                            .filter_map(|_| reduced_stack.nodes.pop())
+                                            .collect::<Vec<_>>()
+                                            .into_iter()
+                                            .rev()
+                                            .collect();
 
-                                    // Also pop the corresponding states
-                                    for _ in 0..rule.rhs.len() {
-                                        reduced_stack.states.pop();
-                                    }
+                                        // Also pop the corresponding states
+                                        for _ in 0..rule.rhs.len() {
+                                            reduced_stack.states.pop();
+                                        }
 
-                                    // Create new subtree for the reduction
-                                    let byte_range = if children.is_empty() {
-                                        0..0 // Empty production
-                                    } else {
-                                        children[0].node.byte_range.start
-                                            ..children.last().unwrap().node.byte_range.end
-                                    };
+                                        // Create new subtree for the reduction
+                                        let byte_range = if children.is_empty() {
+                                            0..0 // Empty production
+                                        } else {
+                                            children[0].node.byte_range.start
+                                                ..children.last().unwrap().node.byte_range.end
+                                        };
 
-                                    let node = SubtreeNode {
-                                        symbol_id: rule.lhs,
-                                        is_error: false,
-                                        byte_range,
-                                    };
+                                        let node = SubtreeNode {
+                                            symbol_id: rule.lhs,
+                                            is_error: false,
+                                            byte_range,
+                                        };
 
-                                    let dynamic_prec = rule
-                                        .precedence
-                                        .map(|p| match p {
-                                            PrecedenceKind::Static(prec) => prec as i32,
-                                            PrecedenceKind::Dynamic(idx) => {
-                                                // For dynamic precedence, use child's precedence
-                                                let idx_usize = idx as usize;
-                                                if idx_usize < children.len() {
-                                                    children[idx_usize].dynamic_prec
-                                                } else {
-                                                    0
+                                        let dynamic_prec = rule
+                                            .precedence
+                                            .map(|p| match p {
+                                                PrecedenceKind::Static(prec) => prec as i32,
+                                                PrecedenceKind::Dynamic(idx) => {
+                                                    // For dynamic precedence, use child's precedence
+                                                    let idx_usize = idx as usize;
+                                                    if idx_usize < children.len() {
+                                                        children[idx_usize].dynamic_prec
+                                                    } else {
+                                                        0
+                                                    }
                                                 }
-                                            }
-                                        })
-                                        .unwrap_or(0);
+                                            })
+                                            .unwrap_or(0);
 
-                                    let parent = Arc::new(Subtree::with_dynamic_prec(
-                                        node,
-                                        children,
-                                        dynamic_prec,
-                                    ));
+                                        let parent = Arc::new(Subtree::with_dynamic_prec(
+                                            node,
+                                            children,
+                                            dynamic_prec,
+                                        ));
 
-                                    // Push the new subtree
-                                    reduced_stack.push(goto_state, parent);
+                                        // Push the new subtree
+                                        reduced_stack.push(goto_state, parent);
 
-                                    // Continue reducing from this new state
-                                    work_list.push(reduced_stack);
+                                        // Continue reducing from this new state
+                                        work_list.push(reduced_stack);
+                                    }
                                 }
                             }
+                        }
+                        Ok(false) => {
+                            // Cannot reduce with this rule, continue to next rule
+                        }
+                        Err(err) => {
+                            // Return error immediately if normalization check fails
+                            return Err(err);
                         }
                     }
                 }
@@ -2298,14 +2338,23 @@ impl GLRParser {
             }
         }
 
-        result_stacks
+        Ok(result_stacks)
     }
 
     /// Check if we can reduce by a rule
+    ///
+    /// This function validates that all symbols in the rule are normalized (Terminal, NonTerminal, or External)
+    /// and checks if the stack contents match the rule's right-hand side.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GLRError::ComplexSymbolNotNormalized`] if any symbol in the rule's RHS is not normalized.
+    /// Complex symbols (Optional, Repeat, RepeatOne, Choice, Sequence, Epsilon) must be preprocessed
+    /// and normalized before GLR parsing.
     #[allow(dead_code)]
-    fn can_reduce(&self, stack: &ParseStack, rule: &Rule) -> bool {
+    fn can_reduce(&self, stack: &ParseStack, rule: &Rule) -> GLRResult<bool> {
         if stack.nodes.len() < rule.rhs.len() {
-            return false;
+            return Ok(false);
         }
 
         // Check if the top of the stack matches the rule's RHS
@@ -2314,21 +2363,55 @@ impl GLRParser {
             let node_symbol = match symbol {
                 Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                 Symbol::External(id) => *id,
-                Symbol::Optional(_)
-                | Symbol::Repeat(_)
-                | Symbol::RepeatOne(_)
-                | Symbol::Choice(_)
-                | Symbol::Sequence(_)
-                | Symbol::Epsilon => {
-                    panic!("Complex symbols should be normalized before GLR parsing");
+                Symbol::Optional(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Optional".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::Repeat(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Repeat".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::RepeatOne(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "RepeatOne".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::Choice(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Choice".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::Sequence(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Sequence".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::Epsilon => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Epsilon".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
                 }
             };
             if stack.nodes[start_idx + i].node.symbol_id != node_symbol {
-                return false;
+                return Ok(false);
             }
         }
 
-        true
+        Ok(true)
     }
 
     /// Get action from parse table for state and symbol
