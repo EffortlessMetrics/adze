@@ -115,7 +115,9 @@ pub enum GLRError {
     /// ## Resolution
     /// Ensure that grammar normalization is run before GLR parsing. Complex symbols should be
     /// expanded into equivalent rules with only Terminal, NonTerminal, and External symbols.
-    #[error("Complex symbol '{symbol_type}' not normalized in rule {production_id:?} at position {position}. Complex symbols must be normalized before GLR parsing.")]
+    #[error(
+        "Complex symbol '{symbol_type}' not normalized in rule {production_id:?} at position {position}. Complex symbols must be normalized before GLR parsing."
+    )]
     ComplexSymbolNotNormalized {
         /// The type of complex symbol that was encountered
         symbol_type: String,
