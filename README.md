@@ -4,7 +4,14 @@
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
-> **v0.8.0-dev Status**: The GLR parser is **production-ready** with 100% pass rates on all core test suites. Recent enhancements include **precedence disambiguation** (correctly parsing `1+2*3` as `1+(2*3)`), **robust error recovery** for malformed input, and **enhanced EOF processing**. The implementation ensures proper handling of ambiguous grammars, error recovery, and query stability. The parser successfully handles complex grammars like Python (273 symbols) with true GLR semantics.
+> **v0.8.0-dev Status**: **Early Development - Active Work In Progress**
+>
+> The GLR parser architecture is production-grade with 379/385 tests passing (98.4% pass rate). The infrastructure is solid, but **critical gaps remain**:
+> - ⚠️ **Transform function execution** is incomplete (blocks most grammars with literals/identifiers)
+> - ⚠️ **Performance benchmarks** measure mocks, not real parsing - claims cannot be verified
+> - ⚠️ **External scanners** not implemented - Python, C++, Ruby grammars cannot work yet
+>
+> **Recommendation**: Suitable for architecture evaluation and simple grammars only. Not production-ready. See [PROJECT_STATE_v0.8.0-dev.md](./PROJECT_STATE_v0.8.0-dev.md) for detailed assessment.
 
 ## Documentation
 
@@ -32,16 +39,20 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 
 ## Key Features (v0.8.0-dev)
 
-### ✅ Production-Ready
-- **GLR Parsing**: Algorithmically correct GLR with multi-action cells (100% test pass rate)
-- **Precedence Disambiguation**: Correctly resolves operator precedence (e.g., `1+2*3` → `1+(2*3)`)
-- **Error Recovery**: Graceful handling of malformed input with error node insertion
-- **EOF Processing**: Fixed parameter usage for proper end-of-input handling
-- **Correctness Fixes**: Phase-2 re-closure, accept aggregation, EOF recovery, epsilon guards
-- **Python Grammar Support**: Successfully parses Python with 273 symbols and external scanner
-- **Pure-Rust Implementation**: Generate static parsers at compile-time without C dependencies
-- **WASM Support**: Full WebAssembly compatibility with the pure-Rust backend
-- **Query Stability**: Wrapper squashing and capture deduplication for predictable results
+### ✅ Solid Architecture & Infrastructure
+- **GLR Parser Design**: Algorithmically correct GLR with multi-action cells (architecture proven)
+- **Grammar Definition System**: Rust macros for type-safe grammar specification
+- **Compile-Time Generation**: Static parser generation without C dependencies
+- **Strong Test Coverage**: 379/385 tests passing (98.4%)
+- **MSRV 1.89**: Modern Rust 2024 edition with proper error handling
+- **Pure-Rust Implementation**: Full WASM compatibility
+
+### ⚠️ Partial/Experimental Implementation
+- **Precedence Support**: Parsing implemented, execution needs testing
+- **Error Recovery**: Framework in place, not validated with real grammars
+- **Incremental Parsing**: Feature-gated, requires transform functions to work
+- **Query Language**: Experimental, feature-gated, not production-ready
+- **External Scanners**: Declarations parsed, runtime not implemented
 
 ### 🚧 Advanced Features (In Progress)
 - **Incremental Parsing**: GLR incremental algorithm implemented (feature-gated for testing)

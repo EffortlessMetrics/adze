@@ -1,10 +1,10 @@
 # Known Limitations and Upcoming Features
 
-This document outlines the current limitations of rust-sitter v0.5.0-beta and the planned features for future releases.
+This document outlines the current limitations of rust-sitter v0.8.0-dev and the planned features for future releases.
 
 ## ✅ Supported Features
 
-rust-sitter v0.5.0-beta provides a pure-Rust implementation of Tree-sitter with the following capabilities:
+rust-sitter v0.8.0-dev provides a pure-Rust implementation of Tree-sitter with the following capabilities:
 
 - **Core Grammar Features**
   - Sequences, choices, repeats, and optionals
@@ -32,9 +32,25 @@ rust-sitter v0.5.0-beta provides a pure-Rust implementation of Tree-sitter with 
   - Visitor API for tree traversal
   - Serialization in multiple formats
 
+## ⚠️ Critical Issues in v0.8.0-dev
+
+### 🚨 Transform Function Execution ❌ (BLOCKING)
+   - **Issue**: Custom lexer type conversion not fully implemented
+   - **Impact**: Grammars with number literals, strings, and identifier transforms fail to parse
+   - **Examples**: Python-simple tests (6 tests failing) - basic arithmetic fails
+   - **Affected**: Most real-world grammars using `transform` functions
+   - **Workaround**: None currently available
+   - **Reference**: CRITICAL_ISSUES_SUMMARY.md - Issue #74
+
+### 🚨 Performance Benchmarks ❌ (DOCUMENTATION)
+   - **Issue**: Current benchmarks measure character iteration mocks, not actual parsing
+   - **Claims**: "815 MB/sec", "100x faster than Tree-sitter"
+   - **Reality**: No real parsing happening in benchmarks
+   - **Reference**: CRITICAL_ISSUES_SUMMARY.md - Issue #73
+
 ## ⚠️ Known Limitations
 
-The following Tree-sitter features are not yet supported in v0.5.0-beta:
+The following Tree-sitter features are not yet supported in v0.8.0-dev:
 
 ### Grammar Features
 
@@ -43,6 +59,7 @@ The following Tree-sitter features are not yet supported in v0.5.0-beta:
    - External C/C++ scanner integration not implemented
    - **Impact**: Cannot parse context-sensitive tokens (Python indentation, C++ raw strings)
    - **Workaround**: None - grammars requiring external scanners will fail at runtime
+   - **Status**: Planned for future release
 
 2. **Named Precedence Levels** ❌
    - `prec('operator', rule)` style precedences
@@ -95,32 +112,47 @@ The following Tree-sitter features are not yet supported in v0.5.0-beta:
 
 ## 🚀 Roadmap
 
-### v0.6.0 (Target: Q1 2025)
-- ✅ Precedence and associativity support (DONE)
-- ✅ Word token support (DONE)
-- ✅ External/supertypes/conflicts parsing (DONE)
-- ✨ External scanner runtime implementation
-- ✨ Basic CLI tool (`rust-sitter generate`, `rust-sitter parse`)
-- 📈 Support for ~70% of popular grammars
+### v0.8.0-dev (Current - November 2025)
+**Status**: Active development with architecture in place, critical gaps identified
 
-### v0.7.0 (Target: Q3 2025)
-- ✨ External scanner support
-- ✨ Conflicts and supertypes
-- ✨ Query language basics
-- 📈 Support for ~90% of popular grammars
+**Completed**:
+- ✅ GLR parser architecture and design
+- ✅ Grammar macro system and compile-time generation
+- ✅ LR(1) automaton construction
+- ✅ MSRV updated to 1.89 (Rust 2024 edition)
+- ✅ Precedence and associativity support
+- ✅ Word token support
+- ✅ External/supertypes/conflicts parsing
 
-### v0.8.0 (Target: Q4 2025)
+**Critical Work In Progress**:
+- ❌ Transform function execution (blocking most grammars)
+- ❌ Real performance benchmarks (current benchmarks are mocks)
+- ❌ External scanner runtime implementation
+
+**Next Release Priority**:
+1. Fix transform function execution (3-4 weeks)
+2. Implement real performance benchmarks (2 weeks)
+3. External scanner support (4-6 weeks)
+4. Comprehensive grammar testing and certification
+
+### v0.9.0 (Target: Q2 2025)
+- ✨ Transform function execution (CRITICAL)
+- ✨ Real performance benchmarks
+- ✨ 50+ grammar compatibility testing
+- 📈 Support for ~50% of popular grammars (honest assessment)
+
+### v1.0.0 (Target: Q4 2025)
+- ✨ External scanner runtime support
 - ✨ Full query language support
-- ✨ Incremental parsing
-- ✨ Performance optimizations
-- ✨ WASM optimizations
-- 📈 Support for 100% of popular grammars
+- ✨ Incremental parsing (tested with real grammars)
+- ✨ CLI tool compatibility
+- 📈 Support for ~90% of popular grammars
+- 🎯 Production-ready for simple grammars
 
-### v1.0.0 (Target: Q1 2026)
+### v1.1.0+ (Future)
 - 🎯 Full Tree-sitter compatibility
-- 🎯 Performance parity or better than C implementation
-- 🎯 Production-ready stability
-- 🎯 Comprehensive documentation
+- 🎯 Performance parity with C implementation
+- 🎯 Comprehensive documentation and examples
 
 ## 🤝 Contributing
 
