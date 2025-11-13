@@ -125,6 +125,48 @@ Rust Sitter is a Rust workspace consisting of multiple interconnected crates tha
 
 This demonstrates that the pure-Rust toolchain can handle production-grade, complex grammars with external scanners.
 
+### Current Development Priorities (v0.8.0-dev - November 2025)
+
+**Project Status**: Early Development with production-grade architecture, 379/385 tests passing (98.4%)
+
+**Timeline**: 13-19 weeks to v1.0.0 production release (target: March 2026)
+
+#### 🚨 CRITICAL - PHASE 1: Transform Function Execution (3-4 weeks)
+**Blocks everything** - 95%+ of real-world grammars cannot parse without this feature
+- **Status**: Infrastructure exists, execution incomplete
+- **File**: `runtime/src/parser_v4.rs` (main focus)
+- **Issue**: Custom lexer type conversion not fully implemented
+- **Impact**: 6 python-simple tests failing due to incomplete transform execution
+- **When fixed**: Most grammars (Python, JSON, arithmetic, etc.) will start working
+- **Success criteria**: All 379 tests passing, python-simple tests functional
+- **See**: [IMPLEMENTATION_PLAN.md - Phase 1](./IMPLEMENTATION_PLAN.md#phase-1-3-4-weeks-transform-function-execution)
+
+#### ⚡ HIGH - PHASE 2: Real Performance Benchmarks (2 weeks)
+**Restore credibility** - Current benchmarks measure mocks, not real parsing
+- **Status**: Benchmarks exist but are unverified
+- **Issue**: Claims of "815 MB/sec" and "100x faster than Tree-sitter" not substantiated
+- **When fixed**: Can make honest performance claims
+- **See**: [IMPLEMENTATION_PLAN.md - Phase 2](./IMPLEMENTATION_PLAN.md#phase-2-2-weeks-real-performance-benchmarks)
+
+#### ⚡ HIGH - PHASE 3: External Scanner Support (4-6 weeks)
+**Unlock more grammars** - Enables Python, C++, Ruby, and languages needing context-sensitive tokens
+- **Status**: Framework exists, runtime not implemented
+- **Needed**: Python indentation, C++ raw strings, Ruby heredocs
+- **When fixed**: 20% more grammars become usable
+- **See**: [IMPLEMENTATION_PLAN.md - Phase 3](./IMPLEMENTATION_PLAN.md#phase-3-4-6-weeks-external-scanner-support)
+
+#### 📊 MEDIUM - PHASE 4: Comprehensive Testing (2-3 weeks)
+**Validate compatibility** - Test 50+ popular grammars
+- **See**: [IMPLEMENTATION_PLAN.md - Phase 4](./IMPLEMENTATION_PLAN.md#phase-4-2-3-weeks-comprehensive-testing)
+
+#### 🎯 FINAL - PHASE 5: Production Release (2-3 weeks)
+**Finalize v1.0.0** - API stabilization and documentation
+- **See**: [IMPLEMENTATION_PLAN.md - Phase 5](./IMPLEMENTATION_PLAN.md#phase-5-2-3-weeks-production-release)
+
+**For detailed implementation plan, see**: [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)
+**For new contributor onboarding, see**: [NEXT_STEPS.md](./NEXT_STEPS.md)
+**For architecture overview, see**: [PURE_RUST_IMPLEMENTATION.md](./PURE_RUST_IMPLEMENTATION.md)
+
 ### New Pure-Rust Implementation Components
 
 6. **`rust-sitter-ir`** - Grammar Intermediate Representation
