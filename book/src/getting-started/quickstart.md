@@ -51,7 +51,7 @@ mod grammar {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create parser with GLR runtime (production ready)
-    use rust_sitter_runtime::Parser;
+    use rust_sitter::Parser;
     
     let mut parser = Parser::new();
     parser.set_language(grammar::language())?; // Generated GLR language
@@ -94,11 +94,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6", features = ["glr-core", "incremental"] }
-rust-sitter-runtime = "0.1"  # GLR runtime
+rust-sitter = { version = "0.8.0-dev", features = ["glr-core", "incremental"] }
 
 [build-dependencies]
-rust-sitter-tool = "0.6"
+rust-sitter-tool = "0.8.0-dev"
 ```
 
 Create `build.rs`:

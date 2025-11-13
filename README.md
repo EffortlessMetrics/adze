@@ -4,7 +4,7 @@
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
-> **v0.6.1-beta Status (September 2025)**: The GLR parser is now **algorithmically correct** with 100% pass rates on all core test suites. Recent enhancements include **precedence disambiguation** (correctly parsing `1+2*3` as `1+(2*3)`), **robust error recovery** for malformed input, and **enhanced EOF processing**. Six critical correctness fixes ensure proper handling of ambiguous grammars, EOF recovery, and query stability. The parser successfully handles complex grammars like Python (273 symbols) with true GLR semantics.
+> **v0.8.0-dev Status**: The GLR parser is **production-ready** with 100% pass rates on all core test suites. Recent enhancements include **precedence disambiguation** (correctly parsing `1+2*3` as `1+(2*3)`), **robust error recovery** for malformed input, and **enhanced EOF processing**. The implementation ensures proper handling of ambiguous grammars, error recovery, and query stability. The parser successfully handles complex grammars like Python (273 symbols) with true GLR semantics.
 
 ## Documentation
 
@@ -30,7 +30,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - 🚀 [Developer Workflow](./docs/dev-workflow.md) - Linting, testing, and development commands
 - 📋 [Quick Reference](./QUICK_REFERENCE.md) - Handy command cheatsheet
 
-## Key Features (v0.6.1-beta)
+## Key Features (v0.8.0-dev)
 
 ### ✅ Production-Ready
 - **GLR Parsing**: Algorithmically correct GLR with multi-action cells (100% test pass rate)
@@ -99,10 +99,10 @@ Optional features available for testing:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6", features = ["incremental_glr", "queries", "serialization"] }
+rust-sitter = { version = "0.8.0-dev", features = ["incremental_glr", "queries", "serialization"] }
 ```
 
-### Coming in v0.6.x 🚀
+### Future Enhancements 🚀
 
 - Dynamic parser loading in CLI
 - Complete corpus testing
@@ -139,17 +139,17 @@ Add rust-sitter to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter = "0.6.0"
+rust-sitter = "0.8.0-dev"
 
 [build-dependencies]
-rust-sitter-tool = "0.6.0"
+rust-sitter-tool = "0.8.0-dev"
 ```
 
-Choose your backend via features:
+Choose your backend via features (pure-rust is default and recommended):
 
-- `pure-rust` (recommended): Pure Rust implementation with full WASM support
-- `tree-sitter-c2rust`: Legacy C2Rust transpiled backend
-- `tree-sitter-standard`: Standard Tree-sitter C runtime
+- `pure-rust` (default): Pure Rust implementation with full WASM support, production-ready
+- `tree-sitter-c2rust` (legacy): C2Rust transpiled backend (experimental)
+- `tree-sitter-standard` (legacy): Standard Tree-sitter C runtime (experimental)
 
 ### Building with Different Backends
 

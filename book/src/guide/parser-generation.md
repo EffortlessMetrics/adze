@@ -37,7 +37,7 @@ The modern GLR runtime provides:
 - **Feature Gates**: `glr-core`, `incremental`, `arenas` for different capabilities
 
 ```rust
-use rust_sitter_runtime::{Parser, Language};
+use rust_sitter::{Parser, Language};
 
 let mut parser = Parser::new();
 parser.set_language(glr_language)?;  // Validates parse table presence
@@ -77,7 +77,7 @@ The parser uses LR(1) tables containing:
 - **Goto Table**: Maps (state, non-terminal) → state
 - **Reduce Table**: Production rules for reductions
 
-### GLR Extensions (Production Ready - Enhanced v0.6.1)
+### GLR Extensions (Production Ready - v0.8.0-dev)
 
 GLR parsing in runtime2 provides robust conflict resolution:
 - **Multi-Action Cells**: Each (state, symbol) pair can hold multiple conflicting actions
@@ -108,7 +108,7 @@ let tree = parser.parse_utf8("1 + + 2", None)?;   // Recovers from double operat
 // Result includes error nodes for invalid syntax while continuing to parse
 ```
 
-### Error Recovery Enhancements (v0.6.1)
+### Error Recovery Enhancements (v0.8.0-dev)
 
 The GLR parser now includes robust error recovery:
 

@@ -8,12 +8,12 @@ With Rust-Sitter, you can define your entire grammar with annotations on idiomat
 
 ## Key Features
 
-### 🚀 v0.5.0-beta Highlights
+### 🚀 v0.8.0-dev Highlights
 
-- **GLR Parsing**: Full support for ambiguous grammars with efficient fork/merge handling
-- **Pure-Rust Option**: Generate static parsers at compile-time without C dependencies  
+- **GLR Parsing**: Production-ready GLR with full support for ambiguous grammars
+- **Pure-Rust Option**: Generate static parsers at compile-time without C dependencies
 - **Enhanced Error Recovery**: Sophisticated error recovery strategies for robust parsing
-- **Two-Phase Parser**: Proper reduction-shift separation for correct GLR semantics
+- **Precedence Disambiguation**: Correct handling of operator precedence (e.g., `1+2*3`)
 - **Comprehensive Testing**: Golden tests, benchmarks, and validation infrastructure
 - **WASM Support**: Full WebAssembly compatibility with the pure-Rust backend
 - **Performance Optimizations**: SIMD lexing, parallel parsing, and memory pooling

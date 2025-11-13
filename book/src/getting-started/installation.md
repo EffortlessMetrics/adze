@@ -4,7 +4,7 @@ This chapter covers how to install and set up Rust-Sitter in your project.
 
 ## Prerequisites
 
-- Rust 1.70.0 or later
+- Rust 1.89 or later (with rustfmt and clippy components)
 - Cargo (comes with Rust)
 
 ## Adding Dependencies
@@ -13,10 +13,10 @@ Add Rust-Sitter to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter = "0.5.0-beta"
+rust-sitter = "0.8.0-dev"
 
 [build-dependencies]
-rust-sitter-tool = "0.5.0-beta"
+rust-sitter-tool = "0.8.0-dev"
 ```
 
 ## Choosing a Backend
@@ -29,7 +29,7 @@ The pure-Rust backend generates static parsers at compile-time without C depende
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5.0-beta", features = ["pure-rust"] }
+rust-sitter = { version = "0.8.0-dev", features = ["pure-rust"] }
 ```
 
 **Advantages:**
@@ -44,7 +44,7 @@ Legacy backend using transpiled C code:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5.0-beta", features = ["tree-sitter-c2rust"] }
+rust-sitter = { version = "0.8.0-dev", features = ["tree-sitter-c2rust"] }
 ```
 
 ### Standard Tree-sitter Backend
@@ -53,7 +53,7 @@ Uses the standard Tree-sitter C runtime:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5.0-beta", features = ["tree-sitter-standard"] }
+rust-sitter = { version = "0.8.0-dev", features = ["tree-sitter-standard"] }
 ```
 
 ## Build Configuration
@@ -78,8 +78,8 @@ Additional features you can enable:
 
 ```toml
 [dependencies]
-rust-sitter = { 
-    version = "0.5.0-beta", 
+rust-sitter = {
+    version = "0.8.0-dev",
     features = [
         "pure-rust",      # Pure Rust backend
         "optimize",       # Enable grammar optimizer

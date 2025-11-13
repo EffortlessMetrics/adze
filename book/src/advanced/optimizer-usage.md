@@ -10,7 +10,7 @@ The optimizer is disabled by default to ensure stability. To enable it, use the 
 
 ```toml
 [dependencies]
-rust-sitter-tool = { version = "0.5.0-beta", features = ["optimize"] }
+rust-sitter-tool = { version = "0.8.0-dev", features = ["optimize"] }
 ```
 
 ### Via Command Line

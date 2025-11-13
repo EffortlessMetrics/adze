@@ -11,13 +11,13 @@ The most significant change is switching from `runtime` to `runtime2` with GLR i
 **Before (runtime):**
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5", features = ["runtime"] }
+rust-sitter = { version = "0.8.0-dev", features = ["runtime"] }
 ```
 
 **After (runtime2):**
 ```toml
 [dependencies]
-rust-sitter-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+rust-sitter = { version = "0.8.0-dev", features = ["glr-core", "incremental"] }
 ```
 
 This change provides:
@@ -40,7 +40,7 @@ let result = parser.parse(input)?;
 
 **After (runtime2):**
 ```rust
-use rust_sitter_runtime::Parser;
+use rust_sitter::Parser;
 
 let mut parser = Parser::new();
 parser.set_language(glr_language)?;  // GLR language with parse table
@@ -116,12 +116,12 @@ Runtime2 uses a comprehensive feature flag system:
 
 ```toml
 [dependencies]
-rust-sitter-runtime = { version = "0.1", features = [
+rust-sitter = { version = "0.8.0-dev", features = [
     "glr-core",          # GLR parsing engine (default)
     "incremental",       # Incremental parsing support
     "arenas",           # Arena allocators for performance
     "external-scanners", # Custom external scanner support
-    "queries"           # Tree-sitter query language (future)
+    "queries"           # Tree-sitter query language
 ] }
 ```
 
@@ -133,14 +133,10 @@ Change your `Cargo.toml` to use runtime2:
 
 ```toml
 [dependencies]
-# Remove old runtime
-# rust-sitter = "0.5"
-
-# Add GLR runtime
-rust-sitter-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+rust-sitter = { version = "0.8.0-dev", features = ["glr-core", "incremental"] }
 
 [build-dependencies]
-rust-sitter-tool = "0.6"  # Ensure build tool compatibility
+rust-sitter-tool = "0.8.0-dev"
 ```
 
 ### 2. Update Build Configuration

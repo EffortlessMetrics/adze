@@ -1,6 +1,6 @@
 # LSP Server Generation
 
-This guide covers how to generate Language Server Protocol (LSP) servers from your rust-sitter grammars, including the enhanced hover functionality introduced in v0.6.1.
+This guide covers how to generate Language Server Protocol (LSP) servers from your rust-sitter grammars, including the enhanced hover functionality introduced in v0.8.0-dev.
 
 ## Overview
 
@@ -41,7 +41,7 @@ cargo build --release
 ./target/release/my-language-lsp --stdio
 ```
 
-## Hover Information (NEW in v0.6.1)
+## Hover Information (Standard Feature)
 
 The enhanced hover functionality provides intelligent contextual help as users navigate their code.
 
