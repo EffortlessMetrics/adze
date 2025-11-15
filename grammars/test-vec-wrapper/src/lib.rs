@@ -9,7 +9,7 @@ pub mod grammar {
     }
 
     pub struct TestStatement {
-        #[rust_sitter::leaf(pattern = r"\d+")]
+        #[rust_sitter::leaf(pattern = r"\d+", text = true)]
         pub value: String,
     }
 
