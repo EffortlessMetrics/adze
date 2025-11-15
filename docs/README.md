@@ -4,7 +4,9 @@ This directory contains comprehensive documentation for Rust Sitter.
 
 ## Getting Started
 
+- [Getting Started Guide](./GETTING_STARTED.md) - Comprehensive guide to building parsers with macro-based grammars
 - [Installation & Quick Start](../README.md#installation) - Get up and running quickly
+- [Quick Start Beta](../QUICKSTART_BETA.md) - Quick start guide for v0.6.1-beta
 - [Developer Workflow](./dev-workflow.md) - Linting, testing, and development commands
 - [Migration to v0.5](./migration-to-v0.5.md) - Upgrading from earlier versions
 

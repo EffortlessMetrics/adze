@@ -12,6 +12,8 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 
 ### Quick Links
 
+- [Getting Started Guide](./docs/GETTING_STARTED.md) - Comprehensive guide to building parsers with macro-based grammars
+- [Quick Start Beta](./QUICKSTART_BETA.md) - Quick start guide for v0.6.1-beta
 - [Project Status](./PROJECT_STATUS.md) - Current status and feature overview
 - [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference
 - [Migration Guide](./MIGRATION_GUIDE.md) - Migrating from Tree-sitter
