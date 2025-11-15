@@ -185,6 +185,8 @@ Rust-Sitter has achieved **100% completion** for macro-based grammar generation 
 
 ## 🚀 Recommended Next Steps
 
+**📋 For detailed implementation tasks, see [GAPS.md](./GAPS.md)** - Comprehensive breakdown of all 43 open tasks with step-by-step guidance, time estimates, and acceptance criteria.
+
 ### Immediate Priorities (Next Sprint)
 
 1. **Update All Roadmaps** ✅ (This report)

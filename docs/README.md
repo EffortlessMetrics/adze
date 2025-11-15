@@ -109,6 +109,9 @@ See [archive/](./archive/) for historical documentation and status reports.
 
 - [Main README](../README.md) - Project overview
 - [Contributing Guide](../CONTRIBUTING.md) - How to contribute
+- [GAPS.md](../GAPS.md) - **Structured tasks and contribution opportunities** (43 tasks ready to pick up!)
 - [Project Status](../PROJECT_STATUS.md) - Current project status
+- [Current Status Report](../CURRENT_STATUS_2025-11.md) - Comprehensive v0.6.1-beta assessment
+- [Roadmap](../ROADMAP.md) - Project roadmap and future plans
 - [API Documentation](../API_DOCUMENTATION.md) - API reference
 - [Migration Guide](../MIGRATION_GUIDE.md) - Migration from Tree-sitter

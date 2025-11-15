@@ -85,42 +85,51 @@
 
 **Target**: January-March 2026
 **Focus**: Complete incremental parsing and query system
+**📋 [See GAPS.md for detailed implementation tasks](./GAPS.md)**
 
 ### Scope
 
 **1. Incremental Parsing Completion** (Priority: High)
-- [ ] Implement `parse_with_old_tree` functionality
+- [ ] Implement `parse_with_old_tree` functionality ([GAPS.md#incremental-parsing](./GAPS.md#incremental-parsing))
 - [ ] Enable 7 ignored incremental tests
 - [ ] Benchmark incremental vs full parse performance
 - [ ] Document subtree reuse strategies
-- **Estimated**: 2 weeks
+- **Estimated**: 2-3 weeks
+- **Implementation Guide**: See GAPS.md section "Incremental Parsing" for step-by-step tasks
 
 **2. Query System Completion** (Priority: High)
-- [ ] Finish predicate implementation
+- [ ] Finish predicate implementation: `#eq?`, `#match?`, `#any-of?`, `#is?`, `#is-not?` ([GAPS.md#query-system](./GAPS.md#query-system))
 - [ ] Enable 5 ignored query tests
 - [ ] Document query API with examples
-- [ ] Add query cookbook
-- **Estimated**: 1 week
+- [ ] Add query cookbook with common patterns
+- **Estimated**: 1-2 weeks
+- **Implementation Guide**: See GAPS.md section "Query System" for predicate implementation templates
 
 **3. Performance Baseline** (Priority: Critical)
-- [ ] Run existing benchmarks vs tree-sitter-c
+- [ ] Run existing benchmarks vs tree-sitter-c ([GAPS.md#performance-benchmarking](./GAPS.md#performance-benchmarking))
 - [ ] Document current performance characteristics
-- [ ] Identify optimization opportunities
+- [ ] Identify optimization opportunities (flamegraphs, profiling)
 - [ ] Add performance regression tests to CI
-- **Estimated**: 1 week
+- **Estimated**: 1-2 weeks
+- **Implementation Guide**: See GAPS.md section "Performance Benchmarking" for benchmark setup
 
-**4. Test Maintenance** (Priority: Medium)
-- [ ] Update 6 tests marked "needs current parser API"
-- [ ] Remove or document why tests are ignored
-- [ ] Achieve <5% ignored test rate
-- **Estimated**: 3 days
+**4. Test Maintenance** (Priority: High)
+- [ ] Re-enable 20 ignored tests ([GAPS.md#ignored-tests-20-total](./GAPS.md#ignored-tests-20-total))
+  - 7 error recovery tests (1-2 weeks)
+  - 3 parser v3 tests (3-4 days)
+  - 4 helper function tests (1 day)
+  - 1 external scanner test (4-6 hours)
+  - 1 pure Rust E2E test (1 day)
+- [ ] Achieve >95% test pass rate (excluding intentional benchmarks)
+- **Estimated**: 2-3 weeks
+- **Implementation Guide**: See GAPS.md section "Ignored Tests" for per-test breakdown and fix guidance
 
 **5. API Stabilization** (Priority: High)
 - [ ] Freeze public API surface for v1.0
 - [ ] Document breaking vs non-breaking changes
 - [ ] Create API stability guarantees document
 - [ ] Migration guide for 0.6→0.7
-- **Estimated**: Ongoing
+- **Estimated**: Ongoing throughout v0.7 development
 
 ### Success Criteria
 
@@ -320,21 +329,48 @@
 
 ## 🤝 Contributing
 
+### 📋 Want to Help? Check [GAPS.md](./GAPS.md)!
+
+**[GAPS.md](./GAPS.md)** provides a comprehensive, structured view of what needs to be done:
+- 43 total open tasks across all categories
+- Organized by skill level (beginner/intermediate/advanced)
+- Organized by time available (hours/days/weeks)
+- Each task includes:
+  - Clear implementation guidance
+  - Estimated time to complete
+  - Acceptance criteria
+  - Code templates and examples
+
 ### Current Priorities (Help Wanted!)
 
-1. **Query Predicates**: Finish implementation (1 week effort)
-2. **Incremental Parsing**: Complete `parse_with_old_tree` (2 weeks)
-3. **Performance Benchmarks**: Run and analyze (1 week)
-4. **Grammar Porting**: More language grammars (ongoing)
-5. **Documentation**: Video tutorials, examples (ongoing)
+1. **Re-enable Ignored Tests**: 20 tests ready to fix ([GAPS.md#ignored-tests](./GAPS.md#ignored-tests-20-total))
+   - Good first issues: 7 error recovery tests
+   - 1-4 hours each, clear test cases provided
+
+2. **Query Predicates**: Finish implementation ([GAPS.md#query-system](./GAPS.md#query-system))
+   - 1-2 week effort, code templates provided
+   - Implement `#eq?`, `#match?`, `#any-of?`, `#is?`, `#is-not?`
+
+3. **Incremental Parsing**: Complete `parse_with_old_tree` ([GAPS.md#incremental-parsing](./GAPS.md#incremental-parsing))
+   - 2-3 weeks, step-by-step implementation guide
+   - High impact: enables LSP and editor integration
+
+4. **Performance Benchmarks**: Run and analyze ([GAPS.md#performance-benchmarking](./GAPS.md#performance-benchmarking))
+   - 1-2 weeks, critical for v0.7.0 release
+   - Establish baseline for future optimizations
+
+5. **Documentation**: Video tutorials, cookbooks ([GAPS.md#documentation-gaps](./GAPS.md#documentation-gaps))
+   - Ongoing, various time commitments
+   - Grammar cookbook, troubleshooting guides, videos
 
 ### How to Contribute
 
-1. Check [CONTRIBUTING.md](./CONTRIBUTING.md)
-2. Look for "good first issue" labels
-3. Discuss major changes in issues first
-4. Follow TDD (tests first!)
-5. Update docs with changes
+1. **Browse [GAPS.md](./GAPS.md)** to find a task that matches your skill level and available time
+2. Check [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup
+3. Look for "good first issue" labels on GitHub
+4. Discuss major changes in issues first
+5. Follow TDD (tests first!)
+6. Update docs with changes
 
 ---
 

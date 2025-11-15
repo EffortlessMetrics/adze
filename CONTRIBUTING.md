@@ -2,6 +2,25 @@
 
 Thank you for your interest in contributing to rust-sitter! This guide will help you get started with development.
 
+## 🚀 Quick Start for Contributors
+
+**Looking for something to work on?** Check out **[GAPS.md](./GAPS.md)** for:
+- 📋 20 ignored tests ready to be fixed
+- 🔄 Incremental parsing implementation tasks
+- 🔍 Query system completion tasks
+- 📈 Performance benchmarking opportunities
+- 📚 Documentation needs
+
+**Each task includes**:
+- Estimated time to complete
+- Difficulty level (beginner/intermediate/advanced)
+- Step-by-step implementation guidance
+- Clear acceptance criteria
+
+**[→ Browse Available Tasks in GAPS.md](./GAPS.md)**
+
+---
+
 ## Setup
 
 ### Prerequisites

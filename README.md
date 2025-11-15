@@ -802,11 +802,26 @@ For detailed guides, see our comprehensive documentation above.
 
 ## Contributing
 
-We welcome contributions! Before submitting a PR:
+We welcome contributions!
 
-1. **Read the [Developer Workflow](./docs/dev-workflow.md)** - Learn about our linting and testing setup
-2. **Check the [Quick Reference](./QUICK_REFERENCE.md)** - Handy command cheatsheet for development
-3. **Run the fast lint**: `cargo lint --fast --since origin/main`
-4. **Run tests**: `cargo test`
+### 🚀 Ready to Contribute?
+
+**[→ Check GAPS.md for available tasks](./GAPS.md)** - 43 structured tasks ready to pick up:
+- 20 ignored tests to re-enable (good first issues!)
+- Incremental parsing implementation
+- Query system completion
+- Performance benchmarking
+- Documentation improvements
+
+Each task includes estimated time, difficulty level, and step-by-step guidance.
+
+### Before Submitting a PR:
+
+1. **Browse [GAPS.md](./GAPS.md)** - Find a task that matches your skills and time
+2. **Read the [Developer Workflow](./docs/dev-workflow.md)** - Learn about our linting and testing setup
+3. **Check the [Quick Reference](./QUICK_REFERENCE.md)** - Handy command cheatsheet for development
+4. **Check [CONTRIBUTING.md](./CONTRIBUTING.md)** - Detailed contribution guide
+5. **Run the fast lint**: `cargo lint --fast --since origin/main`
+6. **Run tests**: `cargo test`
 
 For bug reports and feature requests, please use the [GitHub issue tracker](https://github.com/hydro-project/rust-sitter/issues).
