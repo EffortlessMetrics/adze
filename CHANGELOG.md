@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Macro-Based Grammar Generation - 100% Working**: Complete parser runtime fixes enable full macro-based grammar support
+  - Fixed Accept action encoding (0x7FFF → 0xFFFF) to match decoder expectations
+  - Corrected decoder check order to test Accept (0xFFFF) before Reduce bit (0x8000)
+  - Fixed token_count calculation to include EOF symbol (+1)
+  - Added missing GOTO table entries to compressed parse tables
+  - Fixed GOTO offset calculation to use array indices instead of pair counts
+  - All test-mini tests passing: 6/6 (100%)
+  - All test-vec-wrapper tests passing: 3/3 (100%)
+  - Text extraction from leaf nodes with `text = true` attribute working
+  - Vec<> repetition with `#[repeat]` attribute fully functional
+  - Complete parser pipeline: tokenization, shift, reduce, GOTO lookup, accept all working
+
 - **LSP Generator**: Complete grammar loading infrastructure for automatic language server generation
   - `load_grammar()` function with streaming JSON deserialization for memory efficiency
   - Security hardening: 10MB file size limits, buffered I/O, comprehensive input validation  
