@@ -928,7 +928,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // The runtime will map through PRODUCTION_ID_MAP to get the actual index
                 Ok(0x8000 | (rule.0 + 1))
             }
-            Action::Accept => Ok(0x7FFF), // Use 0x7FFF for accept to match parser
+            Action::Accept => Ok(0xFFFF), // Use 0xFFFF for accept (must match decoder in pure_parser.rs)
             Action::Error => Ok(0),       // Use 0 for error to match parser expectation
             Action::Recover => Ok(0xFFFD), // Use distinct value for Recover
             Action::Fork(actions) => {

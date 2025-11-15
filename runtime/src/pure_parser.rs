@@ -1083,19 +1083,18 @@ impl Parser {
         // Decode action from index
 
         // In the pure-Rust implementation, actions are encoded directly in the parse table
-        // High bit set = reduce, otherwise shift
-        if action_index & 0x8000 != 0 {
-            // Reduce action
-            let production_id = (action_index & 0x7FFF) as u16;
-            // Reduce action
-            Action::Reduce(production_id)
-        } else if action_index == 0xFFFF {
+        // IMPORTANT: Check for Accept (0xFFFF) FIRST before checking high bit
+        // because 0xFFFF has the high bit set and would be decoded as Reduce(32767)
+        if action_index == 0xFFFF {
             // Accept action (encoded as 0xFFFF in compression)
             Action::Accept
+        } else if action_index & 0x8000 != 0 {
+            // Reduce action (high bit set)
+            let production_id = (action_index & 0x7FFF) as u16;
+            Action::Reduce(production_id)
         } else {
             // Shift action
             let next_state = action_index as u16;
-            // Shift action
             Action::Shift(next_state)
         }
     }
@@ -1117,7 +1116,7 @@ impl Parser {
             // "DEBUG reduce: Stack before reduction has {} entries",
             // self.stack.len()
             // );
-            for entry in self.stack.iter() {
+            for (_i, entry) in self.stack.iter().enumerate() {
                 if let Some(ref _subtree) = entry.subtree {
                     // eprintln!(
                     // "  Stack[{}]: state={}, symbol={}",
@@ -1284,10 +1283,10 @@ impl Parser {
                 0
             };
 
-            ////eprintln!($
-            //"DEBUG reduce: Looking up goto for symbol {} from state {}",
-            //symbol, prev_state
-            //);
+            // eprintln!(
+            // "DEBUG reduce: Looking up goto for symbol {} from state {}",
+            // symbol, prev_state
+            // );
 
             // Debug: Show all gotos available from this state
             if source.len() < 20 && prev_state == 0 {
