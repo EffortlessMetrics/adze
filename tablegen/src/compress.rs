@@ -588,8 +588,12 @@ mod tests {
         assert!(result.is_ok());
 
         let compressed = result.unwrap();
-        assert_eq!(compressed.default_actions[0], reduce_action);
-        assert!(compressed.data.is_empty()); // All actions are default
+        // Default action optimization is disabled, so default should be Error
+        assert_eq!(compressed.default_actions[0], Action::Error,
+                   "Default action optimization disabled");
+        // All 10 reduce actions should be explicitly encoded
+        assert_eq!(compressed.data.len(), 10,
+                   "All reduce actions should be explicitly encoded");
     }
 
     #[test]
