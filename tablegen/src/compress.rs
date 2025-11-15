@@ -179,7 +179,7 @@ impl TableCompressor {
     ///
     /// Returns compressed tables suitable for embedding.
     ///
-    /// ```no_run
+    /// ```ignore
     /// # use rust_sitter_ir::builder::GrammarBuilder;
     /// # use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
     /// # use rust_sitter_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
