@@ -14,7 +14,7 @@ mod tests {
     use crate::grammar;
 
     #[test]
-    #[ignore = "Macro-based grammar generation needs parser runtime fixes"]
+    #[ignore = "Parse table generation missing reduce action in state 1 for EOF"]
     fn test_number() {
         let result = grammar::parse("42");
         assert!(result.is_ok());

@@ -1295,7 +1295,8 @@ impl<'a> AbiLanguageBuilder<'a> {
         LanguageCounts {
             symbol_count: self.calculate_symbol_count() as u32,
             alias_count: 0, // TODO: Implement aliases
-            token_count: self.grammar.tokens.len() as u32,
+            // token_count includes EOF (symbol 0) plus all user-defined tokens
+            token_count: (self.grammar.tokens.len() + 1) as u32,
             external_token_count: self.grammar.externals.len() as u32,
             state_count: self.parse_table.state_count as u32,
             large_state_count: 0, // TODO: Calculate large states

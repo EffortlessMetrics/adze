@@ -49,7 +49,8 @@ impl LanguageBuilder {
         // Count various elements
         let symbol_count = self.parse_table.symbol_count as u32;
         let state_count = self.parse_table.state_count as u32;
-        let token_count = self.grammar.tokens.len() as u32;
+        // token_count includes EOF (symbol 0) plus all user-defined tokens
+        let token_count = (self.grammar.tokens.len() + 1) as u32;
         let external_token_count = self.grammar.externals.len() as u32;
         let field_count = self.grammar.fields.len() as u32;
 
