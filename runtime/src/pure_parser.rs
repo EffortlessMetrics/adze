@@ -1301,10 +1301,11 @@ impl Parser {
 
             // Look up goto state for the non-terminal we just reduced to
             // eprintln!(
-            // "DEBUG reduce: About to call get_goto with prev_state={}, symbol={}",
-            // prev_state, symbol
+            // "DEBUG reduce: About to call get_goto with prev_state={}, symbol={}, token_count={}",
+            // prev_state, symbol, language.token_count
             // );
             if let Some(goto_state) = self.get_goto(language, prev_state, symbol) {
+                // eprintln!("DEBUG reduce: Found goto_state={}", goto_state);
                 // Push the reduced node with the goto state
                 self.stack.push(StackEntry {
                     state: goto_state,

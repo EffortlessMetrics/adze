@@ -392,11 +392,11 @@ impl TableCompressor {
                 .map(|(action, _)| action.clone())
                 .unwrap_or(Action::Error);
 
-            let default_action = match &most_common {
-                Action::Reduce(_) if !has_shift && !has_accept => most_common,
-                Action::Error => Action::Error,
-                _ => Action::Error,
-            };
+            // DISABLE default action optimization until runtime decoder supports it
+            // The runtime currently doesn't use default_actions array, so skipping
+            // actions based on default would lose information
+            // TODO: Either implement default_actions in runtime or remove this optimization
+            let default_action = Action::Error;
 
             default_actions.push(default_action.clone());
             row_offsets.push(entries.len() as u16);
@@ -404,7 +404,8 @@ impl TableCompressor {
             for (index, action_cell) in action_row.iter().enumerate() {
                 // Process each action in the cell
                 for action in action_cell {
-                    if action == &default_action {
+                    if action == &Action::Error {
+                        // Still skip explicit Error actions to save space
                         continue;
                     }
 

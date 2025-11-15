@@ -14,7 +14,7 @@ mod tests {
     use crate::grammar;
 
     #[test]
-    #[ignore = "Parse table generation missing reduce action in state 1 for EOF"]
+    #[ignore = "GOTO table entries not included in compressed parse table"]
     fn test_number() {
         let result = grammar::parse("42");
         assert!(result.is_ok());
