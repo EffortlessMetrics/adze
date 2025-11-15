@@ -16,6 +16,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [Quick Start Beta](./QUICKSTART_BETA.md) - Quick start guide for v0.6.1-beta
 - [Current Status Report](./CURRENT_STATUS_2025-11.md) - Comprehensive assessment of v0.6.1-beta achievements
 - [Project Status](./PROJECT_STATUS.md) - Current status and feature overview
+- [Implementation Plan](./IMPLEMENTATION_PLAN.md) - Week-by-week v0.7.0 development schedule
 - [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference
 - [Migration Guide](./MIGRATION_GUIDE.md) - Migrating from Tree-sitter
 - [v0.6 Migration](./docs/migration-to-v0.6.md) - Upgrading from v0.5 to v0.6

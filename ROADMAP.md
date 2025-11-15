@@ -85,7 +85,9 @@
 
 **Target**: January-March 2026
 **Focus**: Complete incremental parsing and query system
+
 **📋 [See GAPS.md for detailed implementation tasks](./GAPS.md)**
+**📅 [See IMPLEMENTATION_PLAN.md for week-by-week schedule](./IMPLEMENTATION_PLAN.md)**
 
 ### Scope
 

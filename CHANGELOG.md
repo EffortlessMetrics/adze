@@ -4,6 +4,84 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] - TBD (Target: March 2026)
+
+**Focus**: Feature completion - Incremental parsing, query system, and performance baseline
+
+**📋 Implementation Plan**: See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) for week-by-week schedule
+**📊 Task Breakdown**: See [GAPS.md](./GAPS.md) for all 43 tasks with implementation guidance
+
+### Planned Features
+
+#### Incremental Parsing (HIGH PRIORITY)
+- [ ] Implement `parse_with_old_tree()` functionality for efficient incremental parsing
+- [ ] Subtree reuse algorithm optimized for GLR grammars
+- [ ] Edit validation with overflow protection
+- [ ] 7 incremental parsing tests enabled
+- [ ] Performance target: 10x+ speedup on small edits
+- [ ] Full documentation in `docs/INCREMENTAL_PARSING.md`
+
+#### Query System Completion (HIGH PRIORITY)
+- [ ] Implement all query predicates:
+  - `#eq?` - Equality checking
+  - `#match?` - Regex matching
+  - `#any-of?` - Set membership
+  - `#is?` - Node type checking
+  - `#is-not?` - Negated type checking
+- [ ] Predicate evaluation engine with short-circuit optimization
+- [ ] 5 query tests enabled
+- [ ] Query cookbook with 10+ practical examples in `docs/QUERY_COOKBOOK.md`
+
+#### Performance Baseline (CRITICAL)
+- [ ] Establish performance baseline vs tree-sitter-c
+- [ ] Document current parse speed (tokens/second)
+- [ ] Memory usage profiling and optimization opportunities
+- [ ] Performance regression tests in CI
+- [ ] Performance tuning guide in `docs/PERFORMANCE_TUNING.md`
+
+#### Test Maintenance (HIGH PRIORITY)
+- [ ] Re-enable all 20 ignored tests:
+  - 7 error recovery tests
+  - 3 parser v3 tests
+  - 4 helper function tests
+  - 1 external scanner test
+  - 1 pure Rust E2E test
+  - 2 benchmarks (kept as manual run)
+- [ ] Achieve >95% test pass rate
+- [ ] All tests documented with clear purpose
+
+#### CLI Functionality (MEDIUM PRIORITY)
+- [ ] Dynamic parser loading from shared libraries
+- [ ] `rust-sitter parse` command fully functional
+- [ ] `rust-sitter test` runs corpus tests
+- [ ] Clear error messages and helpful output
+
+#### Documentation (HIGH PRIORITY)
+- [ ] 5 video tutorials (Getting Started, Grammar Writing, Precedence, Queries, Debugging)
+- [ ] Grammar author's cookbook with 10+ recipes
+- [ ] Performance tuning guide with profiling techniques
+- [ ] Troubleshooting guide for common issues
+- [ ] v0.6→v0.7 migration guide
+
+#### API Stabilization
+- [ ] Public API reviewed and frozen for v1.0
+- [ ] Deprecation policy documented
+- [ ] Breaking changes clearly marked
+- [ ] API stability guarantees published
+
+### Success Metrics (v0.7.0)
+- ✅ Incremental parsing operational (10x+ speedup on small edits)
+- ✅ Query system complete with all predicates
+- ✅ Performance baseline established and documented
+- ✅ 0 ignored tests (except intentional benchmarks)
+- ✅ CLI fully functional for parsing and testing
+- ✅ 5+ video tutorials published
+- ✅ Comprehensive documentation coverage
+
+---
+
+## [0.6.1-beta] - Current Release
+
 ### Added
 
 - **Macro-Based Grammar Generation - 100% Working**: Complete parser runtime fixes enable full macro-based grammar support
