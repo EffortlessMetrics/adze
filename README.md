@@ -19,11 +19,11 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 - [Tree-sitter Table Format Spec](./docs/ts_spec.md) - Tree-sitter compatibility layer specification
 - [Optimizer Usage](./docs/optimizer-usage.md) - Using the grammar optimizer for better performance
 - [Roadmap](./ROADMAP.md) - Project roadmap and future plans
-- [Testing Framework](./TESTING_FRAMEWORK.md) - Comprehensive testing guide
-- [Performance Guide](./PERFORMANCE_GUIDE.md) - Optimization and benchmarking
-- [Language Support](./LANGUAGE_SUPPORT.md) - Supported language grammars
-- [LSP Generator](./LSP_GENERATOR.md) - Generate language servers
-- [Playground](./PLAYGROUND.md) - Interactive grammar development
+- [Testing Framework](./docs/TESTING_FRAMEWORK.md) - Comprehensive testing guide
+- [Performance Guide](./docs/PERFORMANCE_GUIDE.md) - Optimization and benchmarking
+- [Language Support](./docs/LANGUAGE_SUPPORT.md) - Supported language grammars
+- [LSP Generator](./docs/LSP_GENERATOR.md) - Generate language servers
+- [Playground](./docs/PLAYGROUND.md) - Interactive grammar development
 
 ### Development
 
@@ -767,6 +767,8 @@ Rust Sitter has been validated with 150+ production grammars:
 ### ⚠️ Known Limitations
 
 **Empty Production Rules**: Tree-sitter does not support grammar rules that can match zero tokens. This means structs with only `Vec<T>` fields need special handling. See [Empty Production Rules Guide](./docs/empty-production-rules.md) for solutions and patterns.
+
+For a complete list of known limitations and workarounds, see [Known Limitations](./docs/KNOWN_LIMITATIONS.md).
 
 ### 🚀 Getting Started
 
