@@ -539,26 +539,48 @@ impl<'a> AbiLanguageBuilder<'a> {
             let mut table_data = Vec::new();
             let mut map_data = Vec::new();
 
-            // Encode action table
-            for entry in &compressed.action_table.data {
-                let symbol = entry.symbol;
-                table_data.push(quote! { #symbol });
-                if let Ok(encoded) = self.encode_action(&entry.action) {
-                    table_data.push(quote! { #encoded });
+            // Encode both action and goto table entries combined
+            // Tree-sitter format: each state's row contains both actions (for terminals)
+            // and gotos (for non-terminals) as (symbol, value) pairs
+
+            for state_idx in 0..self.parse_table.state_count {
+                // Record the starting offset for this state (in u16 pairs)
+                let current_entries = table_data.len() / 2;
+                map_data.push(quote! { #current_entries as u32 });
+
+                // First, add action entries for this state
+                let action_start = compressed.action_table.row_offsets[state_idx] as usize;
+                let action_end = compressed.action_table.row_offsets[state_idx + 1] as usize;
+
+                for entry in &compressed.action_table.data[action_start..action_end] {
+                    let symbol = entry.symbol;
+                    table_data.push(quote! { #symbol });
+                    if let Ok(encoded) = self.encode_action(&entry.action) {
+                        table_data.push(quote! { #encoded });
+                    }
+                }
+
+                // Then, add goto entries for this state (encode as shifts for Tree-sitter compat)
+                // Note: We need to encode goto entries from the original parse table since
+                // CompressedGotoTable doesn't preserve symbol information correctly
+                // Only include non-terminals (symbol_idx >= token_count)
+                let token_count = self.grammar.tokens.len() + 1; // +1 for EOF
+                if state_idx < self.parse_table.goto_table.len() {
+                    for (symbol_idx, &goto_state) in self.parse_table.goto_table[state_idx].iter().enumerate() {
+                        if goto_state.0 > 0 && symbol_idx >= token_count {
+                            // This is a valid goto transition for a non-terminal
+                            let symbol = symbol_idx as u16;
+                            let encoded_shift = goto_state.0; // Shift actions are encoded as state_id
+                            table_data.push(quote! { #symbol });
+                            table_data.push(quote! { #encoded_shift });
+                        }
+                    }
                 }
             }
 
-            // TODO: Also encode goto table entries
-            // Tree-sitter combines both action and goto entries in the parse table
-            // The goto entries should be added here as well
-
-            // Add row offsets to map
-            // Note: row_offsets are in terms of entries, but the parse table
-            // uses u16 indices, so we need to multiply by 2
-            for &offset in &compressed.action_table.row_offsets {
-                let u16_offset = offset * 2;
-                map_data.push(quote! { #u16_offset as u32 });
-            }
+            // Add final offset (end of table)
+            let final_entries = table_data.len() / 2;
+            map_data.push(quote! { #final_entries as u32 });
 
             (table_data, map_data)
         } else {
