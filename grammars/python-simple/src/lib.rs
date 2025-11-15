@@ -113,7 +113,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Python-simple grammar has lexer/parser issues - parse errors at position 2"]
+    #[ignore = "Extract implementation needs support for nested enum variants (Expression_Add inside Statement)"]
     fn test_primary_expression() {
         // use rust_sitter::Extract;
 
@@ -192,7 +192,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Python-simple grammar has lexer/parser issues - parse errors at position 2"]
+    #[ignore = "Extract implementation needs support for nested enum variants (Expression_Add inside Statement)"]
     fn test_extract_string() {
         // use rust_sitter::Extract;
 
@@ -222,7 +222,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Python-simple grammar has lexer/parser issues - parse errors at position 2"]
+    #[ignore = "Extract implementation needs support for nested enum variants (Expression_Add inside Statement)"]
     fn test_extract_identifier() {
         // use rust_sitter::Extract;
 
@@ -249,7 +249,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Python-simple grammar has lexer/parser issues - parse errors at position 2"]
+    #[ignore = "Extract implementation needs support for nested enum variants (Expression_Add inside Statement)"]
     fn test_simple_addition() {
         let input = "1 + 2";
         let result = parse(input);
@@ -257,7 +257,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Python-simple grammar has lexer/parser issues - parse errors at position 2"]
+    #[ignore = "Extract implementation needs support for nested enum variants (Expression_Add inside Statement)"]
     fn test_operator_precedence() {
         let input = "1 + 2 * 3";
         let result = parse(input);
@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Python-simple grammar has lexer/parser issues - parse errors at position 2"]
+    #[ignore = "Extract implementation needs support for nested enum variants (Expression_Add inside Statement)"]
     fn test_assignment() {
         let input = "x = 42";
         let result = parse(input);
