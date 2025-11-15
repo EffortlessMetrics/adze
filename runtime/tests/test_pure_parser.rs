@@ -85,6 +85,42 @@ fn create_test_language() -> &'static TSLanguage {
     static LEX_MODES: [u32; 10] = [0; 10];
     static PRODUCTION_ID_MAP: [u16; 10] = [0; 10];
 
+    // Symbol names (7 symbols: EOF, digit, plus, multiply, number, addition, multiplication)
+    static SYMBOL_NAME_EOF: &[u8] = b"end\0";
+    static SYMBOL_NAME_DIGIT: &[u8] = b"digit\0";
+    static SYMBOL_NAME_PLUS: &[u8] = b"+\0";
+    static SYMBOL_NAME_MULTIPLY: &[u8] = b"*\0";
+    static SYMBOL_NAME_NUMBER: &[u8] = b"number\0";
+    static SYMBOL_NAME_ADDITION: &[u8] = b"addition\0";
+    static SYMBOL_NAME_MULTIPLICATION: &[u8] = b"multiplication\0";
+
+    // Use a newtype wrapper to implement Sync for the pointer array
+    #[repr(transparent)]
+    struct SymbolNamesArray([*const u8; 7]);
+    unsafe impl Sync for SymbolNamesArray {}
+
+    static SYMBOL_NAMES: SymbolNamesArray = SymbolNamesArray([
+        SYMBOL_NAME_EOF.as_ptr(),
+        SYMBOL_NAME_DIGIT.as_ptr(),
+        SYMBOL_NAME_PLUS.as_ptr(),
+        SYMBOL_NAME_MULTIPLY.as_ptr(),
+        SYMBOL_NAME_NUMBER.as_ptr(),
+        SYMBOL_NAME_ADDITION.as_ptr(),
+        SYMBOL_NAME_MULTIPLICATION.as_ptr(),
+    ]);
+
+    // Symbol metadata (1 byte per symbol)
+    // Bit flags: 0x01 = visible, 0x02 = named, 0x04 = hidden
+    static SYMBOL_METADATA: [u8; 7] = [
+        0x01,        // EOF: visible
+        0x01,        // digit: visible terminal
+        0x01,        // plus: visible terminal
+        0x01,        // multiply: visible terminal
+        0x03,        // number: visible + named
+        0x03,        // addition: visible + named
+        0x03,        // multiplication: visible + named
+    ];
+
     static LANGUAGE: TSLanguage = TSLanguage {
         version: 15,
         symbol_count: 7,
@@ -106,11 +142,11 @@ fn create_test_language() -> &'static TSLanguage {
         small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
         small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
         parse_actions: PARSE_ACTIONS.as_ptr(),
-        symbol_names: ptr::null(),
+        symbol_names: SYMBOL_NAMES.0.as_ptr(),
         field_names: ptr::null(),
         field_map_slices: ptr::null(),
         field_map_entries: ptr::null(),
-        symbol_metadata: ptr::null(),
+        symbol_metadata: SYMBOL_METADATA.as_ptr(),
         public_symbol_map: ptr::null(),
         alias_map: ptr::null(),
         alias_sequences: ptr::null(),
@@ -140,7 +176,6 @@ fn test_pure_parser_creation() {
 }
 
 #[test]
-#[ignore = "Pure parser test needs symbol_names and symbol_metadata added to test language"]
 fn test_set_language() {
     let mut parser = Parser::new();
     let language = create_test_language();
@@ -150,7 +185,6 @@ fn test_set_language() {
 }
 
 #[test]
-#[ignore = "Pure parser test needs symbol_names and symbol_metadata added to test language"]
 fn test_parse_empty_string() {
     let mut parser = Parser::new();
     let language = create_test_language();
@@ -161,7 +195,6 @@ fn test_parse_empty_string() {
 }
 
 #[test]
-#[ignore = "Pure parser test needs symbol_names and symbol_metadata added to test language"]
 fn test_parse_simple_expression() {
     let mut parser = Parser::new();
     let language = create_test_language();
@@ -180,7 +213,6 @@ fn test_parse_simple_expression() {
 }
 
 #[test]
-#[ignore = "Pure parser test needs symbol_names and symbol_metadata added to test language"]
 fn test_timeout() {
     let mut parser = Parser::new();
     let language = create_test_language();
@@ -197,7 +229,6 @@ fn test_timeout() {
 }
 
 #[test]
-#[ignore = "Pure parser test needs symbol_names and symbol_metadata added to test language"]
 fn test_cancellation() {
     use std::sync::atomic::{AtomicBool, Ordering};
 
