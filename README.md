@@ -14,6 +14,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 
 - [Getting Started Guide](./docs/GETTING_STARTED.md) - Comprehensive guide to building parsers with macro-based grammars
 - [Quick Start Beta](./QUICKSTART_BETA.md) - Quick start guide for v0.6.1-beta
+- [Current Status Report](./CURRENT_STATUS_2025-11.md) - Comprehensive assessment of v0.6.1-beta achievements
 - [Project Status](./PROJECT_STATUS.md) - Current status and feature overview
 - [API Documentation](./API_DOCUMENTATION.md) - Comprehensive API reference
 - [Migration Guide](./MIGRATION_GUIDE.md) - Migrating from Tree-sitter
@@ -35,12 +36,13 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 ## Key Features (v0.6.1-beta)
 
 ### ✅ Production-Ready
-- **Macro-Based Grammar Generation**: 100% working! Define grammars with Rust annotations (9/9 tests passing)
+- **Macro-Based Grammar Generation**: 100% working! Define grammars with Rust annotations (13/13 tests passing: test-mini 6/6, test-vec-wrapper 7/7)
+- **Real-World Validation**: 6/6 integration tests demonstrating correct precedence (`1-2*3` → `1-(2*3)`) and associativity (`20-10-5` → `(20-10)-5`)
 - **Complete Parser Pipeline**: Token recognition, shift/reduce actions, GOTO table lookup, and accept handling all working
 - **Text Extraction**: Leaf nodes with `text = true` properly extract source text
-- **Repetition Support**: Vec<> fields with `#[repeat]` now work correctly
+- **Repetition Support**: Vec<> fields with `#[repeat]` work correctly with empty productions and whitespace handling
 - **GLR Parsing**: Algorithmically correct GLR with multi-action cells (100% test pass rate)
-- **Precedence Disambiguation**: Correctly resolves operator precedence (e.g., `1+2*3` → `1+(2*3)`)
+- **Precedence Disambiguation**: Correctly resolves operator precedence with real arithmetic parsing
 - **Error Recovery**: Graceful handling of malformed input with error node insertion
 - **EOF Processing**: Fixed parameter usage for proper end-of-input handling
 - **Correctness Fixes**: Phase-2 re-closure, accept aggregation, EOF recovery, epsilon guards
@@ -84,11 +86,15 @@ fn main() {
 ## Current Limitations & Roadmap
 
 ### What Works Today ✅
-- **Core GLR parsing** with full ambiguity support
-- **Grammar definition** via Rust macros
-- **Pure-Rust code generation** at build time
-- **Basic external scanner** infrastructure
+- **Core GLR parsing** with full ambiguity support (30/30 fork/merge tests passing)
+- **Macro-based grammar generation** with 100% completion (13/13 tests)
+- **Real-world parsing** with correct precedence and associativity (6/6 integration tests)
+- **Pure-Rust code generation** at build time with zero C dependencies
+- **External scanner** infrastructure for context-sensitive lexing
 - **WASM compilation** and browser support
+- **Production-grade CI/CD** with 13 workflows covering lint, test, fuzz, benchmarks
+
+📊 **For detailed status assessment**, see [CURRENT_STATUS_2025-11.md](./CURRENT_STATUS_2025-11.md)
 
 ### CLI Status 🔧
 
