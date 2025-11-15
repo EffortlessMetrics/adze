@@ -8,10 +8,11 @@ use walkdir::WalkDir;
 
 mod parse;
 
-/// Rust-sitter CLI - Tools for grammar development
+/// Rust-sitter CLI
 #[derive(Parser)]
 #[command(name = "rust-sitter")]
-#[command(author, version, about, long_about = None)]
+#[command(about = "Rust-sitter CLI - Tools for grammar development")]
+#[command(author, version, long_about = None)]
 struct Cli {
     /// Enable verbose output
     #[arg(short, long, global = true)]
