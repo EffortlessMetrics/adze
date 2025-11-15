@@ -544,9 +544,12 @@ impl<'a> AbiLanguageBuilder<'a> {
             // and gotos (for non-terminals) as (symbol, value) pairs
 
             for state_idx in 0..self.parse_table.state_count {
-                // Record the starting offset for this state (in u16 pairs)
-                let current_entries = table_data.len() / 2;
-                map_data.push(quote! { #current_entries as u32 });
+                // Record the starting offset for this state (in u16 array indices, not pairs)
+                let current_offset = table_data.len();
+                map_data.push(quote! { #current_offset as u32 });
+
+                // Track which symbols already have action entries to avoid duplicates
+                let mut action_symbols = std::collections::HashSet::new();
 
                 // First, add action entries for this state
                 let action_start = compressed.action_table.row_offsets[state_idx] as usize;
@@ -554,6 +557,7 @@ impl<'a> AbiLanguageBuilder<'a> {
 
                 for entry in &compressed.action_table.data[action_start..action_end] {
                     let symbol = entry.symbol;
+                    action_symbols.insert(symbol);
                     table_data.push(quote! { #symbol });
                     if let Ok(encoded) = self.encode_action(&entry.action) {
                         table_data.push(quote! { #encoded });
@@ -561,15 +565,12 @@ impl<'a> AbiLanguageBuilder<'a> {
                 }
 
                 // Then, add goto entries for this state (encode as shifts for Tree-sitter compat)
-                // Note: We need to encode goto entries from the original parse table since
-                // CompressedGotoTable doesn't preserve symbol information correctly
-                // Only include non-terminals (symbol_idx >= token_count)
-                let token_count = self.grammar.tokens.len() + 1; // +1 for EOF
+                // Skip symbols that already have action entries to avoid duplicates
                 if state_idx < self.parse_table.goto_table.len() {
                     for (symbol_idx, &goto_state) in self.parse_table.goto_table[state_idx].iter().enumerate() {
-                        if goto_state.0 > 0 && symbol_idx >= token_count {
-                            // This is a valid goto transition for a non-terminal
-                            let symbol = symbol_idx as u16;
+                        let symbol = symbol_idx as u16;
+                        if goto_state.0 > 0 && !action_symbols.contains(&symbol) {
+                            // This is a valid goto transition without a conflicting action
                             let encoded_shift = goto_state.0; // Shift actions are encoded as state_id
                             table_data.push(quote! { #symbol });
                             table_data.push(quote! { #encoded_shift });
@@ -578,9 +579,9 @@ impl<'a> AbiLanguageBuilder<'a> {
                 }
             }
 
-            // Add final offset (end of table)
-            let final_entries = table_data.len() / 2;
-            map_data.push(quote! { #final_entries as u32 });
+            // Add final offset (end of table, in u16 array indices)
+            let final_offset = table_data.len();
+            map_data.push(quote! { #final_offset as u32 });
 
             (table_data, map_data)
         } else {
