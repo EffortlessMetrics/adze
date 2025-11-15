@@ -13,10 +13,12 @@ All notable changes to this project will be documented in this file.
   - Added missing GOTO table entries to compressed parse tables
   - Fixed GOTO offset calculation to use array indices instead of pair counts
   - All test-mini tests passing: 6/6 (100%)
-  - All test-vec-wrapper tests passing: 3/3 (100%)
+  - All test-vec-wrapper tests passing: 7/7 (100%) - includes resolver tests for Vec<> with whitespace
+  - Comprehensive integration tests demonstrating real-world parsing with precedence and associativity
   - Text extraction from leaf nodes with `text = true` attribute working
   - Vec<> repetition with `#[repeat]` attribute fully functional
   - Complete parser pipeline: tokenization, shift, reduce, GOTO lookup, accept all working
+  - Real-world validation: arithmetic expressions parse correctly (1-2*3 → 1-(2*3))
 
 - **LSP Generator**: Complete grammar loading infrastructure for automatic language server generation
   - `load_grammar()` function with streaming JSON deserialization for memory efficiency

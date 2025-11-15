@@ -38,12 +38,13 @@ Rust Sitter v0.6.0-beta achieves a correct GLR parser implementation with succes
 
 | Test Suite | Pass Rate | Status |
 |------------|-----------|---------|
-| Macro-Based Grammars | 9/9 (100%) | ✅ Fully working |
+| Macro-Based Grammars | 13/13 (100%) | ✅ Fully working (test-mini 6/6, test-vec-wrapper 7/7) |
+| Integration Tests | 6/6 (100%) | ✅ Real-world parsing with precedence & associativity |
 | Lexer Integration | 2/2 (100%) | ✅ Fully working |
 | Error Recovery | 4/5 (80%) | ✅ Mostly working |
 | Fork/Merge | 30/30 (100%) | ✅ Perfect |
-| Integration | 5/5 (100%) | ✅ Perfect |
 | GLR Parsing | 2/6 (33%) | ⚠️ Test infrastructure issues |
+| Tablegen | All passing | ✅ Accept encoding fixed |
 
 ## 🎯 Recent Fixes (November 2025)
 
@@ -54,9 +55,13 @@ Rust Sitter v0.6.0-beta achieves a correct GLR parser implementation with succes
 - **Default Action Optimization**: Disabled to ensure runtime compatibility
 - **GOTO Table Encoding**: Added missing GOTO entries to compressed parse tables
 - **GOTO Offset Calculation**: Fixed offsets to use array indices instead of pair counts
-- **Test Coverage**: All macro-based grammar tests passing (test-mini, test-vec-wrapper)
+- **Test Coverage**: All macro-based grammar tests passing (test-mini 6/6, test-vec-wrapper 7/7)
+- **Resolver Tests**: Enabled 4 additional tests validating Vec<> with whitespace handling
+- **Integration Tests**: Added 6 comprehensive real-world parsing tests with benchmarks
 - **Vec Support**: Repetition with Vec<> now works correctly
 - **Text Extraction**: Leaf nodes with `text = true` properly extract source text
+- **Precedence Validation**: Real tests prove operator precedence works (1-2*3 → 1-(2*3))
+- **Associativity Validation**: Real tests prove left-associativity ((20-10)-5)
 
 ### End-Game Correctness Fixes (January 2025)
 - **Nonterminal Goto**: Fixed critical bug using action table for nonterminal lookups
