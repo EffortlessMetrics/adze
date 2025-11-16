@@ -262,9 +262,9 @@ mod tests {
         let result = grammar::parse("1 - 2 * 3").unwrap();
         match result {
             Expression::Sub(left, _, right) => {
-                assert_eq!(**left, Expression::Number(1));
-                assert!(matches!(**right, Expression::Mul(_, _, _)));
-                if let Expression::Mul(mul_left, _, mul_right) = &**right {
+                assert_eq!(*left, Expression::Number(1));
+                assert!(matches!(*right, Expression::Mul(_, _, _)));
+                if let Expression::Mul(mul_left, _, mul_right) = &*right {
                     assert_eq!(**mul_left, Expression::Number(2));
                     assert_eq!(**mul_right, Expression::Number(3));
                 }
@@ -277,9 +277,9 @@ mod tests {
         let result = grammar::parse("1 - 2 - 3").unwrap();
         match result {
             Expression::Sub(left, _, right) => {
-                assert!(matches!(**left, Expression::Sub(_, _, _)));
-                assert_eq!(**right, Expression::Number(3));
-                if let Expression::Sub(sub_left, _, sub_right) = &**left {
+                assert!(matches!(*left, Expression::Sub(_, _, _)));
+                assert_eq!(*right, Expression::Number(3));
+                if let Expression::Sub(sub_left, _, sub_right) = &*left {
                     assert_eq!(**sub_left, Expression::Number(1));
                     assert_eq!(**sub_right, Expression::Number(2));
                 }
@@ -292,8 +292,8 @@ mod tests {
         let result = grammar::parse("1 * 2 * 3").unwrap();
         match result {
             Expression::Mul(left, _, right) => {
-                assert!(matches!(**left, Expression::Mul(_, _, _)));
-                assert_eq!(**right, Expression::Number(3));
+                assert!(matches!(*left, Expression::Mul(_, _, _)));
+                assert_eq!(*right, Expression::Number(3));
             }
             _ => panic!("Expected left-associative Mul, got {:?}", result),
         }
@@ -303,8 +303,8 @@ mod tests {
         let result = grammar::parse("1 * 2 - 3").unwrap();
         match result {
             Expression::Sub(left, _, right) => {
-                assert!(matches!(**left, Expression::Mul(_, _, _)));
-                assert_eq!(**right, Expression::Number(3));
+                assert!(matches!(*left, Expression::Mul(_, _, _)));
+                assert_eq!(*right, Expression::Number(3));
             }
             _ => panic!("Expected (1 * 2) - 3 structure, got {:?}", result),
         }
