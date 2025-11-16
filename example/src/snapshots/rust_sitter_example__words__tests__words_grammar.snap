@@ -1,12 +1,12 @@
 ---
-source: example/src/words.rs
+source: src/words.rs
 expression: "grammar::parse(\"if\")"
 ---
 Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "symbol 0",
+                "end",
             ),
             start: 2,
             end: 2,
