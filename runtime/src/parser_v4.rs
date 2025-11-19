@@ -580,8 +580,9 @@ impl Parser {
     /// for extraction and AST construction. For a simpler API that returns
     /// just metadata, use `parse()`.
     pub fn parse_tree(&mut self, input: &str) -> Result<ParseNode> {
-        // Implementation is identical to parse() except for return type
-        self.parse_internal(input, true)
+        // Extract just the parse tree, ignoring error count
+        let (root, _error_count) = self.parse_internal(input, true)?;
+        Ok(root)
     }
 
     /// Parse the input string and return minimal tree metadata
@@ -589,16 +590,17 @@ impl Parser {
     /// This is the backward-compatible API that returns just the tree metadata.
     /// For extraction and AST construction, use `parse_tree()` instead.
     pub fn parse(&mut self, input: &str) -> Result<Tree> {
-        let root = self.parse_internal(input, false)?;
+        let (root, error_count) = self.parse_internal(input, false)?;
         Ok(Tree {
             root_kind: root.symbol.0,
-            error_count: 0, // TODO: track error count in parse_internal
+            error_count,
             source: input.to_string(),
         })
     }
 
     /// Internal parsing implementation shared by parse() and parse_tree()
-    fn parse_internal(&mut self, input: &str, _return_tree: bool) -> Result<ParseNode> {
+    /// Returns (ParseNode, error_count)
+    fn parse_internal(&mut self, input: &str, _return_tree: bool) -> Result<(ParseNode, usize)> {
         // eprintln!("\nStarting parse of: {:?}", input);
         // Store the input
         self.input = input.as_bytes().to_vec();
@@ -817,8 +819,8 @@ impl Parser {
                         .pop()
                         .ok_or_else(|| anyhow!("No root node after accept"))?;
 
-                    // Return the actual parse tree
-                    return Ok(root_node);
+                    // Return the actual parse tree with error count
+                    return Ok((root_node, error_count));
                 }
 
                 Action::Error => {
@@ -841,7 +843,7 @@ impl Parser {
                         }
                     };
 
-                    return Ok(error_node);
+                    return Ok((error_node, error_count));
                 }
 
                 Action::Recover => {
@@ -863,7 +865,7 @@ impl Parser {
                         }
                     };
 
-                    return Ok(recovery_node);
+                    return Ok((recovery_node, error_count));
                 }
 
                 Action::Fork(actions) => {

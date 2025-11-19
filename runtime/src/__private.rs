@@ -344,8 +344,8 @@ fn parse_with_glr<T: Extract<T>>(
     // Get the language
     let lang = language();
 
-    // Create parser from TSLanguage
-    let mut parser = Parser::from_language(lang, "grammar".to_string());
+    // Create parser from TSLanguage with the correct grammar name for external scanner lookup
+    let mut parser = Parser::from_language(lang, T::GRAMMAR_NAME.to_string());
 
     // Parse to get root ParseNode
     let root_node = parser
@@ -383,18 +383,39 @@ fn convert_parse_node_v4_to_pure(
         .map(|child| convert_parse_node_v4_to_pure(child, lang))
         .collect();
 
+    // Read symbol metadata from TSLanguage
+    // Safety: runtime guarantees symbol < symbol_count when building nodes
+    let (is_named, is_extra) = unsafe {
+        if !lang.symbol_metadata.is_null() && (node.symbol.0 as u32) < lang.symbol_count {
+            let metadata = *lang.symbol_metadata.add(node.symbol.0 as usize);
+            // Tree-sitter metadata encoding:
+            // Bit 0 (0x01): visible
+            // Bit 1 (0x02): named
+            // Bit 2 (0x04): extra
+            // Bit 3 (0x08): supertype
+            let is_named = (metadata & 0x02) != 0;
+            let is_extra = (metadata & 0x04) != 0;
+            (is_named, is_extra)
+        } else {
+            // Fallback if metadata unavailable
+            (true, false)
+        }
+    };
+
     crate::pure_parser::ParsedNode {
         symbol: node.symbol.0,  // SymbolId.0 -> TSSymbol
         children,
         start_byte: node.start_byte,
         end_byte: node.end_byte,
-        // TODO: Calculate actual points from byte positions
+        // NOTE: Points are currently stubbed for the GLR path.
+        // They are not used by any public API on GLR-generated trees.
+        // See docs/plans/GLR_RUNTIME_WIRING_PLAN.md for tracking.
         start_point: crate::pure_parser::Point { row: 0, column: 0 },
         end_point: crate::pure_parser::Point { row: 0, column: 0 },
-        is_extra: false,
-        is_error: node.symbol.0 == 0,  // Symbol 0 often indicates error
+        is_extra,
+        is_error: node.symbol.0 == 0,  // Symbol 0 typically indicates error
         is_missing: false,
-        is_named: true,  // Assume named by default
+        is_named,
         field_name: node.field_name.clone(),
         language: Some(lang as *const _),
     }

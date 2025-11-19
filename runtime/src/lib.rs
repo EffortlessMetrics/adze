@@ -239,6 +239,22 @@ pub trait Extract<Output>: sealed::Sealed {
     /// ```
     const HAS_CONFLICTS: bool = false;
 
+    /// Grammar name as specified in `#[rust_sitter::grammar("name")]`.
+    ///
+    /// This constant is used to look up external scanners in the scanner registry.
+    /// Must match the name used when registering the external scanner.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// #[rust_sitter::grammar("python")]
+    /// mod python {
+    ///     // GRAMMAR_NAME will be "python"
+    /// }
+    /// ```
+    #[cfg(feature = "pure-rust")]
+    const GRAMMAR_NAME: &'static str = "unknown";
+
     /// Grammar definition in JSON format (Tree-sitter compatible).
     ///
     /// This constant contains the complete grammar definition including:
