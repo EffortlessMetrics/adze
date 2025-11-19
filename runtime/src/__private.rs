@@ -338,18 +338,66 @@ fn parse_with_glr<T: Extract<T>>(
     // parser_v4::parse() returns Tree { root_kind, error_count, source }
     // but we need the actual ParseNode tree for T::extract().
     //
-    // Solution Options:
-    // Option A: Modify parser_v4::parse() to return root ParseNode
-    // Option B: Add parser_v4::parse_tree() method that returns ParseNode
-    // Option C: Create From<parser_v4::ParseNode> for pure_parser::ParsedNode
-    //
-    // For now, use pure_parser as fallback (maintains current behavior)
-    // This allows routing logic to compile and be tested while parser_v4
-    // integration is completed.
-    //
-    // NOTE: The GLR parse tables ARE being generated correctly by glr-core.
-    // The issue is purely in the runtime integration, not table generation.
-    parse_with_pure_parser(input, language)
+    // ✅ IMPLEMENTED: Option B - Added parser_v4::parse_tree() method
+    use crate::parser_v4::Parser;
+
+    // Get the language
+    let lang = language();
+
+    // Create parser from TSLanguage
+    let mut parser = Parser::from_language(lang, "grammar".to_string());
+
+    // Parse to get root ParseNode
+    let root_node = parser
+        .parse_tree(input)
+        .map_err(|e| {
+            vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(e.to_string()),
+                start: 0,
+                end: 0,
+            }]
+        })?;
+
+    // Convert parser_v4::ParseNode to pure_parser::ParsedNode
+    let parsed_node = convert_parse_node_v4_to_pure(&root_node, lang);
+
+    // Extract typed AST using the Extract trait
+    Ok(<T as crate::Extract<_>>::extract(
+        Some(&parsed_node),
+        input.as_bytes(),
+        0,
+        None,
+    ))
+}
+
+/// Convert parser_v4::ParseNode to pure_parser::ParsedNode
+#[cfg(feature = "glr")]
+fn convert_parse_node_v4_to_pure(
+    node: &crate::parser_v4::ParseNode,
+    lang: &crate::pure_parser::TSLanguage,
+) -> crate::pure_parser::ParsedNode {
+    // Recursively convert children
+    let children = node
+        .children
+        .iter()
+        .map(|child| convert_parse_node_v4_to_pure(child, lang))
+        .collect();
+
+    crate::pure_parser::ParsedNode {
+        symbol: node.symbol.0,  // SymbolId.0 -> TSSymbol
+        children,
+        start_byte: node.start_byte,
+        end_byte: node.end_byte,
+        // TODO: Calculate actual points from byte positions
+        start_point: crate::pure_parser::Point { row: 0, column: 0 },
+        end_point: crate::pure_parser::Point { row: 0, column: 0 },
+        is_extra: false,
+        is_error: node.symbol.0 == 0,  // Symbol 0 often indicates error
+        is_missing: false,
+        is_named: true,  // Assume named by default
+        field_name: node.field_name.clone(),
+        language: Some(lang as *const _),
+    }
 }
 
 /// Parse using the GLR parser (stub for when feature is not enabled)
