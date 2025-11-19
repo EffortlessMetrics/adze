@@ -38,6 +38,9 @@ mod engine;
 /// GLR parsing engine (Phase 3.1)
 #[cfg(feature = "pure-rust-glr")]
 pub mod glr_engine;
+/// Lexical scanner (tokenizer) for GLR parsing (Phase 3.2)
+#[cfg(feature = "pure-rust-glr")]
+pub mod tokenizer;
 /// Token types and lexing helpers.
 pub mod token;
 
