@@ -24,13 +24,14 @@ Phase 3.3 integration testing successfully identified and resolved critical bugs
 - **Node API Phase 1 MVP**: Core child access methods implemented
 - **NODE_API_CONTRACT.md**: Comprehensive specification (350+ lines)
 - **8/10 arithmetic tests passing** (2 failures are expected: performance + whitespace)
+- **Component 2 - GLR/LR Parity Testing**: 8/8 tests passing ✅
+- **Precedence handling bugs fixed**: Token extraction + conflict resolution boundary checks
 
 **In Progress** 🚧:
-- None (Component 1 parsing complete!)
+- None (Components 1-2 complete!)
 
 **Pending** ⏳:
 - Component 1: Remaining examples (ambiguous_expr, dangling_else)
-- Component 2: Parity tests
 - Component 3: Performance benchmarks
 - Component 4: Memory profiling
 - Component 5: E2E integration tests
@@ -485,9 +486,152 @@ The systematic methodology is working:
 
 ---
 
-**Status**: ✅ **Component 1 Core Features Complete** - GLR parsing + Node API working
+## Finding 5: Precedence Handling Off-By-One Errors ❌ → ✅ **RESOLVED**
+
+### Observation
+
+After completing Component 1, Component 2 parity tests showed failures in precedence-sensitive expressions:
+```
+test arithmetic_parity::test_precedence ... FAILED
+test arithmetic_parity::test_left_associativity_multiplication ... FAILED
+```
+
+GLR was parsing "1-2*3" as "(1-2)*3" instead of the correct "1-(2*3)".
+
+### Test Case
+
+**Input**: `"1-2*3"`
+**Expected**: `1-(2*3)` (multiplication has higher precedence)
+**Actual**: `(1-2)*3` (incorrect)
+
+### Root Cause Analysis
+
+Discovered **two related off-by-one errors** in precedence handling:
+
+#### Bug 1: Token Precedence Extraction Boundary Check ❌
+**Location**: `glr-core/src/lib.rs:247` in `build_prec_tables()`
+
+**Problem**:
+```rust
+// Broken check
+if let Some(tok_idx) = tok_idx_opt && (tok_idx as u32) < token_count
+{
+    set_tok_prec(tok_idx, TokPrec { prec: level, assoc: rule_assoc });
+}
+```
+
+The check `(tok_idx as u32) < token_count` excluded the last token:
+- `token_count = 3` (NUMBER, MINUS, STAR)
+- Token indices: 0 (EOF), 1 (NUMBER), 2 (MINUS), 3 (STAR)
+- Check `3 < 3` failed for STAR at index 3
+
+**Impact**: Token 3 (STAR `*`) never got its precedence of 2 set, so precedence resolution couldn't work.
+
+**Fix**:
+```rust
+// Capture length before closure to avoid borrow checker issues
+let tok_prec_len = tok_prec_by_index.len();
+
+// Correct check using array length
+if let Some(tok_idx) = tok_idx_opt && tok_idx < tok_prec_len
+{
+    set_tok_prec(tok_idx, TokPrec { prec: level, assoc: rule_assoc });
+}
+```
+
+#### Bug 2: Conflict Resolution Terminal Boundary Check ❌
+**Location**: `glr-core/src/lib.rs:2636` in conflict resolution loop
+
+**Problem**: Even with Bug 1 fixed, conflicts with STAR were still being skipped:
+```rust
+// Broken check
+if (symbol_idx as u32) >= token_count {
+    continue; // Skip non-terminal columns
+}
+```
+
+Same issue - STAR at index 3 failed check `3 >= 3` and was classified as non-terminal.
+
+**Impact**: The critical shift/reduce conflict wasn't being detected:
+- After parsing "1-2" with lookahead "*"
+- Should have: Shift * (prec 2) vs Reduce expr-expr (prec 1)
+- Resolution: Shift wins → produces "1-(2*3)" ✅
+- Instead: Conflict skipped → wrong parse "(1-2)*3" ❌
+
+**Fix**:
+```rust
+// Calculate correct terminal boundary
+// Terminals are: EOF (index 0) + token_symbols (indices 1..=token_symbols.len())
+let first_nonterminal_idx = token_symbols.len() + 1;
+
+// Correct check
+if symbol_idx >= first_nonterminal_idx {
+    continue; // Skip non-terminal columns
+}
+```
+
+### Resolution
+
+**Status**: ✅ **BOTH BUGS FIXED**
+
+**Test Results**:
+- **Before**: 5/8 parity tests passing
+- **After Bug 1 Fix**: 6/8 parity tests passing (+25%)
+- **After Bug 2 Fix**: **8/8 parity tests passing** (+100% of remaining failures)
+
+**Passing Tests** ✅:
+1. ✅ `test_simple_number`: "42"
+2. ✅ `test_single_digit`: "1"
+3. ✅ `test_binary_subtraction`: "1-2"
+4. ✅ `test_precedence`: "1-2*3" → **NOW CORRECT: 1-(2*3)**
+5. ✅ `test_left_associativity_subtraction`: "1-2-3"
+6. ✅ `test_left_associativity_multiplication`: "1*2*3" → **NOW PASSING**
+7. ✅ `test_complex_expression`: "(1*2)-(3*4)"
+8. ✅ `test_large_expression`: "1+2*3-4/5"
+
+### Verification Process
+
+**Systematic Debugging**:
+1. Created `precedence_debug.rs` example to test for non-determinism
+2. Discovered parsing was deterministic but producing wrong tree
+3. Added debug instrumentation to trace:
+   - Token precedence extraction (`PREC DEBUG:`)
+   - Conflict detection (`CONFLICT DEBUG:`)
+   - Conflict resolution (`RESOLVE DEBUG:`)
+4. Found Bug 1: STAR precedence not being set
+5. Fixed Bug 1, discovered Bug 2: STAR conflicts being skipped
+6. Fixed Bug 2, achieved 8/8 passing
+
+**Debug Output Examples**:
+```
+PREC DEBUG: Setting token 2 precedence to 1 (from rule with prec 1)
+PREC DEBUG: Setting token 3 precedence to 2 (from rule with prec 2)
+
+RESOLVE DEBUG: first_nonterminal_idx = 4, token_symbols.len() = 3
+CONFLICT DEBUG: Shift/Reduce conflict - token 3 (prec 2) vs rule 1 (prec 1)
+```
+
+### Impact on Components
+
+**Component 1** (Parsing): Already complete, no impact
+
+**Component 2** (Parity Testing): ✅ **NOW COMPLETE**
+- All 8/8 GLR/LR parity tests passing
+- Validates GLR produces correct output for unambiguous grammars
+
+**Future Components**: Precedence now works correctly for:
+- Performance benchmarks (Component 3)
+- Memory profiling (Component 4)
+- E2E integration tests (Component 5)
+
+---
+
+**Status**: ✅ **Component 2 Complete** - GLR/LR parity validated
 **Commits**:
 - 417e9a7: GLR parsing engine fixes (Finding 2)
-- Pending: Node API fixes (Finding 3)
-**Next Update**: After committing Node API fixes
-**Timeline**: On track for Phase 3.3 completion (3-4 days)
+- e090c2d: Node API Phase 1 MVP (Finding 3)
+- e2db01f: Component 2 parity testing implementation
+- a0a7257: Precedence extraction bounds fix (Bug 1)
+- 9ce08ee: Conflict resolution terminal boundary fix (Bug 2)
+**Next Update**: Component 3 - Performance Benchmarking
+**Timeline**: Ahead of schedule (Components 1-2 complete)
