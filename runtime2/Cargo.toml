@@ -35,6 +35,9 @@ pretty_assertions = "1.4"
 default = ["glr-core"]
 # Enable GLR core integration
 glr-core = ["dep:rust-sitter-glr-core", "dep:rust-sitter-ir"]
+# Enable pure-Rust GLR runtime (bypasses TSLanguage encoding)
+# This is the Phase 3 feature that uses ParseTable directly
+pure-rust-glr = ["glr-core"]
 # Enable arena allocators for performance
 arenas = ["bumpalo", "typed-arena"]
 # Enable incremental parsing support
