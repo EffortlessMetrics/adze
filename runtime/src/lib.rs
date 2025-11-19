@@ -115,6 +115,8 @@ mod parser_v3;
 // Current parser version
 /// Arena allocator for parse tree nodes.
 pub mod arena_allocator;
+/// Parser backend selection logic.
+pub mod parser_selection;
 /// Version 4 parser implementation (GLR).
 #[cfg(feature = "pure-rust")]
 pub mod parser_v4;
