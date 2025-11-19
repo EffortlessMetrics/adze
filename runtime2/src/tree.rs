@@ -104,17 +104,17 @@ pub struct Tree {
 #[allow(dead_code)]
 pub(crate) struct TreeNode {
     /// Symbol type
-    symbol: u32,
+    pub(crate) symbol: u32,
     /// Byte range in source
-    start_byte: usize,
-    end_byte: usize,
+    pub(crate) start_byte: usize,
+    pub(crate) end_byte: usize,
     /// Children nodes
-    children: Vec<TreeNode>,
+    pub(crate) children: Vec<TreeNode>,
     /// Field ID if this node has a field name
-    field_id: Option<u16>,
+    pub(crate) field_id: Option<u16>,
     /// Whether this node has been affected by an edit
     #[cfg(feature = "incremental")]
-    dirty: bool,
+    pub(crate) dirty: bool,
 }
 
 impl TreeNode {
