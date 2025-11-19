@@ -8,12 +8,17 @@
 
 ## 🎯 Current Focus
 
-**This Week**: Production-ready polish and documentation alignment
+**This Week**: GLR Runtime Wiring (Critical Blocker for v0.7.0)
 - [x] Repository URL migration (hydro-project → EffortlessMetrics)
 - [x] Messaging alignment (production-ready → strong beta)
 - [x] GLR runtime architectural issue documented
-- [ ] Test connectivity improvements
-- [ ] Performance baseline establishment
+- [x] TDD/BDD/Schema infrastructure complete
+- [x] **GLR Step 1**: Feature flag architecture (glr feature) ✅
+- [x] **GLR Step 2**: Parser backend selection API ✅
+- [ ] **GLR Step 3**: Wire parser_v4 in __private::parse() (NEXT)
+- [ ] **GLR Step 4**: Add HAS_CONFLICTS grammar metadata
+- [ ] **GLR Step 5**: Implement BDD scenario tests
+- [ ] **GLR Step 6**: Re-enable arithmetic tests
 
 **Blockers for v0.7.0**:
 1. **GLR Runtime Wiring** - See [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md)
