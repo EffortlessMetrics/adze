@@ -504,6 +504,11 @@ fn gen_struct_or_variant(
     word_rule: &mut Option<String>,
     inline: bool,  // If true, return rule instead of inserting into out
 ) -> ToolResult<Option<Value>> {
+    // DEBUG: Trace Binary variant processing
+    if path.contains("Binary") {
+        eprintln!("DEBUG gen_struct_or_variant: path={}, inline={}, fields_count={}",
+                  path, inline, fields.iter().count());
+    }
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
     if let Fields::Unnamed(fields_unnamed) = &fields
         && fields_unnamed.unnamed.len() == 1
@@ -793,8 +798,16 @@ fn gen_struct_or_variant(
 
     // If inlining, return the rule directly instead of inserting into map
     if inline {
+        // DEBUG: Trace Binary variant return
+        if path.contains("Binary") {
+            eprintln!("DEBUG gen_struct_or_variant RETURN: path={}, inline=true, returning Some(rule)", path);
+        }
         Ok(Some(rule))
     } else {
+        // DEBUG: Trace Binary variant return
+        if path.contains("Binary") {
+            eprintln!("DEBUG gen_struct_or_variant RETURN: path={}, inline=false, inserting and returning None", path);
+        }
         out.insert(path, rule);
         Ok(None) // Return None for non-single-leaf variants
     }
@@ -882,12 +895,24 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
                         inline,  // Pass inline flag
                     )?;
 
+                    // DEBUG: Trace Binary variant handling
+                    if variant_path.contains("Binary") {
+                        eprintln!("DEBUG enum loop: variant_path={}, inline={}, inline_rule.is_some()={}",
+                                  variant_path, inline, inline_rule.is_some());
+                    }
+
                     // Add to CHOICE members
                     let variant_member = if let Some(rule) = inline_rule {
                         // Variant was inlined - use the rule directly
+                        if variant_path.contains("Binary") {
+                            eprintln!("DEBUG enum loop: Using inlined rule for {}", variant_path);
+                        }
                         rule
                     } else {
                         // Variant created intermediate symbol - reference it
+                        if variant_path.contains("Binary") {
+                            eprintln!("DEBUG enum loop: Creating SYMBOL reference for {}", variant_path);
+                        }
                         json!({
                             "type": "SYMBOL",
                             "name": variant_path.clone()
