@@ -35,6 +35,9 @@ pub mod tree;
 mod builder;
 #[cfg(feature = "glr-core")]
 mod engine;
+/// GLR parsing engine (Phase 3.1)
+#[cfg(feature = "pure-rust-glr")]
+pub mod glr_engine;
 /// Token types and lexing helpers.
 pub mod token;
 
