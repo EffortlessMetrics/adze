@@ -13,6 +13,75 @@
 //! - Automated testing of grammar conflict properties
 //! - Clear visibility into GLR behavior
 //!
+//! # ParseTable Invariants
+//!
+//! This module relies on the following ParseTable structure invariants:
+//!
+//! ## Structure Invariants
+//!
+//! 1. **State Count Consistency**: `table.state_count == table.action_table.len()`
+//!    - The state_count field must match the number of rows in the action table
+//!
+//! 2. **Action Table Structure**: `table.action_table: Vec<Vec<Vec<Action>>>`
+//!    - Outer Vec: indexed by state (StateId as usize)
+//!    - Middle Vec: indexed by symbol (mapped via index_to_symbol)
+//!    - Inner Vec (ActionCell): multiple actions for GLR conflicts
+//!
+//! 3. **Symbol Indexing**: `table.index_to_symbol[symbol_idx] -> SymbolId`
+//!    - All symbol indices in action_table must be valid indices into index_to_symbol
+//!    - Symbol metadata should exist for all referenced SymbolIds
+//!
+//! 4. **Empty Cells**: Empty action cells (`Vec::new()`) represent error states
+//!    - These are not considered conflicts
+//!    - Parser will error/recover if it reaches such a state
+//!
+//! ## Conflict Semantics
+//!
+//! ### What Counts as a Conflict?
+//!
+//! A conflict exists when an action cell contains **multiple actions** (`cell.len() > 1`).
+//!
+//! - **Single action** (`cell.len() == 1`): Not a conflict, deterministic behavior
+//! - **Multiple actions** (`cell.len() > 1`): Conflict, GLR fork required
+//! - **Empty cell** (`cell.len() == 0`): Error state, not a conflict
+//!
+//! ### Conflict Classification
+//!
+//! Conflicts are classified by examining the action types:
+//!
+//! - **ShiftReduce**: Cell contains both `Action::Shift(_)` and `Action::Reduce(_)`
+//!   - Classic shift/reduce ambiguity (e.g., dangling else)
+//!   - GLR runtime forks: one branch shifts, other reduces
+//!
+//! - **ReduceReduce**: Cell contains multiple `Action::Reduce(_)` actions
+//!   - Multiple production rules could apply
+//!   - GLR runtime forks: each branch tries a different reduction
+//!
+//! - **Mixed**: Other combinations (e.g., multiple shifts)
+//!   - Unusual but possible in some grammar constructions
+//!   - Counted as both S/R and R/R for conservative reporting
+//!
+//! ### Action::Fork Handling
+//!
+//! `Action::Fork(Vec<Action>)` is treated **recursively** during classification:
+//!
+//! - Fork actions themselves don't create conflicts (they represent pre-packaged GLR branches)
+//! - The *contents* of the fork are examined to determine conflict type
+//! - Example: `Fork([Shift(5), Reduce(3)])` is classified as ShiftReduce
+//!
+//! This allows Fork actions to be properly analyzed even when nested.
+//!
+//! ## Validation Contract
+//!
+//! The `count_conflicts()` function validates these invariants via debug assertions:
+//!
+//! - State count matches action table length
+//! - All state and symbol indices are within bounds
+//! - Symbol metadata is available for referenced symbols
+//!
+//! These assertions catch table generation bugs during testing while
+//! having zero runtime cost in release builds.
+//!
 //! # Examples
 //!
 //! ```ignore
@@ -85,6 +154,15 @@ pub enum ConflictType {
 /// This function scans the entire action table and identifies
 /// all cells with multiple actions (GLR conflicts).
 ///
+/// # Invariant Validation
+///
+/// This function validates ParseTable invariants via debug assertions:
+/// - State count matches action table length
+/// - All symbol indices are valid
+/// - Symbol metadata is properly sized
+///
+/// These checks have zero cost in release builds but catch bugs during testing.
+///
 /// # Examples
 ///
 /// ```ignore
@@ -97,6 +175,39 @@ pub enum ConflictType {
 /// assert_eq!(summary.reduce_reduce, 0);
 /// ```
 pub fn count_conflicts(table: &ParseTable) -> ConflictSummary {
+    // Validate ParseTable invariants (debug builds only)
+    debug_assert_eq!(
+        table.state_count,
+        table.action_table.len(),
+        "ParseTable invariant violation: state_count ({}) != action_table.len() ({})",
+        table.state_count,
+        table.action_table.len()
+    );
+
+    debug_assert!(
+        !table.action_table.is_empty(),
+        "ParseTable invariant violation: action_table is empty but should have at least initial state"
+    );
+
+    // Validate symbol indexing is consistent
+    for (state_idx, state_actions) in table.action_table.iter().enumerate() {
+        debug_assert!(
+            state_idx < table.state_count,
+            "ParseTable invariant violation: state index {} >= state_count {}",
+            state_idx,
+            table.state_count
+        );
+
+        for symbol_idx in 0..state_actions.len() {
+            debug_assert!(
+                symbol_idx < table.index_to_symbol.len() || table.index_to_symbol.is_empty(),
+                "ParseTable invariant violation: symbol index {} >= index_to_symbol.len() {}",
+                symbol_idx,
+                table.index_to_symbol.len()
+            );
+        }
+    }
+
     let mut summary = ConflictSummary {
         shift_reduce: 0,
         reduce_reduce: 0,

@@ -104,6 +104,12 @@ pub struct ParseTable {
 - State count matches the number of LR(1) item sets
 - Symbol metadata is populated for all symbols
 
+**Invariants** (see [CONFLICT_INSPECTION_API.md](./CONFLICT_INSPECTION_API.md#parsetable-invariants-contract)):
+1. `state_count == action_table.len()` (validated via debug assertions)
+2. All symbol indices are valid in `index_to_symbol` mapping
+3. Empty cells represent error states (not conflicts)
+4. Multi-action cells (len > 1) represent GLR conflicts
+
 ---
 
 #### 2.2 Conflict Validation Results
