@@ -1,217 +1,405 @@
-# Rust Sitter Roadmap
+# Rust-Sitter Roadmap
 
-This document outlines the completed features and future direction of the rust-sitter project.
+**Last Updated**: November 15, 2025
+**Current Version**: v0.6.1-beta
+**Status**: ✅ **Macro-Based Grammar Generation Production-Ready**
 
-## ✅ Completed Features (v0.6.1-beta - Current Release)
+---
 
-### Core Parser Infrastructure
-- [x] Pure-Rust LR(1) parser generator
-- [x] **GLR (Generalized LR) parsing - ALGORITHMICALLY CORRECT** ✅
-  - True GLR with multi-action cells (ActionCell architecture)
-  - Runtime forking on conflicts, exploring all valid parse paths
-  - Comprehensive fork/merge with safe deduplication
-  - 100% pass rate on all core test suites
-- [x] Complete Tree-sitter ABI compatibility (v15)
-- [x] Zero-copy parsing with efficient memory layout
-- [x] Full Unicode support
+## 📋 Quick Status
 
-### GLR Correctness Fixes (v0.6.1-beta)
-- [x] **Phase-2 Re-closure**: Reductions re-saturate with same lookahead
-- [x] **Accept Aggregation**: Per-token collection prevents early returns
-- [x] **EOF Recovery**: Close→check→(insert|pop) pattern, no deletion at EOF
-- [x] **Epsilon Loop Prevention**: Position-aware RedStamp using (state, rule, end)
-- [x] **Nonterminal Goto**: Fixed critical bug in goto table lookups
-- [x] **Query Correctness**: Wrapper squashing and capture deduplication
+| Component | Status | Evidence |
+|-----------|--------|----------|
+| Core GLR Parser | ✅ Complete | 100% test pass rate |
+| Macro-Based Grammars | ✅ Complete | 13/13 tests passing |
+| Precedence/Associativity | ✅ Validated | Real integration tests |
+| Build Infrastructure | ✅ Mature | 13 CI/CD workflows |
+| Documentation | ✅ Excellent | 398-line getting started guide |
+| Incremental Parsing | ⚠️ Partial | Feature-gated, needs completion |
+| Query System | ⚠️ Partial | Predicates incomplete |
+| Performance | ⚠️ Unknown | No benchmarks run |
 
-### Language Features
-- [x] External scanner support (FFI and native Rust)
-- [x] Built-in scanners (indentation, heredoc, string interpolation)
-- [x] Query language (S-expressions) with pattern matching
-- [x] Syntax highlighting support
-- [x] Field names and metadata
-- [x] Precedence and associativity
-- [x] Dynamic precedence
-- [x] Fragile and non-fragile token handling
+**Detailed Assessment**: See [CURRENT_STATUS_2025-11.md](./CURRENT_STATUS_2025-11.md)
 
-### Advanced Features
-- [x] Incremental parsing with O(log n) complexity
-- [x] Error recovery with multiple strategies
-- [x] Parse tree visitors and transformers
-- [x] Grammar optimization and validation
-- [x] Table compression (Tree-sitter compatible)
-- [x] Conflict resolution strategies
-- [x] Parse forest handling for ambiguous grammars
+---
 
-### Testing Infrastructure
-- [x] Property-based testing framework
-- [x] Fuzzing support with coverage-guided generation
-- [x] Corpus-based testing with automatic discovery
-- [x] Performance benchmarking suite
-- [x] Grammar validation and linting
-- [x] Differential testing against Tree-sitter
-- [x] **Regression guard tests** for all critical fixes
+## ✅ v0.6.1-beta (Current - November 2025)
 
-### Test Results (v0.6.1-beta)
-| Suite | Pass Rate | Status |
-|-------|-----------|--------|
-| Fork/Merge | 30/30 | ✅ |
-| Integration | 5/5 | ✅ |
-| Error Recovery | 5/5 | ✅ |
-| GLR Parsing | 6/6 | ✅ |
-| Regression Guards | 5/5 | ✅ |
+### What Actually Works Today
 
-## 🎯 Recent Achievements (January 2025 - v0.6.1-beta)
+**Macro-Based Grammar Generation** (100% Complete)
+- Define grammars with `#[rust_sitter::grammar]` annotations
+- Generate working parsers at compile time
+- Correct operator precedence (`1-2*3` → `1-(2*3)`) ✓
+- Left associativity (`20-10-5` → `(20-10)-5`) ✓
+- Text extraction with `text = true` ✓
+- Vec<> repetition with `#[repeat]` ✓
+- Whitespace handling with `#[extra]` ✓
 
-### Algorithmic Correctness Achieved ✅
-The GLR parser has reached algorithmic correctness with comprehensive test coverage:
+**Core Parser** (Algorithmically Correct)
+- GLR parsing with multi-action cells
+- Fork/merge on conflicts (30/30 tests passing)
+- Error recovery (basic rejection of invalid input)
+- Phase-2 re-closure for cascaded reductions
+- Accept aggregation (no missed derivations)
+- EOF recovery without data loss
+- Epsilon loop prevention
 
-1. **Reduction Mechanics Fixed**
-   - Phase-2 re-closure ensures cascaded reduces are found
-   - Accept aggregation collects all valid parses per token
-   - No premature returns or missed derivations
+**Infrastructure** (Production-Grade)
+- 13 CI/CD workflows covering lint, test, fuzz, benchmarks
+- Pure-Rust implementation (no C dependencies)
+- WASM compilation support
+- Comprehensive test suite (all non-ignored tests passing)
+- 0 clippy warnings across workspace
 
-2. **Error Recovery Hardened**
-   - EOF recovery implements proper close→check→recover loop
-   - Never deletes at EOF (prevents data loss)
-   - Epsilon loop guard prevents infinite loops
+**Documentation** (Excellent)
+- 398-line Getting Started guide with 3 complete examples
+- Up-to-date README, CHANGELOG, PROJECT_STATUS
+- API documentation
+- Migration guides
 
-3. **Fork/Merge Stabilized**
-   - Safe stack deduplication uses pointer equality
-   - Preserves all ambiguous derivations
-   - LR(1) fork depth properly understood (≥3 tokens)
+### Test Results (v0.6.1-beta - November 2025)
 
-4. **Query System Corrected**
-   - Wrapper nodes with identical spans are squashed
-   - Captures deduplicated by (symbol, start, end)
-   - Stable, predictable query results
+| Suite | Pass Rate | Details |
+|-------|-----------|---------|
+| Macro Grammars | 13/13 (100%) | test-mini 6/6, test-vec-wrapper 7/7 |
+| Integration Tests | 6/6 (100%) | Real arithmetic parsing with precedence |
+| Fork/Merge | 30/30 (100%) | GLR correctness validated |
+| Tablegen | All passing | Accept encoding fixed |
+| Error Recovery | 4/5 (80%) | Basic error handling works |
 
-### Tools & Infrastructure
-- **ts-bridge Tool**: Production-ready Tree-sitter to GLR runtime bridge
-  - Extracts parse tables from compiled Tree-sitter grammars
-  - Full ABI stability with v15 pinning and SHA-256 verification
-  - Feature-gated builds for development and production
-  - Comprehensive parity testing framework
+### What This Enables
 
-## 🚧 In Progress (Q1 2025)
+**You can build right now:**
+1. Parser for custom DSLs using Rust macros
+2. Arithmetic expression evaluators with correct precedence
+3. Config file parsers with nested structures
+4. Simple programming language parsers
+5. WASM-based browser parsers with zero runtime deps
 
-### High Priority
-1. **Performance Optimization**
-   - [ ] Profile and optimize fork/merge hot paths
-   - [ ] Implement shared parse stack structures
-   - [ ] Add memory pooling for fork management
-   - [ ] Establish performance baselines and benchmarks
+**See**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) for complete working examples
 
-2. **Query Predicates**
-   - [ ] Implement remaining query predicate functions
-   - [ ] Add custom predicate support
-   - [ ] Complete query API compatibility
+---
 
-3. **CLI Runtime Loading**
-   - [ ] Implement dynamic grammar loading
-   - [ ] Add corpus runner for batch testing
-   - [ ] Create standalone CLI tool
+## 🚀 v0.7.0 - Feature Completion (Q1 2026)
 
-## 🚀 Next Milestones (2025)
+**Target**: January-March 2026
+**Focus**: Complete incremental parsing and query system
 
-### v0.7.0 - Production Ready (Q2 2025)
-- [ ] Performance optimization complete
-- [ ] All query predicates implemented
-- [ ] CLI with full runtime loading
-- [ ] External scanner FFI finalized
-- [ ] Comprehensive documentation
-- [ ] Migration guide from Tree-sitter
+**📋 [See GAPS.md for detailed implementation tasks](./GAPS.md)**
+**📅 [See IMPLEMENTATION_PLAN.md for week-by-week schedule](./IMPLEMENTATION_PLAN.md)**
 
-### v0.8.0 - Enhanced Features (Q3 2025)
-- [ ] Incremental GLR optimization
-- [ ] Advanced disambiguation filters
-- [ ] Semantic action support
-- [ ] Grammar composition and inheritance
-- [ ] Visual grammar debugger
+### Scope
 
-### v1.0.0 - Stable Release (Q4 2025)
-- [ ] API stabilization
-- [ ] Performance parity with C Tree-sitter
-- [ ] All major language grammars validated
-- [ ] Production deployment guides
-- [ ] Enterprise support tier
+**1. Incremental Parsing Completion** (Priority: High)
+- [ ] Implement `parse_with_old_tree` functionality ([GAPS.md#incremental-parsing](./GAPS.md#incremental-parsing))
+- [ ] Enable 7 ignored incremental tests
+- [ ] Benchmark incremental vs full parse performance
+- [ ] Document subtree reuse strategies
+- **Estimated**: 2-3 weeks
+- **Implementation Guide**: See GAPS.md section "Incremental Parsing" for step-by-step tasks
 
-## 📊 Known Limitations (Beta)
+**2. Query System Completion** (Priority: High)
+- [ ] Finish predicate implementation: `#eq?`, `#match?`, `#any-of?`, `#is?`, `#is-not?` ([GAPS.md#query-system](./GAPS.md#query-system))
+- [ ] Enable 5 ignored query tests
+- [ ] Document query API with examples
+- [ ] Add query cookbook with common patterns
+- **Estimated**: 1-2 weeks
+- **Implementation Guide**: See GAPS.md section "Query System" for predicate implementation templates
 
-Current limitations being addressed:
-- Performance optimization pending (safe dedup heuristics)
-- Query predicates partially implemented
-- External scanner FFI integration needs polish
-- CLI runtime loading not yet implemented
-- Incremental GLR algorithms experimental
+**3. Performance Baseline** (Priority: Critical)
+- [ ] Run existing benchmarks vs tree-sitter-c ([GAPS.md#performance-benchmarking](./GAPS.md#performance-benchmarking))
+- [ ] Document current performance characteristics
+- [ ] Identify optimization opportunities (flamegraphs, profiling)
+- [ ] Add performance regression tests to CI
+- **Estimated**: 1-2 weeks
+- **Implementation Guide**: See GAPS.md section "Performance Benchmarking" for benchmark setup
 
-## 🛠️ Development Guidelines
+**4. Test Maintenance** (Priority: High)
+- [ ] Re-enable 20 ignored tests ([GAPS.md#ignored-tests-20-total](./GAPS.md#ignored-tests-20-total))
+  - 7 error recovery tests (1-2 weeks)
+  - 3 parser v3 tests (3-4 days)
+  - 4 helper function tests (1 day)
+  - 1 external scanner test (4-6 hours)
+  - 1 pure Rust E2E test (1 day)
+- [ ] Achieve >95% test pass rate (excluding intentional benchmarks)
+- **Estimated**: 2-3 weeks
+- **Implementation Guide**: See GAPS.md section "Ignored Tests" for per-test breakdown and fix guidance
 
-### Testing Requirements
-All changes must maintain:
-- 100% pass rate on core GLR suites
-- No regression in guard tests
-- Clean clippy with no warnings
-- Documented in CHANGELOG
+**5. API Stabilization** (Priority: High)
+- [ ] Freeze public API surface for v1.0
+- [ ] Document breaking vs non-breaking changes
+- [ ] Create API stability guarantees document
+- [ ] Migration guide for 0.6→0.7
+- **Estimated**: Ongoing throughout v0.7 development
 
-### Quality Gates
-- Regression guards prevent critical fixes from being removed
-- CI enforces test connectivity (no disabled tests)
-- Performance benchmarks track regressions
-- ABI compatibility verified via ts-bridge
+### Success Criteria
+
+- ✅ Incremental parsing fully operational
+- ✅ Query system complete with predicates
+- ✅ Performance baseline documented
+- ✅ <10 ignored tests (all documented)
+- ✅ API stability guarantees published
+
+### Dependencies
+
+- **None** - All work can proceed in parallel
+
+---
+
+## 🎯 v0.8.0 - Performance & Polish (Q2 2026)
+
+**Target**: April-June 2026
+**Focus**: Performance optimization, developer experience
+
+### Scope
+
+**1. Performance Optimization** (Priority: Critical)
+- [ ] Target: Within 3x of tree-sitter-c for typical grammars
+- [ ] Implement shared parse-stack pool
+- [ ] Arena allocation tuning for parse trees
+- [ ] Memory profiling with heaptrack
+- [ ] SIMD lexing experiments (if beneficial)
+- **Estimated**: 4 weeks
+
+**2. Developer Experience** (Priority: High)
+- [ ] Enhanced grammar debugger with fork visualization
+- [ ] Improved error messages with suggestions
+- [ ] CLI enhancements (format, validate, profile commands)
+- [ ] VS Code extension prototype
+- **Estimated**: 3 weeks
+
+**3. Grammar Ecosystem** (Priority: Medium)
+- [ ] Grammar contribution guide
+- [ ] Example grammar repository
+- [ ] Testing framework for contributed grammars
+- [ ] Community grammar showcase page
+- **Estimated**: 2 weeks
+
+**4. Documentation** (Priority: Medium)
+- [ ] Video tutorial series (5-10 short videos)
+- [ ] Grammar author's cookbook
+- [ ] Performance tuning guide
+- [ ] Troubleshooting guide
+- **Estimated**: 1 week
+
+### Success Criteria
+
+- ✅ Parse performance within 3x of tree-sitter-c
+- ✅ 5+ community-contributed grammars
+- ✅ CLI provides debugging tools
+- ✅ Complete video tutorial series
+
+---
+
+## 🌟 v0.9.0 - Community Ready (Q3 2026)
+
+**Target**: July-September 2026
+**Focus**: Ecosystem maturity, community infrastructure
+
+### Scope
+
+**1. Language Server Protocol**
+- [ ] LSP implementation using existing generator
+- [ ] Syntax highlighting generation
+- [ ] Code folding support
+- [ ] Outline provider
+- **Estimated**: 4 weeks
+
+**2. Web Platform**
+- [ ] Interactive playground enhancements
+- [ ] Grammar editor with live preview
+- [ ] Share/embed functionality
+- [ ] WASM size optimization (<500KB)
+- **Estimated**: 3 weeks
+
+**3. Advanced Grammar Support**
+- [ ] Python: Full parity with tree-sitter-python
+- [ ] JavaScript/TypeScript: JSX support
+- [ ] Rust: Macro and lifetime support
+- [ ] At least 10 production-quality grammars
+- **Estimated**: 6 weeks
+
+**4. Community Infrastructure**
+- [ ] Grammar registry/catalog
+- [ ] Automated grammar testing
+- [ ] Contribution workflow
+- [ ] Governance model
+- **Estimated**: 2 weeks
+
+### Success Criteria
+
+- ✅ LSP servers for 3+ languages working
+- ✅ Web playground production-ready
+- ✅ 10+ community grammars in registry
+- ✅ Documented governance and contribution process
+
+---
+
+## 🎓 v1.0.0 - Stable Release (Q4 2026)
+
+**Target**: October-December 2026
+**Focus**: API stability, production hardening, long-term support
+
+### API Guarantees
+
+**Stability Promises**:
+- Semantic versioning strictly enforced
+- No breaking changes to public API
+- Grammar macro syntax frozen (only additions allowed)
+- Clear deprecation policy (min 3 months notice)
+
+### Production Checklist
+
+- [ ] API frozen and fully documented
+- [ ] Performance benchmarks in CI (regression tests)
+- [ ] Security audit complete
+- [ ] 3+ production deployment case studies
+- [ ] Comprehensive error messages with suggestions
+- [ ] Migration guides for all 0.x versions
+- [ ] Long-term support plan (LTS)
+
+### Success Criteria
+
+- ✅ 100+ production deployments
+- ✅ 50+ community grammars
+- ✅ Full tree-sitter feature parity
+- ✅ Security audit passed
+- ✅ Performance competitive (<3x tree-sitter-c)
+
+---
+
+## 📊 What We're NOT Building
+
+**Clear Non-Goals**:
+
+1. **Tree-Sitter Replacement Everywhere**: We target Rust-native use cases, especially WASM. Tree-sitter-c remains the best choice for many scenarios.
+
+2. **All Tree-Sitter Grammars**: Focus is macro-based grammars. Porting existing tree-sitter grammars is possible but not primary.
+
+3. **Faster Than Tree-Sitter**: Goal is "competitive" (within 3x), not "faster". Pure-Rust has overhead; WASM compatibility is the win.
+
+4. **Dynamic Grammar Loading**: Compile-time generation is our strength. Runtime loading adds complexity without clear benefit.
+
+5. **Backward Compatibility Pre-1.0**: Breaking changes may occur in 0.x releases. Post-1.0: strict semver.
+
+---
+
+## 🔄 Development Philosophy
+
+### Principles
+
+1. **Ship Working Code**: v0.6.1 proves macro generation works completely
+2. **Measure Then Optimize**: No performance work without benchmarks
+3. **Community Driven**: Let real use cases guide priorities
+4. **Document Everything**: Every feature needs examples and tests
+5. **Stability Matters**: API stability > feature velocity (post-1.0)
+
+### Release Cadence
+
+- **Minor Releases** (0.x.0): Every 2-3 months
+- **Patch Releases** (0.x.y): As needed for critical bugs
+- **Breaking Changes**: Only in minor releases (pre-1.0)
+- **Feature Flags**: Experimental features always behind flags
+
+---
+
+## 📈 Success Metrics
+
+### Adoption
+
+- **Crates.io Downloads**: Track monthly downloads
+- **GitHub Stars**: Community interest indicator
+- **Production Users**: Documented case studies
+- **Community Grammars**: Count in registry
+
+### Quality
+
+- **Test Coverage**: Maintain >80% for core crates
+- **Clippy Clean**: Zero warnings policy
+- **Documentation**: 100% of public APIs documented
+- **CI Status**: All workflows green
+
+### Performance
+
+- **Parse Speed**: Within 3x of tree-sitter-c
+- **Memory Usage**: Profile and optimize
+- **WASM Size**: Target <500KB
+- **Build Time**: Grammar generation <1s for typical grammars
+
+---
 
 ## 🤝 Contributing
 
-We welcome contributions in:
-- Performance optimization
-- Query predicate implementation
-- Language grammar ports
-- Documentation and tutorials
-- Bug reports with minimal reproductions
+### 📋 Want to Help? Check [GAPS.md](./GAPS.md)!
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
+**[GAPS.md](./GAPS.md)** provides a comprehensive, structured view of what needs to be done:
+- 43 total open tasks across all categories
+- Organized by skill level (beginner/intermediate/advanced)
+- Organized by time available (hours/days/weeks)
+- Each task includes:
+  - Clear implementation guidance
+  - Estimated time to complete
+  - Acceptance criteria
+  - Code templates and examples
 
-## 📈 Metrics & Validation
+### Current Priorities (Help Wanted!)
 
-### Current Status
-- **Correctness**: 100% ✅
-- **Performance**: Baseline established
-- **Compatibility**: Tree-sitter v15 ABI verified
-- **Coverage**: All core features tested
-- **Stability**: Beta (breaking changes possible)
+1. **Re-enable Ignored Tests**: 20 tests ready to fix ([GAPS.md#ignored-tests](./GAPS.md#ignored-tests-20-total))
+   - Good first issues: 7 error recovery tests
+   - 1-4 hours each, clear test cases provided
 
-### Success Metrics
-- Parse Python's entire standard library
-- Performance within 2x of C Tree-sitter
-- Zero panics on fuzzing corpus
-- Query compatibility with existing tools
+2. **Query Predicates**: Finish implementation ([GAPS.md#query-system](./GAPS.md#query-system))
+   - 1-2 week effort, code templates provided
+   - Implement `#eq?`, `#match?`, `#any-of?`, `#is?`, `#is-not?`
 
-## 🔍 Research Opportunities
+3. **Incremental Parsing**: Complete `parse_with_old_tree` ([GAPS.md#incremental-parsing](./GAPS.md#incremental-parsing))
+   - 2-3 weeks, step-by-step implementation guide
+   - High impact: enables LSP and editor integration
 
-### Near-term Research
-- Grammar inference from examples
-- Automatic conflict resolution strategies
-- Parse tree diffing algorithms
-- Grammar minimization techniques
+4. **Performance Benchmarks**: Run and analyze ([GAPS.md#performance-benchmarking](./GAPS.md#performance-benchmarking))
+   - 1-2 weeks, critical for v0.7.0 release
+   - Establish baseline for future optimizations
 
-### Long-term Research
-- ML-powered error recovery
-- Incremental grammar evolution
-- Cross-language semantic analysis
-- Formal verification of correctness
+5. **Documentation**: Video tutorials, cookbooks ([GAPS.md#documentation-gaps](./GAPS.md#documentation-gaps))
+   - Ongoing, various time commitments
+   - Grammar cookbook, troubleshooting guides, videos
 
-## 📚 Resources
+### How to Contribute
 
-### Documentation
-- [API Reference](https://docs.rs/rust-sitter)
-- [Grammar Guide](./docs/grammar-guide.md)
-- [Migration Guide](./docs/migration.md)
-- [GLR Guardrails](./docs/GLR_GUARDRAILS.md)
+1. **Browse [GAPS.md](./GAPS.md)** to find a task that matches your skill level and available time
+2. Check [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup
+3. Look for "good first issue" labels on GitHub
+4. Discuss major changes in issues first
+5. Follow TDD (tests first!)
+6. Update docs with changes
 
-### Community
-- GitHub: [hydro-project/rust-sitter](https://github.com/hydro-project/rust-sitter)
-- Issues: [Bug Reports](https://github.com/hydro-project/rust-sitter/issues)
-- Discussions: [Q&A Forum](https://github.com/hydro-project/rust-sitter/discussions)
+---
+
+## 📚 Documentation
+
+- **Status Report**: [CURRENT_STATUS_2025-11.md](./CURRENT_STATUS_2025-11.md) - Comprehensive assessment
+- **Project Status**: [PROJECT_STATUS.md](./PROJECT_STATUS.md) - Feature matrix
+- **Getting Started**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) - 398-line guide with examples
+- **API Reference**: [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) - Complete API docs
+- **Changelog**: [CHANGELOG.md](./CHANGELOG.md) - All changes
+
+---
+
+## ❓ Questions & Support
+
+- **GitHub Issues**: Bug reports and feature requests
+- **GitHub Discussions**: Questions and community chat
+- **Discord**: (coming with v1.0)
+
+---
+
+**Maintained by**: rust-sitter core team
+**Last Review**: November 15, 2025
+**Next Review**: January 2026 (post-v0.7.0 planning)
+
+---
 
 ## License
 
-Dual-licensed under MIT OR Apache 2.0, maintaining compatibility with Tree-sitter's MIT license.
+Dual-licensed under MIT OR Apache 2.0

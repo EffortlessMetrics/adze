@@ -1061,15 +1061,15 @@ mod tests {
 
         let compressed = compressed.unwrap();
 
-        // Should have Reduce(1) as default
+        // Default action optimization is disabled, so default should be Error
         match &compressed.default_actions[0] {
-            Action::Reduce(RuleId(1)) => {}
-            _ => panic!("Expected Reduce(1) as default"),
+            Action::Error => {}
+            _ => panic!("Expected Error as default (optimization disabled)"),
         }
 
-        // Should have no entries in data (all are default)
+        // All 3 reduce actions should be explicitly encoded in data
         let entries_for_state_0 = compressed.row_offsets[1] - compressed.row_offsets[0];
-        assert_eq!(entries_for_state_0, 0);
+        assert_eq!(entries_for_state_0, 3, "All reduce actions should be explicitly encoded");
     }
 
     #[test]

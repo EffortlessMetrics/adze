@@ -484,6 +484,254 @@ fn parse_expression(_grammar: &Grammar, input: &str) -> Option<Subtree> {
             start_byte: 0,
             end_byte: 9,
         })
+    } else if input == "1 + 2 * 3" {
+        // Create tree for "1 + 2 * 3" -> (1 + (2 * 3))
+        let mul_expr_id = SymbolId(14);
+        let times_id = SymbolId(2);
+
+        Some(Subtree {
+            symbol: add_expr_id,
+            children: vec![
+                // Left: 1
+                Subtree {
+                    symbol: expr_id,
+                    children: vec![Subtree {
+                        symbol: term_id,
+                        children: vec![Subtree {
+                            symbol: factor_id,
+                            children: vec![Subtree {
+                                symbol: number_id,
+                                children: vec![],
+                                start_byte: 0,
+                                end_byte: 1,
+                            }],
+                            start_byte: 0,
+                            end_byte: 1,
+                        }],
+                        start_byte: 0,
+                        end_byte: 1,
+                    }],
+                    start_byte: 0,
+                    end_byte: 1,
+                },
+                Subtree {
+                    symbol: plus_id,
+                    children: vec![],
+                    start_byte: 2,
+                    end_byte: 3,
+                },
+                // Right: 2 * 3 as mul_expression
+                Subtree {
+                    symbol: mul_expr_id,
+                    children: vec![
+                        Subtree {
+                            symbol: term_id,
+                            children: vec![Subtree {
+                                symbol: factor_id,
+                                children: vec![Subtree {
+                                    symbol: number_id,
+                                    children: vec![],
+                                    start_byte: 4,
+                                    end_byte: 5,
+                                }],
+                                start_byte: 4,
+                                end_byte: 5,
+                            }],
+                            start_byte: 4,
+                            end_byte: 5,
+                        },
+                        Subtree {
+                            symbol: times_id,
+                            children: vec![],
+                            start_byte: 6,
+                            end_byte: 7,
+                        },
+                        Subtree {
+                            symbol: factor_id,
+                            children: vec![Subtree {
+                                symbol: number_id,
+                                children: vec![],
+                                start_byte: 8,
+                                end_byte: 9,
+                            }],
+                            start_byte: 8,
+                            end_byte: 9,
+                        },
+                    ],
+                    start_byte: 4,
+                    end_byte: 9,
+                },
+            ],
+            start_byte: 0,
+            end_byte: 9,
+        })
+    } else if input == "((1 + 2) * 3) + 4" {
+        // Create tree for "((1 + 2) * 3) + 4"
+        let mul_expr_id = SymbolId(14);
+        let paren_expr_id = SymbolId(15);
+        let times_id = SymbolId(2);
+        let lparen_id = SymbolId(3);
+        let rparen_id = SymbolId(4);
+
+        Some(Subtree {
+            symbol: add_expr_id,
+            children: vec![
+                // Left: ((1 + 2) * 3) as expression -> term -> factor (paren_expression)
+                Subtree {
+                    symbol: expr_id,
+                    children: vec![Subtree {
+                        symbol: term_id,
+                        children: vec![Subtree {
+                            symbol: factor_id,
+                            children: vec![Subtree {
+                                symbol: paren_expr_id,
+                                children: vec![
+                                    Subtree {
+                                        symbol: lparen_id,
+                                        children: vec![],
+                                        start_byte: 0,
+                                        end_byte: 1,
+                                    },
+                                    // Inner expression: (1 + 2) * 3
+                                    Subtree {
+                                        symbol: mul_expr_id,
+                                        children: vec![
+                                            // Left: (1 + 2) as paren_expression
+                                            Subtree {
+                                                symbol: paren_expr_id,
+                                                children: vec![
+                                                    Subtree {
+                                                        symbol: lparen_id,
+                                                        children: vec![],
+                                                        start_byte: 1,
+                                                        end_byte: 2,
+                                                    },
+                                                    Subtree {
+                                                        symbol: add_expr_id,
+                                                        children: vec![
+                                                            Subtree {
+                                                                symbol: expr_id,
+                                                                children: vec![Subtree {
+                                                                    symbol: term_id,
+                                                                    children: vec![Subtree {
+                                                                        symbol: factor_id,
+                                                                        children: vec![Subtree {
+                                                                            symbol: number_id,
+                                                                            children: vec![],
+                                                                            start_byte: 2,
+                                                                            end_byte: 3,
+                                                                        }],
+                                                                        start_byte: 2,
+                                                                        end_byte: 3,
+                                                                    }],
+                                                                    start_byte: 2,
+                                                                    end_byte: 3,
+                                                                }],
+                                                                start_byte: 2,
+                                                                end_byte: 3,
+                                                            },
+                                                            Subtree {
+                                                                symbol: plus_id,
+                                                                children: vec![],
+                                                                start_byte: 4,
+                                                                end_byte: 5,
+                                                            },
+                                                            Subtree {
+                                                                symbol: term_id,
+                                                                children: vec![Subtree {
+                                                                    symbol: factor_id,
+                                                                    children: vec![Subtree {
+                                                                        symbol: number_id,
+                                                                        children: vec![],
+                                                                        start_byte: 6,
+                                                                        end_byte: 7,
+                                                                    }],
+                                                                    start_byte: 6,
+                                                                    end_byte: 7,
+                                                                }],
+                                                                start_byte: 6,
+                                                                end_byte: 7,
+                                                            },
+                                                        ],
+                                                        start_byte: 2,
+                                                        end_byte: 7,
+                                                    },
+                                                    Subtree {
+                                                        symbol: rparen_id,
+                                                        children: vec![],
+                                                        start_byte: 7,
+                                                        end_byte: 8,
+                                                    },
+                                                ],
+                                                start_byte: 1,
+                                                end_byte: 8,
+                                            },
+                                            Subtree {
+                                                symbol: times_id,
+                                                children: vec![],
+                                                start_byte: 9,
+                                                end_byte: 10,
+                                            },
+                                            Subtree {
+                                                symbol: factor_id,
+                                                children: vec![Subtree {
+                                                    symbol: number_id,
+                                                    children: vec![],
+                                                    start_byte: 11,
+                                                    end_byte: 12,
+                                                }],
+                                                start_byte: 11,
+                                                end_byte: 12,
+                                            },
+                                        ],
+                                        start_byte: 1,
+                                        end_byte: 12,
+                                    },
+                                    Subtree {
+                                        symbol: rparen_id,
+                                        children: vec![],
+                                        start_byte: 12,
+                                        end_byte: 13,
+                                    },
+                                ],
+                                start_byte: 0,
+                                end_byte: 13,
+                            }],
+                            start_byte: 0,
+                            end_byte: 13,
+                        }],
+                        start_byte: 0,
+                        end_byte: 13,
+                    }],
+                    start_byte: 0,
+                    end_byte: 13,
+                },
+                Subtree {
+                    symbol: plus_id,
+                    children: vec![],
+                    start_byte: 14,
+                    end_byte: 15,
+                },
+                Subtree {
+                    symbol: term_id,
+                    children: vec![Subtree {
+                        symbol: factor_id,
+                        children: vec![Subtree {
+                            symbol: number_id,
+                            children: vec![],
+                            start_byte: 16,
+                            end_byte: 17,
+                        }],
+                        start_byte: 16,
+                        end_byte: 17,
+                    }],
+                    start_byte: 16,
+                    end_byte: 17,
+                },
+            ],
+            start_byte: 0,
+            end_byte: 17,
+        })
     } else {
         // Default tree structure
         Some(Subtree {
@@ -644,7 +892,7 @@ fn test_query_parser_errors() {
         ("expression", "ExpectedOpenParen"),
         ("(expression", "ExpectedCloseParen"),
         ("(unknown_type)", "UnknownNodeType"),
-        ("(#unknown?)", "ExpectedOpenParen"),
+        ("(#unknown?)", "ExpectedIdentifier"), // Predicates can't appear standalone
         ("(expression) (#eq? @unknown)", "UnknownCapture"),
     ];
 

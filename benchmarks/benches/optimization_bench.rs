@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::arena_allocator::{Arena, TypedArena};
 use rust_sitter::stack_pool::StackPool;
 

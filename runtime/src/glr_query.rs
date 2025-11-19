@@ -621,68 +621,130 @@ impl<'a> QueryMatches<'a> {
         pattern_children: &[PatternChild],
         node_children: &'a [Subtree],
     ) -> bool {
-        let mut node_index = 0;
-
-        for pattern_child in pattern_children {
-            match pattern_child.quantifier {
-                Quantifier::One => {
-                    if node_index >= node_children.len() {
-                        return false;
-                    }
-                    if !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
-                    {
-                        return false;
-                    }
-                    node_index += 1;
-                }
-                Quantifier::ZeroOrOne => {
-                    if node_index < node_children.len()
-                        && self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        )
-                    {
-                        node_index += 1;
-                    }
-                }
-                Quantifier::ZeroOrMore => {
-                    while node_index < node_children.len()
-                        && self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        )
-                    {
-                        node_index += 1;
-                    }
-                }
-                Quantifier::OneOrMore => {
-                    if node_index >= node_children.len() {
-                        return false;
-                    }
-                    if !self.match_pattern_node(&pattern_child.node, &node_children[node_index], 0)
-                    {
-                        return false;
-                    }
-                    node_index += 1;
-
-                    while node_index < node_children.len()
-                        && self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        )
-                    {
-                        node_index += 1;
-                    }
-                }
-            }
+        // If no pattern children, match any node
+        if pattern_children.is_empty() {
+            return true;
         }
 
-        // If no pattern children are specified, match regardless of node children
-        // Otherwise, all remaining children must be consumed by optional patterns
-        pattern_children.is_empty() || node_index == node_children.len()
+        // Try to match pattern children as a subsequence of node children
+        // This allows Tree-sitter queries like (parent (child)) to match
+        // even if parent has other children besides child
+        self.match_children_subsequence(pattern_children, node_children, 0, 0)
+    }
+
+    fn match_children_subsequence(
+        &mut self,
+        pattern_children: &[PatternChild],
+        node_children: &'a [Subtree],
+        pattern_idx: usize,
+        node_idx: usize,
+    ) -> bool {
+        // All pattern children matched
+        if pattern_idx >= pattern_children.len() {
+            return true;
+        }
+
+        let pattern_child = &pattern_children[pattern_idx];
+
+        match pattern_child.quantifier {
+            Quantifier::One => {
+                // Find the first matching node child starting from node_idx
+                for i in node_idx..node_children.len() {
+                    if self.match_pattern_node(&pattern_child.node, &node_children[i], 0) {
+                        // Found a match, continue with next pattern child
+                        return self.match_children_subsequence(
+                            pattern_children,
+                            node_children,
+                            pattern_idx + 1,
+                            i + 1,
+                        );
+                    }
+                }
+                false
+            }
+            Quantifier::ZeroOrOne => {
+                // Try matching, but also try skipping this pattern
+                for i in node_idx..node_children.len() {
+                    if self.match_pattern_node(&pattern_child.node, &node_children[i], 0)
+                        && self.match_children_subsequence(
+                            pattern_children,
+                            node_children,
+                            pattern_idx + 1,
+                            i + 1,
+                        )
+                    {
+                        return true;
+                    }
+                }
+                // Also try skipping this pattern (zero matches)
+                self.match_children_subsequence(
+                    pattern_children,
+                    node_children,
+                    pattern_idx + 1,
+                    node_idx,
+                )
+            }
+            Quantifier::ZeroOrMore => {
+                // Match as many as possible, but also allow zero matches
+                let mut current_node_idx = node_idx;
+                loop {
+                    // Try continuing with next pattern
+                    if self.match_children_subsequence(
+                        pattern_children,
+                        node_children,
+                        pattern_idx + 1,
+                        current_node_idx,
+                    ) {
+                        return true;
+                    }
+
+                    // Try matching one more
+                    if current_node_idx >= node_children.len() {
+                        break;
+                    }
+                    if self.match_pattern_node(
+                        &pattern_child.node,
+                        &node_children[current_node_idx],
+                        0,
+                    ) {
+                        current_node_idx += 1;
+                    } else {
+                        break;
+                    }
+                }
+                false
+            }
+            Quantifier::OneOrMore => {
+                // Must match at least once
+                let mut matched = false;
+                for i in node_idx..node_children.len() {
+                    if self.match_pattern_node(&pattern_child.node, &node_children[i], 0) {
+                        matched = true;
+                        // Try continuing after this match
+                        if self.match_children_subsequence(
+                            pattern_children,
+                            node_children,
+                            pattern_idx + 1,
+                            i + 1,
+                        ) {
+                            return true;
+                        }
+                        // Try matching more (greedy)
+                    } else if matched {
+                        // Already matched at least once, try continuing
+                        return self.match_children_subsequence(
+                            pattern_children,
+                            node_children,
+                            pattern_idx + 1,
+                            i,
+                        );
+                    } else {
+                        break;
+                    }
+                }
+                false
+            }
+        }
     }
 
     fn check_predicates(&self, pattern: &Pattern) -> bool {

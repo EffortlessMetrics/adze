@@ -216,7 +216,8 @@ pub fn parse<T: Extract<T>>(
     language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
     let mut parser = crate::pure_parser::Parser::new();
-    parser.set_language(language()).unwrap();
+    let lang = language();
+    parser.set_language(lang).unwrap();
     let parse_result = parser.parse_string(input);
     let root_node = match parse_result.root {
         Some(root) => root,
@@ -225,13 +226,40 @@ pub fn parse<T: Extract<T>>(
             let errors = parse_result
                 .errors
                 .into_iter()
-                .map(|e| crate::errors::ParseError {
-                    reason: crate::errors::ParseErrorReason::UnexpectedToken(format!(
-                        "symbol {}",
-                        e.found
-                    )),
-                    start: e.position,
-                    end: e.position,
+                .map(|e| {
+                    // Get symbol name from language if available
+                    // The public_symbol_map maps internal symbol to public symbol
+                    let symbol_name = if (e.found as usize) < lang.symbol_count as usize {
+                        unsafe {
+                            // Use public_symbol_map to get the public symbol ID
+                            let public_symbol = if !lang.public_symbol_map.is_null() {
+                                *lang.public_symbol_map.add(e.found as usize)
+                            } else {
+                                e.found
+                            };
+
+                            // Now use public symbol to index into symbol_names
+                            if (public_symbol as usize) < lang.symbol_count as usize {
+                                let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
+                                if !symbol_ptr.is_null() {
+                                    std::ffi::CStr::from_ptr(symbol_ptr as *const i8)
+                                        .to_string_lossy()
+                                        .to_string()
+                                } else {
+                                    format!("symbol {} (public {})", e.found, public_symbol)
+                                }
+                            } else {
+                                format!("symbol {} (public {} out of bounds)", e.found, public_symbol)
+                            }
+                        }
+                    } else {
+                        format!("symbol {} (out of bounds)", e.found)
+                    };
+                    crate::errors::ParseError {
+                        reason: crate::errors::ParseErrorReason::UnexpectedToken(symbol_name),
+                        start: e.position,
+                        end: e.position,
+                    }
                 })
                 .collect();
             return Err(errors);

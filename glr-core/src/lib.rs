@@ -161,11 +161,17 @@ struct TokPrec {
     assoc: Assoc,
 }
 
+#[derive(Copy, Clone, Debug)]
+struct RulePrec {
+    prec: u8,
+    assoc: Assoc,
+}
+
 struct PrecTables {
     // table-indexed; entries 0..token_count-1 may be Some(..); others None
     tok_prec_by_index: Vec<Option<TokPrec>>,
-    // production_id -> precedence value (derived if not explicit)
-    rule_prec: Vec<u8>,
+    // production_id -> precedence and associativity
+    rule_prec: Vec<RulePrec>,
 }
 
 fn build_prec_tables(
@@ -195,7 +201,7 @@ fn build_prec_tables(
     };
 
     // production precedence: explicit if present, else rightmost-terminal precedence
-    let mut rule_prec = vec![0u8; production_count as usize];
+    let mut rule_prec = vec![RulePrec { prec: 0, assoc: Assoc::None }; production_count as usize];
 
     // Two-pass approach: first collect rule precedence, then derive token precedence
     for rules in grammar.rules.values() {
@@ -215,15 +221,16 @@ fn build_prec_tables(
                 }
             });
 
+            // Get rule associativity (defaults to None if not specified)
+            let rule_assoc = rule.associativity.map(|assoc| match assoc {
+                Associativity::Left => Assoc::Left,
+                Associativity::Right => Assoc::Right,
+                Associativity::None => Assoc::None,
+            }).unwrap_or(Assoc::None);
+
             // 2) Derive token precedence from the rightmost terminal if this rule carries
             //    an explicit precedence (+ associativity) attribute
-            if let (Some(level), Some(assoc)) = (explicit, rule.associativity) {
-                let assoc_val = match assoc {
-                    Associativity::Left => Assoc::Left,
-                    Associativity::Right => Assoc::Right,
-                    Associativity::None => Assoc::None,
-                };
-
+            if let Some(level) = explicit {
                 // Find rightmost terminal in RHS
                 if let Some(tok_idx) = rule.rhs.iter().rev().find_map(|sym| {
                     if let Symbol::Terminal(id) = sym {
@@ -237,14 +244,17 @@ fn build_prec_tables(
                         tok_idx,
                         TokPrec {
                             prec: level,
-                            assoc: assoc_val,
+                            assoc: rule_assoc,
                         },
                     );
                 }
             }
 
-            // 3) Store the rule precedence
-            rule_prec[pid] = explicit.unwrap_or(0);
+            // 3) Store the rule precedence AND associativity
+            rule_prec[pid] = RulePrec {
+                prec: explicit.unwrap_or(0),
+                assoc: rule_assoc,
+            };
         }
     }
 
@@ -257,11 +267,11 @@ fn build_prec_tables(
             }
 
             // Skip if already has precedence
-            if rule_prec[pid] > 0 {
+            if rule_prec[pid].prec > 0 {
                 continue;
             }
 
-            // Inherit from rightmost terminal token precedence
+            // Inherit from rightmost terminal token precedence AND associativity
             let derived = rule
                 .rhs
                 .iter()
@@ -270,7 +280,7 @@ fn build_prec_tables(
                     if let Symbol::Terminal(id) = sym {
                         symbol_to_index.get(id).and_then(|&idx| {
                             if (idx as u32) < token_count {
-                                tok_prec_by_index[idx].map(|t| t.prec)
+                                tok_prec_by_index[idx]
                             } else {
                                 None
                             }
@@ -279,9 +289,12 @@ fn build_prec_tables(
                         None
                     }
                 })
-                .unwrap_or(0);
+                .unwrap_or(TokPrec { prec: 0, assoc: Assoc::None });
 
-            rule_prec[pid] = derived;
+            rule_prec[pid] = RulePrec {
+                prec: derived.prec,
+                assoc: derived.assoc,
+            };
         }
     }
 
@@ -321,16 +334,18 @@ fn decide_with_precedence(
     let rulep = prec.rule_prec[reduce_prod_id as usize];
 
     // If either has no precedence info (0), can't decide
-    if tokp.prec == 0 || rulep == 0 {
+    if tokp.prec == 0 || rulep.prec == 0 {
         return PrecDecision::NoInfo;
     }
 
     use core::cmp::Ordering::*;
-    match (tokp.prec.cmp(&rulep), tokp.assoc) {
+    // FIX: Use RULE's associativity, not token's!
+    // When precedences are equal, the rule's associativity determines shift vs reduce
+    match (tokp.prec.cmp(&rulep.prec), rulep.assoc) {
         (Greater, _) => PrecDecision::PreferShift,
         (Less, _) => PrecDecision::PreferReduce,
-        (Equal, Assoc::Left) => PrecDecision::PreferReduce, // classic Yacc
-        (Equal, Assoc::Right) => PrecDecision::PreferShift,
+        (Equal, Assoc::Left) => PrecDecision::PreferReduce, // left-assoc: reduce first
+        (Equal, Assoc::Right) => PrecDecision::PreferShift, // right-assoc: shift first
         (Equal, Assoc::None) => PrecDecision::Error,
     }
 }
@@ -338,8 +353,8 @@ fn decide_with_precedence(
 // Handle reduce/reduce conflicts (prefer higher rule precedence, tie -> lowest pid)
 #[inline]
 fn decide_reduce_reduce(a: u16, b: u16, prec: &PrecTables) -> u16 {
-    let pa = prec.rule_prec.get(a as usize).copied().unwrap_or(0);
-    let pb = prec.rule_prec.get(b as usize).copied().unwrap_or(0);
+    let pa = prec.rule_prec.get(a as usize).map(|r| r.prec).unwrap_or(0);
+    let pb = prec.rule_prec.get(b as usize).map(|r| r.prec).unwrap_or(0);
     if pa > pb {
         a
     } else if pb > pa {

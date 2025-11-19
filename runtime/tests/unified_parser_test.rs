@@ -1,52 +1,127 @@
 #[cfg(test)]
 mod tests {
-    use rust_sitter::pure_parser::{ExternalScanner, TSLanguage};
+    use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSParseAction};
     use rust_sitter::unified_parser::Parser;
+    use std::ptr;
+
+    // Parse actions for mock language
+    static PARSE_ACTIONS: [TSParseAction; 5] = [
+        TSParseAction {
+            action_type: 0, // Shift
+            extra: 0,
+            child_count: 0,
+            dynamic_precedence: 0,
+            symbol: 1,
+        },
+        TSParseAction {
+            action_type: 1, // Reduce
+            extra: 0,
+            child_count: 1,
+            dynamic_precedence: 0,
+            symbol: 2,
+        },
+        TSParseAction {
+            action_type: 2, // Accept
+            extra: 0,
+            child_count: 0,
+            dynamic_precedence: 0,
+            symbol: 0,
+        },
+        TSParseAction {
+            action_type: 3, // Error
+            extra: 0,
+            child_count: 0,
+            dynamic_precedence: 0,
+            symbol: 0,
+        },
+        TSParseAction {
+            action_type: 0, // Padding
+            extra: 0,
+            child_count: 0,
+            dynamic_precedence: 0,
+            symbol: 0,
+        },
+    ];
+
+    // Parse tables
+    static PARSE_TABLE: [u16; 50] = [0; 50];
+    static SMALL_PARSE_TABLE: [u16; 50] = [0; 50];
+    static SMALL_PARSE_TABLE_MAP: [u32; 10] = [0; 10];
+    static LEX_MODES: [u32; 10] = [0; 10];
+    static PRODUCTION_ID_MAP: [u16; 5] = [0; 5];
+
+    // Symbol names
+    static SYMBOL_NAME_EOF: &[u8] = b"end\0";
+    static SYMBOL_NAME_TOKEN1: &[u8] = b"token1\0";
+    static SYMBOL_NAME_TOKEN2: &[u8] = b"token2\0";
+    static SYMBOL_NAME_RULE1: &[u8] = b"rule1\0";
+    static SYMBOL_NAME_RULE2: &[u8] = b"rule2\0";
+
+    #[repr(transparent)]
+    struct SymbolNamesArray([*const u8; 5]);
+    unsafe impl Sync for SymbolNamesArray {}
+
+    static SYMBOL_NAMES: SymbolNamesArray = SymbolNamesArray([
+        SYMBOL_NAME_EOF.as_ptr(),
+        SYMBOL_NAME_TOKEN1.as_ptr(),
+        SYMBOL_NAME_TOKEN2.as_ptr(),
+        SYMBOL_NAME_RULE1.as_ptr(),
+        SYMBOL_NAME_RULE2.as_ptr(),
+    ]);
+
+    // Symbol metadata
+    static SYMBOL_METADATA: [u8; 5] = [
+        0x01, // EOF: visible
+        0x01, // token1: visible
+        0x01, // token2: visible
+        0x03, // rule1: visible + named
+        0x03, // rule2: visible + named
+    ];
 
     // Mock language for testing
     static TEST_LANGUAGE: TSLanguage = TSLanguage {
-        version: 14,
-        symbol_count: 10,
+        version: 15,
+        symbol_count: 5,
         alias_count: 0,
-        token_count: 5,
+        token_count: 3,
         external_token_count: 0,
-        state_count: 20,
+        state_count: 10,
         large_state_count: 0,
-        production_id_count: 0,
+        production_id_count: 2,
         field_count: 0,
         max_alias_sequence_length: 0,
-        production_id_map: std::ptr::null(),
-        parse_table: std::ptr::null(),
-        small_parse_table: std::ptr::null(),
-        small_parse_table_map: std::ptr::null(),
-        parse_actions: std::ptr::null(),
-        symbol_names: std::ptr::null(),
-        field_names: std::ptr::null(),
-        field_map_slices: std::ptr::null(),
-        field_map_entries: std::ptr::null(),
-        symbol_metadata: std::ptr::null(),
-        public_symbol_map: std::ptr::null(),
-        alias_map: std::ptr::null(),
-        alias_sequences: std::ptr::null(),
-        lex_modes: std::ptr::null(),
+        eof_symbol: 0,
+        rules: ptr::null(),
+        rule_count: 0,
+        production_count: 2,
+        production_lhs_index: ptr::null(),
+        production_id_map: PRODUCTION_ID_MAP.as_ptr(),
+        parse_table: PARSE_TABLE.as_ptr(),
+        small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
+        small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
+        parse_actions: PARSE_ACTIONS.as_ptr(),
+        symbol_names: SYMBOL_NAMES.0.as_ptr(),
+        field_names: ptr::null(),
+        field_map_slices: ptr::null(),
+        field_map_entries: ptr::null(),
+        symbol_metadata: SYMBOL_METADATA.as_ptr(),
+        public_symbol_map: ptr::null(),
+        alias_map: ptr::null(),
+        alias_sequences: ptr::null(),
+        lex_modes: LEX_MODES.as_ptr() as *const _,
         lex_fn: None,
         keyword_lex_fn: None,
         keyword_capture_token: 0,
         external_scanner: ExternalScanner {
-            states: std::ptr::null(),
-            symbol_map: std::ptr::null(),
+            states: ptr::null(),
+            symbol_map: ptr::null(),
             create: None,
             destroy: None,
             scan: None,
             serialize: None,
             deserialize: None,
         },
-        primary_state_ids: std::ptr::null(),
-        eof_symbol: 0,
-        rules: std::ptr::null(),
-        rule_count: 0,
-        production_count: 0,
-        production_lhs_index: std::ptr::null(),
+        primary_state_ids: ptr::null(),
     };
 
     #[test]

@@ -1,12 +1,12 @@
 ---
-source: example/src/arithmetic.rs
+source: src/arithmetic.rs
 expression: "grammar::parse(\"1 - 2 -\")"
 ---
 Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "symbol 0",
+                "end",
             ),
             start: 7,
             end: 7,

@@ -539,26 +539,49 @@ impl<'a> AbiLanguageBuilder<'a> {
             let mut table_data = Vec::new();
             let mut map_data = Vec::new();
 
-            // Encode action table
-            for entry in &compressed.action_table.data {
-                let symbol = entry.symbol;
-                table_data.push(quote! { #symbol });
-                if let Ok(encoded) = self.encode_action(&entry.action) {
-                    table_data.push(quote! { #encoded });
+            // Encode both action and goto table entries combined
+            // Tree-sitter format: each state's row contains both actions (for terminals)
+            // and gotos (for non-terminals) as (symbol, value) pairs
+
+            for state_idx in 0..self.parse_table.state_count {
+                // Record the starting offset for this state (in u16 array indices, not pairs)
+                let current_offset = table_data.len();
+                map_data.push(quote! { #current_offset as u32 });
+
+                // Track which symbols already have action entries to avoid duplicates
+                let mut action_symbols = std::collections::HashSet::new();
+
+                // First, add action entries for this state
+                let action_start = compressed.action_table.row_offsets[state_idx] as usize;
+                let action_end = compressed.action_table.row_offsets[state_idx + 1] as usize;
+
+                for entry in &compressed.action_table.data[action_start..action_end] {
+                    let symbol = entry.symbol;
+                    action_symbols.insert(symbol);
+                    table_data.push(quote! { #symbol });
+                    if let Ok(encoded) = self.encode_action(&entry.action) {
+                        table_data.push(quote! { #encoded });
+                    }
+                }
+
+                // Then, add goto entries for this state (encode as shifts for Tree-sitter compat)
+                // Skip symbols that already have action entries to avoid duplicates
+                if state_idx < self.parse_table.goto_table.len() {
+                    for (symbol_idx, &goto_state) in self.parse_table.goto_table[state_idx].iter().enumerate() {
+                        let symbol = symbol_idx as u16;
+                        if goto_state.0 > 0 && !action_symbols.contains(&symbol) {
+                            // This is a valid goto transition without a conflicting action
+                            let encoded_shift = goto_state.0; // Shift actions are encoded as state_id
+                            table_data.push(quote! { #symbol });
+                            table_data.push(quote! { #encoded_shift });
+                        }
+                    }
                 }
             }
 
-            // TODO: Also encode goto table entries
-            // Tree-sitter combines both action and goto entries in the parse table
-            // The goto entries should be added here as well
-
-            // Add row offsets to map
-            // Note: row_offsets are in terms of entries, but the parse table
-            // uses u16 indices, so we need to multiply by 2
-            for &offset in &compressed.action_table.row_offsets {
-                let u16_offset = offset * 2;
-                map_data.push(quote! { #u16_offset as u32 });
-            }
+            // Add final offset (end of table, in u16 array indices)
+            let final_offset = table_data.len();
+            map_data.push(quote! { #final_offset as u32 });
 
             (table_data, map_data)
         } else {
@@ -905,7 +928,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // The runtime will map through PRODUCTION_ID_MAP to get the actual index
                 Ok(0x8000 | (rule.0 + 1))
             }
-            Action::Accept => Ok(0x7FFF), // Use 0x7FFF for accept to match parser
+            Action::Accept => Ok(0xFFFF), // Use 0xFFFF for accept (must match decoder in pure_parser.rs)
             Action::Error => Ok(0),       // Use 0 for error to match parser expectation
             Action::Recover => Ok(0xFFFD), // Use distinct value for Recover
             Action::Fork(actions) => {
@@ -1295,7 +1318,8 @@ impl<'a> AbiLanguageBuilder<'a> {
         LanguageCounts {
             symbol_count: self.calculate_symbol_count() as u32,
             alias_count: 0, // TODO: Implement aliases
-            token_count: self.grammar.tokens.len() as u32,
+            // token_count includes EOF (symbol 0) plus all user-defined tokens
+            token_count: (self.grammar.tokens.len() + 1) as u32,
             external_token_count: self.grammar.externals.len() as u32,
             state_count: self.parse_table.state_count as u32,
             large_state_count: 0, // TODO: Calculate large states

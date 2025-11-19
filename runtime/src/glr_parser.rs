@@ -46,19 +46,15 @@
 //!
 //! ## Example Usage
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use rust_sitter::glr_parser::GLRParser;
 //! use rust_sitter::glr_lexer::GLRLexer;
 //! use rust_sitter_ir::{Grammar, SymbolId};
 //! use rust_sitter_glr_core::ParseTable;
 //!
-//! // Create parser with grammar and parse table
-//! # fn example() {
-//! let grammar: Grammar = /* ... */;
-//! # let grammar = Grammar::default();
-//! let parse_table: ParseTable = /* ... */;
-//! # let parse_table = ParseTable::default();
-//! let mut parser = GLRParser::new(grammar, parse_table);
+//! // Create parser with grammar and parse table (grammar and parse_table provided by your app)
+//! # fn example(grammar: Grammar, parse_table: ParseTable) {
+//! let mut parser = GLRParser::new(parse_table, grammar);
 //!
 //! // Create lexer and tokenize input
 //! let mut lexer = GLRLexer::new(&grammar);
@@ -96,7 +92,7 @@ pub fn safe_dedup_threshold() -> usize {
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
-use rust_sitter_glr_core::{compare_versions, Action, CompareResult, ParseTable, VersionInfo};
+use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
 use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};

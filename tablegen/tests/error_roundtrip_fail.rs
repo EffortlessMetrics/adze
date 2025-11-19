@@ -25,9 +25,10 @@ fn error_roundtrip_propagates_failure() {
 
     // The error should be converted to TableGenError
     let msg = err.to_string();
+    let msg_lower = msg.to_lowercase();
     // Since it's from GLRError, it should be wrapped as TableGenError::TableGeneration
     assert!(
-        msg.contains("table generation") || msg.contains("grammar") || msg.contains("empty"),
+        msg_lower.contains("table generation") || msg_lower.contains("grammar") || msg_lower.contains("empty"),
         "unexpected error message: {msg}"
     );
 }

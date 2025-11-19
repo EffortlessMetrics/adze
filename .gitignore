@@ -51,3 +51,4 @@ __pycache__/
 /build/
 /dist/
 /out/
+*.snap.new
