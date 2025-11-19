@@ -1,7 +1,7 @@
 # Phase 2: GLR Conflict Preservation Validation - Progress Report
 
 **Date**: 2025-11-19
-**Status**: 80% Complete
+**Status**: 85% Complete
 **Phase**: 2 - GLR Conflict Preservation Validation
 **Roadmap**: [PRODUCTION_READINESS_ROADMAP.md](../PRODUCTION_READINESS_ROADMAP.md)
 
@@ -94,9 +94,79 @@ TG-002 Precedence-Free Expression:
 
 ---
 
+### 4. Contract Documentation and Invariant Lock-In ✅
+
+**Module**: `glr-core/src/conflict_inspection.rs` (enhanced documentation)
+
+**Implementation**:
+- Comprehensive module-level documentation of ParseTable invariants
+- Debug assertions validating invariants (zero-cost in release builds)
+- Documented conflict classification semantics
+- Action::Fork recursive handling clarified
+- Cross-linked specification documents
+
+**Documentation Updates**:
+- `docs/specs/CONFLICT_INSPECTION_API.md`:
+  - Added "ParseTable Invariants Contract" section
+  - Added "Conflict Classification Semantics" section
+  - Documented ShiftReduce, ReduceReduce, Mixed classifications
+  - Documented Action::Fork handling with examples
+  - Updated success criteria (all items complete ✅)
+
+- `docs/specs/TABLE_GENERATION_VALIDATION_CONTRACT.md`:
+  - Referenced CONFLICT_INSPECTION_API.md invariants
+  - Cross-linked specifications for contract consistency
+
+**Contract Lock-In**:
+```rust
+// Structure Invariant Validation (debug builds only)
+debug_assert_eq!(
+    table.state_count,
+    table.action_table.len(),
+    "ParseTable invariant violation"
+);
+
+// Symbol indexing validation
+for symbol_idx in 0..state_actions.len() {
+    debug_assert!(
+        symbol_idx < table.index_to_symbol.len() || table.index_to_symbol.is_empty(),
+        "symbol index must be valid"
+    );
+}
+```
+
+**Invariants Documented**:
+1. State Count Consistency: `state_count == action_table.len()`
+2. Action Table Structure: Vec<Vec<Vec<Action>>> (multi-action cells)
+3. Symbol Indexing: All indices valid in index_to_symbol mapping
+4. Empty Cells Semantics: Represent error states, not conflicts
+
+**Conflict Semantics Specified**:
+- **What counts as conflict**: `cell.len() > 1`
+- **ShiftReduce**: Cell has both Shift and Reduce actions
+- **ReduceReduce**: Cell has multiple Reduce actions
+- **Mixed**: Other combinations (counted conservatively)
+- **Action::Fork**: Treated recursively during classification
+
+**Validation**:
+```bash
+cargo test -p rust-sitter-glr-core conflict_inspection
+# 7/7 unit tests passed
+
+cargo test -p rust-sitter-glr-core --test conflict_inspection_integration
+# 6/6 integration tests passed
+
+cargo test -p rust-sitter-glr-core --test table_generation_validation
+# 5/5 table generation tests passed (including real pipeline validation)
+```
+
+**Commit**: `4111b6a` - docs(glr-core): document ParseTable invariants and conflict semantics
+
+---
+
 ## Remaining Work
 
-### 4. Real Grammar Integration (20% remaining)
+### 5. Real Grammar Integration (15% remaining)
 
 **Status**: Test grammars validated, real example grammars pending
 
@@ -110,7 +180,7 @@ TG-002 Precedence-Free Expression:
 
 ---
 
-### 5. Parse Forest Support (0% complete)
+### 6. Parse Forest Support (0% complete, may be deferred)
 
 **Tasks**:
 - [ ] Define ParseForest trait (per specification)
@@ -135,10 +205,13 @@ TG-002 Precedence-Free Expression:
 | Table generation validation | Complete | Complete | ✅ |
 | TG-001 validation | 1 S/R conflict | 1 validated | ✅ |
 | TG-002 validation | >= 2 S/R conflicts | 2 validated | ✅ |
+| Contract documentation | Complete | Complete | ✅ |
+| ParseTable invariants | Documented | Documented | ✅ |
+| Debug assertions | Implemented | Implemented | ✅ |
 | Real grammar integration | Complete | 0% | 🔄 |
 | Parse forest support | Implemented | Deferred | ⏸️ |
 
-**Overall Phase 2 Progress**: 80% complete
+**Overall Phase 2 Progress**: 85% complete
 
 ---
 
@@ -255,10 +328,11 @@ test result: ok. 4 passed; 0 failed; 0 ignored
 - **Integration Tests**: 2 hours ✅ (completed 2025-11-19)
 - **Table Generation Validation**: 3 hours ✅ (completed 2025-11-19)
 - **Documentation**: 1 hour ✅ (completed 2025-11-19)
+- **Contract Documentation**: 2 hours ✅ (completed 2025-11-19)
 
-**Time Spent**: ~12 hours
+**Time Spent**: ~14 hours
 **Estimated Remaining**: 1-2 hours (real grammar integration)
-**Total Estimated**: 13-14 hours
+**Total Estimated**: 15-16 hours
 
 ---
 
@@ -271,5 +345,6 @@ test result: ok. 4 passed; 0 failed; 0 ignored
 
 ---
 
-**Status**: 80% Complete - Table Generation Validation Passing, Real Grammar Integration Pending
-**Next**: Enable example grammar tests and document conflict expectations
+**Status**: 85% Complete - Contract Lock-In Complete, Real Grammar Integration Pending
+**Latest**: ParseTable invariants documented and validated with debug assertions
+**Next**: Enable example grammar tests and wire to conflict inspection API
