@@ -22,11 +22,13 @@
 - [ ] **GLR Step 6**: Re-enable arithmetic tests
 
 **Blockers for v0.7.0**:
-1. **GLR Runtime Wiring** - ✅ UNBLOCKED (parser_v4 integration complete)
-   - ✅ GLR tables generate correctly
+1. **GLR Runtime Wiring** - ⚠️ PARTIAL (Infrastructure complete, table loading blocked)
+   - ✅ GLR tables generate correctly (tablegen)
    - ✅ Runtime routing infrastructure in place
    - ✅ parser_v4 extraction integration complete
-   - ⏳ Pending: BDD scenario tests and default feature enablement
+   - ❌ **NEW BLOCKER**: parser_v4 table loading/decoder incompatibility
+   - See: [PARSER_V4_TABLE_LOADING_BLOCKER.md](./docs/plans/PARSER_V4_TABLE_LOADING_BLOCKER.md)
+   - ⏳ Pending: Decoder fix, then BDD scenario tests
 2. **Incremental Parsing** - Designed but not implemented
 3. **Query System** - Partial implementation, needs completion
 

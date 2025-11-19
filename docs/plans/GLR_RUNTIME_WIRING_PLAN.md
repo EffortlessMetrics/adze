@@ -18,18 +18,26 @@
   - Implemented ParseNode to ParsedNode conversion layer
   - Full end-to-end GLR parsing pipeline working
 
-### 🚧 Previously Blocked - NOW RESOLVED ✅
-- ~~**Full GLR Integration**: Blocked by parser_v4 extraction incompatibility~~
+### 🚧 Previously Blocked - PARTIALLY RESOLVED
+- ~~**Full GLR Integration**: Blocked by parser_v4 extraction incompatibility~~ (✅ RESOLVED)
   - See: [PARSER_V4_EXTRACTION_INTEGRATION.md](./PARSER_V4_EXTRACTION_INTEGRATION.md)
   - ✅ RESOLVED: Added `parse_tree()` method returning `ParseNode`
   - ✅ RESOLVED: Conversion layer implemented
-  - ✅ RESOLVED: Full GLR extraction pipeline working
+  - ✅ RESOLVED: Full GLR extraction pipeline architecture complete
+
+### ❌ NEW BLOCKER - Table Loading Incompatibility
+- **parser_v4 Table Loading**: decoder cannot correctly load/interpret GLR tables
+  - See: [PARSER_V4_TABLE_LOADING_BLOCKER.md](./PARSER_V4_TABLE_LOADING_BLOCKER.md)
+  - Issue: parser_v4 hits error states instead of successfully parsing
+  - Root Cause: Mismatch between tablegen encoding and decoder interpretation
+  - Impact: GLR feature compiles but parsing fails at runtime
+  - Status: Documented, investigating decoder fix vs. alternative approaches
 
 ### 🔄 Current Behavior
 - ✅ Routing logic compiles and works
 - ✅ Feature flag selection works correctly
-- ✅ GLR path uses parser_v4 with full extraction
-- ✅ Full GLR parsing functional with `glr` feature flag
+- ✅ GLR path uses parser_v4 with full extraction architecture
+- ❌ GLR parsing fails due to table loading issue
 
 ---
 
