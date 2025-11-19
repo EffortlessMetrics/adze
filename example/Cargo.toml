@@ -9,6 +9,7 @@ publish = false
 [features]
 default = ["pure-rust"]
 pure-rust = ["rust-sitter/pure-rust"]
+glr = ["rust-sitter/glr"]
 c-backend = [
   "rust-sitter/tree-sitter-c2rust",
   "rust-sitter/tree-sitter-standard",

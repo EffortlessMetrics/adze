@@ -756,6 +756,114 @@ mod tests {
         .unwrap();
     }
 
+    /// CRITICAL BUG REPRODUCTION: Test Binary variant generation with inlining
+    /// https://github.com/EffortlessMetrics/rust-sitter/issues/BINARY_VARIANT_MISSING
+    #[test]
+    fn test_binary_variant_inlined_generation() {
+        // This test reproduces the critical bug where Binary variant disappears
+        let m = if let syn::Item::Mod(m) = parse_quote! {
+            #[rust_sitter::grammar("test_binary")]
+            pub mod grammar {
+                #[rust_sitter::language]
+                #[derive(Debug)]
+                pub enum Expr {
+                    Binary(
+                        Box<Expr>,
+                        #[rust_sitter::leaf(pattern = r"[-+*/]")] String,
+                        Box<Expr>,
+                    ),
+                    Number(#[rust_sitter::leaf(pattern = r"\d+")] i32),
+                }
+
+                /// Whitespace handling - match real ambiguous_expr grammar
+                #[rust_sitter::extra]
+                struct Whitespace {
+                    #[rust_sitter::leaf(pattern = r"\s")]
+                    _whitespace: (),
+                }
+            }
+        } {
+            m
+        } else {
+            panic!("Failed to parse test module")
+        };
+
+        eprintln!("\n=== Testing Binary Variant Inlined Generation ===\n");
+
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
+        eprintln!("Generated grammar:\n{}", serde_json::to_string_pretty(&grammar).unwrap());
+
+        // Extract rules
+        let rules = grammar.get("rules").expect("No rules in grammar");
+        let rules_obj = rules.as_object().expect("Rules not an object");
+
+        eprintln!("\n=== All Rules ===");
+        for (name, _rule) in rules_obj {
+            eprintln!("  - {}", name);
+        }
+
+        // Find the Expr rule
+        let expr_rule = rules_obj.get("Expr").expect("No Expr rule found!");
+        eprintln!("\n=== Expr Rule ===\n{}", serde_json::to_string_pretty(expr_rule).unwrap());
+
+        // Expr should be a CHOICE
+        let expr_type = expr_rule.get("type").and_then(serde_json::Value::as_str);
+        assert_eq!(expr_type, Some("CHOICE"), "Expr should be a CHOICE");
+
+        // Get CHOICE members
+        let members = expr_rule.get("members").expect("No members in Expr CHOICE");
+        let members_array = members.as_array().expect("Members not an array");
+
+        eprintln!("\n=== Expr CHOICE Members ({}) ===", members_array.len());
+        for (i, member) in members_array.iter().enumerate() {
+            eprintln!("Member {}:\n{}", i, serde_json::to_string_pretty(member).unwrap());
+        }
+
+        // CRITICAL ASSERTION: Expr CHOICE should have 2 members (Binary + Number)
+        assert_eq!(
+            members_array.len(),
+            2,
+            "CONTRACT VIOLATION: Expr should have 2 CHOICE members (Binary + Number), found {}.\n\
+             This indicates the Binary variant is missing from grammar generation!",
+            members_array.len()
+        );
+
+        // Check first member (should be Binary - a SEQ with 3 fields)
+        let binary_member = &members_array[0];
+        let binary_type = binary_member.get("type").and_then(serde_json::Value::as_str);
+
+        assert_eq!(
+            binary_type,
+            Some("SEQ"),
+            "Binary variant should be inlined as SEQ, got: {:?}",
+            binary_type
+        );
+
+        // Binary SEQ should have 3 members (Expr, Op, Expr)
+        let binary_members = binary_member.get("members").expect("No members in Binary SEQ");
+        let binary_members_array = binary_members.as_array().expect("Binary members not an array");
+
+        assert_eq!(
+            binary_members_array.len(),
+            3,
+            "Binary SEQ should have 3 members (Expr, Op, Expr), found {}",
+            binary_members_array.len()
+        );
+
+        // Check second member (should be Number - a PATTERN)
+        let number_member = &members_array[1];
+        let number_type = number_member.get("type").and_then(serde_json::Value::as_str);
+
+        assert_eq!(
+            number_type,
+            Some("PATTERN"),
+            "Number variant should be inlined as PATTERN, got: {:?}",
+            number_type
+        );
+
+        eprintln!("\n✅ TEST PASSED: Binary variant generates correctly!\n");
+    }
+
     #[cfg(feature = "build_parsers")]
     #[test]
     fn test_emit_artifacts_functionality() {

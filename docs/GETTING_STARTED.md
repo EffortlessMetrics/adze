@@ -363,7 +363,7 @@ pub value: String,
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/hydro-project/rust-sitter/issues)
+- **Issues**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
 - **Documentation**: [Comprehensive Docs](https://hydro-project.github.io/rust-sitter/)
 - **Examples**: See `/example/` and `/grammars/` directories
 

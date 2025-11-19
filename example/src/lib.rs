@@ -4,7 +4,9 @@ compile_error!("Enable exactly one backend: 'pure-rust' OR 'c-backend'.");
 
 // Re-export modules that contain grammars
 pub mod ambiguous;
+pub mod ambiguous_expr;
 pub mod arithmetic;
+pub mod dangling_else;
 pub mod external_word_example;
 pub mod optionals;
 pub mod performance_test;

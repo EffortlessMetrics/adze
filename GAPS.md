@@ -667,7 +667,7 @@ pub fn parse_command(grammar_path: &Path, input_path: &Path) -> Result<()> {
 
 ### 2. Set Up Development Environment
 ```bash
-git clone https://github.com/hydro-project/rust-sitter
+git clone https://github.com/EffortlessMetrics/rust-sitter
 cd rust-sitter
 cargo build
 cargo test

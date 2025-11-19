@@ -64,10 +64,10 @@ Rust-Sitter is ideal for:
 
 ## Getting Help
 
-- **GitHub Issues**: Report bugs or request features at [rust-sitter/issues](https://github.com/hydro-project/rust-sitter/issues)
-- **Discussions**: Ask questions and share experiences in [GitHub Discussions](https://github.com/hydro-project/rust-sitter/discussions)
+- **GitHub Issues**: Report bugs or request features at [rust-sitter/issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
+- **Discussions**: Ask questions and share experiences in [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
 - **Examples**: Check out the [example grammars](reference/grammar-examples.md) for inspiration
 
 ## License
 
-Rust-Sitter is licensed under the MIT license. See the [LICENSE](https://github.com/hydro-project/rust-sitter/blob/main/LICENSE) file for details.
+Rust-Sitter is licensed under the MIT license. See the [LICENSE](https://github.com/EffortlessMetrics/rust-sitter/blob/main/LICENSE) file for details.

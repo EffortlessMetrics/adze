@@ -210,19 +210,19 @@ example/src/
 
 ### Stuck?
 1. Check [FAQ.md](./FAQ.md)
-2. Search [GitHub Issues](https://github.com/hydro-project/rust-sitter/issues)
-3. Ask in [GitHub Discussions](https://github.com/hydro-project/rust-sitter/discussions)
+2. Search [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
+3. Ask in [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
 
 ---
 
 ## 🔗 External Links
 
-- **GitHub**: https://github.com/hydro-project/rust-sitter
+- **GitHub**: https://github.com/EffortlessMetrics/rust-sitter
 - **Crates.io**: https://crates.io/crates/rust-sitter
-- **Issues**: https://github.com/hydro-project/rust-sitter/issues
-- **Discussions**: https://github.com/hydro-project/rust-sitter/discussions
+- **Issues**: https://github.com/EffortlessMetrics/rust-sitter/issues
+- **Discussions**: https://github.com/EffortlessMetrics/rust-sitter/discussions
 
 ---
 
 **Still can't find what you need?**
-Open a [GitHub Discussion](https://github.com/hydro-project/rust-sitter/discussions) and we'll help!
+Open a [GitHub Discussion](https://github.com/EffortlessMetrics/rust-sitter/discussions) and we'll help!

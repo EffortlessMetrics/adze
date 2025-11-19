@@ -2045,20 +2045,24 @@ impl ConflictResolver {
                 };
 
                 // Compare precedences
+                // GLR CONFLICT PRESERVATION: We preserve both actions but order them by precedence
+                // The first action in the vector is the preferred path (higher priority)
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
-                        conflict.actions = vec![shift];
+                        // Preserve both actions: shift first (higher priority), then reduce
+                        conflict.actions = vec![shift, reduce];
                     }
                     PrecedenceComparison::PreferReduce => {
-                        conflict.actions = vec![reduce];
+                        // Preserve both actions: reduce first (higher priority), then shift
+                        conflict.actions = vec![reduce, shift];
                     }
                     PrecedenceComparison::Error => {
                         // Non-associative conflict - this is an error
-                        // For now, keep both actions (GLR will handle it)
+                        // Keep Fork to signal ambiguity for error reporting
                         conflict.actions = vec![Action::Fork(vec![shift, reduce])];
                     }
                     PrecedenceComparison::None => {
-                        // No precedence info - use GLR fork
+                        // No precedence info - use GLR fork to explore all paths
                         conflict.actions = vec![Action::Fork(vec![shift, reduce])];
                     }
                 }

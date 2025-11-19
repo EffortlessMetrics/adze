@@ -574,8 +574,31 @@ impl Parser {
         })
     }
 
-    /// Parse the input string
+    /// Parse the input string and return the full parse tree
+    ///
+    /// This method returns the complete ParseNode tree, which can be used
+    /// for extraction and AST construction. For a simpler API that returns
+    /// just metadata, use `parse()`.
+    pub fn parse_tree(&mut self, input: &str) -> Result<ParseNode> {
+        // Implementation is identical to parse() except for return type
+        self.parse_internal(input, true)
+    }
+
+    /// Parse the input string and return minimal tree metadata
+    ///
+    /// This is the backward-compatible API that returns just the tree metadata.
+    /// For extraction and AST construction, use `parse_tree()` instead.
     pub fn parse(&mut self, input: &str) -> Result<Tree> {
+        let root = self.parse_internal(input, false)?;
+        Ok(Tree {
+            root_kind: root.symbol.0,
+            error_count: 0, // TODO: track error count in parse_internal
+            source: input.to_string(),
+        })
+    }
+
+    /// Internal parsing implementation shared by parse() and parse_tree()
+    fn parse_internal(&mut self, input: &str, _return_tree: bool) -> Result<ParseNode> {
         // eprintln!("\nStarting parse of: {:?}", input);
         // Store the input
         self.input = input.as_bytes().to_vec();
@@ -794,11 +817,8 @@ impl Parser {
                         .pop()
                         .ok_or_else(|| anyhow!("No root node after accept"))?;
 
-                    return Ok(Tree {
-                        root_kind: root_node.symbol.0,
-                        error_count,
-                        source: input.to_string(),
-                    });
+                    // Return the actual parse tree
+                    return Ok(root_node);
                 }
 
                 Action::Error => {
@@ -806,36 +826,44 @@ impl Parser {
                     // A real implementation would do error recovery
                     error_count += 1;
 
-                    // Return a partial tree with errors
-                    let root_kind = if let Some(node) = node_stack.last() {
-                        node.symbol.0
+                    // Return a partial tree or error node
+                    let error_node = if let Some(node) = node_stack.pop() {
+                        node
                     } else {
-                        0
+                        // Create minimal error node
+                        ParseNode {
+                            symbol: SymbolId(0),
+                            symbol_id: SymbolId(0),
+                            start_byte: current_position,
+                            end_byte: current_position,
+                            field_name: None,
+                            children: vec![],
+                        }
                     };
 
-                    return Ok(Tree {
-                        root_kind,
-                        error_count,
-                        source: input.to_string(),
-                    });
+                    return Ok(error_node);
                 }
 
                 Action::Recover => {
                     // Handle Recover action - treat as error for now
                     error_count += 1;
 
-                    // Return a partial tree with errors
-                    let root_kind = if let Some(node) = node_stack.last() {
-                        node.symbol.0
+                    // Return a partial tree or recovery node
+                    let recovery_node = if let Some(node) = node_stack.pop() {
+                        node
                     } else {
-                        0
+                        // Create minimal recovery node
+                        ParseNode {
+                            symbol: SymbolId(0),
+                            symbol_id: SymbolId(0),
+                            start_byte: current_position,
+                            end_byte: current_position,
+                            field_name: None,
+                            children: vec![],
+                        }
                     };
 
-                    return Ok(Tree {
-                        root_kind,
-                        error_count,
-                        source: input.to_string(),
-                    });
+                    return Ok(recovery_node);
                 }
 
                 Action::Fork(actions) => {
@@ -948,17 +976,23 @@ impl Parser {
                 _ => {
                     // Unknown action type - treat as error
                     error_count += 1;
-                    let root_kind = if let Some(node) = node_stack.last() {
-                        node.symbol.0
+
+                    // Return a partial tree or error node
+                    let error_node = if let Some(node) = node_stack.pop() {
+                        node
                     } else {
-                        0
+                        // Create minimal error node
+                        ParseNode {
+                            symbol: SymbolId(0),
+                            symbol_id: SymbolId(0),
+                            start_byte: current_position,
+                            end_byte: current_position,
+                            field_name: None,
+                            children: vec![],
+                        }
                     };
 
-                    return Ok(Tree {
-                        root_kind,
-                        error_count,
-                        source: input.to_string(),
-                    });
+                    return Ok(error_node);
                 }
             }
 

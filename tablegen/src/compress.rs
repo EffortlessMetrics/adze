@@ -392,10 +392,11 @@ impl TableCompressor {
                 .map(|(action, _)| action.clone())
                 .unwrap_or(Action::Error);
 
-            // DISABLE default action optimization until runtime decoder supports it
-            // The runtime currently doesn't use default_actions array, so skipping
-            // actions based on default would lose information
-            // TODO: Either implement default_actions in runtime or remove this optimization
+            // Default action optimization is currently disabled by design.
+            // The runtime does not use the default_actions array, so we encode all actions explicitly
+            // and populate default_actions with Action::Error as a placeholder.
+            // This ensures no information is lost during compression and all actions are available at runtime.
+            // Future: Could optimize by implementing default action support in the runtime decoder.
             let default_action = Action::Error;
 
             default_actions.push(default_action.clone());

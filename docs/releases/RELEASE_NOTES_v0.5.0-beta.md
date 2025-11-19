@@ -34,7 +34,7 @@ This beta release supports basic to medium complexity grammars. The following fe
 - Query language
 - Incremental parsing
 
-See [KNOWN_LIMITATIONS.md](https://github.com/hydro-project/rust-sitter/blob/main/KNOWN_LIMITATIONS.md) for details.
+See [KNOWN_LIMITATIONS.md](https://github.com/EffortlessMetrics/rust-sitter/blob/main/KNOWN_LIMITATIONS.md) for details.
 
 ### Grammar Compatibility
 
@@ -49,11 +49,11 @@ See [KNOWN_LIMITATIONS.md](https://github.com/hydro-project/rust-sitter/blob/mai
 - Python (requires external scanners)
 - C/C++, Go, Rust, Ruby, etc.
 
-See the [Compatibility Dashboard](https://github.com/hydro-project/rust-sitter/blob/main/docs/compatibility-dashboard.md) for the full list.
+See the [Compatibility Dashboard](https://github.com/EffortlessMetrics/rust-sitter/blob/main/docs/compatibility-dashboard.md) for the full list.
 
 ### Migration from v0.4.x
 
-Most code should work without changes. If you're using advanced features or internal APIs, see our [Migration Guide](https://github.com/hydro-project/rust-sitter/blob/main/docs/migration-guide.md).
+Most code should work without changes. If you're using advanced features or internal APIs, see our [Migration Guide](https://github.com/EffortlessMetrics/rust-sitter/blob/main/docs/migration-guide.md).
 
 ### What's Next
 
@@ -66,7 +66,7 @@ Most code should work without changes. If you're using advanced features or inte
 
 This is a beta release - we need your feedback! Please:
 - Try it with your grammars
-- Report issues on [GitHub](https://github.com/hydro-project/rust-sitter/issues)
+- Report issues on [GitHub](https://github.com/EffortlessMetrics/rust-sitter/issues)
 - Share your experience
 
 ### Contributors

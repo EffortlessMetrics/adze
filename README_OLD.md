@@ -1,5 +1,5 @@
 # Rust Sitter
-[![CI](https://github.com/hydro-project/rust-sitter/actions/workflows/ci.yml/badge.svg)](https://github.com/hydro-project/rust-sitter/actions/workflows/ci.yml)
+[![CI](https://github.com/EffortlessMetrics/rust-sitter/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/rust-sitter/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/rust-sitter)](https://crates.io/crates/rust-sitter)
 
 Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
@@ -144,7 +144,7 @@ Features:
 
 See [tools/ts-bridge/README.md](tools/ts-bridge/README.md) for details.
 
-For the most reliable experience, use the core parsing functionality with the pure-Rust backend. Track progress on the [issue tracker](https://github.com/hydro-project/rust-sitter/issues).
+For the most reliable experience, use the core parsing functionality with the pure-Rust backend. Track progress on the [issue tracker](https://github.com/EffortlessMetrics/rust-sitter/issues).
 
 ## Installation
 
@@ -825,4 +825,4 @@ Each task includes estimated time, difficulty level, and step-by-step guidance.
 5. **Run the fast lint**: `cargo lint --fast --since origin/main`
 6. **Run tests**: `cargo test`
 
-For bug reports and feature requests, please use the [GitHub issue tracker](https://github.com/hydro-project/rust-sitter/issues).
+For bug reports and feature requests, please use the [GitHub issue tracker](https://github.com/EffortlessMetrics/rust-sitter/issues).

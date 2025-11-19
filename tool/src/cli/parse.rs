@@ -74,7 +74,7 @@ pub fn parse_file(
         eprintln!("  - Dynamic parser loading via --parser flag");
         eprintln!("  - Tree-sitter compatible CLI functionality");
         eprintln!();
-        eprintln!("For updates, see: https://github.com/hydro-project/rust-sitter");
+        eprintln!("For updates, see: https://github.com/EffortlessMetrics/rust-sitter");
 
         // Return an honest error code
         std::process::exit(64); // EX_USAGE - command line usage error

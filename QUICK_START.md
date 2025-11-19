@@ -199,7 +199,7 @@ Paren(
 - **Questions?** Check [FAQ.md](./FAQ.md)
 - **Stuck?** See [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) (coming in v0.7.0)
 - **Want to contribute?** See [CONTRIBUTING.md](./CONTRIBUTING.md)
-- **Report bugs**: [GitHub Issues](https://github.com/hydro-project/rust-sitter/issues)
+- **Report bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
 
 ---
 

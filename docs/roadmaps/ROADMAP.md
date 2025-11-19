@@ -208,9 +208,9 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 - [GLR Guardrails](./docs/GLR_GUARDRAILS.md)
 
 ### Community
-- GitHub: [hydro-project/rust-sitter](https://github.com/hydro-project/rust-sitter)
-- Issues: [Bug Reports](https://github.com/hydro-project/rust-sitter/issues)
-- Discussions: [Q&A Forum](https://github.com/hydro-project/rust-sitter/discussions)
+- GitHub: [EffortlessMetrics/rust-sitter](https://github.com/EffortlessMetrics/rust-sitter)
+- Issues: [Bug Reports](https://github.com/EffortlessMetrics/rust-sitter/issues)
+- Discussions: [Q&A Forum](https://github.com/EffortlessMetrics/rust-sitter/discussions)
 
 ## License
 

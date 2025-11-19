@@ -459,13 +459,56 @@ impl<'a> Precs<'a> {
     }
 }
 
+/// Determine if an enum variant should be inlined directly into the parent enum's CHOICE
+/// instead of creating an intermediate symbol.
+///
+/// Inlining Rules (from ADR-0003):
+/// 1. Explicit opt-out: #[rust_sitter::no_inline] → do NOT inline
+/// 2. Unit variants: → do NOT inline (backward compatibility)
+/// 3. Precedence attributes: #[prec], #[prec_left], #[prec_right] → do NOT inline (backward compatibility)
+/// 4. Default: → inline (enables GLR conflict preservation)
+fn should_inline_variant(attrs: &[Attribute], fields: &Fields) -> bool {
+    // Rule 1: Check for explicit no_inline attribute
+    if attrs
+        .iter()
+        .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::no_inline))
+    {
+        return false;
+    }
+
+    // Rule 2: Unit variants never inline (backward compatibility)
+    if matches!(fields, Fields::Unit) {
+        return false;
+    }
+
+    // Rule 3: Variants with precedence never inline (backward compatibility)
+    let has_precedence = attrs.iter().any(|attr| {
+        attr.path() == &syn::parse_quote!(rust_sitter::prec)
+            || attr.path() == &syn::parse_quote!(rust_sitter::prec_left)
+            || attr.path() == &syn::parse_quote!(rust_sitter::prec_right)
+    });
+
+    if has_precedence {
+        return false;
+    }
+
+    // Rule 4: Default - inline for GLR support
+    true
+}
+
 fn gen_struct_or_variant(
     path: String,
     attrs: Vec<Attribute>,
     fields: Fields,
     out: &mut Map<String, Value>,
     word_rule: &mut Option<String>,
+    inline: bool,  // If true, return rule instead of inserting into out
 ) -> ToolResult<Option<Value>> {
+    // DEBUG: Trace Binary variant processing
+    if path.contains("Binary") {
+        eprintln!("DEBUG gen_struct_or_variant: path={}, inline={}, fields_count={}",
+                  path, inline, fields.iter().count());
+    }
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
     if let Fields::Unnamed(fields_unnamed) = &fields
         && fields_unnamed.unnamed.len() == 1
@@ -490,16 +533,20 @@ fn gen_struct_or_variant(
                         lit: Lit::Str(s), ..
                     }) = pattern
                     {
-                        // For single-leaf variants, create a rule with the pattern
-                        // Don't return inline - we want a named rule for proper AST nodes
-                        out.insert(
-                            path,
-                            json!({
-                                "type": "PATTERN",
-                                "value": s.value(),
-                            }),
-                        );
-                        return Ok(None);
+                        // For single-leaf variants with pattern
+                        let pattern_rule = json!({
+                            "type": "PATTERN",
+                            "value": s.value(),
+                        });
+
+                        if inline {
+                            // Inline: return the pattern directly
+                            return Ok(Some(pattern_rule));
+                        } else {
+                            // Not inline: create named rule
+                            out.insert(path, pattern_rule);
+                            return Ok(None);
+                        }
                     }
                 } else if let Some(Expr::Lit(ExprLit {
                     lit: Lit::Str(s), ..
@@ -508,16 +555,20 @@ fn gen_struct_or_variant(
                     .find(|param| param.path == "text")
                     .map(|p| p.expr.clone())
                 {
-                    // For single-leaf variants, create a rule with the string
-                    // Don't return inline - we want a named rule for proper AST nodes
-                    out.insert(
-                        path,
-                        json!({
-                            "type": "STRING",
-                            "value": s.value(),
-                        }),
-                    );
-                    return Ok(None);
+                    // For single-leaf variants with text
+                    let string_rule = json!({
+                        "type": "STRING",
+                        "value": s.value(),
+                    });
+
+                    if inline {
+                        // Inline: return the string directly
+                        return Ok(Some(string_rule));
+                    } else {
+                        // Not inline: create named rule
+                        out.insert(path, string_rule);
+                        return Ok(None);
+                    }
                 }
             }
         }
@@ -745,8 +796,21 @@ fn gen_struct_or_variant(
         .apply(base_rule)
         .map_err(|e| ToolError::SynError { syn_error: e })?;
 
-    out.insert(path, rule);
-    Ok(None) // Return None for non-single-leaf variants
+    // If inlining, return the rule directly instead of inserting into map
+    if inline {
+        // DEBUG: Trace Binary variant return
+        if path.contains("Binary") {
+            eprintln!("DEBUG gen_struct_or_variant RETURN: path={}, inline=true, returning Some(rule)", path);
+        }
+        Ok(Some(rule))
+    } else {
+        // DEBUG: Trace Binary variant return
+        if path.contains("Binary") {
+            eprintln!("DEBUG gen_struct_or_variant RETURN: path={}, inline=false, inserting and returning None", path);
+        }
+        out.insert(path, rule);
+        Ok(None) // Return None for non-single-leaf variants
+    }
 }
 
 pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
@@ -818,25 +882,44 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
                 for v in e.variants.iter() {
                     let variant_path = format!("{}_{}", e.ident, v.ident);
 
-                    // Generate the variant rule - propagate errors
-                    gen_struct_or_variant(
+                    // Determine if this variant should be inlined (ADR-0003)
+                    let inline = should_inline_variant(&v.attrs, &v.fields);
+
+                    // Generate the variant rule
+                    let inline_rule = gen_struct_or_variant(
                         variant_path.clone(),
                         v.attrs.clone(),
                         v.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
+                        inline,  // Pass inline flag
                     )?;
 
-                    // Always reference the variant by name, even for single-leaf variants
-                    // This ensures we get proper node names in the parse tree
-                    let variant_ref = json!({
-                        "type": "SYMBOL",
-                        "name": variant_path.clone()
-                    });
+                    // DEBUG: Trace Binary variant handling
+                    if variant_path.contains("Binary") {
+                        eprintln!("DEBUG enum loop: variant_path={}, inline={}, inline_rule.is_some()={}",
+                                  variant_path, inline, inline_rule.is_some());
+                    }
 
-                    // For enum variants, precedence is already applied in gen_struct_or_variant
-                    // Just use the variant reference directly
-                    members.push(variant_ref);
+                    // Add to CHOICE members
+                    let variant_member = if let Some(rule) = inline_rule {
+                        // Variant was inlined - use the rule directly
+                        if variant_path.contains("Binary") {
+                            eprintln!("DEBUG enum loop: Using inlined rule for {}", variant_path);
+                        }
+                        rule
+                    } else {
+                        // Variant created intermediate symbol - reference it
+                        if variant_path.contains("Binary") {
+                            eprintln!("DEBUG enum loop: Creating SYMBOL reference for {}", variant_path);
+                        }
+                        json!({
+                            "type": "SYMBOL",
+                            "name": variant_path.clone()
+                        })
+                    };
+
+                    members.push(variant_member);
                 }
 
                 // For precedence to work correctly with the LR algorithm,
@@ -888,6 +971,7 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
                         s.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
+                        false,  // Structs are never inlined (only enum variants can be inlined)
                     )?;
                 }
 

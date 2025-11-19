@@ -135,10 +135,10 @@ rust-sitter = { version = "0.8", features = ["pure-rust"] }  # ❌ Broken for as
 
 ## References
 
-- `/home/user/rust-sitter/glr-core/src/lib.rs:344` - GLR table generation (FIXED)
-- `/home/user/rust-sitter/runtime/src/pure_parser.rs:1054` - Simple LR runtime (BUG)
-- `/home/user/rust-sitter/runtime/src/parser_v4.rs:126` - GLR runtime (WORKS)
-- `/home/user/rust-sitter/runtime/src/__private.rs:214` - Entry point to fix
+- `glr-core/src/lib.rs:344` - GLR table generation (FIXED)
+- `runtime/src/pure_parser.rs:1054` - Simple LR runtime (BUG)
+- `runtime/src/parser_v4.rs:126` - GLR runtime (WORKS)
+- `runtime/src/__private.rs:214` - Entry point to fix
 
 ## Action Items
 

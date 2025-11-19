@@ -1081,19 +1081,38 @@ impl Parser {
     /// Decode action from parse table
     fn decode_action(&self, _language: &TSLanguage, action_index: usize) -> Action {
         // Decode action from index
+        //
+        // Action Encoding Contract (must match tablegen/src/compress.rs):
+        // ┌──────────┬──────────────┬──────────────────┐
+        // │ Encoding │ Meaning      │ Bits             │
+        // ├──────────┼──────────────┼──────────────────┤
+        // │ 0x0000   │ Error        │ 0000000000000000 │
+        // │ 0x0001   │ Shift(1)     │ 0nnnnnnnnnnnnnnn │
+        // │ 0x7FFF   │ Shift(32767) │ 0111111111111111 │
+        // │ 0x8000   │ Reduce(0)    │ 1nnnnnnnnnnnnnnn │
+        // │ 0xFFFE   │ Reduce(32766)│ 1111111111111110 │
+        // │ 0xFFFF   │ Accept       │ 1111111111111111 │
+        // └──────────┴──────────────┴──────────────────┘
+        //
+        // IMPORTANT: Order matters!
+        // 1. Check Accept (0xFFFF) FIRST - it has high bit set and would match Reduce
+        // 2. Check Error (0x0000) SECOND - it would otherwise match Shift(0)
+        // 3. Check Reduce (high bit set)
+        // 4. Everything else is Shift
 
-        // In the pure-Rust implementation, actions are encoded directly in the parse table
-        // IMPORTANT: Check for Accept (0xFFFF) FIRST before checking high bit
-        // because 0xFFFF has the high bit set and would be decoded as Reduce(32767)
         if action_index == 0xFFFF {
             // Accept action (encoded as 0xFFFF in compression)
             Action::Accept
+        } else if action_index == 0 {
+            // Error action (encoded as 0 or missing from table)
+            // tablegen/compress.rs skips Action::Error entries to save space
+            Action::Error
         } else if action_index & 0x8000 != 0 {
             // Reduce action (high bit set)
             let production_id = (action_index & 0x7FFF) as u16;
             Action::Reduce(production_id)
         } else {
-            // Shift action
+            // Shift action (low values, no high bit)
             let next_state = action_index as u16;
             Action::Shift(next_state)
         }

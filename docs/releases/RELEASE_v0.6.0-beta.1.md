@@ -67,7 +67,7 @@ git push origin v0.6.0-beta.1
 
 ### Step 4: GitHub Release
 
-Create release at: https://github.com/hydro-project/rust-sitter/releases/new
+Create release at: https://github.com/EffortlessMetrics/rust-sitter/releases/new
 
 **Title**: v0.6.0-beta.1: Production-Ready GLR Parser
 
@@ -105,7 +105,7 @@ This is a beta release. While the GLR implementation is complete and tested, per
 
 ### 📖 Documentation
 
-See the updated [README](https://github.com/hydro-project/rust-sitter) for usage examples and migration guide.
+See the updated [README](https://github.com/EffortlessMetrics/rust-sitter) for usage examples and migration guide.
 ```
 
 ### Step 5: Announce

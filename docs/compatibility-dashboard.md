@@ -95,7 +95,7 @@ cargo build
 
 Help us improve grammar support! If you find a grammar that works but isn't listed, or if you've implemented support for new features, please:
 
-1. [Open an issue](https://github.com/hydro-project/rust-sitter/issues) with your findings
+1. [Open an issue](https://github.com/EffortlessMetrics/rust-sitter/issues) with your findings
 2. Submit a PR updating this dashboard
 3. Add test cases for the grammar
 
