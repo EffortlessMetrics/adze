@@ -64,6 +64,7 @@ pub mod grammar {
 
 #[cfg(test)]
 mod tests {
+    use super::grammar;
     use super::grammar::*;
 
     #[test]
