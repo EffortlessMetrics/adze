@@ -157,34 +157,89 @@ fn test_contract_manual_grammar_structure() {
 }
 
 #[test]
-#[ignore] // Enable once we can extract enum-based grammar IR
-fn test_contract_enum_grammar_structure() {
-    eprintln!("\n=== CONTRACT TEST: Enum Grammar Structure ===\n");
+fn test_contract_enum_grammar_extraction() {
+    eprintln!("\n=== CONTRACT TEST: Enum Grammar JSON Extraction ===\n");
 
-    // TODO: Extract Grammar IR from example/src/ambiguous_expr.rs
-    // For now, this test documents what we expect to find
+    use std::path::PathBuf;
+    use rust_sitter_tool::generate_grammars;
 
-    eprintln!("Expected structure for enum-based grammar:");
-    eprintln!("  enum Expr {{");
-    eprintln!("      Binary(Box<Expr>, String, Box<Expr>),");
-    eprintln!("      Number(i32),");
-    eprintln!("  }}");
-    eprintln!();
-    eprintln!("Should produce Grammar IR equivalent to:");
-    eprintln!("  Expr → Expr OP Expr  (from Binary variant)");
-    eprintln!("  Expr → NUMBER        (from Number variant)");
-    eprintln!();
-    eprintln!("Contract requirements:");
-    eprintln!("  ✓ Total rules: 2 (NOT 3 with intermediate)");
-    eprintln!("  ✓ Terminals: 2 (NUMBER, OP)");
-    eprintln!("  ✓ Left-recursive: YES");
-    eprintln!("  ✓ No precedence: YES");
-    eprintln!();
-    eprintln!("Once extraction works, verify against manual grammar:");
-    eprintln!("  - Production count must match");
-    eprintln!("  - Symbol counts must match");
-    eprintln!("  - Recursion patterns must match");
-    eprintln!("  - Conflict generation must match");
+    // Path to the ambiguous_expr example
+    let example_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("example/src/ambiguous_expr.rs");
+
+    eprintln!("Extracting grammar from: {}", example_path.display());
+
+    // Extract grammar JSON
+    let grammars = generate_grammars(&example_path)
+        .expect("Failed to extract grammar from ambiguous_expr.rs");
+
+    assert_eq!(grammars.len(), 1, "Expected exactly one grammar");
+
+    let grammar_json = &grammars[0];
+    eprintln!("\n=== Extracted Grammar JSON ===");
+    eprintln!("{}", serde_json::to_string_pretty(grammar_json).unwrap());
+
+    // Analyze the rules structure
+    let rules = grammar_json["rules"].as_object()
+        .expect("Grammar should have rules object");
+
+    eprintln!("\n=== Grammar Rules Analysis ===");
+    eprintln!("Total rules: {}", rules.len());
+
+    for (rule_name, rule_def) in rules {
+        eprintln!("\nRule '{}':", rule_name);
+        eprintln!("  Definition: {}", serde_json::to_string_pretty(rule_def).unwrap());
+    }
+
+    // Check for variant intermediate symbols
+    let has_expr_binary = rules.contains_key("Expr_Binary");
+    let has_expr_number = rules.contains_key("Expr_Number");
+
+    eprintln!("\n=== Variant Symbol Detection ===");
+    eprintln!("Has 'Expr_Binary' intermediate symbol: {}", has_expr_binary);
+    eprintln!("Has 'Expr_Number' intermediate symbol: {}", has_expr_number);
+
+    if has_expr_binary || has_expr_number {
+        eprintln!("\n❌ CONTRACT VIOLATION DETECTED!");
+        eprintln!("   Enum variants created intermediate symbols!");
+        eprintln!();
+        eprintln!("   Expected (from contract):");
+        eprintln!("     Expr → Expr OP Expr");
+        eprintln!("     Expr → NUMBER");
+        eprintln!();
+        eprintln!("   Actual structure:");
+        eprintln!("     Expr → Expr_Binary");
+        eprintln!("     Expr → Expr_Number");
+        eprintln!("     Expr_Binary → Expr OP Expr");
+        eprintln!("     Expr_Number → NUMBER");
+        eprintln!();
+        eprintln!("   Impact: Intermediate symbols create disambiguation points!");
+        eprintln!("   The LR(1) parser can distinguish Binary vs Number early,");
+        eprintln!("   preventing the shift/reduce conflicts we need for GLR.");
+    } else {
+        eprintln!("\n✅ Contract satisfied: No intermediate variant symbols");
+    }
+
+    // Compare with manual grammar
+    eprintln!("\n=== Comparison with Manual Grammar ===");
+    let manual_grammar = GrammarBuilder::new("manual_ambiguous")
+        .token("NUMBER", r"\d+")
+        .token("OP", r"[-+*/]")
+        .rule("Expr", vec!["Expr", "OP", "Expr"])
+        .rule("Expr", vec!["NUMBER"])
+        .start("Expr")
+        .build();
+
+    let manual_analysis = GrammarAnalysis::analyze(&manual_grammar);
+    manual_analysis.print_summary();
+
+    eprintln!("\nManual grammar has {} rules", manual_analysis.total_rules);
+    eprintln!("Enum grammar has {} rules (from JSON)", rules.len());
+
+    // This test documents the issue rather than asserting for now
+    // Once we fix the extraction, we can enable strict assertions
 }
 
 #[test]
