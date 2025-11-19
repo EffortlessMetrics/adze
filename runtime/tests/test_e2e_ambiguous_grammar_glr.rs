@@ -47,7 +47,6 @@ fn contains_shift_reduce(cell: &[Action]) -> bool {
 //==============================================================================
 
 #[test]
-#[ignore] // Enable once ambiguous_expr builds with GLR
 fn test_ambiguous_grammar_conflict_generation() {
     eprintln!("\n=== E2E TEST: Ambiguous Grammar Conflict Generation ===\n");
 
@@ -119,7 +118,6 @@ fn test_ambiguous_grammar_conflict_generation() {
 //==============================================================================
 
 #[test]
-#[ignore] // Enable once ambiguous_expr builds with GLR
 fn test_ambiguous_grammar_glr_parsing() {
     eprintln!("\n=== E2E TEST: Ambiguous Grammar GLR Parsing ===\n");
 
@@ -251,7 +249,6 @@ fn test_glr_backward_compatibility() {
 //==============================================================================
 
 #[test]
-#[ignore] // Enable once ambiguous_expr builds with GLR
 fn test_ambiguous_vs_arithmetic_comparison() {
     eprintln!("\n=== E2E TEST: Ambiguous vs Arithmetic Comparison ===\n");
 
