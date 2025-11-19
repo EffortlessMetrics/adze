@@ -181,7 +181,8 @@ jobs:
                   echo "::error::Tests in $crate exceeded 60s timeout"
                   exit 1
                 else
-                  echo "::warning::Tests in $crate failed with exit code $exit_code"
+                  echo "::error::Tests in $crate failed with exit code $exit_code"
+                  exit $exit_code
                 fi
               }
             fi
