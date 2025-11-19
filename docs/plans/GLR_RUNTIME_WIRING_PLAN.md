@@ -1,9 +1,31 @@
 # GLR Runtime Wiring Implementation Plan
 
-**Status**: Ready to implement
+**Status**: IN PROGRESS (Steps 1-3 complete, blocked on parser_v4 integration)
 **Priority**: CRITICAL (Blocker for v0.7.0)
-**Effort**: 8-12 hours
-**Related**: ARCHITECTURE_ISSUE_GLR_PARSER.md, tests/features/glr_runtime_integration.feature
+**Effort**: 8-12 hours (original) + 4-6 hours (parser_v4 integration)
+**Related**: ARCHITECTURE_ISSUE_GLR_PARSER.md, PARSER_V4_EXTRACTION_INTEGRATION.md
+
+---
+
+## 📊 Current Status (2025-11-19)
+
+### ✅ Completed
+- **Step 1**: Feature flag architecture (`glr` feature added)
+- **Step 2**: Parser backend selection API (ParserBackend enum + tests)
+- **Step 3**: Parser routing infrastructure (parse_with_glr stub with fallback)
+
+### 🚧 Blocked
+- **Full GLR Integration**: Blocked by parser_v4 extraction incompatibility
+  - See: [PARSER_V4_EXTRACTION_INTEGRATION.md](./PARSER_V4_EXTRACTION_INTEGRATION.md)
+  - Issue: `parser_v4::parse()` returns `Tree` struct, not parse nodes
+  - Solution: Modify parser_v4 to return `ParseNode` for extraction
+  - Estimated: 4-6 hours additional work
+
+### 🔄 Current Behavior
+- ✅ Routing logic compiles and works
+- ✅ Feature flag selection works correctly
+- ⚠️ GLR path falls back to pure_parser (maintains current behavior)
+- ⚠️ Full GLR parsing awaits parser_v4 extraction integration
 
 ---
 
