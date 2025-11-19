@@ -83,15 +83,28 @@ impl Parser {
     /// Parse the given input text
     ///
     /// If `old_tree` is provided, performs incremental parsing.
+    ///
+    /// # Mode Selection
+    ///
+    /// - If GLR mode is active (`set_glr_table()` was called), uses pure-Rust GLR engine
+    /// - Otherwise, uses language-based parsing (`set_language()` was called)
+    ///
     pub fn parse(
         &mut self,
         input: impl AsRef<[u8]>,
         old_tree: Option<&Tree>,
     ) -> Result<Tree, ParseError> {
+        let input = input.as_ref();
+
+        // Route to GLR engine if in pure-Rust GLR mode
+        #[cfg(feature = "pure-rust-glr")]
+        if self.glr_state.is_some() {
+            return self.parse_glr(input, old_tree);
+        }
+
+        // Otherwise, use language-based parsing
         let language_ptr =
             self.language.as_ref().ok_or(ParseError::no_language())? as *const Language;
-
-        let input = input.as_ref();
 
         // SAFETY: we only read from the language while holding an immutable reference
         let language = unsafe { &*language_ptr };
@@ -161,6 +174,41 @@ impl Parser {
     ) -> Result<Tree, ParseError> {
         // Fall back to full parse when incremental is disabled
         self.parse_full(language, input)
+    }
+
+    /// Parse using pure-Rust GLR engine (Phase 3.1)
+    ///
+    /// This method is called when the parser is in GLR mode (via `set_glr_table()`).
+    #[cfg(feature = "pure-rust-glr")]
+    fn parse_glr(&mut self, input: &[u8], _old_tree: Option<&Tree>) -> Result<Tree, ParseError> {
+        use crate::glr_engine::{GLRConfig, GLREngine};
+
+        // Get GLR state
+        let glr_state = self
+            .glr_state
+            .as_ref()
+            .ok_or_else(|| ParseError::with_msg("No GLR state"))?;
+
+        // TODO: Tokenize input (Phase 3.2)
+        // For now, we'll create a stub tokenizer that produces EOF token
+        let tokens = vec![crate::Token {
+            kind: 0, // EOF
+            start: input.len() as u32,
+            end: input.len() as u32,
+        }];
+
+        // Create GLR engine
+        let config = GLRConfig::default();
+        let mut engine = GLREngine::new(glr_state.parse_table, config);
+
+        // Parse with GLR engine
+        let forest = engine.parse(&tokens)?;
+
+        // TODO: Convert forest to Tree (Phase 3.3)
+        // For now, create a stub tree
+        let tree = Tree::new_stub();
+
+        Ok(tree)
     }
 
     /// Reset the parser state

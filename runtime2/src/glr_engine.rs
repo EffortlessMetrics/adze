@@ -162,9 +162,14 @@ impl GLREngine {
         let mut new_stacks = Vec::new();
         let mut next_stack_id = self.stacks.len();
 
-        for stack in &self.stacks {
+        // Take ownership of old stacks to avoid borrow conflicts
+        // (allows us to iterate while mutating self.forest)
+        let old_stacks = std::mem::take(&mut self.stacks);
+
+        for stack in &old_stacks {
             let state = stack.top_state();
-            let actions = self.get_actions(state, token.kind);
+            // Clone actions to avoid holding a borrow of self during iteration
+            let actions = self.get_actions(state, token.kind).to_vec();
 
             if actions.is_empty() {
                 // No valid action - this stack fails
@@ -172,7 +177,7 @@ impl GLREngine {
             }
 
             // Process each action (fork if multiple)
-            for action in actions {
+            for action in &actions {
                 match action {
                     Action::Shift(next_state) => {
                         let mut new_stack = stack.clone();
