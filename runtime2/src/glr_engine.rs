@@ -136,12 +136,17 @@ impl GLREngine {
         for (token_idx, token) in tokens.iter().enumerate() {
             self.process_token(token, token_idx)?;
 
-            // Check if all stacks failed
-            if self.stacks.is_empty() {
+            // Check if all stacks failed (but only if we haven't accepted)
+            if self.stacks.is_empty() && self.forest.roots.is_empty() {
                 return Err(ParseError::with_msg(&format!(
                     "Syntax error: unexpected token at position {}",
                     token.start
                 )));
+            }
+
+            // If we have accepted parses, we can stop early
+            if !self.forest.roots.is_empty() {
+                break;
             }
         }
 
@@ -168,51 +173,12 @@ impl GLREngine {
         let old_stacks = std::mem::take(&mut self.stacks);
 
         for stack in &old_stacks {
-            let state = stack.top_state();
-            // Clone actions to avoid holding a borrow of self during iteration
-            let actions = self.get_actions(state, token.kind).to_vec();
-
-            if actions.is_empty() {
-                // No valid action - this stack fails
-                continue;
-            }
-
-            // Process each action (fork if multiple)
-            for action in &actions {
-                match action {
-                    Action::Shift(next_state) => {
-                        let mut new_stack = stack.clone();
-                        new_stack.id = next_stack_id;
-                        next_stack_id += 1;
-
-                        // Add terminal node to forest
-                        let node_id = self.forest.add_terminal(token);
-
-                        // Push to stack
-                        new_stack.push(*next_state, node_id);
-
-                        new_stacks.push(new_stack);
-                    }
-                    Action::Reduce(rule_id) => {
-                        let new_stack = self.perform_reduce(stack.clone(), *rule_id)?;
-                        new_stacks.push(new_stack);
-                    }
-                    Action::Accept => {
-                        // Mark this parse as accepted
-                        if let Some(&root_node) = stack.nodes.last() {
-                            self.forest.add_root(root_node);
-                        }
-                    }
-                    Action::Error => {
-                        // Skip error actions
-                        continue;
-                    }
-                    _ => {
-                        // Unknown action type (future-proofing for non-exhaustive enum)
-                        continue;
-                    }
-                }
-            }
+            self.process_stack_with_token(
+                stack,
+                token,
+                &mut new_stacks,
+                &mut next_stack_id,
+            )?;
         }
 
         // Check fork limit
@@ -226,6 +192,68 @@ impl GLREngine {
 
         // Merge identical stacks
         self.stacks = self.merge_identical_stacks(new_stacks);
+
+        Ok(())
+    }
+
+    /// Process a single stack with a token
+    ///
+    /// After reduce actions, recursively checks for more actions (like Accept)
+    fn process_stack_with_token(
+        &mut self,
+        stack: &ParserStack,
+        token: &Token,
+        new_stacks: &mut Vec<ParserStack>,
+        next_stack_id: &mut usize,
+    ) -> Result<(), ParseError> {
+        let state = stack.top_state();
+        // Clone actions to avoid holding a borrow of self during iteration
+        let actions = self.get_actions(state, token.kind).to_vec();
+
+        if actions.is_empty() {
+            // No valid action - this stack fails
+            return Ok(());
+        }
+
+        // Process each action (fork if multiple)
+        for action in &actions {
+            match action {
+                Action::Shift(next_state) => {
+                    let mut new_stack = stack.clone();
+                    new_stack.id = *next_stack_id;
+                    *next_stack_id += 1;
+
+                    // Add terminal node to forest
+                    let node_id = self.forest.add_terminal(token);
+
+                    // Push to stack
+                    new_stack.push(*next_state, node_id);
+
+                    new_stacks.push(new_stack);
+                }
+                Action::Reduce(rule_id) => {
+                    let new_stack = self.perform_reduce(stack.clone(), *rule_id)?;
+
+                    // After reduce, check for more actions in the new state
+                    // This handles Accept actions after reducing to start symbol
+                    self.process_stack_with_token(&new_stack, token, new_stacks, next_stack_id)?;
+                }
+                Action::Accept => {
+                    // Mark this parse as accepted
+                    if let Some(&root_node) = stack.nodes.last() {
+                        self.forest.add_root(root_node);
+                    }
+                }
+                Action::Error => {
+                    // Skip error actions
+                    continue;
+                }
+                _ => {
+                    // Unknown action type (future-proofing for non-exhaustive enum)
+                    continue;
+                }
+            }
+        }
 
         Ok(())
     }
@@ -289,10 +317,31 @@ impl GLREngine {
 
     /// Get goto state for a nonterminal
     fn get_goto(&self, state: StateId, symbol: SymbolId) -> Result<StateId, ParseError> {
-        // For now, use a simple lookup in goto table
-        // TODO: Implement proper goto table
-        // Placeholder: return next state (this is simplified)
-        Ok(StateId(state.0 + 1))
+        // Look up the nonterminal column index
+        let column = self
+            .parse_table
+            .nonterminal_to_index
+            .get(&symbol)
+            .ok_or_else(|| {
+                ParseError::with_msg(&format!(
+                    "Nonterminal symbol {:?} not found in goto indexing",
+                    symbol
+                ))
+            })?;
+
+        // Look up goto state
+        if (state.0 as usize) < self.parse_table.goto_table.len() {
+            let state_gotos = &self.parse_table.goto_table[state.0 as usize];
+            if *column < state_gotos.len() {
+                let next_state = state_gotos[*column];
+                return Ok(next_state);
+            }
+        }
+
+        Err(ParseError::with_msg(&format!(
+            "No goto entry for state {:?}, symbol {:?} (column {})",
+            state, symbol, column
+        )))
     }
 
     /// Merge stacks with identical state sequences
