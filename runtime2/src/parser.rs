@@ -29,6 +29,8 @@ struct GLRState {
     parse_table: &'static rust_sitter_glr_core::ParseTable,
     /// Symbol metadata for tree construction
     symbol_metadata: Vec<crate::language::SymbolMetadata>,
+    /// Token patterns for tokenizer (Phase 3.2)
+    token_patterns: Option<Vec<crate::tokenizer::TokenPattern>>,
 }
 
 impl Parser {
@@ -179,9 +181,18 @@ impl Parser {
     /// Parse using pure-Rust GLR engine (Phase 3.1)
     ///
     /// This method is called when the parser is in GLR mode (via `set_glr_table()`).
+    ///
+    /// # Phase 3.2 Integration
+    ///
+    /// - Uses Tokenizer to scan input
+    /// - Uses GLREngine to build ParseForest
+    /// - Uses ForestConverter to convert forest to Tree
+    ///
     #[cfg(feature = "pure-rust-glr")]
     fn parse_glr(&mut self, input: &[u8], _old_tree: Option<&Tree>) -> Result<Tree, ParseError> {
         use crate::glr_engine::{GLRConfig, GLREngine};
+        use crate::tokenizer::{Tokenizer, WhitespaceMode};
+        use crate::forest_converter::{ForestConverter, DisambiguationStrategy};
 
         // Get GLR state
         let glr_state = self
@@ -189,24 +200,32 @@ impl Parser {
             .as_ref()
             .ok_or_else(|| ParseError::with_msg("No GLR state"))?;
 
-        // TODO: Tokenize input (Phase 3.2)
-        // For now, we'll create a stub tokenizer that produces EOF token
-        let tokens = vec![crate::Token {
-            kind: 0, // EOF
-            start: input.len() as u32,
-            end: input.len() as u32,
-        }];
+        // Phase 3.2 Component 1: Tokenize input
+        let tokens = if let Some(ref patterns) = glr_state.token_patterns {
+            // Use real tokenizer with provided patterns
+            let tokenizer = Tokenizer::new(patterns.clone(), WhitespaceMode::Skip);
+            tokenizer.scan(input).map_err(|e| ParseError::with_msg(&e.to_string()))?
+        } else {
+            // Fallback: stub tokenizer for backward compatibility
+            vec![crate::Token {
+                kind: 0, // EOF
+                start: input.len() as u32,
+                end: input.len() as u32,
+            }]
+        };
 
-        // Create GLR engine
+        // Phase 3.1: Parse with GLR engine
         let config = GLRConfig::default();
         let mut engine = GLREngine::new(glr_state.parse_table, config);
-
-        // Parse with GLR engine
         let forest = engine.parse(&tokens)?;
 
-        // TODO: Convert forest to Tree (Phase 3.3)
-        // For now, create a stub tree
-        let tree = Tree::new_stub();
+        // Phase 3.2 Component 2: Convert forest to Tree
+        let converter = ForestConverter::new(DisambiguationStrategy::PreferShift);
+        let mut tree = converter.to_tree(&forest, input)
+            .map_err(|e| ParseError::with_msg(&e.to_string()))?;
+
+        // Set tree metadata
+        tree.set_source(input.to_vec());
 
         Ok(tree)
     }
@@ -274,6 +293,7 @@ impl Parser {
         self.glr_state = Some(GLRState {
             parse_table: table,
             symbol_metadata: Vec::new(), // Will be set by set_symbol_metadata()
+            token_patterns: None,        // Will be set by set_token_patterns()
         });
 
         // Clear LR mode state (mode switching)
@@ -307,6 +327,34 @@ impl Parser {
             .ok_or_else(|| ParseError::with_msg("No GLR state: call set_glr_table() first"))?;
 
         glr_state.symbol_metadata = metadata;
+        Ok(())
+    }
+
+    /// Set token patterns for GLR mode tokenizer (Phase 3.2)
+    ///
+    /// Token patterns define how to scan input into tokens for the GLR parser.
+    ///
+    /// # Contract
+    ///
+    /// - Should be called after `set_glr_table()`
+    /// - Patterns define terminal symbols from the grammar
+    ///
+    /// # Errors
+    ///
+    /// - `ParseError::NoGLRState`: If `set_glr_table()` was not called first
+    ///
+    #[cfg(feature = "pure-rust-glr")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust-glr")))]
+    pub fn set_token_patterns(
+        &mut self,
+        patterns: Vec<crate::tokenizer::TokenPattern>,
+    ) -> Result<(), ParseError> {
+        let glr_state = self
+            .glr_state
+            .as_mut()
+            .ok_or_else(|| ParseError::with_msg("No GLR state: call set_glr_table() first"))?;
+
+        glr_state.token_patterns = Some(patterns);
         Ok(())
     }
 
