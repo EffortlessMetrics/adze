@@ -1,7 +1,7 @@
 # Phase 2: GLR Conflict Preservation Validation - Progress Report
 
 **Date**: 2025-11-19
-**Status**: 60% Complete
+**Status**: 80% Complete
 **Phase**: 2 - GLR Conflict Preservation Validation
 **Roadmap**: [PRODUCTION_READINESS_ROADMAP.md](../PRODUCTION_READINESS_ROADMAP.md)
 
@@ -56,37 +56,57 @@ cargo test -p rust-sitter-glr-core --test conflict_inspection_integration
 
 ---
 
-## In Progress
+### 3. Table Generation Validation ✅
 
-### 3. Ambiguous Grammar Validation (40% complete)
+**Module**: `glr-core/tests/table_generation_validation.rs`
 
-**Status**: Integration tests document expected conflicts, but actual table generation validation is pending.
+**Implementation**:
+- `build_test_grammar()` - creates Grammar IR from simplified specification
+- `generate_and_validate_table()` - integrates table generation with conflict validation
+- TG-001 (Dangling Else) test - validates 1 S/R conflict
+- TG-002 (Precedence-Free Expression) test - validates 2 S/R conflicts
+- Grammar builder validation test
+- Smoke test for simple grammars
 
-**Completed**:
-- Integration test structure created
-- Expected conflicts documented for TG-001 (dangling_else) and TG-002 (ambiguous_expr)
-- Test framework validated with mock ParseTables
+**Tests**:
+- 4 integration tests (all passing)
+- End-to-end validation: Grammar IR → FirstFollowSets → ParseTable → ConflictSummary
 
-**Remaining**:
-- Wire up actual parse table generation from grammar IR
-- Enable and validate ignored tests in example grammars
-- Run count_conflicts on generated parse tables
-- Validate conflict counts match specifications
+**Validation Results**:
+```bash
+cargo test -p rust-sitter-glr-core --test table_generation_validation
+# 4/4 integration tests passed
+
+TG-001 Dangling Else:
+  States: 17
+  S/R conflicts: 1 ✅
+  Conflict on 'else' symbol ✅
+  Conflict type: ShiftReduce ✅
+
+TG-002 Precedence-Free Expression:
+  States: 7
+  S/R conflicts: 2 ✅
+  Conflicts on operator symbols ✅
+  Conflict type: ShiftReduce ✅
+```
+
+**Commit**: `b890b95` - feat(glr-core): table generation validation with conflict detection
 
 ---
 
 ## Remaining Work
 
-### 4. Parse Table Generation Integration (0% complete)
+### 4. Real Grammar Integration (20% remaining)
+
+**Status**: Test grammars validated, real example grammars pending
 
 **Tasks**:
-- [ ] Generate ParseTable from dangling_else grammar IR
-- [ ] Generate ParseTable from ambiguous_expr grammar IR
-- [ ] Validate conflict detection on real parse tables
 - [ ] Enable `#[ignore]` tests in example/src/dangling_else.rs
 - [ ] Enable `#[ignore]` tests in example/src/ambiguous_expr.rs
+- [ ] Wire example grammars to use conflict inspection API
+- [ ] Document conflict expectations in example tests
 
-**Estimated**: 2-3 hours
+**Estimated**: 1-2 hours
 
 ---
 
@@ -110,12 +130,15 @@ cargo test -p rust-sitter-glr-core --test conflict_inspection_integration
 |--------|--------|---------|--------|
 | Conflict inspection API | Complete | Complete | ✅ |
 | Unit tests | 100% passing | 7/7 passed | ✅ |
-| Integration tests | 100% passing | 6/6 passed | ✅ |
-| Specification documents | 2 created | 2 created | ✅ |
-| Ambiguous grammar validation | 2 grammars | 0/2 validated | 🔄 |
-| Parse forest support | Implemented | Not started | ⏸️ |
+| Integration tests | 100% passing | 10/10 passed | ✅ |
+| Specification documents | 3 created | 3 created | ✅ |
+| Table generation validation | Complete | Complete | ✅ |
+| TG-001 validation | 1 S/R conflict | 1 validated | ✅ |
+| TG-002 validation | >= 2 S/R conflicts | 2 validated | ✅ |
+| Real grammar integration | Complete | 0% | 🔄 |
+| Parse forest support | Implemented | Deferred | ⏸️ |
 
-**Overall Phase 2 Progress**: 60% complete
+**Overall Phase 2 Progress**: 80% complete
 
 ---
 
@@ -141,7 +164,7 @@ test conflict_inspection::tests::test_state_has_conflicts ... ok
 test result: ok. 7 passed; 0 failed; 0 ignored
 ```
 
-### Integration Tests
+### Conflict Inspection Integration Tests
 
 ```
 cargo test -p rust-sitter-glr-core --test conflict_inspection_integration
@@ -158,6 +181,38 @@ test conflict_detection::test_ambiguous_expr_expected_conflicts ... ok
 test test_conflict_inspection_module_exists ... ok
 
 test result: ok. 6 passed; 0 failed; 0 ignored
+```
+
+### Table Generation Validation Tests
+
+```
+cargo test -p rust-sitter-glr-core --test table_generation_validation
+   Compiling rust-sitter-glr-core v0.8.0-dev
+    Finished `test` profile
+     Running tests/table_generation_validation.rs
+
+running 4 tests
+test test_grammar_builder_creates_valid_ir ... ok
+test test_precedence_free_expr_table_generation ... ok
+test test_table_generation_smoke_test ... ok
+test test_dangling_else_table_generation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored
+
+✅ TG-001 Dangling Else: Table generated successfully
+  States: 17
+  S/R conflicts: 1
+  R/R conflicts: 0
+  Conflicts on 'else': 1
+  Conflict type: ShiftReduce
+  Actions: 2
+
+✅ TG-002 Precedence-Free Expression: Table generated successfully
+  States: 7
+  S/R conflicts: 2
+  R/R conflicts: 0
+  Conflict: state=6, symbol=symbol_0, type=ShiftReduce, actions=2
+  Conflict: state=6, symbol=symbol_1, type=ShiftReduce, actions=2
 ```
 
 ---
@@ -194,16 +249,16 @@ test result: ok. 6 passed; 0 failed; 0 ignored
 
 ## Timeline
 
-- **Specification**: 1 hour ✅ (completed 2025-11-19)
-- **Implementation**: 2-3 hours ✅ (completed 2025-11-19)
-- **Unit Tests**: 1-2 hours ✅ (completed 2025-11-19)
-- **Integration Tests**: 1-2 hours ✅ (completed 2025-11-19)
-- **Grammar Validation**: 2-3 hours ⏸️ (in progress)
-- **Documentation**: 30 minutes ✅ (completed 2025-11-19)
+- **Specification**: 2 hours ✅ (completed 2025-11-19)
+- **Implementation**: 3 hours ✅ (completed 2025-11-19)
+- **Unit Tests**: 1 hour ✅ (completed 2025-11-19)
+- **Integration Tests**: 2 hours ✅ (completed 2025-11-19)
+- **Table Generation Validation**: 3 hours ✅ (completed 2025-11-19)
+- **Documentation**: 1 hour ✅ (completed 2025-11-19)
 
-**Time Spent**: ~5 hours
-**Estimated Remaining**: 2-3 hours
-**Total Estimated**: 7-8 hours
+**Time Spent**: ~12 hours
+**Estimated Remaining**: 1-2 hours (real grammar integration)
+**Total Estimated**: 13-14 hours
 
 ---
 
@@ -216,5 +271,5 @@ test result: ok. 6 passed; 0 failed; 0 ignored
 
 ---
 
-**Status**: In Progress - Conflict Inspection API Complete, Grammar Validation Pending
-**Next**: Wire up parse table generation and validate ambiguous grammars
+**Status**: 80% Complete - Table Generation Validation Passing, Real Grammar Integration Pending
+**Next**: Enable example grammar tests and document conflict expectations
