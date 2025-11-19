@@ -218,3 +218,54 @@ PARSE_ACTIONS: 9 actions
 ---
 
 **Next Steps**: Implement Option C (fallback) to unblock other work while investigating decoder fix.
+
+---
+
+## ✅ RESOLUTION (2025-11-19)
+
+### Investigation Results
+
+Through systematic TDD investigation:
+
+1. **Created diagnostic test** (`runtime/tests/test_arithmetic_table_loading.rs`)
+2. **Inspected loaded parse table** for arithmetic grammar
+3. **Found ZERO GLR conflicts** in generated tables
+
+**Key Finding**:
+```
+--- Multi-Action Cells (GLR Conflicts) ---
+  No multi-action cells found (no GLR conflicts detected)
+```
+
+### Root Cause Identified
+
+**The blocker was NOT in table loading** (decoder.rs is correct).
+
+**The blocker IS in table generation** (glr-core/src/lib.rs:2019-2071).
+
+The `resolve_shift_reduce_conflict()` function **eliminates conflicts** when precedence/associativity is defined:
+
+```rust
+PrecedenceComparison::PreferShift => {
+    conflict.actions = vec![shift];  // ❌ Discards reduce!
+}
+PrecedenceComparison::PreferReduce => {
+    conflict.actions = vec![reduce];  // ❌ Discards shift!
+}
+```
+
+This creates a conflict-free **LR grammar**, not a **GLR grammar with preserved conflicts**.
+
+### The Fix
+
+See comprehensive fix specification: [GLR_CONFLICT_PRESERVATION_FIX.md](./GLR_CONFLICT_PRESERVATION_FIX.md)
+
+**Summary**: Modify glr-core to preserve both actions with priority ordering instead of eliminating one.
+
+**Estimated Effort**: 4-6 hours
+
+**Impact**: Unblocks full GLR runtime integration, enables true GLR parsing behavior
+
+---
+
+**Status**: Investigation complete, fix specification ready for implementation
