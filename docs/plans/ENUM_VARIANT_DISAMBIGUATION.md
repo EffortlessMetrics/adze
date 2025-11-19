@@ -2,7 +2,7 @@
 
 ## Date: 2025-11-19
 
-## Status: Investigation in Progress
+## Status: ✅ ROOT CAUSE CONFIRMED (2025-11-19)
 
 ## Hypothesis
 
@@ -141,3 +141,107 @@ If enum variants inherently create disambiguation, this has major implications:
 - Documentation must explain this limitation
 - GLR validation tests need manually-built grammars
 - Users creating ambiguous grammars need different approach
+
+---
+
+## ✅ CONFIRMED FINDINGS (2025-11-19)
+
+### Test Results
+
+Created `test_contract_enum_grammar_extraction()` which proves the hypothesis:
+
+**Enum-based grammar extraction creates:**
+```
+Expr → Expr_Binary      # Intermediate symbol!
+Expr → Expr_Number      # Intermediate symbol!
+Expr_Binary → Expr OP Expr
+Expr_Number → NUMBER
+```
+
+**Evidence:**
+- Has 'Expr_Binary' intermediate symbol: **true**
+- Has 'Expr_Number' intermediate symbol: **true**
+- Manual grammar: **2 rules**
+- Enum grammar: **7 rules**
+
+### Code Location
+
+The issue is in `tool/src/expansion.rs` lines 814-854:
+
+```rust
+for v in e.variants.iter() {
+    let variant_path = format!("{}_{}", e.ident, v.ident);  // ← Creates Expr_Binary
+
+    gen_struct_or_variant(
+        variant_path.clone(),  // ← Generates separate rule
+        v.attrs.clone(),
+        v.fields.clone(),
+        &mut rules_map,
+        &mut word_rule,
+    )?;
+
+    members.push(json!({
+        "type": "SYMBOL",
+        "name": variant_path.clone()  // ← References intermediate symbol
+    }));
+}
+
+// Creates: Expr → CHOICE(Expr_Binary, Expr_Number)
+rules_map.insert(e.ident.to_string(), rule);
+```
+
+### Why This Prevents Conflicts
+
+The intermediate symbols give the LR(1) parser **disambiguation points**:
+
+1. When parsing `Expr OP Expr`, on lookahead `OP`:
+   - **With intermediates**: Parser knows the Expr came from `Expr_Binary` or `Expr_Number`
+   - This extra context allows it to decide without creating a conflict
+
+2. **Without intermediates** (manual grammar):
+   - Parser only knows it has `Expr OP Expr`
+   - Can't distinguish whether to shift or reduce
+   - **MUST create shift/reduce conflict** → GLR fork point
+
+### Next Steps
+
+**Solution Design Options:**
+
+1. **Option A: Direct Inlining** (Preferred)
+   - Modify expansion.rs to inline simple enum variants directly
+   - Conditions for inlining:
+     - No precedence attributes on variant
+     - Simple field structure (not too complex)
+   - Result: `Expr → Expr OP Expr` (direct)
+
+2. **Option B: Attribute Control**
+   - Add `#[rust_sitter::inline]` attribute
+   - User can control when to inline vs create intermediate
+   - More flexible but requires user knowledge
+
+3. **Option C: Document Limitation**
+   - Keep current behavior
+   - Document that enum variants inherently disambiguate
+   - Require manual grammars for truly ambiguous cases
+   - Least preferred - limits GLR functionality
+
+**Recommended Approach:**
+
+Implement **Option A with Option B as override**:
+- Default: Inline simple enum variants (no intermediate symbols)
+- Attribute: `#[rust_sitter::no_inline]` to keep intermediate when needed
+- This preserves backward compatibility while enabling ambiguous grammars
+
+### Implementation Plan
+
+1. Add flag to track whether to inline variant
+2. Modify enum variant processing in expansion.rs
+3. Inline variant fields directly into CHOICE members when appropriate
+4. Add tests to verify inlined structure matches contract
+5. Update documentation with inlining behavior
+
+**Acceptance Criteria:**
+- `test_contract_enum_grammar_extraction()` passes without contract violation
+- Enum grammar generates same number of rules as manual grammar
+- LR(1) tests detect conflicts in enum-based ambiguous grammar
+- No regression in existing grammars (arithmetic, etc.)
