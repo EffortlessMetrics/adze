@@ -32,6 +32,7 @@ toml = "0.8"
 [dev-dependencies]
 insta = "1.39"
 wasm-bindgen-test = "0.3.0"
+rust-sitter-glr-core = { path = "../glr-core" }
 
 [[test]]
 name = "pure_rust_parser_tests"

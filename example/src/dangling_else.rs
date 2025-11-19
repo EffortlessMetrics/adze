@@ -142,18 +142,76 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Enable once GLR conflict detection is working
+    #[cfg(feature = "pure-rust")]
     fn test_conflict_detection() {
         // This test verifies that the grammar DOES generate conflicts
-        // It should be run at the glr-core level during table generation
+        // by inspecting the generated parse table
 
-        // For now, we just document the expected conflict:
+        use rust_sitter_glr_core::conflict_inspection::*;
+
+        // Decode the LANGUAGE into a ParseTable
+        let table = rust_sitter::decoder::decode_parse_table(&LANGUAGE);
+
+        // Run conflict inspection
+        let summary = count_conflicts(&table);
+
+        eprintln!("Dangling Else Conflict Detection:");
+        eprintln!("  States: {}", table.state_count);
+        eprintln!("  Shift/Reduce conflicts: {}", summary.shift_reduce);
+        eprintln!("  Reduce/Reduce conflicts: {}", summary.reduce_reduce);
+        eprintln!("  States with conflicts: {:?}", summary.states_with_conflicts);
+
+        // Expected: Exactly 1 shift/reduce conflict on "else" token
         //
         // State X (after "if Expr then Statement"), Symbol "else":
         //   - Shift(Y):   Continue outer if, shift else token
         //   - Reduce(Z):  Complete inner if-then, reduce to Statement
         //
-        // Expected: ConflictType::ShiftReduce with 2 actions
+        // This is the CLASSIC dangling else ambiguity
+        assert_eq!(
+            summary.shift_reduce, 1,
+            "Dangling else grammar must have exactly 1 S/R conflict, got {}",
+            summary.shift_reduce
+        );
+
+        assert_eq!(
+            summary.reduce_reduce, 0,
+            "Dangling else grammar should have no R/R conflicts, got {}",
+            summary.reduce_reduce
+        );
+
+        // Find the specific "else" conflict
+        let else_conflicts: Vec<_> = summary
+            .conflict_details
+            .iter()
+            .filter(|c| c.symbol_name.contains("else"))
+            .collect();
+
+        assert!(
+            !else_conflicts.is_empty(),
+            "Should have conflict on 'else' symbol"
+        );
+
+        // Verify it's a shift/reduce conflict with 2 actions
+        for conflict in else_conflicts {
+            assert_eq!(
+                conflict.conflict_type,
+                ConflictType::ShiftReduce,
+                "Else conflict should be ShiftReduce type"
+            );
+
+            assert_eq!(
+                conflict.actions.len(),
+                2,
+                "Else conflict should have exactly 2 actions (Shift and Reduce)"
+            );
+
+            eprintln!("\n✅ Validated 'else' conflict:");
+            eprintln!("  State: {}", conflict.state.0);
+            eprintln!("  Symbol: {}", conflict.symbol_name);
+            eprintln!("  Type: {:?}", conflict.conflict_type);
+            eprintln!("  Actions: {} (Shift + Reduce)", conflict.actions.len());
+        }
     }
 
     #[test]
