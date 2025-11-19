@@ -994,7 +994,7 @@ impl Parser {
                         }
                     };
 
-                    return Ok(error_node);
+                    return Ok((error_node, error_count));
                 }
             }
 
