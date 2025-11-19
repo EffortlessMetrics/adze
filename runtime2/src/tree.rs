@@ -136,6 +136,18 @@ impl TreeNode {
             dirty: false,
         }
     }
+
+    /// Get start byte (for forest_converter)
+    #[allow(dead_code)]
+    pub(crate) fn start_byte(&self) -> usize {
+        self.start_byte
+    }
+
+    /// Get end byte (for forest_converter)
+    #[allow(dead_code)]
+    pub(crate) fn end_byte(&self) -> usize {
+        self.end_byte
+    }
 }
 
 impl Tree {

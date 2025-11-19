@@ -172,19 +172,10 @@ impl ForestConverter {
             return Some(forest.roots.len());
         }
 
-        // Check for Packed nodes (ambiguity within tree)
-        let mut max_alternatives = 1;
-        for node in &forest.nodes {
-            if let ForestNode::Packed { alternatives } = node {
-                max_alternatives = max_alternatives.max(alternatives.len());
-            }
-        }
-
-        if max_alternatives > 1 {
-            Some(max_alternatives)
-        } else {
-            None
-        }
+        // Current struct-based ForestNode doesn't support Packed nodes yet
+        // This will be added in Phase 3.3 when we refactor to enum
+        // For now, only check multiple roots
+        None
     }
 
     /// Disambiguate multiple roots
@@ -227,47 +218,31 @@ impl ForestConverter {
 
         let forest_node = &forest.nodes[node_id.0];
 
-        match forest_node {
-            ForestNode::Terminal { symbol, range } => {
-                // Create terminal (leaf) node
-                Ok(TreeNode::new_with_children(
-                    symbol.0 as u32,
-                    range.start,
-                    range.end,
-                    vec![],
-                ))
+        // Current ForestNode is a struct (not enum)
+        // Distinguish terminals from nonterminals by checking children
+        if forest_node.children.is_empty() {
+            // Terminal (leaf) node - no children
+            Ok(TreeNode::new_with_children(
+                forest_node.symbol.0 as u32,
+                forest_node.range.start,
+                forest_node.range.end,
+                vec![],
+            ))
+        } else {
+            // Nonterminal (internal) node - has children
+            let mut child_nodes = Vec::new();
+            for child_id in &forest_node.children {
+                let child_node = self.build_node(*child_id, forest, input, visited)?;
+                child_nodes.push(child_node);
             }
 
-            ForestNode::Nonterminal {
-                symbol,
-                children,
-                rule_id: _,
-            } => {
-                // Recursively build children
-                let mut child_nodes = Vec::new();
-                for child_id in children {
-                    let child_node = self.build_node(*child_id, forest, input, visited)?;
-                    child_nodes.push(child_node);
-                }
-
-                // Calculate range from children
-                let start_byte = child_nodes.first().map(|c| c.start_byte()).unwrap_or(0);
-                let end_byte = child_nodes.last().map(|c| c.end_byte()).unwrap_or(0);
-
-                // Create nonterminal (internal) node
-                Ok(TreeNode::new_with_children(
-                    symbol.0 as u32,
-                    start_byte,
-                    end_byte,
-                    child_nodes,
-                ))
-            }
-
-            ForestNode::Packed { alternatives } => {
-                // Ambiguity point - apply disambiguation
-                let selected = self.disambiguate_alternatives(alternatives, forest)?;
-                self.build_node(selected, forest, input, visited)
-            }
+            // Use range from forest node (already calculated by GLR engine)
+            Ok(TreeNode::new_with_children(
+                forest_node.symbol.0 as u32,
+                forest_node.range.start,
+                forest_node.range.end,
+                child_nodes,
+            ))
         }
     }
 
@@ -310,17 +285,7 @@ impl ForestConverter {
     }
 }
 
-impl TreeNode {
-    /// Get start byte
-    pub(crate) fn start_byte(&self) -> usize {
-        self.start_byte
-    }
-
-    /// Get end byte
-    pub(crate) fn end_byte(&self) -> usize {
-        self.end_byte
-    }
-}
+// TreeNode accessor methods are defined in tree.rs
 
 #[cfg(test)]
 mod tests {

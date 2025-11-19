@@ -269,8 +269,8 @@ impl GLREngine {
         let range = if children.is_empty() {
             0..0 // Empty production
         } else {
-            let first = &self.forest.nodes[children[0]];
-            let last = &self.forest.nodes[*children.last().unwrap()];
+            let first = &self.forest.nodes[children[0].0];
+            let last = &self.forest.nodes[children.last().unwrap().0];
             first.range.start..last.range.end
         };
 
@@ -356,7 +356,7 @@ impl ParseForest {
         };
         let id = self.nodes.len();
         self.nodes.push(node);
-        id
+        ForestNodeId(id)
     }
 
     /// Add a nonterminal node (internal)
@@ -373,7 +373,7 @@ impl ParseForest {
         };
         let id = self.nodes.len();
         self.nodes.push(node);
-        id
+        ForestNodeId(id)
     }
 
     /// Add a root node
