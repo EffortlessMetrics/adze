@@ -17,7 +17,7 @@ git push origin v0.6.1-beta
 ```
 
 ## Create GitHub Release
-1. Go to https://github.com/hydro-project/rust-sitter/releases/new
+1. Go to https://github.com/EffortlessMetrics/rust-sitter/releases/new
 2. Select tag: `v0.6.1-beta`
 3. Title: `v0.6.1-beta - Algorithmically Correct GLR Parser`
 4. Copy contents from `GITHUB_RELEASE.md` into description
@@ -79,7 +79,7 @@ rust-sitter v0.6.1-beta released! 🚀
 ✅ Stable query results
 
 Upgrade: rust-sitter = "0.6.1-beta"
-Release notes: https://github.com/hydro-project/rust-sitter/releases/tag/v0.6.1-beta
+Release notes: https://github.com/EffortlessMetrics/rust-sitter/releases/tag/v0.6.1-beta
 ```
 
 ### Channels to announce

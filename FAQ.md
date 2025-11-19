@@ -2,7 +2,7 @@
 
 Common questions about rust-sitter, answered concisely.
 
-**Can't find your question?** Check [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) or ask in [GitHub Discussions](https://github.com/hydro-project/rust-sitter/discussions).
+**Can't find your question?** Check [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) or ask in [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions).
 
 ---
 
@@ -375,7 +375,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) and [GAPS.md](./GAPS.md).
 
 1. **Search existing issues**: Check if it's already reported
 2. **Create minimal reproduction**: Simplest grammar that shows the bug
-3. **Open issue**: [GitHub Issues](https://github.com/hydro-project/rust-sitter/issues)
+3. **Open issue**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
 4. **Include**: rust-sitter version, Rust version, minimal example
 
 ### Can I add a new grammar to the examples?
@@ -483,8 +483,8 @@ See [tools/ts-bridge/](./tools/ts-bridge/) for the bridge tool.
 ## Still Have Questions?
 
 - **Check**: [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) (coming v0.7.0)
-- **Ask**: [GitHub Discussions](https://github.com/hydro-project/rust-sitter/discussions)
-- **Report Bugs**: [GitHub Issues](https://github.com/hydro-project/rust-sitter/issues)
+- **Ask**: [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
+- **Report Bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
 - **Tutorial**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)
 - **Examples**: [example/src/](./example/src/)
 

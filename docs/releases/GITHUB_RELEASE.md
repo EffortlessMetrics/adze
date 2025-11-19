@@ -33,4 +33,4 @@ rust-sitter-tool = "0.6.1-beta" # optional
 
 ---
 
-**Full Changelog**: https://github.com/hydro-project/rust-sitter/compare/v0.6.0...v0.6.1-beta
+**Full Changelog**: https://github.com/EffortlessMetrics/rust-sitter/compare/v0.6.0...v0.6.1-beta

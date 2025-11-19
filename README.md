@@ -1,6 +1,6 @@
 # Rust Sitter
 
-[![CI](https://github.com/hydro-project/rust-sitter/actions/workflows/ci.yml/badge.svg)](https://github.com/hydro-project/rust-sitter/actions/workflows/ci.yml)
+[![CI](https://github.com/EffortlessMetrics/rust-sitter/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/rust-sitter/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/rust-sitter)](https://crates.io/crates/rust-sitter)
 
 **Define grammars in Rust. Get type-safe parsers at compile-time.**
@@ -56,20 +56,54 @@ Then see [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) for the full tutor
 
 ## Status (v0.6.1-beta - November 2025)
 
-**✅ Production-Ready Core**:
+**✅ Strong Beta - Macro Path Feature Complete**:
 - Macro-based grammar generation: **100% working** (13/13 tests)
-- GLR parsing: **Fully operational** (handles ambiguous grammars)
+- GLR table generation: **Algorithmically correct** (tested in isolation)
 - Pure-Rust: **Zero C dependencies**, works in WASM
 - Type-safe ASTs: **Compile-time validation**
-- Test coverage: **100%** on core functionality
+
+**⚠️ Runtime Wiring** (see [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md)):
+- GLR tables generated correctly, but default runtime uses simple LR parser
+- Full GLR runtime exists (`parser_v4.rs`) but not yet wired as default for macro grammars
+- For production use: macro path is stable; pure-Rust GLR path is experimental
 
 **🚧 Coming in v0.7.0 (March 2026)**:
+- Complete GLR runtime integration as default
 - Incremental parsing (10x faster edits)
 - Complete query system
 - CLI tools
 - Performance optimization
 
 See [ROADMAP.md](./ROADMAP.md) for the full plan.
+
+---
+
+## Parser Modes
+
+rust-sitter supports multiple parser backends. Choose based on your needs:
+
+| Mode | Parser Used | GLR Support | Status | Best For |
+|------|-------------|-------------|---------|----------|
+| **tree-sitter** (default) | Tree-sitter C runtime | ✅ LR(1) | Stable | Production LSPs, mature tooling |
+| **pure-rust** | `pure_parser.rs` | ⚠️ LR only | Stable | WASM, simple grammars, no conflicts |
+| **pure-rust+GLR** | `parser_v4.rs` | ✅ Full GLR | Experimental | Testing, ambiguous grammars |
+
+**Configuration**:
+```toml
+# Default: tree-sitter C backend
+[dependencies]
+rust-sitter = "0.6"
+
+# Pure Rust (WASM-compatible)
+[dependencies]
+rust-sitter = { version = "0.6", features = ["pure-rust"] }
+
+# Pure Rust with GLR (experimental)
+[dependencies]
+rust-sitter = { version = "0.6", features = ["pure-rust", "glr"] }
+```
+
+**Note**: The GLR runtime (`parser_v4`) is implemented and tested but not yet wired as the default for macro-generated grammars. See [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md) for details.
 
 ---
 
@@ -327,7 +361,7 @@ Each task includes estimated time, difficulty level, and step-by-step guidance.
 4. Run tests: `cargo test`
 5. Run linter: `cargo clippy --all -- -D warnings`
 
-**Questions?** Check [FAQ.md](./FAQ.md) or ask in [GitHub Issues](https://github.com/hydro-project/rust-sitter/issues)
+**Questions?** Check [FAQ.md](./FAQ.md) or ask in [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
 
 ---
 
@@ -390,8 +424,8 @@ See [FAQ.md](./FAQ.md) for more comparisons (nom, pest, lalrpop).
 
 **Get Help**:
 - **Questions**: [FAQ.md](./FAQ.md)
-- **Bugs**: [GitHub Issues](https://github.com/hydro-project/rust-sitter/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/hydro-project/rust-sitter/discussions)
+- **Bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
 
 **Stay Updated**:
 - **Changelog**: [CHANGELOG.md](./CHANGELOG.md)

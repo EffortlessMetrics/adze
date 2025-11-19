@@ -252,6 +252,31 @@ C Backend (legacy, tree-sitter compatible):
                     → C compiler needed
 ```
 
+### Parser Runtime Modes
+
+rust-sitter supports multiple parser runtime implementations:
+
+| Mode | Runtime File | GLR Support | Status | Implementation |
+|------|-------------|-------------|---------|----------------|
+| **tree-sitter** | Tree-sitter C runtime | ✅ LR(1) | Stable | Default, uses Tree-sitter's proven C parser |
+| **pure-rust** | `runtime/src/pure_parser.rs` | ⚠️ LR only | Stable | Simple LR parser, first-action-only |
+| **pure-rust+GLR** | `runtime/src/parser_v4.rs` | ✅ Full GLR | Experimental | True GLR with fork/merge, not default yet |
+
+**Key Architectural Issue** (v0.6.1):
+- GLR table generation (`glr-core`, `tablegen`) is **correct** ✅
+- Macro-generated grammars call `__private::parse()` which uses `pure_parser.rs` ⚠️
+- `pure_parser.rs` only takes the **first action** per state/symbol, ignoring GLR capabilities
+- `parser_v4.rs` is a **complete GLR implementation** but not wired as default
+
+**Impact**:
+- ❌ Operator associativity may not work correctly in pure-Rust mode
+- ❌ Ambiguous grammars requiring GLR fail with pure-Rust
+- ✅ Tree-sitter C backend works correctly (recommended for production)
+
+**Resolution Plan**:
+- v0.7.0: Wire `parser_v4.rs` as default runtime for macro grammars
+- See [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md) for full details
+
 ---
 
 ## GLR Parser Architecture
@@ -613,4 +638,4 @@ cargo build 2>&1 | grep "IR:"
 
 ---
 
-**Questions?** See [FAQ.md](./FAQ.md) or ask in [GitHub Discussions](https://github.com/hydro-project/rust-sitter/discussions)
+**Questions?** See [FAQ.md](./FAQ.md) or ask in [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
