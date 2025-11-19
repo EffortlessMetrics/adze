@@ -118,7 +118,7 @@ mod integration_tests {
 /// living documentation of design decisions.
 #[cfg(test)]
 mod architecture_tests {
-    use crate::parser_selection::ParserBackend;
+    use rust_sitter::parser_selection::ParserBackend;
 
     /// Document: Backend selection is compile-time
     #[test]
