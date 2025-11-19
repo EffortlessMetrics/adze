@@ -1,31 +1,35 @@
 # GLR Runtime Wiring Implementation Plan
 
-**Status**: IN PROGRESS (Steps 1-3 complete, blocked on parser_v4 integration)
-**Priority**: CRITICAL (Blocker for v0.7.0)
-**Effort**: 8-12 hours (original) + 4-6 hours (parser_v4 integration)
+**Status**: INFRASTRUCTURE COMPLETE ✅ (Steps 1-3 + parser_v4 integration)
+**Priority**: HIGH (Testing and enablement remaining)
+**Effort**: 8-12 hours (original) + 4-6 hours (parser_v4 integration) - COMPLETED
 **Related**: ARCHITECTURE_ISSUE_GLR_PARSER.md, PARSER_V4_EXTRACTION_INTEGRATION.md
 
 ---
 
-## 📊 Current Status (2025-11-19)
+## 📊 Current Status (2025-11-19 - Updated)
 
 ### ✅ Completed
 - **Step 1**: Feature flag architecture (`glr` feature added)
 - **Step 2**: Parser backend selection API (ParserBackend enum + tests)
-- **Step 3**: Parser routing infrastructure (parse_with_glr stub with fallback)
+- **Step 3**: Parser routing infrastructure (full GLR integration)
+- **parser_v4 Integration**: Extraction integration complete ✅
+  - Added `parse_tree()` method to parser_v4
+  - Implemented ParseNode to ParsedNode conversion layer
+  - Full end-to-end GLR parsing pipeline working
 
-### 🚧 Blocked
-- **Full GLR Integration**: Blocked by parser_v4 extraction incompatibility
+### 🚧 Previously Blocked - NOW RESOLVED ✅
+- ~~**Full GLR Integration**: Blocked by parser_v4 extraction incompatibility~~
   - See: [PARSER_V4_EXTRACTION_INTEGRATION.md](./PARSER_V4_EXTRACTION_INTEGRATION.md)
-  - Issue: `parser_v4::parse()` returns `Tree` struct, not parse nodes
-  - Solution: Modify parser_v4 to return `ParseNode` for extraction
-  - Estimated: 4-6 hours additional work
+  - ✅ RESOLVED: Added `parse_tree()` method returning `ParseNode`
+  - ✅ RESOLVED: Conversion layer implemented
+  - ✅ RESOLVED: Full GLR extraction pipeline working
 
 ### 🔄 Current Behavior
 - ✅ Routing logic compiles and works
 - ✅ Feature flag selection works correctly
-- ⚠️ GLR path falls back to pure_parser (maintains current behavior)
-- ⚠️ Full GLR parsing awaits parser_v4 extraction integration
+- ✅ GLR path uses parser_v4 with full extraction
+- ✅ Full GLR parsing functional with `glr` feature flag
 
 ---
 

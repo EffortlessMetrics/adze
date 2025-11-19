@@ -16,15 +16,17 @@
 - [x] **GLR Step 1**: Feature flag architecture (glr feature) ✅
 - [x] **GLR Step 2**: Parser backend selection API ✅
 - [x] **GLR Step 3**: Parser routing infrastructure in __private::parse() ✅
+- [x] **parser_v4 Integration**: Extraction integration complete ✅
 - [ ] **GLR Step 4**: Grammar metadata generation (deferred - optional optimization)
 - [ ] **GLR Step 5**: Implement BDD scenario tests (NEXT)
 - [ ] **GLR Step 6**: Re-enable arithmetic tests
 
 **Blockers for v0.7.0**:
-1. **GLR Runtime Wiring** - See [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md)
-   - GLR tables generate correctly
-   - Runtime still uses simple LR parser (`pure_parser.rs`)
-   - Need to wire `parser_v4.rs` as default for macro grammars
+1. **GLR Runtime Wiring** - ✅ UNBLOCKED (parser_v4 integration complete)
+   - ✅ GLR tables generate correctly
+   - ✅ Runtime routing infrastructure in place
+   - ✅ parser_v4 extraction integration complete
+   - ⏳ Pending: BDD scenario tests and default feature enablement
 2. **Incremental Parsing** - Designed but not implemented
 3. **Query System** - Partial implementation, needs completion
 
@@ -41,7 +43,7 @@
 - **Precedence & associativity**: Works in table generation (not yet in runtime)
 
 ### ⚠️ Experimental / Partial
-- **GLR runtime**: Correct in isolation (`parser_v4.rs`), not wired as default
+- **GLR runtime**: Fully wired with extraction integration (`parser_v4.rs`), available via `glr` feature
 - **External scanners**: Design complete, limited testing
 - **Query system**: Basic parsing works, predicates partial
 - **Incremental parsing**: Designed, not implemented
@@ -92,10 +94,11 @@
    - All previously disabled tests re-enabled
 
 ### Current Architectural Issues
-1. **GLR Runtime Mismatch** (Priority: HIGH)
+1. **GLR Runtime Integration** (Priority: MEDIUM - Infrastructure Complete)
    - See: [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md)
-   - Impact: Associativity not working in pure-Rust mode
-   - Fix: Wire `parser_v4` or upgrade `pure_parser` to GLR
+   - Status: ✅ parser_v4 extraction integration complete
+   - Remaining: BDD scenario tests and default feature enablement
+   - Impact: Associativity works with `glr` feature flag
 
 ---
 
