@@ -62,6 +62,9 @@ pub use error::Result as GlrResult;
 /// Back-compat alias: prefer `GlrError`; `GLRError` remains for now.
 pub use GLRError as GlrError;
 
+/// Conflict inspection API for analyzing GLR parse table conflicts
+pub mod conflict_inspection;
+
 // Re-export key types from rust-sitter-ir for API consumers
 pub use rust_sitter_ir::{Grammar, StateId, SymbolId};
 
