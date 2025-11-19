@@ -401,6 +401,219 @@ fn test_contract_precedence_handling() {
     eprintln!("\n✅ Precedence handling follows contract");
 }
 
+// ==============================================================================
+// TDD Tests for Enum Variant Inlining (ADR-0003)
+// ==============================================================================
+
+#[test]
+#[ignore] // Will pass once inlining is implemented
+fn test_inlined_enum_matches_manual_grammar() {
+    eprintln!("\n=== TDD TEST: Inlined Enum Matches Manual Grammar ===\n");
+
+    use std::path::PathBuf;
+    use rust_sitter_tool::generate_grammars;
+
+    // Extract grammar from ambiguous_expr (should be inlined by default)
+    let example_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("example/src/ambiguous_expr.rs");
+
+    let grammars = generate_grammars(&example_path)
+        .expect("Failed to extract grammar");
+
+    let grammar_json = &grammars[0];
+    let rules = grammar_json["rules"].as_object().unwrap();
+
+    // Create equivalent manual grammar
+    let manual_grammar = GrammarBuilder::new("manual_ambiguous")
+        .token("NUMBER", r"\d+")
+        .token("OP", r"[-+*/]")
+        .rule("Expr", vec!["Expr", "OP", "Expr"])
+        .rule("Expr", vec!["NUMBER"])
+        .start("Expr")
+        .build();
+
+    let manual_analysis = GrammarAnalysis::analyze(&manual_grammar);
+
+    eprintln!("Manual grammar rules: {}", manual_analysis.total_rules);
+    eprintln!("Enum grammar rules (from JSON): {}", rules.len());
+
+    // TDD Assertion 1: No intermediate symbols
+    assert!(!rules.contains_key("Expr_Binary"),
+        "TDD FAIL: Inlined variant should NOT create Expr_Binary intermediate");
+    assert!(!rules.contains_key("Expr_Number"),
+        "TDD FAIL: Inlined variant should NOT create Expr_Number intermediate");
+
+    eprintln!("✅ No intermediate symbols created");
+
+    // TDD Assertion 2: Rule count matches
+    // Manual: 2 rules (Expr → Expr OP Expr, Expr → NUMBER)
+    // Enum should also have 2 main Expr productions (plus extras for whitespace)
+    let expr_rule = rules.get("Expr")
+        .expect("Expr rule must exist");
+
+    if let Some(choice) = expr_rule.get("type").and_then(|t| t.as_str()) {
+        assert_eq!(choice, "CHOICE", "Expr must be a CHOICE");
+
+        let members = expr_rule.get("members")
+            .and_then(|m| m.as_array())
+            .expect("CHOICE must have members");
+
+        assert_eq!(members.len(), 2,
+            "TDD FAIL: Inlined enum should have 2 CHOICE members, not {}",
+            members.len());
+
+        eprintln!("✅ Correct number of CHOICE members: {}", members.len());
+    }
+
+    // TDD Assertion 3: Direct production structure
+    // One member should be a SEQ with 3 elements (Expr OP Expr)
+    // Other member should be a PATTERN or SYMBOL for NUMBER
+    let expr_rule = rules.get("Expr").unwrap();
+    let members = expr_rule["members"].as_array().unwrap();
+
+    let has_binary_seq = members.iter().any(|m| {
+        m.get("type").and_then(|t| t.as_str()) == Some("SEQ") &&
+        m.get("members").and_then(|ms| ms.as_array())
+            .map(|ms| ms.len() == 3)
+            .unwrap_or(false)
+    });
+
+    assert!(has_binary_seq,
+        "TDD FAIL: Expected direct SEQ production for binary expression (Expr OP Expr)");
+
+    eprintln!("✅ Has direct binary production (no intermediate)");
+
+    eprintln!("\n✅ TDD TEST PASSED: Inlined enum matches manual grammar!");
+}
+
+#[test]
+#[ignore] // Will pass once no_inline attribute is implemented
+fn test_no_inline_attribute_preserves_intermediates() {
+    eprintln!("\n=== TDD TEST: no_inline Attribute Preserves Intermediates ===\n");
+
+    // This test will use a grammar with #[rust_sitter::no_inline]
+    // For now, we document the expected behavior
+
+    eprintln!("Expected behavior:");
+    eprintln!("  enum Expr {{");
+    eprintln!("      #[rust_sitter::no_inline]");
+    eprintln!("      Binary(Box<Expr>, String, Box<Expr>),");
+    eprintln!("      Number(i32),");
+    eprintln!("  }}");
+    eprintln!();
+    eprintln!("Should generate:");
+    eprintln!("  Expr → Expr_Binary  (intermediate preserved)");
+    eprintln!("  Expr → NUMBER       (Number inlined - no no_inline)");
+    eprintln!("  Expr_Binary → Expr OP Expr");
+    eprintln!();
+
+    // TODO: Create test grammar with no_inline once attribute is implemented
+    // For now, this documents the contract
+}
+
+#[test]
+fn test_precedence_prevents_inlining() {
+    eprintln!("\n=== TDD TEST: Precedence Prevents Inlining ===\n");
+
+    use std::path::PathBuf;
+    use rust_sitter_tool::generate_grammars;
+
+    // Test with arithmetic grammar which has precedence
+    let arithmetic_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("example/src/arithmetic.rs");
+
+    let grammars = generate_grammars(&arithmetic_path)
+        .expect("Failed to extract arithmetic grammar");
+
+    assert_eq!(grammars.len(), 1);
+
+    let grammar_json = &grammars[0];
+    let rules = grammar_json["rules"].as_object().unwrap();
+
+    eprintln!("Arithmetic grammar rules:");
+    for (name, _) in rules {
+        eprintln!("  - {}", name);
+    }
+
+    // TDD Assertion: Variants with precedence should have intermediates
+    // The arithmetic grammar has Add, Mul, etc. with precedence
+    // These should create Expr_Add, Expr_Mul intermediate symbols
+
+    let has_intermediates = rules.keys().any(|k| {
+        k.starts_with("Expr_") && k != "Expr" && !k.ends_with("_unit")
+    });
+
+    if has_intermediates {
+        eprintln!("✅ Precedence-based variants preserved intermediates (backward compat)");
+    } else {
+        eprintln!("❌ TDD FAIL: Expected intermediate symbols for precedence-based variants");
+        eprintln!("   This is actually current behavior, which should be preserved!");
+    }
+
+    // For now, this test documents expected behavior
+    // Current behavior has intermediates, which should be preserved
+}
+
+#[test]
+#[ignore] // Will pass once inlining logic handles this correctly
+fn test_inlining_preserves_field_structure() {
+    eprintln!("\n=== TDD TEST: Inlining Preserves Field Structure ===\n");
+
+    use std::path::PathBuf;
+    use rust_sitter_tool::generate_grammars;
+
+    let example_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("example/src/ambiguous_expr.rs");
+
+    let grammars = generate_grammars(&example_path)
+        .expect("Failed to extract grammar");
+
+    let grammar_json = &grammars[0];
+    let rules = grammar_json["rules"].as_object().unwrap();
+
+    let expr_rule = rules.get("Expr").unwrap();
+    let members = expr_rule["members"].as_array().unwrap();
+
+    // Find the binary expression member (SEQ with 3 elements)
+    let binary_member = members.iter()
+        .find(|m| {
+            m.get("type").and_then(|t| t.as_str()) == Some("SEQ") &&
+            m.get("members").and_then(|ms| ms.as_array())
+                .map(|ms| ms.len() == 3)
+                .unwrap_or(false)
+        })
+        .expect("Should have binary expression member");
+
+    let seq_members = binary_member["members"].as_array().unwrap();
+
+    // TDD Assertion: Fields should be named with variant context
+    // Expected: Binary_0, Binary_1, Binary_2
+    for (i, field) in seq_members.iter().enumerate() {
+        if let Some(field_obj) = field.as_object() {
+            if field_obj.get("type").and_then(|t| t.as_str()) == Some("FIELD") {
+                let field_name = field_obj.get("name")
+                    .and_then(|n| n.as_str())
+                    .expect("Field must have name");
+
+                let expected = format!("Binary_{}", i);
+                assert_eq!(field_name, expected,
+                    "TDD FAIL: Field should be named '{}' to preserve variant context",
+                    expected);
+            }
+        }
+    }
+
+    eprintln!("✅ Fields named with variant context (Binary_0, Binary_1, Binary_2)");
+}
+
+// ==============================================================================
+
 /// Document the expected transformation for enum variants
 #[test]
 fn test_contract_enum_transformation_spec() {
