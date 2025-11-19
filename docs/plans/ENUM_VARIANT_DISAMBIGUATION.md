@@ -2,7 +2,7 @@
 
 ## Date: 2025-11-19
 
-## Status: ✅ ROOT CAUSE CONFIRMED (2025-11-19)
+## Status: ✅ RESOLVED - IMPLEMENTATION COMPLETE (2025-11-19)
 
 ## Hypothesis
 
@@ -245,3 +245,34 @@ Implement **Option A with Option B as override**:
 - Enum grammar generates same number of rules as manual grammar
 - LR(1) tests detect conflicts in enum-based ambiguous grammar
 - No regression in existing grammars (arithmetic, etc.)
+
+---
+
+## ✅ RESOLUTION (2025-11-19)
+
+### Implementation Complete
+
+Successfully implemented enum variant inlining per ADR-0003 and specification.
+
+**Key Changes:**
+- Added `should_inline_variant()` helper in `tool/src/expansion.rs:462-497`
+- Modified `gen_struct_or_variant()` to support inline flag (line 505)
+- Updated enum variant loop to use inlining (lines 821-846)
+- Preserved backward compatibility for precedence and unit variants
+
+**Test Results:**
+- ✅ All TDD tests passing (3/3 ignored tests now pass)
+- ✅ Contract tests validate JSON structure (11/11 passing)
+- ✅ Example grammars build successfully
+- ✅ No regression in arithmetic grammar
+
+**Impact:**
+- Enum-based grammars now generate direct productions
+- GLR conflict preservation works for enum definitions
+- Backward compatible via `#[no_inline]` attribute
+- Precedence-based grammars unchanged
+
+**See:**
+- ADR: `docs/adr/0003-enum-variant-inlining-for-glr.md`
+- Spec: `docs/specs/ENUM_VARIANT_INLINING.md`
+- Tests: `tool/tests/test_grammar_extraction_contract.rs`

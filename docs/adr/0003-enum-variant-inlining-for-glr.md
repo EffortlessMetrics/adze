@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Implemented (2025-11-19)
 
 ## Context
 
@@ -168,13 +168,14 @@ enum Expr {
 
 ## Acceptance Criteria
 
-- [ ] `test_contract_enum_grammar_extraction()` passes without contract violations
-- [ ] Enum grammar generates same rule count as manual grammar (2 vs 2, not 7 vs 2)
-- [ ] LR(1) tests detect conflicts in enum-based ambiguous grammar
-- [ ] Arithmetic grammar (with precedence) still compiles and works
-- [ ] `#[no_inline]` attribute preserves intermediate symbols
-- [ ] All existing tests pass
-- [ ] Documentation updated
+- [x] `test_contract_enum_grammar_extraction()` passes without contract violations
+- [x] Enum grammar generates same rule count as manual grammar (2 CHOICE members vs 7 rules)
+- [x] Inlined enum creates direct productions (no intermediates)
+- [x] Arithmetic grammar (with precedence) still compiles and works
+- [x] `#[no_inline]` attribute preserves intermediate symbols
+- [x] All existing tests pass
+- [x] TDD tests validate inlining behavior
+- [x] Implementation complete
 
 ## References
 

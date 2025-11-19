@@ -6,7 +6,7 @@
 
 ## Status
 
-Specification - Implementation Pending
+Implemented (2025-11-19)
 
 ## Purpose
 
@@ -365,16 +365,16 @@ enum Expr {
 
 ## Implementation Checklist
 
-- [ ] Add `no_inline` attribute parsing in `expansion.rs`
-- [ ] Implement `should_inline_variant()` helper function
-- [ ] Modify enum variant loop to check inlining condition
-- [ ] Implement direct field expansion for inlined variants
-- [ ] Preserve field naming with variant context
-- [ ] Add error handling for invalid attribute usage
-- [ ] Write unit tests for inlining decision algorithm
-- [ ] Write integration tests for grammar generation
-- [ ] Verify backward compatibility with precedence grammars
-- [ ] Update documentation and migration guide
+- [x] Add `no_inline` attribute parsing in `expansion.rs`
+- [x] Implement `should_inline_variant()` helper function
+- [x] Modify enum variant loop to check inlining condition
+- [x] Implement direct field expansion for inlined variants
+- [x] Preserve field naming with variant context
+- [x] Add error handling for invalid attribute usage
+- [x] Write unit tests for inlining decision algorithm
+- [x] Write integration tests for grammar generation
+- [x] Verify backward compatibility with precedence grammars
+- [ ] Update documentation and migration guide (pending)
 
 ## References
 
