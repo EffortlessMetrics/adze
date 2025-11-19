@@ -660,6 +660,7 @@ dependencies = [
  "codemap-diagnostic",
  "insta",
  "rust-sitter",
+ "rust-sitter-glr-core",
  "rust-sitter-tool",
  "toml",
  "tree-sitter-c2rust",
