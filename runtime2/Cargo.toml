@@ -23,6 +23,9 @@ rust-sitter-ir = { path = "../ir", optional = true }
 # For incremental parsing (future)
 memchr = "2.7"
 
+# For tokenization (Phase 3.2)
+regex = { version = "1.11", optional = true }
+
 # Optional dependencies for different features
 bumpalo = { version = "3.16", optional = true }
 typed-arena = { version = "2.0", optional = true }
@@ -35,6 +38,9 @@ pretty_assertions = "1.4"
 default = ["glr-core"]
 # Enable GLR core integration
 glr-core = ["dep:rust-sitter-glr-core", "dep:rust-sitter-ir"]
+# Enable pure-Rust GLR runtime (bypasses TSLanguage encoding)
+# This is the Phase 3 feature that uses ParseTable directly
+pure-rust-glr = ["glr-core", "dep:regex"]
 # Enable arena allocators for performance
 arenas = ["bumpalo", "typed-arena"]
 # Enable incremental parsing support
@@ -53,4 +59,8 @@ required-features = ["test-utils", "glr-core"]
 [[example]]
 name = "simple_parse"
 required-features = ["test-utils", "glr-core"]
+
+[[example]]
+name = "precedence_debug"
+required-features = ["pure-rust-glr"]
 

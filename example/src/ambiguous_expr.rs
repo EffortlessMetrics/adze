@@ -64,6 +64,7 @@ pub mod grammar {
 
 #[cfg(test)]
 mod tests {
+    use super::grammar;
     use super::grammar::*;
 
     #[test]
@@ -135,25 +136,89 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Enable once GLR conflict detection is working
+    #[cfg(feature = "pure-rust")]
     fn test_conflict_detection() {
         // This test documents the EXPECTED conflicts in this grammar
+        // and validates that they are properly preserved in the parse table
+
+        use rust_sitter_glr_core::conflict_inspection::*;
+
+        // Decode the LANGUAGE into a ParseTable
+        let table = rust_sitter::decoder::decode_parse_table(&LANGUAGE);
+
+        // Run conflict inspection
+        let summary = count_conflicts(&table);
+
+        eprintln!("Ambiguous Expression Conflict Detection:");
+        eprintln!("  States: {}", table.state_count);
+        eprintln!("  Shift/Reduce conflicts: {}", summary.shift_reduce);
+        eprintln!("  Reduce/Reduce conflicts: {}", summary.reduce_reduce);
+        eprintln!("  States with conflicts: {}", summary.states_with_conflicts.len());
+
+        // Expected: At least 1 shift/reduce conflict on operators
         //
         // For input "1 + 2 * 3", after parsing "1 + 2" on lookahead "*":
         //
-        // Conflict 1: Shift/Reduce on operator lookahead
+        // Conflict: Shift/Reduce on operator lookahead
         //   State X (after "Expr Op Expr"), Symbol "*":
         //     - Shift(Y):   Continue reading, form "(1 + 2) * 3"
         //     - Reduce(Z):  Complete "1 + 2", then form "1 + (2 * 3)"
-        //
-        // Expected: ConflictType::ShiftReduce with 2 actions
         //
         // This conflict WILL be detected because:
         //   1. Single Binary variant (no enum disambiguation)
         //   2. No precedence annotations
         //   3. LR(1) cannot resolve without precedence
-        //
-        // The diagnostic test should report: "Multi-action cells found"
+        assert!(
+            summary.shift_reduce >= 1,
+            "Ambiguous expr grammar must have at least 1 S/R conflict, got {}",
+            summary.shift_reduce
+        );
+
+        assert_eq!(
+            summary.reduce_reduce, 0,
+            "Ambiguous expr grammar should have no R/R conflicts, got {}",
+            summary.reduce_reduce
+        );
+
+        // Find operator conflicts
+        let operator_conflicts: Vec<_> = summary
+            .conflict_details
+            .iter()
+            .filter(|c| {
+                c.symbol_name.contains('+')
+                    || c.symbol_name.contains('-')
+                    || c.symbol_name.contains('*')
+                    || c.symbol_name.contains('/')
+                    || c.symbol_name.contains("Op")
+            })
+            .collect();
+
+        assert!(
+            !operator_conflicts.is_empty(),
+            "Should have conflicts on operator symbols, found conflicts: {:?}",
+            summary.conflict_details.iter().map(|c| &c.symbol_name).collect::<Vec<_>>()
+        );
+
+        // Verify conflicts are shift/reduce with 2 actions
+        for conflict in operator_conflicts {
+            assert_eq!(
+                conflict.conflict_type,
+                ConflictType::ShiftReduce,
+                "Operator conflicts should be ShiftReduce type"
+            );
+
+            assert_eq!(
+                conflict.actions.len(),
+                2,
+                "Operator conflicts should have exactly 2 actions (Shift and Reduce)"
+            );
+
+            eprintln!("\n✅ Validated operator conflict:");
+            eprintln!("  State: {}", conflict.state.0);
+            eprintln!("  Symbol: {}", conflict.symbol_name);
+            eprintln!("  Type: {:?}", conflict.conflict_type);
+            eprintln!("  Actions: {} (Shift + Reduce)", conflict.actions.len());
+        }
     }
 
     #[test]

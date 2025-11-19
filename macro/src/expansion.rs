@@ -406,6 +406,9 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         impl ::rust_sitter::Extract<#enum_name> for #enum_name {
                             type LeafFn = ();
 
+                            #[cfg(feature = "pure-rust")]
+                            const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
+
                             #[allow(non_snake_case)]
                             #[cfg(not(feature = "pure-rust"))]
                             fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
@@ -504,6 +507,9 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                     let extract_impl: Item = syn::parse_quote! {
                         impl ::rust_sitter::Extract<#struct_name> for #struct_name {
                             type LeafFn = ();
+
+                            #[cfg(feature = "pure-rust")]
+                            const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
 
                             #[allow(non_snake_case)]
                             #[cfg(not(feature = "pure-rust"))]

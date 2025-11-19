@@ -62,6 +62,9 @@ pub use error::Result as GlrResult;
 /// Back-compat alias: prefer `GlrError`; `GLRError` remains for now.
 pub use GLRError as GlrError;
 
+/// Conflict inspection API for analyzing GLR parse table conflicts
+pub mod conflict_inspection;
+
 // Re-export key types from rust-sitter-ir for API consumers
 pub use rust_sitter_ir::{Grammar, StateId, SymbolId};
 
@@ -188,6 +191,7 @@ fn build_prec_tables(
 
     // token precedence by table index
     let mut tok_prec_by_index = vec![None; symbol_to_index.len()];
+    let tok_prec_len = tok_prec_by_index.len(); // Capture length before closure
 
     // Helper: set token precedence preferring higher numeric level
     let mut set_tok_prec = |tok_idx: usize, new: TokPrec| {
@@ -232,13 +236,15 @@ fn build_prec_tables(
             //    an explicit precedence (+ associativity) attribute
             if let Some(level) = explicit {
                 // Find rightmost terminal in RHS
-                if let Some(tok_idx) = rule.rhs.iter().rev().find_map(|sym| {
+                let tok_idx_opt = rule.rhs.iter().rev().find_map(|sym| {
                     if let Symbol::Terminal(id) = sym {
                         symbol_to_index.get(id).copied()
                     } else {
                         None
                     }
-                }) && (tok_idx as u32) < token_count
+                });
+
+                if let Some(tok_idx) = tok_idx_opt && tok_idx < tok_prec_len
                 {
                     set_tok_prec(
                         tok_idx,
@@ -2045,16 +2051,17 @@ impl ConflictResolver {
                 };
 
                 // Compare precedences
-                // GLR CONFLICT PRESERVATION: We preserve both actions but order them by precedence
-                // The first action in the vector is the preferred path (higher priority)
+                // PRECEDENCE RESOLUTION: When precedence can definitively resolve the conflict,
+                // we eliminate the lower-precedence action (not just re-order).
+                // This ensures correct parsing for unambiguous grammars.
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
-                        // Preserve both actions: shift first (higher priority), then reduce
-                        conflict.actions = vec![shift, reduce];
+                        // Shift wins - eliminate reduce action
+                        conflict.actions = vec![shift];
                     }
                     PrecedenceComparison::PreferReduce => {
-                        // Preserve both actions: reduce first (higher priority), then shift
-                        conflict.actions = vec![reduce, shift];
+                        // Reduce wins - eliminate shift action
+                        conflict.actions = vec![reduce];
                     }
                     PrecedenceComparison::Error => {
                         // Non-associative conflict - this is an error
@@ -2587,6 +2594,11 @@ pub fn build_lr1_automaton(
         production_count,
     );
 
+    // Calculate the first non-terminal index
+    // Terminals are: EOF (index 0) + token_symbols (indices 1..=token_symbols.len())
+    // So first non-terminal is at index token_symbols.len() + 1
+    let first_nonterminal_idx = token_symbols.len() + 1;
+
     // Resolve conflicts using precedence
     for ((state_idx, symbol_idx), _actions) in conflicts_by_state {
         // Guard rail: validate indices
@@ -2597,7 +2609,8 @@ pub fn build_lr1_automaton(
         );
 
         // Only resolve on TOKEN columns (never on gotos)
-        if (symbol_idx as u32) >= token_count {
+        // Terminals occupy indices 0 (EOF) through token_symbols.len()
+        if symbol_idx >= first_nonterminal_idx {
             continue; // Skip non-terminal columns
         }
 

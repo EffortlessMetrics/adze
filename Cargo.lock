@@ -2075,6 +2075,7 @@ dependencies = [
  "criterion",
  "memchr",
  "pretty_assertions",
+ "regex",
  "rust-sitter-glr-core",
  "rust-sitter-ir",
  "rustc-hash 2.1.1",
