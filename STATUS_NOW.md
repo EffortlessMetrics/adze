@@ -15,9 +15,9 @@
 - [x] TDD/BDD/Schema infrastructure complete
 - [x] **GLR Step 1**: Feature flag architecture (glr feature) ✅
 - [x] **GLR Step 2**: Parser backend selection API ✅
-- [ ] **GLR Step 3**: Wire parser_v4 in __private::parse() (NEXT)
-- [ ] **GLR Step 4**: Add HAS_CONFLICTS grammar metadata
-- [ ] **GLR Step 5**: Implement BDD scenario tests
+- [x] **GLR Step 3**: Parser routing infrastructure in __private::parse() ✅
+- [ ] **GLR Step 4**: Grammar metadata generation (deferred - optional optimization)
+- [ ] **GLR Step 5**: Implement BDD scenario tests (NEXT)
 - [ ] **GLR Step 6**: Re-enable arithmetic tests
 
 **Blockers for v0.7.0**:
