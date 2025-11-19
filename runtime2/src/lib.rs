@@ -41,6 +41,9 @@ pub mod glr_engine;
 /// Lexical scanner (tokenizer) for GLR parsing (Phase 3.2)
 #[cfg(feature = "pure-rust-glr")]
 pub mod tokenizer;
+/// Forest-to-tree conversion for GLR parsing (Phase 3.2)
+#[cfg(feature = "pure-rust-glr")]
+pub mod forest_converter;
 /// Token types and lexing helpers.
 pub mod token;
 

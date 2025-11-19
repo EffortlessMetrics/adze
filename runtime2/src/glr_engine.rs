@@ -62,23 +62,24 @@ type StackId = usize;
 #[derive(Debug)]
 pub struct ParseForest {
     /// All nodes in the forest
-    nodes: Vec<ForestNode>,
+    pub nodes: Vec<ForestNode>,
     /// Root nodes (successful parses)
-    roots: Vec<ForestNodeId>,
+    pub roots: Vec<ForestNodeId>,
 }
 
 /// ID of a node in the parse forest
-type ForestNodeId = usize;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ForestNodeId(pub usize);
 
 /// A node in the parse forest
 #[derive(Debug, Clone)]
-struct ForestNode {
+pub struct ForestNode {
     /// Symbol produced by this node
-    symbol: SymbolId,
+    pub symbol: SymbolId,
     /// Children of this node
-    children: Vec<ForestNodeId>,
+    pub children: Vec<ForestNodeId>,
     /// Byte range in input
-    range: Range<usize>,
+    pub range: Range<usize>,
 }
 
 impl GLREngine {
