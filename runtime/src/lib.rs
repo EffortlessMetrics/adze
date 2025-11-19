@@ -215,6 +215,56 @@ pub mod sealed {
 pub trait Extract<Output>: sealed::Sealed {
     /// Associated function type for leaf node extraction.
     type LeafFn: ?Sized;
+
+    /// Whether this grammar has shift/reduce or reduce/reduce conflicts.
+    ///
+    /// This constant is set at grammar generation time by analyzing the parse table.
+    /// - `true`: Grammar has conflicts, requires GLR parser (parser_v4)
+    /// - `false`: Grammar is conflict-free, can use simple LR parser (pure_parser)
+    ///
+    /// Used by `ParserBackend::select()` to choose the appropriate parser.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// // Simple grammar without conflicts
+    /// impl Extract for SimpleGrammar {
+    ///     const HAS_CONFLICTS: bool = false;
+    /// }
+    ///
+    /// // Grammar with left-associative operators (has conflicts)
+    /// impl Extract for ArithmeticGrammar {
+    ///     const HAS_CONFLICTS: bool = true;
+    /// }
+    /// ```
+    const HAS_CONFLICTS: bool = false;
+
+    /// Grammar definition in JSON format (Tree-sitter compatible).
+    ///
+    /// This constant contains the complete grammar definition including:
+    /// - Symbol names and IDs
+    /// - Production rules
+    /// - Precedence and associativity
+    /// - External tokens
+    ///
+    /// Used by `parser_v4` to construct the Grammar and ParseTable at runtime
+    /// when the `glr` feature is enabled.
+    ///
+    /// # Format
+    ///
+    /// The JSON follows the Tree-sitter grammar.json schema:
+    /// ```json
+    /// {
+    ///   "name": "grammar_name",
+    ///   "rules": { ... },
+    ///   "precedences": [ ... ],
+    ///   "conflicts": [ ... ],
+    ///   ...
+    /// }
+    /// ```
+    #[cfg(feature = "pure-rust")]
+    const GRAMMAR_JSON: &'static str = "{}";
+
     /// Extracts a Rust value from a Tree-sitter node.
     #[cfg(not(feature = "pure-rust"))]
     fn extract(

@@ -215,6 +215,32 @@ pub fn parse<T: Extract<T>>(
     input: &str,
     language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
+    // Select parser backend based on feature flags
+    use crate::parser_selection::ParserBackend;
+    let backend = ParserBackend::select(T::HAS_CONFLICTS);
+
+    match backend {
+        ParserBackend::GLR => {
+            // GLR parser path (parser_v4)
+            parse_with_glr::<T>(input, language)
+        }
+        ParserBackend::PureRust => {
+            // Simple LR parser path (pure_parser)
+            parse_with_pure_parser::<T>(input, language)
+        }
+        ParserBackend::TreeSitter => {
+            // This shouldn't happen with pure-rust feature, but handle gracefully
+            unreachable!("TreeSitter backend selected with pure-rust feature enabled")
+        }
+    }
+}
+
+/// Parse using the simple LR parser (pure_parser)
+#[cfg(feature = "pure-rust")]
+fn parse_with_pure_parser<T: Extract<T>>(
+    input: &str,
+    language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
+) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
     let mut parser = crate::pure_parser::Parser::new();
     let lang = language();
     parser.set_language(lang).unwrap();
@@ -223,6 +249,7 @@ pub fn parse<T: Extract<T>>(
         Some(root) => root,
         None => {
             // Convert pure_parser::ParseError to errors::ParseError
+            let lang = language();
             let errors = parse_result
                 .errors
                 .into_iter()
@@ -290,4 +317,38 @@ pub fn parse<T: Extract<T>>(
             None,
         ))
     }
+}
+
+/// Parse using the GLR parser (parser_v4)
+#[cfg(feature = "glr")]
+fn parse_with_glr<T: Extract<T>>(
+    _input: &str,
+    _language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
+) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
+    // TODO: Implement GLR parsing using parser_v4
+    //
+    // Implementation plan:
+    // 1. Deserialize Grammar from T::GRAMMAR_JSON
+    // 2. Construct ParseTable from generated static data
+    // 3. Create parser_v4::Parser instance
+    // 4. Parse input to get parse tree
+    // 5. Extract typed AST using T::extract()
+    //
+    // For now, we return an error indicating GLR is not yet fully implemented
+    Err(vec![crate::errors::ParseError {
+        reason: crate::errors::ParseErrorReason::UnexpectedToken(
+            "GLR parser integration not yet complete (Step 3 in progress)".to_string(),
+        ),
+        start: 0,
+        end: 0,
+    }])
+}
+
+/// Parse using the GLR parser (stub for when feature is not enabled)
+#[cfg(all(feature = "pure-rust", not(feature = "glr")))]
+fn parse_with_glr<T: Extract<T>>(
+    _input: &str,
+    _language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
+) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
+    unreachable!("GLR parser should not be called when glr feature is disabled")
 }
