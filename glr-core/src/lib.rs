@@ -191,6 +191,7 @@ fn build_prec_tables(
 
     // token precedence by table index
     let mut tok_prec_by_index = vec![None; symbol_to_index.len()];
+    let tok_prec_len = tok_prec_by_index.len(); // Capture length before closure
 
     // Helper: set token precedence preferring higher numeric level
     let mut set_tok_prec = |tok_idx: usize, new: TokPrec| {
@@ -218,6 +219,7 @@ fn build_prec_tables(
             // 1) Rule precedence (explicit)
             let explicit = rule.precedence.and_then(|p| {
                 if let PrecedenceKind::Static(level) = p {
+                    eprintln!("PREC DEBUG: Rule {} has precedence {}", pid, level);
                     Some(level as u8)
                 } else {
                     None
@@ -234,15 +236,20 @@ fn build_prec_tables(
             // 2) Derive token precedence from the rightmost terminal if this rule carries
             //    an explicit precedence (+ associativity) attribute
             if let Some(level) = explicit {
+                eprintln!("PREC DEBUG: Rule {} with precedence {} - finding rightmost terminal", pid, level);
                 // Find rightmost terminal in RHS
-                if let Some(tok_idx) = rule.rhs.iter().rev().find_map(|sym| {
+                let tok_idx_opt = rule.rhs.iter().rev().find_map(|sym| {
                     if let Symbol::Terminal(id) = sym {
+                        eprintln!("PREC DEBUG:   Found terminal {:?} at index {:?}", id, symbol_to_index.get(id));
                         symbol_to_index.get(id).copied()
                     } else {
                         None
                     }
-                }) && (tok_idx as u32) < token_count
+                });
+
+                if let Some(tok_idx) = tok_idx_opt && tok_idx < tok_prec_len
                 {
+                    eprintln!("PREC DEBUG: Setting token {} precedence to {} (from rule with prec {})", tok_idx, level, level);
                     set_tok_prec(
                         tok_idx,
                         TokPrec {
@@ -250,6 +257,8 @@ fn build_prec_tables(
                             assoc: rule_assoc,
                         },
                     );
+                } else {
+                    eprintln!("PREC DEBUG: No rightmost terminal found or bounds check failed");
                 }
             }
 
@@ -323,6 +332,7 @@ fn decide_with_precedence(
 ) -> PrecDecision {
     // Guard rail: production ID must be valid
     if reduce_prod_id as usize >= prec.rule_prec.len() {
+        eprintln!("CONFLICT DEBUG: Invalid production ID {}", reduce_prod_id);
         return PrecDecision::NoInfo;
     }
 
@@ -332,12 +342,19 @@ fn decide_with_precedence(
         .and_then(|o| *o)
     {
         Some(p) => p,
-        None => return PrecDecision::NoInfo,
+        None => {
+            eprintln!("CONFLICT DEBUG: No token precedence for token {}", lookahead_tok_idx);
+            return PrecDecision::NoInfo;
+        }
     };
     let rulep = prec.rule_prec[reduce_prod_id as usize];
 
+    eprintln!("CONFLICT DEBUG: Shift/Reduce conflict - token {} (prec {}) vs rule {} (prec {})",
+        lookahead_tok_idx, tokp.prec, reduce_prod_id, rulep.prec);
+
     // If either has no precedence info (0), can't decide
     if tokp.prec == 0 || rulep.prec == 0 {
+        eprintln!("CONFLICT DEBUG: One has prec 0, returning NoInfo");
         return PrecDecision::NoInfo;
     }
 
@@ -2047,17 +2064,23 @@ impl ConflictResolver {
                     None
                 };
 
+                eprintln!("PRECEDENCE DEBUG: Resolving shift/reduce conflict");
+                eprintln!("  Symbol: {:?}", conflict.symbol);
+                eprintln!("  Shift precedence: {:?}", shift_prec);
+                eprintln!("  Reduce precedence: {:?}", reduce_prec);
+
                 // Compare precedences
-                // GLR CONFLICT PRESERVATION: We preserve both actions but order them by precedence
-                // The first action in the vector is the preferred path (higher priority)
+                // PRECEDENCE RESOLUTION: When precedence can definitively resolve the conflict,
+                // we eliminate the lower-precedence action (not just re-order).
+                // This ensures correct parsing for unambiguous grammars.
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
-                        // Preserve both actions: shift first (higher priority), then reduce
-                        conflict.actions = vec![shift, reduce];
+                        // Shift wins - eliminate reduce action
+                        conflict.actions = vec![shift];
                     }
                     PrecedenceComparison::PreferReduce => {
-                        // Preserve both actions: reduce first (higher priority), then shift
-                        conflict.actions = vec![reduce, shift];
+                        // Reduce wins - eliminate shift action
+                        conflict.actions = vec![reduce];
                     }
                     PrecedenceComparison::Error => {
                         // Non-associative conflict - this is an error
