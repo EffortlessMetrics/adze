@@ -22,6 +22,119 @@ Use TDD. Red-Green-Refactor, spec driven design. User-story driven design.
 - Windows (tested via CI)
 - WebAssembly (wasm32-unknown-unknown, wasm32-wasi)
 
+## Development Environment Setup
+
+### Recommended: Nix Development Shell (Infrastructure-as-Code)
+
+The project provides a **Nix flake** that defines a reproducible development environment matching CI exactly. This is the recommended setup for contributors.
+
+**Benefits**:
+- ✅ One command setup: `nix develop`
+- ✅ Identical environment to CI (no "works on my machine")
+- ✅ All dependencies included (Rust, system libraries, tools)
+- ✅ Consistent across Linux, macOS, and Windows (WSL)
+- ✅ Isolated from system packages
+
+**One-time Setup**:
+```bash
+# Install Nix (if not already installed)
+curl -L https://nixos.org/nix/install | sh
+
+# Enable flakes (required)
+mkdir -p ~/.config/nix
+echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+
+# Restart your shell to apply changes
+exec $SHELL
+```
+
+**Using the Nix Shell**:
+```bash
+# Enter the development shell
+nix develop
+
+# You're now in a shell with all dependencies!
+# Run CI commands using just:
+just ci-all          # Run complete CI suite
+just ci-test         # Run tests only
+just ci-perf         # Run performance benchmarks
+
+# Exit the shell when done
+exit
+```
+
+**One-liner (without entering shell)**:
+```bash
+# Run CI commands directly
+nix develop . --command just ci-all
+nix develop . --command just ci-test
+nix develop . --command cargo build
+```
+
+**Available Shells**:
+- `nix develop .#default` - Standard development environment (default)
+- `nix develop .#ci` - Minimal CI environment
+- `nix develop .#perf` - Performance profiling (includes flamegraph, heaptrack)
+
+**Environment Variables** (automatically set in Nix shell):
+- `RUST_BACKTRACE=1` - Enable backtraces
+- `RUST_TEST_THREADS=2` - Concurrency cap for stable tests
+- `RAYON_NUM_THREADS=4` - Rayon thread pool limit
+- `TOKIO_WORKER_THREADS=2` - Tokio async runtime limit
+
+**References**:
+- [ADR-0008: Nix Development Environment](docs/adr/ADR-0008-NIX-DEVELOPMENT-ENVIRONMENT.md)
+- [Strategic Implementation Plan](docs/plans/STRATEGIC_IMPLEMENTATION_PLAN.md)
+- [Nix CI Workflow](.github/workflows/nix-ci.yml)
+
+### Alternative: Traditional Setup (Manual)
+
+If you prefer not to use Nix, you can set up the environment manually:
+
+**Install Rust**:
+```bash
+# Using rustup (respects rust-toolchain.toml)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup show  # Install toolchain specified in rust-toolchain.toml
+```
+
+**Install System Dependencies**:
+
+*Linux (Debian/Ubuntu)*:
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  build-essential \
+  pkg-config \
+  libssl-dev \
+  cmake \
+  clang \
+  libtree-sitter-dev
+```
+
+*macOS*:
+```bash
+brew install cmake pkg-config openssl
+```
+
+*Windows*:
+```powershell
+# Install via chocolatey
+choco install cmake pkgconfiglite
+```
+
+**Install Development Tools**:
+```bash
+cargo install just cargo-nextest cargo-insta
+```
+
+**Set Environment Variables** (add to your shell rc file):
+```bash
+export RUST_BACKTRACE=1
+export RUST_TEST_THREADS=2
+export RAYON_NUM_THREADS=4
+```
+
 ## Common Development Commands
 
 ### Building

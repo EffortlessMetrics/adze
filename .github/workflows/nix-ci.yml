@@ -1,0 +1,250 @@
+name: Nix CI
+
+# This workflow demonstrates the Nix-based development environment
+# where local `nix develop` matches CI exactly.
+#
+# To run locally:
+#   nix develop . --command just ci-all
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  # These are set by the Nix devShell, but we declare them here for visibility
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  nix-test:
+    name: Nix Dev Shell Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-24.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Set up Cachix (optional, for faster builds)
+        uses: cachix/cachix-action@v14
+        continue-on-error: true
+        with:
+          name: rust-sitter
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
+      - name: Verify flake.nix
+        run: nix flake check
+
+      - name: Show dev shell info
+        run: |
+          nix develop .#default --command bash -c '
+            echo "=== Nix Dev Shell Environment ==="
+            echo "Rust version: $(rustc --version)"
+            echo "Cargo version: $(cargo --version)"
+            echo "Just version: $(just --version)"
+            echo ""
+            echo "Environment variables:"
+            echo "  RUST_TEST_THREADS=$RUST_TEST_THREADS"
+            echo "  RAYON_NUM_THREADS=$RAYON_NUM_THREADS"
+            echo ""
+          '
+
+      - name: Run CI suite in Nix shell
+        run: nix develop .#default --command just ci-all
+
+      - name: Run GLR-specific tests
+        run: nix develop .#default --command just ci-glr
+
+  nix-perf:
+    name: Nix Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-24.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Run performance benchmarks in Nix perf shell
+        run: nix develop .#perf --command just ci-perf
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: nix-benchmark-results
+          path: target/criterion/
+
+  nix-docs:
+    name: Nix Documentation Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-24.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Build documentation
+        run: nix develop .#default --command cargo doc --workspace --no-deps --all-features
+
+      - name: Check for documentation warnings
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: nix develop .#default --command cargo doc --workspace --no-deps --all-features
+
+  nix-matrix:
+    name: Nix Feature Matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          - ""  # default features
+          - "--no-default-features --features tree-sitter-c2rust"
+          - "--features external_scanners"
+          - "--features incremental_glr"
+          - "--all-features"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-24.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Test with ${{ matrix.features || 'default features' }}
+        run: |
+          nix develop .#default --command bash -c "
+            cargo test --workspace ${{ matrix.features }} -- --test-threads=2
+          "
+
+  verify-reproducibility:
+    name: Verify Build Reproducibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-24.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: First build
+        run: |
+          nix develop .#default --command cargo build --release
+          cp -r target/release target/release1
+
+      - name: Clean and rebuild
+        run: |
+          nix develop .#default --command cargo clean
+          nix develop .#default --command cargo build --release
+
+      - name: Compare builds
+        run: |
+          if diff -r target/release1 target/release > /dev/null 2>&1; then
+            echo "✅ Builds are reproducible"
+          else
+            echo "⚠️  Builds differ (expected in some cases due to timestamps)"
+            echo "This is informational only and not a failure"
+          fi
+
+  nix-local-instructions:
+    name: Local Development Instructions
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate local development guide
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          ## 🦀 Running CI Locally with Nix
+
+          This PR runs in a Nix development environment that you can reproduce locally:
+
+          ### One-time setup:
+          ```bash
+          # Install Nix (if not already installed)
+          curl -L https://nixos.org/nix/install | sh
+
+          # Enable flakes
+          mkdir -p ~/.config/nix
+          echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+          ```
+
+          ### Running CI commands:
+          ```bash
+          # Enter the dev shell
+          nix develop
+
+          # Run the full CI suite (same as GitHub Actions)
+          just ci-all
+
+          # Or run individual commands
+          just ci-fmt          # Check formatting
+          just ci-clippy       # Run lints
+          just ci-test         # Run tests
+          just ci-perf         # Run benchmarks
+
+          # Run tests with safe concurrency
+          just ci-test-safe
+
+          # Exit the shell
+          exit
+          ```
+
+          ### One-liner (no shell):
+          ```bash
+          nix develop . --command just ci-all
+          ```
+
+          ### Performance shell (with profiling tools):
+          ```bash
+          nix develop .#perf
+          just ci-perf
+          ```
+
+          ### Benefits:
+          - ✅ Same Rust toolchain as CI
+          - ✅ Same system dependencies as CI
+          - ✅ Same environment variables as CI
+          - ✅ No "works on my machine" issues
+          - ✅ Fast iteration with local caching
+
+          See [ADR-0008](docs/adr/ADR-0008-NIX-DEVELOPMENT-ENVIRONMENT.md) for more details.
+          EOF
