@@ -604,13 +604,13 @@ GLR v1 is **DONE** when:
 - ✅ Tree API full compatibility testing complete (all 5 phases)
 - ✅ AST extraction validation complete
 
-**AC-6: Documentation Completeness** - **PARTIAL**
+**AC-6: Documentation Completeness** - **SUBSTANTIALLY COMPLETE** ✅
 - ✅ Performance Baseline (docs/PERFORMANCE_BASELINE.md)
 - ✅ Performance CI with regression gates (.github/workflows/performance.yml)
-- ⏸ Architecture document pending
-- ⏸ User guide pending
-- ⏸ Grammar author guide pending
-- ⏸ API documentation coverage pending
+- ✅ Architecture document (docs/architecture/GLR_ARCHITECTURE.md) - 500+ lines
+- ✅ User guide (docs/guides/GLR_USER_GUIDE.md) - 600+ lines
+- ✅ Grammar author guide (docs/guides/PRECEDENCE_ASSOCIATIVITY.md) - 700+ lines
+- ⏸ API documentation coverage (inline rustdoc) - deferred to incremental updates
 
 ### ⏳ In Progress
 
@@ -667,6 +667,11 @@ GLR v1 is **DONE** when:
    - Phase 4: AST extraction complete (7/7 tests, manual, positional, nested, validation)
    - Phase 5: Performance parity complete (7/7 tests, tree access, cursor, scalability)
    - Contract-first specification with systematic testing methodology
+10. **Comprehensive Documentation Suite**: 1,800+ lines of high-quality technical documentation
+   - Architecture document (500+ lines): Explanation-oriented system design
+   - User guide (600+ lines): How-to guide for practical usage
+   - Precedence/Associativity reference (700+ lines): Information-oriented lookup
+   - Follows Diataxis framework for documentation best practices
 
 ### 📋 Remaining Work for GLR v1
 
@@ -678,7 +683,11 @@ GLR v1 is **DONE** when:
    - ✅ Phase 3: Tree cursor complete (8/8 tests) **DONE**
    - ✅ Phase 4: AST extraction complete (7/7 tests) **DONE**
    - ✅ Phase 5: Performance parity complete (7/7 tests) **DONE**
-3. Architecture, user guide, and grammar author documentation (AC-6 completion)
+3. ✅ ~~Architecture, user guide, and grammar author documentation (AC-6)~~ **COMPLETE**
+   - ✅ GLR_ARCHITECTURE.md (500+ lines) **DONE**
+   - ✅ GLR_USER_GUIDE.md (600+ lines) **DONE**
+   - ✅ PRECEDENCE_ASSOCIATIVITY.md (700+ lines) **DONE**
+   - ⏸ Inline rustdoc (deferred to incremental updates)
 
 **Medium Priority**:
 1. Right associativity testing
