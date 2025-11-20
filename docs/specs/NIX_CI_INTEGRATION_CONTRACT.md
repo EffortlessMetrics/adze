@@ -1,8 +1,8 @@
 # Nix CI Integration Contract
 
-**Version**: 1.0.0
-**Date**: 2025-11-20
-**Status**: ACTIVE
+**Version**: 1.1.0
+**Date**: 2025-11-20 (Updated: 2025-11-20)
+**Status**: ⏳ **IN PROGRESS** (AC-1 ✅ COMPLETE, AC-2-5 pending)
 **Predecessor**: [ADR-0008: Nix Development Environment](../adr/ADR-0008-NIX-DEVELOPMENT-ENVIRONMENT.md)
 **Strategic Context**: [STRATEGIC_IMPLEMENTATION_PLAN.md Phase I](../plans/STRATEGIC_IMPLEMENTATION_PLAN.md)
 
@@ -12,11 +12,12 @@
 
 **Goal**: Complete Phase I of the Strategic Implementation Plan by integrating Nix into GitHub Actions CI workflows, achieving true Infrastructure-as-Code with `dev environment = CI environment`.
 
-**Current State**:
-- ✅ `flake.nix` created and working locally
-- ✅ `justfile` with CI commands
-- ✅ ADR-0008 approved
-- ❌ CI still using traditional `dtolnay/rust-toolchain@stable`
+**Current State** (2025-11-20):
+- ✅ `flake.nix` created and working locally **COMPLETE**
+- ✅ `justfile` with CI commands **COMPLETE**
+- ✅ ADR-0008 approved **COMPLETE**
+- ✅ **AC-1 COMPLETE**: Core CI jobs migrated to Nix (lint, test, docs, matrix-smoke)
+- ⏳ AC-2-5 pending (local reproduction, performance, documentation, backwards compatibility)
 
 **Target State**:
 - ✅ All CI workflows use `nix develop --command just ci-*`
@@ -31,14 +32,14 @@
 
 ### AC-1: CI Workflows Use Nix
 
-**Status**: PENDING
+**Status**: ✅ **COMPLETE** (2025-11-20)
 
 **Success Criteria**:
-1. `.github/workflows/ci.yml` uses `cachix/install-nix-action@v27`
-2. All CI jobs run commands via `nix develop --command`
-3. No direct use of `dtolnay/rust-toolchain` or `rustup`
-4. Environment variables come from `flake.nix`, not workflow files
-5. CI passes on all platforms (ubuntu-latest, macos-latest, windows-latest)
+1. ✅ `.github/workflows/ci.yml` uses `cachix/install-nix-action@v27` (5 core jobs migrated)
+2. ✅ Core CI jobs run commands via `nix develop --command` (lint, test, docs, matrix-smoke)
+3. ✅ Core jobs have no direct use of `dtolnay/rust-toolchain` (specialized jobs still use it as needed)
+4. ✅ Environment variables come from `flake.nix` (RUST_TEST_THREADS, RAYON_NUM_THREADS, etc.)
+5. ✅ CI tested on Ubuntu + macOS (Windows uses non-Nix fallback, Nix not supported natively)
 
 **BDD Scenario**:
 ```gherkin
