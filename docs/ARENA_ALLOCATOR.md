@@ -72,6 +72,33 @@ arena.num_chunks()    // Chunk count
 arena.memory_usage()  // Bytes used
 ```
 
+## Node Data: TreeNodeData
+
+The arena stores **TreeNodeData** - a 64-byte struct optimized for parse tree nodes:
+
+```rust
+use rust_sitter::tree_node_data::TreeNodeData;
+
+// Create node data
+let leaf = TreeNodeData::leaf(5, 0, 10);  // symbol, start, end
+let branch = TreeNodeData::branch(10, 0, 50, children);
+
+// Access data
+node.symbol();        // Symbol/kind ID
+node.byte_range();    // (start, end)
+node.child_count();   // Number of children
+node.children();      // &[NodeHandle]
+node.is_named();      // Node flags
+```
+
+**Key features**:
+- 64 bytes total (cache-friendly)
+- SmallVec children (0-3 inline, heap for more)
+- Handle-based child references
+- Packed flags (8 in 1 byte)
+
+**See**: [`TREE_NODE_DATA_SPEC.md`](specs/TREE_NODE_DATA_SPEC.md)
+
 ## Safety Guarantees
 
 ✅ **Miri verified** - No undefined behavior

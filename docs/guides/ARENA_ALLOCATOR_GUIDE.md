@@ -87,6 +87,68 @@ for i in 0..1000 {
 }
 ```
 
+## Node Data Structure: TreeNodeData
+
+The arena allocator works with **TreeNodeData** - a carefully optimized struct that represents parse tree nodes in memory.
+
+### What is TreeNodeData?
+
+TreeNodeData is the actual data stored in the arena for each parse tree node:
+
+```rust
+use rust_sitter::tree_node_data::TreeNodeData;
+use rust_sitter::arena_allocator::NodeHandle;
+
+// Create node data
+let leaf = TreeNodeData::leaf(5, 0, 10);  // symbol=5, bytes 0-10
+
+// Create node with children
+let children = vec![NodeHandle::new(0, 0), NodeHandle::new(0, 1)];
+let branch = TreeNodeData::branch(10, 0, 50, children);
+```
+
+### Why TreeNodeData?
+
+TreeNodeData separates the **node payload** (symbol, byte range, children, flags) from the **tree structure** (how nodes are linked). This enables:
+
+1. **Handle-based references**: Children are `NodeHandle` (8 bytes) instead of `Box<Node>` (8 bytes + heap allocation)
+2. **Memory efficiency**: 64 bytes per node (exactly at target size)
+3. **Cache-friendly**: All node data in contiguous memory
+4. **Zero-copy**: No additional allocations for common cases (≤3 children)
+
+### Key Features
+
+**Compact representation**:
+- Symbol/kind ID (u16)
+- Byte range (u32 start, u32 end)
+- Children handles (SmallVec - 0-3 inline, heap for more)
+- Named child count tracking
+- Optional field ID
+- Packed flags (8 boolean flags in 1 byte)
+
+**Total size**: 64 bytes ✅
+
+### Usage in Parser Integration
+
+When the parser builds trees using the arena:
+
+```rust
+// Parser creates TreeNodeData and stores in arena
+let node_data = TreeNodeData::new(symbol, start_byte, end_byte);
+let handle = arena.alloc(node_data);
+
+// Later access via handle
+let node_ref = arena.get(handle);
+assert_eq!(node_ref.symbol(), symbol);
+```
+
+The arena returns `NodeHandle`, which you use to access the node later. This indirection provides:
+- Lifetime safety (tree can't outlive arena)
+- Stable references (handles don't change when arena grows)
+- Efficient child storage (just 8 bytes per child reference)
+
+**For more details**: See [`docs/specs/TREE_NODE_DATA_SPEC.md`](../specs/TREE_NODE_DATA_SPEC.md)
+
 ## API Reference
 
 ### TreeArena
