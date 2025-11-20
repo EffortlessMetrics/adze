@@ -22,7 +22,8 @@
 ```
 Week 1:     ✅ Phase 1A completion (Nix CI integration)
 Week 2:     ✅ Phase 1B complete (Policy-as-Code deployed)
-Weeks 3-4:  Performance optimization (profiling, arena allocation) ← NEXT
+Week 3:     ⏳ Performance optimization (Week 3 Day 1 ✅) ← ACTIVE
+Week 4:     Performance optimization (arena allocation, stack pooling)
 Weeks 5-15: Incremental parsing implementation (11-week plan)
 Target:     Q1 2026 (v0.9.0)
 ```
@@ -40,7 +41,7 @@ Target:     Q1 2026 (v0.9.0)
 | **Policy-as-Code** | ✅ Production-Ready | 3-layer enforcement deployed | Phase 1B ✅ |
 | **Incremental Parsing** | 📋 100% Planned | 2,478 lines specs ready | v0.9.0 |
 | **Forest API** | 📋 Planned | Part of incremental v1 | v0.9.0 |
-| **Performance** | ⏳ Next Phase | Baseline established | v0.8.0 ← NEXT |
+| **Performance** | ⏳ In Progress | Week 3 Day 1 ✅ | v0.8.0 ← ACTIVE |
 | **Query System** | ⚠️ Partial | Needs completion | v1.0.0 |
 
 **Detailed Status**: [STATUS_REPORT_2025-11-20.md](./docs/STATUS_REPORT_2025-11-20.md)
@@ -203,28 +204,54 @@ Target:     Q1 2026 (v0.9.0)
 ## 🎯 v0.8.0 - Performance Optimization (Weeks 3-4)
 
 **Goal**: Performance within 2x of Tree-sitter C implementation
-**Status**: PLANNED
+**Status**: ⏳ **IN PROGRESS** (Week 3 Day 1 ✅)
+**Contract**: [PERFORMANCE_OPTIMIZATION_CONTRACT.md](./docs/specs/PERFORMANCE_OPTIMIZATION_CONTRACT.md)
+**BDD Scenarios**: [BDD_PERFORMANCE_OPTIMIZATION.md](./docs/plans/BDD_PERFORMANCE_OPTIMIZATION.md) (30 scenarios)
 
 ### Scope
 
-**Week 3: Profiling and Analysis**
+**Week 3 Day 1: Benchmarking Infrastructure** ✅ COMPLETE
+- ✅ Benchmark suite skeleton (Criterion framework, 4 groups)
+- ✅ Test fixtures created (Python, JavaScript, Rust - small size)
+- ✅ Profiling scripts (CPU flamegraphs, memory analysis)
+- ✅ Tree-sitter comparison framework
+- ✅ Baseline documentation template (PERFORMANCE_BASELINE_V0.7.0.md)
+
+**Week 3 Day 2: Baseline Measurement** ⏳ NEXT
+- Create medium/large fixtures (~500-5000 LOC)
+- Run baseline benchmarks (v0.7.0)
+- Generate CPU flamegraphs
+- Generate memory profiles
+- Compare to Tree-sitter C baseline
+- Populate baseline documentation
+
+**Week 3 Days 3-4: Profiling and Analysis**
 - Profile GLR fork/merge on large Python files (>10K LOC)
 - Identify top 5 performance bottlenecks
 - Memory usage profiled with heaptrack
-- Benchmark against tree-sitter-c reference
-- Document optimization targets
+- Analyze allocation patterns
+- Document optimization targets (AC-PERF2)
 
-**Week 4: Arena Allocation**
-- Shared parse-stack pool (reduce allocations by >50%)
-- Arena allocation for parse tree nodes
+**Week 3 Day 5: Review and Planning**
+- Review analysis findings
+- Refine optimization plan
+- Prepare for Week 4 implementation
+
+**Week 4: Implementation**
+- Arena allocation for parse tree nodes (AC-PERF3: >50% allocation reduction)
+- Parse-stack pooling (AC-PERF4: >40% fork allocation reduction)
+- Performance validation (AC-PERF5: ≤2x Tree-sitter C)
 - Memory usage reduced by >30% on large files
-- Performance within 2x of Tree-sitter C
 - No regressions on small files
 
-**Success Criteria**:
-- Parsing time within 2x of Tree-sitter C
+**Success Criteria** (AC-PERF5):
+- Parsing time ≤2x of Tree-sitter C (all benchmarks)
 - Memory usage <10x input size
 - No regressions in correctness (144/144 tests still pass)
+
+**Current Progress**:
+- Week 3 Day 1: ✅ Complete (infrastructure ready)
+- Deliverables: benchmark suite, profiling scripts, fixtures, baseline template
 
 **Estimated Completion**: Week 4
 
