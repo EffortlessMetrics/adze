@@ -111,10 +111,8 @@ fn create_token_patterns() -> Vec<RuntimeTokenPattern> {
 /// - AC-5: Parser can parse input with loaded table (TODO Phase 3.3)
 /// - AC-6: Parse tree is correct (TODO Phase 3.3)
 ///
-/// NOTE: Full parsing validation deferred to Phase 3.3 pending GLR engine
-/// integration fixes.
+/// NOTE: Tokenizer regex bug fixed in Phase 3.3 - parsing now works!
 #[test]
-#[ignore] // TODO Phase 3.3: Re-enable after GLR engine integration is fixed
 fn test_full_pipeline_arithmetic() {
     // Step 1: Build grammar (AC-1)
     let grammar = create_arithmetic_grammar();
@@ -305,9 +303,8 @@ fn test_parse_error_handling() {
 
 /// Test 4: Multiple parses with same table (reusability)
 ///
-/// NOTE: Requires working GLR engine integration (Phase 3.3)
+/// NOTE: Tokenizer regex bug fixed in Phase 3.3 - parsing now works!
 #[test]
-#[ignore] // TODO Phase 3.3: Re-enable after GLR engine integration is fixed
 fn test_table_reusability() {
     let grammar = create_arithmetic_grammar();
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();

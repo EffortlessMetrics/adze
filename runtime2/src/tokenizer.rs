@@ -208,7 +208,14 @@ impl TokenPattern {
                 let remaining = &input[position..];
                 let input_str = std::str::from_utf8(remaining).ok()?;
 
-                regex.find(input_str).map(|m| m.end())
+                // Match must start at position 0 (current position)
+                regex.find(input_str).and_then(|m| {
+                    if m.start() == 0 {
+                        Some(m.end() - m.start())  // Return match length, not absolute position
+                    } else {
+                        None  // Match doesn't start at current position
+                    }
+                })
             }
         }
     }
