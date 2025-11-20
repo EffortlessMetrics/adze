@@ -131,6 +131,11 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Save current benchmark results as a baseline (without running benchmarks)
+    SaveBaseline {
+        /// Baseline version name (e.g., "v0.8.0")
+        version: String,
+    },
     /// Compare current benchmarks against baseline
     CompareBaseline {
         /// Baseline version to compare against (e.g., "v0.8.0")
@@ -316,6 +321,9 @@ fn main() -> Result<()> {
             json,
         } => {
             profile::profile(&sh, profile_type.into(), grammar.into(), size.into(), json)?;
+        }
+        Commands::SaveBaseline { version } => {
+            baseline::save_baseline(&sh, &version)?;
         }
         Commands::CompareBaseline {
             baseline_version,

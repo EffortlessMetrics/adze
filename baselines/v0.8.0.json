@@ -1,0 +1,72 @@
+{
+  "version": "v0.8.0",
+  "date": "2025-11-20T19:39:33.891665132+00:00",
+  "platform": "linux x86_64 (Rust 1.89.0)",
+  "benchmarks": {
+    "real_parsing/parse_arithmetic/javascript_medium": {
+      "mean_ns": 7977.495789535921,
+      "stddev_ns": 477.6896834447121,
+      "samples": 100
+    },
+    "real_parsing/parse_arithmetic/python_large": {
+      "mean_ns": 28300.699795559736,
+      "stddev_ns": 1821.766424628905,
+      "samples": 100
+    },
+    "fixture_loading_python_small": {
+      "mean_ns": 0.931090095407703,
+      "stddev_ns": 0.03107738082201923,
+      "samples": 100
+    },
+    "parse_simple_expression": {
+      "mean_ns": 73075.44469676148,
+      "stddev_ns": 3538.025276544068,
+      "samples": 100
+    },
+    "fixture_loading_python_large": {
+      "mean_ns": 0.9318831231806765,
+      "stddev_ns": 0.07848531879625001,
+      "samples": 100
+    },
+    "real_parsing/parse_arithmetic/javascript_small": {
+      "mean_ns": 6931.663950632646,
+      "stddev_ns": 317.48290551821464,
+      "samples": 100
+    },
+    "real_parsing/parse_arithmetic/python_medium": {
+      "mean_ns": 8257.912719561436,
+      "stddev_ns": 334.92759156473267,
+      "samples": 100
+    },
+    "parse_deeply_nested": {
+      "mean_ns": 86828.8506323059,
+      "stddev_ns": 3080.0542380190145,
+      "samples": 100
+    },
+    "real_parsing/parse_arithmetic/javascript_large": {
+      "mean_ns": 10279.494262109542,
+      "stddev_ns": 655.0513775384554,
+      "samples": 100
+    },
+    "validate_parse_result": {
+      "mean_ns": 0.6067997959209194,
+      "stddev_ns": 0.01616724970853522,
+      "samples": 100
+    },
+    "parse_maximum_forks": {
+      "mean_ns": 137996.50196257382,
+      "stddev_ns": 5690.5774829019565,
+      "samples": 100
+    },
+    "real_parsing/parse_arithmetic/python_small": {
+      "mean_ns": 6201.404560595558,
+      "stddev_ns": 449.9400915991045,
+      "samples": 100
+    },
+    "parse_highly_ambiguous": {
+      "mean_ns": 160793.48459537874,
+      "stddev_ns": 6987.112132926407,
+      "samples": 100
+    }
+  }
+}

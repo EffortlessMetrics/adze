@@ -1,0 +1,72 @@
+# Benchmark Fixtures Metadata
+#
+# This file documents the source, license, and characteristics of all fixtures
+# used in performance benchmarking.
+
+[python.small]
+name = "small.py"
+target_loc = 100
+actual_loc = 0  # Updated by generator
+description = "Small Python module with basic functions and classes"
+generator = "synthetic"
+license = "MIT (generated code)"
+validated_with = "python -m py_compile"
+
+[python.medium]
+name = "medium.py"
+target_loc = 2000
+actual_loc = 0  # Updated by generator
+description = "Medium Python module simulating a realistic application"
+generator = "synthetic"
+license = "MIT (generated code)"
+validated_with = "python -m py_compile"
+
+[python.large]
+name = "large.py"
+target_loc = 10000
+actual_loc = 0  # Updated by generator
+description = "Large Python module for stress testing"
+generator = "synthetic"
+license = "MIT (generated code)"
+validated_with = "python -m py_compile"
+
+[javascript.small]
+name = "small.js"
+target_loc = 100
+actual_loc = 0  # Updated by generator
+description = "Small JavaScript module with ES6 features"
+generator = "synthetic"
+license = "MIT (generated code)"
+validated_with = "node --check"
+
+[javascript.medium]
+name = "medium.js"
+target_loc = 1000
+actual_loc = 0  # Updated by generator
+description = "Medium JavaScript module simulating a web app component"
+generator = "synthetic"
+license = "MIT (generated code)"
+validated_with = "node --check"
+
+[javascript.large]
+name = "large.js"
+target_loc = 5000
+actual_loc = 0  # Updated by generator
+description = "Large JavaScript module for stress testing"
+generator = "synthetic"
+license = "MIT (generated code)"
+validated_with = "node --check"
+
+[generation]
+version = "1.0.0"
+date = "2025-11-20"
+tool = "benchmarks/fixtures/generator.rs"
+
+[validation]
+# Fixtures are validated on generation and in CI
+# Validation ensures:
+# - Syntactic correctness (parseable by reference parser)
+# - LOC within ±10 lines of target
+# - No hardcoded secrets or sensitive data
+enabled = true
+tolerance_lines = 10
