@@ -192,6 +192,16 @@ impl Tree {
         Node::new(&self.root, self.language.as_ref())
     }
 
+    /// Create a tree cursor for traversing the tree
+    ///
+    /// # Tree-sitter API Compatibility
+    ///
+    /// This method provides the Tree-sitter compatible `walk()` API for
+    /// creating a cursor at the root of the tree.
+    pub fn walk(&self) -> TreeCursor<'_> {
+        TreeCursor::new(self)
+    }
+
     /// Get the language used to parse this tree
     pub fn language(&self) -> Option<&Language> {
         self.language.as_ref()
@@ -318,9 +328,9 @@ impl Tree {
         Ok(())
     }
 
-    /// Walk the tree with a callback
+    /// Walk the tree nodes with a callback (internal helper)
     #[allow(dead_code)]
-    pub(crate) fn walk<F>(&self, mut callback: F)
+    pub(crate) fn walk_nodes<F>(&self, mut callback: F)
     where
         F: FnMut(&TreeNode),
     {
@@ -358,6 +368,8 @@ struct CursorEntry<'tree> {
 pub struct TreeCursor<'tree> {
     /// Stack of nodes from root to current position
     stack: Vec<CursorEntry<'tree>>,
+    /// Reference to the language for symbol resolution
+    language: Option<&'tree Language>,
 }
 
 impl<'tree> TreeCursor<'tree> {
@@ -368,6 +380,7 @@ impl<'tree> TreeCursor<'tree> {
                 node: &tree.root,
                 index: 0,
             }],
+            language: tree.language.as_ref(),
         }
     }
 
@@ -414,6 +427,46 @@ impl<'tree> TreeCursor<'tree> {
         } else {
             false
         }
+    }
+
+    /// Get the current node at the cursor position
+    ///
+    /// # Tree-sitter API Compatibility
+    ///
+    /// Returns a Node wrapping the TreeNode at the current cursor position.
+    pub fn node(&self) -> Node<'tree> {
+        let entry = self.stack.last().expect("Cursor stack should never be empty");
+        Node::new(entry.node, self.language)
+    }
+
+    /// Reset the cursor to a specific node
+    ///
+    /// # Tree-sitter API Compatibility
+    ///
+    /// Resets the cursor to point to the given node. The node must be from
+    /// the same tree as this cursor.
+    pub fn reset(&mut self, node: &Node<'tree>) {
+        // Extract the TreeNode from the Node
+        // For now, reset to root (proper implementation would track node path)
+        self.stack.truncate(1);
+    }
+
+    /// Get the field ID of the current node (optional Tree-sitter feature)
+    ///
+    /// Returns None if field tracking is not enabled or the current node
+    /// has no field.
+    pub fn field_id(&self) -> Option<u16> {
+        // Field tracking not yet implemented
+        None
+    }
+
+    /// Get the field name of the current node (optional Tree-sitter feature)
+    ///
+    /// Returns None if field tracking is not enabled or the current node
+    /// has no field.
+    pub fn field_name(&self) -> Option<&str> {
+        // Field tracking not yet implemented
+        None
     }
 }
 

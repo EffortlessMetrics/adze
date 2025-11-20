@@ -60,7 +60,7 @@ pub use language::Language;
 pub use node::{Node, Point};
 pub use parser::Parser;
 pub use token::Token;
-pub use tree::Tree;
+pub use tree::{Tree, TreeCursor};
 
 #[cfg(feature = "incremental")]
 pub use tree::EditError;
