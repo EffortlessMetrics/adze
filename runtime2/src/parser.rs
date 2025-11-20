@@ -302,6 +302,132 @@ impl Parser {
         Ok(())
     }
 
+    /// Load GLR parse table from .parsetable file bytes (Phase 3.1)
+    ///
+    /// This is the primary method for loading pre-generated parse tables in production.
+    /// The .parsetable file format includes:
+    /// - ParseTable data (serialized with bincode)
+    /// - Grammar metadata (name, version, statistics)
+    /// - Grammar hash for verification
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use rust_sitter::Parser;
+    ///
+    /// let bytes = include_bytes!("../path/to/grammar.parsetable");
+    /// let mut parser = Parser::new();
+    /// parser.load_glr_table_from_bytes(bytes)?;
+    ///
+    /// // Optionally set symbol metadata and token patterns
+    /// parser.set_symbol_metadata(metadata)?;
+    /// parser.set_token_patterns(patterns)?;
+    ///
+    /// let tree = parser.parse(b"source code", None)?;
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// - `ParseError::Deserialization`: If bytes are not a valid .parsetable file
+    /// - `ParseError::InvalidTable`: If table violates invariants
+    /// - `ParseError::VersionMismatch`: If format version is incompatible
+    ///
+    /// # Spec
+    ///
+    /// See `docs/specs/PARSETABLE_FILE_FORMAT_SPEC.md` for file format details.
+    ///
+    #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "pure-rust-glr", feature = "serialization"))))]
+    pub fn load_glr_table_from_bytes(&mut self, bytes: &[u8]) -> Result<(), ParseError> {
+        // Parse .parsetable file format
+        // Format: magic(4) + version(4) + hash(32) + metadata_len(4) + metadata(variable) + table_len(4) + table(variable)
+
+        if bytes.len() < 44 {
+            return Err(ParseError::with_msg(&format!(
+                "Invalid .parsetable file: too short ({} bytes, need at least 44)",
+                bytes.len()
+            )));
+        }
+
+        // Verify magic number "RSPT"
+        let magic = &bytes[0..4];
+        if magic != b"RSPT" {
+            return Err(ParseError::with_msg(&format!(
+                "Invalid .parsetable file: bad magic number {:?} (expected 'RSPT')",
+                magic
+            )));
+        }
+
+        // Read format version
+        let version = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
+        if version != 1 {
+            return Err(ParseError::with_msg(&format!(
+                "Unsupported .parsetable format version {} (expected 1)",
+                version
+            )));
+        }
+
+        // Skip grammar hash (bytes 8-40) for now
+        // TODO Phase 3.3: Verify hash matches expected grammar
+
+        // Read metadata length
+        let metadata_len = u32::from_le_bytes([bytes[40], bytes[41], bytes[42], bytes[43]]) as usize;
+
+        let metadata_start = 44;
+        let metadata_end = metadata_start + metadata_len;
+
+        if bytes.len() < metadata_end {
+            return Err(ParseError::with_msg(&format!(
+                "Invalid .parsetable file: truncated metadata (need {} bytes, have {})",
+                metadata_end,
+                bytes.len()
+            )));
+        }
+
+        // Skip metadata parsing for now (Phase 3.2)
+        // let metadata_bytes = &bytes[metadata_start..metadata_end];
+
+        // Read table data length
+        if bytes.len() < metadata_end + 4 {
+            return Err(ParseError::with_msg(
+                "Invalid .parsetable file: missing table length"
+            ));
+        }
+
+        let table_len = u32::from_le_bytes([
+            bytes[metadata_end],
+            bytes[metadata_end + 1],
+            bytes[metadata_end + 2],
+            bytes[metadata_end + 3],
+        ]) as usize;
+
+        let table_start = metadata_end + 4;
+        let table_end = table_start + table_len;
+
+        if bytes.len() < table_end {
+            return Err(ParseError::with_msg(&format!(
+                "Invalid .parsetable file: truncated table data (need {} bytes, have {})",
+                table_end,
+                bytes.len()
+            )));
+        }
+
+        let table_bytes = &bytes[table_start..table_end];
+
+        // Deserialize ParseTable using glr-core serialization
+        let table = rust_sitter_glr_core::ParseTable::from_bytes(table_bytes)
+            .map_err(|e| ParseError::with_msg(&format!("Failed to deserialize ParseTable: {}", e)))?;
+
+        // Leak the table to get a 'static reference
+        // This is safe because parse tables are immutable and live for the entire program
+        let table_static: &'static rust_sitter_glr_core::ParseTable = Box::leak(Box::new(table));
+
+        // Set the GLR table
+        self.set_glr_table(table_static)?;
+
+        Ok(())
+    }
+
     /// Set symbol metadata for GLR mode
     ///
     /// Symbol metadata is needed for tree construction in GLR mode.
