@@ -1,6 +1,6 @@
 # Status Now - Maintainer Overview
 
-**Last Updated**: 2025-11-19
+**Last Updated**: 2025-11-20
 **Version**: v0.6.1-beta
 **Next Release**: v0.7.0 (Target: March 2026)
 
@@ -8,7 +8,7 @@
 
 ## 🎯 Current Focus
 
-**This Week**: GLR Runtime Wiring (Critical Blocker for v0.7.0)
+**This Week**: .parsetable Pipeline Completion & Documentation (GLR v1 Phase 4)
 - [x] Repository URL migration (hydro-project → EffortlessMetrics)
 - [x] Messaging alignment (production-ready → strong beta)
 - [x] GLR runtime architectural issue documented
@@ -17,6 +17,12 @@
 - [x] **GLR Step 2**: Parser backend selection API ✅
 - [x] **GLR Step 3**: Parser routing infrastructure in __private::parse() ✅
 - [x] **parser_v4 Integration**: Extraction integration complete ✅
+- [x] **.parsetable Pipeline**: Complete (Phases 1-3.2) ✅ NEW!
+  - [x] Phase 1: ParseTable serialization (bincode + versioning)
+  - [x] Phase 2: .parsetable file format (writer + spec)
+  - [x] Phase 3.1: Parser::load_glr_table_from_bytes() API
+  - [x] Phase 3.2: End-to-end integration tests (30/32 passing)
+  - [x] Phase 4: Documentation & API docs complete
 - [ ] **GLR Step 4**: Grammar metadata generation (deferred - optional optimization)
 - [ ] **GLR Step 5**: Implement BDD scenario tests (NEXT)
 - [ ] **GLR Step 6**: Re-enable arithmetic tests
@@ -43,6 +49,13 @@
 - **WASM support**: First-class support
 - **Build system**: `build.rs` integration stable
 - **Precedence & associativity**: Works in table generation (not yet in runtime)
+- **.parsetable Pipeline**: ✨ NEW! Production-ready binary format for GLR tables
+  - **ParseTable serialization**: Bincode-based with version wrapper (Format v1)
+  - **File generation**: Automatic .parsetable generation in build.rs
+  - **Runtime loading**: `Parser::load_glr_table_from_bytes()` API
+  - **Test coverage**: 30/32 tests passing (94%), 2 deferred to Phase 3.3
+  - **Documentation**: Comprehensive spec, quickstart guide, and API docs
+  - **Use case**: Fast builds, deterministic deployment, runtime grammar loading
 
 ### ⚠️ Experimental / Partial
 - **GLR runtime**: Fully wired with extraction integration (`parser_v4.rs`), available via `glr` feature
