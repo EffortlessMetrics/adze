@@ -29,6 +29,9 @@
             pkgs.cargo-insta
             pkgs.just
 
+            # Quality automation (Policy-as-Code)
+            pkgs.pre-commit
+
             # C / system deps for tree-sitter-c2rust, cc, etc.
             pkgs.clang
             pkgs.llvmPackages.bintools
@@ -62,6 +65,17 @@
               rustup show >/dev/null 2>&1 || rustup toolchain install
             fi
 
+            # Install pre-commit hooks automatically (Policy-as-Code)
+            if [ -f .pre-commit-config.yaml ]; then
+              if pre-commit install --install-hooks >/dev/null 2>&1; then
+                echo "✅ Pre-commit hooks installed"
+              else
+                echo "⚠️  Pre-commit hooks installation failed (non-fatal)"
+              fi
+              # Also install commit-msg hook for message validation
+              pre-commit install --hook-type commit-msg >/dev/null 2>&1 || true
+            fi
+
             # Show environment info
             echo "🦀 rust-sitter development environment ready!"
             echo ""
@@ -74,6 +88,11 @@
             echo "  just ci-test      - Run tests only"
             echo "  just ci-perf      - Run performance benchmarks"
             echo "  just help         - Show all available commands"
+            echo ""
+            echo "Quality automation:"
+            echo "  Pre-commit hooks: Installed (run on git commit)"
+            echo "  Manual run:       pre-commit run --all-files"
+            echo "  Bypass (WIP):     git commit --no-verify"
             echo ""
           '';
         };
