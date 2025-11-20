@@ -248,14 +248,14 @@ Scenario: Tree API compatibility
 **Success Criteria**:
 - [x] Feature flag routing works correctly ✅
 - [x] GLR backend selected when `glr` feature enabled ✅
-- [~] Tree API compatibility - **PROGRESSING WELL** (21/27 tests passing, 2 baselines) ⚠️
+- [~] Tree API compatibility - **MAJORITY COMPLETE** (28/34 tests passing, 2 baselines) ⚠️
   - [x] Phase 1: Property methods (kind, byte ranges, text) - 7/7 tests ✅
   - [~] Phase 2: Traversal methods (child, sibling) - 5/6 tests ⚠️
   - [x] Phase 3: Tree cursor (walk, navigation, traversal) - 8/8 tests ✅
-  - [ ] Phase 4: AST extraction
-  - [ ] Phase 5: Performance parity
+  - [x] Phase 4: AST extraction (manual, positional, nested) - 7/7 tests ✅
+  - [ ] Phase 5: Performance parity (pending)
   - See: [TREE_API_COMPATIBILITY_CONTRACT.md](./TREE_API_COMPATIBILITY_CONTRACT.md)
-- [ ] AST extraction works with GLR-produced trees (Phase 4 pending)
+- [x] AST extraction works with GLR-produced trees ✅
 - [ ] Error handling consistent between backends
 
 ---
@@ -626,15 +626,16 @@ GLR v1 is **DONE** when:
 
 ### 📊 Test Status Summary
 
-**Actual Test Count**: 123/123 tests passing (100%), 2 ignored with baseline tests
+**Actual Test Count**: 131/131 tests passing (100%), 2 ignored with baseline tests
 - glr-core tests: 4/4 ✅ (including BDD Phase 1)
 - runtime2 tokenizer tests: 5/5 ✅ (including zero-length + whitespace)
 - runtime2 BDD tests: 4/4 ✅ (including scenario 7 with whitespace)
 - runtime2 integration tests: 85/85 ✅
-- runtime2 Tree API tests: 23/25 passing, 2 ignored (position tracking, parent navigation)
+- runtime2 Tree API tests: 31/33 passing, 2 ignored (position tracking, parent navigation)
   - Phase 1 (Property Methods): 7/7 ✅ (1 baseline for positions)
   - Phase 2 (Traversal Methods): 6/6 ✅ (1 baseline for parent navigation)
   - Phase 3 (Tree Cursor): 8/8 ✅ (cursor creation, navigation, traversal)
+  - Phase 4 (AST Extraction): 7/7 ✅ (manual, positional, nested, validation)
   - Baseline tests provide API validation while full implementation is pending
 - Arithmetic integration tests: 7/8 passing, 1 ignored with documentation
 - Performance benchmarks: All passing with baseline established
@@ -649,25 +650,26 @@ GLR v1 is **DONE** when:
 2. **BDD Methodology**: End-to-end BDD validation from table to runtime
 3. **Performance Governance**: Baseline established with automated CI gates
 4. **Critical Bug Fixes**: Sparse symbol ID handling discovered and fixed via BDD
-5. **100% Test Pass Rate**: All implemented tests passing (123/123)
+5. **100% Test Pass Rate**: All implemented tests passing (131/131)
 6. **Whitespace-Aware Tokenization**: Symbol 255 pattern with Skip mode
 7. **Zero-Length Protection**: Infinite loop prevention in regex matcher
 8. **Ambiguous Input Parsing**: Dangling-else problem successfully handled
-9. **Tree API Compatibility**: Phases 1-3 progressing well (21/27 tests passing)
+9. **Tree API Compatibility**: Phases 1-4 majority complete (28/34 tests passing)
    - Phase 1: Property methods complete (7/7 tests, kind, byte ranges, text)
    - Phase 2: Traversal methods nearly complete (5/6 tests, child, sibling navigation)
    - Phase 3: Tree cursor complete (8/8 tests, walk, navigation, DFS traversal)
-   - Contract-first specification with systematic testing
+   - Phase 4: AST extraction complete (7/7 tests, manual, positional, nested, validation)
+   - Contract-first specification with systematic testing methodology
 
 ### 📋 Remaining Work for GLR v1
 
 **High Priority**:
 1. ✅ ~~Whitespace-aware tokenization for scenario 7~~ **COMPLETE**
-2. ⚠️ Tree API compatibility validation (AC-5) - **PROGRESSING WELL** (21/27 tests passing)
+2. ⚠️ Tree API compatibility validation (AC-5) - **MAJORITY COMPLETE** (28/34 tests passing)
    - ✅ Phase 1: Property methods complete (7/7 tests) **DONE**
    - ⚠️ Phase 2: Traversal methods nearly complete (5/6 tests, parent() pending)
    - ✅ Phase 3: Tree cursor complete (8/8 tests) **DONE**
-   - [ ] Phase 4: AST extraction (pending)
+   - ✅ Phase 4: AST extraction complete (7/7 tests) **DONE**
    - [ ] Phase 5: Performance parity (pending)
 3. Architecture, user guide, and grammar author documentation (AC-6 completion)
 
