@@ -19,12 +19,13 @@ This plan establishes a systematic approach to complete rust-sitter's journey to
 - **CI-as-Code**: GitHub Actions with deterministic build environments
 
 **Current State** (2025-11-20):
-- ✅ GLR v1 core complete (93/93 tests passing, performance baseline established)
-- ✅ Runtime2 + .parsetable pipeline working
-- ✅ Comprehensive roadmaps and contracts in place
-- ⚠️ Development environment not reproducible across machines
-- ⚠️ GLR v1 documentation incomplete (3/7 deliverables)
-- ⚠️ CI runs in GitHub-managed environment (not local-reproducible)
+- ✅ **GLR v1 COMPLETE** (144/144 tests passing, 100% pass rate, production-ready)
+- ✅ Runtime2 + .parsetable pipeline working (89/89 tests, 100%)
+- ✅ Comprehensive documentation (2,300+ lines: architecture, guides, API docs)
+- ✅ Performance baseline established with CI regression gates
+- ✅ Nix development shell created (flake.nix + justfile + ADR-0008)
+- ⚠️ **IN PROGRESS**: Nix CI integration (Phase I Day 3-5)
+- ⚠️ CI runs in GitHub-managed environment (not yet using Nix)
 
 **Target State** (Q1 2025):
 - ✅ Nix-based dev shell = CI environment
@@ -58,11 +59,11 @@ So that "works on my machine" becomes "works everywhere"
 5. Environment variables (RUST_TEST_THREADS, etc.) set correctly
 
 **Deliverables**:
-- [ ] `flake.nix` at repository root
-- [ ] `justfile` with CI commands (`just ci-all`, `just ci-perf`)
-- [ ] `.github/workflows/ci.yml` updated to use Nix
-- [ ] `docs/dev-workflow.md` updated with Nix instructions
-- [ ] ADR documenting Nix adoption rationale
+- [x] `flake.nix` at repository root ✅ **COMPLETE**
+- [x] `justfile` with CI commands (`just ci-all`, `just ci-perf`) ✅ **COMPLETE**
+- [ ] `.github/workflows/ci.yml` updated to use Nix ⏳ **IN PROGRESS** (see NIX_CI_INTEGRATION_CONTRACT.md)
+- [x] `CLAUDE.md` updated with Nix instructions ✅ **COMPLETE**
+- [x] ADR documenting Nix adoption rationale ✅ **COMPLETE** (ADR-0008)
 
 **BDD Scenario**:
 ```gherkin
@@ -190,9 +191,14 @@ Scenario: Quality gates prevent bad merges
 
 ---
 
-## II. GLR v1 Completion (Weeks 3-4)
+## II. GLR v1 Completion (Weeks 3-4) ✅ **COMPLETE**
 
-### Goal: Complete all GLR v1 acceptance criteria
+**Status**: ✅ **PRODUCTION-READY** (Completed 2025-11-20)
+**Achievement**: 144/144 tests passing (100%), all 6 acceptance criteria met
+**Documentation**: 2,300+ lines comprehensive (architecture + guides + API docs)
+**Summary**: [GLR_V1_COMPLETION_SUMMARY.md](../releases/GLR_V1_COMPLETION_SUMMARY.md)
+
+### Goal: Complete all GLR v1 acceptance criteria ✅ ACHIEVED
 
 **Reference**: [GLR_V1_COMPLETION_CONTRACT.md](../specs/GLR_V1_COMPLETION_CONTRACT.md)
 
