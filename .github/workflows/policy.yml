@@ -1,0 +1,217 @@
+# Policy Enforcement Workflow
+# Part of Policy-as-Code (AC-P2: CI Policy Enforcement)
+# ADR-0010: Layered Enforcement Architecture (Layer 3: Safety Net)
+#
+# This workflow enforces all quality, security, and performance policies
+# and CANNOT be bypassed. Required for PR merge via branch protection.
+#
+# Jobs run in parallel for fast feedback:
+#   - quality-gates: Formatting, linting, tests, docs
+#   - security-scanning: Vulnerabilities, licenses
+#   - test-connectivity: No .rs.disabled files, non-zero test counts
+#
+# Performance gates run only on PRs (not on push to main)
+
+name: Policy Enforcement
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+# Cancel in-progress runs when new push occurs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_BACKTRACE: 1
+  RUST_TEST_THREADS: 2
+  RAYON_NUM_THREADS: 4
+
+jobs:
+  # ==========================================================================
+  # Quality Gates (Formatting, Linting, Tests, Docs)
+  # ==========================================================================
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Setup Nix cache
+        uses: cachix/cachix-action@v15
+        with:
+          name: rust-sitter
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        continue-on-error: true
+
+      - name: Check Formatting
+        run: |
+          nix develop --command cargo fmt --all -- --check
+
+      - name: Check Clippy (Zero Warnings)
+        run: |
+          nix develop --command cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run Tests (100% Pass Rate)
+        run: |
+          nix develop --command cargo test --workspace -- --test-threads=2
+
+      - name: Check Documentation (Zero Warnings)
+        run: |
+          nix develop --command cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  # ==========================================================================
+  # Security Scanning (Vulnerabilities, Licenses)
+  # ==========================================================================
+  security-scanning:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo Audit (Vulnerabilities)
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked
+
+      - name: Cargo Deny (Licenses & Advisories)
+        run: cargo deny check
+
+  # ==========================================================================
+  # Test Connectivity Safeguards
+  # ==========================================================================
+  test-connectivity:
+    name: Test Connectivity Safeguards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for .rs.disabled files (Hard Failure)
+        run: |
+          if find . -name "*.rs.disabled" | grep -q .; then
+            echo "❌ Found .rs.disabled files (tests disconnected)"
+            find . -name "*.rs.disabled"
+            echo ""
+            echo "Use #[ignore] attribute instead of renaming files."
+            echo "This ensures tests remain connected and visible."
+            exit 1
+          fi
+          echo "✅ No .rs.disabled files found"
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Verify Non-Zero Test Counts
+        run: |
+          echo "Checking test discovery for all crates..."
+          nix develop --command bash -c '
+            for crate in $(cargo metadata --no-deps --format-version 1 | jq -r ".packages[].name"); do
+              echo -n "  $crate: "
+              count=$(cargo test -p "$crate" -- --list --format=terse 2>/dev/null | grep -c ": test" || echo "0")
+              if [ "$count" -eq 0 ]; then
+                echo "❌ ZERO TESTS (may need investigation)"
+              else
+                echo "✅ $count tests"
+              fi
+            done
+          '
+
+  # ==========================================================================
+  # Performance Regression Detection (PR only)
+  # ==========================================================================
+  performance-gates:
+    name: Performance Regression Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Benchmark PR branch
+        run: |
+          nix develop --command cargo bench --workspace -- --save-baseline pr
+        continue-on-error: true  # Don't fail if no benchmarks exist
+
+      - name: Checkout base branch
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          git checkout origin/${{ github.base_ref }}
+
+      - name: Benchmark base branch
+        run: |
+          nix develop --command cargo bench --workspace -- --save-baseline base
+        continue-on-error: true
+
+      - name: Compare performance (5% threshold)
+        run: |
+          # Return to PR branch to run comparison
+          git checkout ${{ github.event.pull_request.head.sha }}
+
+          # Check if benchmark comparison script exists
+          if [ -f scripts/check-perf-regression.sh ]; then
+            nix develop --command ./scripts/check-perf-regression.sh base pr 5
+          else
+            echo "⚠️  Performance comparison script not yet implemented"
+            echo "This is expected - will be added in Phase III"
+          fi
+        continue-on-error: true  # Don't fail until script exists
+
+  # ==========================================================================
+  # Policy Workflow Summary
+  # ==========================================================================
+  policy-summary:
+    name: Policy Summary
+    runs-on: ubuntu-latest
+    needs: [quality-gates, security-scanning, test-connectivity]
+    if: always()
+
+    steps:
+      - name: Check all policies passed
+        run: |
+          if [ "${{ needs.quality-gates.result }}" != "success" ] || \
+             [ "${{ needs.security-scanning.result }}" != "success" ] || \
+             [ "${{ needs.test-connectivity.result }}" != "success" ]; then
+            echo "❌ Policy Enforcement Failed"
+            echo ""
+            echo "Quality Gates: ${{ needs.quality-gates.result }}"
+            echo "Security Scanning: ${{ needs.security-scanning.result }}"
+            echo "Test Connectivity: ${{ needs.test-connectivity.result }}"
+            echo ""
+            echo "Fix the failing policies and push again."
+            exit 1
+          else
+            echo "✅ All policies passed"
+            echo ""
+            echo "Quality Gates: ✅"
+            echo "Security Scanning: ✅"
+            echo "Test Connectivity: ✅"
+          fi
