@@ -96,6 +96,10 @@ pub mod stack;
 pub mod telemetry;
 pub mod ts_lexer;
 
+/// ParseTable serialization for GLR mode
+#[cfg(feature = "serialization")]
+pub mod serialization;
+
 // Trace macro for debugging GLR conflicts and decisions
 /// Internal tracing macro used by the GLR runtime in debug/test builds.
 #[cfg(feature = "glr-trace")]
@@ -1391,6 +1395,7 @@ impl ItemSetCollection {
 
 /// Lexer mode for a parser state
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct LexMode {
     /// Internal lexer DFA state
     pub lex_state: u16,
@@ -1400,6 +1405,7 @@ pub struct LexMode {
 
 /// How GOTO table columns are indexed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub enum GotoIndexing {
     /// Use nonterminal_to_index mapping (standard)
     NonterminalMap,
@@ -1409,6 +1415,7 @@ pub enum GotoIndexing {
 
 /// GLR-compatible parse table supporting multiple actions per state
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseTable {
     /// ACTION table: indexed by [state][terminal] using symbol_to_index
@@ -1460,6 +1467,7 @@ pub struct ParseTable {
 
 /// Parse rule for reduction
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseRule {
     pub lhs: SymbolId,
@@ -1864,6 +1872,7 @@ pub type ActionCell = Vec<Action>;
 
 /// Symbol metadata for the parse table
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct SymbolMetadata {
     pub name: String,

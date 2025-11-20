@@ -575,6 +575,34 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         let node_types_path = grammar_dir.join("NODE_TYPES.json");
         let mut node_types_file = fs::File::create(&node_types_path)?;
         node_types_file.write_all(node_types_json.as_bytes())?;
+
+        // Write .parsetable file for GLR runtime
+        #[cfg(feature = "serialization")]
+        {
+            use rust_sitter_tablegen::ParsetableWriter;
+
+            // Extract version from Cargo.toml if available, otherwise use "0.1.0"
+            let grammar_version = std::env::var("CARGO_PKG_VERSION")
+                .unwrap_or_else(|_| "0.1.0".to_string());
+
+            let writer = ParsetableWriter::new(
+                &grammar,
+                &parse_table,
+                &grammar_name,
+                &grammar_version,
+            );
+
+            let parsetable_path = grammar_dir.join(format!("{}.parsetable", grammar_name));
+            writer
+                .write_file(&parsetable_path)
+                .with_context(|| format!("Failed to write .parsetable file to {:?}", parsetable_path))?;
+
+            writeln!(
+                debug_file,
+                "Generated .parsetable file: {}",
+                parsetable_path.display()
+            )?;
+        }
     }
 
     // Ensure grammar dir exists for parser module

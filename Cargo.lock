@@ -220,6 +220,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1949,6 +1958,7 @@ dependencies = [
 name = "rust-sitter-glr-core"
 version = "0.8.0-dev"
 dependencies = [
+ "bincode",
  "criterion",
  "dhat",
  "fixedbitset",
@@ -2078,6 +2088,7 @@ dependencies = [
  "regex",
  "rust-sitter-glr-core",
  "rust-sitter-ir",
+ "rust-sitter-tablegen",
  "rustc-hash 2.1.1",
  "smallvec",
  "thiserror 1.0.69",
@@ -2088,6 +2099,7 @@ dependencies = [
 name = "rust-sitter-tablegen"
 version = "0.8.0-dev"
 dependencies = [
+ "chrono",
  "criterion",
  "indexmap",
  "insta",
@@ -2097,8 +2109,10 @@ dependencies = [
  "rust-sitter-glr-core",
  "rust-sitter-ir",
  "rustc-hash 2.1.1",
+ "rustc_version_runtime",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 2.0.16",
  "tree-sitter 0.25.8",
  "tree-sitter-c2rust",
@@ -2177,6 +2191,25 @@ name = "rustc-hash"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
+
+[[package]]
+name = "rustc_version"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
+dependencies = [
+ "semver",
+]
+
+[[package]]
+name = "rustc_version_runtime"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dd18cd2bae1820af0b6ad5e54f4a51d0f3fcc53b05f845675074efcc7af071d"
+dependencies = [
+ "rustc_version",
+ "semver",
+]
 
 [[package]]
 name = "rustix"

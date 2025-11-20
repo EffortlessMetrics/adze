@@ -33,14 +33,17 @@ typed-arena = { version = "2.0", optional = true }
 [dev-dependencies]
 criterion = "0.5"
 pretty_assertions = "1.4"
+rust-sitter-tablegen = { path = "../tablegen", features = ["serialization"] }
 
 [features]
-default = ["glr-core"]
+default = ["glr-core", "serialization"]
 # Enable GLR core integration
 glr-core = ["dep:rust-sitter-glr-core", "dep:rust-sitter-ir"]
 # Enable pure-Rust GLR runtime (bypasses TSLanguage encoding)
 # This is the Phase 3 feature that uses ParseTable directly
 pure-rust-glr = ["glr-core", "dep:regex"]
+# Enable .parsetable file loading (Phase 3.1)
+serialization = ["rust-sitter-glr-core/serialization"]
 # Enable arena allocators for performance
 arenas = ["bumpalo", "typed-arena"]
 # Enable incremental parsing support

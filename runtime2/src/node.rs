@@ -42,12 +42,23 @@ impl<'tree> Node<'tree> {
         }
     }
 
-    /// Get the node's symbol type
+    /// Get the node's symbol type name
     ///
-    /// # Phase 1: Returns "unknown" (no symbol name resolution yet)
-    /// # Phase 2: Will use language.symbol_metadata for actual names
+    /// Returns the symbol name from the language's symbol_names array.
+    /// Falls back to "unknown" if language is not set or symbol ID is out of bounds.
+    ///
+    /// # Phase 3.3: Now uses Language.symbol_names for actual symbol resolution
     pub fn kind(&self) -> &str {
-        "unknown"
+        if let Some(language) = self.language {
+            let symbol_id = self.data.symbol as usize;
+            language
+                .symbol_names
+                .get(symbol_id)
+                .map(|s| s.as_str())
+                .unwrap_or("unknown")
+        } else {
+            "unknown"
+        }
     }
 
     /// Get the node's symbol ID

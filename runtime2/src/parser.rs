@@ -224,10 +224,76 @@ impl Parser {
         let mut tree = converter.to_tree(&forest, input)
             .map_err(|e| ParseError::with_msg(&e.to_string()))?;
 
+        // Phase 3.3: Build Language from ParseTable for symbol names
+        let language = Self::build_language_from_parse_table(glr_state.parse_table);
+        tree.set_language(language);
+
         // Set tree metadata
         tree.set_source(input.to_vec());
 
         Ok(tree)
+    }
+
+    /// Build a Language from ParseTable for symbol name resolution (Phase 3.3)
+    ///
+    /// Extracts symbol names from the ParseTable's grammar and creates a minimal
+    /// Language struct for tree node name resolution.
+    ///
+    /// # Symbol Name Resolution
+    ///
+    /// - Terminals (tokens): Use `grammar.tokens[symbol_id].name`
+    /// - Non-terminals: Use `grammar.rule_names[symbol_id]`
+    /// - Unknown symbols: Use "unknown"
+    ///
+    #[cfg(feature = "pure-rust-glr")]
+    fn build_language_from_parse_table(parse_table: &'static rust_sitter_glr_core::ParseTable) -> Language {
+        use std::collections::BTreeMap;
+
+        // Find maximum symbol ID to size the symbol_names Vec correctly
+        // (symbol_count may not match max symbol ID due to sparse symbol numbering)
+        let max_terminal_id = parse_table.grammar.tokens.keys()
+            .map(|id| id.0 as usize)
+            .max()
+            .unwrap_or(0);
+        let max_nonterminal_id = parse_table.grammar.rule_names.keys()
+            .map(|id| id.0 as usize)
+            .max()
+            .unwrap_or(0);
+        let vec_size = (max_terminal_id.max(max_nonterminal_id) + 1).max(parse_table.symbol_count);
+
+        // Build symbol_names Vec indexed by symbol ID
+        let mut symbol_names = vec![String::from("unknown"); vec_size];
+
+        // Add terminal (token) names
+        for (symbol_id, token) in &parse_table.grammar.tokens {
+            let idx = symbol_id.0 as usize;
+            symbol_names[idx] = token.name.clone();
+        }
+
+        // Add non-terminal names
+        for (symbol_id, name) in &parse_table.grammar.rule_names {
+            let idx = symbol_id.0 as usize;
+            symbol_names[idx] = name.clone();
+        }
+
+        // Create Language with symbol names
+        Language {
+            version: 1,
+            symbol_count: parse_table.symbol_count as u32,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            #[cfg(feature = "glr-core")]
+            parse_table: Some(parse_table),
+            #[cfg(not(feature = "glr-core"))]
+            parse_table: crate::language::ParseTable::default(),
+            #[cfg(feature = "glr-core")]
+            tokenize: None,
+            symbol_names,
+            symbol_metadata: Vec::new(),
+            field_names: Vec::new(),
+            #[cfg(feature = "external-scanners")]
+            external_scanner: None,
+        }
     }
 
     /// Reset the parser state
@@ -298,6 +364,198 @@ impl Parser {
 
         // Clear LR mode state (mode switching)
         self.language = None;
+
+        Ok(())
+    }
+
+    /// Load GLR parse table from .parsetable file bytes
+    ///
+    /// This is the primary method for loading pre-generated parse tables in production.
+    /// The .parsetable file format is a binary format that includes:
+    /// - **Magic number**: "RSPT" (Rust Sitter Parse Table)
+    /// - **Format version**: u32 version number (currently 1)
+    /// - **Grammar hash**: SHA-256 hash for verification
+    /// - **Metadata**: JSON metadata with grammar info, statistics, and feature flags
+    /// - **ParseTable**: Bincode-serialized parse table with GLR multi-action cells
+    ///
+    /// # File Format Layout
+    ///
+    /// ```text
+    /// ┌────────────────────────────────┐
+    /// │ "RSPT" (4 bytes)              │ Magic number
+    /// ├────────────────────────────────┤
+    /// │ Version: 1 (u32 LE)           │ Format version
+    /// ├────────────────────────────────┤
+    /// │ Grammar Hash (32 bytes)       │ SHA-256
+    /// ├────────────────────────────────┤
+    /// │ Metadata Length (u32 LE)      │
+    /// ├────────────────────────────────┤
+    /// │ Metadata JSON (variable)      │ Grammar metadata
+    /// ├────────────────────────────────┤
+    /// │ Table Length (u32 LE)         │
+    /// ├────────────────────────────────┤
+    /// │ ParseTable (bincode)          │ Serialized parse table
+    /// └────────────────────────────────┘
+    /// ```
+    ///
+    /// # Contract
+    ///
+    /// - Must validate magic number and format version
+    /// - Must deserialize ParseTable without data loss
+    /// - Must preserve GLR multi-action cells
+    /// - Must leak ParseTable for 'static lifetime (safe, immutable)
+    ///
+    /// # Usage Flow
+    ///
+    /// 1. Load .parsetable file with this method
+    /// 2. Set symbol metadata with `set_symbol_metadata()`
+    /// 3. Set token patterns with `set_token_patterns()`
+    /// 4. Parse input with `parse()`
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use rust_sitter_runtime::{Parser, language::SymbolMetadata, tokenizer::TokenPattern};
+    ///
+    /// // Step 1: Load .parsetable file
+    /// let bytes = std::fs::read("grammar.parsetable")?;
+    /// let mut parser = Parser::new();
+    /// parser.load_glr_table_from_bytes(&bytes)?;
+    ///
+    /// // Step 2: Set symbol metadata
+    /// let metadata = vec![
+    ///     SymbolMetadata { is_terminal: true, is_visible: false, is_supertype: false },  // EOF
+    ///     SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },   // token
+    ///     SymbolMetadata { is_terminal: false, is_visible: true, is_supertype: false },  // expr
+    /// ];
+    /// parser.set_symbol_metadata(metadata)?;
+    ///
+    /// // Step 3: Set token patterns
+    /// let patterns = vec![
+    ///     TokenPattern {
+    ///         symbol_id: SymbolId(1),
+    ///         matcher: Matcher::Regex(regex::Regex::new(r"[0-9]+").unwrap()),
+    ///         is_keyword: false,
+    ///     },
+    /// ];
+    /// parser.set_token_patterns(patterns)?;
+    ///
+    /// // Step 4: Parse
+    /// let tree = parser.parse(b"42", None)?;
+    /// assert_eq!(tree.root_node().kind(), "expr");
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns `ParseError` if:
+    /// - File is too short (< 44 bytes header)
+    /// - Magic number is not "RSPT"
+    /// - Format version is unsupported (not 1)
+    /// - Metadata section is truncated
+    /// - Table data section is truncated
+    /// - ParseTable deserialization fails (corrupted bincode)
+    ///
+    /// # Performance
+    ///
+    /// - **Load time**: < 20ms for typical grammars (200-300 states)
+    /// - **Memory overhead**: Parse table is leaked for 'static lifetime (~100-500 KB)
+    /// - **Zero-copy**: Uses bincode for efficient deserialization
+    ///
+    /// # Specification
+    ///
+    /// See [`docs/specs/PARSETABLE_FILE_FORMAT_SPEC.md`](https://github.com/EffortlessMetrics/rust-sitter/blob/main/docs/specs/PARSETABLE_FILE_FORMAT_SPEC.md) for complete file format specification.
+    ///
+    /// See [`docs/GLR_PARSETABLE_QUICKSTART.md`](https://github.com/EffortlessMetrics/rust-sitter/blob/main/docs/GLR_PARSETABLE_QUICKSTART.md) for usage guide.
+    ///
+    #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "pure-rust-glr", feature = "serialization"))))]
+    pub fn load_glr_table_from_bytes(&mut self, bytes: &[u8]) -> Result<(), ParseError> {
+        // Parse .parsetable file format
+        // Format: magic(4) + version(4) + hash(32) + metadata_len(4) + metadata(variable) + table_len(4) + table(variable)
+
+        if bytes.len() < 44 {
+            return Err(ParseError::with_msg(&format!(
+                "Invalid .parsetable file: too short ({} bytes, need at least 44)",
+                bytes.len()
+            )));
+        }
+
+        // Verify magic number "RSPT"
+        let magic = &bytes[0..4];
+        if magic != b"RSPT" {
+            return Err(ParseError::with_msg(&format!(
+                "Invalid .parsetable file: bad magic number {:?} (expected 'RSPT')",
+                magic
+            )));
+        }
+
+        // Read format version
+        let version = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
+        if version != 1 {
+            return Err(ParseError::with_msg(&format!(
+                "Unsupported .parsetable format version {} (expected 1)",
+                version
+            )));
+        }
+
+        // Skip grammar hash (bytes 8-40) for now
+        // TODO Phase 3.3: Verify hash matches expected grammar
+
+        // Read metadata length
+        let metadata_len = u32::from_le_bytes([bytes[40], bytes[41], bytes[42], bytes[43]]) as usize;
+
+        let metadata_start = 44;
+        let metadata_end = metadata_start + metadata_len;
+
+        if bytes.len() < metadata_end {
+            return Err(ParseError::with_msg(&format!(
+                "Invalid .parsetable file: truncated metadata (need {} bytes, have {})",
+                metadata_end,
+                bytes.len()
+            )));
+        }
+
+        // Skip metadata parsing for now (Phase 3.2)
+        // let metadata_bytes = &bytes[metadata_start..metadata_end];
+
+        // Read table data length
+        if bytes.len() < metadata_end + 4 {
+            return Err(ParseError::with_msg(
+                "Invalid .parsetable file: missing table length"
+            ));
+        }
+
+        let table_len = u32::from_le_bytes([
+            bytes[metadata_end],
+            bytes[metadata_end + 1],
+            bytes[metadata_end + 2],
+            bytes[metadata_end + 3],
+        ]) as usize;
+
+        let table_start = metadata_end + 4;
+        let table_end = table_start + table_len;
+
+        if bytes.len() < table_end {
+            return Err(ParseError::with_msg(&format!(
+                "Invalid .parsetable file: truncated table data (need {} bytes, have {})",
+                table_end,
+                bytes.len()
+            )));
+        }
+
+        let table_bytes = &bytes[table_start..table_end];
+
+        // Deserialize ParseTable using glr-core serialization
+        let table = rust_sitter_glr_core::ParseTable::from_bytes(table_bytes)
+            .map_err(|e| ParseError::with_msg(&format!("Failed to deserialize ParseTable: {}", e)))?;
+
+        // Leak the table to get a 'static reference
+        // This is safe because parse tables are immutable and live for the entire program
+        let table_static: &'static rust_sitter_glr_core::ParseTable = Box::leak(Box::new(table));
+
+        // Set the GLR table
+        self.set_glr_table(table_static)?;
 
         Ok(())
     }

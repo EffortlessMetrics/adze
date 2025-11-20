@@ -5,11 +5,13 @@ on:
     branches: [ main ]
     paths:
       - 'runtime/**'
+      - 'runtime2/**'
       - 'glr-core/**'
       - 'tablegen/**'
       - 'benchmarks/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
+      - 'docs/PERFORMANCE_BASELINE.md'
 
 # Only run one performance test at a time per PR
 concurrency:
@@ -55,6 +57,10 @@ jobs:
           # Run core benchmarks with shorter measurement time for CI
           cargo bench -p rust-sitter-glr-core -- --save-baseline pr-base
           cargo bench -p rust-sitter --lib -- --save-baseline pr-base
+
+          # Run GLR performance benchmarks (Week 1 baseline - see docs/PERFORMANCE_BASELINE.md)
+          cargo bench -p rust-sitter-benchmarks --bench glr_hot -- --save-baseline pr-base
+          cargo bench -p rust-sitter-benchmarks --bench glr_performance -- --save-baseline pr-base
           echo "::endgroup::"
         env:
           BENCH_QUICK: 1  # Use quick mode for CI
@@ -79,6 +85,10 @@ jobs:
           echo "::group::Running PR benchmarks"
           cargo bench -p rust-sitter-glr-core -- --save-baseline pr-head
           cargo bench -p rust-sitter --lib -- --save-baseline pr-head
+
+          # Run GLR performance benchmarks (Week 1 baseline - see docs/PERFORMANCE_BASELINE.md)
+          cargo bench -p rust-sitter-benchmarks --bench glr_hot -- --save-baseline pr-head
+          cargo bench -p rust-sitter-benchmarks --bench glr_performance -- --save-baseline pr-head
           echo "::endgroup::"
         env:
           BENCH_QUICK: 1
@@ -91,13 +101,18 @@ jobs:
           cat performance_report.txt
           echo "::endgroup::"
 
-          # Check for significant regressions (>10% slower)
-          if grep -E 'x [1-9]\.[1-9][0-9]+ slower|x [2-9]\.[0-9]+ slower' performance_report.txt; then
+          # Check for significant regressions (>5% slower per docs/PERFORMANCE_BASELINE.md)
+          # Critical paths to monitor:
+          # - Python 1000 lines: 62.4µs baseline -> >65µs alert
+          # - GLR fork operation: 73ns baseline -> >77ns alert
+          # - Expression (100 ops): 11ns baseline -> >12ns alert
+          if grep -E 'x 1\.0[5-9][0-9]+ slower|x 1\.[1-9][0-9]+ slower|x [2-9]\.[0-9]+ slower' performance_report.txt; then
             echo "regression=true" >> $GITHUB_OUTPUT
-            echo "::warning::Performance regression detected (>10% slower on some benchmarks)"
+            echo "::warning::Performance regression detected (>5% slower on some benchmarks)"
+            echo "::warning::See docs/PERFORMANCE_BASELINE.md for critical path thresholds"
           else
             echo "regression=false" >> $GITHUB_OUTPUT
-            echo "::notice::No significant performance regressions detected"
+            echo "::notice::No significant performance regressions detected (within 5% threshold)"
           fi
 
       - name: Create performance comment
@@ -135,8 +150,14 @@ ${report}
 
 - **Faster/Slower**: Shows performance change relative to base branch
 - **x N faster/slower**: Multiplier of performance change
-- ⚠️ **Regressions >10%** should be investigated before merging
-- Small variations (<5%) are normal and may be noise
+- ⚠️ **Regressions >5%** should be investigated before merging
+- Small variations (<3%) are normal and may be noise
+- See [docs/PERFORMANCE_BASELINE.md](../docs/PERFORMANCE_BASELINE.md) for critical path thresholds
+
+**Critical Paths** (from baseline):
+- Python 1000 lines: 62.4µs (alert if >65µs)
+- GLR fork operation: 73ns (alert if >77ns)
+- Expression (100 ops): 11ns (alert if >12ns)
 
 </details>
 
@@ -154,9 +175,10 @@ ${report}
       - name: Check for breaking regressions
         if: steps.compare.outputs.regression == 'true'
         run: |
-          echo "::warning::Performance regression detected (>10% slower on some benchmarks)"
+          echo "::warning::Performance regression detected (>5% slower on some benchmarks)"
           echo "::warning::Review the performance report above and consider optimizing before merging"
-          # Don't fail the CI, just warn
+          echo "::warning::Critical paths documented in docs/PERFORMANCE_BASELINE.md"
+          # Don't fail the CI, just warn (can be tightened later)
           # exit 1  # Uncomment to make regressions fail CI
 
   quick-smoke-test:
