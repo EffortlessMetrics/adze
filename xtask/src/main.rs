@@ -2,11 +2,14 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use xshell::Shell;
 
+mod bench;
+mod compare;
 mod corpus;
 mod dashboard;
 mod golden;
 mod grammar_json;
 mod lint;
+mod profile;
 mod test_grammars;
 mod test_local_grammars;
 
@@ -104,6 +107,42 @@ enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+    /// Profile parsing performance (CPU or memory)
+    Profile {
+        /// Profile type: cpu or memory
+        #[arg(value_enum)]
+        profile_type: ProfileMode,
+        /// Language to profile (python, javascript, rust)
+        #[arg(short, long)]
+        language: String,
+        /// Fixture path (relative to benches/fixtures/)
+        #[arg(short, long)]
+        fixture: String,
+        /// Output directory (default: docs/analysis/)
+        #[arg(short, long)]
+        output: Option<String>,
+    },
+    /// Compare performance against Tree-sitter C baseline
+    CompareBaseline {
+        /// Output format: table, json, or markdown
+        #[arg(long, default_value = "table")]
+        format: String,
+        /// Output file (default: stdout)
+        #[arg(long)]
+        output: Option<String>,
+    },
+    /// Run benchmarks with enhanced reporting
+    Bench {
+        /// Run only benchmarks matching this pattern
+        #[arg(long)]
+        filter: Option<String>,
+        /// Save results to baseline for comparison
+        #[arg(long)]
+        save_baseline: bool,
+        /// Compare against saved baseline
+        #[arg(long)]
+        compare: bool,
+    },
     /// Run all lint checks (fmt -> no-mangle -> debug-block validator -> clippy)
     ///
     /// Examples:
@@ -135,6 +174,12 @@ enum OutputFormat {
     Markdown,
     Json,
     Console,
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug)]
+enum ProfileMode {
+    Cpu,
+    Memory,
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
@@ -218,6 +263,29 @@ fn main() -> Result<()> {
         }
         Commands::TestPureRust { grammar, verbose } => {
             test_grammars::test_pure_rust(&sh, grammar, verbose)?;
+        }
+        Commands::Profile {
+            profile_type,
+            language,
+            fixture,
+            output,
+        } => {
+            let ptype = match profile_type {
+                ProfileMode::Cpu => profile::ProfileType::Cpu,
+                ProfileMode::Memory => profile::ProfileType::Memory,
+            };
+            profile::profile(&sh, ptype, &language, &fixture, output.as_deref())?;
+        }
+        Commands::CompareBaseline { format, output } => {
+            let fmt = compare::OutputFormat::from_str(&format);
+            compare::compare_baseline(&sh, fmt, output.as_deref())?;
+        }
+        Commands::Bench {
+            filter,
+            save_baseline,
+            compare,
+        } => {
+            bench::run_benchmarks(&sh, filter.as_deref(), save_baseline, compare)?;
         }
         Commands::Lint {
             fix,
