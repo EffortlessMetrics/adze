@@ -36,6 +36,9 @@ pub mod language_gen;
 pub mod lexer_gen;
 pub mod node_types;
 pub mod parser;
+/// .parsetable binary file format writer
+#[cfg(feature = "serialization")]
+pub mod parsetable_writer;
 pub mod serializer;
 pub mod validation;
 
@@ -53,6 +56,8 @@ pub use compress::{
 pub use external_scanner::ExternalScannerGenerator;
 pub use generate::LanguageBuilder;
 pub use node_types::NodeTypesGenerator;
+#[cfg(feature = "serialization")]
+pub use parsetable_writer::{ParsetableError, ParsetableMetadata, ParsetableWriter};
 pub use validation::{LanguageValidator, ValidationError};
 
 // use indexmap::IndexMap; // Currently unused
