@@ -21,9 +21,17 @@ This contract defines the complete specification for GLR v1, establishing clear 
 - ✅ BDD Phase 2 (runtime2) partial - 1/3 scenarios passing
 - ✅ Performance baseline established (docs/PERFORMANCE_BASELINE.md)
 - ✅ Performance CI with regression gates (5% threshold)
+- ✅ Dual runtime architecture documented (RUNTIME_MODES.md)
 - ⚠️ Parser v4 table loading blocker bypassed (using runtime2 + .parsetable instead)
 - ⚠️ Full ambiguous grammar validation incomplete (whitespace tokenization pending)
 - ⚠️ Parse forest API not yet exposed (deferred to vNext)
+
+**Architecture Note**:
+> Rust-sitter provides **two intentional runtime modes** (documented in RUNTIME_MODES.md):
+> 1. **Tree-sitter LR Mode** (`runtime/`) - 100% TSLanguage ABI compatibility
+> 2. **Rust-native GLR Mode** (`runtime2/` + `.parsetable`) - True GLR semantics
+>
+> This GLR v1 contract focuses on the **Rust-native GLR Mode** path. The dual-mode architecture is an intentional design decision (ADR-001), not a limitation.
 
 **Completion Criteria**:
 GLR v1 is **complete** when all acceptance criteria in this document are met and all specified tests pass.
@@ -648,6 +656,7 @@ GLR v1 is **DONE** when:
 ### Related Documents
 
 **Completion Artifacts** (created during GLR v1):
+- [RUNTIME_MODES.md](./RUNTIME_MODES.md) - Dual runtime architecture specification (ADR-001)
 - [PARSETABLE_PIPELINE_COMPLETION_SUMMARY.md](../releases/PARSETABLE_PIPELINE_COMPLETION_SUMMARY.md) - Alternative path success
 - [PARSETABLE_FILE_FORMAT_SPEC.md](./PARSETABLE_FILE_FORMAT_SPEC.md) - Binary format specification
 - [PERFORMANCE_BASELINE.md](../PERFORMANCE_BASELINE.md) - Comprehensive benchmark baseline
