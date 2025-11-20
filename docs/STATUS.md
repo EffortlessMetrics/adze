@@ -42,20 +42,30 @@
 - ✅ TDD test suite (9/9 tests passing)
 - ✅ All existing tests still pass (arena, TreeNodeData)
 
+**Commit**: fab3c34
+
+#### Phase 2 Day 4: Tree and Node Lifetime Integration (COMPLETE)
+- ✅ NODE_ARENA_SPEC.md: Complete Node<'arena> specification (600+ lines)
+- ✅ Node<'arena> struct: 16-byte Copy type (handle + arena reference)
+- ✅ Tree<'arena>: Lifetime parameter, NodeHandle root, arena reference
+- ✅ Tree::root_node() and Tree::get_node() returning Node<'arena>
+- ✅ Parser method signatures updated for Tree<'arena>
+- ✅ All type signatures established, code compiles
+- ✅ Lifetime system correctly prevents use-after-free
+
+**Implementation Status**:
+- Type definitions: ✅ Complete
+- Accessor implementations: Marked for Day 5 (unimplemented!)
+- Parse integration: Day 5
+
 **Commit**: [pending]
-
-### In Progress: Phase 2 Documentation Updates 🚧
-
-**Goal**: Complete Day 3 closeout and prepare for Day 4
-
-**Current Task**: Update STATUS.md and commit Day 3
 
 ### Upcoming Work
 
-#### Phase 2 Day 4-5
-- Tree<'arena> with lifetime parameter
-- parse() method returning Tree<'arena>
-- Arena-based tree construction
+#### Phase 2 Day 5
+- Implement parse() with arena allocation
+- TreeNodeData allocation during parsing
+- Node accessor method implementations
 
 #### Phase 2 Week 2
 - Node API implementation

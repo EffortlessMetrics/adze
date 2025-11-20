@@ -164,15 +164,15 @@ fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
 ///
 /// This function bridges between the public parser_v4 API and the internal
 /// GLR incremental parsing implementation.
-pub fn reparse(
+pub fn reparse<'arena>(
     #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))] grammar: &Grammar,
     #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))] table: &ParseTable,
     #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))] source: &[u8],
     #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))]
-    old_tree: &crate::parser_v4::Tree,
+    old_tree: &crate::parser_v4::Tree<'arena>,
     #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))]
     edit: &crate::pure_incremental::Edit,
-) -> Option<crate::parser_v4::Tree> {
+) -> Option<crate::parser_v4::Tree<'arena>> {
     // Only enable incremental parsing if the feature is enabled
     #[cfg(feature = "incremental_glr")]
     {

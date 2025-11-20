@@ -60,6 +60,7 @@ const MAX_CHUNK_SIZE: usize = 65536;
 ///
 /// Allocates nodes in chunks to reduce allocation overhead and improve
 /// cache locality. Provides handle-based access for safety.
+#[derive(Debug)]
 pub struct TreeArena {
     chunks: Vec<Chunk>,
     current_chunk_idx: usize,
@@ -67,6 +68,7 @@ pub struct TreeArena {
 }
 
 /// A single chunk of allocated tree nodes
+#[derive(Debug)]
 struct Chunk {
     data: Vec<TreeNode>,
     capacity: usize,

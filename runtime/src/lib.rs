@@ -117,6 +117,8 @@ mod parser_v3;
 pub mod arena_allocator;
 /// Tree node data structure for arena allocation.
 pub mod tree_node_data;
+/// Arena-allocated parse tree node.
+pub mod node;
 /// Parser backend selection logic.
 pub mod parser_selection;
 /// Version 4 parser implementation (GLR).

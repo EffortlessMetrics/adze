@@ -4,7 +4,7 @@
 // Enhanced Pure-Rust parser with external scanner support
 // This module extends parser_v3 with full external scanner integration
 
-use crate::arena_allocator::{ArenaMetrics, TreeArena};
+use crate::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena};
 use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
@@ -50,21 +50,54 @@ pub struct ParserState {
     pub position: usize,
 }
 
-/// Simple tree structure returned from parsing
-#[derive(Debug, Clone)]
-pub struct Tree {
-    /// The kind/symbol ID of the root node
-    pub root_kind: u16,
+/// Parse tree with arena-allocated nodes
+///
+/// Tree borrows the parser's arena, tying its lifetime to the parser.
+/// This prevents use-after-free while enabling efficient arena allocation.
+///
+/// # Lifetime
+///
+/// The `'arena` lifetime ties the tree to the parser's arena.
+/// Trees cannot outlive the parser that created them.
+///
+/// # Example
+///
+/// ```ignore
+/// let mut parser = Parser::new(grammar, parse_table, "example".to_string());
+/// let tree = parser.parse("1 + 2")?;
+/// let root = tree.root_node(); // Node<'arena>
+/// ```
+#[derive(Debug)]
+pub struct Tree<'arena> {
+    /// Root node handle
+    pub(crate) root: NodeHandle,
+    /// Reference to parser's arena
+    pub(crate) arena: &'arena TreeArena,
     /// Number of errors encountered during parsing
     pub error_count: usize,
-    /// The source text that was parsed
-    pub source: String,
 }
 
-impl Tree {
-    /// Get the kind of the root node
-    pub fn root_kind(&self) -> u16 {
-        self.root_kind
+impl<'arena> Tree<'arena> {
+    /// Get the root node
+    ///
+    /// Returns a Node<'arena> wrapping the root handle.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let root = tree.root_node();
+    /// println!("Root symbol: {}", root.symbol());
+    /// ```
+    pub fn root_node(&self) -> crate::node::Node<'arena> {
+        crate::node::Node::new(self.root, self.arena)
+    }
+
+    /// Get node by handle
+    ///
+    /// For advanced use cases that have a NodeHandle and need
+    /// to create a Node<'arena> wrapper.
+    pub fn get_node(&self, handle: NodeHandle) -> crate::node::Node<'arena> {
+        crate::node::Node::new(handle, self.arena)
     }
 
     /// Get the number of errors in the tree
@@ -387,11 +420,11 @@ impl Parser {
     }
 
     /// Parse the input string with automatic lexer selection
-    pub fn parse_with_auto_lexer(
-        &mut self,
+    pub fn parse_with_auto_lexer<'a>(
+        &'a mut self,
         input: &str,
         language: &crate::pure_parser::TSLanguage,
-    ) -> Result<Tree> {
+    ) -> Result<Tree<'a>> {
         // Check if language has a custom lexer
         if let Some(_lex_fn) = language.lex_fn {
             // ❌ CRITICAL BLOCKER: This is why parsing doesn't work! (Issue #74)
@@ -439,11 +472,11 @@ impl Parser {
     }
 
     /// Parse the input string with a custom lexer function
-    pub fn parse_with_custom_lexer(
-        &mut self,
+    pub fn parse_with_custom_lexer<'a>(
+        &'a mut self,
         input: &str,
         lex_fn: unsafe extern "C" fn(*mut core::ffi::c_void, crate::lex::TSLexState) -> bool,
-    ) -> Result<Tree> {
+    ) -> Result<Tree<'a>> {
         use crate::lex::{TokenSource, TsLexFnAdapter};
 
         // eprintln!("\nStarting parse with custom lexer for: {:?}", input);
@@ -649,11 +682,13 @@ impl Parser {
             }
         }
 
-        Ok(Tree {
-            root_kind: self.grammar.start_symbol().map(|s| s.0).unwrap_or(0),
-            error_count,
-            source: input.to_string(),
-        })
+        // TODO(Phase 2 Day 5): Return arena-based Tree
+        // Ok(Tree {
+        //     root: root_handle,
+        //     arena: &self.arena,
+        //     error_count,
+        // })
+        unimplemented!("parse_with_custom_lexer will be updated in Phase 2 Day 5")
     }
 
     /// Parse the input string and return the full parse tree
@@ -669,15 +704,34 @@ impl Parser {
 
     /// Parse the input string and return minimal tree metadata
     ///
-    /// This is the backward-compatible API that returns just the tree metadata.
-    /// For extraction and AST construction, use `parse_tree()` instead.
-    pub fn parse(&mut self, input: &str) -> Result<Tree> {
-        let (root, error_count) = self.parse_internal(input, false)?;
-        Ok(Tree {
-            root_kind: root.symbol.0,
-            error_count,
-            source: input.to_string(),
-        })
+    /// Parse input and return arena-allocated tree
+    ///
+    /// # Lifetime
+    ///
+    /// The returned tree borrows the parser's arena. The tree is valid
+    /// until the next `parse()` call or parser drop.
+    ///
+    /// # Implementation Status
+    ///
+    /// Phase 2 Day 4: Type signatures established
+    /// Phase 2 Day 5: Full integration with arena allocation (TODO)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let mut parser = Parser::new(grammar, parse_table, "example".to_string());
+    /// let tree = parser.parse("1 + 2")?;
+    /// let root = tree.root_node();
+    /// ```
+    pub fn parse<'a>(&'a mut self, input: &str) -> Result<Tree<'a>> {
+        // TODO(Phase 2 Day 5): Implement arena-based parsing
+        // This will:
+        // 1. self.arena.reset() to clear previous parse
+        // 2. Allocate TreeNodeData in arena during tree construction
+        // 3. Return Tree { root: NodeHandle, arena: &self.arena, error_count }
+        //
+        // For now (Day 4), we're establishing type signatures
+        unimplemented!("parse() will be fully implemented in Phase 2 Day 5")
     }
 
     /// Internal parsing implementation shared by parse() and parse_tree()

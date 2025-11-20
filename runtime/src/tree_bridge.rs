@@ -1,4 +1,10 @@
 // Bridge between parser_v4::Tree and GLR ForestNode representations
+//
+// TODO(Phase 2 Day 5): Update for Tree<'arena> with NodeHandle
+// This module needs updates to work with the new arena-based Tree type.
+// For Day 4, we're establishing type signatures only.
+
+#![allow(dead_code)] // Temporarily allow until Day 5 updates
 
 use crate::glr_incremental::{ForestNode, ForkAlternative};
 use crate::parser_v4::Tree as V4Tree;
@@ -10,51 +16,28 @@ use std::sync::Arc;
 ///
 /// This creates an unambiguous forest (single alternative) that represents
 /// the existing parse tree structure.
-pub fn v4_tree_to_forest(tree: &V4Tree) -> Arc<ForestNode> {
-    // For now, create a minimal forest node representing just the root
-    // In a real implementation, this would walk the entire tree structure
-
-    let subtree_node = SubtreeNode {
-        symbol_id: SymbolId(tree.root_kind),
-        is_error: tree.error_count > 0,
-        byte_range: 0..tree.source.len(),
-    };
-
-    let subtree = Arc::new(Subtree::new(subtree_node, vec![]));
-
-    Arc::new(ForestNode {
-        symbol: SymbolId(tree.root_kind),
-        alternatives: vec![ForkAlternative {
-            fork_id: 0,
-            rule_id: None,
-            children: vec![], // Would be populated from tree structure
-            subtree: subtree.clone(),
-        }],
-        byte_range: 0..tree.source.len(),
-        token_range: 0..0, // Would need proper token counting
-        cached_subtree: Some(subtree),
-    })
+///
+/// TODO(Phase 2 Day 5): Update for Tree<'arena>
+#[allow(unused_variables)]
+pub fn v4_tree_to_forest<'arena>(tree: &V4Tree<'arena>) -> Arc<ForestNode> {
+    // TODO(Phase 2 Day 5): Update for Tree<'arena> with NodeHandle
+    // This function needs to access root node via tree.root_node()
+    // and traverse the arena-allocated tree structure
+    unimplemented!("v4_tree_to_forest will be updated for Tree<'arena> in Day 5")
 }
 
 /// Convert a ForestNode back to a simple parser_v4::Tree
 ///
 /// This flattens the potentially ambiguous forest by selecting the first
 /// valid alternative at each node.
-pub fn forest_to_v4_tree(forest: &ForestNode, source: String) -> V4Tree {
-    // Select the first alternative (disambiguation strategy)
-    let _primary_alt = forest
-        .alternatives
-        .first()
-        .expect("ForestNode must have at least one alternative");
-
-    // Count errors by traversing the forest
-    let error_count = count_errors_in_forest(forest);
-
-    V4Tree {
-        root_kind: forest.symbol.0,
-        error_count,
-        source,
-    }
+///
+/// TODO(Phase 2 Day 5): Update for Tree<'arena>
+#[allow(unused_variables)]
+pub fn forest_to_v4_tree<'arena>(forest: &ForestNode) -> V4Tree<'arena> {
+    // TODO(Phase 2 Day 5): Construct Tree<'arena> with NodeHandle
+    // This function needs to allocate nodes in an arena and construct
+    // a Tree with proper root handle and arena reference
+    unimplemented!("forest_to_v4_tree will be updated for Tree<'arena> in Day 5")
 }
 
 /// Count errors in a forest by traversing all nodes
