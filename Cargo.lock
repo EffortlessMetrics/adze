@@ -2088,6 +2088,7 @@ dependencies = [
  "regex",
  "rust-sitter-glr-core",
  "rust-sitter-ir",
+ "rust-sitter-tablegen",
  "rustc-hash 2.1.1",
  "smallvec",
  "thiserror 1.0.69",
