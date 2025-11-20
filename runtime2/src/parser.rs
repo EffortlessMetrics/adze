@@ -249,23 +249,31 @@ impl Parser {
     fn build_language_from_parse_table(parse_table: &'static rust_sitter_glr_core::ParseTable) -> Language {
         use std::collections::BTreeMap;
 
+        // Find maximum symbol ID to size the symbol_names Vec correctly
+        // (symbol_count may not match max symbol ID due to sparse symbol numbering)
+        let max_terminal_id = parse_table.grammar.tokens.keys()
+            .map(|id| id.0 as usize)
+            .max()
+            .unwrap_or(0);
+        let max_nonterminal_id = parse_table.grammar.rule_names.keys()
+            .map(|id| id.0 as usize)
+            .max()
+            .unwrap_or(0);
+        let vec_size = (max_terminal_id.max(max_nonterminal_id) + 1).max(parse_table.symbol_count);
+
         // Build symbol_names Vec indexed by symbol ID
-        let mut symbol_names = vec![String::from("unknown"); parse_table.symbol_count];
+        let mut symbol_names = vec![String::from("unknown"); vec_size];
 
         // Add terminal (token) names
         for (symbol_id, token) in &parse_table.grammar.tokens {
             let idx = symbol_id.0 as usize;
-            if idx < symbol_names.len() {
-                symbol_names[idx] = token.name.clone();
-            }
+            symbol_names[idx] = token.name.clone();
         }
 
         // Add non-terminal names
         for (symbol_id, name) in &parse_table.grammar.rule_names {
             let idx = symbol_id.0 as usize;
-            if idx < symbol_names.len() {
-                symbol_names[idx] = name.clone();
-            }
+            symbol_names[idx] = name.clone();
         }
 
         // Create Language with symbol names

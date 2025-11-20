@@ -7,13 +7,66 @@
 
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton, ParseTable};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use rust_sitter_runtime::{
     Parser,
+    Language,
     language::SymbolMetadata,
     tokenizer::{TokenPattern as RuntimeTokenPattern, Matcher},
 };
+
+/// Helper: Build Language from ParseTable for symbol name resolution
+///
+/// This is the same pattern used in Phase 3.3 (runtime2/src/parser.rs:249-297)
+/// with the bug fix for sparse symbol IDs (symbol ID 10 but symbol_count = 7)
+fn build_language_from_parse_table(parse_table: &'static ParseTable) -> Language {
+    // Find maximum symbol ID to size the symbol_names Vec correctly
+    // (symbol_count may not match max symbol ID due to sparse symbol numbering)
+    let max_terminal_id = parse_table.grammar.tokens.keys()
+        .map(|id| id.0 as usize)
+        .max()
+        .unwrap_or(0);
+    let max_nonterminal_id = parse_table.grammar.rule_names.keys()
+        .map(|id| id.0 as usize)
+        .max()
+        .unwrap_or(0);
+    let vec_size = (max_terminal_id.max(max_nonterminal_id) + 1).max(parse_table.symbol_count);
+
+    // Build symbol_names Vec indexed by symbol ID
+    let mut symbol_names = vec![String::from("unknown"); vec_size];
+
+    // Add terminal (token) names
+    for (symbol_id, token) in &parse_table.grammar.tokens {
+        let idx = symbol_id.0 as usize;
+        symbol_names[idx] = token.name.clone();
+    }
+
+    // Add non-terminal names
+    for (symbol_id, name) in &parse_table.grammar.rule_names {
+        let idx = symbol_id.0 as usize;
+        symbol_names[idx] = name.clone();
+    }
+
+    // Create Language with symbol names
+    Language {
+        version: 1,
+        symbol_count: parse_table.symbol_count as u32,
+        field_count: 0,
+        max_alias_sequence_length: 0,
+        #[cfg(feature = "glr-core")]
+        parse_table: Some(parse_table),
+        #[cfg(not(feature = "glr-core"))]
+        parse_table: rust_sitter_runtime::language::ParseTable::default(),
+        #[cfg(feature = "glr-core")]
+        tokenize: None,
+        symbol_names,
+        symbol_metadata: Vec::new(),
+        field_names: Vec::new(),
+        #[cfg(feature = "external-scanners")]
+        external_scanner: None,
+    }
+}
 
 /// Helper: Create the dangling-else grammar
 fn create_dangling_else_grammar() -> Grammar {
@@ -244,7 +297,6 @@ fn scenario_7_glr_runtime_parses_ambiguous_input() {
 //
 
 #[test]
-#[ignore] // TODO: Apply Phase 3.3 symbol name resolution (build_language_from_parse_table)
 fn scenario_7b_simple_statement_no_ambiguity() {
     // GIVEN a parse table for dangling else grammar
     let grammar = create_dangling_else_grammar();
@@ -311,15 +363,25 @@ fn scenario_7b_simple_statement_no_ambiguity() {
     println!("Parsing: {:?}", std::str::from_utf8(input).unwrap());
 
     // THEN parsing succeeds
+    // Note: Parser::parse_glr() already applies Phase 3.3 symbol name resolution
     let tree = parser.parse(input, None).expect("Should parse simple statement");
     let root = tree.root_node();
 
     println!("✓ Parse succeeded!");
     println!("  Root kind: {}", root.kind());
+    println!("  Root kind_id: {}", root.kind_id());
     println!("  Child count: {}", root.child_count());
+    println!("  Parse table symbol_count: {}", table_static.symbol_count);
+    println!("  Grammar rule_names: {:?}", table_static.grammar.rule_names);
 
     assert_eq!(root.kind(), "S", "Root should be statement");
-    println!("\n✓ Scenario 7b PASS: Simple statement parses correctly");
+
+    // Validate child structure
+    assert_eq!(root.child_count(), 1, "Root should have 1 child");
+    let child = root.child(0).expect("Should have child node");
+    assert_eq!(child.kind(), "stmt", "Child should be 'stmt' token");
+
+    println!("\n✓ Scenario 7b PASS: Simple statement parses correctly with symbol names");
 }
 
 //
