@@ -14,32 +14,43 @@ use std::collections::HashSet;
 pub enum SchemaError {
     /// Invalid action encoding
     InvalidActionEncoding {
+        /// The action that failed to encode
         action: Action,
+        /// The encoded value that was produced
         encoded_value: u16,
+        /// Reason for the encoding failure
         reason: String,
     },
 
     /// State ID out of bounds
     InvalidStateId {
+        /// The invalid state ID
         state_id: u16,
+        /// Maximum number of states allowed
         max_states: usize,
     },
 
     /// Symbol ID out of bounds
     InvalidSymbolId {
+        /// The invalid symbol ID
         symbol_id: u16,
+        /// Maximum number of symbols allowed
         max_symbols: usize,
     },
 
     /// Production ID out of bounds
     InvalidProductionId {
+        /// The invalid production ID
         production_id: u16,
+        /// Maximum number of productions allowed
         max_productions: usize,
     },
 
     /// Duplicate entry in action table
     DuplicateActionEntry {
+        /// State ID of the duplicate entry
         state: u16,
+        /// Symbol ID of the duplicate entry
         symbol: u16,
     },
 
@@ -47,10 +58,16 @@ pub enum SchemaError {
     MissingAcceptState,
 
     /// Invalid EOF handling
-    InvalidEOFHandling { reason: String },
+    InvalidEOFHandling {
+        /// Reason for the invalid EOF handling
+        reason: String
+    },
 
     /// Compressed table integrity failure
-    CompressedTableIntegrity { reason: String },
+    CompressedTableIntegrity {
+        /// Reason for the integrity failure
+        reason: String
+    },
 }
 
 impl std::fmt::Display for SchemaError {
