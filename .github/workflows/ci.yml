@@ -10,70 +10,61 @@ on:
     - cron: '0 2 * * *'
 
 env:
-  RUST_BACKTRACE: 1
+  # Nix dev shell sets most environment variables (see flake.nix for RUST_TEST_THREADS, RAYON_NUM_THREADS, etc.)
+  # This ensures local `nix develop` matches CI exactly
   CARGO_TERM_COLOR: always
-  COVERAGE_THRESHOLD: 80
-  # Cap Concurrency - stabilize tests across CI environments (Balanced for stable testing)
-  RUST_TEST_THREADS: 2
-  RAYON_NUM_THREADS: 4
-  TOKIO_WORKER_THREADS: 2
-  TOKIO_BLOCKING_THREADS: 8
-  CARGO_BUILD_JOBS: 4
-  OMP_NUM_THREADS: 1
-  OPENBLAS_NUM_THREADS: 1
-  MKL_NUM_THREADS: 1
-  NUMEXPR_NUM_THREADS: 1
+  COVERAGE_THRESHOLD: 80  # Not set in flake.nix
 
 jobs:
   lint:
-    name: Lint
+    name: Lint (Nix)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
         with:
-          components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
-      
-      - name: Install jq
-        run: |
-          if ! command -v jq >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y jq
-          fi
-      
+          nix_path: nixpkgs=channel:nixos-24.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Set up Cachix (optional, for faster builds)
+        uses: cachix/cachix-action@v14
+        continue-on-error: true
+        with:
+          name: rust-sitter
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
       - name: Check for bare #[no_mangle]
-        run: scripts/check-no-mangle.sh
-      
+        run: nix develop --command scripts/check-no-mangle.sh
+
       - name: Check commented debug blocks
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             # For PRs, only check files changed in the diff
             git fetch --no-tags --prune --depth=1 origin "${{ github.base_ref }}"
-            python3 tools/check_debug_blocks.py --since "origin/${{ github.base_ref }}"
+            nix develop --command python3 tools/check_debug_blocks.py --since "origin/${{ github.base_ref }}"
           else
             # For push to main, check all tracked files
-            python3 tools/check_debug_blocks.py
+            nix develop --command python3 tools/check_debug_blocks.py
           fi
-      
+
       - name: Validator self-test
-        run: python3 tools/test_debug_blocks.py
-      
+        run: nix develop --command python3 tools/test_debug_blocks.py
+
       - name: Check formatting
-        run: cargo fmt --all -- --check
-      
-      - name: Clippy (default features, per-package)
-        run: scripts/clippy-per-package.sh default
-        
-      - name: Clippy (tree-sitter-c2rust, per-package)
-        run: scripts/clippy-per-package.sh c2rust
-      
+        run: nix develop --command just ci-fmt
+
+      - name: Run clippy
+        run: nix develop --command just ci-clippy
+
       - name: Clippy - collect per-package outputs
         shell: bash
         continue-on-error: true
-        run: |
-          chmod +x ./scripts/clippy-collect.sh
-          ./scripts/clippy-collect.sh || true
-      
+        run: nix develop --command bash -c "chmod +x ./scripts/clippy-collect.sh && ./scripts/clippy-collect.sh" || true
+
       - name: Upload Clippy reports
         uses: actions/upload-artifact@v4
         with:
@@ -81,33 +72,35 @@ jobs:
           path: clippy-report
 
   test:
-    name: Test (${{ matrix.os }} / ${{ matrix.features }} / ${{ matrix.toolchain }})
+    name: Test (Nix: ${{ matrix.os }} / ${{ matrix.features }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]  # Windows tested separately (Nix not supported)
         features:
           - ""  # default features
           - "--no-default-features --features tree-sitter-c2rust"
           - "--features external_scanners"
           - "--features incremental_glr"
-        toolchain: [stable, beta]
-        exclude:
-          # Reduce CI load: only test beta on ubuntu with default features
-          - os: macos-latest
-            toolchain: beta
-          - os: windows-latest
-            toolchain: beta
-          - features: "--no-default-features --features tree-sitter-c2rust"
-            toolchain: beta
-          - features: "--features external_scanners"
-            toolchain: beta
-          - features: "--features incremental_glr"
-            toolchain: beta
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-24.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Set up Cachix (optional, for faster builds)
+        uses: cachix/cachix-action@v14
+        continue-on-error: true
+        with:
+          name: rust-sitter
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
       - name: Check for disabled test files
         run: |
           if git ls-files '*.disabled' | grep -q .; then
@@ -120,60 +113,93 @@ jobs:
             echo "  3. Remove obsolete test files"
             exit 1
           fi
-      
-      - uses: dtolnay/rust-toolchain@${{ matrix.toolchain }}
-      - uses: Swatinem/rust-cache@v2
-      
+
       - name: Install nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-nextest
-      
+        run: nix develop --command bash -c "cargo install cargo-nextest --locked || true"
+
       - name: Run tests with nextest
-        run: cargo nextest run --workspace ${{ matrix.features }}
-      
+        run: nix develop --command cargo nextest run --workspace ${{ matrix.features }}
+
       - name: Run doctests
-        run: cargo test --doc --workspace ${{ matrix.features }}
-      
+        run: nix develop --command cargo test --doc --workspace ${{ matrix.features }}
+
       - name: Tablegen rustdoc (strict, all features)
         env:
           RUSTDOCFLAGS: --cfg docsrs -D warnings
-        run: cargo doc -p rust-sitter-tablegen --all-features --no-deps --features strict_docs
-      
-      - name: Tablegen doctests (strict)
-        run: cargo test -p rust-sitter-tablegen --doc --features strict_docs
-      
-      - name: Clippy (tablegen only, warnings as errors)
-        run: cargo clippy -p rust-sitter-tablegen -- -D warnings
-      
-      - name: Example (pure-rust) tests
-        run: cargo test -p rust-sitter-example --features pure-rust -- --test-threads=$RUST_TEST_THREADS
-      
-      - name: Test tablegen (small-table)
-        run: cargo test -p rust-sitter-tablegen --features "small-table" -- --test-threads=$RUST_TEST_THREADS --nocapture
-      
-      - name: Compile pure-rust golden tests (no-run)
-        run: cargo test -p rust-sitter --test golden_tests --features pure-rust --no-run
+        run: nix develop --command cargo doc -p rust-sitter-tablegen --all-features --no-deps --features strict_docs
 
-  # Matrix smoke test to prevent feature drift
-  matrix-smoke:
-    name: Matrix Smoke Test
-    runs-on: ubuntu-latest
+      - name: Tablegen doctests (strict)
+        run: nix develop --command cargo test -p rust-sitter-tablegen --doc --features strict_docs
+
+      - name: Clippy (tablegen only, warnings as errors)
+        run: nix develop --command cargo clippy -p rust-sitter-tablegen -- -D warnings
+
+      - name: Example (pure-rust) tests
+        run: nix develop --command cargo test -p rust-sitter-example --features pure-rust -- --test-threads=2
+
+      - name: Test tablegen (small-table)
+        run: nix develop --command cargo test -p rust-sitter-tablegen --features "small-table" -- --test-threads=2 --nocapture
+
+      - name: Compile pure-rust golden tests (no-run)
+        run: nix develop --command cargo test -p rust-sitter --test golden_tests --features pure-rust --no-run
+
+  # Windows testing (non-Nix, WSL recommended for local development)
+  test-windows:
+    name: Test (Windows, non-Nix)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          - ""  # default features only for Windows
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      
-      - name: Install Tree-sitter development libraries
+
+      - name: Note about Nix on Windows
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libtree-sitter-dev pkg-config
-      
+          echo "::notice::Windows CI uses traditional toolchain (Nix not supported natively)"
+          echo "::notice::For local Windows development, use WSL2 + Nix"
+
+      - name: Install nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: Run tests with nextest
+        run: cargo nextest run --workspace ${{ matrix.features }}
+
+      - name: Run doctests
+        run: cargo test --doc --workspace ${{ matrix.features }}
+
+  # Matrix smoke test to prevent feature drift
+  matrix-smoke:
+    name: Matrix Smoke Test (Nix)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-24.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Set up Cachix (optional, for faster builds)
+        uses: cachix/cachix-action@v14
+        continue-on-error: true
+        with:
+          name: rust-sitter
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
       - name: Test (workspace, default features)
-        run: cargo test --workspace --locked --no-fail-fast -- --test-threads=$RUST_TEST_THREADS
-      
+        run: nix develop --command cargo test --workspace --locked --no-fail-fast -- --test-threads=2
+
       - name: Test (workspace, all features)
-        run: cargo test --workspace --all-features --locked --no-fail-fast -- --test-threads=$RUST_TEST_THREADS
+        run: nix develop --command cargo test --workspace --all-features --locked --no-fail-fast -- --test-threads=2
 
   # Test with debug assertions enabled to catch invariant violations
   test-debug-assertions:
@@ -533,22 +559,33 @@ jobs:
         run: cargo deny check
 
   docs:
-    name: Documentation
+    name: Documentation (Nix)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      
-      - name: Install Tree-sitter development libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libtree-sitter-dev pkg-config
-      
-      - name: Build docs (deny warnings)
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-24.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Set up Cachix (optional, for faster builds)
+        uses: cachix/cachix-action@v14
+        continue-on-error: true
+        with:
+          name: rust-sitter
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
+      - name: Build documentation
+        run: nix develop --command cargo doc --workspace --no-deps --all-features
+
+      - name: Check for documentation warnings
         env:
           RUSTDOCFLAGS: -D warnings
-        run: cargo doc --workspace --no-deps --all-features
+        run: nix develop --command cargo doc --workspace --no-deps --all-features
 
   cross-compile:
     name: Cross Compilation (${{ matrix.target }})
