@@ -6,6 +6,7 @@ mod baseline;
 mod bench;
 mod corpus;
 mod dashboard;
+mod fixtures;
 mod golden;
 mod grammar_json;
 mod lint;
@@ -167,6 +168,27 @@ enum Commands {
         /// Extra args passed to `cargo clippy` after `--`
         #[arg(last = true)]
         clippy_args: Vec<String>,
+    },
+    /// Generate arithmetic expression fixtures for benchmarking
+    GenerateFixtures {
+        /// Output directory for fixtures
+        #[arg(short, long, default_value = "benchmarks/fixtures/arithmetic")]
+        output: String,
+        /// Force regeneration even if files exist
+        #[arg(short, long)]
+        force: bool,
+    },
+    /// Validate existing arithmetic fixtures
+    ValidateFixtures {
+        /// Fixtures directory to validate
+        #[arg(short = 'd', long, default_value = "benchmarks/fixtures/arithmetic")]
+        dir: String,
+    },
+    /// Show information about generated fixtures
+    FixturesInfo {
+        /// Fixtures directory
+        #[arg(short = 'd', long, default_value = "benchmarks/fixtures/arithmetic")]
+        dir: String,
     },
 }
 
@@ -339,6 +361,15 @@ fn main() -> Result<()> {
             clippy_args,
         } => {
             lint::lint(&sh, fix, changed_only, since, fast, clippy_args)?;
+        }
+        Commands::GenerateFixtures { output, force } => {
+            fixtures::generate_fixtures(&sh, &output, force)?;
+        }
+        Commands::ValidateFixtures { dir } => {
+            fixtures::validate_only(&sh, &dir)?;
+        }
+        Commands::FixturesInfo { dir } => {
+            fixtures::info_fixtures(&dir)?;
         }
     }
 
