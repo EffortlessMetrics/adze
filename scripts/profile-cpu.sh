@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# DEPRECATED: Use rust-native xtask command instead
+# New command: cargo xtask profile cpu --language <lang> --fixture <path>
+# This shell script will be removed in a future version.
+#
 # CPU Profiling Script for rust-sitter
 # Part of v0.8.0 Performance Optimization (AC-PERF1)
 #

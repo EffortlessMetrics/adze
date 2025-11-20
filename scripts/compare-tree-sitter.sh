@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# DEPRECATED: Use rust-native xtask command instead
+# New command: cargo xtask compare-baseline [--format {table|json|markdown}]
+# This shell script will be removed in a future version.
+#
 # Tree-sitter Comparison Script
 # Part of v0.8.0 Performance Optimization (AC-PERF1, AC-PERF5)
 #
