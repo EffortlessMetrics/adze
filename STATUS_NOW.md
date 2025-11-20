@@ -48,9 +48,18 @@
   - [x] **Key Metrics**: Python 1000 lines = 62.4µs (~16K lines/sec), GLR fork = 73ns
   - [x] **Critical Findings**: Custom arena 2356x slower, small allocations 208x slower
   - [x] **Optimization Targets**: Arena fix, allocation pooling, incremental parsing
-  - [ ] Compare to tree-sitter-c (Tuesday - pending)
-- [ ] **Wednesday-Thursday**: Re-enable 4 error recovery tests (8 hours)
-- [ ] **Friday**: Add performance regression CI (6 hours)
+  - [x] Performance regression CI with 5% threshold gates ✅ **COMPLETE**
+  - [ ] Compare to tree-sitter-c (deferred - not blocking v0.7.0)
+- [x] **Wednesday-Thursday**: Re-enable 4 error recovery tests ✅ **COMPLETE** (2 hours actual vs 8 estimated)
+  - [x] Fixed create_test_grammar() with proper LR grammar (value → object | array)
+  - [x] Re-enabled test_empty_object_with_recovery (validates "{}" parsing)
+  - [x] Re-enabled test_incomplete_object_recovery (EOF handling with recovery)
+  - [x] Re-enabled test_missing_value_recovery (error recovery for malformed input)
+  - [x] Re-enabled test_valid_json_no_errors (empty object and array validation)
+  - [x] Enabled debug_error_stats validation (no error chunks, missing terminals, or costs)
+  - [x] **Test Results**: 4/4 passing (100%) with test-helpers feature
+  - [x] **Efficiency**: 75% time savings via BDD-driven approach
+- [ ] **Friday**: Documentation and wrap-up (estimated 4 hours)
 
 **Blockers for v0.7.0**:
 1. **GLR Runtime Wiring** - ✅ **ALTERNATIVE PATH WORKING** (runtime2)
