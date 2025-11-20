@@ -185,7 +185,6 @@ fn create_dangling_else_grammar() -> Grammar {
 //
 
 #[test]
-#[ignore] // TODO: Fix whitespace tokenization and symbol name resolution (Phase 3.3 style)
 fn scenario_7_glr_runtime_parses_ambiguous_input() {
     // GIVEN a parse table with multi-action cells (dangling else grammar)
     let grammar = create_dangling_else_grammar();
@@ -217,7 +216,7 @@ fn scenario_7_glr_runtime_parses_ambiguous_input() {
     parser.set_symbol_metadata(metadata)
         .expect("Setting metadata should succeed");
 
-    // Configure token patterns
+    // Configure token patterns with whitespace support
     let patterns = vec![
         RuntimeTokenPattern {
             symbol_id: SymbolId(0),
@@ -249,9 +248,18 @@ fn scenario_7_glr_runtime_parses_ambiguous_input() {
             matcher: Matcher::Literal("stmt".to_string()),
             is_keyword: false,
         },
+        // Whitespace pattern (symbol 255 is whitespace convention)
+        RuntimeTokenPattern {
+            symbol_id: SymbolId(255),
+            matcher: Matcher::Regex(regex::Regex::new(r"^\s+").unwrap()),
+            is_keyword: false,
+        },
     ];
     parser.set_token_patterns(patterns)
         .expect("Setting patterns should succeed");
+
+    // Note: Whitespace mode is automatically set to Skip in parser.rs:206
+    // Whitespace tokens (symbol 255) will be automatically skipped during scanning
 
     println!("\n=== Scenario 7: GLR Runtime Fork/Merge ===");
 
@@ -353,6 +361,12 @@ fn scenario_7b_simple_statement_no_ambiguity() {
             matcher: Matcher::Literal("stmt".to_string()),
             is_keyword: false,
         },
+        // Whitespace pattern (symbol 255 - automatically skipped)
+        RuntimeTokenPattern {
+            symbol_id: SymbolId(255),
+            matcher: Matcher::Regex(regex::Regex::new(r"^\s+").unwrap()),
+            is_keyword: false,
+        },
     ];
     parser.set_token_patterns(patterns).unwrap();
 
@@ -413,29 +427,32 @@ fn bdd_runtime_test_summary() {
     println!("   Status: PASSING - Validates GLR parsing with symbol name resolution");
     println!("   Fixed: Critical Phase 3.3 bug (sparse symbol ID handling)");
     println!();
-    println!("⏸ Scenario 7: GLR runtime parses complex ambiguous input - DEFERRED");
-    println!("   Reason: Requires whitespace-aware tokenization");
-    println!("   Workaround: Use no-space input or regex patterns with \\s*");
-    println!("   Estimated effort: 2-3 hours");
+    println!("✅ Scenario 7: GLR runtime parses complex ambiguous input - COMPLETE");
+    println!("   Status: PASSING - Whitespace-aware tokenization implemented");
+    println!("   Fixed: Added whitespace pattern (symbol 255) with Skip mode");
+    println!("   Fixed: Zero-length regex protection prevents infinite loops");
+    println!("   Result: Successfully parses 'if expr then if expr then stmt else stmt'");
     println!();
     println!("⏳ Scenario 8: Precedence affects tree selection - DEFERRED");
     println!("   Reason: Requires multiple parse tree support (forest representation)");
     println!("   Future work: Full GLR forest API");
     println!();
-    println!("Phase 2 (runtime2 integration tests): 1/3 complete");
+    println!("Phase 2 (runtime2 integration tests): 2/3 complete ✅");
     println!("  ✅ Basic GLR parsing with conflict-preserving tables");
     println!("  ✅ Symbol name resolution from grammar");
-    println!("  ⏸ Complex input tokenization (whitespace)");
-    println!("  ⏳ Multiple parse trees (GLR forest)");
+    println!("  ✅ Complex input tokenization with whitespace handling");
+    println!("  ⏳ Multiple parse trees (GLR forest) - deferred to vNext");
     println!();
     println!("Combined BDD Progress:");
     println!("  Phase 1 (glr-core): 2/2 core scenarios ✅");
-    println!("  Phase 2 (runtime2): 1/3 scenarios ✅");
-    println!("  Total: 3/5 implemented scenarios (60%)");
+    println!("  Phase 2 (runtime2): 2/3 scenarios ✅");
+    println!("  Total: 4/5 implemented scenarios (80%)");
     println!();
-    println!("Key Achievement:");
+    println!("Key Achievements:");
     println!("  ✅ GLR conflict preservation verified end-to-end");
     println!("  ✅ Parse tables correctly preserve multi-action cells");
     println!("  ✅ Runtime successfully parses with GLR tables");
     println!("  ✅ Tree nodes have correct symbol names from grammar");
+    println!("  ✅ Whitespace-aware tokenization with zero-length protection");
+    println!("  ✅ Ambiguous input (dangling-else) parses correctly");
 }
