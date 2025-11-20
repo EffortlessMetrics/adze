@@ -82,10 +82,13 @@ nix develop . --command cargo build
 - `RAYON_NUM_THREADS=4` - Rayon thread pool limit
 - `TOKIO_WORKER_THREADS=2` - Tokio async runtime limit
 
-**References**:
-- [ADR-0008: Nix Development Environment](docs/adr/ADR-0008-NIX-DEVELOPMENT-ENVIRONMENT.md)
-- [Strategic Implementation Plan](docs/plans/STRATEGIC_IMPLEMENTATION_PLAN.md)
-- [Nix CI Workflow](.github/workflows/nix-ci.yml)
+**📚 Documentation**:
+- **[Nix Quickstart Guide](docs/guides/NIX_QUICKSTART.md)** - Complete setup instructions (5-10 minutes)
+- **[Nix Troubleshooting](docs/guides/NIX_TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Migrating to Nix](docs/guides/MIGRATING_TO_NIX.md)** - For existing contributors with traditional setup
+- [ADR-0008: Nix Development Environment](docs/adr/ADR-0008-NIX-DEVELOPMENT-ENVIRONMENT.md) - Design rationale
+- [Strategic Implementation Plan](docs/plans/STRATEGIC_IMPLEMENTATION_PLAN.md) - Roadmap
+- [Nix CI Workflow](.github/workflows/nix-ci.yml) - CI configuration
 
 ### Alternative: Traditional Setup (Manual)
 
