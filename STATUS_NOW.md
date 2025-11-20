@@ -8,7 +8,8 @@
 
 ## 🎯 Current Focus
 
-**This Week**: .parsetable Pipeline 100% Complete (GLR v1 Phases 1-4) ✅
+**This Week**: v0.7.0 Implementation Plan - Week 1 In Progress 🚀
+**Last Week**: .parsetable Pipeline 100% Complete (GLR v1 Phases 1-4) ✅
 - [x] Repository URL migration (hydro-project → EffortlessMetrics)
 - [x] Messaging alignment (production-ready → strong beta)
 - [x] GLR runtime architectural issue documented
@@ -39,6 +40,17 @@
   - [x] Error recovery test documented and marked #[ignore] (aggressive error recovery behavior)
   - [x] **Result**: All arithmetic tests accounted for, no functionality regressions
 - [ ] **GLR Step 4**: Grammar metadata generation (deferred - optional optimization)
+
+**v0.7.0 Week 1 Progress** (per [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)):
+- [x] **Monday-Tuesday**: Performance Baseline ✅ **COMPLETE**
+  - [x] Ran all 6 benchmark suites (parse, glr_performance, glr_hot, optimization, stack, incremental)
+  - [x] Documented comprehensive baseline in [docs/PERFORMANCE_BASELINE.md](./docs/PERFORMANCE_BASELINE.md)
+  - [x] **Key Metrics**: Python 1000 lines = 62.4µs (~16K lines/sec), GLR fork = 73ns
+  - [x] **Critical Findings**: Custom arena 2356x slower, small allocations 208x slower
+  - [x] **Optimization Targets**: Arena fix, allocation pooling, incremental parsing
+  - [ ] Compare to tree-sitter-c (Tuesday - pending)
+- [ ] **Wednesday-Thursday**: Re-enable 4 error recovery tests (8 hours)
+- [ ] **Friday**: Add performance regression CI (6 hours)
 
 **Blockers for v0.7.0**:
 1. **GLR Runtime Wiring** - ✅ **ALTERNATIVE PATH WORKING** (runtime2)
