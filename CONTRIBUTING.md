@@ -98,6 +98,154 @@ RUN_QUICK_TESTS=1 git commit -m "test: add coverage"
 git commit --no-verify -m "WIP: debugging"
 ```
 
+---
+
+## Policy Enforcement
+
+**rust-sitter uses automated policy enforcement** to maintain quality, security, and performance standards. All contributions must pass these policies before merge.
+
+### Three-Layer Enforcement
+
+1. **Layer 1: Pre-commit Hooks** (Local, <5s)
+   - Runs automatically before each commit
+   - Fast feedback on basic issues
+   - Can be bypassed for WIP commits
+
+2. **Layer 2: Verification Scripts** (Local, <60s)
+   - Self-service validation before push
+   - Comprehensive quality + security checks
+   - Recommended before pushing
+
+3. **Layer 3: CI Workflows** (Remote, required)
+   - Safety net that cannot be bypassed
+   - Required for PR merge
+   - Branch protection enforced
+
+### Quick Start
+
+**Using Nix (Recommended)**:
+```bash
+# Enter development shell (auto-installs pre-commit hooks)
+nix develop
+
+# Pre-commit hooks are now active!
+git add .
+git commit -m "feat: Your changes"
+# Hooks run automatically: fmt, clippy, connectivity checks
+```
+
+**Manual Setup** (if not using Nix):
+```bash
+# Install pre-commit framework
+pip install pre-commit
+
+# Install hooks
+pre-commit install
+pre-commit install --hook-type commit-msg
+
+# Hooks are now active
+```
+
+### Daily Workflow
+
+**1. Make changes and commit**:
+```bash
+git add .
+git commit -m "feat: Add new feature"
+# Pre-commit hooks run automatically (<5s)
+```
+
+**2. Validate before pushing** (recommended):
+```bash
+# Quick quality check
+./scripts/check-quality.sh
+
+# Quick security check
+./scripts/check-security.sh
+
+# Or run both
+./scripts/pre-push.sh
+```
+
+**3. Push changes**:
+```bash
+git push origin feature-branch
+# CI validates everything (~40 min)
+```
+
+**4. Create PR**:
+- CI must pass (policy + secrets workflows)
+- At least 1 approving review required
+
+### What Gets Checked
+
+**Quality Policies**:
+- ✅ Code formatting (`cargo fmt`)
+- ✅ Zero clippy warnings (`cargo clippy -- -D warnings`)
+- ✅ 100% test pass rate (`cargo test`)
+- ✅ Zero doc warnings (`cargo doc`)
+- ✅ Test connectivity (no `.rs.disabled` files)
+
+**Security Policies**:
+- 🔒 No vulnerabilities (`cargo audit`)
+- 🔒 License compliance (`cargo deny`)
+- 🔒 No secrets (pattern + entropy + TruffleHog)
+- 🔒 No sensitive files (`.pem`, `.key`, etc.)
+
+**Performance Policies** (PR only):
+- 📊 Benchmark comparison (5% regression threshold)
+
+### Bypassing Policies (Use Sparingly)
+
+**Skip pre-commit hooks** (WIP commits only):
+```bash
+git commit --no-verify -m "wip: Incomplete work"
+```
+
+> ⚠️ **Warning**: CI will fail if issues remain. Only use for WIP commits on feature branches.
+
+**Skip verification scripts**: Just don't run them (but CI will catch issues)
+
+**Skip CI**: Not possible - required for PR merge
+
+### Troubleshooting
+
+**Problem**: Pre-commit hooks not running
+```bash
+# Reinstall hooks
+pre-commit install
+
+# Or enter Nix shell
+nix develop
+```
+
+**Problem**: Verification script fails
+```bash
+# Use Nix for reproducible environment
+nix develop --command ./scripts/check-quality.sh
+
+# Or install required tools
+cargo install cargo-audit cargo-deny
+```
+
+**Problem**: CI fails but local checks pass
+```bash
+# Use Nix shell (matches CI environment)
+nix develop --command ./scripts/pre-push.sh
+
+# Or check concurrency settings
+RUST_TEST_THREADS=2 cargo test
+```
+
+### Policy Documentation
+
+For complete policy documentation, see:
+- [POLICIES.md](./POLICIES.md) - Policy overview and reference
+- [Policy Enforcement Guide](./docs/guides/POLICY_ENFORCEMENT.md) - Technical implementation details
+- [ADR-0010: Policy-as-Code](./docs/adr/ADR-0010-POLICY-AS-CODE.md) - Architecture decisions
+
+---
+
 ## Daily Development Commands
 
 ### Formatting
