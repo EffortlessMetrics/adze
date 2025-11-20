@@ -266,16 +266,26 @@ fn test_tokenizer_output() {
     }
 }
 
-/// Diagnostic Test 7: Attempt minimal parse (this will likely fail, but we'll see the error)
+/// Diagnostic Test 7: Attempt minimal parse
 #[test]
 #[ignore] // Enable manually to see detailed error
 fn test_minimal_parse_attempt() {
     let grammar = create_grammar();
+
+    println!("=== Grammar Info ===");
+    println!("Grammar name: {}", grammar.name);
+    println!("Tokens: {:?}", grammar.tokens.keys().collect::<Vec<_>>());
+    println!("Rule names: {:?}", grammar.rule_names);
+
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();
     let parse_table = build_lr1_automaton(&grammar, &first_follow)
         .unwrap()
         .normalize_eof_to_zero()
         .with_detected_goto_indexing();
+
+    println!("\n=== ParseTable Grammar ===");
+    println!("ParseTable grammar name: {}", parse_table.grammar.name);
+    println!("ParseTable rule_names: {:?}", parse_table.grammar.rule_names);
 
     let table_static: &'static _ = Box::leak(Box::new(parse_table));
 
@@ -303,7 +313,7 @@ fn test_minimal_parse_attempt() {
     ];
     parser.set_token_patterns(patterns).unwrap();
 
-    println!("=== Attempting Parse ===");
+    println!("\n=== Attempting Parse ===");
     let input = b"42";
     println!("Input: {:?}", std::str::from_utf8(input).unwrap());
 
@@ -312,7 +322,14 @@ fn test_minimal_parse_attempt() {
             println!("✓ Parse succeeded!");
             let root = tree.root_node();
             println!("  Root kind: {}", root.kind());
+            println!("  Root kind_id: {:?}", root.kind_id());
             println!("  Child count: {}", root.child_count());
+
+            if root.child_count() > 0 {
+                let child = root.child(0).unwrap();
+                println!("  Child 0 kind: {}", child.kind());
+                println!("  Child 0 kind_id: {:?}", child.kind_id());
+            }
         }
         Err(e) => {
             println!("✗ Parse failed: {}", e);

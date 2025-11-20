@@ -224,10 +224,68 @@ impl Parser {
         let mut tree = converter.to_tree(&forest, input)
             .map_err(|e| ParseError::with_msg(&e.to_string()))?;
 
+        // Phase 3.3: Build Language from ParseTable for symbol names
+        let language = Self::build_language_from_parse_table(glr_state.parse_table);
+        tree.set_language(language);
+
         // Set tree metadata
         tree.set_source(input.to_vec());
 
         Ok(tree)
+    }
+
+    /// Build a Language from ParseTable for symbol name resolution (Phase 3.3)
+    ///
+    /// Extracts symbol names from the ParseTable's grammar and creates a minimal
+    /// Language struct for tree node name resolution.
+    ///
+    /// # Symbol Name Resolution
+    ///
+    /// - Terminals (tokens): Use `grammar.tokens[symbol_id].name`
+    /// - Non-terminals: Use `grammar.rule_names[symbol_id]`
+    /// - Unknown symbols: Use "unknown"
+    ///
+    #[cfg(feature = "pure-rust-glr")]
+    fn build_language_from_parse_table(parse_table: &'static rust_sitter_glr_core::ParseTable) -> Language {
+        use std::collections::BTreeMap;
+
+        // Build symbol_names Vec indexed by symbol ID
+        let mut symbol_names = vec![String::from("unknown"); parse_table.symbol_count];
+
+        // Add terminal (token) names
+        for (symbol_id, token) in &parse_table.grammar.tokens {
+            let idx = symbol_id.0 as usize;
+            if idx < symbol_names.len() {
+                symbol_names[idx] = token.name.clone();
+            }
+        }
+
+        // Add non-terminal names
+        for (symbol_id, name) in &parse_table.grammar.rule_names {
+            let idx = symbol_id.0 as usize;
+            if idx < symbol_names.len() {
+                symbol_names[idx] = name.clone();
+            }
+        }
+
+        // Create Language with symbol names
+        Language {
+            version: 1,
+            symbol_count: parse_table.symbol_count as u32,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            #[cfg(feature = "glr-core")]
+            parse_table: Some(parse_table),
+            #[cfg(not(feature = "glr-core"))]
+            parse_table: crate::language::ParseTable::default(),
+            #[cfg(feature = "glr-core")]
+            tokenize: None,
+            symbol_names,
+            symbol_metadata: Vec::new(),
+            field_names: Vec::new(),
+            #[cfg(feature = "external-scanners")]
+            external_scanner: None,
+        }
     }
 
     /// Reset the parser state
