@@ -2,11 +2,14 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use xshell::Shell;
 
+mod baseline;
+mod bench;
 mod corpus;
 mod dashboard;
 mod golden;
 mod grammar_json;
 mod lint;
+mod profile;
 mod test_grammars;
 mod test_local_grammars;
 
@@ -104,6 +107,38 @@ enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+    /// Run benchmarks with optional baseline saving
+    Bench {
+        /// Save results as a new baseline
+        #[arg(long)]
+        save_baseline: bool,
+        /// Baseline name (defaults to version from Cargo.toml)
+        #[arg(long)]
+        baseline_name: Option<String>,
+    },
+    /// Profile CPU or memory usage
+    Profile {
+        /// Profile type: cpu or memory
+        #[arg(value_enum)]
+        profile_type: ProfileType,
+        /// Grammar to profile
+        #[arg(value_enum)]
+        grammar: ProfileGrammar,
+        /// Fixture size
+        #[arg(value_enum)]
+        size: FixtureSize,
+        /// Output JSON metrics
+        #[arg(long)]
+        json: bool,
+    },
+    /// Compare current benchmarks against baseline
+    CompareBaseline {
+        /// Baseline version to compare against (e.g., "v0.8.0")
+        baseline_version: String,
+        /// Regression threshold percentage (default: 5.0)
+        #[arg(long, default_value = "5.0")]
+        threshold: f64,
+    },
     /// Run all lint checks (fmt -> no-mangle -> debug-block validator -> clippy)
     ///
     /// Examples:
@@ -144,6 +179,55 @@ pub enum Grammar {
     Rust,
     Python,
     C,
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug)]
+enum ProfileType {
+    Cpu,
+    Memory,
+}
+
+impl From<ProfileType> for profile::ProfileType {
+    fn from(pt: ProfileType) -> Self {
+        match pt {
+            ProfileType::Cpu => profile::ProfileType::Cpu,
+            ProfileType::Memory => profile::ProfileType::Memory,
+        }
+    }
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug)]
+enum ProfileGrammar {
+    Python,
+    Javascript,
+    Arithmetic,
+}
+
+impl From<ProfileGrammar> for profile::ProfileGrammar {
+    fn from(pg: ProfileGrammar) -> Self {
+        match pg {
+            ProfileGrammar::Python => profile::ProfileGrammar::Python,
+            ProfileGrammar::Javascript => profile::ProfileGrammar::Javascript,
+            ProfileGrammar::Arithmetic => profile::ProfileGrammar::Arithmetic,
+        }
+    }
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug)]
+enum FixtureSize {
+    Small,
+    Medium,
+    Large,
+}
+
+impl From<FixtureSize> for profile::FixtureSize {
+    fn from(fs: FixtureSize) -> Self {
+        match fs {
+            FixtureSize::Small => profile::FixtureSize::Small,
+            FixtureSize::Medium => profile::FixtureSize::Medium,
+            FixtureSize::Large => profile::FixtureSize::Large,
+        }
+    }
 }
 
 impl Grammar {
@@ -218,6 +302,26 @@ fn main() -> Result<()> {
         }
         Commands::TestPureRust { grammar, verbose } => {
             test_grammars::test_pure_rust(&sh, grammar, verbose)?;
+        }
+        Commands::Bench {
+            save_baseline,
+            baseline_name,
+        } => {
+            bench::run_benchmarks(&sh, save_baseline, baseline_name)?;
+        }
+        Commands::Profile {
+            profile_type,
+            grammar,
+            size,
+            json,
+        } => {
+            profile::profile(&sh, profile_type.into(), grammar.into(), size.into(), json)?;
+        }
+        Commands::CompareBaseline {
+            baseline_version,
+            threshold,
+        } => {
+            baseline::compare_baseline(&sh, &baseline_version, threshold)?;
         }
         Commands::Lint {
             fix,
