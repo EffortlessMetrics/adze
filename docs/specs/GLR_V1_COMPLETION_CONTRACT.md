@@ -599,30 +599,34 @@ GLR v1 is **DONE** when:
 
 ### ⏳ In Progress
 
-**AC-1: GLR Core Engine Correctness** - **PARTIAL**
+**AC-1: GLR Core Engine Correctness** - **NEARLY COMPLETE**
 - ✅ Conflict detection working (BDD Phase 1)
 - ✅ Parse table multi-action cells preserved
 - ✅ Basic parsing working (BDD Phase 2 scenario 7b)
-- ⏸ Full ambiguous input parsing pending (whitespace)
+- ✅ Full ambiguous input parsing working (whitespace-aware tokenization)
+- ✅ Zero-length regex protection prevents infinite loops
 - ⏸ Forest API pending (deferred to vNext)
 
-**AC-3: Ambiguous Grammar Handling** - **PARTIAL**
+**AC-3: Ambiguous Grammar Handling** - **NEARLY COMPLETE**
 - ✅ Dangling-else grammar created and tested at table level
 - ✅ Conflicts preserved in parse tables
-- ⏸ Runtime parsing of complex ambiguous input pending
+- ✅ Runtime parsing of complex ambiguous input with whitespace
+- ✅ Successfully parses "if expr then if expr then stmt else stmt"
 - ⏸ Forest exposure pending (deferred to vNext)
 
 ### 📊 Test Status Summary
 
-**Actual Test Count**: 93/93 tests passing (100%)
+**Actual Test Count**: 98/98 tests passing (100%)
 - glr-core tests: 4/4 ✅ (including BDD Phase 1)
-- runtime2 tests: 89/89 ✅ (including BDD Phase 2 partial)
+- runtime2 tokenizer tests: 5/5 ✅ (including zero-length + whitespace)
+- runtime2 BDD tests: 4/4 ✅ (including scenario 7 with whitespace)
+- runtime2 integration tests: 85/85 ✅
 - Arithmetic integration tests: 7/8 passing, 1 ignored with documentation
 - Performance benchmarks: All passing with baseline established
 
-**BDD Coverage**: 3/5 scenarios implemented (60%)
-- Phase 1 (table generation): 2/2 complete
-- Phase 2 (runtime parsing): 1/3 complete, 2 deferred
+**BDD Coverage**: 4/5 scenarios implemented (80%)
+- Phase 1 (table generation): 2/2 complete ✅
+- Phase 2 (runtime parsing): 2/3 complete ✅, 1 deferred to vNext
 
 ### 🎯 Key Achievements
 
@@ -630,14 +634,17 @@ GLR v1 is **DONE** when:
 2. **BDD Methodology**: End-to-end BDD validation from table to runtime
 3. **Performance Governance**: Baseline established with automated CI gates
 4. **Critical Bug Fixes**: Sparse symbol ID handling discovered and fixed via BDD
-5. **100% Test Pass Rate**: All implemented tests passing
+5. **100% Test Pass Rate**: All implemented tests passing (98/98)
+6. **Whitespace-Aware Tokenization**: Symbol 255 pattern with Skip mode
+7. **Zero-Length Protection**: Infinite loop prevention in regex matcher
+8. **Ambiguous Input Parsing**: Dangling-else problem successfully handled
 
 ### 📋 Remaining Work for GLR v1
 
 **High Priority**:
-1. Whitespace-aware tokenization for scenario 7
-2. Tree API compatibility validation
-3. Architecture, user guide, and grammar author documentation
+1. ✅ ~~Whitespace-aware tokenization for scenario 7~~ **COMPLETE**
+2. Tree API compatibility validation (AC-5 completion)
+3. Architecture, user guide, and grammar author documentation (AC-6 completion)
 
 **Medium Priority**:
 1. Right associativity testing
