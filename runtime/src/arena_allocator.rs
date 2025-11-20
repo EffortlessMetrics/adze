@@ -426,6 +426,92 @@ impl TreeNode {
     }
 }
 
+/// Arena metrics snapshot
+///
+/// Provides information about the current state of a TreeArena.
+/// All metrics are computed from the arena's current state and represent
+/// a snapshot at the time `arena_metrics()` is called.
+///
+/// # Example
+///
+/// ```
+/// use rust_sitter::arena_allocator::{TreeArena, TreeNode};
+///
+/// let mut arena = TreeArena::new();
+///
+/// // Before allocation
+/// let metrics = arena.metrics();
+/// assert_eq!(metrics.len(), 0);
+///
+/// // After allocation
+/// arena.alloc(TreeNode::leaf(42));
+/// let metrics = arena.metrics();
+/// assert_eq!(metrics.len(), 1);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ArenaMetrics {
+    /// Number of nodes currently allocated
+    len: usize,
+    /// Total capacity across all chunks
+    capacity: usize,
+    /// Number of chunks allocated
+    num_chunks: usize,
+    /// Approximate memory usage in bytes
+    memory_usage: usize,
+}
+
+impl ArenaMetrics {
+    /// Create metrics from arena
+    pub(crate) fn from_arena(arena: &TreeArena) -> Self {
+        Self {
+            len: arena.len(),
+            capacity: arena.capacity(),
+            num_chunks: arena.num_chunks(),
+            memory_usage: arena.memory_usage(),
+        }
+    }
+
+    /// Get number of allocated nodes
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Check if arena is empty
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// Get total capacity across all chunks
+    pub fn capacity(&self) -> usize {
+        self.capacity
+    }
+
+    /// Get number of chunks
+    pub fn num_chunks(&self) -> usize {
+        self.num_chunks
+    }
+
+    /// Get approximate memory usage in bytes
+    pub fn memory_usage(&self) -> usize {
+        self.memory_usage
+    }
+}
+
+impl TreeArena {
+    /// Get current metrics snapshot
+    ///
+    /// Returns a snapshot of arena metrics including node count,
+    /// capacity, number of chunks, and memory usage.
+    ///
+    /// # Performance
+    ///
+    /// O(chunks) to compute len() for partially filled chunks.
+    /// Other metrics are O(1).
+    pub fn metrics(&self) -> ArenaMetrics {
+        ArenaMetrics::from_arena(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

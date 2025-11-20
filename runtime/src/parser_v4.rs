@@ -4,6 +4,7 @@
 // Enhanced Pure-Rust parser with external scanner support
 // This module extends parser_v3 with full external scanner integration
 
+use crate::arena_allocator::{ArenaMetrics, TreeArena};
 use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
@@ -74,6 +75,8 @@ impl Tree {
 
 /// Enhanced parser with external scanner support
 pub struct Parser {
+    /// Arena allocator for parse tree nodes
+    arena: TreeArena,
     /// The grammar being used
     grammar: Grammar,
     /// Parse table for the grammar
@@ -182,6 +185,7 @@ impl Parser {
         };
 
         Self {
+            arena: TreeArena::new(), // Default capacity (1024 nodes)
             grammar,
             parse_table,
             glr_state: GLRParserState::new(),
@@ -244,6 +248,7 @@ impl Parser {
         };
 
         Self {
+            arena: TreeArena::new(), // Default capacity (1024 nodes)
             grammar,
             parse_table,
             glr_state: GLRParserState::new(),
@@ -253,6 +258,83 @@ impl Parser {
             external_runtime,
             language: language_name,
         }
+    }
+
+    /// Create a new parser with a custom arena capacity
+    ///
+    /// # Arguments
+    ///
+    /// * `capacity` - Initial capacity for arena (number of nodes)
+    /// * `grammar` - Grammar to use for parsing
+    /// * `parse_table` - Parse table for the grammar
+    /// * `language` - Language name for scanner registry lookup
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let parser = Parser::with_arena_capacity(grammar, parse_table, "rust".to_string(), 2048);
+    /// ```
+    pub fn with_arena_capacity(
+        grammar: Grammar,
+        parse_table: ParseTable,
+        language: String,
+        capacity: usize,
+    ) -> Self {
+        // Check if grammar has external tokens
+        let (external_scanner, external_runtime) = if !grammar.externals.is_empty() {
+            // Get scanner from registry
+            let registry = get_global_registry();
+            let registry = registry.lock().unwrap();
+
+            if let Some(scanner) = registry.create_scanner(&language) {
+                let external_tokens: Vec<crate::SymbolId> = grammar
+                    .externals
+                    .iter()
+                    .map(|ext| ext.symbol_id.0)
+                    .collect();
+                let runtime = ExternalScannerRuntime::new(external_tokens);
+                (Some(scanner), Some(runtime))
+            } else {
+                (None, None)
+            }
+        } else {
+            (None, None)
+        };
+
+        Self {
+            arena: TreeArena::with_capacity(capacity),
+            grammar,
+            parse_table,
+            glr_state: GLRParserState::new(),
+            input: Vec::new(),
+            position: 0,
+            external_scanner,
+            external_runtime,
+            language,
+        }
+    }
+
+    /// Get current arena metrics
+    ///
+    /// Returns a snapshot of the arena's current state including:
+    /// - Number of allocated nodes
+    /// - Total capacity across all chunks
+    /// - Number of chunks
+    /// - Approximate memory usage in bytes
+    ///
+    /// # Performance
+    ///
+    /// O(chunks) for computing node count. Other metrics are O(1).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let parser = Parser::new(grammar, parse_table, "rust".to_string());
+    /// let metrics = parser.arena_metrics();
+    /// println!("Arena has {} nodes using {} bytes", metrics.len(), metrics.memory_usage());
+    /// ```
+    pub fn arena_metrics(&self) -> ArenaMetrics {
+        self.arena.metrics()
     }
 
     /// Set the language for this parser from a TSLanguage struct
