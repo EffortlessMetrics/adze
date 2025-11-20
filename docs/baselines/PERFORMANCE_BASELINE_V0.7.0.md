@@ -179,8 +179,8 @@ Flamegraphs will be generated at:
 
 **Analysis Method**:
 ```bash
-# Generate flamegraph for Python small fixture
-./scripts/profile-cpu.sh python benches/fixtures/python/small/sample.py
+# Generate flamegraph for Python small fixture (rust-native)
+cargo xtask profile cpu --language python --fixture python/small/sample.py
 
 # Review flamegraph to identify hot functions
 # Document functions with >1% CPU time width in flamegraph
@@ -257,8 +257,8 @@ Based on GLR parser architecture:
 
 **Analysis Method**:
 ```bash
-# Generate memory profile for Python medium fixture
-./scripts/profile-memory.sh python benches/fixtures/python/medium/sample.py
+# Generate memory profile for Python medium fixture (rust-native)
+cargo xtask profile memory --language python --fixture python/medium/sample.py
 
 # Review heaptrack/valgrind output for:
 # - Peak memory usage
@@ -467,15 +467,15 @@ export RAYON_NUM_THREADS=4
 # 2. Build in release mode
 cargo build --release --features glr-core
 
-# 3. Run benchmarks
-cargo bench --bench glr-performance
+# 3. Run benchmarks (rust-native)
+cargo xtask bench
 
-# 4. Run profiling
-./scripts/profile-cpu.sh python benches/fixtures/python/medium/sample.py
-./scripts/profile-memory.sh python benches/fixtures/python/medium/sample.py
+# 4. Run profiling (rust-native)
+cargo xtask profile cpu --language python --fixture python/medium/sample.py
+cargo xtask profile memory --language python --fixture python/medium/sample.py
 
-# 5. Run Tree-sitter comparison
-./scripts/compare-tree-sitter.sh report
+# 5. Run Tree-sitter comparison (rust-native)
+cargo xtask compare-baseline --format markdown
 
 # 6. Review results
 ls -la docs/analysis/
@@ -519,18 +519,18 @@ ls -la docs/analysis/
    - Execute `cargo bench --bench glr-performance`
    - Record results in this document
 
-3. **Run CPU Profiling**:
-   - Generate flamegraphs for all language/size combinations
+3. **Run CPU Profiling** (rust-native):
+   - Generate flamegraphs: `cargo xtask profile cpu --language <lang> --fixture <path>`
    - Identify top 5 CPU bottlenecks
    - Document in this file
 
-4. **Run Memory Profiling**:
-   - Generate memory profiles for all language/size combinations
+4. **Run Memory Profiling** (rust-native):
+   - Generate profiles: `cargo xtask profile memory --language <lang> --fixture <path>`
    - Identify top 5 allocation hotspots
    - Document in this file
 
-5. **Run Tree-sitter Comparison**:
-   - Benchmark Tree-sitter C on same fixtures
+5. **Run Tree-sitter Comparison** (rust-native):
+   - Benchmark comparison: `cargo xtask compare-baseline --format markdown`
    - Generate comparison report
    - Document ratios in this file
 
