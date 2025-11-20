@@ -1,0 +1,49 @@
+# cargo-audit configuration for rust-sitter
+# Part of Policy-as-Code (AC-P3: Security Policies)
+# https://docs.rs/cargo-audit/latest/cargo_audit/
+
+[advisories]
+# Advisory database configuration
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+
+# Vulnerability severity thresholds
+# Fail on: critical, high, medium
+# Warn on: low
+ignore = [
+    # Add specific advisory IDs to ignore if needed
+    # Example: "RUSTSEC-2020-0001",
+    # Note: All ignores must be justified with a comment explaining:
+    #   - Why the vulnerability doesn't apply to our use case
+    #   - Mitigation steps taken
+    #   - Expected remediation timeline
+]
+
+# Informational advisories (non-security)
+informational_warnings = ["unmaintained", "unsound", "yanked"]
+
+# Severity threshold: fail on medium or above
+# Options: "low", "medium", "high", "critical"
+severity_threshold = "medium"
+
+[yanked]
+# Treat yanked crates as errors
+# Yanked crates indicate the maintainer found a critical issue
+enabled = true
+
+[unmaintained]
+# Warn on unmaintained crates (not actively developed)
+enabled = true
+
+[unsound]
+# Fail on unsound crates (violate Rust's memory safety guarantees)
+enabled = true
+
+[licenses]
+# License scanning (also handled by cargo-deny, but good for defense-in-depth)
+enabled = false  # Handled by cargo-deny primarily
+
+[output]
+# Output format: "human" (default), "json", "toml"
+format = "human"
+show-tree = false
