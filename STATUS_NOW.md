@@ -23,12 +23,18 @@
   - [x] Phase 3.1: Parser::load_glr_table_from_bytes() API
   - [x] Phase 3.2: End-to-end integration tests
   - [x] Phase 3.3: **GLR engine integration** - Tokenization + Parsing + Tree construction working
+  - [x] **Critical Bug Fix**: Sparse symbol ID handling (discovered via BDD tests)
   - [x] Phase 4: Documentation & API docs complete
-  - [x] **Test Coverage**: 88/88 tests passing (100%) 🎉
+  - [x] **Test Coverage**: 89/89 tests passing (100%) 🎉
   - [x] **Production Ready**: Full generate → load → parse pipeline functional
+- [x] **GLR Step 5**: BDD scenario tests - **PARTIAL COMPLETE** ✅
+  - [x] Phase 1 (glr-core): 2/2 scenarios complete (conflict detection + preservation)
+  - [x] Phase 2 (runtime2): 1/3 scenarios complete (simple input parsing)
+  - [x] **Key Achievement**: GLR conflict preservation validated end-to-end
+  - ⏸ Deferred: Complex input tokenization (scenario 7) - needs whitespace handling
+  - ⏸ Deferred: Multiple parse trees (scenario 8) - needs GLR forest API
 - [ ] **GLR Step 4**: Grammar metadata generation (deferred - optional optimization)
-- [ ] **GLR Step 5**: Implement BDD scenario tests (NEXT)
-- [ ] **GLR Step 6**: Re-enable arithmetic tests
+- [ ] **GLR Step 6**: Re-enable arithmetic tests (NEXT)
 
 **Blockers for v0.7.0**:
 1. **GLR Runtime Wiring** - ✅ **ALTERNATIVE PATH WORKING** (runtime2)
@@ -36,7 +42,7 @@
    - ✅ Runtime routing infrastructure in place
    - ✅ parser_v4 extraction integration complete
    - ⚠️ **runtime/ path**: parser_v4 table loading/decoder incompatibility (documented)
-   - ✅ **runtime2/ path**: .parsetable pipeline **FULLY FUNCTIONAL** (88/88 tests, 100%)
+   - ✅ **runtime2/ path**: .parsetable pipeline **FULLY FUNCTIONAL** (89/89 tests, 100%)
    - See: [PARSER_V4_TABLE_LOADING_BLOCKER.md](./docs/plans/PARSER_V4_TABLE_LOADING_BLOCKER.md)
    - **Note**: runtime2 .parsetable pipeline bypasses decoder blocker with direct GLR engine integration
    - ⏳ Next: BDD scenario tests for runtime2 path
@@ -61,7 +67,9 @@
   - **Tokenization**: Regex matching fixed and working
   - **GLR Parsing**: Full GLR engine integration with parse tree construction
   - **Tree Nodes**: Correct symbol names from grammar
-  - **Test coverage**: 88/88 tests passing (100%) ✅
+  - **Test coverage**: 89/89 tests passing (100%) ✅
+  - **BDD Coverage**: 3/5 core scenarios validated (conflict preservation + parsing)
+  - **Bug Fixes**: Critical sparse symbol ID handling bug discovered and fixed via BDD
   - **Documentation**: Comprehensive spec, quickstart guide, API docs, and completion summary
   - **Use case**: Fast builds, deterministic deployment, runtime grammar loading, production parsing
 
