@@ -1,8 +1,10 @@
 //! Unified parser interface for different backends.
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+#![allow(dead_code)] // TODO(Phase 2 Day 5): Fix lifetime issues with Tree<'arena>
 
 // Unified parser API - hides implementation complexity behind a clean interface
 // This is the main public-facing API for rust-sitter parsing
+// NOTE: This module needs updates for Tree<'arena> integration (Day 5)
 
 use crate::parser_v4;
 use crate::pure_parser::TSLanguage;
@@ -91,21 +93,27 @@ impl Parser {
     /// # Returns
     /// * `Some(Tree)` on successful parse
     /// * `None` if parsing fails or no language is set
-    pub fn parse(
-        &mut self,
+    // TODO(Phase 2 Day 5): Uncomment and fix lifetime issues
+    // The issue is that parse_with_auto_lexer returns Tree<'a> tied to &'a mut self,
+    // but we're trying to return it from parse() which also borrows &'a mut self.
+    // This needs proper lifetime elision or restructuring for Day 5.
+    /*
+    pub fn parse<'a>(
+        &'a mut self,
         source: &str,
-        _old_tree: Option<&parser_v4::Tree>,
-    ) -> Option<parser_v4::Tree> {
-        if let (Some(parser), Some(language)) = (&mut self.inner, self.language) {
+        _old_tree: Option<&parser_v4::Tree<'a>>,
+    ) -> Option<parser_v4::Tree<'a>> {
+        let parser = self.inner.as_mut()?;
+
+        if let Some(language) = self.language {
             // Use the auto-lexer method that checks for lex_fn
             parser.parse_with_auto_lexer(source, language).ok()
-        } else if let Some(parser) = &mut self.inner {
+        } else {
             // Fallback to regular parse if no language stored
             parser.parse(source).ok()
-        } else {
-            None
         }
     }
+    */
 
     /// Parse source code with incremental parsing support
     ///
@@ -149,12 +157,12 @@ impl Parser {
     ///
     /// # Note
     /// This is the main API for GLR-aware incremental parsing.
-    pub fn reparse(
+    pub fn reparse<'a>(
         &mut self,
         source: &[u8],
-        old_tree: &parser_v4::Tree,
+        old_tree: &parser_v4::Tree<'a>,
         edit: &crate::pure_incremental::Edit,
-    ) -> Option<parser_v4::Tree> {
+    ) -> Option<parser_v4::Tree<'a>> {
         // Get the inner parser if it exists
         if let Some(ref inner_parser) = self.inner {
             // Now we can access the grammar and table using the new getter methods
