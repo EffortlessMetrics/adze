@@ -253,7 +253,7 @@ mod tests {
     #[test]
     fn test_parse_without_language() {
         let mut parser = Parser::new();
-        let result = parser.parse("test", None);
+        let result = parser.parse_with_old_tree("test".as_bytes(), None, None);
         assert!(result.is_none());
     }
 }

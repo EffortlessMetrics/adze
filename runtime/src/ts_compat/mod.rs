@@ -161,13 +161,13 @@ impl Default for Parser {
 
 /// A parsed syntax tree.
 #[derive(Clone)]
-pub struct Tree {
-    pub(crate) core: CoreTree,
+pub struct Tree<'a> {
+    pub(crate) core: CoreTree<'a>,
     pub(crate) last_edit: Option<CoreEdit>,
     pub(crate) language: Arc<Language>,
 }
 
-impl Tree {
+impl<'a> Tree<'a> {
     /// Apply an edit to this tree.
     pub fn edit(&mut self, edit: &InputEdit) {
         let core_edit = CoreEdit::from(edit.clone());
@@ -186,7 +186,8 @@ impl Tree {
 
     /// Get the root kind as a string.
     pub fn root_kind(&self) -> &str {
-        let sym = self.core.root_kind();
+        let root_node = self.core.root_node();
+        let sym = root_node.symbol();
         // Try direct rule name mapping first
         if let Some(name) = self
             .language
@@ -222,7 +223,7 @@ impl Tree {
 
 /// A node in a syntax tree.
 pub struct Node<'a> {
-    tree: &'a CoreTree,
+    tree: &'a CoreTree<'a>,
     _index: usize,
 }
 

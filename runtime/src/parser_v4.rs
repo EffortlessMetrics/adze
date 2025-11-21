@@ -67,7 +67,7 @@ pub struct ParserState {
 /// let tree = parser.parse("1 + 2")?;
 /// let root = tree.root_node(); // Node<'arena>
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tree<'arena> {
     /// Root node handle
     pub(crate) root: NodeHandle,
@@ -78,6 +78,17 @@ pub struct Tree<'arena> {
 }
 
 impl<'arena> Tree<'arena> {
+    /// Create a new tree
+    ///
+    /// This is primarily used internally by the parser and for testing.
+    pub fn new(root: NodeHandle, arena: &'arena TreeArena) -> Self {
+        Self {
+            root,
+            arena,
+            error_count: 0,
+        }
+    }
+
     /// Get the root node
     ///
     /// Returns a Node<'arena> wrapping the root handle.

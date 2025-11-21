@@ -64,7 +64,7 @@ impl<'arena> Node<'arena> {
     ///
     /// Internal use only. Handle must be valid for the arena.
     /// This is enforced by only exposing this method within the crate.
-    pub(crate) fn new(handle: NodeHandle, arena: &'arena TreeArena) -> Self {
+    pub fn new(handle: NodeHandle, arena: &'arena TreeArena) -> Self {
         Node { handle, arena }
     }
 
@@ -75,17 +75,8 @@ impl<'arena> Node<'arena> {
     /// # Performance
     ///
     /// O(1) - direct arena lookup by handle.
-    ///
-    /// # Note
-    ///
-    /// This method will be fully implemented in Day 5 when parse() integration
-    /// allocates TreeNodeData in the arena. For Day 4, we're establishing the
-    /// type signatures.
     pub fn data(&self) -> &'arena TreeNodeData {
-        // TODO(Phase 2 Day 5): Implement when TreeArena stores TreeNodeData
-        // For now, we need to integrate TreeNodeData allocation into TreeArena
-        // Current TreeArena stores TreeNode (demo type), not TreeNodeData
-        unimplemented!("data() will be implemented in Day 5 parse() integration")
+        self.arena.get(self.handle).data()
     }
 
     /// Get the node's symbol/kind ID
@@ -247,13 +238,12 @@ impl<'arena> Node<'arena> {
     /// # Performance
     ///
     /// O(1) to create iterator, O(n) to consume.
-    ///
-    /// # Note
-    ///
-    /// Full implementation in Day 5 when TreeArena stores TreeNodeData.
     pub fn children(&self) -> NodeChildren<'arena> {
-        // TODO(Phase 2 Day 5): Implement when TreeArena stores TreeNodeData
-        unimplemented!("children() will be implemented in Day 5 parse() integration")
+        NodeChildren {
+            handles: self.data().children(),
+            arena: self.arena,
+            index: 0,
+        }
     }
 
     /// Iterate over named children only
@@ -333,11 +323,13 @@ mod tests {
 
     #[test]
     fn test_node_is_copy() {
+        use crate::arena_allocator::TreeNode;
+
         // This test compiles if Node is Copy
         fn takes_copy<T: Copy>(_: T) {}
 
         let mut arena = TreeArena::new();
-        let handle = arena.alloc(TreeNodeData::leaf(1, 0, 10));
+        let handle = arena.alloc(TreeNode::new(TreeNodeData::leaf(1, 0, 10)));
         let node = Node::new(handle, &arena);
 
         takes_copy(node);
