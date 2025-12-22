@@ -44,16 +44,22 @@ impl StackNode {
     // Private helper functions for pair operations
     #[inline]
     fn push_pair(head: &mut Vec<u16>, state: u16, sym: Option<u16>) {
-        debug_assert!(head.len() % 2 == 0, "head must contain pairs before push");
+        debug_assert!(
+            head.len().is_multiple_of(2),
+            "head must contain pairs before push"
+        );
         debug_assert!(sym != Some(NO_SYM), "symbol id must be < u16::MAX");
         head.push(state);
         head.push(sym.unwrap_or(NO_SYM));
-        debug_assert!(head.len() % 2 == 0, "head must contain pairs after push");
+        debug_assert!(
+            head.len().is_multiple_of(2),
+            "head must contain pairs after push"
+        );
     }
 
     #[inline]
     fn pop_pair(head: &mut Vec<u16>) -> Option<(u16, Option<u16>)> {
-        debug_assert!(head.len() % 2 == 0, "head must contain pairs");
+        debug_assert!(head.len().is_multiple_of(2), "head must contain pairs");
         if head.len() < 2 {
             return None;
         }

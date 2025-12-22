@@ -1395,9 +1395,9 @@ pub enum GotoIndexing {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseTable {
-    /// ACTION table: indexed by [state][terminal] using symbol_to_index
+    /// ACTION table: indexed by `[state][terminal]` using symbol_to_index
     pub action_table: Vec<Vec<ActionCell>>,
-    /// GOTO table: indexed by [state][nonterminal] using nonterminal_to_index or direct ID
+    /// GOTO table: indexed by `[state][nonterminal]` using nonterminal_to_index or direct ID
     pub goto_table: Vec<Vec<StateId>>,
     pub symbol_metadata: Vec<SymbolMetadata>,
     pub state_count: usize,

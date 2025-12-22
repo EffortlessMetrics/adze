@@ -40,7 +40,7 @@ pub struct Language {
 pub struct ParseTable {
     /// State count
     pub state_count: usize,
-    /// Action table: state x symbol -> Vec<Action> (multiple for conflicts)
+    /// Action table: state x symbol -> `Vec<Action>` (multiple for conflicts)
     pub action_table: Vec<Vec<Vec<Action>>>,
     /// Small parse table (compressed representation)
     pub small_parse_table: Option<Vec<u16>>,
