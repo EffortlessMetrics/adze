@@ -883,7 +883,7 @@ fn test_query_parser_errors() {
         ("expression", "ExpectedOpenParen"),
         ("(expression", "ExpectedCloseParen"),
         ("(unknown_type)", "UnknownNodeType"),
-        ("(#unknown?)", "ExpectedIdentifier"),
+        ("(#unknown?)", "UnknownPredicate"),
         ("(expression) (#eq? @unknown)", "UnknownCapture"),
     ];
 

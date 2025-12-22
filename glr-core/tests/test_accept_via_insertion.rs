@@ -66,6 +66,7 @@ fn accept_via_insertion_at_eof_cost_is_one() {
             map.insert(SymbolId(2), 2); // RBRACE at index 2
             map
         },
+        index_to_symbol: vec![SymbolId(0), SymbolId(1), SymbolId(2), SymbolId(0)], // Reverse mapping
         external_scanner_states: vec![],
         nonterminal_to_index: {
             let mut map = BTreeMap::new();
@@ -88,6 +89,7 @@ fn accept_via_insertion_at_eof_cost_is_one() {
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![0],
+        rule_assoc_by_rule: vec![0], // No associativity for the single rule
         alias_sequences: vec![],
         symbol_metadata: vec![],
         field_map: BTreeMap::new(),

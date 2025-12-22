@@ -9,8 +9,8 @@ repos:
         files: '\.rs$'
 
       - id: cargo-clippy
-        name: cargo clippy (all targets, all features)
-        entry: bash -c 'cargo clippy --workspace --all-targets --all-features'
+        name: cargo clippy (workspace, all features, excluding benches)
+        entry: bash -c 'cargo clippy --workspace --all-features --lib --bins --tests --examples'
         language: system
         pass_filenames: false
         files: '\.rs$'

@@ -4,7 +4,7 @@
 #[cfg(all(feature = "ts-compat", feature = "incremental_glr"))]
 mod pr58_validation {
     use rust_sitter::ts_compat::{Language, Parser};
-    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
     use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::sync::Arc;
 
@@ -87,7 +87,7 @@ mod pr58_validation {
 
         // 4. child_count() should work (even if returns 0 due to parser_v4 limitations)
         let child_count = root.child_count();
-        assert!(child_count >= 0, "child_count should be non-negative");
+        // Note: child_count is usize, so it's always >= 0
 
         // 5. child() should handle indices gracefully
         let child = root.child(0);
@@ -100,11 +100,14 @@ mod pr58_validation {
         let is_error = root.is_error();
         let is_missing = root.is_missing();
 
-        // These should be callable and return boolean values
-        assert!(is_error || !is_error, "is_error should return boolean");
+        // These should be callable and return boolean values (for successful parse, should be false)
         assert!(
-            is_missing || !is_missing,
-            "is_missing should return boolean"
+            !is_error,
+            "Root node should not be an error for successful parse"
+        );
+        assert!(
+            !is_missing,
+            "Root node should not be missing for successful parse"
         );
 
         // 7. New helper methods should work
@@ -198,10 +201,7 @@ mod pr58_validation {
             root.start_byte() <= root.end_byte(),
             "Byte positions should be valid"
         );
-        assert!(
-            root.child_count() >= 0,
-            "Child count should be non-negative"
-        );
+        // Note: child_count() returns usize, so it's always >= 0
 
         // The Node should be debuggable
         let debug_output = format!("{:?}", root);

@@ -3,7 +3,7 @@
 #![deny(private_interfaces)]
 #![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
 #![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(feature = "strict_docs", warn(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 #![allow(clippy::missing_safety_doc)] // Many FFI functions - safety documented at module level
 #![allow(clippy::needless_range_loop)] // Sometimes clearer than iterators

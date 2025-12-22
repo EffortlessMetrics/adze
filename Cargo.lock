@@ -1955,6 +1955,7 @@ dependencies = [
  "rust-sitter-tool",
  "serde_json",
  "tempfile",
+ "tree-sitter 0.25.9",
  "walkdir",
 ]
 

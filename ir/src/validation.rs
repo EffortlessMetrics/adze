@@ -810,10 +810,12 @@ mod tests {
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
 
-        assert!(result
-            .errors
-            .iter()
-            .any(|e| matches!(e, ValidationError::EmptyGrammar)));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, ValidationError::EmptyGrammar))
+        );
     }
 
     #[test]
@@ -868,10 +870,12 @@ mod tests {
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
 
-        assert!(result
-            .errors
-            .iter()
-            .any(|e| { matches!(e, ValidationError::NonProductiveSymbol { .. }) }));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| { matches!(e, ValidationError::NonProductiveSymbol { .. }) })
+        );
     }
 
     #[test]
@@ -969,10 +973,12 @@ mod tests {
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
 
-        assert!(result
-            .errors
-            .iter()
-            .any(|e| { matches!(e, ValidationError::InvalidField { .. }) }));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| { matches!(e, ValidationError::InvalidField { .. }) })
+        );
     }
 
     #[test]
@@ -1013,10 +1019,12 @@ mod tests {
         let mut validator = GrammarValidator::new();
         let result = validator.validate(&grammar);
 
-        assert!(result
-            .errors
-            .iter()
-            .any(|e| { matches!(e, ValidationError::CyclicRule { .. }) }));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| { matches!(e, ValidationError::CyclicRule { .. }) })
+        );
     }
 
     #[test]

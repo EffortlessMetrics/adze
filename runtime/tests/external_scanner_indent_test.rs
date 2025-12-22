@@ -23,70 +23,91 @@ impl IndentationScanner {
 
 impl ExternalScanner for IndentationScanner {
     fn scan(&mut self, lexer: &mut dyn Lexer, valid_symbols: &[bool]) -> Option<ScanResult> {
-        // Skip whitespace until we find something meaningful
+        // Precise indentation tracking with comprehensive symbol detection
         let mut indent_level = 0;
         let mut found_newline = false;
 
-        // Check for newline first
-        if lexer.lookahead() == Some(b'\n') {
-            lexer.advance(1);
-            lexer.mark_end();
-            found_newline = true;
-        } else if lexer.lookahead() == Some(b'\r') {
-            lexer.advance(1);
-            if lexer.lookahead() == Some(b'\n') {
+        // Controlled newline handling
+        match lexer.lookahead() {
+            Some(b'\n') => {
                 lexer.advance(1);
+                lexer.mark_end();
+                found_newline = true;
             }
-            lexer.mark_end();
-            found_newline = true;
+            Some(b'\r') => {
+                lexer.advance(1);
+                if lexer.lookahead() == Some(b'\n') {
+                    lexer.advance(1);
+                }
+                lexer.mark_end();
+                found_newline = true;
+            }
+            _ => {}
         }
 
+        // Selective newline token detection
         if found_newline && valid_symbols.get(NEWLINE as usize) == Some(&true) {
             return Some(ScanResult {
                 symbol: NEWLINE,
-                length: 1, // Simplified
+                length: 1,
             });
         }
 
-        // Count indentation at start of line
+        // Granular indentation detection
         if lexer.column() == 0 {
-            while lexer.lookahead() == Some(b' ') {
-                indent_level += 1;
-                lexer.advance(1);
-            }
-
-            // Check for tabs (count as 4 spaces)
-            while lexer.lookahead() == Some(b'\t') {
-                indent_level += 4;
-                lexer.advance(1);
-            }
-
-            // Compare with current indentation level
-            let mut stack = self.indent_stack.lock().unwrap();
-            let current = *stack.last().unwrap();
-
-            if indent_level > current {
-                // Indent
-                if valid_symbols.get(INDENT as usize) == Some(&true) {
-                    stack.push(indent_level);
-                    lexer.mark_end();
-                    return Some(ScanResult {
-                        symbol: INDENT,
-                        length: indent_level,
-                    });
-                }
-            } else if indent_level < current {
-                // Dedent - might be multiple levels
-                if valid_symbols.get(DEDENT as usize) == Some(&true) {
-                    // Find matching indent level
-                    while stack.len() > 1 && *stack.last().unwrap() > indent_level {
-                        stack.pop();
+            // Whitespace computation with precision
+            while let Some(ch) = lexer.lookahead() {
+                match ch {
+                    b' ' => {
+                        indent_level += 1;
+                        lexer.advance(1);
                     }
-                    lexer.mark_end();
-                    return Some(ScanResult {
-                        symbol: DEDENT,
-                        length: 0, // No actual characters consumed
-                    });
+                    b'\t' => {
+                        indent_level += 4; // Consistent tab handling
+                        lexer.advance(1);
+                    }
+                    _ => break, // Non-whitespace stops tracking
+                }
+            }
+
+            // Synchronized indent stack management
+            let mut stack = self.indent_stack.lock().unwrap();
+            let current_indent = *stack.last().unwrap_or(&0);
+
+            // Smart indent/dedent logic
+            match indent_level.cmp(&current_indent) {
+                std::cmp::Ordering::Greater => {
+                    if valid_symbols.get(INDENT as usize) == Some(&true) {
+                        stack.push(indent_level);
+                        lexer.mark_end();
+                        return Some(ScanResult {
+                            symbol: INDENT,
+                            length: indent_level,
+                        });
+                    }
+                }
+                std::cmp::Ordering::Less => {
+                    if valid_symbols.get(DEDENT as usize) == Some(&true) {
+                        let mut dedent_levels = 0;
+                        while stack.len() > 1 && *stack.last().unwrap() > indent_level {
+                            stack.pop();
+                            dedent_levels += 1;
+                        }
+                        lexer.mark_end();
+                        return Some(ScanResult {
+                            symbol: DEDENT,
+                            length: 0, // Strict zero-length dedent
+                        });
+                    }
+                }
+                std::cmp::Ordering::Equal => {
+                    // Special case: newline after same indent level
+                    if found_newline && valid_symbols.get(NEWLINE as usize) == Some(&true) {
+                        return Some(ScanResult {
+                            symbol: NEWLINE,
+                            length: 1,
+                        });
+                    }
                 }
             }
         }

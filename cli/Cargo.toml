@@ -14,10 +14,14 @@ path = "src/main.rs"
 dynamic = ["libloading"]
 python-grammar = ["rust-sitter-python"]
 javascript-grammar = ["rust-sitter-javascript"]
+tree-sitter-standard = ["rust-sitter/tree-sitter-standard"]
+tree-sitter-c2rust = ["rust-sitter/tree-sitter-c2rust"]
+pure-rust = ["rust-sitter/pure-rust"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
-rust-sitter = { path = "../runtime" }
+rust-sitter = { path = "../runtime", default-features = false }
+tree-sitter = "0.25.8"
 rust-sitter-tool = { path = "../tool" }
 rust-sitter-ir = { path = "../ir" }
 rust-sitter-common = { path = "../common" }

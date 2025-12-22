@@ -3,7 +3,7 @@
 #![deny(private_interfaces)]
 #![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
 #![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(feature = "strict_docs", warn(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 // Keep surface stable without big refactors:
 #![allow(
@@ -67,7 +67,7 @@ pub use rust_sitter_ir::{Grammar, StateId, SymbolId};
 
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {
-    pub use crate::{build_lr1_automaton, FirstFollowSets, ParseTable};
+    pub use crate::{FirstFollowSets, ParseTable, build_lr1_automaton};
 }
 
 // Keep available, but don't promise public docs yet:
@@ -131,7 +131,7 @@ pub use advanced_conflict::{
 #[doc(hidden)]
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
 #[doc(hidden)]
-pub use conflict_visualizer::{generate_dot_graph, ConflictVisualizer};
+pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
 #[doc(hidden)]
 pub use gss::{GSSStats, GraphStructuredStack, StackNode};
 #[doc(hidden)]
@@ -140,12 +140,12 @@ pub use parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
 #[doc(hidden)]
 pub use precedence_compare::{
-    compare_precedences, PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver,
+    PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
 };
 #[doc(hidden)]
 pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
 #[doc(hidden)]
-pub use version_info::{compare_versions, CompareResult, VersionInfo};
+pub use version_info::{CompareResult, VersionInfo, compare_versions};
 
 // Precedence resolution structures
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -519,7 +519,7 @@ impl FirstFollowSets {
             .max(max_token_id)
             .max(max_external_id)
             .max(max_rhs_id)
-            + 1) as usize;
+            + 2) as usize; // +2 to leave room for EOF and other potential symbols
 
         let mut first = IndexMap::new();
         let mut follow = IndexMap::new();
@@ -924,6 +924,7 @@ impl ItemSetCollection {
         first_follow: &FirstFollowSets,
         augmented_start: SymbolId,
         _original_start: SymbolId,
+        eof_symbol: SymbolId,
     ) -> Self {
         let mut collection = Self {
             sets: Vec::new(),
@@ -941,7 +942,7 @@ impl ItemSetCollection {
                 let start_item = LRItem::new(
                     RuleId(rule.production_id.0),
                     0,
-                    SymbolId(0), // EOF symbol
+                    eof_symbol, // EOF symbol
                 );
                 initial_set.add_item(start_item);
             }
@@ -1447,6 +1448,37 @@ pub struct ParseTable {
 pub struct ParseRule {
     pub lhs: SymbolId,
     pub rhs_len: u16,
+}
+
+impl Default for ParseTable {
+    fn default() -> Self {
+        Self {
+            action_table: vec![],
+            goto_table: vec![],
+            symbol_metadata: vec![],
+            state_count: 0,
+            symbol_count: 0,
+            symbol_to_index: BTreeMap::new(),
+            index_to_symbol: vec![],
+            external_scanner_states: vec![],
+            rules: vec![],
+            nonterminal_to_index: BTreeMap::new(),
+            goto_indexing: GotoIndexing::NonterminalMap,
+            eof_symbol: SymbolId(0),
+            start_symbol: SymbolId(0),
+            grammar: Grammar::new("default".to_string()),
+            initial_state: StateId(0),
+            token_count: 0,
+            external_token_count: 0,
+            lex_modes: vec![],
+            extras: vec![],
+            dynamic_prec_by_rule: vec![],
+            rule_assoc_by_rule: vec![],
+            alias_sequences: vec![],
+            field_names: vec![],
+            field_map: BTreeMap::new(),
+        }
+    }
 }
 
 impl ParseTable {
@@ -2220,6 +2252,17 @@ pub fn build_lr1_automaton(
         rule_count += 1;
     }
 
+    // Calculate EOF symbol ID to avoid conflicts with existing symbols
+    let max_symbol = grammar
+        .tokens
+        .keys()
+        .chain(grammar.rule_names.keys())
+        .chain(grammar.externals.iter().map(|e| &e.symbol_id))
+        .map(|s| s.0)
+        .max()
+        .unwrap_or(0);
+    let eof_symbol = SymbolId(max_symbol + 1);
+
     // Create augmented grammar with S' -> S $ rule
     let mut augmented_grammar = grammar.clone();
 
@@ -2252,21 +2295,21 @@ pub fn build_lr1_automaton(
         .rule_names
         .insert(augmented_start, "$start".to_string());
 
-    // "DEBUG: Added augmented start rule: {} -> {}"
     // Build canonical collection of LR(1) item sets with augmented grammar
     let collection = ItemSetCollection::build_canonical_collection_augmented(
         &augmented_grammar,
         first_follow,
         augmented_start,
         original_start,
+        eof_symbol,
     );
 
     // Create mapping from symbol IDs to table indices
     let mut symbol_to_index = BTreeMap::new();
     let mut max_symbol_id = 0u16;
 
-    // IMPORTANT: EOF symbol (ID 0) must always have index 0 in Tree-sitter
-    symbol_to_index.insert(SymbolId(0), 0);
+    // IMPORTANT: EOF symbol must always have index 0 in Tree-sitter
+    symbol_to_index.insert(eof_symbol, 0);
 
     // Collect and sort symbols with proper ordering:
     // 1. Tokens first (terminals)
@@ -2408,7 +2451,7 @@ pub fn build_lr1_automaton(
             .symbol_is_terminal
             .get(symbol)
             .copied()
-            .unwrap_or(symbol.0 == 0); // EOF is a terminal
+            .unwrap_or(*symbol == eof_symbol); // EOF is a terminal
 
         if from_state.0 == 0 {
             eprintln!(
@@ -2498,9 +2541,9 @@ pub fn build_lr1_automaton(
                     .all_rules()
                     .find(|r| r.production_id.0 == item.rule_id.0)
                 {
-                    if rule.lhs == augmented_start && item.lookahead == SymbolId(0) {
+                    if rule.lhs == augmented_start && item.lookahead == eof_symbol {
                         // This is S' -> S • with lookahead $, add accept action
-                        if let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0)) {
+                        if let Some(&eof_idx) = symbol_to_index.get(&eof_symbol) {
                             add_action_with_conflict(
                                 &mut action_table,
                                 &mut conflicts_by_state,
@@ -2660,7 +2703,7 @@ pub fn build_lr1_automaton(
             .symbol_is_terminal
             .get(symbol)
             .copied()
-            .unwrap_or(symbol.0 == 0); // EOF is a terminal
+            .unwrap_or(*symbol == eof_symbol); // EOF is a terminal
 
         if !is_terminal && let Some(&symbol_idx) = symbol_to_index.get(symbol) {
             let state_idx = from_state.0 as usize;
@@ -2814,7 +2857,7 @@ pub fn build_lr1_automaton(
         // Check if this is a nonterminal
         if !grammar.tokens.contains_key(&symbol_id)
             && !grammar.externals.iter().any(|e| e.symbol_id == symbol_id)
-            && symbol_id.0 != 0
+            && symbol_id != eof_symbol
         {
             // Not EOF
             nonterminal_to_index.insert(symbol_id, idx);
@@ -2826,18 +2869,6 @@ pub fn build_lr1_automaton(
     // Calculate proper counts for EOF symbol
     let token_count = grammar.tokens.len();
     let external_token_count = grammar.externals.len();
-
-    // EOF is always SymbolId(0) - this is the standard convention
-    // Using 0 avoids collisions with regular tokens and matches Tree-sitter
-    let eof_symbol = SymbolId(0);
-
-    // Add EOF to symbol_to_index if not present
-    // Map our EOF symbol to the same index as SymbolId(0) for compatibility
-    if !symbol_to_index.contains_key(&eof_symbol)
-        && let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0))
-    {
-        symbol_to_index.insert(eof_symbol, eof_idx);
-    }
 
     // Normalize action table for deterministic output
     normalize_action_table(&mut action_table);

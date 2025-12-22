@@ -205,7 +205,14 @@ impl<'a> QueryParser<'a> {
     ) -> Result<PatternNode, QueryError> {
         self.skip_whitespace();
         if self.peek_char() == Some('#') {
-            return Err(QueryError::ExpectedOpenParen(self.position));
+            // This is likely a malformed standalone predicate
+            // Try to parse the identifier after # to give a better error
+            self.advance(); // consume #
+            if let Ok(predicate_name) = self.parse_identifier() {
+                return Err(QueryError::UnknownPredicate(predicate_name));
+            } else {
+                return Err(QueryError::ExpectedIdentifier(self.position));
+            }
         }
 
         // Check for anchor

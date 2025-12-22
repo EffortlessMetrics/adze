@@ -529,7 +529,7 @@ fn parse_file_dynamic(
     }
 
     // Load library safely
-    let lib = Library::new(grammar)
+    let lib = unsafe { Library::new(grammar) }
         .map_err(|e| anyhow::anyhow!("Failed to load dynamic library: {}", e))?;
 
     // Prepare symbol name with proper null termination
@@ -582,7 +582,8 @@ fn parse_file_dynamic(
             }
 
             // Create parser with validated language
-            let mut parser = Parser::new(language);
+            let mut parser = Parser::new();
+            parser.set_language(language).unwrap();
 
             // Parse with timeout protection (via signal handling would be ideal, but for CLI this is reasonable)
             let result: ParseResult = parser.parse_string(&input_content);
@@ -645,11 +646,13 @@ fn parse_file_dynamic(
                         println!("Parsing completed with {} error(s)", err_count);
                         for (i, error) in result.errors.iter().enumerate().take(3) {
                             println!(
-                                "  Error {}: {:?} at {}..{}",
+                                "  Error {}: at position {} (line {}, col {}), expected {:?}, found symbol {}",
                                 i + 1,
-                                error.kind,
-                                error.start,
-                                error.end
+                                error.position,
+                                error.point.row + 1,
+                                error.point.column + 1,
+                                error.expected,
+                                error.found
                             );
                         }
                         if result.errors.len() > 3 {
@@ -660,10 +663,10 @@ fn parse_file_dynamic(
             }
         }
 
-        #[cfg(not(feature = "pure-rust"))]
+        #[cfg(any(feature = "tree-sitter-standard", feature = "tree-sitter-c2rust"))]
         {
             // Tree-sitter compatibility approach using tree_sitter crate
-            use rust_sitter::tree_sitter::{Language, Node, Parser};
+            use tree_sitter::{Language, Node, Parser as TreeSitterParser};
 
             // Load language function with error handling
             let get_language: libloading::Symbol<unsafe extern "C" fn() -> Language> = lib
@@ -672,7 +675,7 @@ fn parse_file_dynamic(
 
             let language = get_language();
 
-            let mut parser = Parser::new();
+            let mut parser: TreeSitterParser = TreeSitterParser::new();
             parser
                 .set_language(&language)
                 .map_err(|e| anyhow::anyhow!("Failed to set language: {}", e))?;
@@ -684,7 +687,7 @@ fn parse_file_dynamic(
             let root_node = tree.root_node();
 
             // Safe recursive node counting with depth protection
-            fn count_tree_nodes_safe(node: Node, depth: usize) -> Result<usize> {
+            fn count_tree_nodes_safe(node: &Node, depth: usize) -> Result<usize> {
                 const MAX_DEPTH: usize = 10000;
                 if depth > MAX_DEPTH {
                     anyhow::bail!("Parse tree too deep");
@@ -694,7 +697,7 @@ fn parse_file_dynamic(
                 let mut cursor = node.walk();
                 if cursor.goto_first_child() {
                     loop {
-                        count += count_tree_nodes_safe(cursor.node(), depth + 1)?;
+                        count += count_tree_nodes_safe(&cursor.node(), depth + 1)?;
                         if !cursor.goto_next_sibling() {
                             break;
                         }
@@ -709,7 +712,7 @@ fn parse_file_dynamic(
             );
             println!("Input size: {} bytes", input_content.len());
 
-            match count_tree_nodes_safe(root_node, 0) {
+            match count_tree_nodes_safe(&root_node, 0) {
                 Ok(nodes) => {
                     let has_error = root_node.has_error();
 
