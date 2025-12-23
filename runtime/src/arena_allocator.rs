@@ -321,6 +321,12 @@ impl<'arena> TreeNodeRef<'arena> {
         self.node
     }
 
+    /// Get the underlying node reference (backwards-compatible alias)
+    #[allow(clippy::wrong_self_convention, clippy::should_implement_trait)]
+    pub fn as_ref(&self) -> &'arena TreeNode {
+        self.get_ref()
+    }
+
     /// Get node value (for leaf nodes)
     pub fn value(&self) -> i32 {
         match self.node.kind {
