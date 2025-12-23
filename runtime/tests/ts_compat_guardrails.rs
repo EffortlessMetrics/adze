@@ -64,7 +64,11 @@ fn language_metadata() {
     assert!(
         !named_symbols.is_empty(),
         "grammar should have at least one named symbol, found: {:?}",
-        lang.table.symbol_metadata.iter().map(|m| &m.name).collect::<Vec<_>>()
+        lang.table
+            .symbol_metadata
+            .iter()
+            .map(|m| &m.name)
+            .collect::<Vec<_>>()
     );
 }
 

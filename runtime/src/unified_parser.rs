@@ -84,16 +84,8 @@ impl Parser {
         self.inner.is_some()
     }
 
-    /// Parse source code into a syntax tree
-    ///
-    /// # Arguments
-    /// * `source` - The source code to parse
-    /// * `old_tree` - Optional previous tree for incremental parsing (not yet supported)
-    ///
-    /// # Returns
-    /// * `Some(Tree)` on successful parse
-    /// * `None` if parsing fails or no language is set
     // TODO(Phase 2 Day 5): Uncomment and fix lifetime issues
+    // Parse source code into a syntax tree
     // The issue is that parse_with_auto_lexer returns Tree<'a> tied to &'a mut self,
     // but we're trying to return it from parse() which also borrows &'a mut self.
     // This needs proper lifetime elision or restructuring for Day 5.
@@ -133,7 +125,7 @@ impl Parser {
         source: &[u8],
         _old_tree: Option<&parser_v4::Tree>,
         _edit: Option<&crate::pure_incremental::Edit>,
-    ) -> Option<parser_v4::Tree> {
+    ) -> Option<parser_v4::Tree<'_>> {
         if let Some(ref mut parser) = self.inner {
             // TODO: Implement GLR-aware incremental parsing
             // For now, just do a full reparse
@@ -185,7 +177,7 @@ impl Parser {
     /// # Returns
     /// * `Ok(Tree)` on successful parse
     /// * `Err` with details about what went wrong
-    pub fn parse_with_error(&mut self, source: &str) -> Result<parser_v4::Tree> {
+    pub fn parse_with_error(&mut self, source: &str) -> Result<parser_v4::Tree<'_>> {
         if let Some(ref mut parser) = self.inner {
             parser.parse(source)
         } else {
@@ -253,7 +245,9 @@ mod tests {
     #[test]
     fn test_parse_without_language() {
         let mut parser = Parser::new();
-        let result = parser.parse("test", None);
+        // Note: parse() method is commented out due to lifetime issues
+        // Use parse_with_old_tree instead
+        let result = parser.parse_with_old_tree(b"test", None, None);
         assert!(result.is_none());
     }
 }

@@ -200,8 +200,7 @@ impl<'a> ParsetableWriter<'a> {
                 timestamp: chrono::Utc::now().to_rfc3339(),
                 tool_version: env!("CARGO_PKG_VERSION").to_string(),
                 rust_version: rustc_version_runtime::version().to_string(),
-                host_triple: std::env::var("TARGET")
-                    .unwrap_or_else(|_| "unknown".to_string()),
+                host_triple: std::env::var("TARGET").unwrap_or_else(|_| "unknown".to_string()),
             },
             statistics: TableStatistics {
                 state_count: parse_table.state_count,
@@ -229,8 +228,8 @@ impl<'a> ParsetableWriter<'a> {
         // Hash grammar name and rules as a simple identifier
         hasher.update(self.grammar.name.as_bytes());
         for rule in &self.parse_table.rules {
-            hasher.update(&(rule.lhs.0 as u32).to_le_bytes());
-            hasher.update(&rule.rhs_len.to_le_bytes());
+            hasher.update((rule.lhs.0 as u32).to_le_bytes());
+            hasher.update(rule.rhs_len.to_le_bytes());
         }
 
         hasher.finalize().into()
@@ -259,10 +258,9 @@ impl<'a> ParsetableWriter<'a> {
         file.write_all(&hash)?;
 
         // 4. Write metadata
-        let metadata_json =
-            serde_json::to_string_pretty(&self.metadata).map_err(|e| {
-                ParsetableError::Serialization(format!("Metadata JSON serialization failed: {}", e))
-            })?;
+        let metadata_json = serde_json::to_string_pretty(&self.metadata).map_err(|e| {
+            ParsetableError::Serialization(format!("Metadata JSON serialization failed: {}", e))
+        })?;
         let metadata_bytes = metadata_json.as_bytes();
         let metadata_len = metadata_bytes.len() as u32;
         file.write_all(&metadata_len.to_le_bytes())?;
@@ -271,10 +269,9 @@ impl<'a> ParsetableWriter<'a> {
         // 5. Write parse table
         #[cfg(feature = "serialization")]
         {
-            let table_bytes = self
-                .parse_table
-                .to_bytes()
-                .map_err(|e| ParsetableError::Serialization(format!("ParseTable serialization failed: {}", e)))?;
+            let table_bytes = self.parse_table.to_bytes().map_err(|e| {
+                ParsetableError::Serialization(format!("ParseTable serialization failed: {}", e))
+            })?;
             let table_len = table_bytes.len() as u32;
             file.write_all(&table_len.to_le_bytes())?;
             file.write_all(&table_bytes)?;

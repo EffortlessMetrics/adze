@@ -5,9 +5,11 @@
 
 #[cfg(feature = "pure-rust-glr")]
 mod tokenizer_unit_tests {
-    use rust_sitter_runtime::tokenizer::{Tokenizer, TokenizerError, TokenPattern, Matcher, WhitespaceMode};
-    use rust_sitter_runtime::Token;
     use rust_sitter_glr_core::SymbolId;
+    use rust_sitter_runtime::Token;
+    use rust_sitter_runtime::tokenizer::{
+        Matcher, TokenPattern, Tokenizer, TokenizerError, WhitespaceMode,
+    };
 
     /// Test: Literal token matching
     ///
@@ -252,8 +254,8 @@ mod tokenizer_unit_tests {
 
 #[cfg(feature = "pure-rust-glr")]
 mod tokenizer_integration_tests {
-    use rust_sitter_runtime::tokenizer::{Tokenizer, TokenPattern, Matcher, WhitespaceMode};
     use rust_sitter_glr_core::SymbolId;
+    use rust_sitter_runtime::tokenizer::{Matcher, TokenPattern, Tokenizer, WhitespaceMode};
 
     /// Integration Test: Arithmetic expression tokenization
     ///

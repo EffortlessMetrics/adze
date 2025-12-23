@@ -28,3 +28,4 @@ rust-sitter-common = { version = "0.8.0-dev", path = "../common" }
 insta = "1.39"
 tempfile = "3"
 trybuild = "1.0"
+rust-sitter = { version = "0.8.0-dev", path = "../runtime" }

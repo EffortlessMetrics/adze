@@ -192,6 +192,8 @@ struct Subtree {
     is_missing: bool,
     #[allow(dead_code)]
     production_id: u16,
+    /// Optional field identifier for this node within its parent
+    field_id: Option<u16>,
 }
 
 /// Parse result
@@ -213,7 +215,8 @@ pub struct ParsedNode {
     pub is_error: bool,
     pub is_missing: bool,
     pub is_named: bool,
-    pub field_name: Option<String>,
+    /// Optional field identifier for this node within its parent
+    pub field_id: Option<u16>,
     pub(crate) language: Option<*const TSLanguage>,
 }
 
@@ -373,6 +376,8 @@ impl Parser {
         let mut position = 0;
         let mut point = Point { row: 0, column: 0 };
         let start_time = Instant::now();
+        // Collect extra tokens so they can be attached to the final tree after parsing
+        let mut extra_nodes: Vec<Subtree> = Vec::new();
 
         // Main parsing loop
         let mut iteration_count = 0;
@@ -429,29 +434,50 @@ impl Parser {
 
             // Handle extra tokens (like whitespace)
             if token.is_extra {
-                ////eprintln!($
-                //"DEBUG: Skipping extra token symbol={} at position={}",
-                //token.symbol, position
-                //);
-                // Create extra node and attach it to the previous node on stack
-                let end_point = advance_point(point, &source[position..position + token.length]);
-                let _extra_subtree = Subtree {
+                // Safety check: ensure token length doesn't exceed remaining input
+                if position + token.length > source.len() {
+                    errors.push(ParseError {
+                        position,
+                        point,
+                        expected: vec![], // Empty since this is a bounds error, not a parsing error
+                        found: token.symbol,
+                    });
+                    break;
+                }
+
+                // Create a subtree for the extra token
+                let token_end = position + token.length;
+                let end_point = advance_point(point, &source[position..token_end]);
+                let extra = Subtree {
                     symbol: token.symbol,
                     children: Vec::new(),
                     start_byte: position,
-                    end_byte: position + token.length,
+                    end_byte: token_end,
                     start_point: point,
                     end_point,
                     is_extra: true,
                     is_error: false,
                     is_missing: false,
                     production_id: 0,
+                    field_id: None,
                 };
 
-                // TODO: Attach extra tokens to the parse tree properly
-                // For now, just skip them
-                position += token.length;
-                point = advance_point(point, &source[position - token.length..position]);
+                // Attach to current stack node if possible, otherwise stash for later
+                if let Some(top) = self.stack.last_mut() {
+                    if let Some(ref mut node) = top.subtree {
+                        node.end_byte = extra.end_byte;
+                        node.end_point = extra.end_point;
+                        node.children.push(extra);
+                    } else {
+                        extra_nodes.push(extra);
+                    }
+                } else {
+                    extra_nodes.push(extra);
+                }
+
+                // Advance position and point
+                position = token_end;
+                point = end_point;
                 continue;
             }
 
@@ -489,32 +515,44 @@ impl Parser {
             }
             match action {
                 Action::Shift(next_state) => {
+                    // Safety check: ensure token length doesn't exceed remaining input
+                    if position + token.length > source.len() {
+                        errors.push(ParseError {
+                            position,
+                            point,
+                            expected: vec![], // Empty since this is a bounds error, not a parsing error
+                            found: token.symbol,
+                        });
+                        break;
+                    }
+
                     // Create leaf node
-                    let end_point =
-                        advance_point(point, &source[position..position + token.length]);
+                    let token_end = position + token.length;
+                    let end_point = advance_point(point, &source[position..token_end]);
                     let subtree = Subtree {
                         symbol: token.symbol,
                         children: Vec::new(),
                         start_byte: position,
-                        end_byte: position + token.length,
+                        end_byte: token_end,
                         start_point: point,
                         end_point,
                         is_extra: token.is_extra,
                         is_error: false,
                         is_missing: false,
                         production_id: 0,
+                        field_id: None,
                     };
 
                     // Push onto stack
                     self.stack.push(StackEntry {
                         state: next_state,
                         subtree: Some(subtree),
-                        position: position + token.length,
+                        position: token_end,
                     });
 
-                    // Advance position
-                    position += token.length;
-                    point = advance_point(point, &source[position - token.length..position]);
+                    // Advance position (using safe calculation)
+                    position = token_end;
+                    point = end_point;
 
                     if position < 10 {
                         ////eprintln!($
@@ -567,11 +605,26 @@ impl Parser {
                                 // }
                                 // print_subtree(subtree, 1);
 
+                                let mut root = subtree.clone();
+                                if !extra_nodes.is_empty() {
+                                    // Track the maximum end position of all extra tokens
+                                    let mut max_end_byte = root.end_byte;
+                                    let mut max_end_point = root.end_point;
+
+                                    for extra in extra_nodes.drain(..) {
+                                        if extra.end_byte > max_end_byte {
+                                            max_end_byte = extra.end_byte;
+                                            max_end_point = extra.end_point;
+                                        }
+                                        root.children.push(extra);
+                                    }
+
+                                    // Update root to span all tokens including extras
+                                    root.end_byte = max_end_byte;
+                                    root.end_point = max_end_point;
+                                }
                                 return ParseResult {
-                                    root: Some(subtree_to_node(
-                                        subtree.clone(),
-                                        Some(language as *const _),
-                                    )),
+                                    root: Some(subtree_to_node(root, Some(language as *const _))),
                                     errors,
                                 };
                             }
@@ -588,8 +641,26 @@ impl Parser {
                     if let Some(entry) = self.stack.pop()
                         && let Some(subtree) = entry.subtree
                     {
+                        let mut root = subtree;
+                        if !extra_nodes.is_empty() {
+                            // Track the maximum end position of all extra tokens
+                            let mut max_end_byte = root.end_byte;
+                            let mut max_end_point = root.end_point;
+
+                            for extra in extra_nodes.drain(..) {
+                                if extra.end_byte > max_end_byte {
+                                    max_end_byte = extra.end_byte;
+                                    max_end_point = extra.end_point;
+                                }
+                                root.children.push(extra);
+                            }
+
+                            // Update root to span all tokens including extras
+                            root.end_byte = max_end_byte;
+                            root.end_point = max_end_point;
+                        }
                         return ParseResult {
-                            root: Some(subtree_to_node(subtree, Some(language as *const _))),
+                            root: Some(subtree_to_node(root, Some(language as *const _))),
                             errors,
                         };
                     }
@@ -664,9 +735,9 @@ impl Parser {
             }; // EOF
         }
 
-        // Get lex state for current parser state
+        // Get lex state for current parser state with null pointer check
         let lex_mode = unsafe {
-            if state < language.state_count as u16 {
+            if !language.lex_modes.is_null() && state < language.state_count as u16 {
                 *language.lex_modes.add(state as usize)
             } else {
                 TSLexState {
@@ -678,75 +749,165 @@ impl Parser {
 
         // Try external scanner first if available
         if lex_mode.external_lex_state != 0 && language.external_scanner.scan.is_some() {
-            // TODO: Implement external scanner support
+            unsafe {
+                let scan_fn = language.external_scanner.scan.unwrap();
+
+                // Build valid symbols array from external_lex_state bitset.
+                // Tree-sitter's external scanners expect a 1-based array of flags
+                // with index 0 unused, so allocate an extra slot and shift bits.
+                // `Vec<bool>` is bitpacked and unsuitable for FFI; use `u8`.
+                let external_count = language.external_token_count as usize;
+                let mut valid_symbols = vec![0u8; external_count + 1];
+                for i in 0..external_count {
+                    if (lex_mode.external_lex_state >> i) & 1 != 0 {
+                        valid_symbols[i + 1] = 1;
+                    }
+                }
+
+                // Create scanner instance if provided
+                let scanner_instance = if let Some(create_fn) = language.external_scanner.create {
+                    create_fn()
+                } else {
+                    std::ptr::null_mut()
+                };
+
+                // Prepare lexer adapter
+                let mut ext_lexer = ExternalLexer::new(
+                    &lexer.input[position..],
+                    point.row as usize,
+                    point.column as usize,
+                );
+                let mut ts_lexer = create_ts_lexer(&mut ext_lexer);
+
+                let success = scan_fn(
+                    scanner_instance,
+                    &mut ts_lexer as *mut _ as *mut c_void,
+                    valid_symbols.as_ptr().cast::<bool>(),
+                );
+                ext_lexer.result_symbol = ts_lexer.result_symbol;
+
+                if !scanner_instance.is_null()
+                    && let Some(destroy_fn) = language.external_scanner.destroy
+                {
+                    destroy_fn(scanner_instance);
+                }
+
+                if success
+                    && ext_lexer.result_symbol > 0
+                    && (ext_lexer.result_symbol as usize) <= external_count
+                {
+                    let symbol = if !language.external_scanner.symbol_map.is_null() {
+                        *language
+                            .external_scanner
+                            .symbol_map
+                            .add(ext_lexer.result_symbol as usize)
+                    } else {
+                        ext_lexer.result_symbol
+                    };
+
+                    return Token {
+                        symbol,
+                        length: ext_lexer.token_end,
+                        is_extra: false,
+                    };
+                }
+            }
         }
 
         // Use built-in lexer
         if let Some(lex_fn) = language.lex_fn {
+            // Adapt Tree-sitter's C-style lexer callback to our input. We create a
+            // minimal `TsLexer` backed by the remaining input starting at
+            // `position` and invoke the language's lexer function.
             unsafe {
-                let mut lex_state = LexerState {
-                    input: lexer.input.as_ptr(),
-                    input_len: lexer.input.len() - 1, // Exclude sentinel byte
-                    position,
-                    point_row: point.row,
-                    point_column: point.column,
-                    result_symbol: 0,
-                    result_length: 0,
-                };
+                use crate::lex::TsLexer;
 
-                // Debug what character we're looking at
-                // if position < lexer.input.len() {
-                //     eprintln!(
-                //         "DEBUG lex_token: About to lex at position={}, char={:?} ({}), input_len={}",
-                //         position, lexer.input[position] as char, lexer.input[position], lexer.input.len()
-                //     );
-                // }
+                #[repr(C)]
+                struct Backing<'a> {
+                    input: &'a [u8],
+                    pos: usize,
+                    mark: usize,
+                }
 
-                let lex_state_ptr = &mut lex_state as *mut _ as *mut c_void;
-                if lex_fn(lex_state_ptr, lex_mode) {
-                    let symbol = lex_state.result_symbol;
-                    let is_extra = self.is_extra_symbol(language, symbol);
-                    // eprintln!(
-                    //     "DEBUG lex_token: state={}, lex_mode={}, position={}, lexer returned symbol={}, length={}, is_extra={}",
-                    //     state, lex_mode.lex_state, position, symbol, lex_state.result_length, is_extra
-                    // );
-
-                    // Additional debug to understand symbol mapping
-                    {
-                        if symbol < language.symbol_count as u16 {
-                            let symbol_names = std::slice::from_raw_parts(
-                                language.symbol_names,
-                                language.symbol_count as usize,
-                            );
-                            let name_ptr = symbol_names[symbol as usize];
-                            if !name_ptr.is_null() {
-                                let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
-                                if let Ok(_name) = c_str.to_str() {
-                                    // eprintln!("DEBUG lex_token: symbol {} is '{}'", symbol, name);
-                                }
-                            }
+                unsafe extern "C" fn lookahead(lex: *mut TsLexer) -> u32 {
+                    unsafe {
+                        // Null pointer check
+                        if lex.is_null() || (*lex).data.is_null() {
+                            return 0;
+                        }
+                        let st = &*((*lex).data as *const Backing);
+                        if st.pos < st.input.len() {
+                            st.input[st.pos] as u32
+                        } else {
+                            0
                         }
                     }
+                }
 
-                    // The lexer already returns the correct symbol index
-                    // No additional mapping needed
+                unsafe extern "C" fn advance(lex: *mut TsLexer, _skip: bool) {
+                    unsafe {
+                        // Null pointer check
+                        if lex.is_null() || (*lex).data.is_null() {
+                            return;
+                        }
+                        let st = &mut *((*lex).data as *mut Backing);
+                        if st.pos < st.input.len() {
+                            st.pos += 1;
+                        }
+                    }
+                }
+
+                unsafe extern "C" fn mark_end(lex: *mut TsLexer) {
+                    unsafe {
+                        // Null pointer check
+                        if lex.is_null() || (*lex).data.is_null() {
+                            return;
+                        }
+                        let st = &mut *((*lex).data as *mut Backing);
+                        st.mark = st.pos;
+                    }
+                }
+
+                // Safety check: ensure position doesn't exceed input bounds
+                if position >= lexer.input.len() {
+                    return Token {
+                        symbol: language.eof_symbol,
+                        length: 0,
+                        is_extra: false,
+                    };
+                }
+
+                let mut backing = Backing {
+                    input: &lexer.input[position..],
+                    pos: 0,
+                    mark: 0,
+                };
+
+                let mut ts = TsLexer {
+                    lookahead,
+                    advance,
+                    mark_end,
+                    result_symbol: u16::MAX,
+                    data: &mut backing as *mut _ as *mut c_void,
+                };
+
+                if lex_fn(&mut ts as *mut _ as *mut c_void, lex_mode)
+                    && ts.result_symbol != u16::MAX
+                {
+                    let end = if backing.mark > 0 {
+                        backing.mark
+                    } else {
+                        backing.pos
+                    };
+                    let symbol = ts.result_symbol;
                     return Token {
                         symbol,
-                        length: lex_state.result_length,
-                        is_extra,
+                        length: end,
+                        is_extra: self.is_extra_symbol(language, symbol),
                     };
                 } else {
-                    // lex_fn returned false - check if we're at EOF
-                    let at_eof = position >= lexer.input.len() - 1; // Account for sentinel
-                    let symbol = if at_eof {
-                        // EOF is column 0 in Tree-sitter convention
-                        0
-                    } else {
-                        // Return error token for non-EOF failures
-                        // For now using 0, but this should be language-specific
-                        0
-                    };
-
+                    let at_eof = position >= lexer.input.len() - 1;
+                    let symbol = if at_eof { language.eof_symbol } else { 0 };
                     return Token {
                         symbol,
                         length: 0,
@@ -1282,6 +1443,7 @@ impl Parser {
                     is_error: false,
                     is_missing: false,
                     production_id,
+                    field_id: None,
                 }
             };
 
@@ -1425,18 +1587,6 @@ struct Token {
     is_extra: bool,
 }
 
-/// Lexer state for C callback
-#[repr(C)]
-struct LexerState {
-    input: *const u8,
-    input_len: usize,
-    position: usize,
-    point_row: u32,
-    point_column: u32,
-    result_symbol: TSSymbol,
-    result_length: usize,
-}
-
 /// Parse action
 #[derive(Debug, Clone, Copy)]
 enum Action {
@@ -1457,15 +1607,6 @@ fn advance_point(mut point: Point, text: &[u8]) -> Point {
         }
     }
     point
-}
-
-/// Extract field name for a subtree based on its production ID
-fn extract_field_name(_subtree: &Subtree, _language: Option<*const TSLanguage>) -> Option<String> {
-    // Field names are mapped via production IDs
-    // For now, we return None as implementing full field extraction
-    // requires tracking the child index within the parent
-    // This would need more context about the node's position in its parent
-    None
 }
 
 /// Convert internal subtree to public node
@@ -1496,9 +1637,6 @@ fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> Par
 
     //eprintln!("  Symbol {} is_named: {}", subtree.symbol, is_named);
 
-    // Extract field name before moving children
-    let field_name = extract_field_name(&subtree, language);
-
     ParsedNode {
         symbol: subtree.symbol,
         children: subtree
@@ -1514,7 +1652,7 @@ fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> Par
         is_error: subtree.is_error,
         is_missing: subtree.is_missing,
         is_named,
-        field_name,
+        field_id: subtree.field_id,
         language,
     }
 }
@@ -1673,6 +1811,151 @@ impl Default for Parser {
     }
 }
 
+/// Minimal lexer implementation passed to external scanners
+struct ExternalLexer<'a> {
+    input: &'a [u8],
+    position: usize,
+    token_end: usize,
+    row: usize,
+    column: usize,
+    result_symbol: TSSymbol,
+}
+
+impl<'a> ExternalLexer<'a> {
+    fn new(input: &'a [u8], row: usize, column: usize) -> Self {
+        Self {
+            input,
+            position: 0,
+            token_end: 0,
+            row,
+            column,
+            result_symbol: 0,
+        }
+    }
+
+    unsafe extern "C" fn lookahead(lexer: *mut crate::lex::TsLexer) -> u32 {
+        if lexer.is_null() {
+            return 0;
+        }
+
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return 0;
+        }
+
+        let ext_lexer = unsafe { &*(data as *const ExternalLexer) };
+        ext_lexer
+            .input
+            .get(ext_lexer.position)
+            .copied()
+            .map(u32::from)
+            .unwrap_or(0)
+    }
+
+    unsafe extern "C" fn advance(lexer: *mut crate::lex::TsLexer, skip: bool) {
+        if lexer.is_null() {
+            return;
+        }
+
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return;
+        }
+
+        let ext_lexer = unsafe { &mut *(data as *mut ExternalLexer) };
+        if ext_lexer.position < ext_lexer.input.len() {
+            let byte = ext_lexer.input[ext_lexer.position];
+            ext_lexer.position += 1;
+
+            // Update row/column information
+            if byte == b'\n' {
+                ext_lexer.row += 1;
+                ext_lexer.column = 0;
+            } else if byte == b'\r' {
+                // Handle CRLF by consuming the following LF if present
+                if ext_lexer.position < ext_lexer.input.len()
+                    && ext_lexer.input[ext_lexer.position] == b'\n'
+                {
+                    ext_lexer.position += 1;
+                }
+                ext_lexer.row += 1;
+                ext_lexer.column = 0;
+            } else {
+                ext_lexer.column += 1;
+            }
+
+            if !skip {
+                ext_lexer.token_end = ext_lexer.position;
+            }
+        }
+    }
+
+    unsafe extern "C" fn mark_end(lexer: *mut crate::lex::TsLexer) {
+        if lexer.is_null() {
+            return;
+        }
+
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return;
+        }
+
+        let ext_lexer = unsafe { &mut *(data as *mut ExternalLexer) };
+        ext_lexer.token_end = ext_lexer.position;
+    }
+
+    // Additional methods for external scanner compatibility (required for C ABI)
+    #[allow(dead_code)]
+    unsafe extern "C" fn get_column(lexer: *mut crate::lex::TsLexer) -> u32 {
+        if lexer.is_null() {
+            return 0;
+        }
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return 0;
+        }
+        let ext_lexer = unsafe { &*(data as *const ExternalLexer) };
+        ext_lexer.column as u32
+    }
+
+    #[allow(dead_code)]
+    unsafe extern "C" fn is_at_included_range_start(lexer: *mut crate::lex::TsLexer) -> bool {
+        if lexer.is_null() {
+            return false;
+        }
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return false;
+        }
+        let ext_lexer = unsafe { &*(data as *const ExternalLexer) };
+        ext_lexer.position == 0
+    }
+
+    #[allow(dead_code)]
+    unsafe extern "C" fn eof(lexer: *mut crate::lex::TsLexer) -> bool {
+        if lexer.is_null() {
+            return true;
+        }
+        let data = unsafe { (*lexer).data };
+        if data.is_null() {
+            return true;
+        }
+        let ext_lexer = unsafe { &*(data as *const ExternalLexer) };
+        ext_lexer.position >= ext_lexer.input.len()
+    }
+}
+
+/// Create a TSLexer adapter for external scanners
+fn create_ts_lexer(ext_lexer: &mut ExternalLexer) -> crate::lex::TsLexer {
+    crate::lex::TsLexer {
+        lookahead: ExternalLexer::lookahead,
+        advance: ExternalLexer::advance,
+        mark_end: ExternalLexer::mark_end,
+        result_symbol: 0,
+        data: ext_lexer as *mut _ as *mut c_void,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1810,5 +2093,47 @@ mod tests {
         let parser = Parser::new();
         // Symbol 1 is the lone non-terminal; with no table entry this should return 0.
         assert_eq!(parser.get_goto_state(&LANGUAGE, 0, 1), 0);
+    }
+
+    #[test]
+    fn test_external_lexer_column_tracking() {
+        let input = b"hello\nworld";
+        let mut ext = ExternalLexer::new(input, 0, 0);
+        let mut ts = create_ts_lexer(&mut ext);
+
+        // Initial column at start
+        assert_eq!(unsafe { ExternalLexer::get_column(&mut ts) }, 0);
+
+        // Advance over "hello"
+        for _ in 0..5 {
+            unsafe { ExternalLexer::advance(&mut ts, false) };
+        }
+        assert_eq!(unsafe { ExternalLexer::get_column(&mut ts) }, 5);
+
+        // Advance over newline
+        unsafe { ExternalLexer::advance(&mut ts, false) };
+        assert_eq!(unsafe { ExternalLexer::get_column(&mut ts) }, 0);
+    }
+
+    #[test]
+    fn test_external_lexer_included_range_start() {
+        let input = b"abc";
+        let mut ext = ExternalLexer::new(input, 0, 0);
+        let mut ts = create_ts_lexer(&mut ext);
+
+        assert!(unsafe { ExternalLexer::is_at_included_range_start(&mut ts) });
+        unsafe { ExternalLexer::advance(&mut ts, true) };
+        assert!(!unsafe { ExternalLexer::is_at_included_range_start(&mut ts) });
+    }
+
+    #[test]
+    fn test_external_lexer_eof() {
+        let input = b"a";
+        let mut ext = ExternalLexer::new(input, 0, 0);
+        let mut ts = create_ts_lexer(&mut ext);
+
+        assert!(!unsafe { ExternalLexer::eof(&mut ts) });
+        unsafe { ExternalLexer::advance(&mut ts, true) };
+        assert!(unsafe { ExternalLexer::eof(&mut ts) });
     }
 }

@@ -567,7 +567,9 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // Then, add goto entries for this state (encode as shifts for Tree-sitter compat)
                 // Skip symbols that already have action entries to avoid duplicates
                 if state_idx < self.parse_table.goto_table.len() {
-                    for (symbol_idx, &goto_state) in self.parse_table.goto_table[state_idx].iter().enumerate() {
+                    for (symbol_idx, &goto_state) in
+                        self.parse_table.goto_table[state_idx].iter().enumerate()
+                    {
                         let symbol = symbol_idx as u16;
                         if goto_state.0 > 0 && !action_symbols.contains(&symbol) {
                             // This is a valid goto transition without a conflicting action

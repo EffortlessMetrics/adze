@@ -154,8 +154,7 @@ impl TreeArena {
     pub fn with_capacity(initial_capacity: usize) -> Self {
         assert!(initial_capacity > 0, "Capacity must be > 0");
 
-        let mut chunks = Vec::new();
-        chunks.push(Chunk::new(initial_capacity));
+        let chunks = vec![Chunk::new(initial_capacity)];
 
         TreeArena {
             chunks,
@@ -318,8 +317,14 @@ pub struct TreeNodeRef<'arena> {
 
 impl<'arena> TreeNodeRef<'arena> {
     /// Get the underlying node reference
-    pub fn as_ref(&self) -> &'arena TreeNode {
+    pub fn get_ref(&self) -> &'arena TreeNode {
         self.node
+    }
+
+    /// Get the underlying node reference (backwards-compatible alias)
+    #[allow(clippy::wrong_self_convention, clippy::should_implement_trait)]
+    pub fn as_ref(&self) -> &'arena TreeNode {
+        self.get_ref()
     }
 
     /// Get node value (for leaf nodes)

@@ -190,40 +190,39 @@ impl Parser {
 
                 Action::Error => {
                     // Try error recovery if configured
-                    if let Some(ref config) = self.error_recovery {
-                        if let Some(recovery_action) =
+                    if let Some(ref config) = self.error_recovery
+                        && let Some(recovery_action) =
                             self.try_error_recovery(config, current_state, &token)?
-                        {
-                            match recovery_action {
-                                RecoveryAction::InsertToken(symbol) => {
-                                    // Insert a synthetic token and retry
-                                    let synthetic_token = LexerToken {
-                                        symbol,
-                                        start: self.position,
-                                        end: self.position,
-                                        text: Vec::new(),
-                                    };
-                                    self.handle_shift(current_state, synthetic_token)?;
-                                    // Retry with the original token
-                                    continue;
-                                }
-                                RecoveryAction::DeleteToken => {
-                                    // Skip the current token and continue
-                                    self.position = token.end;
-                                    continue;
-                                }
-                                RecoveryAction::ReplaceToken(symbol) => {
-                                    // Replace the current token
-                                    let mut replacement = token.clone();
-                                    replacement.symbol = symbol;
-                                    self.handle_shift(current_state, replacement)?;
-                                    continue;
-                                }
-                                RecoveryAction::CreateErrorNode(symbols) => {
-                                    // Create an error node containing the problematic tokens
-                                    self.create_error_node(symbols, token.start)?;
-                                    continue;
-                                }
+                    {
+                        match recovery_action {
+                            RecoveryAction::InsertToken(symbol) => {
+                                // Insert a synthetic token and retry
+                                let synthetic_token = LexerToken {
+                                    symbol,
+                                    start: self.position,
+                                    end: self.position,
+                                    text: Vec::new(),
+                                };
+                                self.handle_shift(current_state, synthetic_token)?;
+                                // Retry with the original token
+                                continue;
+                            }
+                            RecoveryAction::DeleteToken => {
+                                // Skip the current token and continue
+                                self.position = token.end;
+                                continue;
+                            }
+                            RecoveryAction::ReplaceToken(symbol) => {
+                                // Replace the current token
+                                let mut replacement = token.clone();
+                                replacement.symbol = symbol;
+                                self.handle_shift(current_state, replacement)?;
+                                continue;
+                            }
+                            RecoveryAction::CreateErrorNode(symbols) => {
+                                // Create an error node containing the problematic tokens
+                                self.create_error_node(symbols, token.start)?;
+                                continue;
                             }
                         }
                     }
@@ -303,10 +302,10 @@ impl Parser {
 
         // Apply field names if any
         for (field_id, position) in rule_fields {
-            if position < children.len() {
-                if let Some(field_name) = self.grammar.fields.get(&field_id) {
-                    children[position].field_name = Some(field_name.clone());
-                }
+            if position < children.len()
+                && let Some(field_name) = self.grammar.fields.get(&field_id)
+            {
+                children[position].field_name = Some(field_name.clone());
             }
         }
 

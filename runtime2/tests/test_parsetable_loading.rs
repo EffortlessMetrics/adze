@@ -5,7 +5,7 @@
 
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
-use rust_sitter_glr_core::{Action, ParseTable, StateId, SymbolId, LexMode, GotoIndexing};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
 use rust_sitter_ir::RuleId;
 use rust_sitter_runtime::Parser;
 
@@ -34,8 +34,14 @@ fn create_minimal_parsetable() -> Vec<u8> {
         token_count: 1,
         external_token_count: 0,
         lex_modes: vec![
-            LexMode { lex_state: 0, external_lex_state: 0 },
-            LexMode { lex_state: 0, external_lex_state: 0 },
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            },
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            },
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
@@ -46,7 +52,9 @@ fn create_minimal_parsetable() -> Vec<u8> {
     };
 
     // Serialize ParseTable to bytes
-    let table_bytes = parse_table.to_bytes().expect("ParseTable serialization should succeed");
+    let table_bytes = parse_table
+        .to_bytes()
+        .expect("ParseTable serialization should succeed");
 
     // Build .parsetable file format
     let mut file_bytes = Vec::new();
@@ -89,7 +97,10 @@ fn test_load_valid_parsetable() {
     assert!(result.is_ok(), "Loading valid .parsetable should succeed");
 
     // Verify parser is in GLR mode
-    assert!(parser.is_glr_mode(), "Parser should be in GLR mode after loading");
+    assert!(
+        parser.is_glr_mode(),
+        "Parser should be in GLR mode after loading"
+    );
 }
 
 /// Test 2: Loading with invalid magic number fails
@@ -104,7 +115,11 @@ fn test_load_invalid_magic() {
 
     assert!(result.is_err(), "Loading with invalid magic should fail");
     let err_msg = format!("{}", result.unwrap_err());
-    assert!(err_msg.contains("bad magic number"), "Error should mention bad magic: {}", err_msg);
+    assert!(
+        err_msg.contains("bad magic number"),
+        "Error should mention bad magic: {}",
+        err_msg
+    );
 }
 
 /// Test 3: Loading with unsupported version fails
@@ -117,9 +132,16 @@ fn test_load_unsupported_version() {
     let mut parser = Parser::new();
     let result = parser.load_glr_table_from_bytes(&bytes);
 
-    assert!(result.is_err(), "Loading with unsupported version should fail");
+    assert!(
+        result.is_err(),
+        "Loading with unsupported version should fail"
+    );
     let err_msg = format!("{}", result.unwrap_err());
-    assert!(err_msg.contains("format version"), "Error should mention version: {}", err_msg);
+    assert!(
+        err_msg.contains("format version"),
+        "Error should mention version: {}",
+        err_msg
+    );
 }
 
 /// Test 4: Loading truncated file fails
@@ -134,7 +156,11 @@ fn test_load_truncated_file() {
 
     assert!(result.is_err(), "Loading truncated file should fail");
     let err_msg = format!("{}", result.unwrap_err());
-    assert!(err_msg.contains("too short"), "Error should mention file is too short: {}", err_msg);
+    assert!(
+        err_msg.contains("too short"),
+        "Error should mention file is too short: {}",
+        err_msg
+    );
 }
 
 /// Test 5: Loading file with truncated metadata fails
@@ -147,7 +173,10 @@ fn test_load_truncated_metadata() {
     let mut parser = Parser::new();
     let result = parser.load_glr_table_from_bytes(truncated);
 
-    assert!(result.is_err(), "Loading with truncated metadata should fail");
+    assert!(
+        result.is_err(),
+        "Loading with truncated metadata should fail"
+    );
     let err_msg = format!("{}", result.unwrap_err());
     assert!(
         err_msg.contains("truncated metadata") || err_msg.contains("missing table"),
@@ -175,7 +204,11 @@ fn test_load_truncated_table_data() {
 
     assert!(result.is_err(), "Loading with truncated table should fail");
     let err_msg = format!("{}", result.unwrap_err());
-    assert!(err_msg.contains("truncated table"), "Error should mention truncated table: {}", err_msg);
+    assert!(
+        err_msg.contains("truncated table"),
+        "Error should mention truncated table: {}",
+        err_msg
+    );
 }
 
 /// Test 7: Round-trip through serialization and loading
@@ -204,8 +237,14 @@ fn test_roundtrip_serialization() {
         token_count: 1,
         external_token_count: 0,
         lex_modes: vec![
-            LexMode { lex_state: 0, external_lex_state: 0 },
-            LexMode { lex_state: 0, external_lex_state: 0 },
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            },
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            },
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
@@ -220,7 +259,8 @@ fn test_roundtrip_serialization() {
 
     // Load into parser
     let mut parser = Parser::new();
-    parser.load_glr_table_from_bytes(&parsetable_bytes)
+    parser
+        .load_glr_table_from_bytes(&parsetable_bytes)
         .expect("Loading should succeed");
 
     // Verify parser is in GLR mode
@@ -240,12 +280,14 @@ fn test_multiple_loads() {
     let mut parser = Parser::new();
 
     // First load
-    parser.load_glr_table_from_bytes(&bytes1)
+    parser
+        .load_glr_table_from_bytes(&bytes1)
         .expect("First load should succeed");
     assert!(parser.is_glr_mode());
 
     // Second load (should replace first table)
-    parser.load_glr_table_from_bytes(&bytes2)
+    parser
+        .load_glr_table_from_bytes(&bytes2)
         .expect("Second load should succeed");
     assert!(parser.is_glr_mode());
 }
@@ -256,7 +298,10 @@ fn test_file_size() {
     let bytes = create_minimal_parsetable();
 
     // File should be larger than header (44 bytes) + some metadata + some table
-    assert!(bytes.len() > 100, "Generated .parsetable should be > 100 bytes");
+    assert!(
+        bytes.len() > 100,
+        "Generated .parsetable should be > 100 bytes"
+    );
 
     // File should have correct magic
     assert_eq!(&bytes[0..4], b"RSPT");

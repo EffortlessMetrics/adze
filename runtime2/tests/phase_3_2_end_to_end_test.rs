@@ -9,18 +9,16 @@
 
 #[cfg(feature = "pure-rust-glr")]
 mod phase_3_2_end_to_end {
-    use rust_sitter_runtime::{
-        Parser,
-        tokenizer::{TokenPattern, Matcher, WhitespaceMode},
-        language::SymbolMetadata,
-    };
     use rust_sitter_glr_core::{
-        SymbolId, ParseTable, Action, FirstFollowSets,
-        build_lr1_automaton,
+        Action, FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton,
     };
     use rust_sitter_ir::{
-        Grammar, ProductionId, Rule, Symbol,
-        Token as IrToken, TokenPattern as IrTokenPattern,
+        Grammar, ProductionId, Rule, Symbol, Token as IrToken, TokenPattern as IrTokenPattern,
+    };
+    use rust_sitter_runtime::{
+        Parser,
+        language::SymbolMetadata,
+        tokenizer::{Matcher, TokenPattern, WhitespaceMode},
     };
 
     /// Create a simple arithmetic grammar: expr → NUMBER | expr + expr
@@ -31,7 +29,8 @@ mod phase_3_2_end_to_end {
     /// - 2: PLUS (terminal)
     /// - 3: expr (nonterminal)
     ///
-    fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec<TokenPattern>) {
+    fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec<TokenPattern>)
+    {
         // Build IR grammar
         let mut grammar = Grammar::new("arithmetic".to_string());
 

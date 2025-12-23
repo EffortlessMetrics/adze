@@ -51,7 +51,10 @@ fn generate_fixture(
 
     // Check if file exists and force flag
     if file_path.exists() && !force {
-        println!("⏭️  Skipping {} (already exists, use --force to regenerate)", filename);
+        println!(
+            "⏭️  Skipping {} (already exists, use --force to regenerate)",
+            filename
+        );
         return Ok(());
     }
 
@@ -67,15 +70,15 @@ fn generate_fixture(
     // We'll chain operations together: 1 - 2 * 3 - 4 * 5 - 6 * 7 - ...
 
     // Start with first number
-    content.push_str("1");
+    content.push('1');
 
     // Calculate how many operations we need
     // IMPORTANT: Parser may have limits on expression depth/length
     // Keep expressions reasonable to avoid hitting parser limits
     let target_ops = match target_loc {
-        100 => 50,       // Small: 50 operations (~250 bytes)
-        2000 => 200,     // Medium: 200 operations (~1.5 KB)
-        10000 => 1000,   // Large: 1000 operations (~6-7 KB)
+        100 => 50,                 // Small: 50 operations (~250 bytes)
+        2000 => 200,               // Medium: 200 operations (~1.5 KB)
+        10000 => 1000,             // Large: 1000 operations (~6-7 KB)
         _ => target_loc.min(1000), // Cap at 1000 ops for any other size
     };
 
@@ -90,7 +93,7 @@ fn generate_fixture(
         current_num += 1;
     }
 
-    content.push_str("\n");
+    content.push('\n');
 
     let line_count = 1; // Single line (plus newline)
     let expr_count = target_ops;
@@ -99,14 +102,16 @@ fn generate_fixture(
     fs::write(&file_path, content)
         .with_context(|| format!("Failed to write fixture: {}", file_path.display()))?;
 
-    println!("   ✅ Generated {} ({} lines, {} expressions)",
-             filename, line_count, expr_count);
+    println!(
+        "   ✅ Generated {} ({} lines, {} expressions)",
+        filename, line_count, expr_count
+    );
 
     Ok(())
 }
 
 /// Validate that generated fixtures can be parsed by the arithmetic grammar
-fn validate_fixtures(sh: &Shell, fixtures_dir: &Path) -> Result<()> {
+fn validate_fixtures(sh: &Shell, _fixtures_dir: &Path) -> Result<()> {
     let _dir = sh.push_dir(sh.current_dir());
 
     println!("   Running validation tests...");

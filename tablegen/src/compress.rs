@@ -212,9 +212,8 @@ impl TableCompressor {
         );
 
         // Only assert EOF presence if the parse table actually exposes an EOF mapping
-        // Don't assume EOF is at column 0 - derive it from symbol_to_index
-        use rust_sitter_ir::SymbolId;
-        if let Some(&eof_idx) = parse_table.symbol_to_index.get(&SymbolId(0)) {
+        // Don't assume EOF is at column 0 - derive it from symbol_to_index using the actual eof_symbol
+        if let Some(&eof_idx) = parse_table.symbol_to_index.get(&parse_table.eof_symbol) {
             debug_assert!(
                 token_indices.contains(&eof_idx),
                 "token_indices must contain EOF column (derived from symbol_to_index)"
@@ -224,11 +223,13 @@ impl TableCompressor {
         let token_set: FxHashSet<usize> = token_indices.iter().copied().collect();
 
         // Fetch EOF column index once and reuse it everywhere
+        // Use parse_table.eof_symbol instead of hardcoded SymbolId(0) since EOF symbol
+        // is computed as max_symbol + 1 in build_lr1_automaton
         let eof_idx = *parse_table
             .symbol_to_index
-            .get(&SymbolId(0))
+            .get(&parse_table.eof_symbol)
             .ok_or_else(|| TableGenError::InvalidTable(
-                "EOF (symbol 0) not found in symbol_to_index map - this is a critical invariant violation".into()
+                format!("EOF (symbol {}) not found in symbol_to_index map - this is a critical invariant violation", parse_table.eof_symbol.0)
             ))?;
 
         // Validation: Ensure state 0 has at least one token shift action
@@ -371,22 +372,22 @@ impl TableCompressor {
         for action_row in action_table.iter() {
             // Find the most common action across all cells
             let mut action_counts: HashMap<Action, usize> = HashMap::new();
-            let mut has_shift = false;
-            let mut has_accept = false;
+            let mut _has_shift = false;
+            let mut _has_accept = false;
 
             // Collect all actions from all cells in this row
             for action_cell in action_row {
                 for action in action_cell {
                     *action_counts.entry(action.clone()).or_insert(0) += 1;
                     match action {
-                        Action::Shift(_) => has_shift = true,
-                        Action::Accept => has_accept = true,
+                        Action::Shift(_) => _has_shift = true,
+                        Action::Accept => _has_accept = true,
                         _ => {}
                     }
                 }
             }
 
-            let most_common = action_counts
+            let _most_common = action_counts
                 .iter()
                 .max_by_key(|(_, count)| *count)
                 .map(|(action, _)| action.clone())
@@ -590,11 +591,17 @@ mod tests {
 
         let compressed = result.unwrap();
         // Default action optimization is disabled, so default should be Error
-        assert_eq!(compressed.default_actions[0], Action::Error,
-                   "Default action optimization disabled");
+        assert_eq!(
+            compressed.default_actions[0],
+            Action::Error,
+            "Default action optimization disabled"
+        );
         // All 10 reduce actions should be explicitly encoded
-        assert_eq!(compressed.data.len(), 10,
-                   "All reduce actions should be explicitly encoded");
+        assert_eq!(
+            compressed.data.len(),
+            10,
+            "All reduce actions should be explicitly encoded"
+        );
     }
 
     #[test]

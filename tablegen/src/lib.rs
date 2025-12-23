@@ -27,8 +27,6 @@ pub mod external_scanner;
 pub mod external_scanner_v2;
 /// Language builder for generating static parsers
 pub mod generate;
-/// Schema validation for parse tables
-pub mod schema;
 /// Helper utilities for table generation
 pub mod helpers;
 pub mod language_gen;
@@ -39,6 +37,8 @@ pub mod parser;
 /// .parsetable binary file format writer
 #[cfg(feature = "serialization")]
 pub mod parsetable_writer;
+/// Schema validation for parse tables
+pub mod schema;
 pub mod serializer;
 pub mod validation;
 
@@ -964,6 +964,8 @@ mod tests {
         );
 
         // Override to put EOF at column 0 for test compatibility
+        // Also update eof_symbol to match the new mapping
+        parse_table.eof_symbol = SymbolId(0);
         parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
         parse_table.symbol_to_index.insert(SymbolId(1), 1);
@@ -993,6 +995,8 @@ mod tests {
         );
 
         // Set EOF at column 0 for compatibility with existing test logic
+        // Also update eof_symbol to match the new mapping
+        parse_table.eof_symbol = SymbolId(0);
         parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
 
@@ -1076,7 +1080,10 @@ mod tests {
 
         // All 3 reduce actions should be explicitly encoded in data
         let entries_for_state_0 = compressed.row_offsets[1] - compressed.row_offsets[0];
-        assert_eq!(entries_for_state_0, 3, "All reduce actions should be explicitly encoded");
+        assert_eq!(
+            entries_for_state_0, 3,
+            "All reduce actions should be explicitly encoded"
+        );
     }
 
     #[test]
@@ -1198,6 +1205,8 @@ mod tests {
         );
 
         // Override to put EOF at column 0 for test compatibility
+        // Also update eof_symbol to match the new mapping
+        parse_table.eof_symbol = SymbolId(0);
         parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
         parse_table.symbol_to_index.insert(SymbolId(1), 1);

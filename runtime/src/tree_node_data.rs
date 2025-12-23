@@ -72,6 +72,7 @@ impl NodeFlags {
     const IS_MISSING: u8 = 1 << 1; // Is this node missing (error recovery)?
     const IS_ERROR: u8 = 1 << 2; // Is this an error node?
     const IS_EXTRA: u8 = 1 << 3; // Is this an extra node?
+    #[allow(dead_code)] // Reserved for incremental parsing
     const HAS_CHANGES: u8 = 1 << 4; // Has this node changed (incremental)?
     // 3 bits reserved for future use
 

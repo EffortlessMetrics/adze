@@ -12,9 +12,16 @@
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern, Token, ProductionId, PrecedenceKind, Associativity, FieldId};
+use rust_sitter_ir::{
+    Associativity, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
+    TokenPattern,
+};
+use rust_sitter_runtime::{
+    Parser,
+    language::SymbolMetadata,
+    tokenizer::{Matcher, TokenPattern as RuntimeTokenPattern},
+};
 use rust_sitter_tablegen::ParsetableWriter;
-use rust_sitter_runtime::{Parser, language::SymbolMetadata, tokenizer::{TokenPattern as RuntimeTokenPattern, Matcher}};
 use std::collections::HashMap;
 
 /// Helper: Create a minimal arithmetic grammar for testing
@@ -118,8 +125,8 @@ fn test_full_pipeline_arithmetic() {
     let grammar = create_arithmetic_grammar();
 
     // Compute FIRST/FOLLOW sets
-    let first_follow = FirstFollowSets::compute(&grammar)
-        .expect("FIRST/FOLLOW computation should succeed");
+    let first_follow =
+        FirstFollowSets::compute(&grammar).expect("FIRST/FOLLOW computation should succeed");
 
     // Build LR(1) automaton
     let parse_table = build_lr1_automaton(&grammar, &first_follow)
@@ -146,8 +153,8 @@ fn test_full_pipeline_arithmetic() {
     assert!(temp_file.exists(), ".parsetable file should exist");
 
     // Read the file
-    let parsetable_bytes = std::fs::read(&temp_file)
-        .expect("Reading .parsetable file should succeed");
+    let parsetable_bytes =
+        std::fs::read(&temp_file).expect("Reading .parsetable file should succeed");
 
     assert!(
         parsetable_bytes.len() > 100,
@@ -241,7 +248,10 @@ fn test_glr_conflict_preservation() {
     // succeeded means deserialization worked. The glr-core tests already
     // verify round-trip equality, so this is a smoke test.
 
-    assert!(parser.is_glr_mode(), "Parser should be in GLR mode after loading");
+    assert!(
+        parser.is_glr_mode(),
+        "Parser should be in GLR mode after loading"
+    );
 
     // Cleanup
     let _ = std::fs::remove_file(&temp_file);
@@ -273,7 +283,9 @@ fn test_parse_error_handling() {
 
     let mut parser = Parser::new();
     parser.load_glr_table_from_bytes(&bytes).unwrap();
-    parser.set_symbol_metadata(create_symbol_metadata()).unwrap();
+    parser
+        .set_symbol_metadata(create_symbol_metadata())
+        .unwrap();
     parser.set_token_patterns(create_token_patterns()).unwrap();
 
     // Try to parse invalid input (letters instead of numbers)
@@ -321,16 +333,25 @@ fn test_table_reusability() {
 
     let mut parser = Parser::new();
     parser.load_glr_table_from_bytes(&bytes).unwrap();
-    parser.set_symbol_metadata(create_symbol_metadata()).unwrap();
+    parser
+        .set_symbol_metadata(create_symbol_metadata())
+        .unwrap();
     parser.set_token_patterns(create_token_patterns()).unwrap();
 
     // Parse multiple inputs with same table
     let inputs: &[&[u8]] = &[b"1", b"42", b"999", b"0"];
 
     for input in inputs {
-        let tree = parser.parse(*input, None).expect(&format!("Parse should succeed for {:?}", input));
+        let tree = parser
+            .parse(*input, None)
+            .expect(&format!("Parse should succeed for {:?}", input));
         let root = tree.root_node();
-        assert_eq!(root.kind(), "expr", "Root should be expr for input {:?}", input);
+        assert_eq!(
+            root.kind(),
+            "expr",
+            "Root should be expr for input {:?}",
+            input
+        );
 
         let number = root.child(0).unwrap();
         let range = number.byte_range();

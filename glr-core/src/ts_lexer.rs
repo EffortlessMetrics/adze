@@ -208,7 +208,7 @@ unsafe extern "C" {
 mod tests {
 
     #[test]
-    #[ignore] // Requires actual Tree-sitter library to be linked
+    #[ignore = "requires actual Tree-sitter library to be linked"]
     fn test_json_lexer() {
         // This test would require linking to a real Tree-sitter grammar
         // unsafe {

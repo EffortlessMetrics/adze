@@ -1,35 +1,36 @@
-/// Parser Backend Selection
-///
-/// This module implements compile-time parser backend selection based on feature flags
-/// and grammar metadata. It ensures that grammars with conflicts use the GLR parser
-/// while simple grammars can use the more lightweight LR parser.
-///
-/// ## Feature Flag Architecture
-///
-/// - `default`: pure-rust (simple LR parser)
-/// - `pure-rust`: Pure Rust LR parser (no conflicts allowed)
-/// - `glr`: Pure Rust GLR parser (handles conflicts)
-/// - `tree-sitter-standard`: Tree-sitter C runtime (stable)
-/// - `tree-sitter-c2rust`: Tree-sitter C2Rust runtime (legacy)
-///
-/// ## Grammar Metadata
-///
-/// Each generated grammar includes `HAS_CONFLICTS: bool` metadata indicating
-/// whether the grammar has any shift/reduce or reduce/reduce conflicts.
-///
-/// ## Selection Logic
-///
-/// 1. If `glr` feature enabled → Always use GLR parser
-/// 2. If `pure-rust` (no glr) + has_conflicts → Panic with helpful error
-/// 3. If `pure-rust` (no glr) + no conflicts → Use simple LR parser
-/// 4. If tree-sitter features → Use Tree-sitter C runtime
-///
-/// ## Related
-/// - tests/features/glr_runtime_integration.feature - BDD scenarios
-/// - docs/plans/GLR_RUNTIME_WIRING_PLAN.md - Implementation plan
-/// - ARCHITECTURE_ISSUE_GLR_PARSER.md - Problem statement
+//! Parser Backend Selection
+//!
+//! This module implements compile-time parser backend selection based on feature flags
+//! and grammar metadata. It ensures that grammars with conflicts use the GLR parser
+//! while simple grammars can use the more lightweight LR parser.
+//!
+//! ## Feature Flag Architecture
+//!
+//! - `default`: pure-rust (simple LR parser)
+//! - `pure-rust`: Pure Rust LR parser (no conflicts allowed)
+//! - `glr`: Pure Rust GLR parser (handles conflicts)
+//! - `tree-sitter-standard`: Tree-sitter C runtime (stable)
+//! - `tree-sitter-c2rust`: Tree-sitter C2Rust runtime (legacy)
+//!
+//! ## Grammar Metadata
+//!
+//! Each generated grammar includes `HAS_CONFLICTS: bool` metadata indicating
+//! whether the grammar has any shift/reduce or reduce/reduce conflicts.
+//!
+//! ## Selection Logic
+//!
+//! 1. If `glr` feature enabled → Always use GLR parser
+//! 2. If `pure-rust` (no glr) + has_conflicts → Panic with helpful error
+//! 3. If `pure-rust` (no glr) + no conflicts → Use simple LR parser
+//! 4. If tree-sitter features → Use Tree-sitter C runtime
+//!
+//! ## Related Documents
+//!
+//! - tests/features/glr_runtime_integration.feature - BDD scenarios
+//! - docs/plans/GLR_RUNTIME_WIRING_PLAN.md - Implementation plan
+//! - ARCHITECTURE_ISSUE_GLR_PARSER.md - Problem statement
 
-/// Parser backend selection based on feature flags
+/// Represents which parser backend to use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParserBackend {
     /// Tree-sitter C runtime (default when not using pure-rust)
@@ -99,10 +100,7 @@ impl ParserBackend {
         }
 
         // Priority 3: Tree-sitter C runtime (default)
-        #[cfg(all(
-            not(feature = "pure-rust"),
-            not(feature = "glr"),
-        ))]
+        #[cfg(all(not(feature = "pure-rust"), not(feature = "glr"),))]
         {
             return Self::TreeSitter;
         }
@@ -208,7 +206,10 @@ mod tests {
     /// Test: Display trait provides readable names
     #[test]
     fn test_display_trait() {
-        assert_eq!(ParserBackend::TreeSitter.to_string(), "tree-sitter C runtime");
+        assert_eq!(
+            ParserBackend::TreeSitter.to_string(),
+            "tree-sitter C runtime"
+        );
         assert_eq!(ParserBackend::PureRust.to_string(), "pure-Rust LR parser");
         assert_eq!(ParserBackend::GLR.to_string(), "pure-Rust GLR parser");
     }

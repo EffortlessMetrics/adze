@@ -48,7 +48,7 @@ impl GrammarBuilder {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            next_symbol_id: 0,
+            next_symbol_id: 1, // Reserve SymbolId(0) for EOF
             next_production_id: 0,
             symbol_ids: IndexMap::new(),
             rules: IndexMap::new(),

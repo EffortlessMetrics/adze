@@ -5,6 +5,8 @@
 //! they are not intended to actually be called in any other circumstance.
 
 use crate::Extract;
+#[cfg(feature = "pure-rust")]
+use core::ffi::{CStr, c_char};
 
 #[cfg(feature = "pure-rust")]
 use crate::pure_parser::ParsedNode;
@@ -59,10 +61,30 @@ impl<'a> TreeCursor<'a> {
         }
     }
 
-    #[allow(dead_code)]
-    fn field_name(&self) -> Option<&str> {
-        // TODO: Implement field names
-        None
+    /// Returns the field name for the current child node if available
+    pub fn field_name(&self) -> Option<&'static str> {
+        if self.current_index >= self.children.len() {
+            return None;
+        }
+        let child = &self.children[self.current_index];
+        let field_id = child.field_id?;
+        let lang_ptr = self.node.language?;
+        unsafe {
+            let lang = &*lang_ptr;
+            if field_id >= lang.field_count as u16 {
+                return None;
+            }
+            if lang.field_names.is_null() {
+                return None;
+            }
+            let field_names =
+                core::slice::from_raw_parts(lang.field_names, lang.field_count as usize);
+            let name_ptr = field_names[field_id as usize];
+            if name_ptr.is_null() {
+                return None;
+            }
+            CStr::from_ptr(name_ptr as *const c_char).to_str().ok()
+        }
     }
 }
 
@@ -148,20 +170,13 @@ pub fn extract_field<LT: Extract<T>, T>(
     cursor_opt: &mut Option<TreeCursor>,
     source: &[u8],
     last_idx: &mut usize,
-    _field_name: &str,
+    field_name: &str,
     closure_ref: Option<&LT::LeafFn>,
 ) -> T {
     if let Some(cursor) = cursor_opt.as_mut() {
-        // Since field names are not available in pure-rust parser,
-        // we extract from the current child and advance the cursor
+        // Handle special case where a node has no children and represents a single-field struct
         let n = cursor.node();
-
-        // Check if we're dealing with a node that has no children
-        // This happens when a struct has a single leaf field - the node IS the field value
         if n.children.is_empty() && cursor.current_index == 0 {
-            // eprintln!("  Special case: node has no children, likely a single-field struct");
-            // The parent node itself contains the field value
-            // Don't advance cursor since there are no siblings
             let parent_node = cursor.node;
             let end_byte = parent_node.end_byte;
             *cursor_opt = None;
@@ -169,17 +184,31 @@ pub fn extract_field<LT: Extract<T>, T>(
             return LT::extract(Some(parent_node), source, *last_idx, closure_ref);
         }
 
-        let out = LT::extract(Some(n), source, *last_idx, closure_ref);
+        loop {
+            let n = cursor.node();
+            if let Some(name) = cursor.field_name() {
+                if name == field_name {
+                    let out = LT::extract(Some(n), source, *last_idx, closure_ref);
 
-        if !cursor.goto_next_sibling() {
-            *cursor_opt = None;
+                    if !cursor.goto_next_sibling() {
+                        *cursor_opt = None;
+                    }
+
+                    *last_idx = n.end_byte;
+
+                    return out;
+                } else {
+                    return LT::extract(None, source, *last_idx, closure_ref);
+                }
+            } else {
+                *last_idx = n.end_byte;
+            }
+
+            if !cursor.goto_next_sibling() {
+                return LT::extract(None, source, *last_idx, closure_ref);
+            }
         }
-
-        *last_idx = n.end_byte;
-
-        out
     } else {
-        // eprintln!("DEBUG extract_field: No cursor for field '{}'", _field_name);
         LT::extract(None, source, *last_idx, closure_ref)
     }
 }
@@ -276,7 +305,10 @@ fn parse_with_pure_parser<T: Extract<T>>(
                                     format!("symbol {} (public {})", e.found, public_symbol)
                                 }
                             } else {
-                                format!("symbol {} (public {} out of bounds)", e.found, public_symbol)
+                                format!(
+                                    "symbol {} (public {} out of bounds)",
+                                    e.found, public_symbol
+                                )
                             }
                         }
                     } else {
@@ -348,15 +380,13 @@ fn parse_with_glr<T: Extract<T>>(
     let mut parser = Parser::from_language(lang, T::GRAMMAR_NAME.to_string());
 
     // Parse to get root ParseNode
-    let root_node = parser
-        .parse_tree(input)
-        .map_err(|e| {
-            vec![crate::errors::ParseError {
-                reason: crate::errors::ParseErrorReason::UnexpectedToken(e.to_string()),
-                start: 0,
-                end: 0,
-            }]
-        })?;
+    let root_node = parser.parse_tree(input).map_err(|e| {
+        vec![crate::errors::ParseError {
+            reason: crate::errors::ParseErrorReason::UnexpectedToken(e.to_string()),
+            start: 0,
+            end: 0,
+        }]
+    })?;
 
     // Convert parser_v4::ParseNode to pure_parser::ParsedNode
     let parsed_node = convert_parse_node_v4_to_pure(&root_node, lang);
@@ -403,7 +433,7 @@ fn convert_parse_node_v4_to_pure(
     };
 
     crate::pure_parser::ParsedNode {
-        symbol: node.symbol.0,  // SymbolId.0 -> TSSymbol
+        symbol: node.symbol.0, // SymbolId.0 -> TSSymbol
         children,
         start_byte: node.start_byte,
         end_byte: node.end_byte,
@@ -413,7 +443,7 @@ fn convert_parse_node_v4_to_pure(
         start_point: crate::pure_parser::Point { row: 0, column: 0 },
         end_point: crate::pure_parser::Point { row: 0, column: 0 },
         is_extra,
-        is_error: node.symbol.0 == 0,  // Symbol 0 typically indicates error
+        is_error: node.symbol.0 == 0, // Symbol 0 typically indicates error
         is_missing: false,
         is_named,
         field_name: node.field_name.clone(),

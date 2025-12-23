@@ -8,7 +8,7 @@
 //! - Handles whitespace according to configuration
 //! - Reports errors for unrecognized characters
 
-use crate::{error::ParseError, Token};
+use crate::{Token, error::ParseError};
 use rust_sitter_glr_core::SymbolId;
 use std::fmt;
 
@@ -211,9 +211,9 @@ impl TokenPattern {
                 // Match must start at position 0 (current position)
                 regex.find(input_str).and_then(|m| {
                     if m.start() == 0 {
-                        Some(m.end() - m.start())  // Return match length, not absolute position
+                        Some(m.end() - m.start()) // Return match length, not absolute position
                     } else {
-                        None  // Match doesn't start at current position
+                        None // Match doesn't start at current position
                     }
                 })
             }

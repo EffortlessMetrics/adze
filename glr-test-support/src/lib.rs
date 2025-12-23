@@ -16,9 +16,9 @@ pub const INVALID: StateId = StateId(u16::MAX);
 /// Build a minimal but fully-formed ParseTable suitable for unit tests.
 ///
 /// Conventions expected by tests:
-/// - Symbol layout: ERROR(0), terminals [1..=token_count], EOF(token_count + external_token_count),
+/// - Symbol layout: ERROR(0), terminals `[1..=token_count]`, EOF(token_count + external_token_count),
 ///   then non-terminals.
-/// - `actions` is indexed by [state][symbol_index] and `gotos` by [state][symbol_index].
+/// - `actions` is indexed by `[state][symbol_index]` and `gotos` by `[state][symbol_index]`.
 ///
 /// `external_token_count` is usually 0 for tests.
 pub fn make_minimal_table(

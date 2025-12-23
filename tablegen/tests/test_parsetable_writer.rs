@@ -4,9 +4,9 @@
 
 #![cfg(feature = "serialization")]
 
-use rust_sitter_glr_core::{Action, ParseTable, StateId, SymbolId, LexMode, GotoIndexing};
+use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
 use rust_sitter_ir::{Grammar, RuleId};
-use rust_sitter_tablegen::parsetable_writer::{ParsetableWriter, MAGIC_NUMBER, FORMAT_VERSION};
+use rust_sitter_tablegen::parsetable_writer::{FORMAT_VERSION, MAGIC_NUMBER, ParsetableWriter};
 use std::fs;
 use std::io::Read;
 
@@ -42,8 +42,14 @@ fn create_test_parse_table() -> ParseTable {
         token_count: 1,
         external_token_count: 0,
         lex_modes: vec![
-            LexMode { lex_state: 0, external_lex_state: 0 },
-            LexMode { lex_state: 0, external_lex_state: 0 },
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            },
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            },
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
@@ -158,10 +164,12 @@ fn test_metadata_valid_json() {
     let mut header = [0u8; 44]; // magic + version + hash + metadata_len
     file.read_exact(&mut header).expect("read should succeed");
 
-    let metadata_len = u32::from_le_bytes([header[40], header[41], header[42], header[43]]) as usize;
+    let metadata_len =
+        u32::from_le_bytes([header[40], header[41], header[42], header[43]]) as usize;
 
     let mut metadata_bytes = vec![0u8; metadata_len];
-    file.read_exact(&mut metadata_bytes).expect("read should succeed");
+    file.read_exact(&mut metadata_bytes)
+        .expect("read should succeed");
 
     // Verify it's valid JSON
     let metadata_json = String::from_utf8(metadata_bytes).expect("metadata should be UTF-8");
@@ -176,10 +184,22 @@ fn test_metadata_valid_json() {
     );
 
     // Verify grammar info present
-    assert!(parsed["grammar"].is_object(), "grammar field should be present");
-    assert!(parsed["generation"].is_object(), "generation field should be present");
-    assert!(parsed["statistics"].is_object(), "statistics field should be present");
-    assert!(parsed["features"].is_object(), "features field should be present");
+    assert!(
+        parsed["grammar"].is_object(),
+        "grammar field should be present"
+    );
+    assert!(
+        parsed["generation"].is_object(),
+        "generation field should be present"
+    );
+    assert!(
+        parsed["statistics"].is_object(),
+        "statistics field should be present"
+    );
+    assert!(
+        parsed["features"].is_object(),
+        "features field should be present"
+    );
 
     // Cleanup
     let _ = fs::remove_file(&temp_file);
@@ -231,10 +251,18 @@ fn test_file_size_reasonable() {
         .len();
 
     // File should be < 10KB for this small test table
-    assert!(file_size < 10_000, "File size {} should be < 10KB", file_size);
+    assert!(
+        file_size < 10_000,
+        "File size {} should be < 10KB",
+        file_size
+    );
 
     // File should be > 100 bytes (magic + version + hash + some data)
-    assert!(file_size > 100, "File size {} should be > 100 bytes", file_size);
+    assert!(
+        file_size > 100,
+        "File size {} should be > 100 bytes",
+        file_size
+    );
 
     // Cleanup
     let _ = fs::remove_file(&temp_file);
@@ -251,19 +279,27 @@ fn test_deterministic_writes() {
     let temp_file1 = std::env::temp_dir().join("test_det1.parsetable");
     let temp_file2 = std::env::temp_dir().join("test_det2.parsetable");
 
-    writer.write_file(&temp_file1).expect("write 1 should succeed");
+    writer
+        .write_file(&temp_file1)
+        .expect("write 1 should succeed");
 
     // Small delay to ensure different timestamps (if they were included in hash)
     std::thread::sleep(std::time::Duration::from_millis(10));
 
-    writer.write_file(&temp_file2).expect("write 2 should succeed");
+    writer
+        .write_file(&temp_file2)
+        .expect("write 2 should succeed");
 
     let bytes1 = fs::read(&temp_file1).expect("read 1 should succeed");
     let bytes2 = fs::read(&temp_file2).expect("read 2 should succeed");
 
     // Note: Files won't be identical due to timestamps in metadata
     // But magic, version, hash, and table data should match
-    assert_eq!(&bytes1[0..8], &bytes2[0..8], "Magic and version should match");
+    assert_eq!(
+        &bytes1[0..8],
+        &bytes2[0..8],
+        "Magic and version should match"
+    );
     assert_eq!(&bytes1[8..40], &bytes2[8..40], "Grammar hash should match");
 
     // Cleanup
@@ -278,10 +314,7 @@ fn test_multi_action_cell_detection() {
     let mut parse_table = create_test_parse_table();
 
     // Add a multi-action cell
-    parse_table.action_table[0][0] = vec![
-        Action::Shift(StateId(1)),
-        Action::Reduce(RuleId(0)),
-    ];
+    parse_table.action_table[0][0] = vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))];
 
     let writer = ParsetableWriter::new(&grammar, &parse_table, "test", "1.0.0");
     let metadata = writer.metadata();

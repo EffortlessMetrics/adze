@@ -18,7 +18,10 @@ fn inspect_arithmetic_parse_table() {
     eprintln!("\n=== Arithmetic Grammar Parse Table Inspection ===");
     eprintln!("Total states: {}", parse_table.action_table.len());
     eprintln!("Total symbols: {}", parse_table.symbol_count);
-    eprintln!("Symbol metadata count: {}", parse_table.symbol_metadata.len());
+    eprintln!(
+        "Symbol metadata count: {}",
+        parse_table.symbol_metadata.len()
+    );
 
     // Inspect state 0
     if !parse_table.action_table.is_empty() {
@@ -34,8 +37,12 @@ fn inspect_arithmetic_parse_table() {
                     "unknown"
                 };
 
-                eprintln!("  Symbol {} ({}): {} actions",
-                         symbol_idx, symbol_name, action_cell.len());
+                eprintln!(
+                    "  Symbol {} ({}): {} actions",
+                    symbol_idx,
+                    symbol_name,
+                    action_cell.len()
+                );
                 for (i, action) in action_cell.iter().enumerate() {
                     eprintln!("    Action {}: {:?}", i, action);
                 }
@@ -55,8 +62,13 @@ fn inspect_arithmetic_parse_table() {
                 } else {
                     "unknown"
                 };
-                eprintln!("  State {}, Symbol {} ({}): {} actions",
-                         state_idx, symbol_idx, symbol_name, action_cell.len());
+                eprintln!(
+                    "  State {}, Symbol {} ({}): {} actions",
+                    state_idx,
+                    symbol_idx,
+                    symbol_name,
+                    action_cell.len()
+                );
                 for action in action_cell {
                     eprintln!("    {:?}", action);
                 }
@@ -75,5 +87,8 @@ fn inspect_arithmetic_parse_table() {
     }
 
     // This test always passes - it's just for inspection
-    assert!(parse_table.action_table.len() > 0, "Parse table should have at least one state");
+    assert!(
+        parse_table.action_table.len() > 0,
+        "Parse table should have at least one state"
+    );
 }

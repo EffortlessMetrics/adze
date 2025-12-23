@@ -6,11 +6,11 @@
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern, Token, ProductionId};
+use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use rust_sitter_runtime::{
     Parser,
     language::SymbolMetadata,
-    tokenizer::{TokenPattern as RuntimeTokenPattern, Matcher},
+    tokenizer::{Matcher, TokenPattern as RuntimeTokenPattern},
 };
 
 /// Helper: Create arithmetic grammar (same as end-to-end test)
@@ -80,14 +80,20 @@ fn test_parse_table_structure() {
     for (state_idx, row) in parse_table.goto_table.iter().enumerate() {
         for (nt_idx, next_state) in row.iter().enumerate() {
             if next_state.0 != 0 || state_idx == 0 {
-                println!("State {} × NT {} → State {}", state_idx, nt_idx, next_state.0);
+                println!(
+                    "State {} × NT {} → State {}",
+                    state_idx, nt_idx, next_state.0
+                );
             }
         }
     }
 
     // Assertions
     assert!(parse_table.state_count > 0, "Should have states");
-    assert!(parse_table.symbol_count >= 3, "Should have EOF + number + expr");
+    assert!(
+        parse_table.symbol_count >= 3,
+        "Should have EOF + number + expr"
+    );
     assert!(!parse_table.rules.is_empty(), "Should have rules");
 }
 
@@ -95,9 +101,21 @@ fn test_parse_table_structure() {
 #[test]
 fn test_symbol_metadata_setup() {
     let metadata = vec![
-        SymbolMetadata { is_terminal: true, is_visible: false, is_supertype: false },  // EOF
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },   // number
-        SymbolMetadata { is_terminal: false, is_visible: true, is_supertype: false },  // expr
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: false,
+            is_supertype: false,
+        }, // EOF
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        }, // number
+        SymbolMetadata {
+            is_terminal: false,
+            is_visible: true,
+            is_supertype: false,
+        }, // expr
     ];
 
     println!("=== Symbol Metadata ===");
@@ -149,7 +167,11 @@ fn test_token_patterns_setup() {
     }
 
     assert_eq!(patterns.len(), 2, "Should have 2 token patterns");
-    assert_eq!(patterns[1].symbol_id, SymbolId(1), "number pattern should be for SymbolId(1)");
+    assert_eq!(
+        patterns[1].symbol_id,
+        SymbolId(1),
+        "number pattern should be for SymbolId(1)"
+    );
 }
 
 /// Diagnostic Test 4: Verify regex matches input
@@ -164,7 +186,12 @@ fn test_regex_matching() {
 
     match number_regex.find(input) {
         Some(m) => {
-            println!("Match found: start={}, end={}, text='{}'", m.start(), m.end(), &input[m.start()..m.end()]);
+            println!(
+                "Match found: start={}, end={}, text='{}'",
+                m.start(),
+                m.end(),
+                &input[m.start()..m.end()]
+            );
             assert_eq!(m.start(), 0, "Should match from start");
             assert_eq!(m.end(), 2, "Should match both digits");
         }
@@ -188,7 +215,9 @@ fn test_parser_glr_mode_setup() {
     let table_static: &'static _ = Box::leak(Box::new(parse_table));
 
     let mut parser = Parser::new();
-    parser.set_glr_table(table_static).expect("Setting GLR table should succeed");
+    parser
+        .set_glr_table(table_static)
+        .expect("Setting GLR table should succeed");
 
     println!("=== Parser Setup ===");
     println!("GLR mode: {}", parser.is_glr_mode());
@@ -197,11 +226,25 @@ fn test_parser_glr_mode_setup() {
 
     // Set metadata
     let metadata = vec![
-        SymbolMetadata { is_terminal: true, is_visible: false, is_supertype: false },
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
-        SymbolMetadata { is_terminal: false, is_visible: true, is_supertype: false },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: false,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: false,
+            is_visible: true,
+            is_supertype: false,
+        },
     ];
-    parser.set_symbol_metadata(metadata).expect("Setting metadata should succeed");
+    parser
+        .set_symbol_metadata(metadata)
+        .expect("Setting metadata should succeed");
 
     // Set token patterns
     let patterns = vec![
@@ -216,7 +259,9 @@ fn test_parser_glr_mode_setup() {
             is_keyword: false,
         },
     ];
-    parser.set_token_patterns(patterns).expect("Setting patterns should succeed");
+    parser
+        .set_token_patterns(patterns)
+        .expect("Setting patterns should succeed");
 
     println!("Parser configured successfully");
 }
@@ -285,7 +330,10 @@ fn test_minimal_parse_attempt() {
 
     println!("\n=== ParseTable Grammar ===");
     println!("ParseTable grammar name: {}", parse_table.grammar.name);
-    println!("ParseTable rule_names: {:?}", parse_table.grammar.rule_names);
+    println!(
+        "ParseTable rule_names: {:?}",
+        parse_table.grammar.rule_names
+    );
 
     let table_static: &'static _ = Box::leak(Box::new(parse_table));
 
@@ -293,9 +341,21 @@ fn test_minimal_parse_attempt() {
     parser.set_glr_table(table_static).unwrap();
 
     let metadata = vec![
-        SymbolMetadata { is_terminal: true, is_visible: false, is_supertype: false },
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
-        SymbolMetadata { is_terminal: false, is_visible: true, is_supertype: false },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: false,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: false,
+            is_visible: true,
+            is_supertype: false,
+        },
     ];
     parser.set_symbol_metadata(metadata).unwrap();
 

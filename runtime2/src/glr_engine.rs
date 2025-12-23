@@ -5,8 +5,8 @@
 //!
 //! Contract: docs/specs/GLR_ENGINE_CONTRACT.md
 
-use crate::error::{ParseError, ParseErrorKind};
 use crate::Token;
+use crate::error::{ParseError, ParseErrorKind};
 use rust_sitter_glr_core::{Action, ParseTable, StateId, SymbolId};
 use rust_sitter_ir::RuleId;
 use std::collections::HashMap;
@@ -94,10 +94,7 @@ impl GLREngine {
     pub fn new(parse_table: &'static ParseTable, config: GLRConfig) -> Self {
         // Validate config
         assert!(config.max_forks > 0, "max_forks must be > 0");
-        assert!(
-            config.max_forest_nodes > 0,
-            "max_forest_nodes must be > 0"
-        );
+        assert!(config.max_forest_nodes > 0, "max_forest_nodes must be > 0");
 
         // Create initial stack with state 0
         let initial_stack = ParserStack {
@@ -173,12 +170,7 @@ impl GLREngine {
         let old_stacks = std::mem::take(&mut self.stacks);
 
         for stack in &old_stacks {
-            self.process_stack_with_token(
-                stack,
-                token,
-                &mut new_stacks,
-                &mut next_stack_id,
-            )?;
+            self.process_stack_with_token(stack, token, &mut new_stacks, &mut next_stack_id)?;
         }
 
         // Check fork limit
@@ -291,7 +283,9 @@ impl GLREngine {
             .drain(stack.nodes.len().saturating_sub(rhs_len as usize)..)
             .collect();
 
-        stack.states.truncate(stack.states.len() - (rhs_len as usize));
+        stack
+            .states
+            .truncate(stack.states.len() - (rhs_len as usize));
 
         // Calculate byte range (span of all children)
         let range = if children.is_empty() {

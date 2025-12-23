@@ -112,13 +112,13 @@ fn create_test_language() -> &'static TSLanguage {
     // Symbol metadata (1 byte per symbol)
     // Bit flags: 0x01 = visible, 0x02 = named, 0x04 = hidden
     static SYMBOL_METADATA: [u8; 7] = [
-        0x01,        // EOF: visible
-        0x01,        // digit: visible terminal
-        0x01,        // plus: visible terminal
-        0x01,        // multiply: visible terminal
-        0x03,        // number: visible + named
-        0x03,        // addition: visible + named
-        0x03,        // multiplication: visible + named
+        0x01, // EOF: visible
+        0x01, // digit: visible terminal
+        0x01, // plus: visible terminal
+        0x01, // multiply: visible terminal
+        0x03, // number: visible + named
+        0x03, // addition: visible + named
+        0x03, // multiplication: visible + named
     ];
 
     static LANGUAGE: TSLanguage = TSLanguage {

@@ -26,7 +26,6 @@
 /// - Detects regressions above configurable threshold
 ///
 /// Related: docs/specs/BASELINE_MANAGEMENT_SPEC.md
-
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -85,6 +84,7 @@ struct ConfidenceInterval {
 }
 
 /// Criterion benchmark.json structure (for sample count)
+#[allow(dead_code)] // Used for deserialization
 #[derive(Debug, Deserialize)]
 struct CriterionBenchmark {
     #[allow(dead_code)]
@@ -114,20 +114,26 @@ pub struct Comparison {
 }
 
 /// Save current benchmark results as a new baseline
-pub fn save_baseline(sh: &Shell, version: &str) -> Result<()> {
+pub fn save_baseline(_sh: &Shell, version: &str) -> Result<()> {
     println!("Saving performance baseline for version {}...", version);
 
     // Discover all benchmarks in target/criterion/
     let criterion_dir = PathBuf::from("target/criterion");
     if !criterion_dir.exists() {
-        bail!("Criterion output directory not found: {}\nRun benchmarks first: cargo bench", criterion_dir.display());
+        bail!(
+            "Criterion output directory not found: {}\nRun benchmarks first: cargo bench",
+            criterion_dir.display()
+        );
     }
 
-    let benchmarks = discover_benchmarks(&criterion_dir)
-        .context("Failed to discover benchmarks")?;
+    let benchmarks =
+        discover_benchmarks(&criterion_dir).context("Failed to discover benchmarks")?;
 
     if benchmarks.is_empty() {
-        bail!("No benchmarks found in {}\nRun benchmarks first: cargo bench", criterion_dir.display());
+        bail!(
+            "No benchmarks found in {}\nRun benchmarks first: cargo bench",
+            criterion_dir.display()
+        );
     }
 
     println!("Discovered {} benchmarks", benchmarks.len());
@@ -147,20 +153,18 @@ pub fn save_baseline(sh: &Shell, version: &str) -> Result<()> {
 
     // Save to baselines directory
     let baselines_dir = PathBuf::from("baselines");
-    std::fs::create_dir_all(&baselines_dir)
-        .context("Failed to create baselines directory")?;
+    std::fs::create_dir_all(&baselines_dir).context("Failed to create baselines directory")?;
 
     let baseline_path = baselines_dir.join(format!("{}.json", version));
-    let json = serde_json::to_string_pretty(&baseline)
-        .context("Failed to serialize baseline")?;
-    std::fs::write(&baseline_path, json)
-        .context("Failed to write baseline file")?;
+    let json = serde_json::to_string_pretty(&baseline).context("Failed to serialize baseline")?;
+    std::fs::write(&baseline_path, json).context("Failed to write baseline file")?;
 
     println!("✅ Baseline saved: {}", baseline_path.display());
     println!("📊 Benchmarks captured: {}", baseline.benchmarks.len());
     println!("\nSample results:");
     for (name, result) in baseline.benchmarks.iter().take(3) {
-        println!("  {}: {:.2} µs ± {:.2} µs",
+        println!(
+            "  {}: {:.2} µs ± {:.2} µs",
             name,
             result.mean_ns / 1000.0,
             result.stddev_ns / 1000.0
@@ -240,7 +244,10 @@ fn extract_benchmark_name(estimates_path: &Path, criterion_dir: &Path) -> Result
         .collect();
 
     if components.is_empty() {
-        bail!("Could not extract benchmark name from path: {}", estimates_path.display());
+        bail!(
+            "Could not extract benchmark name from path: {}",
+            estimates_path.display()
+        );
     }
 
     Ok(components.join("/"))
@@ -255,8 +262,7 @@ fn parse_criterion_estimates(path: &Path) -> Result<BenchmarkResult> {
         .with_context(|| format!("Failed to parse JSON from {}", path.display()))?;
 
     // Try to get sample count from benchmark.json (sibling file)
-    let benchmark_json_path = path.parent()
-        .and_then(|p| Some(p.join("benchmark.json")));
+    let benchmark_json_path = path.parent().map(|p| p.join("benchmark.json"));
 
     let samples = if let Some(ref bj_path) = benchmark_json_path {
         if bj_path.exists() {
@@ -278,11 +284,7 @@ fn parse_criterion_estimates(path: &Path) -> Result<BenchmarkResult> {
 }
 
 /// Compare current benchmark results against a baseline
-pub fn compare_baseline(
-    _sh: &Shell,
-    baseline_version: &str,
-    threshold_percent: f64,
-) -> Result<()> {
+pub fn compare_baseline(_sh: &Shell, baseline_version: &str, threshold_percent: f64) -> Result<()> {
     println!(
         "Comparing against baseline {} (threshold: {}%)...",
         baseline_version, threshold_percent
@@ -298,10 +300,10 @@ pub fn compare_baseline(
         );
     }
 
-    let baseline_json = std::fs::read_to_string(&baseline_path)
-        .context("Failed to read baseline file")?;
-    let baseline: Baseline = serde_json::from_str(&baseline_json)
-        .context("Failed to parse baseline JSON")?;
+    let baseline_json =
+        std::fs::read_to_string(&baseline_path).context("Failed to read baseline file")?;
+    let baseline: Baseline =
+        serde_json::from_str(&baseline_json).context("Failed to parse baseline JSON")?;
 
     println!("Baseline: {} ({})", baseline.version, baseline.date);
     println!("Platform: {}", baseline.platform);
@@ -309,12 +311,15 @@ pub fn compare_baseline(
     // Discover current benchmarks
     let criterion_dir = PathBuf::from("target/criterion");
     if !criterion_dir.exists() {
-        bail!("Criterion output directory not found: {}\nRun benchmarks first: cargo bench", criterion_dir.display());
+        bail!(
+            "Criterion output directory not found: {}\nRun benchmarks first: cargo bench",
+            criterion_dir.display()
+        );
     }
 
     println!("\nDiscovering current benchmark results...");
-    let current_benchmarks = discover_benchmarks(&criterion_dir)
-        .context("Failed to discover current benchmarks")?;
+    let current_benchmarks =
+        discover_benchmarks(&criterion_dir).context("Failed to discover current benchmarks")?;
 
     if current_benchmarks.is_empty() {
         bail!("No current benchmarks found. Run: cargo bench");
@@ -346,7 +351,10 @@ pub fn compare_baseline(
                 threshold_percent
             );
         }
-        bail!("{} benchmark(s) regressed beyond threshold", regressions.len());
+        bail!(
+            "{} benchmark(s) regressed beyond threshold",
+            regressions.len()
+        );
     }
 
     println!("\n✅ All benchmarks within performance threshold!");
@@ -390,7 +398,10 @@ fn compare_results(
 /// Print comparison report
 fn print_comparison_report(comparisons: &[Comparison], threshold: f64) {
     println!("\n📊 Performance Comparison Report\n");
-    println!("{:<50} {:>12} {:>12} {:>10}", "Benchmark", "Baseline", "Current", "Change");
+    println!(
+        "{:<50} {:>12} {:>12} {:>10}",
+        "Benchmark", "Baseline", "Current", "Change"
+    );
     println!("{}", "=".repeat(90));
 
     for comp in comparisons {
@@ -468,7 +479,9 @@ mod tests {
     #[test]
     fn test_extract_benchmark_name_grouped() {
         let criterion_dir = Path::new("target/criterion");
-        let path = Path::new("target/criterion/real_parsing/parse_arithmetic/python_small/base/estimates.json");
+        let path = Path::new(
+            "target/criterion/real_parsing/parse_arithmetic/python_small/base/estimates.json",
+        );
 
         let name = extract_benchmark_name(path, criterion_dir).unwrap();
         assert_eq!(name, "real_parsing/parse_arithmetic/python_small");

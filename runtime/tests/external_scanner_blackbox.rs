@@ -141,7 +141,7 @@ fn test_column_calculation() {
 /// and the advance() method is not public. The adapter is tested through
 /// the FFI layer in the tests above.
 #[test]
-#[ignore]
+#[ignore = "RustLexerAdapter internals are private, tested through FFI layer"]
 fn test_adapter_position_tracking() {
     // This test would require public access to RustLexerAdapter internals
     // which are intentionally kept private for safety.

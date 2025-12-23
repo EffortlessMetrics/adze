@@ -2,14 +2,13 @@
 //!
 //! This test runs the precedence case multiple times to detect non-determinism
 
-use rust_sitter_runtime::{Parser, Tree};
-use rust_sitter_runtime::tokenizer::{TokenPattern, Matcher};
-use rust_sitter_runtime::language::SymbolMetadata;
-use rust_sitter_glr_core::{SymbolId, ParseTable, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
 use rust_sitter_ir::{
-    Grammar, ProductionId, Rule, Symbol,
-    Token as IrToken, TokenPattern as IrTokenPattern,
+    Grammar, ProductionId, Rule, Symbol, Token as IrToken, TokenPattern as IrTokenPattern,
 };
+use rust_sitter_runtime::language::SymbolMetadata;
+use rust_sitter_runtime::tokenizer::{Matcher, TokenPattern};
+use rust_sitter_runtime::{Parser, Tree};
 
 fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec<TokenPattern>) {
     let mut grammar = Grammar::new("arithmetic".to_string());
@@ -91,11 +90,31 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
     let table_static: &'static ParseTable = Box::leak(Box::new(table));
 
     let symbol_metadata = vec![
-        SymbolMetadata { is_terminal: true, is_visible: false, is_supertype: false }, // EOF
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false }, // NUMBER
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false }, // MINUS
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false }, // STAR
-        SymbolMetadata { is_terminal: false, is_visible: true, is_supertype: false }, // expr
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: false,
+            is_supertype: false,
+        }, // EOF
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        }, // NUMBER
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        }, // MINUS
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        }, // STAR
+        SymbolMetadata {
+            is_terminal: false,
+            is_visible: true,
+            is_supertype: false,
+        }, // expr
     ];
 
     let token_patterns = vec![
@@ -140,8 +159,15 @@ fn print_node(node: &rust_sitter_runtime::node::Node, prefix: &str, depth: usize
     let range = node.byte_range();
     let text = std::str::from_utf8(&source[range.clone()]).unwrap_or("<invalid>");
 
-    println!("{}{}Node {{ kind_id: {}, range: {:?}, children: {}, text: {:?} }}",
-             prefix, indent, node.kind_id(), range, node.child_count(), text);
+    println!(
+        "{}{}Node {{ kind_id: {}, range: {:?}, children: {}, text: {:?} }}",
+        prefix,
+        indent,
+        node.kind_id(),
+        range,
+        node.child_count(),
+        text
+    );
 
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
@@ -156,7 +182,10 @@ fn main() {
     let input = "1-2*3";
     let iterations = 5;
 
-    println!("Parsing '{}' {} times to detect non-determinism\n", input, iterations);
+    println!(
+        "Parsing '{}' {} times to detect non-determinism\n",
+        input, iterations
+    );
 
     let mut trees = Vec::new();
 
@@ -191,7 +220,11 @@ fn main() {
 
         let same = nodes_equal(&ref_root, &tree_root);
 
-        println!("Tree {} vs Tree 0: {}", i, if same { "IDENTICAL" } else { "DIFFERENT" });
+        println!(
+            "Tree {} vs Tree 0: {}",
+            i,
+            if same { "IDENTICAL" } else { "DIFFERENT" }
+        );
 
         if !same {
             all_same = false;
@@ -210,14 +243,22 @@ fn main() {
 }
 
 fn nodes_equal(n1: &rust_sitter_runtime::node::Node, n2: &rust_sitter_runtime::node::Node) -> bool {
-    if n1.kind_id() != n2.kind_id() { return false; }
-    if n1.byte_range() != n2.byte_range() { return false; }
-    if n1.child_count() != n2.child_count() { return false; }
+    if n1.kind_id() != n2.kind_id() {
+        return false;
+    }
+    if n1.byte_range() != n2.byte_range() {
+        return false;
+    }
+    if n1.child_count() != n2.child_count() {
+        return false;
+    }
 
     for i in 0..n1.child_count() {
         let c1 = n1.child(i).unwrap();
         let c2 = n2.child(i).unwrap();
-        if !nodes_equal(&c1, &c2) { return false; }
+        if !nodes_equal(&c1, &c2) {
+            return false;
+        }
     }
 
     true

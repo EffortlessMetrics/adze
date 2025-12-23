@@ -41,7 +41,7 @@
 //! - Spec: docs/specs/REAL_PARSING_BENCHMARKS_SPEC.md
 //! - Fixtures: benchmarks/fixtures/arithmetic/
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter_example::arithmetic::grammar::parse;
 
 // Load arithmetic fixtures at compile time (deterministic, zero I/O overhead)
@@ -86,21 +86,17 @@ fn benchmark_real_parsing(c: &mut Criterion) {
         ("medium", ARITH_MEDIUM),
         ("large", ARITH_LARGE),
     ] {
-        group.bench_with_input(
-            BenchmarkId::new("parse", label),
-            source,
-            |b, &source| {
-                b.iter(|| {
-                    // REAL PARSING: Actual GLR parser over valid expressions
-                    // Measures: lexing, parsing, tree construction
-                    // Does NOT measure: error recovery (inputs are valid)
-                    let result = parse(source);
+        group.bench_with_input(BenchmarkId::new("parse", label), source, |b, &source| {
+            b.iter(|| {
+                // REAL PARSING: Actual GLR parser over valid expressions
+                // Measures: lexing, parsing, tree construction
+                // Does NOT measure: error recovery (inputs are valid)
+                let result = parse(source);
 
-                    // Force evaluation and unwrap (we know it succeeds from validation)
-                    black_box(result.unwrap())
-                });
-            },
-        );
+                // Force evaluation and unwrap (we know it succeeds from validation)
+                black_box(result.unwrap())
+            });
+        });
     }
 
     group.finish();

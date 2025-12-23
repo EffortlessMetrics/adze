@@ -1,9 +1,13 @@
 /// Benchmark runner with enhanced features
 use anyhow::{Context, Result};
-use xshell::{cmd, Shell};
+use xshell::{Shell, cmd};
 
 /// Run benchmarks with optional baseline saving
-pub fn run_benchmarks(sh: &Shell, save_baseline: bool, baseline_name: Option<String>) -> Result<()> {
+pub fn run_benchmarks(
+    sh: &Shell,
+    save_baseline: bool,
+    baseline_name: Option<String>,
+) -> Result<()> {
     println!("Running rust-sitter benchmarks...");
 
     if save_baseline {
@@ -34,8 +38,7 @@ pub fn run_benchmarks(sh: &Shell, save_baseline: bool, baseline_name: Option<Str
 
 /// Detect version from Cargo.toml
 fn detect_version() -> Result<String> {
-    let cargo_toml = std::fs::read_to_string("Cargo.toml")
-        .context("Failed to read Cargo.toml")?;
+    let cargo_toml = std::fs::read_to_string("Cargo.toml").context("Failed to read Cargo.toml")?;
 
     for line in cargo_toml.lines() {
         if line.trim().starts_with("version") {

@@ -13,8 +13,8 @@ pub(crate) mod test {
     /// Build a minimal but fully-formed ParseTable suitable for unit tests.
     ///
     /// Conventions expected by the project:
-    /// - Symbol layout: ERROR(0), terminals [1..], EOF (= token_count + external_token_count), then non-terminals.
-    /// - `actions` is indexed by [state][symbol_index] and `gotos` by [state][symbol_index].
+    /// - Symbol layout: ERROR(0), terminals `[1..]`, EOF (= token_count + external_token_count), then non-terminals.
+    /// - `actions` is indexed by `[state][symbol_index]` and `gotos` by `[state][symbol_index]`.
     pub fn make_minimal_table(
         mut actions: Vec<Vec<Vec<Action>>>,
         mut gotos: Vec<Vec<StateId>>,

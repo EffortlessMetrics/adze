@@ -228,7 +228,8 @@ fn test_glr_backward_compatibility() {
 
             assert!(
                 matches!(**right, Expression::Mul(_, _, _)),
-                "Right operand should be Mul, got {:?}", **right
+                "Right operand should be Mul, got {:?}",
+                **right
             );
 
             if let Expression::Mul(ref mul_left, _, ref mul_right) = **right {
@@ -267,8 +268,14 @@ fn test_ambiguous_vs_arithmetic_comparison() {
     eprintln!("  Arithmetic grammar conflicts: {}", arithmetic_conflicts);
 
     eprintln!("\n=== Comparison ===");
-    eprintln!("  Ambiguous (no precedence): {} conflicts", ambiguous_conflicts);
-    eprintln!("  Arithmetic (with precedence): {} conflicts", arithmetic_conflicts);
+    eprintln!(
+        "  Ambiguous (no precedence): {} conflicts",
+        ambiguous_conflicts
+    );
+    eprintln!(
+        "  Arithmetic (with precedence): {} conflicts",
+        arithmetic_conflicts
+    );
 
     // Contract Assertion: Ambiguous has conflicts, Arithmetic has none
     assert!(

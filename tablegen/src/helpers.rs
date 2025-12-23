@@ -1,5 +1,5 @@
 use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, SymbolId};
+use rust_sitter_ir::Grammar;
 
 /// Collect all token column indices from a parse table
 ///
@@ -29,11 +29,16 @@ use rust_sitter_ir::{Grammar, SymbolId};
 pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec<usize> {
     let mut token_indices = Vec::new();
 
-    // EOF is always symbol 0 and should be in the symbol_to_index map
-    if let Some(&eof_idx) = parse_table.symbol_to_index.get(&SymbolId(0)) {
+    // EOF symbol should be in the symbol_to_index map
+    // Use parse_table.eof_symbol instead of hardcoded SymbolId(0) since EOF symbol
+    // is computed as max_symbol + 1 in build_lr1_automaton
+    if let Some(&eof_idx) = parse_table.symbol_to_index.get(&parse_table.eof_symbol) {
         token_indices.push(eof_idx);
     } else {
-        eprintln!("Warning: EOF (symbol 0) not found in symbol_to_index map");
+        eprintln!(
+            "Warning: EOF (symbol {}) not found in symbol_to_index map",
+            parse_table.eof_symbol.0
+        );
     }
 
     // Add all grammar tokens
@@ -77,8 +82,8 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
 /// ```
 #[must_use]
 pub fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
-    // Get EOF column index
-    let eof_idx = match parse_table.symbol_to_index.get(&SymbolId(0)) {
+    // Get EOF column index using the actual eof_symbol from the parse table
+    let eof_idx = match parse_table.symbol_to_index.get(&parse_table.eof_symbol) {
         Some(&idx) => idx,
         None => return false, // No EOF column means no nullable start
     };
@@ -106,8 +111,9 @@ mod tests {
     fn test_collect_token_indices() {
         let mut grammar = Grammar::default();
         let mut parse_table = crate::empty_table!(states: 1, terms: 4, nonterms: 0);
-        // empty_table puts EOF at column 5 (1 + 4 terms)
+        // empty_table puts EOF at column 5 (1 + 4 terms) with eof_symbol = SymbolId(5)
         let eof_col = 5;
+        let eof_symbol = parse_table.eof_symbol; // Use the actual eof_symbol from the table
 
         // Add tokens to the grammar
         use rust_sitter_ir::{Token, TokenPattern};
@@ -145,8 +151,9 @@ mod tests {
         );
 
         // Replace the default mapping with our test values
+        // Use the actual eof_symbol from the parse table
         parse_table.symbol_to_index.clear();
-        parse_table.symbol_to_index.insert(SymbolId(0), eof_col); // EOF at its standard position
+        parse_table.symbol_to_index.insert(eof_symbol, eof_col); // EOF at its standard position
         parse_table.symbol_to_index.insert(SymbolId(1), 3); // Some token at column 3
         parse_table.symbol_to_index.insert(SymbolId(2), 1); // Another token at column 1
         parse_table.symbol_to_index.insert(SymbolId(3), 3); // Duplicate column (should be deduped)
@@ -180,10 +187,12 @@ mod tests {
     fn test_collect_token_indices_empty() {
         let grammar = Grammar::default();
         let mut parse_table = crate::empty_table!(states: 1, terms: 0, nonterms: 0);
+        // empty_table puts EOF at column 1 (1 + 0 terms) with eof_symbol = SymbolId(1)
+        let eof_symbol = parse_table.eof_symbol;
 
-        // Replace the default mapping with just EOF
+        // Replace the default mapping with just EOF using the actual eof_symbol
         parse_table.symbol_to_index.clear();
-        parse_table.symbol_to_index.insert(SymbolId(0), 0);
+        parse_table.symbol_to_index.insert(eof_symbol, 0);
         parse_table.symbol_count = 1;
 
         let indices = collect_token_indices(&grammar, &parse_table);

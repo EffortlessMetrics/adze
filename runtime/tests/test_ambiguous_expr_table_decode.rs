@@ -49,13 +49,16 @@ fn decode_ambiguous_expr_table_deep() {
                         }
                         Action::Reduce(rule_id) => {
                             let rule = &parse_table.rules[rule_id.0 as usize];
-                            let lhs_name = if (rule.lhs.0 as usize) < parse_table.symbol_metadata.len() {
-                                &parse_table.symbol_metadata[rule.lhs.0 as usize].name
-                            } else {
-                                "UNKNOWN"
-                            };
-                            eprintln!("    Action {}: REDUCE via rule {} ({} → <{} symbols>)",
-                                action_idx, rule_id.0, lhs_name, rule.rhs_len);
+                            let lhs_name =
+                                if (rule.lhs.0 as usize) < parse_table.symbol_metadata.len() {
+                                    &parse_table.symbol_metadata[rule.lhs.0 as usize].name
+                                } else {
+                                    "UNKNOWN"
+                                };
+                            eprintln!(
+                                "    Action {}: REDUCE via rule {} ({} → <{} symbols>)",
+                                action_idx, rule_id.0, lhs_name, rule.rhs_len
+                            );
                         }
                         Action::Accept => {
                             eprintln!("    Action {}: ACCEPT", action_idx);
@@ -68,7 +71,10 @@ fn decode_ambiguous_expr_table_deep() {
 
                 // Highlight multi-action cells
                 if action_cell.len() > 1 {
-                    eprintln!("    ⚠️  CONFLICT: {} actions in this cell!", action_cell.len());
+                    eprintln!(
+                        "    ⚠️  CONFLICT: {} actions in this cell!",
+                        action_cell.len()
+                    );
                 }
             }
         }
@@ -92,7 +98,10 @@ fn decode_ambiguous_expr_table_deep() {
                 } else {
                     "UNKNOWN"
                 };
-                eprintln!("✓ Found conflict in state {} on symbol {}", state_idx, symbol_name);
+                eprintln!(
+                    "✓ Found conflict in state {} on symbol {}",
+                    state_idx, symbol_name
+                );
             }
         }
     }

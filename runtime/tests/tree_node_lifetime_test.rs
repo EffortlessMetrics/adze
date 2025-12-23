@@ -173,12 +173,8 @@ fn spec_4_named_children_iterator() {
     named2.set_named(true);
     let named2_handle = arena.alloc(named2);
 
-    let parent_data = TreeNodeData::branch(
-        10,
-        0,
-        10,
-        vec![named1_handle, anon_handle, named2_handle],
-    );
+    let parent_data =
+        TreeNodeData::branch(10, 0, 10, vec![named1_handle, anon_handle, named2_handle]);
     let parent_handle = arena.alloc(parent_data);
 
     // TODO: Uncomment when Node is implemented

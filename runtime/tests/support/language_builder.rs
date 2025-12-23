@@ -443,7 +443,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         if i < parse_table.symbol_metadata.len() {
             let meta = &parse_table.symbol_metadata[i];
             // Pack into a single byte: bit 0 = visible, bit 1 = named
-            let byte = (meta.visible as u8) | ((meta.named as u8) << 1);
+            let byte = (meta.is_visible as u8) | ((meta.is_named as u8) << 1);
             symbol_metadata.push(byte);
         } else {
             // Default metadata for any extra symbols

@@ -377,7 +377,9 @@ fn test_large_allocation() {
     let mut arena = TreeArena::new();
 
     // Allocate many nodes
-    let handles: Vec<_> = (0..10_000).map(|i| arena.alloc(TreeNode::leaf(i))).collect();
+    let handles: Vec<_> = (0..10_000)
+        .map(|i| arena.alloc(TreeNode::leaf(i)))
+        .collect();
 
     // Spot check
     assert_eq!(arena.get(handles[0]).value(), 0);

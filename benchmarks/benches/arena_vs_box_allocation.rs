@@ -6,7 +6,7 @@
 //!
 //! Run with: cargo bench --bench arena_vs_box_allocation
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use rust_sitter::arena_allocator::{TreeArena, TreeNode};
 
 /// Benchmark arena allocation for N nodes
@@ -111,7 +111,11 @@ fn bench_arena_reuse(c: &mut Criterion) {
 
 /// Build a complete binary tree using arena allocation
 fn build_binary_tree(arena: &mut TreeArena, depth: u32) {
-    fn build_subtree(arena: &mut TreeArena, depth: u32, value: &mut i32) -> rust_sitter::arena_allocator::NodeHandle {
+    fn build_subtree(
+        arena: &mut TreeArena,
+        depth: u32,
+        value: &mut i32,
+    ) -> rust_sitter::arena_allocator::NodeHandle {
         if depth == 0 {
             let handle = arena.alloc(TreeNode::leaf(*value));
             *value += 1;

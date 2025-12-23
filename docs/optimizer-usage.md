@@ -26,7 +26,11 @@ When enabled, the optimizer applies several transformation passes:
 1. **Unit Rule Elimination**: Removes intermediate rules like `A -> B` by inlining them
 2. **Symbol Inlining**: Inlines simple, non-recursive rules to reduce indirection
 3. **Token Merging**: Combines tokens with identical patterns
-4. **Left Recursion Optimization**: Transforms left-recursive rules for better performance
+4. **Left Recursion Optimization** (Enhanced PR #4): Transforms left-recursive rules with comprehensive metadata preservation
+   - Preserves conflict declarations for both original and auxiliary symbols
+   - Adjusts field indices when removing left-recursive symbols from rules
+   - Uses proper Grammar API for cleaner rule manipulation
+   - Creates readable auxiliary symbol names (e.g., "expr__rec" for recursive part)
 5. **Dead Code Removal**: Removes unreferenced symbols and rules
 6. **Symbol Renumbering**: Compacts symbol IDs for better cache locality
 
@@ -63,12 +67,32 @@ sum -> product * primary | NUMBER
 product -> NUMBER
 ```
 
+## Testing (Enhanced in PR #4)
+
+The optimizer includes comprehensive regression tests, particularly for left recursion transformation:
+
+```bash
+# Run all optimizer tests
+cargo test -p rust-sitter-ir
+
+# Run specific left recursion transformation test
+cargo test -p rust-sitter-ir test_transform_left_recursion_rewrites_grammar
+```
+
+The test `test_transform_left_recursion_rewrites_grammar` validates:
+- Proper transformation of left-recursive rules (A -> A + b becomes A -> b A', A' -> + b A' | ε)
+- Field index adjustment (field at position 2 becomes position 1 after removing first symbol)
+- Conflict declaration propagation (conflicts on original symbol extend to auxiliary symbol)
+- Precedence and associativity preservation
+- Readable auxiliary symbol naming
+
 ## Troubleshooting
 
 If you encounter issues with the optimizer:
 
 1. **Disable optimization**: Remove the `optimize` feature to compare behavior
 2. **Check artifacts**: Set `RUST_SITTER_EMIT_ARTIFACTS=true` to see the IR before/after
-3. **Report issues**: File a bug with the grammar that causes problems
+3. **Run regression tests**: Use `cargo test -p rust-sitter-ir` to verify optimizer behavior
+4. **Report issues**: File a bug with the grammar that causes problems
 
 The optimizer is designed to be conservative and should never change the language accepted by your grammar.

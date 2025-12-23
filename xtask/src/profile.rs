@@ -1,7 +1,7 @@
 /// CPU and memory profiling for rust-sitter
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
-use xshell::{cmd, Shell};
+use xshell::{Shell, cmd};
 
 /// Profile type selection
 #[derive(Clone, Copy, Debug)]
@@ -31,9 +31,9 @@ impl ProfileGrammar {
 /// Fixture size
 #[derive(Clone, Copy, Debug)]
 pub enum FixtureSize {
-    Small,   // 100 LOC
-    Medium,  // 1-2k LOC
-    Large,   // 5-10k LOC
+    Small,  // 100 LOC
+    Medium, // 1-2k LOC
+    Large,  // 5-10k LOC
 }
 
 impl FixtureSize {
@@ -76,8 +76,7 @@ fn profile_cpu(
 ) -> Result<()> {
     // Ensure target directory exists
     let target_dir = PathBuf::from("target/profile");
-    std::fs::create_dir_all(&target_dir)
-        .context("Failed to create target/profile directory")?;
+    std::fs::create_dir_all(&target_dir).context("Failed to create target/profile directory")?;
 
     // Check if cargo-flamegraph is installed
     let flamegraph_installed = cmd!(sh, "cargo flamegraph --version")
@@ -97,11 +96,7 @@ fn profile_cpu(
     let bench_name = format!("parse_{}_{}_{}", grammar.name(), size.name(), "bench");
 
     // Output file path
-    let output_file = target_dir.join(format!(
-        "flamegraph_{}_{}.svg",
-        grammar.name(),
-        size.name()
-    ));
+    let output_file = target_dir.join(format!("flamegraph_{}_{}.svg", grammar.name(), size.name()));
 
     println!("Generating flamegraph...");
     println!("Output: {}", output_file.display());
@@ -153,8 +148,7 @@ fn profile_memory(
 ) -> Result<()> {
     // Ensure target directory exists
     let target_dir = PathBuf::from("target/profile");
-    std::fs::create_dir_all(&target_dir)
-        .context("Failed to create target/profile directory")?;
+    std::fs::create_dir_all(&target_dir).context("Failed to create target/profile directory")?;
 
     // Check if heaptrack is available
     let heaptrack_available = cmd!(sh, "heaptrack --version")
@@ -181,7 +175,10 @@ fn profile_memory(
 
     if !bench_binary.exists() {
         // Try to find it with glob
-        let pattern = format!("target/release/deps/glr_performance-*{}", if cfg!(windows) { ".exe" } else { "" });
+        let pattern = format!(
+            "target/release/deps/glr_performance-*{}",
+            if cfg!(windows) { ".exe" } else { "" }
+        );
         let entries: Vec<_> = glob::glob(&pattern)?.collect();
         if entries.is_empty() {
             anyhow::bail!("Benchmark binary not found at {}", bench_binary.display());
@@ -189,11 +186,7 @@ fn profile_memory(
     }
 
     // Output file path
-    let output_file = target_dir.join(format!(
-        "heaptrack_{}_{}.txt",
-        grammar.name(),
-        size.name()
-    ));
+    let _output_file = target_dir.join(format!("heaptrack_{}_{}.txt", grammar.name(), size.name()));
 
     println!("Running heaptrack...");
 
@@ -236,10 +229,10 @@ fn profile_memory(
 /// Fallback memory profiling with valgrind massif
 fn profile_memory_valgrind(
     sh: &Shell,
-    grammar: ProfileGrammar,
-    size: FixtureSize,
-    json_output: bool,
-    target_dir: &Path,
+    _grammar: ProfileGrammar,
+    _size: FixtureSize,
+    _json_output: bool,
+    _target_dir: &Path,
 ) -> Result<()> {
     // Check if valgrind is available
     let valgrind_available = cmd!(sh, "valgrind --version")

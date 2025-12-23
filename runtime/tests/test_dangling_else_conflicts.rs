@@ -19,7 +19,10 @@ fn inspect_dangling_else_conflicts() {
     eprintln!("\n=== Dangling Else Grammar Parse Table Inspection ===");
     eprintln!("Total states: {}", parse_table.action_table.len());
     eprintln!("Total symbols: {}", parse_table.symbol_count);
-    eprintln!("Symbol metadata count: {}", parse_table.symbol_metadata.len());
+    eprintln!(
+        "Symbol metadata count: {}",
+        parse_table.symbol_metadata.len()
+    );
 
     // Inspect state 0
     if !parse_table.action_table.is_empty() {

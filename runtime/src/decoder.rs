@@ -780,9 +780,9 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
         symbol_metadata.push(SymbolMetadata {
             name,
-            visible: (ts_metadata & 0x01) != 0,
-            named: (ts_metadata & 0x02) != 0,
-            supertype: (ts_metadata & 0x08) != 0,
+            is_visible: (ts_metadata & 0x01) != 0,
+            is_named: (ts_metadata & 0x02) != 0,
+            is_supertype: (ts_metadata & 0x08) != 0,
             // Additional fields required by GLR core API contracts
             is_terminal,
             is_extra: (ts_metadata & 0x04) != 0,

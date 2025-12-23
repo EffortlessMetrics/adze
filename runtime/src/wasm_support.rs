@@ -202,7 +202,9 @@ mod tests {
             is_extra: false,
             is_error: false,
             is_missing: false,
-            field_name: None,
+            is_named: true,
+            field_id: None,
+            language: None,
         };
 
         let json = node_to_json(&node);

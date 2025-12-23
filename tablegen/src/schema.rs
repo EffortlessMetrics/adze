@@ -4,7 +4,6 @@
 ///
 /// This module provides schema validation to prevent encoding/decoding mismatches
 /// between table generation and runtime parsing.
-
 use rust_sitter_glr_core::{Action, ParseTable, StateId};
 use rust_sitter_ir::RuleId;
 use std::collections::HashSet;
@@ -20,16 +19,10 @@ pub enum SchemaError {
     },
 
     /// State ID out of bounds
-    InvalidStateId {
-        state_id: u16,
-        max_states: usize,
-    },
+    InvalidStateId { state_id: u16, max_states: usize },
 
     /// Symbol ID out of bounds
-    InvalidSymbolId {
-        symbol_id: u16,
-        max_symbols: usize,
-    },
+    InvalidSymbolId { symbol_id: u16, max_symbols: usize },
 
     /// Production ID out of bounds
     InvalidProductionId {
@@ -38,10 +31,7 @@ pub enum SchemaError {
     },
 
     /// Duplicate entry in action table
-    DuplicateActionEntry {
-        state: u16,
-        symbol: u16,
-    },
+    DuplicateActionEntry { state: u16, symbol: u16 },
 
     /// Missing Accept state
     MissingAcceptState,
@@ -68,19 +58,11 @@ impl std::fmt::Display for SchemaError {
             SchemaError::InvalidStateId {
                 state_id,
                 max_states,
-            } => write!(
-                f,
-                "State ID {} exceeds maximum {}",
-                state_id, max_states
-            ),
+            } => write!(f, "State ID {} exceeds maximum {}", state_id, max_states),
             SchemaError::InvalidSymbolId {
                 symbol_id,
                 max_symbols,
-            } => write!(
-                f,
-                "Symbol ID {} exceeds maximum {}",
-                symbol_id, max_symbols
-            ),
+            } => write!(f, "Symbol ID {} exceeds maximum {}", symbol_id, max_symbols),
             SchemaError::InvalidProductionId {
                 production_id,
                 max_productions,
@@ -90,7 +72,11 @@ impl std::fmt::Display for SchemaError {
                 production_id, max_productions
             ),
             SchemaError::DuplicateActionEntry { state, symbol } => {
-                write!(f, "Duplicate action entry for state {}, symbol {}", state, symbol)
+                write!(
+                    f,
+                    "Duplicate action entry for state {}, symbol {}",
+                    state, symbol
+                )
             }
             SchemaError::MissingAcceptState => write!(f, "No Accept action found in parse table"),
             SchemaError::InvalidEOFHandling { reason } => {
@@ -184,7 +170,10 @@ pub fn validate_action_decoding(encoded: u16, expected: &Action) -> Result<(), S
         Err(SchemaError::InvalidActionEncoding {
             action: expected.clone(),
             encoded_value: encoded,
-            reason: format!("Encoding 0x{:04X} decodes to {:?}, not {:?}", encoded, decoded, expected),
+            reason: format!(
+                "Encoding 0x{:04X} decodes to {:?}, not {:?}",
+                encoded, decoded, expected
+            ),
         })
     } else {
         Ok(())
@@ -243,13 +232,13 @@ pub fn validate_parse_table(table: &ParseTable) -> Result<(), Vec<SchemaError>> 
                 seen_actions.insert(key);
 
                 // Validate state bounds for Shift
-                if let Action::Shift(next_state) = action {
-                    if (next_state.0 as usize) >= table.action_table.len() {
-                        errors.push(SchemaError::InvalidStateId {
-                            state_id: next_state.0,
-                            max_states: table.action_table.len(),
-                        });
-                    }
+                if let Action::Shift(next_state) = action
+                    && (next_state.0 as usize) >= table.action_table.len()
+                {
+                    errors.push(SchemaError::InvalidStateId {
+                        state_id: next_state.0,
+                        max_states: table.action_table.len(),
+                    });
                 }
 
                 // Validate production bounds for Reduce
@@ -296,15 +285,30 @@ mod tests {
     #[test]
     fn test_shift_encoding() {
         assert_eq!(validate_action_encoding(&Action::Shift(StateId(1))), Ok(1));
-        assert_eq!(validate_action_encoding(&Action::Shift(StateId(100))), Ok(100));
-        assert_eq!(validate_action_encoding(&Action::Shift(StateId(0x7FFF))), Ok(0x7FFF));
+        assert_eq!(
+            validate_action_encoding(&Action::Shift(StateId(100))),
+            Ok(100)
+        );
+        assert_eq!(
+            validate_action_encoding(&Action::Shift(StateId(0x7FFF))),
+            Ok(0x7FFF)
+        );
     }
 
     #[test]
     fn test_reduce_encoding() {
-        assert_eq!(validate_action_encoding(&Action::Reduce(RuleId(0))), Ok(0x8000));
-        assert_eq!(validate_action_encoding(&Action::Reduce(RuleId(1))), Ok(0x8001));
-        assert_eq!(validate_action_encoding(&Action::Reduce(RuleId(100))), Ok(0x8064));
+        assert_eq!(
+            validate_action_encoding(&Action::Reduce(RuleId(0))),
+            Ok(0x8000)
+        );
+        assert_eq!(
+            validate_action_encoding(&Action::Reduce(RuleId(1))),
+            Ok(0x8001)
+        );
+        assert_eq!(
+            validate_action_encoding(&Action::Reduce(RuleId(100))),
+            Ok(0x8064)
+        );
     }
 
     #[test]

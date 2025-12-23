@@ -1,8 +1,98 @@
-# Precedence Attribute Troubleshooting Guide
+# GLR Parser Troubleshooting Guide
 
-This guide helps you understand and resolve precedence attribute errors in rust-sitter grammars.
+This guide helps you understand and resolve errors in rust-sitter GLR parser generation, including precedence attributes, symbol normalization, and grammar compatibility issues.
 
 ## Overview
+
+Rust-sitter's GLR parser handles complex grammars with ambiguities and conflicts. This guide covers common error patterns and their solutions.
+
+## GLR Symbol Normalization Issues (Production Ready - September 2025)
+
+### Error: ComplexSymbolsNotNormalized
+
+**Error Message:**
+```
+Error: Complex symbols like 'Repeat(Sequence([Terminal(comma), NonTerminal(pair)]))' need normalization before FIRST/FOLLOW computation
+```
+
+**Problem:** The GLR core received complex symbols that haven't been normalized into auxiliary rules.
+
+**Root Cause:** This typically indicates a bug in the GLR integration, as normalization should happen automatically during `FirstFollowSets::compute()`.
+
+**Solution:**
+```bash
+# Verify GLR-core integration is working
+cargo test -p rust-sitter-glr-core first_follow_sets
+
+# Run the specific failing test to see detailed output
+cargo test test_json_language_generation -p rust-sitter-tablegen -- --nocapture
+
+# Test normalization directly
+cargo test -p rust-sitter-ir --test test_normalization
+```
+
+**Manual Fix (if needed):**
+```rust
+use rust_sitter_ir::{Grammar, GrammarError};
+
+let mut grammar = load_grammar();
+
+// Manually normalize before GLR processing
+match grammar.normalize() {
+    Ok(()) => {
+        // Grammar is now normalized - continue with GLR
+        let first_follow = FirstFollowSets::compute(&grammar)?;
+    }
+    Err(e) => {
+        eprintln!("Normalization failed: {}", e);
+    }
+}
+```
+
+### Error: SymbolIdOverflow
+
+**Error Message:**
+```
+Error: Too many auxiliary symbols created during normalization: max=60000, requested=60001
+```
+
+**Problem:** The grammar contains too many complex symbols, causing auxiliary symbol IDs to exceed the u16 limit.
+
+**Solution:**
+1. **Reduce Grammar Complexity**: Simplify deeply nested `Optional(Repeat(...))` patterns
+2. **Symbol ID Optimization**: Reserve more space for auxiliary symbols
+3. **Grammar Refactoring**: Break complex rules into simpler components
+
+```rust
+// Instead of deeply nested complex symbols:
+// Symbol::Optional(Box::new(Symbol::Repeat(Box::new(Symbol::Sequence(...)))))
+
+// Use simpler patterns:
+// separate_rule -> complex_pattern*
+// complex_pattern -> item1 item2 item3
+```
+
+### Error: Auxiliary Symbol Conflicts
+
+**Error Message:**
+```
+Error: Auxiliary symbol '_aux1001' conflicts with existing grammar symbol
+```
+
+**Problem:** User-defined grammar symbols conflict with generated auxiliary symbol names.
+
+**Solution:** Ensure your grammar doesn't use symbol names starting with `_aux`:
+
+```rust
+// ❌ Bad: conflicts with auxiliary symbols
+pub struct _aux1001 { /* ... */ }
+
+// ✅ Good: use descriptive names
+pub struct OptionalExpression { /* ... */ }
+pub struct RepeatedStatement { /* ... */ }
+```
+
+## Precedence Attributes
 
 Rust-sitter provides three precedence attributes to control parsing of ambiguous grammars:
 

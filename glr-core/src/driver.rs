@@ -3,6 +3,7 @@
 use crate::forest_view::{Forest, ForestView, Span};
 use crate::parse_forest::{ForestAlternative, ForestNode, ParseForest};
 use crate::{Action, ParseTable, RuleId, StateId, SymbolId};
+use smallvec::SmallVec;
 use std::collections::HashMap;
 
 #[cfg(feature = "perf-counters")]
@@ -54,6 +55,16 @@ struct ParseStack {
     error_cost: u32,
 }
 
+impl ParseStack {
+    /// Get the top state from the stack, returning an error if empty.
+    fn top_state(&self) -> Result<StateId, GlrError> {
+        self.states
+            .last()
+            .copied()
+            .ok_or_else(|| GlrError::Parse("Empty parse stack: no state available".to_string()))
+    }
+}
+
 /// GLR parser state
 struct GlrState {
     stacks: Vec<ParseStack>,
@@ -97,10 +108,10 @@ impl<'t> Driver<'t> {
     }
 
     /// Build union of valid external symbols across all active stacks
-    fn union_valid_external_symbols(&self, stacks: &[ParseStack]) -> Vec<bool> {
+    fn union_valid_external_symbols(&self, stacks: &[ParseStack]) -> Result<Vec<bool>, GlrError> {
         let mut mask = vec![false; self.tables.external_token_count];
         for stack in stacks {
-            let top_state = *stack.states.last().unwrap();
+            let top_state = stack.top_state()?;
             for ext_idx in 0..self.tables.external_token_count {
                 let sym = SymbolId((self.tables.token_count + ext_idx) as u16);
                 if !self.tables.actions(top_state, sym).is_empty() {
@@ -108,7 +119,7 @@ impl<'t> Driver<'t> {
                 }
             }
         }
-        mask
+        Ok(mask)
     }
 
     /// Parse input with Tree-sitter compatible streaming lexer.
@@ -127,9 +138,9 @@ impl<'t> Driver<'t> {
         L: FnMut(&str, usize, crate::LexMode) -> Option<crate::ts_lexer::NextToken>,
         E: FnMut(&str, usize, &[bool], crate::LexMode) -> Option<crate::ts_lexer::NextToken>,
     {
-        use std::collections::HashSet;
-
         // Initialize state with starting stack
+        // Pre-size HashMap based on input length heuristic: roughly 1 node per 10 bytes
+        let estimated_nodes = (input.len() / 10).max(64);
         let mut state = GlrState {
             stacks: vec![ParseStack {
                 states: vec![self.tables.initial_state],
@@ -139,7 +150,7 @@ impl<'t> Driver<'t> {
             }],
             forest: ParseForest {
                 roots: vec![],
-                nodes: HashMap::new(),
+                nodes: HashMap::with_capacity(estimated_nodes),
                 grammar: self.tables.grammar().clone(),
                 source: input.to_string(),
                 next_node_id: 0,
@@ -161,11 +172,15 @@ impl<'t> Driver<'t> {
                 }
             } else {
                 // Gather distinct lex modes from all active stacks
-                let modes: HashSet<crate::LexMode> = state
-                    .stacks
-                    .iter()
-                    .map(|stk| self.tables.lex_mode(*stk.states.last().unwrap()))
-                    .collect();
+                // Use SmallVec since there are typically only 1-2 distinct modes
+                let mut modes: SmallVec<[crate::LexMode; 2]> = SmallVec::new();
+                for stk in &state.stacks {
+                    let top = stk.top_state()?;
+                    let mode = self.tables.lex_mode(top);
+                    if !modes.contains(&mode) {
+                        modes.push(mode);
+                    }
+                }
 
                 // Collect candidate tokens from all modes
                 let mut candidates = Vec::new();
@@ -181,7 +196,7 @@ impl<'t> Driver<'t> {
                         && let Some(ref mut ext) = external_scanner
                     {
                         // Build union of valid external symbols across all stacks
-                        let valid_ext = self.union_valid_external_symbols(&state.stacks);
+                        let valid_ext = self.union_valid_external_symbols(&state.stacks)?;
 
                         // Only call external scanner if at least one symbol is valid
                         if valid_ext.iter().any(|&b| b)
@@ -220,21 +235,27 @@ impl<'t> Driver<'t> {
                 self.reduce_closure(&mut state, &mut stk, token_sym)?;
 
                 // Get actions and filter Recover if real actions exist
-                let all_actions = self.tables.actions(*stk.states.last().unwrap(), token_sym);
-                let real_actions: Vec<_> = all_actions
-                    .iter()
-                    .filter(|a| !matches!(**a, Action::Recover | Action::Error))
-                    .collect();
+                let top = stk.top_state()?;
+                let all_actions = self.tables.actions(top, token_sym);
 
-                let actions_to_use: Vec<&Action> = if !real_actions.is_empty() {
+                // Check if we have any real actions without collecting into Vec
+                let has_real_action = all_actions
+                    .iter()
+                    .any(|a| !matches!(*a, Action::Recover | Action::Error));
+
+                if has_real_action {
                     has_any_real_action = true;
-                    real_actions
-                } else {
-                    all_actions.iter().collect()
-                };
+                }
 
                 // Then apply shifts/accepts
-                for action in actions_to_use {
+                // Use iterator filtering to avoid intermediate Vec allocation
+                for action in all_actions.iter().filter(|a| {
+                    if has_real_action {
+                        !matches!(**a, Action::Recover | Action::Error)
+                    } else {
+                        true
+                    }
+                }) {
                     match *action {
                         Action::Shift(ns) => {
                             #[cfg(feature = "perf-counters")]
@@ -267,10 +288,8 @@ impl<'t> Driver<'t> {
                             let mut s2_clone = s2.clone();
                             self.reduce_closure(&mut state, &mut s2_clone, token_sym)?;
                             // Try shift after reduce
-                            for a2 in self
-                                .tables
-                                .actions(*s2_clone.states.last().unwrap(), token_sym)
-                            {
+                            let s2_top = s2_clone.top_state()?;
+                            for a2 in self.tables.actions(s2_top, token_sym) {
                                 if let Action::Shift(ns) = *a2 {
                                     let node_id = self.push_terminal(
                                         &mut state,
@@ -393,10 +412,10 @@ impl<'t> Driver<'t> {
     fn has_action_for_any_stack(&self, kind: u32, stacks: &[ParseStack]) -> bool {
         let sym = SymbolId(kind as u16);
         stacks.iter().any(|stk| {
-            !self
-                .tables
-                .actions(*stk.states.last().unwrap(), sym)
-                .is_empty()
+            stk.top_state()
+                .ok()
+                .map(|top| !self.tables.actions(top, sym).is_empty())
+                .unwrap_or(false)
         })
     }
 
@@ -448,20 +467,23 @@ impl<'t> Driver<'t> {
                 self.reduce_closure(&mut state, &mut stk, lookahead)?;
 
                 // 2) Get actions and filter Recover if real actions exist
-                let all_actions = self.tables.actions(*stk.states.last().unwrap(), lookahead);
-                let real_actions: Vec<_> = all_actions
-                    .iter()
-                    .filter(|a| !matches!(**a, Action::Recover | Action::Error))
-                    .collect();
+                let top = stk.top_state()?;
+                let all_actions = self.tables.actions(top, lookahead);
 
-                let actions_to_use: Vec<&Action> = if !real_actions.is_empty() {
-                    real_actions
-                } else {
-                    all_actions.iter().collect()
-                };
+                // Check if we have any real actions without collecting into Vec
+                let has_real_action = all_actions
+                    .iter()
+                    .any(|a| !matches!(*a, Action::Recover | Action::Error));
 
                 // 3) Then apply shifts for this lookahead
-                for action in actions_to_use {
+                // Use iterator filtering to avoid intermediate Vec allocation
+                for action in all_actions.iter().filter(|a| {
+                    if has_real_action {
+                        !matches!(**a, Action::Recover | Action::Error)
+                    } else {
+                        true
+                    }
+                }) {
                     match *action {
                         Action::Shift(ns) => {
                             #[cfg(feature = "perf-counters")]
@@ -506,10 +528,8 @@ impl<'t> Driver<'t> {
                             // After a single reduce, we can still be able to shift this lookahead
                             let mut s2_clone = s2.clone();
                             self.reduce_closure(&mut state, &mut s2_clone, lookahead)?;
-                            for a2 in self
-                                .tables
-                                .actions(*s2_clone.states.last().unwrap(), lookahead)
-                            {
+                            let s2_top = s2_clone.top_state()?;
+                            for a2 in self.tables.actions(s2_top, lookahead) {
                                 if let Action::Shift(ns) = *a2 {
                                     let node_id = self.push_terminal(
                                         &mut state,
@@ -550,9 +570,8 @@ impl<'t> Driver<'t> {
                                     let mut s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
                                     self.reduce_closure(&mut state, &mut s2, lookahead)?;
                                     // After closure, check if we can shift
-                                    for a2 in
-                                        self.tables.actions(*s2.states.last().unwrap(), lookahead)
-                                    {
+                                    let s2_top = s2.top_state()?;
+                                    for a2 in self.tables.actions(s2_top, lookahead) {
                                         if let Action::Shift(ns) = *a2 {
                                             let node_id = self.push_terminal(
                                                 &mut state,
@@ -611,17 +630,19 @@ impl<'t> Driver<'t> {
 
         let stacks = std::mem::take(&mut state.stacks);
         for mut stk in stacks {
+            let top = stk.top_state()?;
             eprintln!(
                 "DEBUG: Processing stack with {} states, top state={}",
                 stk.states.len(),
-                stk.states.last().unwrap().0
+                top.0
             );
 
             self.reduce_closure(&mut state, &mut stk, eof)?;
 
+            let top_after_reduce = stk.top_state()?;
             eprintln!(
                 "DEBUG: After reduce_closure, checking actions for state {} on EOF",
-                stk.states.last().unwrap().0
+                top_after_reduce.0
             );
 
             // Check if we have the start symbol on top of the stack

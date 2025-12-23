@@ -502,7 +502,7 @@ fn gen_struct_or_variant(
     fields: Fields,
     out: &mut Map<String, Value>,
     word_rule: &mut Option<String>,
-    inline: bool,  // If true, return rule instead of inserting into out
+    inline: bool, // If true, return rule instead of inserting into out
 ) -> ToolResult<Option<Value>> {
     // Check if this is a single-leaf variant (enum variant with a single leaf field)
     if let Fields::Unnamed(fields_unnamed) = &fields
@@ -879,7 +879,7 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
                         v.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
-                        inline,  // Pass inline flag
+                        inline, // Pass inline flag
                     )?;
 
                     // Add to CHOICE members
@@ -946,7 +946,7 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
                         s.fields.clone(),
                         &mut rules_map,
                         &mut word_rule,
-                        false,  // Structs are never inlined (only enum variants can be inlined)
+                        false, // Structs are never inlined (only enum variants can be inlined)
                     )?;
                 }
 

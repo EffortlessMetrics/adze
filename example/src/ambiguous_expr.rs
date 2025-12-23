@@ -88,16 +88,14 @@ mod tests {
         println!("Parse result for '1 + 2': {:?}", result);
 
         match result {
-            Ok(expr) => {
-                match expr {
-                    Expr::Binary(left, op, right) => {
-                        assert_eq!(*left, Expr::Number(1));
-                        assert_eq!(op, "+");
-                        assert_eq!(*right, Expr::Number(2));
-                    }
-                    _ => panic!("Expected Binary, got {:?}", expr),
+            Ok(expr) => match expr {
+                Expr::Binary(left, op, right) => {
+                    assert_eq!(*left, Expr::Number(1));
+                    assert_eq!(op, "+");
+                    assert_eq!(*right, Expr::Number(2));
                 }
-            }
+                _ => panic!("Expected Binary, got {:?}", expr),
+            },
             Err(e) => panic!("Parse failed: {:?}", e),
         }
     }
@@ -153,7 +151,10 @@ mod tests {
         eprintln!("  States: {}", table.state_count);
         eprintln!("  Shift/Reduce conflicts: {}", summary.shift_reduce);
         eprintln!("  Reduce/Reduce conflicts: {}", summary.reduce_reduce);
-        eprintln!("  States with conflicts: {}", summary.states_with_conflicts.len());
+        eprintln!(
+            "  States with conflicts: {}",
+            summary.states_with_conflicts.len()
+        );
 
         // Expected: At least 1 shift/reduce conflict on operators
         //
@@ -196,7 +197,11 @@ mod tests {
         assert!(
             !operator_conflicts.is_empty(),
             "Should have conflicts on operator symbols, found conflicts: {:?}",
-            summary.conflict_details.iter().map(|c| &c.symbol_name).collect::<Vec<_>>()
+            summary
+                .conflict_details
+                .iter()
+                .map(|c| &c.symbol_name)
+                .collect::<Vec<_>>()
         );
 
         // Verify conflicts are shift/reduce with 2 actions

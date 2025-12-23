@@ -489,7 +489,7 @@ impl Parser {
         let mut state_stack: Vec<StateId> = vec![StateId(0)]; // Start in state 0
         let mut symbol_stack: Vec<SymbolId> = vec![];
         let mut node_stack: Vec<ParseNode> = vec![];
-        let mut error_count = 0;
+        let mut _error_count = 0;
 
         // Create the TsLexFnAdapter directly - no type conversion needed
         let mut token_source = TsLexFnAdapter::new(input.as_bytes(), lex_fn);
@@ -573,13 +573,13 @@ impl Parser {
                         break;
                     }
                     // Otherwise it's an error
-                    error_count += 1;
+                    _error_count += 1;
                     // eprintln!("Parse error at EOF");
                     break;
                 }
 
                 // Skip this token and continue
-                error_count += 1;
+                _error_count += 1;
                 // eprintln!(
                 // "Parse error: no action for symbol {} in state {}",
                 // lookahead.0, current_state.0
@@ -723,7 +723,7 @@ impl Parser {
     /// let tree = parser.parse("1 + 2")?;
     /// let root = tree.root_node();
     /// ```
-    pub fn parse<'a>(&'a mut self, input: &str) -> Result<Tree<'a>> {
+    pub fn parse<'a>(&'a mut self, _input: &str) -> Result<Tree<'a>> {
         // TODO(Phase 2 Day 5): Implement arena-based parsing
         // This will:
         // 1. self.arena.reset() to clear previous parse
@@ -852,9 +852,11 @@ impl Parser {
                 // #[cfg(feature = "debug")]
                 {
                     // eprintln!("  Available actions in state 0:");
-                    for act_cell in self.parse_table.action_table[0].iter() {
-                        if !act_cell.is_empty() {
-                            // eprintln!("    Symbol {} -> {:?}", sym_idx, act_cell);
+                    if !self.parse_table.action_table.is_empty() {
+                        for act_cell in self.parse_table.action_table[0].iter() {
+                            if !act_cell.is_empty() {
+                                // eprintln!("    Symbol {} -> {:?}", sym_idx, act_cell);
+                            }
                         }
                     }
                     // eprintln!(
@@ -1156,14 +1158,32 @@ impl Parser {
         }
     }
 
-    /// Temporary fallback: do a full reparse. Keeps tests stable while
-    /// incremental engine wiring lands.
-    pub fn reparse(
-        &mut self,
+    /// Parse with incremental reuse when possible
+    ///
+    /// This method attempts to reuse parts of the previous parse tree when parsing
+    /// text that has been edited. It provides better performance for small edits
+    /// by avoiding reparsing unchanged portions of the text.
+    ///
+    /// # Arguments
+    /// * `input` - The new source text after the edit
+    /// * `_old` - The previous parse tree before the edit (currently unused)
+    /// * `_edit` - Description of the edit operation (currently unused)
+    ///
+    /// # Returns
+    /// A new parse tree for the edited text, or an error if parsing fails
+    ///
+    /// # Note
+    /// Incremental parsing is currently disabled due to lifetime constraints.
+    /// This function performs a fresh parse and ignores the old tree and edit.
+    /// See CLAUDE.md for details on the incremental parsing status.
+    pub fn reparse<'a>(
+        &'a mut self,
         input: &str,
-        _old: &Tree,
+        _old: &Tree<'a>,
         _edit: &crate::pure_incremental::Edit,
-    ) -> Result<Tree> {
+    ) -> Result<Tree<'a>> {
+        // Incremental parsing is disabled - always do a fresh parse.
+        // The old tree and edit parameters are kept for API compatibility.
         self.parse(input)
     }
 
@@ -1793,14 +1813,9 @@ impl Parser {
         self.glr_state = GLRParserState::new();
         self.input.clear();
         self.position = 0;
-        // TODO: Add reset method to ExternalScannerRuntime to reset scanner state
-        // For now, we just recreate the runtime if needed
-        if self.external_runtime.is_some() {
-            // Recreate the runtime with the same external tokens
-            if let Some(ref runtime) = self.external_runtime {
-                let tokens = runtime.get_external_tokens().to_vec();
-                self.external_runtime = Some(ExternalScannerRuntime::new(tokens));
-            }
+        // Reset external scanner state if present
+        if let Some(ref mut runtime) = self.external_runtime {
+            runtime.reset();
         }
     }
 

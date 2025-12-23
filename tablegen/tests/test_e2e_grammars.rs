@@ -156,8 +156,9 @@ fn test_empty_grammar_handling() {
     // Compress the table
     let compressor = TableCompressor::new();
     let token_indices = collect_token_indices(&grammar, &parse_table);
+    let start_can_be_empty = eof_accepts_or_reduces(&parse_table);
     let compressed = compressor
-        .compress(&parse_table, &token_indices, false)
+        .compress(&parse_table, &token_indices, start_can_be_empty)
         .expect("Failed to compress table");
 
     // Even an empty grammar should produce some structure

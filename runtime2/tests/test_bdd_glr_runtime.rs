@@ -7,13 +7,12 @@
 
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton, ParseTable};
+use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use rust_sitter_runtime::{
-    Parser,
-    Language,
+    Language, Parser,
     language::SymbolMetadata,
-    tokenizer::{TokenPattern as RuntimeTokenPattern, Matcher},
+    tokenizer::{Matcher, TokenPattern as RuntimeTokenPattern},
 };
 
 /// Helper: Build Language from ParseTable for symbol name resolution
@@ -23,11 +22,17 @@ use rust_sitter_runtime::{
 fn build_language_from_parse_table(parse_table: &'static ParseTable) -> Language {
     // Find maximum symbol ID to size the symbol_names Vec correctly
     // (symbol_count may not match max symbol ID due to sparse symbol numbering)
-    let max_terminal_id = parse_table.grammar.tokens.keys()
+    let max_terminal_id = parse_table
+        .grammar
+        .tokens
+        .keys()
         .map(|id| id.0 as usize)
         .max()
         .unwrap_or(0);
-    let max_nonterminal_id = parse_table.grammar.rule_names.keys()
+    let max_nonterminal_id = parse_table
+        .grammar
+        .rule_names
+        .keys()
         .map(|id| id.0 as usize)
         .max()
         .unwrap_or(0);
@@ -189,8 +194,7 @@ fn create_dangling_else_grammar() -> Grammar {
 fn scenario_7_glr_runtime_parses_ambiguous_input() {
     // GIVEN a parse table with multi-action cells (dangling else grammar)
     let grammar = create_dangling_else_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar)
-        .expect("FIRST/FOLLOW computation failed");
+    let first_follow = FirstFollowSets::compute(&grammar).expect("FIRST/FOLLOW computation failed");
     let parse_table = build_lr1_automaton(&grammar, &first_follow)
         .expect("LR(1) automaton build failed")
         .normalize_eof_to_zero()
@@ -201,20 +205,50 @@ fn scenario_7_glr_runtime_parses_ambiguous_input() {
 
     // Create parser and load GLR table
     let mut parser = Parser::new();
-    parser.set_glr_table(table_static)
+    parser
+        .set_glr_table(table_static)
         .expect("Setting GLR table should succeed");
 
     // Configure symbol metadata (EOF + 5 terminals + 1 non-terminal)
     let metadata = vec![
-        SymbolMetadata { is_terminal: true, is_visible: false, is_supertype: false },   // EOF (0)
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },    // if (1)
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },    // then (2)
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },    // else (3)
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },    // expr (4)
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },    // stmt (5)
-        SymbolMetadata { is_terminal: false, is_visible: true, is_supertype: false },   // S (10)
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: false,
+            is_supertype: false,
+        }, // EOF (0)
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        }, // if (1)
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        }, // then (2)
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        }, // else (3)
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        }, // expr (4)
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        }, // stmt (5)
+        SymbolMetadata {
+            is_terminal: false,
+            is_visible: true,
+            is_supertype: false,
+        }, // S (10)
     ];
-    parser.set_symbol_metadata(metadata)
+    parser
+        .set_symbol_metadata(metadata)
         .expect("Setting metadata should succeed");
 
     // Configure token patterns
@@ -250,7 +284,8 @@ fn scenario_7_glr_runtime_parses_ambiguous_input() {
             is_keyword: false,
         },
     ];
-    parser.set_token_patterns(patterns)
+    parser
+        .set_token_patterns(patterns)
         .expect("Setting patterns should succeed");
 
     println!("\n=== Scenario 7: GLR Runtime Fork/Merge ===");
@@ -287,7 +322,10 @@ fn scenario_7_glr_runtime_parses_ambiguous_input() {
     }
 
     // AND the parser produces a valid parse tree
-    assert!(result.is_ok(), "Parser should succeed on well-formed ambiguous input");
+    assert!(
+        result.is_ok(),
+        "Parser should succeed on well-formed ambiguous input"
+    );
 }
 
 //
@@ -312,13 +350,41 @@ fn scenario_7b_simple_statement_no_ambiguity() {
     parser.set_glr_table(table_static).unwrap();
 
     let metadata = vec![
-        SymbolMetadata { is_terminal: true, is_visible: false, is_supertype: false },
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
-        SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
-        SymbolMetadata { is_terminal: false, is_visible: true, is_supertype: false },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: false,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: true,
+            is_visible: true,
+            is_supertype: false,
+        },
+        SymbolMetadata {
+            is_terminal: false,
+            is_visible: true,
+            is_supertype: false,
+        },
     ];
     parser.set_symbol_metadata(metadata).unwrap();
 
@@ -364,7 +430,9 @@ fn scenario_7b_simple_statement_no_ambiguity() {
 
     // THEN parsing succeeds
     // Note: Parser::parse_glr() already applies Phase 3.3 symbol name resolution
-    let tree = parser.parse(input, None).expect("Should parse simple statement");
+    let tree = parser
+        .parse(input, None)
+        .expect("Should parse simple statement");
     let root = tree.root_node();
 
     println!("✓ Parse succeeded!");
@@ -372,7 +440,10 @@ fn scenario_7b_simple_statement_no_ambiguity() {
     println!("  Root kind_id: {}", root.kind_id());
     println!("  Child count: {}", root.child_count());
     println!("  Parse table symbol_count: {}", table_static.symbol_count);
-    println!("  Grammar rule_names: {:?}", table_static.grammar.rule_names);
+    println!(
+        "  Grammar rule_names: {:?}",
+        table_static.grammar.rule_names
+    );
 
     assert_eq!(root.kind(), "S", "Root should be statement");
 

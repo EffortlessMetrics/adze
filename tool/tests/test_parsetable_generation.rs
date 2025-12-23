@@ -5,9 +5,9 @@
 
 #![cfg(feature = "serialization")]
 
-use std::path::PathBuf;
-use std::fs;
 use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_json};
+use std::fs;
+use std::path::PathBuf;
 
 /// Helper: Create a minimal test grammar JSON
 fn create_test_grammar_json() -> String {
@@ -50,8 +50,8 @@ fn test_parsetable_generation() {
 
     // Build parser from test grammar
     let grammar_json = create_test_grammar_json();
-    let result = build_parser_from_json(grammar_json, options)
-        .expect("Parser build should succeed");
+    let result =
+        build_parser_from_json(grammar_json, options).expect("Parser build should succeed");
 
     // Verify .parsetable file exists
     let parsetable_path = temp_dir
@@ -76,7 +76,8 @@ fn test_parsetable_generation() {
     let mut file = fs::File::open(&parsetable_path).expect("File should open");
     use std::io::Read;
     let mut magic = [0u8; 4];
-    file.read_exact(&mut magic).expect("Should read magic number");
+    file.read_exact(&mut magic)
+        .expect("Should read magic number");
     assert_eq!(&magic, b"RSPT", "Magic number should be 'RSPT'");
 
     // Cleanup
@@ -132,8 +133,8 @@ fn test_parsetable_deserialization() {
     let metadata_start = 44;
     let metadata_end = metadata_start + metadata_len;
     let metadata_bytes = &file_bytes[metadata_start..metadata_end];
-    let metadata_json = String::from_utf8(metadata_bytes.to_vec())
-        .expect("Metadata should be UTF-8");
+    let metadata_json =
+        String::from_utf8(metadata_bytes.to_vec()).expect("Metadata should be UTF-8");
 
     let metadata: serde_json::Value =
         serde_json::from_str(&metadata_json).expect("Metadata should be valid JSON");
@@ -181,8 +182,7 @@ fn test_multiple_grammars() {
     })
     .to_string();
 
-    build_parser_from_json(grammar1_json, options.clone())
-        .expect("First grammar should build");
+    build_parser_from_json(grammar1_json, options.clone()).expect("First grammar should build");
 
     // Build second grammar
     let grammar2_json = serde_json::json!({

@@ -115,8 +115,6 @@ mod parser_v3;
 // Current parser version
 /// Arena allocator for parse tree nodes.
 pub mod arena_allocator;
-/// Tree node data structure for arena allocation.
-pub mod tree_node_data;
 /// Arena-allocated parse tree node.
 pub mod node;
 /// Parser backend selection logic.
@@ -135,6 +133,8 @@ pub mod pure_parser;
 pub mod query;
 /// Stack pooling for efficient parsing.
 pub mod stack_pool;
+/// Tree node data structure for arena allocation.
+pub mod tree_node_data;
 // #[cfg(feature = "serialization")]
 /// Tree serialization utilities.
 #[cfg(feature = "serialization")]

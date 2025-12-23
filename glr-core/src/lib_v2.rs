@@ -112,20 +112,28 @@ pub fn build_lr1_automaton_v2(
     for (_, token) in &grammar.tokens {
         symbol_metadata.push(SymbolMetadata {
             name: token.name.clone(),
-            visible: !token.name.starts_with('_'),
-            named: !matches!(&token.pattern, TokenPattern::String(_)),
-            supertype: false,
+            is_visible: !token.name.starts_with('_'),
+            is_named: !matches!(&token.pattern, TokenPattern::String(_)),
+            is_supertype: false,
+            is_terminal: true,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(0), // TODO: get proper symbol_id
         });
     }
 
     // Add non-terminal symbols
     for (symbol_id, name) in &grammar.rule_names {
-        let is_supertype = grammar.supertypes.contains(symbol_id);
+        let is_supertype_val = grammar.supertypes.contains(symbol_id);
         symbol_metadata.push(SymbolMetadata {
             name: name.clone(),
-            visible: true,
-            named: true,
-            supertype: is_supertype,
+            is_visible: true,
+            is_named: true,
+            is_supertype: is_supertype_val,
+            is_terminal: false,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: *symbol_id,
         });
     }
 
@@ -133,18 +141,26 @@ pub fn build_lr1_automaton_v2(
     for external in &grammar.externals {
         symbol_metadata.push(SymbolMetadata {
             name: external.name.clone(),
-            visible: external.visible,
-            named: external.named,
-            supertype: false,
+            is_visible: true, // TODO: get from external
+            is_named: true,   // TODO: get from external
+            is_supertype: false,
+            is_terminal: true,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: external.symbol_id,
         });
     }
 
     // Add EOF metadata
     symbol_metadata.push(SymbolMetadata {
         name: "_eof".to_string(),
-        visible: false,
-        named: false,
-        supertype: false,
+        is_visible: false,
+        is_named: false,
+        is_supertype: false,
+        is_terminal: true,
+        is_extra: false,
+        is_fragile: false,
+        symbol_id: SymbolId(0), // TODO: get proper EOF symbol_id
     });
 
     Ok(ParseTable {

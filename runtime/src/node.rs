@@ -23,7 +23,7 @@
 //!
 //! Related: docs/specs/NODE_ARENA_SPEC.md
 
-use crate::arena_allocator::{NodeHandle, TreeArena, TreeNodeRef};
+use crate::arena_allocator::{NodeHandle, TreeArena};
 use crate::tree_node_data::TreeNodeData;
 
 /// A node in the parse tree
@@ -53,6 +53,7 @@ use crate::tree_node_data::TreeNodeData;
 /// This allows efficient passing and duplication without clone().
 #[derive(Copy, Clone, Debug)]
 pub struct Node<'arena> {
+    #[allow(dead_code)] // Will be used in Day 5 parse() integration
     handle: NodeHandle,
     arena: &'arena TreeArena,
 }
@@ -191,7 +192,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - direct field access via data().
     pub fn named_child_count(&self) -> usize {
-        self.data().named_child_count() as usize
+        self.data().named_child_count()
     }
 
     /// Get child by index
@@ -337,7 +338,8 @@ mod tests {
         fn takes_copy<T: Copy>(_: T) {}
 
         let mut arena = TreeArena::new();
-        let handle = arena.alloc(TreeNodeData::leaf(1, 0, 10));
+        // Use TreeNode::leaf() which matches arena.alloc() signature
+        let handle = arena.alloc(crate::arena_allocator::TreeNode::leaf(42));
         let node = Node::new(handle, &arena);
 
         takes_copy(node);

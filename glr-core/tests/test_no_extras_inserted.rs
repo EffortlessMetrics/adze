@@ -86,7 +86,7 @@ fn external_tokens_within_insertion_range() {
         rules: vec![],
         nonterminal_to_index: Default::default(),
         goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(0), // EOF must be 0 by convention
+        eof_symbol: SymbolId(3), // EOF must be after all terminals
         start_symbol: SymbolId(100),
         grammar: Default::default(),
         initial_state: rust_sitter_ir::StateId(0),

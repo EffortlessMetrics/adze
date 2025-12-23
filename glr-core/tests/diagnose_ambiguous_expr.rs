@@ -6,9 +6,9 @@
 //! This is the critical missing validation from Phase 2.
 
 use rust_sitter_glr_core::conflict_inspection::*;
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
-use rust_sitter_ir::builder::GrammarBuilder;
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::Grammar;
+use rust_sitter_ir::builder::GrammarBuilder;
 
 /// Build a minimal ambiguous expression grammar programmatically
 ///
@@ -73,18 +73,21 @@ fn test_glr_core_generates_conflicts_for_ambiguous_grammar() {
 
     // Step 1: Compute FIRST/FOLLOW sets
     eprintln!("Step 1: Computing FIRST/FOLLOW sets...");
-    let first_follow = FirstFollowSets::compute_normalized(&mut grammar)
-        .expect("FIRST/FOLLOW computation failed");
+    let first_follow =
+        FirstFollowSets::compute_normalized(&mut grammar).expect("FIRST/FOLLOW computation failed");
     eprintln!("  ✓ FIRST/FOLLOW computed");
 
     // Step 2: Build LR(1) automaton (this is where conflicts should appear)
     eprintln!("Step 2: Building LR(1) automaton...");
-    let parse_table = build_lr1_automaton(&grammar, &first_follow)
-        .expect("LR(1) automaton construction failed");
+    let parse_table =
+        build_lr1_automaton(&grammar, &first_follow).expect("LR(1) automaton construction failed");
 
     eprintln!("  ✓ ParseTable generated");
     eprintln!("  States: {}", parse_table.state_count);
-    eprintln!("  Action table dimensions: {} states", parse_table.action_table.len());
+    eprintln!(
+        "  Action table dimensions: {} states",
+        parse_table.action_table.len()
+    );
 
     // Step 3: Inspect for multi-action cells DIRECTLY
     eprintln!("\n--- Direct Action Table Inspection ---");
@@ -102,7 +105,11 @@ fn test_glr_core_generates_conflicts_for_ambiguous_grammar() {
             total_multi_action_cells += multi_action_cells.len();
             states_with_conflicts.push(state_idx);
 
-            eprintln!("State {}: {} multi-action cells", state_idx, multi_action_cells.len());
+            eprintln!(
+                "State {}: {} multi-action cells",
+                state_idx,
+                multi_action_cells.len()
+            );
             for (symbol_idx, cell) in &multi_action_cells {
                 eprintln!("  Symbol {}: {} actions", symbol_idx, cell.len());
                 for action in cell.iter() {
@@ -126,7 +133,10 @@ fn test_glr_core_generates_conflicts_for_ambiguous_grammar() {
     eprintln!("  Shift/Reduce conflicts: {}", summary.shift_reduce);
     eprintln!("  Reduce/Reduce conflicts: {}", summary.reduce_reduce);
     eprintln!("  Total conflicts: {}", total_conflicts);
-    eprintln!("  States with conflicts: {:?}", summary.states_with_conflicts);
+    eprintln!(
+        "  States with conflicts: {:?}",
+        summary.states_with_conflicts
+    );
 
     if !summary.conflict_details.is_empty() {
         eprintln!("\nConflict Details:");
@@ -156,7 +166,9 @@ fn test_glr_core_generates_conflicts_for_ambiguous_grammar() {
              Expected at least 1 shift/reduce conflict for 'expr → expr + expr' rule."
         );
     } else if total_multi_action_cells > 0 && total_conflicts == 0 {
-        eprintln!("⚠️  PARTIAL: Multi-action cells exist but conflict_inspection doesn't detect them");
+        eprintln!(
+            "⚠️  PARTIAL: Multi-action cells exist but conflict_inspection doesn't detect them"
+        );
         eprintln!("Conclusion: conflict_inspection API has a bug");
 
         panic!(
@@ -187,11 +199,11 @@ fn test_glr_core_no_conflicts_for_unambiguous_grammar() {
 
     eprintln!("Grammar: {}", grammar.name);
 
-    let first_follow = FirstFollowSets::compute_normalized(&mut grammar)
-        .expect("FIRST/FOLLOW computation failed");
+    let first_follow =
+        FirstFollowSets::compute_normalized(&mut grammar).expect("FIRST/FOLLOW computation failed");
 
-    let parse_table = build_lr1_automaton(&grammar, &first_follow)
-        .expect("LR(1) automaton construction failed");
+    let parse_table =
+        build_lr1_automaton(&grammar, &first_follow).expect("LR(1) automaton construction failed");
 
     let summary = count_conflicts(&parse_table);
 
@@ -199,8 +211,7 @@ fn test_glr_core_no_conflicts_for_unambiguous_grammar() {
     eprintln!("Conflicts: {}", total_conflicts);
 
     assert_eq!(
-        total_conflicts,
-        0,
+        total_conflicts, 0,
         "Unambiguous grammar should have no conflicts"
     );
 

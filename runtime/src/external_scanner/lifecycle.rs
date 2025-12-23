@@ -1,5 +1,5 @@
 /// Scanner lifecycle management for both Rust and C external scanners
-use super::{ExternalScanner, ScanResult};
+use super::ExternalScanner;
 use crate::external_scanner_ffi::{CExternalScanner, TSExternalScannerData};
 use std::sync::{Arc, Mutex};
 
@@ -77,6 +77,7 @@ impl Drop for ScannerGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::external_scanner::ScanResult;
     use std::sync::{
         Arc, Mutex,
         atomic::{AtomicUsize, Ordering},

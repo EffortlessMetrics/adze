@@ -1,15 +1,15 @@
-/// Integration tests for GLR conflict inspection API
-///
-/// These tests validate that the conflict inspection API works correctly
-/// with ambiguous grammars like dangling_else and ambiguous_expr.
-///
-/// Phase 2: GLR Conflict Preservation Validation
-/// Spec: docs/specs/CONFLICT_INSPECTION_API.md
-/// Related: docs/specs/AMBIGUOUS_GRAMMAR_TEST_SUITE.md
+//! Integration tests for GLR conflict inspection API
+//!
+//! These tests validate that the conflict inspection API works correctly
+//! with ambiguous grammars like dangling_else and ambiguous_expr.
+//!
+//! Phase 2: GLR Conflict Preservation Validation
+//! Spec: docs/specs/CONFLICT_INSPECTION_API.md
+//! Related: docs/specs/AMBIGUOUS_GRAMMAR_TEST_SUITE.md
 
 mod conflict_detection {
     use rust_sitter_glr_core::conflict_inspection::*;
-    use rust_sitter_glr_core::{Action, ParseTable, StateId, GotoIndexing};
+    use rust_sitter_glr_core::{Action, GotoIndexing, ParseTable, StateId};
     use rust_sitter_ir::{Grammar, RuleId, SymbolId};
 
     /// Helper to create a test parse table for validation
@@ -97,7 +97,10 @@ mod conflict_detection {
 
         let state2_conflicts = get_state_conflicts(&table, StateId(2));
         assert_eq!(state2_conflicts.len(), 1);
-        assert_eq!(state2_conflicts[0].conflict_type, ConflictType::ReduceReduce);
+        assert_eq!(
+            state2_conflicts[0].conflict_type,
+            ConflictType::ReduceReduce
+        );
     }
 
     /// Test documentation: Expected conflicts for dangling_else grammar
@@ -159,10 +162,7 @@ mod conflict_detection {
 
         // For now, document the expectation
         eprintln!("TG-002 Precedence-Free Expression:");
-        eprintln!(
-            "  Expected S/R conflicts: >= {}",
-            MIN_EXPECTED_SR_CONFLICTS
-        );
+        eprintln!("  Expected S/R conflicts: >= {}", MIN_EXPECTED_SR_CONFLICTS);
         eprintln!("  Expected R/R conflicts: {}", EXPECTED_RR_CONFLICTS);
         eprintln!("  Status: Specification documented, awaiting table generation");
     }
@@ -177,10 +177,7 @@ mod conflict_detection {
 
         // Reduce/Reduce
         let rr_actions = vec![Action::Reduce(RuleId(0)), Action::Reduce(RuleId(1))];
-        assert_eq!(
-            classify_conflict(&rr_actions),
-            ConflictType::ReduceReduce
-        );
+        assert_eq!(classify_conflict(&rr_actions), ConflictType::ReduceReduce);
 
         // Mixed (multiple shifts)
         let mixed_actions = vec![Action::Shift(StateId(1)), Action::Shift(StateId(2))];

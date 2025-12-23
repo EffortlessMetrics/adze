@@ -223,6 +223,52 @@ pub struct StringLiteral {
 }
 ```
 
+## GLR Parser Integration (PR #56) ✨
+
+The new GLR parser brings advanced capabilities for handling ambiguous grammars:
+
+### ActionCell Support
+The GLR parser uses **ActionCells** - each parser state can hold multiple conflicting actions:
+
+```rust
+use rust_sitter::glr_parser_no_error_recovery::GLRParser;
+use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+
+// Build GLR parser with ActionCell support
+let grammar = create_grammar();
+let first_follow = FirstFollowSets::compute(&grammar)?;
+let parse_table = build_lr1_automaton(&grammar, &first_follow)?;
+let mut glr_parser = GLRParser::new(parse_table);
+
+// GLR parser returns parse forests for ambiguous grammars
+let forest = glr_parser.parse(&tokens)?;
+println!("Parse alternatives: {}", forest.roots.len());
+
+// Traditional single-tree extraction
+let tree = runtime_parser.parse_utf8("1 + 2", None)?;
+```
+
+### Parse Forest Analysis
+When dealing with ambiguous grammars, analyze all interpretations:
+
+```rust
+// Example: Ambiguous expression "1+2*3"  
+// Can be parsed as ((1+2)*3) or (1+(2*3))
+let forest = glr_parser.parse(&ambiguous_tokens)?;
+
+for (i, root) in forest.roots.iter().enumerate() {
+    println!("Interpretation {}: Symbol {} at {:?}", 
+             i, root.symbol.0, root.span);
+    println!("  Child alternatives: {}", root.alternatives.len());
+}
+
+// Use forest analyzer for complex ambiguity analysis
+let ambiguous_nodes = forest.nodes.values()
+    .filter(|node| node.alternatives.len() > 1)
+    .count();
+println!("Ambiguous decision points: {}", ambiguous_nodes);
+```
+
 ## Error Handling
 
 The GLR runtime provides comprehensive error information:
@@ -257,6 +303,76 @@ Outputs forest-to-tree conversion statistics:
 ```
 🚀 Forest->Tree conversion: 247 nodes, depth 12, took 0.8ms
 ```
+
+## GLR Tree Structure Understanding
+
+GLR parsers produce trees with different structure than traditional parsers. Following PR #64 analysis, here's how to work with GLR trees:
+
+### Grammar-Rooted Trees
+
+GLR parsers always root trees at the grammar's start symbol, not the content:
+
+```rust
+let tree = parser.parse_utf8("42", None)?;
+let root = tree.root_node();
+
+// ✅ Correct: Grammar start symbol as root
+assert_eq!(root.kind(), "expr");           // Grammar start rule
+assert_eq!(root.child_count(), 1);         // Contains content as child
+
+// Navigate to actual content  
+let content = root.child(0).unwrap();       // Get actual number
+assert_eq!(content.kind(), "number");      // Content type
+
+// ❌ Incorrect: Expecting content directly
+// assert_eq!(root.kind(), "number");      // Wrong - content-centric thinking
+```
+
+### Tree Navigation Pattern
+
+When traversing GLR trees, always navigate through the grammar hierarchy:
+
+```rust
+let mut cursor = tree.root_node().walk();
+
+// Start at grammar root
+assert_eq!(cursor.node().kind(), "expr");      // Grammar symbol
+assert!(cursor.goto_first_child());            // Navigate to content
+assert_eq!(cursor.node().kind(), "number");    // Actual content
+
+// For complex expressions:
+// expr (root)
+// └── add_expr  
+//     ├── number ("1")
+//     ├── "+"
+//     └── number ("2")
+```
+
+### Testing GLR Trees
+
+When writing tests for GLR functionality:
+
+```rust
+#[test]
+fn test_glr_arithmetic() {
+    let tree = parser.parse_utf8("1 + 2", None).unwrap();
+    let root = tree.root_node();
+    
+    // Root is grammar start symbol
+    assert_eq!(root.kind(), "expr");
+    
+    // Content is child of grammar symbol
+    let add_expr = root.child(0).unwrap();
+    assert_eq!(add_expr.kind(), "add");
+    
+    // Navigate through production structure
+    let left_operand = add_expr.child(0).unwrap();
+    assert_eq!(left_operand.kind(), "number");
+    assert_eq!(left_operand.text(source), "1");
+}
+```
+
+This structure reflects the actual grammar productions rather than a content-centric view, which enables GLR's ambiguity handling capabilities.
 
 ## GLR Features Available
 

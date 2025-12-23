@@ -95,7 +95,7 @@
 //! ```
 
 use crate::{Action, ParseTable, StateId};
-use rust_sitter_ir::{RuleId, SymbolId};
+use rust_sitter_ir::SymbolId;
 use std::fmt;
 
 /// Summary of conflicts in a parse table
@@ -385,6 +385,7 @@ impl fmt::Display for ConflictDetail {
 mod tests {
     use super::*;
     use crate::Action;
+    use rust_sitter_ir::RuleId;
 
     /// Helper to create a minimal ParseTable for testing
     fn create_test_table(action_table: Vec<Vec<Vec<Action>>>) -> ParseTable {

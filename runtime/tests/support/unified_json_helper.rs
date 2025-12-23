@@ -1,4 +1,4 @@
-mod language_builder;
+use crate::language_builder;
 
 use anyhow::Result;
 use rust_sitter::pure_parser::TSLanguage;
@@ -139,9 +139,9 @@ pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
         let is_terminal = (i as u32) < data.token_count + data.external_token_count;
         table.symbol_metadata.push(SymbolMetadata {
             name: sym.name.clone(),
-            visible: sym.visible,
-            named: sym.named,
-            supertype: false,
+            is_visible: sym.visible,
+            is_named: sym.named,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal,
             is_extra: false, // TODO: determine if this symbol is extra
@@ -162,9 +162,9 @@ pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
         let eof_index = data.eof_symbol as usize;
         table.symbol_metadata.push(SymbolMetadata {
             name: "EOF".to_string(),
-            visible: false,
-            named: true,
-            supertype: false,
+            is_visible: false,
+            is_named: true,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: true, // EOF is typically a terminal
             is_extra: false,

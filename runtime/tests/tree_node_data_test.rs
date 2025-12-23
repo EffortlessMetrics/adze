@@ -242,11 +242,7 @@ fn spec_6_memory_layout() {
     use std::mem;
 
     let size = mem::size_of::<TreeNodeData>();
-    assert!(
-        size <= 64,
-        "TreeNodeData is {} bytes, must be ≤64",
-        size
-    );
+    assert!(size <= 64, "TreeNodeData is {} bytes, must be ≤64", size);
 
     // Verify alignment
     let align = mem::align_of::<TreeNodeData>();

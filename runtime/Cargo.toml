@@ -70,6 +70,7 @@ glr-test-support = { path = "../glr-test-support" }
 rust-sitter-example = { path = "../example", features = ["ts-compat"] }
 rust-sitter-python-simple = { path = "../grammars/python-simple" }
 rust-sitter-python = { path = "../grammars/python" }
+serial_test = "3.0"
 
 # Tree-sitter dependencies for ts-compat golden tests
 tree-sitter-json = "0.24.8"

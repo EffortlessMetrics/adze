@@ -1,4 +1,8 @@
 //! Language representation compatible with Tree-sitter
+//!
+//! This module defines the `Language` struct which encapsulates all information
+//! needed to parse a specific programming language, including parse tables,
+//! symbol metadata, tokenizers, and external scanners.
 
 #[cfg(feature = "glr-core")]
 type TokenizerFn = dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = crate::Token> + 'a>;
@@ -6,74 +10,201 @@ type TokenizerFn = dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = crate::To
 #[cfg(feature = "glr-core")]
 type TokenizerBoxed = Box<TokenizerFn>;
 
-/// A language definition containing parse tables and metadata
+/// A language definition containing parse tables, grammar metadata, and tokenization logic.
+///
+/// This struct represents a complete language specification compatible with Tree-sitter's
+/// API while supporting GLR parsing capabilities. It contains everything needed to parse
+/// source code in a specific programming language.
+///
+/// # Structure
+///
+/// A `Language` consists of:
+/// - **Parse Tables**: GLR-compatible action/goto tables for parsing
+/// - **Symbol Information**: Names and metadata for all grammar symbols
+/// - **Field Information**: Named fields for AST node children
+/// - **Tokenizer**: Function to convert bytes into tokens
+/// - **External Scanner**: Optional context-sensitive tokenization (e.g., for indentation)
+///
+/// # Creating Languages
+///
+/// Use `Language::builder()` to construct instances:
+///
+/// ```ignore
+/// use runtime2::{Language, language::{SymbolMetadata, ParseTable}};
+///
+/// let language = Language::builder()
+///     .version(1)
+///     .parse_table(&MY_PARSE_TABLE)
+///     .symbol_names(vec!["number".to_string(), "plus".to_string()])
+///     .symbol_metadata(vec![
+///         SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
+///         SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
+///     ])
+///     .tokenizer(|input| Box::new(my_tokenize(input)))
+///     .build()?;
+/// ```
+///
+/// # Feature Gates
+///
+/// - `glr-core`: Enables GLR parse tables and tokenizer support
+/// - `external-scanners`: Enables external scanner integration for context-sensitive parsing
 pub struct Language {
-    /// Language version for compatibility checking
+    /// Language version for compatibility checking.
+    ///
+    /// Typically set to match the Tree-sitter ABI version (e.g., 15).
     pub version: u32,
-    /// Number of symbols in the grammar
+
+    /// Number of symbols in the grammar.
+    ///
+    /// Includes both terminal symbols (tokens) and non-terminal symbols (rules).
     pub symbol_count: u32,
-    /// Number of fields in the grammar
+
+    /// Number of fields in the grammar.
+    ///
+    /// Fields are named children in AST nodes (e.g., `condition` in an if statement).
     pub field_count: u32,
-    /// Maximum alias sequence length
+
+    /// Maximum alias sequence length.
+    ///
+    /// Used for Tree-sitter compatibility; represents the longest sequence of
+    /// aliased symbols in the grammar.
     pub max_alias_sequence_length: u32,
-    /// Parse table (action/goto combined for GLR)
+
+    /// Parse table containing action/goto entries for GLR parsing.
+    ///
+    /// The parse table maps (state, symbol) pairs to parser actions (shift, reduce, accept).
+    /// With GLR support, each cell can contain multiple conflicting actions.
     #[cfg(feature = "glr-core")]
     pub parse_table: Option<&'static rust_sitter_glr_core::ParseTable>,
     #[cfg(not(feature = "glr-core"))]
     pub parse_table: ParseTable,
-    /// Optional tokenizer. If absent, parsing will fail with a clear error.
+
+    /// Tokenizer function to convert input bytes into tokens.
+    ///
+    /// If absent, parsing will fail with a clear error message. The tokenizer
+    /// is called once per parse and should return an iterator of tokens.
     #[cfg(feature = "glr-core")]
     pub tokenize: Option<Box<TokenizerFn>>,
-    /// Symbol names
+
+    /// Names of all symbols in the grammar.
+    ///
+    /// Indexed by symbol ID. Used for debugging and error messages.
     pub symbol_names: Vec<String>,
-    /// Symbol metadata
+
+    /// Metadata for each symbol (terminal/non-terminal, visibility, etc.).
+    ///
+    /// Indexed by symbol ID. Determines how symbols appear in the parse tree.
     pub symbol_metadata: Vec<SymbolMetadata>,
-    /// Field names
+
+    /// Names of all fields in the grammar.
+    ///
+    /// Indexed by field ID. Fields provide named access to AST node children.
     pub field_names: Vec<String>,
-    /// External scanner if present
+
+    /// External scanner for context-sensitive tokenization.
+    ///
+    /// Used for languages that require stateful lexing (e.g., Python indentation,
+    /// heredocs, template strings). The scanner is invoked during parsing when
+    /// external tokens are expected.
     #[cfg(feature = "external-scanners")]
     pub external_scanner: Option<Box<dyn crate::external_scanner::ExternalScanner>>,
 }
 
-/// Parse tables for GLR parsing
+/// Parse tables for GLR parsing.
+///
+/// This struct contains the LR(1) parse tables with GLR extensions, allowing
+/// multiple conflicting actions per state/symbol pair. Parse tables are typically
+/// generated by the rust-sitter-tablegen crate from grammar definitions.
+///
+/// # GLR Support
+///
+/// Unlike traditional LR parsers which have a single action per (state, symbol) pair,
+/// GLR parse tables store a `Vec<Action>` for each cell, enabling:
+/// - Multiple shift actions (shift/shift conflicts)
+/// - Multiple reduce actions (reduce/reduce conflicts)
+/// - Combined shift and reduce actions (shift/reduce conflicts)
+///
+/// The parser handles conflicts by forking into parallel parse stacks, maintaining
+/// all valid interpretations until the parse completes or alternatives are eliminated.
 #[derive(Debug, Clone)]
 pub struct ParseTable {
-    /// State count
+    /// Number of parser states in the LR(1) automaton.
     pub state_count: usize,
-    /// Action table: state x symbol -> Vec<Action> (multiple for conflicts)
+
+    /// Action table mapping (state, symbol) → list of possible actions.
+    ///
+    /// Organized as `action_table[state][symbol]` → `Vec<Action>`.
+    /// Multiple actions in a cell indicate a parsing conflict that triggers GLR forking.
     pub action_table: Vec<Vec<Vec<Action>>>,
-    /// Small parse table (compressed representation)
+
+    /// Compressed parse table representation (optional).
+    ///
+    /// Uses Tree-sitter's compression scheme to reduce memory usage.
+    /// Maps to actual actions via `small_parse_table_map`.
     pub small_parse_table: Option<Vec<u16>>,
-    /// Small parse table map
+
+    /// Mapping from compressed indices to action table positions.
+    ///
+    /// Used with `small_parse_table` to decompress parse tables efficiently.
     pub small_parse_table_map: Option<Vec<u32>>,
 }
 
-/// Parser action
+/// Parser action representing a transition in the LR(1) automaton.
+///
+/// Actions determine what the parser does when in a particular state and
+/// seeing a particular symbol. GLR parsers may execute multiple actions
+/// in parallel when conflicts exist.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
-    /// Shift to state
+    /// Shift the current symbol onto the stack and transition to a new state.
+    ///
+    /// The `u16` parameter is the target state number.
     Shift(u16),
-    /// Reduce by production
+
+    /// Reduce by a grammar production, popping children and pushing the result.
+    ///
+    /// Reduction creates a parent node from child nodes according to a grammar rule.
     Reduce {
-        /// Symbol produced by the reduction
+        /// Symbol ID produced by this reduction (the non-terminal being reduced to).
         symbol: u16,
-        /// Number of children consumed by the reduction
+        /// Number of child nodes consumed by this reduction.
         child_count: u8,
     },
-    /// Accept the input
+
+    /// Accept the input as valid.
+    ///
+    /// Only occurs in the initial state when the full input has been consumed.
     Accept,
-    /// Error/invalid
+
+    /// Error indicator (invalid action).
+    ///
+    /// Indicates no valid action exists for this (state, symbol) combination.
+    /// May trigger error recovery or parse failure.
     Error,
 }
 
-/// Symbol metadata
+/// Metadata describing properties of a grammar symbol.
+///
+/// Each symbol in the grammar (both terminals and non-terminals) has associated
+/// metadata that controls how it appears in parse trees and how the parser treats it.
 #[derive(Debug, Clone, Copy)]
 pub struct SymbolMetadata {
-    /// Is this a terminal symbol?
+    /// Whether this is a terminal symbol (token).
+    ///
+    /// Terminal symbols come from the tokenizer/scanner. Non-terminals are
+    /// produced by grammar rules.
     pub is_terminal: bool,
-    /// Is this symbol visible in the syntax tree?
+
+    /// Whether this symbol should appear in the final parse tree.
+    ///
+    /// Invisible symbols (like punctuation) are used during parsing but
+    /// omitted from the AST for cleaner tree structure.
     pub is_visible: bool,
-    /// Is this a supertype?
+
+    /// Whether this is a supertype (abstract base type).
+    ///
+    /// Supertypes group multiple concrete symbol types under a common name,
+    /// useful for queries that match any of several related constructs.
     pub is_supertype: bool,
 }
 
@@ -162,7 +293,30 @@ impl Language {
     }
 }
 
-/// Builder for constructing `Language` instances.
+/// Builder for constructing `Language` instances with a fluent API.
+///
+/// This builder provides a type-safe way to construct `Language` instances,
+/// ensuring all required components are provided before building. Use
+/// `Language::builder()` to create an instance.
+///
+/// # Example
+///
+/// ```ignore
+/// use runtime2::{Language, language::{SymbolMetadata}};
+///
+/// let language = Language::builder()
+///     .version(15)
+///     .parse_table(&PARSE_TABLE)
+///     .symbol_names(vec!["number".to_string(), "identifier".to_string()])
+///     .symbol_metadata(vec![
+///         SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
+///         SymbolMetadata { is_terminal: true, is_visible: true, is_supertype: false },
+///     ])
+///     .field_names(vec!["name".to_string(), "value".to_string()])
+///     .tokenizer(|input| Box::new(tokenize(input)))
+///     .build()
+///     .expect("Failed to build language");
+/// ```
 #[derive(Default)]
 pub struct LanguageBuilder {
     version: u32,
@@ -181,58 +335,183 @@ pub struct LanguageBuilder {
 }
 
 impl Language {
-    /// Start building a `Language`.
+    /// Creates a new `LanguageBuilder` for constructing a `Language` instance.
+    ///
+    /// This is the recommended way to create a `Language`. Use the builder's
+    /// methods to set required and optional components, then call `build()`.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let language = Language::builder()
+    ///     .version(15)
+    ///     .parse_table(&MY_TABLE)
+    ///     .symbol_metadata(metadata)
+    ///     .build()?;
+    /// ```
     pub fn builder() -> LanguageBuilder {
         LanguageBuilder::default()
     }
 }
 
 impl LanguageBuilder {
-    /// Set the language version.
+    /// Sets the language version for Tree-sitter compatibility checking.
+    ///
+    /// The version should match the Tree-sitter ABI version the parser targets.
+    /// Current Tree-sitter version is 15.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let builder = Language::builder().version(15);
+    /// ```
     pub fn version(mut self, version: u32) -> Self {
         self.version = version;
         self
     }
 
-    /// Set the maximum alias sequence length.
+    /// Sets the maximum alias sequence length.
+    ///
+    /// This value is used for Tree-sitter compatibility and represents the
+    /// longest sequence of aliased symbols in the grammar. Most grammars can
+    /// use 0 or a small value.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let builder = Language::builder().max_alias_sequence_length(5);
+    /// ```
     pub fn max_alias_sequence_length(mut self, len: u32) -> Self {
         self.max_alias_sequence_length = len;
         self
     }
 
-    /// Provide the parse table.
+    /// Provides the GLR parse table.
+    ///
+    /// The parse table contains the LR(1) automaton with GLR extensions,
+    /// mapping (state, symbol) pairs to parser actions. Tables are typically
+    /// generated by rust-sitter-tablegen from grammar definitions.
+    ///
+    /// **Required**: Calling `build()` without setting a parse table will fail.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// static PARSE_TABLE: rust_sitter_glr_core::ParseTable = /* ... */;
+    ///
+    /// let builder = Language::builder().parse_table(&PARSE_TABLE);
+    /// ```
     #[cfg(feature = "glr-core")]
     pub fn parse_table(mut self, table: &'static rust_sitter_glr_core::ParseTable) -> Self {
         self.parse_table = Some(table);
         self
     }
 
-    /// Provide the parse table.
+    /// Provides the parse table (non-GLR version).
+    ///
+    /// Used when the `glr-core` feature is not enabled. The table is owned
+    /// rather than borrowed.
     #[cfg(not(feature = "glr-core"))]
     pub fn parse_table(mut self, table: ParseTable) -> Self {
         self.parse_table = Some(table);
         self
     }
 
-    /// Provide symbol names.
+    /// Provides human-readable names for all grammar symbols.
+    ///
+    /// Symbol names are indexed by symbol ID and used for debugging, error
+    /// messages, and tree visualization. If not provided, `build()` will
+    /// create empty strings for all symbols.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let builder = Language::builder()
+    ///     .symbol_names(vec![
+    ///         "number".to_string(),
+    ///         "identifier".to_string(),
+    ///         "plus".to_string(),
+    ///     ]);
+    /// ```
     pub fn symbol_names(mut self, names: Vec<String>) -> Self {
         self.symbol_names = Some(names);
         self
     }
 
-    /// Provide symbol metadata.
+    /// Provides metadata for all grammar symbols.
+    ///
+    /// Symbol metadata describes properties like whether symbols are terminals,
+    /// whether they're visible in parse trees, and whether they're supertypes.
+    /// This information controls parse tree structure and querying.
+    ///
+    /// **Required**: Calling `build()` without setting symbol metadata will fail.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use runtime2::language::SymbolMetadata;
+    ///
+    /// let builder = Language::builder()
+    ///     .symbol_metadata(vec![
+    ///         SymbolMetadata {
+    ///             is_terminal: true,
+    ///             is_visible: true,
+    ///             is_supertype: false,
+    ///         },
+    ///         SymbolMetadata {
+    ///             is_terminal: false,
+    ///             is_visible: true,
+    ///             is_supertype: false,
+    ///         },
+    ///     ]);
+    /// ```
     pub fn symbol_metadata(mut self, meta: Vec<SymbolMetadata>) -> Self {
         self.symbol_metadata = Some(meta);
         self
     }
 
-    /// Provide field names.
+    /// Provides names for grammar fields.
+    ///
+    /// Field names allow named access to AST node children (e.g., the `condition`
+    /// field of an if-statement). If not provided, the language will have no
+    /// named fields.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let builder = Language::builder()
+    ///     .field_names(vec![
+    ///         "condition".to_string(),
+    ///         "consequence".to_string(),
+    ///         "alternative".to_string(),
+    ///     ]);
+    /// ```
     pub fn field_names(mut self, names: Vec<String>) -> Self {
         self.field_names = Some(names);
         self
     }
 
-    /// Provide a tokenizer.
+    /// Provides a tokenizer function to convert input bytes into tokens.
+    ///
+    /// The tokenizer is called once per parse and should return an iterator
+    /// of tokens. Each token includes a kind (symbol ID), start position, and
+    /// end position.
+    ///
+    /// **Note**: If no tokenizer is provided, parsing will fail with an error.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use runtime2::Token;
+    ///
+    /// fn my_tokenize(input: &[u8]) -> impl Iterator<Item = Token> + '_ {
+    ///     // Tokenization logic here
+    ///     std::iter::empty()
+    /// }
+    ///
+    /// let builder = Language::builder()
+    ///     .tokenizer(|input| Box::new(my_tokenize(input)));
+    /// ```
     #[cfg(feature = "glr-core")]
     pub fn tokenizer<F>(mut self, f: F) -> Self
     where
@@ -243,7 +522,36 @@ impl LanguageBuilder {
         self
     }
 
-    /// Build the language, failing if required components are missing.
+    /// Builds the `Language` instance from the configured components.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Language)` if all required components are present, or
+    /// `Err(&'static str)` with a descriptive error message if required
+    /// components are missing.
+    ///
+    /// # Required Components
+    ///
+    /// - **Parse table**: Must be set via `parse_table()`
+    /// - **Symbol metadata**: Must be set via `symbol_metadata()`
+    ///
+    /// # Optional Components
+    ///
+    /// - Symbol names (defaults to empty strings)
+    /// - Field names (defaults to empty vector)
+    /// - Tokenizer (required for parsing, but not for language construction)
+    /// - External scanner (only needed for context-sensitive languages)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let language = Language::builder()
+    ///     .version(15)
+    ///     .parse_table(&PARSE_TABLE)
+    ///     .symbol_metadata(metadata)
+    ///     .build()
+    ///     .expect("Failed to build language");
+    /// ```
     pub fn build(self) -> Result<Language, &'static str> {
         let parse_table = self.parse_table.ok_or("missing parse table")?;
         let symbol_metadata = self.symbol_metadata.ok_or("missing symbol metadata")?;

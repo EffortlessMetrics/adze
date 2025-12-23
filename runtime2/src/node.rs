@@ -32,10 +32,7 @@ impl<'tree> Node<'tree> {
     ///
     /// - `node` must be a valid TreeNode with valid ranges
     /// - `language` is optional (GLR mode may not have Language)
-    pub(crate) fn new(
-        node: &'tree TreeNode,
-        language: Option<&'tree Language>,
-    ) -> Self {
+    pub(crate) fn new(node: &'tree TreeNode, language: Option<&'tree Language>) -> Self {
         Self {
             data: node,
             language,

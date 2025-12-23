@@ -3,7 +3,7 @@
 
 #[test]
 fn test_arithmetic_simple_numbers() {
-    use rust_sitter_example::arithmetic::grammar::{parse, Expression};
+    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
 
     // Test simple number parsing
     let result = parse("42");
@@ -19,11 +19,15 @@ fn test_arithmetic_simple_numbers() {
 
 #[test]
 fn test_arithmetic_subtraction() {
-    use rust_sitter_example::arithmetic::grammar::{parse, Expression};
+    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
 
     // Test simple subtraction
     let result = parse("10 - 5");
-    assert!(result.is_ok(), "Failed to parse '10 - 5': {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Failed to parse '10 - 5': {:?}",
+        result.err()
+    );
 
     if let Expression::Sub(left, _, right) = result.unwrap() {
         assert_eq!(*left, Expression::Number(10));
@@ -34,7 +38,11 @@ fn test_arithmetic_subtraction() {
 
     // Test chained subtraction (left associative)
     let result = parse("20 - 10 - 5");
-    assert!(result.is_ok(), "Failed to parse '20 - 10 - 5': {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Failed to parse '20 - 10 - 5': {:?}",
+        result.err()
+    );
 
     // Should parse as (20 - 10) - 5 due to left associativity
     if let Expression::Sub(left, _, right) = result.unwrap() {
@@ -52,11 +60,15 @@ fn test_arithmetic_subtraction() {
 
 #[test]
 fn test_arithmetic_multiplication() {
-    use rust_sitter_example::arithmetic::grammar::{parse, Expression};
+    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
 
     // Test simple multiplication
     let result = parse("3 * 4");
-    assert!(result.is_ok(), "Failed to parse '3 * 4': {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Failed to parse '3 * 4': {:?}",
+        result.err()
+    );
 
     if let Expression::Mul(left, _, right) = result.unwrap() {
         assert_eq!(*left, Expression::Number(3));
@@ -68,12 +80,16 @@ fn test_arithmetic_multiplication() {
 
 #[test]
 fn test_arithmetic_precedence() {
-    use rust_sitter_example::arithmetic::grammar::{parse, Expression};
+    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
 
     // Test precedence: "1 - 2 * 3" should parse as "1 - (2 * 3)"
     // Multiplication has higher precedence than subtraction
     let result = parse("1 - 2 * 3");
-    assert!(result.is_ok(), "Failed to parse '1 - 2 * 3': {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Failed to parse '1 - 2 * 3': {:?}",
+        result.err()
+    );
 
     if let Expression::Sub(left, _, right) = result.unwrap() {
         assert_eq!(*left, Expression::Number(1));
@@ -83,7 +99,10 @@ fn test_arithmetic_precedence() {
             assert_eq!(*mul_left, Expression::Number(2));
             assert_eq!(*mul_right, Expression::Number(3));
         } else {
-            panic!("Expected multiplication on right side of subtraction, got: {:?}", right);
+            panic!(
+                "Expected multiplication on right side of subtraction, got: {:?}",
+                right
+            );
         }
     } else {
         panic!("Expected subtraction at top level");
@@ -91,7 +110,11 @@ fn test_arithmetic_precedence() {
 
     // Test reverse: "2 * 3 - 1" should parse as "(2 * 3) - 1"
     let result = parse("2 * 3 - 1");
-    assert!(result.is_ok(), "Failed to parse '2 * 3 - 1': {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Failed to parse '2 * 3 - 1': {:?}",
+        result.err()
+    );
 
     if let Expression::Sub(left, _, right) = result.unwrap() {
         assert_eq!(*right, Expression::Number(1));
@@ -110,7 +133,7 @@ fn test_arithmetic_precedence() {
 
 #[test]
 fn test_arithmetic_whitespace() {
-    use rust_sitter_example::arithmetic::grammar::{parse, Expression};
+    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
 
     // Test with no whitespace
     let result = parse("1-2");
@@ -166,7 +189,11 @@ mod bench {
         println!("Parsed 100-term subtraction expression in {:?}", duration);
 
         // Should complete in reasonable time (< 500ms)
-        assert!(duration.as_millis() < 500, "Parsing took too long: {:?}", duration);
+        assert!(
+            duration.as_millis() < 500,
+            "Parsing took too long: {:?}",
+            duration
+        );
     }
 
     #[test]
@@ -190,10 +217,17 @@ mod bench {
         let result = parse(&input);
         let duration = start.elapsed();
 
-        assert!(result.is_ok(), "Failed to parse complex precedence expression");
+        assert!(
+            result.is_ok(),
+            "Failed to parse complex precedence expression"
+        );
         println!("Parsed complex precedence expression in {:?}", duration);
 
         // Should complete in reasonable time (< 1 second)
-        assert!(duration.as_millis() < 1000, "Parsing took too long: {:?}", duration);
+        assert!(
+            duration.as_millis() < 1000,
+            "Parsing took too long: {:?}",
+            duration
+        );
     }
 }

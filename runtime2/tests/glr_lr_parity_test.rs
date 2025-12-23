@@ -5,14 +5,13 @@
 //!
 //! Contract: docs/specs/PHASE_3.3_COMPONENT_2_PARITY.md
 
-use rust_sitter_runtime::{Parser, Tree, Token, node::Node};
-use rust_sitter_runtime::tokenizer::{TokenPattern, Matcher, WhitespaceMode};
-use rust_sitter_runtime::language::SymbolMetadata;
-use rust_sitter_glr_core::{SymbolId, ParseTable, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
 use rust_sitter_ir::{
-    Grammar, ProductionId, Rule, Symbol,
-    Token as IrToken, TokenPattern as IrTokenPattern,
+    Grammar, ProductionId, Rule, Symbol, Token as IrToken, TokenPattern as IrTokenPattern,
 };
+use rust_sitter_runtime::language::SymbolMetadata;
+use rust_sitter_runtime::tokenizer::{Matcher, TokenPattern, WhitespaceMode};
+use rust_sitter_runtime::{Parser, Token, Tree, node::Node};
 
 /// Test helper: Compare two trees for structural equality
 ///
@@ -44,21 +43,31 @@ fn trees_equal(tree1: &Tree, tree2: &Tree) -> bool {
 fn nodes_equal(node1: &Node, node2: &Node) -> bool {
     // 1. Symbol IDs must match
     if node1.kind_id() != node2.kind_id() {
-        eprintln!("Symbol ID mismatch: {} vs {}", node1.kind_id(), node2.kind_id());
+        eprintln!(
+            "Symbol ID mismatch: {} vs {}",
+            node1.kind_id(),
+            node2.kind_id()
+        );
         return false;
     }
 
     // 2. Byte ranges must match
     if node1.byte_range() != node2.byte_range() {
-        eprintln!("Byte range mismatch: {:?} vs {:?}",
-                  node1.byte_range(), node2.byte_range());
+        eprintln!(
+            "Byte range mismatch: {:?} vs {:?}",
+            node1.byte_range(),
+            node2.byte_range()
+        );
         return false;
     }
 
     // 3. Child counts must match
     if node1.child_count() != node2.child_count() {
-        eprintln!("Child count mismatch: {} vs {}",
-                  node1.child_count(), node2.child_count());
+        eprintln!(
+            "Child count mismatch: {} vs {}",
+            node1.child_count(),
+            node2.child_count()
+        );
         return false;
     }
 
@@ -263,7 +272,8 @@ mod arithmetic_parity {
 
         assert!(
             trees_equal(&glr_tree, &lr_tree),
-            "GLR and LR trees differ for input '{}'", input
+            "GLR and LR trees differ for input '{}'",
+            input
         );
 
         // Validate structure
@@ -286,7 +296,8 @@ mod arithmetic_parity {
 
         assert!(
             trees_equal(&glr_tree, &lr_tree),
-            "GLR and LR trees differ for input '{}'", input
+            "GLR and LR trees differ for input '{}'",
+            input
         );
 
         // Validate structure
@@ -309,7 +320,8 @@ mod arithmetic_parity {
 
         assert!(
             trees_equal(&glr_tree, &lr_tree),
-            "GLR and LR trees differ for input '{}'", input
+            "GLR and LR trees differ for input '{}'",
+            input
         );
 
         // Validate precedence:
@@ -324,7 +336,8 @@ mod arithmetic_parity {
         // If it has 3 children, it's a binary op (correct)
         // If it has 1 child, it's just a number (wrong precedence)
         assert_eq!(
-            right_child.child_count(), 3,
+            right_child.child_count(),
+            3,
             "Right child should be multiplication (3 children), not just a number"
         );
     }
@@ -342,7 +355,8 @@ mod arithmetic_parity {
 
         assert!(
             trees_equal(&glr_tree, &lr_tree),
-            "GLR and LR trees differ for input '{}'", input
+            "GLR and LR trees differ for input '{}'",
+            input
         );
 
         // Validate left associativity:
@@ -355,7 +369,8 @@ mod arithmetic_parity {
         let left_child = root.child(0).expect("Left child exists");
         assert_eq!(left_child.kind_id(), 4); // expr
         assert_eq!(
-            left_child.child_count(), 3,
+            left_child.child_count(),
+            3,
             "Left child should be subtraction (left assoc), not just a number"
         );
     }
@@ -373,7 +388,8 @@ mod arithmetic_parity {
 
         assert!(
             trees_equal(&glr_tree, &lr_tree),
-            "GLR and LR trees differ for input '{}'", input
+            "GLR and LR trees differ for input '{}'",
+            input
         );
 
         // Validate left associativity for multiplication
@@ -399,7 +415,8 @@ mod arithmetic_parity {
 
         assert!(
             trees_equal(&glr_tree, &lr_tree),
-            "GLR and LR trees differ for input '{}'", input
+            "GLR and LR trees differ for input '{}'",
+            input
         );
 
         // Just validate it parses and structures match
@@ -421,7 +438,8 @@ mod arithmetic_parity {
 
         assert!(
             trees_equal(&glr_tree, &lr_tree),
-            "GLR and LR trees differ for input '{}'", input
+            "GLR and LR trees differ for input '{}'",
+            input
         );
     }
 
@@ -438,7 +456,8 @@ mod arithmetic_parity {
 
         assert!(
             trees_equal(&glr_tree, &lr_tree),
-            "GLR and LR trees differ for input '{}'", input
+            "GLR and LR trees differ for input '{}'",
+            input
         );
 
         // Validate deep left-nesting
@@ -456,7 +475,8 @@ mod arithmetic_parity {
         // Should have significant depth for left-associative chain
         assert!(
             depth >= 5,
-            "Expected deep left-nesting, got depth {}", depth
+            "Expected deep left-nesting, got depth {}",
+            depth
         );
     }
 }

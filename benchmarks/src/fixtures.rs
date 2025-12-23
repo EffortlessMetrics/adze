@@ -41,7 +41,11 @@ impl FixtureGenerator {
     }
 
     /// Generate a Python fixture with approximately `target_loc` lines
-    fn generate_python_fixture(&self, filename: &str, target_loc: usize) -> Result<(), Box<dyn std::error::Error>> {
+    fn generate_python_fixture(
+        &self,
+        filename: &str,
+        target_loc: usize,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         println!("Generating {filename} (target: {target_loc} LOC)...");
 
         let mut code = String::new();
@@ -86,7 +90,6 @@ impl FixtureGenerator {
                 writeln!(&mut code, "\n# Module-level configuration")?;
                 writeln!(&mut code, "DEBUG = True")?;
                 writeln!(&mut code, "VERSION = '1.0.0'")?;
-                current_loc += 3;
                 break;
             }
         }
@@ -94,7 +97,6 @@ impl FixtureGenerator {
         // Add main guard
         writeln!(&mut code, "\nif __name__ == '__main__':")?;
         writeln!(&mut code, "    print('Benchmark fixture')")?;
-        current_loc += 2;
 
         // Write to file
         let output_path = self.output_dir.join("python").join(filename);
@@ -111,7 +113,11 @@ impl FixtureGenerator {
     }
 
     /// Generate a Python class (returns lines generated)
-    fn generate_python_class(&self, code: &mut String, idx: usize) -> Result<usize, std::fmt::Error> {
+    fn generate_python_class(
+        &self,
+        code: &mut String,
+        idx: usize,
+    ) -> Result<usize, std::fmt::Error> {
         let class_name = format!("DataProcessor{idx}");
         let mut lines = 0;
 
@@ -119,11 +125,17 @@ impl FixtureGenerator {
         lines += 1;
 
         // Docstring
-        writeln!(code, "    \"\"\"Process data with various transformations.\"\"\"")?;
+        writeln!(
+            code,
+            "    \"\"\"Process data with various transformations.\"\"\""
+        )?;
         lines += 1;
 
         // __init__
-        writeln!(code, "\n    def __init__(self, config: Optional[Dict[str, Any]] = None):")?;
+        writeln!(
+            code,
+            "\n    def __init__(self, config: Optional[Dict[str, Any]] = None):"
+        )?;
         writeln!(code, "        self.config = config or {{}}")?;
         writeln!(code, "        self.data: List[int] = []")?;
         writeln!(code, "        self.processed = False")?;
@@ -138,7 +150,10 @@ impl FixtureGenerator {
 
         // process method
         writeln!(code, "\n    def process(self) -> List[int]:")?;
-        writeln!(code, "        \"\"\"Process all data with transformation.\"\"\"")?;
+        writeln!(
+            code,
+            "        \"\"\"Process all data with transformation.\"\"\""
+        )?;
         writeln!(code, "        result = []")?;
         writeln!(code, "        for item in self.data:")?;
         writeln!(code, "            if item > 0:")?;
@@ -168,20 +183,33 @@ impl FixtureGenerator {
     }
 
     /// Generate a Python function (returns lines generated)
-    fn generate_python_function(&self, code: &mut String, idx: usize) -> Result<usize, std::fmt::Error> {
+    fn generate_python_function(
+        &self,
+        code: &mut String,
+        idx: usize,
+    ) -> Result<usize, std::fmt::Error> {
         let func_name = format!("process_items_{idx}");
         let mut lines = 0;
 
-        writeln!(code, "\ndef {func_name}(items: List[int], threshold: int = 0) -> Dict[str, Any]:")?;
+        writeln!(
+            code,
+            "\ndef {func_name}(items: List[int], threshold: int = 0) -> Dict[str, Any]:"
+        )?;
         lines += 1;
 
         // Docstring
-        writeln!(code, "    \"\"\"Process items and return statistics.\n    \n    Args:\n        items: List of integers to process\n        threshold: Minimum value to include\n        \n    Returns:\n        Dictionary with processing results\n    \"\"\"")?;
+        writeln!(
+            code,
+            "    \"\"\"Process items and return statistics.\n    \n    Args:\n        items: List of integers to process\n        threshold: Minimum value to include\n        \n    Returns:\n        Dictionary with processing results\n    \"\"\""
+        )?;
         lines += 1;
 
         // Function body
         writeln!(code, "    if not items:")?;
-        writeln!(code, "        return {{'count': 0, 'sum': 0, 'average': 0.0}}")?;
+        writeln!(
+            code,
+            "        return {{'count': 0, 'sum': 0, 'average': 0.0}}"
+        )?;
         writeln!(code, "    ")?;
         writeln!(code, "    filtered = [x for x in items if x > threshold]")?;
         writeln!(code, "    count = len(filtered)")?;
@@ -201,7 +229,11 @@ impl FixtureGenerator {
     }
 
     /// Generate a JavaScript fixture
-    fn generate_javascript_fixture(&self, filename: &str, target_loc: usize) -> Result<(), Box<dyn std::error::Error>> {
+    fn generate_javascript_fixture(
+        &self,
+        filename: &str,
+        target_loc: usize,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         println!("Generating {filename} (target: {target_loc} LOC)...");
 
         let mut code = String::new();
@@ -235,7 +267,6 @@ impl FixtureGenerator {
             } else {
                 writeln!(&mut code, "\n// Module exports")?;
                 writeln!(&mut code, "module.exports = {{ DataProcessor0 }};")?;
-                current_loc += 2;
                 break;
             }
         }
@@ -255,7 +286,11 @@ impl FixtureGenerator {
     }
 
     /// Generate a JavaScript class
-    fn generate_javascript_class(&self, code: &mut String, idx: usize) -> Result<usize, std::fmt::Error> {
+    fn generate_javascript_class(
+        &self,
+        code: &mut String,
+        idx: usize,
+    ) -> Result<usize, std::fmt::Error> {
         let class_name = format!("DataProcessor{idx}");
         let mut lines = 0;
 
@@ -311,7 +346,11 @@ impl FixtureGenerator {
     }
 
     /// Generate a JavaScript function
-    fn generate_javascript_function(&self, code: &mut String, idx: usize) -> Result<usize, std::fmt::Error> {
+    fn generate_javascript_function(
+        &self,
+        code: &mut String,
+        idx: usize,
+    ) -> Result<usize, std::fmt::Error> {
         let func_name = format!("processItems{idx}");
         let mut lines = 0;
 
@@ -331,8 +370,14 @@ impl FixtureGenerator {
         writeln!(code, "    count,")?;
         writeln!(code, "    sum,")?;
         writeln!(code, "    average,")?;
-        writeln!(code, "    min: filtered.length > 0 ? Math.min(...filtered) : null,")?;
-        writeln!(code, "    max: filtered.length > 0 ? Math.max(...filtered) : null")?;
+        writeln!(
+            code,
+            "    min: filtered.length > 0 ? Math.min(...filtered) : null,"
+        )?;
+        writeln!(
+            code,
+            "    max: filtered.length > 0 ? Math.max(...filtered) : null"
+        )?;
         writeln!(code, "  }};")?;
         writeln!(code, "}}")?;
         lines += 16;

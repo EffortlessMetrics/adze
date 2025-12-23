@@ -89,7 +89,10 @@ mod tests {
     fn test_simple_if_then_else() {
         // Simple if-then-else (no ambiguity)
         let result = grammar::parse("if a then other else other");
-        println!("Parse result for 'if a then other else other': {:?}", result);
+        println!(
+            "Parse result for 'if a then other else other': {:?}",
+            result
+        );
 
         match result {
             Ok(stmt) => {
@@ -135,7 +138,10 @@ mod tests {
                 }
             }
             Err(e) => {
-                println!("Parse error (expected with current LR implementation): {:?}", e);
+                println!(
+                    "Parse error (expected with current LR implementation): {:?}",
+                    e
+                );
                 // This is expected if GLR isn't preserving conflicts
                 // Once GLR is working, this should parse successfully
             }
@@ -160,7 +166,10 @@ mod tests {
         eprintln!("  States: {}", table.state_count);
         eprintln!("  Shift/Reduce conflicts: {}", summary.shift_reduce);
         eprintln!("  Reduce/Reduce conflicts: {}", summary.reduce_reduce);
-        eprintln!("  States with conflicts: {:?}", summary.states_with_conflicts);
+        eprintln!(
+            "  States with conflicts: {:?}",
+            summary.states_with_conflicts
+        );
 
         // Expected: Exactly 1 shift/reduce conflict on "else" token
         //
@@ -221,14 +230,12 @@ mod tests {
         let result = grammar::parse("if a then if b then other");
 
         match result {
-            Ok(stmt) => {
-                match stmt {
-                    Statement::IfThen(_, _, _, inner) => {
-                        assert!(matches!(*inner, Statement::IfThen(_, _, _, _)));
-                    }
-                    _ => panic!("Expected IfThen at top level"),
+            Ok(stmt) => match stmt {
+                Statement::IfThen(_, _, _, inner) => {
+                    assert!(matches!(*inner, Statement::IfThen(_, _, _, _)));
                 }
-            }
+                _ => panic!("Expected IfThen at top level"),
+            },
             Err(e) => panic!("Parse failed: {:?}", e),
         }
     }
@@ -239,14 +246,12 @@ mod tests {
         let result = grammar::parse("if a then if b then other else other else other");
 
         match result {
-            Ok(stmt) => {
-                match stmt {
-                    Statement::IfThenElse(_, _, _, inner, _, _) => {
-                        assert!(matches!(*inner, Statement::IfThenElse(_, _, _, _, _, _)));
-                    }
-                    _ => panic!("Expected IfThenElse at top level"),
+            Ok(stmt) => match stmt {
+                Statement::IfThenElse(_, _, _, inner, _, _) => {
+                    assert!(matches!(*inner, Statement::IfThenElse(_, _, _, _, _, _)));
                 }
-            }
+                _ => panic!("Expected IfThenElse at top level"),
+            },
             Err(e) => panic!("Parse failed: {:?}", e),
         }
     }

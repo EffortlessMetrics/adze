@@ -5,7 +5,7 @@
 //!
 //! Reference: docs/plans/BDD_GLR_CONFLICT_PRESERVATION.md
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton, Action, ParseTable};
+use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Helper: Create the dangling-else grammar for conflict testing
@@ -150,7 +150,9 @@ fn analyze_conflicts(parse_table: &ParseTable) -> ConflictAnalysis {
                     analysis.reduce_reduce_conflicts += 1;
                 }
 
-                analysis.conflict_details.push((state, sym, actions.clone()));
+                analysis
+                    .conflict_details
+                    .push((state, sym, actions.clone()));
             }
         }
     }
@@ -171,15 +173,22 @@ fn scenario_1_detect_shift_reduce_conflicts() {
 
     // WHEN the LR(1) automaton is constructed
     let first_follow = FirstFollowSets::compute(&grammar).expect("FIRST/FOLLOW computation failed");
-    let parse_table = build_lr1_automaton(&grammar, &first_follow).expect("LR(1) automaton build failed");
+    let parse_table =
+        build_lr1_automaton(&grammar, &first_follow).expect("LR(1) automaton build failed");
 
     // THEN shift/reduce conflicts are detected in the parse table
     let analysis = analyze_conflicts(&parse_table);
 
     println!("\n=== Scenario 1: Conflict Detection ===");
     println!("Total conflicts: {}", analysis.total_conflicts);
-    println!("Shift/reduce conflicts: {}", analysis.shift_reduce_conflicts);
-    println!("Reduce/reduce conflicts: {}", analysis.reduce_reduce_conflicts);
+    println!(
+        "Shift/reduce conflicts: {}",
+        analysis.shift_reduce_conflicts
+    );
+    println!(
+        "Reduce/reduce conflicts: {}",
+        analysis.reduce_reduce_conflicts
+    );
 
     // AND the conflicts are reported with state and symbol information
     for (state, sym, actions) in &analysis.conflict_details {

@@ -441,13 +441,20 @@ impl GrammarJsParserV3 {
                         let body = rhs[arrow_pos + 2..].trim();
 
                         // Extract parameter name from (param) or param
-                        let param_name = params.trim_matches(|c: char| c == '(' || c == ')' || c.is_whitespace());
+                        let param_name = params
+                            .trim_matches(|c: char| c == '(' || c == ')' || c.is_whitespace());
 
                         // Remove trailing semicolon from body if present
                         let body = body.trim_end_matches(';').trim();
 
-                        helpers.insert(helper_name.to_string(), (param_name.to_string(), body.to_string()));
-                        eprintln!("Debug: Registered helper '{}' with param '{}' and body '{}'", helper_name, param_name, body);
+                        helpers.insert(
+                            helper_name.to_string(),
+                            (param_name.to_string(), body.to_string()),
+                        );
+                        eprintln!(
+                            "Debug: Registered helper '{}' with param '{}' and body '{}'",
+                            helper_name, param_name, body
+                        );
                     }
                 }
             }
@@ -509,7 +516,10 @@ impl GrammarJsParserV3 {
                 // Look for helperName(arg) pattern
                 let call_pattern = format!("{}(", helper_name);
                 if return_expr.contains(&call_pattern) {
-                    eprintln!("Debug: Expanding helper '{}' in return expression", helper_name);
+                    eprintln!(
+                        "Debug: Expanding helper '{}' in return expression",
+                        helper_name
+                    );
 
                     // Find the argument to the helper function call
                     if let Some(call_start) = return_expr.find(&call_pattern) {
@@ -520,8 +530,8 @@ impl GrammarJsParserV3 {
                         let mut arg_end = args_start;
                         let chars: Vec<char> = return_expr.chars().collect();
 
-                        for i in args_start..chars.len() {
-                            match chars[i] {
+                        for (i, ch) in chars.iter().enumerate().skip(args_start) {
+                            match ch {
                                 '(' => depth += 1,
                                 ')' => {
                                     depth -= 1;

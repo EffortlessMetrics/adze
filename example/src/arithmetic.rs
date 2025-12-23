@@ -516,11 +516,11 @@ mod glr_integration_tests {
     #[test]
     fn test_glr_error_handling() {
         let error_cases = vec![
-            "1 - - 2",  // Double operator
-            "1 - 2 -",  // Trailing operator
-            "- 2",      // Leading operator (not supported)
-            "1 2",      // Missing operator
-            "1 - * 2",  // Operator sequence
+            "1 - - 2", // Double operator
+            "1 - 2 -", // Trailing operator
+            "- 2",     // Leading operator (not supported)
+            "1 2",     // Missing operator
+            "1 - * 2", // Operator sequence
         ];
 
         for case in error_cases {
@@ -542,14 +542,7 @@ mod glr_integration_tests {
     #[test]
     fn test_glr_whitespace() {
         // Various whitespace patterns should all parse identically
-        let variations = vec![
-            "1-2",
-            "1 -2",
-            "1- 2",
-            "1 - 2",
-            "1  -  2",
-            "1\t-\t2",
-        ];
+        let variations = vec!["1-2", "1 -2", "1- 2", "1 - 2", "1  -  2", "1\t-\t2"];
 
         let expected = Expression::Sub(
             Box::new(Expression::Number(1)),
@@ -560,7 +553,12 @@ mod glr_integration_tests {
         for input in variations {
             let result = super::grammar::parse(input);
             assert!(result.is_ok(), "Failed to parse '{}': {:?}", input, result);
-            assert_eq!(result.unwrap(), expected, "Whitespace affected parsing of '{}'", input);
+            assert_eq!(
+                result.unwrap(),
+                expected,
+                "Whitespace affected parsing of '{}'",
+                input
+            );
         }
     }
 }

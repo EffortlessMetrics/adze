@@ -37,8 +37,14 @@ fn create_minimal_test_table() -> ParseTable {
         token_count: 1,
         external_token_count: 0,
         lex_modes: vec![
-            LexMode { lex_state: 0, external_lex_state: 0 },
-            LexMode { lex_state: 0, external_lex_state: 0 },
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            },
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            },
         ],
         extras: vec![],
         dynamic_prec_by_rule: vec![],
@@ -54,10 +60,7 @@ fn create_table_with_multi_action_cells() -> ParseTable {
     let mut table = create_minimal_test_table();
 
     // Add a multi-action cell at state 0, symbol 1
-    table.action_table[0][1] = vec![
-        Action::Shift(StateId(2)),
-        Action::Reduce(RuleId(1)),
-    ];
+    table.action_table[0][1] = vec![Action::Shift(StateId(2)), Action::Reduce(RuleId(1))];
 
     table
 }

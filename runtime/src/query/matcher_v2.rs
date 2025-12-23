@@ -2,6 +2,7 @@
 use super::ast::*;
 use super::predicate_eval::PredicateContext;
 use crate::parser_v4::ParseNode;
+use rust_sitter_glr_core::SymbolMetadata;
 use std::collections::HashMap;
 
 /// A match of a query pattern
@@ -33,12 +34,17 @@ struct MatchState {
 pub struct QueryMatcher<'a> {
     query: &'a Query,
     source: &'a str,
+    symbol_metadata: &'a [SymbolMetadata],
 }
 
 impl<'a> QueryMatcher<'a> {
     /// Create a new query matcher with source text
-    pub fn new(query: &'a Query, source: &'a str) -> Self {
-        QueryMatcher { query, source }
+    pub fn new(query: &'a Query, source: &'a str, symbol_metadata: &'a [SymbolMetadata]) -> Self {
+        QueryMatcher {
+            query,
+            source,
+            symbol_metadata,
+        }
     }
 
     /// Match all patterns in the query against a parse tree
@@ -113,8 +119,11 @@ impl<'a> QueryMatcher<'a> {
         if pattern.symbol != node.symbol {
             return false;
         }
-
-        // TODO: Check if named/anonymous matches once node metadata is available
+        // Confirm named/anonymous status matches the pattern expectation
+        // When node metadata becomes available, this will use the actual flag.
+        if self.node_is_named(node) != pattern.is_named {
+            return false;
+        }
 
         // Capture if needed
         if let Some(capture_id) = pattern.capture {
@@ -202,6 +211,23 @@ impl<'a> QueryMatcher<'a> {
         true
     }
 
+    /// Determine if a node should be treated as named using symbol metadata.
+    fn node_is_named(&self, node: &ParseNode) -> bool {
+        self.symbol_metadata
+            .get(node.symbol.0 as usize)
+            .map(|m| m.is_named)
+            .unwrap_or(true)
+    }
+
+    /// Determine if a node should be treated as an "extra" node that should
+    /// be ignored during pattern matching.
+    fn node_is_extra(&self, node: &ParseNode) -> bool {
+        self.symbol_metadata
+            .get(node.symbol.0 as usize)
+            .map(|m| m.is_extra)
+            .unwrap_or(false)
+    }
+
     /// Match a sequence of pattern children against node children
     fn match_child_sequence(
         &self,
@@ -213,8 +239,16 @@ impl<'a> QueryMatcher<'a> {
     ) -> bool {
         // Base case: all patterns matched
         if pattern_idx >= pattern_children.len() {
-            // TODO: Check for extra nodes once metadata is available
-            return true;
+            // If extra nodes remain, ensure they're ignorable
+            return node_children[node_idx..]
+                .iter()
+                .all(|n| self.node_is_extra(n));
+        }
+
+        let mut node_idx = node_idx;
+        // Skip over any extra nodes before attempting to match
+        while node_idx < node_children.len() && self.node_is_extra(&node_children[node_idx]) {
+            node_idx += 1;
         }
 
         // Base case: no more nodes but patterns remain
@@ -224,8 +258,6 @@ impl<'a> QueryMatcher<'a> {
                 .iter()
                 .all(|p| matches!(p, PatternChild::Node(n) if n.quantifier != Quantifier::One));
         }
-
-        // TODO: Skip extra nodes once metadata is available
 
         // Try to match current pattern
         match &pattern_children[pattern_idx] {
@@ -280,8 +312,13 @@ pub struct QueryMatches<'a> {
 
 impl<'a> QueryMatches<'a> {
     /// Create a new query matches iterator
-    pub fn new(query: &'a Query, root: &'a ParseNode, source: &'a str) -> Self {
-        let matcher = QueryMatcher::new(query, source);
+    pub fn new(
+        query: &'a Query,
+        root: &'a ParseNode,
+        source: &'a str,
+        symbol_metadata: &'a [SymbolMetadata],
+    ) -> Self {
+        let matcher = QueryMatcher::new(query, source, symbol_metadata);
         let matches = matcher.matches(root);
         QueryMatches {
             matcher,
@@ -311,6 +348,7 @@ impl<'a> Iterator for QueryMatches<'a> {
 mod tests {
     use super::*;
     use crate::query::compile_query;
+    use rust_sitter_glr_core::SymbolMetadata;
     use rust_sitter_ir::{Grammar, SymbolId, Token, TokenPattern};
 
     fn make_node(symbol: u16, start: usize, end: usize) -> ParseNode {
@@ -336,6 +374,31 @@ mod tests {
             },
         );
         grammar
+    }
+
+    fn test_symbol_metadata() -> Vec<SymbolMetadata> {
+        vec![
+            SymbolMetadata {
+                name: "root".to_string(),
+                is_visible: true,
+                is_named: true,
+                is_supertype: false,
+                is_terminal: false,
+                is_extra: false,
+                is_fragile: false,
+                symbol_id: SymbolId(0),
+            },
+            SymbolMetadata {
+                name: "identifier".to_string(),
+                is_visible: true,
+                is_named: true,
+                is_supertype: false,
+                is_terminal: true,
+                is_extra: false,
+                is_fragile: false,
+                symbol_id: SymbolId(1),
+            },
+        ]
     }
 
     #[test]
@@ -366,7 +429,8 @@ mod tests {
         };
 
         // Match with predicates
-        let matcher = QueryMatcher::new(&query, source);
+        let metadata = test_symbol_metadata();
+        let matcher = QueryMatcher::new(&query, source, &metadata);
         let matches = matcher.matches(&root);
 
         // Should match only the "test" identifiers
@@ -399,7 +463,8 @@ mod tests {
         };
 
         // Match without predicates - should match all identifiers
-        let matcher = QueryMatcher::new(&query, source);
+        let metadata = test_symbol_metadata();
+        let matcher = QueryMatcher::new(&query, source, &metadata);
         let matches = matcher.matches(&root);
 
         assert_eq!(matches.len(), 3);
@@ -433,7 +498,8 @@ mod tests {
             field_name: None,
         };
 
-        let matcher = QueryMatcher::new(&query, source);
+        let metadata = test_symbol_metadata();
+        let matcher = QueryMatcher::new(&query, source, &metadata);
         let matches = matcher.matches(&root);
 
         // Should not match anything

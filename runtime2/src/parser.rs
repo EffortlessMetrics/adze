@@ -190,9 +190,9 @@ impl Parser {
     ///
     #[cfg(feature = "pure-rust-glr")]
     fn parse_glr(&mut self, input: &[u8], _old_tree: Option<&Tree>) -> Result<Tree, ParseError> {
+        use crate::forest_converter::{DisambiguationStrategy, ForestConverter};
         use crate::glr_engine::{GLRConfig, GLREngine};
         use crate::tokenizer::{Tokenizer, WhitespaceMode};
-        use crate::forest_converter::{ForestConverter, DisambiguationStrategy};
 
         // Get GLR state
         let glr_state = self
@@ -204,7 +204,9 @@ impl Parser {
         let tokens = if let Some(ref patterns) = glr_state.token_patterns {
             // Use real tokenizer with provided patterns
             let tokenizer = Tokenizer::new(patterns.clone(), WhitespaceMode::Skip);
-            tokenizer.scan(input).map_err(|e| ParseError::with_msg(&e.to_string()))?
+            tokenizer
+                .scan(input)
+                .map_err(|e| ParseError::with_msg(&e.to_string()))?
         } else {
             // Fallback: stub tokenizer for backward compatibility
             vec![crate::Token {
@@ -221,7 +223,8 @@ impl Parser {
 
         // Phase 3.2 Component 2: Convert forest to Tree
         let converter = ForestConverter::new(DisambiguationStrategy::PreferShift);
-        let mut tree = converter.to_tree(&forest, input)
+        let mut tree = converter
+            .to_tree(&forest, input)
             .map_err(|e| ParseError::with_msg(&e.to_string()))?;
 
         // Phase 3.3: Build Language from ParseTable for symbol names
@@ -246,16 +249,24 @@ impl Parser {
     /// - Unknown symbols: Use "unknown"
     ///
     #[cfg(feature = "pure-rust-glr")]
-    fn build_language_from_parse_table(parse_table: &'static rust_sitter_glr_core::ParseTable) -> Language {
+    fn build_language_from_parse_table(
+        parse_table: &'static rust_sitter_glr_core::ParseTable,
+    ) -> Language {
         use std::collections::BTreeMap;
 
         // Find maximum symbol ID to size the symbol_names Vec correctly
         // (symbol_count may not match max symbol ID due to sparse symbol numbering)
-        let max_terminal_id = parse_table.grammar.tokens.keys()
+        let max_terminal_id = parse_table
+            .grammar
+            .tokens
+            .keys()
             .map(|id| id.0 as usize)
             .max()
             .unwrap_or(0);
-        let max_nonterminal_id = parse_table.grammar.rule_names.keys()
+        let max_nonterminal_id = parse_table
+            .grammar
+            .rule_names
+            .keys()
             .map(|id| id.0 as usize)
             .max()
             .unwrap_or(0);
@@ -469,7 +480,10 @@ impl Parser {
     /// See [`docs/GLR_PARSETABLE_QUICKSTART.md`](https://github.com/EffortlessMetrics/rust-sitter/blob/main/docs/GLR_PARSETABLE_QUICKSTART.md) for usage guide.
     ///
     #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "pure-rust-glr", feature = "serialization"))))]
+    #[cfg_attr(
+        docsrs,
+        doc(cfg(all(feature = "pure-rust-glr", feature = "serialization")))
+    )]
     pub fn load_glr_table_from_bytes(&mut self, bytes: &[u8]) -> Result<(), ParseError> {
         // Parse .parsetable file format
         // Format: magic(4) + version(4) + hash(32) + metadata_len(4) + metadata(variable) + table_len(4) + table(variable)
@@ -503,7 +517,8 @@ impl Parser {
         // TODO Phase 3.3: Verify hash matches expected grammar
 
         // Read metadata length
-        let metadata_len = u32::from_le_bytes([bytes[40], bytes[41], bytes[42], bytes[43]]) as usize;
+        let metadata_len =
+            u32::from_le_bytes([bytes[40], bytes[41], bytes[42], bytes[43]]) as usize;
 
         let metadata_start = 44;
         let metadata_end = metadata_start + metadata_len;
@@ -522,7 +537,7 @@ impl Parser {
         // Read table data length
         if bytes.len() < metadata_end + 4 {
             return Err(ParseError::with_msg(
-                "Invalid .parsetable file: missing table length"
+                "Invalid .parsetable file: missing table length",
             ));
         }
 
@@ -547,8 +562,9 @@ impl Parser {
         let table_bytes = &bytes[table_start..table_end];
 
         // Deserialize ParseTable using glr-core serialization
-        let table = rust_sitter_glr_core::ParseTable::from_bytes(table_bytes)
-            .map_err(|e| ParseError::with_msg(&format!("Failed to deserialize ParseTable: {}", e)))?;
+        let table = rust_sitter_glr_core::ParseTable::from_bytes(table_bytes).map_err(|e| {
+            ParseError::with_msg(&format!("Failed to deserialize ParseTable: {}", e))
+        })?;
 
         // Leak the table to get a 'static reference
         // This is safe because parse tables are immutable and live for the entire program

@@ -6,7 +6,7 @@
 
 #[cfg(feature = "pure-rust-glr")]
 mod glr_integration {
-    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
     use rust_sitter_ir::builder::GrammarBuilder;
     use rust_sitter_runtime::Parser;
 
@@ -69,7 +69,7 @@ mod glr_integration {
 
     #[test]
     fn test_glr_parser_mode_switching() {
-        use rust_sitter_runtime::{language::SymbolMetadata, Language};
+        use rust_sitter_runtime::{Language, language::SymbolMetadata};
 
         let mut parser = Parser::new();
         let table = create_static_parse_table();

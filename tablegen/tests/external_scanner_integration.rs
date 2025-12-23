@@ -64,9 +64,9 @@ fn test_language_generation_with_external_scanner() {
     parse_table.symbol_metadata = vec![
         SymbolMetadata {
             name: "EOF".to_string(),
-            visible: false,
-            named: false,
-            supertype: false,
+            is_visible: false,
+            is_named: false,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: true, // EOF is typically a terminal
             is_extra: false,
@@ -79,9 +79,9 @@ fn test_language_generation_with_external_scanner() {
     // Mark external tokens as visible and named
     parse_table.symbol_metadata[100] = SymbolMetadata {
         name: "HEREDOC_BODY".to_string(),
-        visible: true,
-        named: true,
-        supertype: false,
+        is_visible: true,
+        is_named: true,
+        is_supertype: false,
         // Additional fields required by GLR core API contracts
         is_terminal: true, // External token is a terminal
         is_extra: false,
@@ -91,9 +91,9 @@ fn test_language_generation_with_external_scanner() {
 
     parse_table.symbol_metadata[101] = SymbolMetadata {
         name: "TEMPLATE_STRING".to_string(),
-        visible: true,
-        named: true,
-        supertype: false,
+        is_visible: true,
+        is_named: true,
+        is_supertype: false,
         // Additional fields required by GLR core API contracts
         is_terminal: true, // External token is a terminal
         is_extra: false,
@@ -182,9 +182,9 @@ fn test_node_types_include_external_tokens() {
         symbol_metadata: vec![
             SymbolMetadata {
                 name: "EOF".to_string(),
-                visible: false,
-                named: false,
-                supertype: false,
+                is_visible: false,
+                is_named: false,
+                is_supertype: false,
                 // Additional fields required by GLR core API contracts
                 is_terminal: true, // EOF is typically a terminal
                 is_extra: false,

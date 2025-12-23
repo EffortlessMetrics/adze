@@ -397,12 +397,16 @@ impl GrammarJsConverter {
                                 );
                             }
                         }
-                        JsRule::Seq { members: seq_members } => {
+                        JsRule::Seq {
+                            members: seq_members,
+                        } => {
                             // Handle SEQ directly in CHOICE (e.g., inlined Binary variant)
                             // Convert each member of the SEQ to a symbol and create a production
                             eprintln!(
                                 "Debug: CHOICE member {} is SEQ with {} members for {}",
-                                i, seq_members.len(), lhs.0
+                                i,
+                                seq_members.len(),
+                                lhs.0
                             );
                             let mut rhs = Vec::new();
                             for seq_member in seq_members {
@@ -416,7 +420,10 @@ impl GrammarJsConverter {
                                 }
                             }
                             if !rhs.is_empty() {
-                                eprintln!("Debug: Adding rule {} -> {:?} (from inlined SEQ)", lhs.0, rhs);
+                                eprintln!(
+                                    "Debug: Adding rule {} -> {:?} (from inlined SEQ)",
+                                    lhs.0, rhs
+                                );
                                 self.add_rule(grammar, lhs, rhs, None, None);
                             }
                         }

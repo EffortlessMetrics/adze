@@ -40,9 +40,9 @@ fn create_simple_grammar() -> (Grammar, ParseTable) {
         symbol_metadata: vec![
             SymbolMetadata {
                 name: "token".to_string(),
-                visible: true,
-                named: true,
-                supertype: false,
+                is_visible: true,
+                is_named: true,
+                is_supertype: false,
                 // Additional fields required by GLR core API contracts
                 is_terminal: true, // Default test tokens as terminals
                 is_extra: false,
@@ -132,9 +132,9 @@ fn test_table_compression() {
     parse_table.symbol_metadata = vec![
         SymbolMetadata {
             name: "symbol".to_string(),
-            visible: true,
-            named: true,
-            supertype: false,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: true, // Default test symbols as terminals
             is_extra: false,

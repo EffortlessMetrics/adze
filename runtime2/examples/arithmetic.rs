@@ -37,14 +37,13 @@
 //! - [ ] Performance: parse time < 100ms for simple expressions
 //! - [ ] Memory: no leaks, bounded usage
 
-use rust_sitter_runtime::{Parser, Tree, Token};
-use rust_sitter_runtime::tokenizer::{TokenPattern, Matcher, WhitespaceMode};
-use rust_sitter_runtime::language::SymbolMetadata;
-use rust_sitter_glr_core::{SymbolId, ParseTable, FirstFollowSets, build_lr1_automaton};
+use rust_sitter_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
 use rust_sitter_ir::{
-    Grammar, ProductionId, Rule, Symbol,
-    Token as IrToken, TokenPattern as IrTokenPattern,
+    Grammar, ProductionId, Rule, Symbol, Token as IrToken, TokenPattern as IrTokenPattern,
 };
+use rust_sitter_runtime::language::SymbolMetadata;
+use rust_sitter_runtime::tokenizer::{Matcher, TokenPattern, WhitespaceMode};
+use rust_sitter_runtime::{Parser, Token, Tree};
 
 /// AST representation for parsed expressions
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -127,7 +126,7 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
             Symbol::Terminal(minus_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),  // Lower precedence
+        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)), // Lower precedence
         associativity: Some(rust_sitter_ir::Associativity::Left),
         production_id: ProductionId(1),
         fields: vec![],
@@ -141,7 +140,7 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
             Symbol::Terminal(star_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)),  // Higher precedence
+        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)), // Higher precedence
         associativity: Some(rust_sitter_ir::Associativity::Left),
         production_id: ProductionId(2),
         fields: vec![],
@@ -155,28 +154,28 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
     // Symbol metadata
     let symbol_metadata = vec![
         SymbolMetadata {
-            is_terminal: true,
-            is_visible: false,
+            terminal: true,
+            visible: false,
             is_supertype: false,
         }, // EOF
         SymbolMetadata {
-            is_terminal: true,
-            is_visible: true,
+            terminal: true,
+            visible: true,
             is_supertype: false,
         }, // NUMBER
         SymbolMetadata {
-            is_terminal: true,
-            is_visible: true,
+            terminal: true,
+            visible: true,
             is_supertype: false,
         }, // MINUS
         SymbolMetadata {
-            is_terminal: true,
-            is_visible: true,
+            terminal: true,
+            visible: true,
             is_supertype: false,
         }, // STAR
         SymbolMetadata {
-            is_terminal: false,
-            is_visible: true,
+            terminal: false,
+            visible: true,
             is_supertype: false,
         }, // expr
     ];
@@ -256,7 +255,10 @@ fn main() {
             Ok(tree) => {
                 println!("   ✓ Parsed successfully");
                 println!("   Root kind: {}", tree.root_kind());
-                println!("   Source: {:?}", tree.source_bytes().map(|b| String::from_utf8_lossy(b)));
+                println!(
+                    "   Source: {:?}",
+                    tree.source_bytes().map(|b| String::from_utf8_lossy(b))
+                );
             }
             Err(e) => {
                 println!("   ✗ Parse error: {}", e);
@@ -377,11 +379,11 @@ mod tests {
     #[test]
     fn test_error_handling() {
         let error_cases = vec![
-            "1--2",   // Double operator
-            "1-2-",   // Trailing operator
-            "-2",     // Leading operator (not supported)
-            "1 2",    // Missing operator (will fail tokenization due to gap)
-            "1-*2",   // Operator sequence
+            "1--2", // Double operator
+            "1-2-", // Trailing operator
+            "-2",   // Leading operator (not supported)
+            "1 2",  // Missing operator (will fail tokenization due to gap)
+            "1-*2", // Operator sequence
         ];
 
         for case in error_cases {
@@ -403,22 +405,11 @@ mod tests {
     #[test]
     fn test_whitespace_handling() {
         // All these should parse successfully
-        let variations = vec![
-            "1-2",
-            "1- 2",
-            "1 -2",
-            "1 - 2",
-            "1  -  2",
-        ];
+        let variations = vec!["1-2", "1- 2", "1 -2", "1 - 2", "1  -  2"];
 
         for input in variations {
             let result = parse(input);
-            assert!(
-                result.is_ok(),
-                "Failed to parse '{}': {:?}",
-                input,
-                result
-            );
+            assert!(result.is_ok(), "Failed to parse '{}': {:?}", input, result);
         }
     }
 

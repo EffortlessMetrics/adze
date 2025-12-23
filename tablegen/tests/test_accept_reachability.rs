@@ -181,7 +181,7 @@ fn test_accept_action_exists_in_generated_code() {
     // Check for this value in the generated code
     let has_accept = code_str.contains("0xFFFF") ||     // Accept action encoding (uppercase)
                       code_str.contains("0xffff") ||     // Accept action encoding (lowercase)
-                      code_str.contains("65535");        // Decimal form of 0xFFFF
+                      code_str.contains("65535"); // Decimal form of 0xFFFF
 
     assert!(
         has_accept,

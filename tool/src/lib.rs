@@ -791,7 +791,10 @@ mod tests {
         eprintln!("\n=== Testing Binary Variant Inlined Generation ===\n");
 
         let grammar = generate_grammar(&m).expect("Failed to generate grammar");
-        eprintln!("Generated grammar:\n{}", serde_json::to_string_pretty(&grammar).unwrap());
+        eprintln!(
+            "Generated grammar:\n{}",
+            serde_json::to_string_pretty(&grammar).unwrap()
+        );
 
         // Extract rules
         let rules = grammar.get("rules").expect("No rules in grammar");
@@ -804,7 +807,10 @@ mod tests {
 
         // Find the Expr rule
         let expr_rule = rules_obj.get("Expr").expect("No Expr rule found!");
-        eprintln!("\n=== Expr Rule ===\n{}", serde_json::to_string_pretty(expr_rule).unwrap());
+        eprintln!(
+            "\n=== Expr Rule ===\n{}",
+            serde_json::to_string_pretty(expr_rule).unwrap()
+        );
 
         // Expr should be a CHOICE
         let expr_type = expr_rule.get("type").and_then(serde_json::Value::as_str);
@@ -816,7 +822,11 @@ mod tests {
 
         eprintln!("\n=== Expr CHOICE Members ({}) ===", members_array.len());
         for (i, member) in members_array.iter().enumerate() {
-            eprintln!("Member {}:\n{}", i, serde_json::to_string_pretty(member).unwrap());
+            eprintln!(
+                "Member {}:\n{}",
+                i,
+                serde_json::to_string_pretty(member).unwrap()
+            );
         }
 
         // CRITICAL ASSERTION: Expr CHOICE should have 2 members (Binary + Number)
@@ -830,7 +840,9 @@ mod tests {
 
         // Check first member (should be Binary - a SEQ with 3 fields)
         let binary_member = &members_array[0];
-        let binary_type = binary_member.get("type").and_then(serde_json::Value::as_str);
+        let binary_type = binary_member
+            .get("type")
+            .and_then(serde_json::Value::as_str);
 
         assert_eq!(
             binary_type,
@@ -840,8 +852,12 @@ mod tests {
         );
 
         // Binary SEQ should have 3 members (Expr, Op, Expr)
-        let binary_members = binary_member.get("members").expect("No members in Binary SEQ");
-        let binary_members_array = binary_members.as_array().expect("Binary members not an array");
+        let binary_members = binary_member
+            .get("members")
+            .expect("No members in Binary SEQ");
+        let binary_members_array = binary_members
+            .as_array()
+            .expect("Binary members not an array");
 
         assert_eq!(
             binary_members_array.len(),
@@ -852,7 +868,9 @@ mod tests {
 
         // Check second member (should be Number - a PATTERN)
         let number_member = &members_array[1];
-        let number_type = number_member.get("type").and_then(serde_json::Value::as_str);
+        let number_type = number_member
+            .get("type")
+            .and_then(serde_json::Value::as_str);
 
         assert_eq!(
             number_type,

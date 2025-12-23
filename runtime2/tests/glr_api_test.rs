@@ -6,9 +6,9 @@
 
 #[cfg(feature = "pure-rust-glr")]
 mod glr_api_tests {
-    use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
     use rust_sitter_ir::builder::GrammarBuilder;
-    use rust_sitter_runtime::{language::SymbolMetadata, Parser};
+    use rust_sitter_runtime::{Parser, language::SymbolMetadata};
 
     /// Build a simple ambiguous expression grammar for testing
     ///
@@ -102,10 +102,12 @@ mod glr_api_tests {
         let result = parser.set_symbol_metadata(metadata);
 
         assert!(result.is_err(), "Should fail without GLR table set");
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("call set_glr_table()"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("call set_glr_table()")
+        );
     }
 
     #[test]
@@ -136,7 +138,10 @@ mod glr_api_tests {
     #[test]
     fn test_is_glr_mode_returns_false_initially() {
         let parser = Parser::new();
-        assert!(!parser.is_glr_mode(), "New parser should not be in GLR mode");
+        assert!(
+            !parser.is_glr_mode(),
+            "New parser should not be in GLR mode"
+        );
     }
 
     #[test]
@@ -146,7 +151,10 @@ mod glr_api_tests {
 
         parser.set_glr_table(table).unwrap();
 
-        assert!(parser.is_glr_mode(), "Parser should be in GLR mode after set_glr_table");
+        assert!(
+            parser.is_glr_mode(),
+            "Parser should be in GLR mode after set_glr_table"
+        );
     }
 
     // TODO: Add more tests once GLR parsing is implemented

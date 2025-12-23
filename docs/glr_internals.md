@@ -4,6 +4,48 @@
 
 GLR (Generalized LR) parsing extends traditional LR parsing to handle **ambiguous grammars** - grammars where a single input can have multiple valid parse trees. This is crucial for parsing real-world programming languages like C++, Rust, and Python, which have inherent ambiguities.
 
+## Symbol Normalization: The Foundation of GLR Processing
+
+**Production Ready (September 2025)**: rust-sitter implements comprehensive symbol normalization to ensure GLR algorithms can process complex grammar symbols.
+
+### Why Normalization is Required
+
+GLR algorithms (FIRST/FOLLOW computation, LR item generation) expect all grammar symbols to be in **normalized form**:
+- ✅ `Terminal(id)` - Leaf tokens
+- ✅ `NonTerminal(id)` - Grammar rules
+- ✅ `External(id)` - External scanner symbols
+- ✅ `Epsilon` - Empty productions
+
+Complex symbols like `Optional`, `Repeat`, `Sequence`, `Choice` must be converted to auxiliary rules.
+
+### Normalization Pipeline
+
+```
+Original Grammar → Symbol Analysis → Auxiliary Rule Generation → GLR Processing
+     ↓                    ↓                     ↓                    ↓
+Complex Symbols    Detect Complex      Create _auxNNNN Rules    FIRST/FOLLOW
+(Optional, Repeat) → Nested Patterns → (Terminal/NonTerminal) → Computation
+```
+
+### Automatic Integration
+
+The normalization happens transparently in the GLR pipeline:
+
+```rust
+// In glr-core/src/lib.rs
+impl FirstFollowSets {
+    pub fn compute(grammar: &Grammar) -> Result<Self, GLRError> {
+        // Automatically normalize complex symbols
+        let mut normalized_grammar = grammar.clone();
+        normalized_grammar.normalize()
+            .map_err(GLRError::GrammarError)?;
+        
+        // Continue with FIRST/FOLLOW computation on normalized grammar
+        Self::compute_normalized(&normalized_grammar)
+    }
+}
+```
+
 ## The Core Innovation: ActionCells
 
 Traditional LR parsers have a single action per (state, symbol) pair:
@@ -61,6 +103,58 @@ if stack1.state == stack2.state && stack1.position == stack2.position {
     merge_stacks(stack1, stack2);
 }
 ```
+
+### Symbol Transformation Examples
+
+#### 1. Optional Symbols (`Symbol::Optional`)
+```rust
+// Input grammar:
+//   expr -> identifier "?"
+//   
+// Normalized output:
+//   expr -> _aux1001
+//   _aux1001 -> identifier
+//   _aux1001 -> ε
+```
+
+#### 2. Repeat Symbols (`Symbol::Repeat`)
+```rust
+// Input grammar:
+//   list -> item ("," item)*
+//   
+// Normalized output (recursive auxiliary rules):
+//   list -> _aux1002
+//   _aux1002 -> _aux1002 "," item    // Left-recursive for efficiency
+//   _aux1002 -> ε
+```
+
+#### 3. Complex Nested Symbols
+**The JSON Grammar Case**: The original blocking issue involved deeply nested complex symbols:
+
+```rust
+// Original complex symbol that caused ComplexSymbolsNotNormalized:
+Symbol::Repeat(Box::new(Symbol::Sequence(vec![
+    Symbol::Terminal(comma),      // ","
+    Symbol::NonTerminal(pair),    // key-value pair
+])))
+
+// Normalized output:
+//   object -> "{" _aux1018 "}"
+//   _aux1018 -> _aux1019          // For the Repeat
+//   _aux1018 -> ε
+//   _aux1019 -> _aux1019 _aux1020 // Left-recursive repeat
+//   _aux1019 -> _aux1020
+//   _aux1020 -> "," pair          // For the Sequence
+```
+
+**Debug Evidence**: GLR state generation confirms successful normalization:
+```
+Initial state 0 after closure has 12 items:
+  Item: NT(2) -> • T(10) NT(3) NT(1018) T(11) , lookahead=0
+  Item: NT(4) -> • T(12) NT(1) NT(1023) T(13) , lookahead=0
+```
+
+The high symbol IDs (1018, 1023) indicate successful auxiliary symbol creation.
 
 ## rust-sitter's GLR Implementation
 

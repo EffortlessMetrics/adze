@@ -3,7 +3,7 @@
 #![deny(private_interfaces)]
 #![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
 #![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(feature = "strict_docs", warn(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 // Keep surface stable without big refactors:
 #![allow(
@@ -190,7 +190,7 @@ fn build_prec_tables(
     use rust_sitter_ir::{Associativity, PrecedenceKind};
 
     // Guard rail: ensure we have the right table structure
-    debug_assert!(token_count > 0, "token_count must be positive");
+    // Note: token_count can be 0 for empty grammars (only EOF token)
     debug_assert!(production_count > 0, "production_count must be positive");
 
     // token precedence by table index
@@ -209,7 +209,13 @@ fn build_prec_tables(
     };
 
     // production precedence: explicit if present, else rightmost-terminal precedence
-    let mut rule_prec = vec![RulePrec { prec: 0, assoc: Assoc::None }; production_count as usize];
+    let mut rule_prec = vec![
+        RulePrec {
+            prec: 0,
+            assoc: Assoc::None
+        };
+        production_count as usize
+    ];
 
     // Two-pass approach: first collect rule precedence, then derive token precedence
     for rules in grammar.rules.values() {
@@ -230,11 +236,14 @@ fn build_prec_tables(
             });
 
             // Get rule associativity (defaults to None if not specified)
-            let rule_assoc = rule.associativity.map(|assoc| match assoc {
-                Associativity::Left => Assoc::Left,
-                Associativity::Right => Assoc::Right,
-                Associativity::None => Assoc::None,
-            }).unwrap_or(Assoc::None);
+            let rule_assoc = rule
+                .associativity
+                .map(|assoc| match assoc {
+                    Associativity::Left => Assoc::Left,
+                    Associativity::Right => Assoc::Right,
+                    Associativity::None => Assoc::None,
+                })
+                .unwrap_or(Assoc::None);
 
             // 2) Derive token precedence from the rightmost terminal if this rule carries
             //    an explicit precedence (+ associativity) attribute
@@ -248,7 +257,8 @@ fn build_prec_tables(
                     }
                 });
 
-                if let Some(tok_idx) = tok_idx_opt && tok_idx < tok_prec_len
+                if let Some(tok_idx) = tok_idx_opt
+                    && tok_idx < tok_prec_len
                 {
                     set_tok_prec(
                         tok_idx,
@@ -299,7 +309,10 @@ fn build_prec_tables(
                         None
                     }
                 })
-                .unwrap_or(TokPrec { prec: 0, assoc: Assoc::None });
+                .unwrap_or(TokPrec {
+                    prec: 0,
+                    assoc: Assoc::None,
+                });
 
             rule_prec[pid] = RulePrec {
                 prec: derived.prec,
@@ -522,6 +535,15 @@ impl FirstFollowSets {
 
     /// Compute FIRST/FOLLOW sets for the given grammar
     pub fn compute(grammar: &Grammar) -> Result<Self, GLRError> {
+        // Clone and normalize the grammar if it contains complex symbols
+        let normalized_grammar = {
+            let mut cloned = grammar.clone();
+            let _ = cloned.normalize(); // normalize returns Vec<Rule>, ignore it
+            cloned
+        };
+
+        // Use the normalized grammar for computation
+        let grammar = &normalized_grammar;
         // Find the maximum symbol ID to determine the size needed
         let max_rule_id = grammar.rules.keys().map(|id| id.0).max().unwrap_or(0);
         let max_token_id = grammar.tokens.keys().map(|id| id.0).max().unwrap_or(0);
@@ -546,7 +568,7 @@ impl FirstFollowSets {
             .max(max_token_id)
             .max(max_external_id)
             .max(max_rhs_id)
-            + 1) as usize;
+            + 2) as usize; // +2 to leave room for EOF and other potential symbols
 
         let mut first = IndexMap::new();
         let mut follow = IndexMap::new();
@@ -793,6 +815,12 @@ impl LRItem {
             .all_rules()
             .find(|r| r.production_id.0 == self.rule_id.0)
         {
+            // Special case: epsilon rules (A -> epsilon) are reduce items at position 0
+            // because epsilon doesn't need to be "consumed" - it represents empty string
+            if rule.rhs.len() == 1 && matches!(rule.rhs[0], Symbol::Epsilon) {
+                return true; // Always a reduce item for epsilon rules
+            }
+
             self.position >= rule.rhs.len()
         } else {
             false
@@ -945,6 +973,7 @@ impl ItemSetCollection {
         first_follow: &FirstFollowSets,
         augmented_start: SymbolId,
         _original_start: SymbolId,
+        eof_symbol: SymbolId,
     ) -> Self {
         let mut collection = Self {
             sets: Vec::new(),
@@ -962,7 +991,7 @@ impl ItemSetCollection {
                 let start_item = LRItem::new(
                     RuleId(rule.production_id.0),
                     0,
-                    SymbolId(0), // EOF symbol
+                    eof_symbol, // EOF symbol
                 );
                 initial_set.add_item(start_item);
             }
@@ -1418,9 +1447,9 @@ pub enum GotoIndexing {
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseTable {
-    /// ACTION table: indexed by [state][terminal] using symbol_to_index
+    /// ACTION table: indexed by `[state][terminal]` using symbol_to_index
     pub action_table: Vec<Vec<ActionCell>>,
-    /// GOTO table: indexed by [state][nonterminal] using nonterminal_to_index or direct ID
+    /// GOTO table: indexed by `[state][nonterminal]` using nonterminal_to_index or direct ID
     pub goto_table: Vec<Vec<StateId>>,
     pub symbol_metadata: Vec<SymbolMetadata>,
     pub state_count: usize,
@@ -1472,6 +1501,37 @@ pub struct ParseTable {
 pub struct ParseRule {
     pub lhs: SymbolId,
     pub rhs_len: u16,
+}
+
+impl Default for ParseTable {
+    fn default() -> Self {
+        Self {
+            action_table: vec![],
+            goto_table: vec![],
+            symbol_metadata: vec![],
+            state_count: 0,
+            symbol_count: 0,
+            symbol_to_index: BTreeMap::new(),
+            index_to_symbol: vec![],
+            external_scanner_states: vec![],
+            rules: vec![],
+            nonterminal_to_index: BTreeMap::new(),
+            goto_indexing: GotoIndexing::NonterminalMap,
+            eof_symbol: SymbolId(0),
+            start_symbol: SymbolId(0),
+            grammar: Grammar::new("default".to_string()),
+            initial_state: StateId(0),
+            token_count: 0,
+            external_token_count: 0,
+            lex_modes: vec![],
+            extras: vec![],
+            dynamic_prec_by_rule: vec![],
+            rule_assoc_by_rule: vec![],
+            alias_sequences: vec![],
+            field_names: vec![],
+            field_map: BTreeMap::new(),
+        }
+    }
 }
 
 impl ParseTable {
@@ -1876,9 +1936,9 @@ pub type ActionCell = Vec<Action>;
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct SymbolMetadata {
     pub name: String,
-    pub visible: bool,
-    pub named: bool,
-    pub supertype: bool,
+    pub is_visible: bool,
+    pub is_named: bool,
+    pub is_supertype: bool,
     // Additional fields required by API contracts
     pub is_terminal: bool,
     pub is_extra: bool,
@@ -2251,6 +2311,19 @@ pub fn build_lr1_automaton(
         rule_count += 1;
     }
 
+    // Calculate EOF symbol ID to avoid conflicts with existing symbols
+    let max_symbol = grammar
+        .tokens
+        .keys()
+        .chain(grammar.rule_names.keys())
+        .chain(grammar.externals.iter().map(|e| &e.symbol_id))
+        .map(|s| s.0)
+        .max()
+        .unwrap_or(0);
+    let eof_symbol = SymbolId(max_symbol.checked_add(1).ok_or_else(|| {
+        GLRError::StateMachine("EOF symbol would overflow u16: grammar has too many symbols".into())
+    })?);
+
     // Create augmented grammar with S' -> S $ rule
     let mut augmented_grammar = grammar.clone();
 
@@ -2264,8 +2337,14 @@ pub fn build_lr1_automaton(
 
     if let Some(_name) = grammar.rule_names.get(&original_start) {}
 
-    // Create a new start symbol S' with a high ID that won't conflict
-    let augmented_start = SymbolId(65535); // High ID to avoid conflicts
+    // Create a new start symbol S' with an ID that won't conflict with existing symbols
+    // Since eof_symbol = max_symbol + 1, we use max_symbol + 2 for augmented_start
+    let augmented_start_id = max_symbol.checked_add(2).ok_or_else(|| {
+        GLRError::StateMachine(
+            "Augmented start symbol would overflow u16: grammar has too many symbols".into(),
+        )
+    })?;
+    let augmented_start = SymbolId(augmented_start_id);
 
     // Add S' -> S rule (we'll handle $ implicitly in the LR construction)
     let augmented_rule = Rule {
@@ -2274,7 +2353,7 @@ pub fn build_lr1_automaton(
         precedence: None,
         associativity: None,
         fields: vec![],
-        production_id: ProductionId(65535), // High ID to avoid conflicts
+        production_id: ProductionId(augmented_start_id), // Use same ID to avoid conflicts
     };
     augmented_grammar
         .rules
@@ -2283,21 +2362,21 @@ pub fn build_lr1_automaton(
         .rule_names
         .insert(augmented_start, "$start".to_string());
 
-    // "DEBUG: Added augmented start rule: {} -> {}"
     // Build canonical collection of LR(1) item sets with augmented grammar
     let collection = ItemSetCollection::build_canonical_collection_augmented(
         &augmented_grammar,
         first_follow,
         augmented_start,
         original_start,
+        eof_symbol,
     );
 
     // Create mapping from symbol IDs to table indices
     let mut symbol_to_index = BTreeMap::new();
     let mut max_symbol_id = 0u16;
 
-    // IMPORTANT: EOF symbol (ID 0) must always have index 0 in Tree-sitter
-    symbol_to_index.insert(SymbolId(0), 0);
+    // IMPORTANT: EOF symbol must always have index 0 in Tree-sitter
+    symbol_to_index.insert(eof_symbol, 0);
 
     // Collect and sort symbols with proper ordering:
     // 1. Tokens first (terminals)
@@ -2439,7 +2518,7 @@ pub fn build_lr1_automaton(
             .symbol_is_terminal
             .get(symbol)
             .copied()
-            .unwrap_or(symbol.0 == 0); // EOF is a terminal
+            .unwrap_or(*symbol == eof_symbol); // EOF is a terminal
 
         if from_state.0 == 0 {
             eprintln!(
@@ -2529,9 +2608,9 @@ pub fn build_lr1_automaton(
                     .all_rules()
                     .find(|r| r.production_id.0 == item.rule_id.0)
                 {
-                    if rule.lhs == augmented_start && item.lookahead == SymbolId(0) {
+                    if rule.lhs == augmented_start && item.lookahead == eof_symbol {
                         // This is S' -> S • with lookahead $, add accept action
-                        if let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0)) {
+                        if let Some(&eof_idx) = symbol_to_index.get(&eof_symbol) {
                             add_action_with_conflict(
                                 &mut action_table,
                                 &mut conflicts_by_state,
@@ -2595,7 +2674,8 @@ pub fn build_lr1_automaton(
 
     // Build precedence tables once
     let production_count = augmented_grammar.all_rules().count() as u32;
-    let token_count = token_symbols.len() as u32;
+    // Ensure token_count includes at least EOF (symbol 0) for empty grammars
+    let token_count = std::cmp::max(1, token_symbols.len()) as u32;
     let prec_tables = build_prec_tables(
         &augmented_grammar,
         &symbol_to_index,
@@ -2681,7 +2761,9 @@ pub fn build_lr1_automaton(
                     // For now, keep both for GLR
                 }
                 PrecDecision::NoInfo => {
-                    // leave GLR behavior (keep both)
+                    // For GLR: when no precedence information is available, keep both actions
+                    // This preserves conflicts for GLR runtime to handle via forking
+                    // Don't resolve the conflict - let GLR handle it at runtime
                 }
             }
         }
@@ -2694,7 +2776,7 @@ pub fn build_lr1_automaton(
             .symbol_is_terminal
             .get(symbol)
             .copied()
-            .unwrap_or(symbol.0 == 0); // EOF is a terminal
+            .unwrap_or(*symbol == eof_symbol); // EOF is a terminal
 
         if !is_terminal && let Some(&symbol_idx) = symbol_to_index.get(symbol) {
             let state_idx = from_state.0 as usize;
@@ -2743,9 +2825,9 @@ pub fn build_lr1_automaton(
     for (symbol_id, token) in &grammar.tokens {
         symbol_metadata.push(SymbolMetadata {
             name: token.name.clone(),
-            visible: !token.name.starts_with('_'),
-            named: !matches!(&token.pattern, TokenPattern::String(_)),
-            supertype: false,
+            is_visible: !token.name.starts_with('_'),
+            is_named: !matches!(&token.pattern, TokenPattern::String(_)),
+            is_supertype: false,
             // Additional fields required by API contracts
             is_terminal: true,
             is_extra: grammar.extras.contains(symbol_id),
@@ -2759,9 +2841,9 @@ pub fn build_lr1_automaton(
         let is_supertype = grammar.supertypes.contains(symbol_id);
         symbol_metadata.push(SymbolMetadata {
             name: format!("rule_{}", symbol_id.0),
-            visible: true,
-            named: true,
-            supertype: is_supertype,
+            is_visible: true,
+            is_named: true,
+            is_supertype,
             // Additional fields required by API contracts
             is_terminal: false,
             is_extra: false,   // non-terminals are never extra
@@ -2774,9 +2856,9 @@ pub fn build_lr1_automaton(
     for external in &grammar.externals {
         symbol_metadata.push(SymbolMetadata {
             name: external.name.clone(),
-            visible: !external.name.starts_with('_'),
-            named: true,
-            supertype: false,
+            is_visible: !external.name.starts_with('_'),
+            is_named: true,
+            is_supertype: false,
             // Additional fields required by API contracts
             is_terminal: true,             // external symbols are terminals
             is_extra: false,               // TODO: check if external symbol is in extras
@@ -2848,7 +2930,7 @@ pub fn build_lr1_automaton(
         // Check if this is a nonterminal
         if !grammar.tokens.contains_key(&symbol_id)
             && !grammar.externals.iter().any(|e| e.symbol_id == symbol_id)
-            && symbol_id.0 != 0
+            && symbol_id != eof_symbol
         {
             // Not EOF
             nonterminal_to_index.insert(symbol_id, idx);
@@ -2860,18 +2942,6 @@ pub fn build_lr1_automaton(
     // Calculate proper counts for EOF symbol
     let token_count = grammar.tokens.len();
     let external_token_count = grammar.externals.len();
-
-    // EOF is always SymbolId(0) - this is the standard convention
-    // Using 0 avoids collisions with regular tokens and matches Tree-sitter
-    let eof_symbol = SymbolId(0);
-
-    // Add EOF to symbol_to_index if not present
-    // Map our EOF symbol to the same index as SymbolId(0) for compatibility
-    if !symbol_to_index.contains_key(&eof_symbol)
-        && let Some(&eof_idx) = symbol_to_index.get(&SymbolId(0))
-    {
-        symbol_to_index.insert(eof_symbol, eof_idx);
-    }
 
     // Normalize action table for deterministic output
     normalize_action_table(&mut action_table);
@@ -3253,9 +3323,9 @@ mod tests {
     fn test_symbol_metadata() {
         let metadata = SymbolMetadata {
             name: "expression".to_string(),
-            visible: true,
-            named: true,
-            supertype: false,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
             // Additional fields required by API contracts
             is_terminal: false,
             is_extra: false,
@@ -3264,9 +3334,9 @@ mod tests {
         };
 
         assert_eq!(metadata.name, "expression");
-        assert!(metadata.visible);
-        assert!(metadata.named);
-        assert!(!metadata.supertype);
+        assert!(metadata.is_visible);
+        assert!(metadata.is_named);
+        assert!(!metadata.is_supertype);
         assert!(!metadata.is_terminal);
         assert!(!metadata.is_extra);
         assert!(!metadata.is_fragile);

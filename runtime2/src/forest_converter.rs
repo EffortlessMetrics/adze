@@ -5,10 +5,10 @@
 //! This module converts ParseForest (potentially containing multiple parse trees)
 //! into a single Tree structure using disambiguation strategies.
 
+use crate::Tree;
 use crate::error::ParseError;
 use crate::glr_engine::{ForestNode, ForestNodeId, ParseForest};
 use crate::tree::TreeNode;
-use crate::Tree;
 use rust_sitter_glr_core::SymbolId;
 use std::collections::HashSet;
 use std::fmt;
@@ -130,11 +130,7 @@ impl ForestConverter {
     /// Phase 1: Select root (disambiguation if multiple)
     /// Phase 2: Build tree via DFS traversal
     ///
-    pub fn to_tree(
-        &self,
-        forest: &ParseForest,
-        input: &[u8],
-    ) -> Result<Tree, ConversionError> {
+    pub fn to_tree(&self, forest: &ParseForest, input: &[u8]) -> Result<Tree, ConversionError> {
         // Phase 1: Select root
         if forest.roots.is_empty() {
             return Err(ConversionError::NoRoots);
@@ -186,9 +182,9 @@ impl ForestConverter {
     ) -> Result<ForestNodeId, ConversionError> {
         match self.strategy {
             DisambiguationStrategy::First => Ok(roots[0]),
-            DisambiguationStrategy::RejectAmbiguity => Err(ConversionError::AmbiguousForest {
-                count: roots.len(),
-            }),
+            DisambiguationStrategy::RejectAmbiguity => {
+                Err(ConversionError::AmbiguousForest { count: roots.len() })
+            }
             // For PreferShift/PreferReduce, we'd need metadata about which
             // root came from shift vs reduce. For now, default to first.
             _ => Ok(roots[0]),
@@ -205,9 +201,7 @@ impl ForestConverter {
     ) -> Result<TreeNode, ConversionError> {
         // Validate node ID
         if node_id.0 >= forest.nodes.len() {
-            return Err(ConversionError::InvalidNodeId {
-                node_id: node_id.0,
-            });
+            return Err(ConversionError::InvalidNodeId { node_id: node_id.0 });
         }
 
         // Cycle detection (commented out for now - can cause false positives in valid DAGs)
@@ -293,10 +287,7 @@ mod tests {
 
     #[test]
     fn test_disambiguation_strategy_equality() {
-        assert_eq!(
-            DisambiguationStrategy::First,
-            DisambiguationStrategy::First
-        );
+        assert_eq!(DisambiguationStrategy::First, DisambiguationStrategy::First);
         assert_ne!(
             DisambiguationStrategy::First,
             DisambiguationStrategy::PreferShift

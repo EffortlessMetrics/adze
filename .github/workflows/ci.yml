@@ -550,6 +550,37 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --workspace --no-deps --all-features
 
+  # Dedicated rust-sitter-python job to prevent timeouts
+  rust-sitter-python:
+    name: rust-sitter-python (Optimized Build)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: 2              # cap parallelism to reduce fork pressure
+      CARGO_INCREMENTAL: "1"           # incremental to speed rebuilds
+      RUSTFLAGS: "-C debuginfo=0 -C codegen-units=8"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            grammars/python -> target
+      - name: Build rust-sitter-python
+        run: cargo build -p rust-sitter-python --locked --jobs 2
+      - name: Compile tests (no run)
+        run: cargo test -p rust-sitter-python --locked --no-run --jobs 2
+      - name: Run tests
+        run: cargo test -p rust-sitter-python -- --test-threads 1 --nocapture
+      - name: Capture cargo timings
+        run: cargo build -p rust-sitter-python --timings && ls -R target/cargo-timings || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+            name: cargo-timings-python
+            path: target/cargo-timings
+
   cross-compile:
     name: Cross Compilation (${{ matrix.target }})
     runs-on: ubuntu-latest

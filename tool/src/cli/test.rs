@@ -5,6 +5,7 @@ use std::fs;
 use std::path::Path;
 
 /// Test result for a single file
+#[allow(dead_code)] // For future use in structured test output
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TestResult {
     pub file: String,

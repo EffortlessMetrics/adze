@@ -165,7 +165,7 @@ fn create_simple_parse_table() -> ParseTable {
 }
 
 #[test]
-#[ignore] // TODO: Update for parser_v4
+#[ignore = "TODO: Update for parser_v4"]
 fn test_parse_number() {
     let grammar = create_simple_arithmetic_grammar();
     let parse_table = create_simple_parse_table();
@@ -184,7 +184,7 @@ fn test_parse_number() {
 }
 
 #[test]
-#[ignore] // TODO: Update for parser_v4
+#[ignore = "TODO: Update for parser_v4"]
 fn test_parse_addition() {
     let grammar = create_simple_arithmetic_grammar();
     let parse_table = create_simple_parse_table();
@@ -204,7 +204,7 @@ fn test_parse_addition() {
 }
 
 #[test]
-#[ignore] // TODO: Update for parser_v4
+#[ignore = "TODO: Update for parser_v4"]
 fn test_parse_with_whitespace() {
     let grammar = create_simple_arithmetic_grammar();
     let parse_table = create_simple_parse_table();

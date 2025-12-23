@@ -6,10 +6,9 @@
 ///
 /// Spec: docs/specs/TABLE_GENERATION_VALIDATION_CONTRACT.md
 /// Phase: 2 - GLR Conflict Preservation Validation
-
 use rust_sitter_glr_core::conflict_inspection::*;
-use rust_sitter_glr_core::{build_lr1_automaton, Action, FirstFollowSets, ParseTable, StateId};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, RuleId, Symbol, SymbolId, Token, TokenPattern};
+use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::collections::BTreeMap;
 
 /// Helper to create a test grammar from a simplified specification
@@ -373,7 +372,10 @@ fn test_table_generation_smoke_test() {
         Ok((table, summary)) => {
             eprintln!("✅ Table generation smoke test passed");
             eprintln!("  States: {}", table.state_count);
-            eprintln!("  Conflicts: {}", summary.shift_reduce + summary.reduce_reduce);
+            eprintln!(
+                "  Conflicts: {}",
+                summary.shift_reduce + summary.reduce_reduce
+            );
             assert_eq!(summary.shift_reduce, 0);
             assert_eq!(summary.reduce_reduce, 0);
         }
