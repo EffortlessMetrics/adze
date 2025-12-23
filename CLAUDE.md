@@ -204,20 +204,31 @@ The tool crate (`/tool/`) now includes:
    - Compile-time: Macros mark types but don't generate parser code
    - Build-time: Tool reads the marked types and generates actual parser
 
-3. **Incremental Parsing Flow** (PR #62 - Production Ready):
-   - **Production API**: `Parser::reparse()` method integrated into main parser API 
-   - **GLR Integration**: Automatic routing to GLR incremental parsing with fallback
-   - **Direct Forest Splicing**: 16x performance improvement using chunk-based reuse
-   - **Subtree Reuse Tracking**: Global counters for monitoring reuse effectiveness
-   - **Feature-Gated**: Requires `incremental_glr` feature, graceful fallback when disabled
-   
-   **Core Implementation (Direct Forest Splicing)**:
+3. **Incremental Parsing Flow** (PR #62 - Experimental, Currently Disabled):
+
+   **IMPORTANT: Current Status**:
+   The incremental parsing path is currently **disabled** and falls back to fresh parsing
+   for consistency reasons. The architecture has known issues that cause behavioral
+   differences between incremental and fresh parsing. See `glr_incremental.rs:281-297`
+   for details.
+
+   **Infrastructure (present but not active)**:
+   - **Production API**: `Parser::reparse()` method exists in main parser API
+   - **GLR Integration**: Automatic routing exists with fallback to fresh parsing
+   - **Direct Forest Splicing**: Algorithm implemented but bypassed
+   - **Feature-Gated**: Requires `incremental_glr` feature
+
+   **Known Issues Preventing Enable**:
+   - Error tracking: hardcoded is_error: false in subtree creation
+   - Root kind determination: uses forest symbols vs actual parse results
+   - Token-level vs grammar-level parsing differences
+
+   **Algorithm Design (for future work)**:
    - **Chunk Identification**: Finds unchanged prefix/suffix token ranges
-   - **Middle-Only Parsing**: Parses ONLY the edited middle segment  
+   - **Middle-Only Parsing**: Parses ONLY the edited middle segment
    - **Forest Extraction**: Extracts reusable nodes from old forest
    - **Surgical Splicing**: Combines prefix + new middle + suffix forests
    - **Conservative Reuse**: Only reuses subtrees completely outside edit ranges
-   - **Performance Validation**: 999/1000 subtree reuse demonstrated on large files
 
    **Legacy Memory Safety** (PR #28 - runtime crate):
    - Trees support in-place editing via `Tree::edit()` for efficient incremental parsing
@@ -743,9 +754,13 @@ Successfully completed comprehensive golden test integration with rust-sitter-ge
 ### Known Issues (Being Addressed)
 
 1. **GLR Runtime Optimization**: Fork/merge logic needs performance tuning for large files
-2. **External Scanner FFI**: Integration with C scanners needs final touches  
-3. ~~**Incremental Parsing**~~: ✅ **COMPLETED** (PR #62) - Production-ready implementation integrated
+2. **External Scanner FFI**: Integration with C scanners needs final touches
+3. **Incremental Parsing Disabled**: The incremental parsing path in `glr_incremental.rs` is
+   currently disabled and falls back to fresh parsing. The infrastructure exists but has
+   architectural issues causing behavioral inconsistencies. See `glr_incremental.rs:281-297`.
+4. **Integration Test Failure**: `test_parentheses_grammar_generation` in tablegen fails due
+   to symbol layout issues in abi_builder.rs (non-terminal at terminal index position).
 
 **Resolved Issues**:
-- ✅ **Incremental Parsing** (PR #62): Production `reparse()` method with Direct Forest Splicing
+- ✅ **EOF Symbol Handling** (PR #67): Fixed hardcoded SymbolId(0) to use parse_table.eof_symbol
 - ✅ **Test Connectivity** (August 2025): All test files properly connected and running
