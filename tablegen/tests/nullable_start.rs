@@ -7,12 +7,12 @@ use rustc_hash::FxHashSet;
 /// Assert core invariants about state 0 in the parse table
 fn assert_state0_invariants(grammar: &Grammar, pt: &ParseTable) {
     use rust_sitter_glr_core::Action;
-    use rust_sitter_ir::SymbolId;
 
     let token_indices = collect_token_indices(grammar, pt);
+    // Use pt.eof_symbol to get the actual EOF symbol (dynamically assigned)
     let eof_idx = *pt
         .symbol_to_index
-        .get(&SymbolId(0))
+        .get(&pt.eof_symbol)
         .expect("EOF must be in symbol_to_index");
 
     // Invariant 1: EOF column must be in token_indices
@@ -106,8 +106,11 @@ fn nullable_start_allows_eof_accept_or_reduce() {
     let token_indices = collect_token_indices(&grammar, &parse_table);
 
     // Derive start_can_be_empty from EOF cell in state 0
-    use rust_sitter_ir::SymbolId;
-    let eof_idx = *parse_table.symbol_to_index.get(&SymbolId(0)).unwrap();
+    // Use parse_table.eof_symbol to get the actual EOF symbol (dynamically assigned)
+    let eof_idx = *parse_table
+        .symbol_to_index
+        .get(&parse_table.eof_symbol)
+        .unwrap();
     let state0 = &parse_table.action_table[0];
     let start_can_be_empty = state0[eof_idx]
         .iter()
@@ -191,8 +194,11 @@ fn non_nullable_start_has_no_eof_reduce() {
     let token_indices = collect_token_indices(&grammar, &parse_table);
 
     // Check EOF cell in state 0
-    use rust_sitter_ir::SymbolId;
-    let eof_idx = *parse_table.symbol_to_index.get(&SymbolId(0)).unwrap();
+    // Use parse_table.eof_symbol to get the actual EOF symbol (dynamically assigned)
+    let eof_idx = *parse_table
+        .symbol_to_index
+        .get(&parse_table.eof_symbol)
+        .unwrap();
     let state0 = &parse_table.action_table[0];
     let start_can_be_empty = state0[eof_idx]
         .iter()

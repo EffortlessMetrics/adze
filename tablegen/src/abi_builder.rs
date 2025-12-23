@@ -33,7 +33,7 @@ impl<'a> AbiLanguageBuilder<'a> {
 
     /// Get the name of a symbol for debugging
     fn get_symbol_name(&self, symbol_id: SymbolId) -> String {
-        if symbol_id.0 == 0 {
+        if symbol_id == self.parse_table.eof_symbol {
             "end".to_string()
         } else if let Some(name) = self.grammar.rule_names.get(&symbol_id) {
             name.clone()
@@ -332,7 +332,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             let ident = quote::format_ident!("SYMBOL_NAME_{}", idx);
 
             let name_str = if let Some(symbol_id) = symbol_id_opt {
-                if symbol_id.0 == 0 {
+                if *symbol_id == self.parse_table.eof_symbol {
                     // EOF symbol
                     "end".to_string()
                 } else if let Some(token) = self.grammar.tokens.get(symbol_id) {
@@ -443,7 +443,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         );
         for (idx, symbol_id_opt) in index_to_symbol.iter().enumerate() {
             if let Some(symbol_id) = symbol_id_opt {
-                if symbol_id.0 == 0 {
+                if *symbol_id == self.parse_table.eof_symbol {
                     // EOF symbol
                     let meta_byte = create_symbol_metadata(true, false, false, false, false);
                     eprintln!("    Index {}: EOF, metadata={:#x}", idx, meta_byte);
@@ -642,14 +642,14 @@ impl<'a> AbiLanguageBuilder<'a> {
                     );
 
                     // Check if this symbol is a terminal or non-terminal
-                    // Terminals include tokens and externals
+                    // Terminals include tokens, externals, and EOF
                     let is_terminal = self.grammar.tokens.contains_key(&symbol_id)
                         || self
                             .grammar
                             .externals
                             .iter()
                             .any(|e| e.symbol_id == symbol_id)
-                        || symbol_id.0 == 0; // EOF is also a terminal
+                        || symbol_id == self.parse_table.eof_symbol; // EOF is also a terminal
 
                     // Create owned action to avoid borrowing issues
                     let action_owned = if is_terminal {
@@ -1155,7 +1155,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             let index_val = index as u16;
 
             // Also include the symbol name for debugging
-            let _symbol_name = if symbol_id.0 == 0 {
+            let _symbol_name = if symbol_id == self.parse_table.eof_symbol {
                 "EOF".to_string()
             } else if let Some(token) = self.grammar.tokens.get(&symbol_id) {
                 token.name.clone()

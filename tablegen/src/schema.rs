@@ -94,7 +94,7 @@ impl std::error::Error for SchemaError {}
 /// Action encoding contract validator
 ///
 /// Validates that actions are encoded according to the contract:
-/// ```
+/// ```text
 /// 0x0000        → Error
 /// 0x0001-0x7FFF → Shift(N)
 /// 0x8000-0xFFFE → Reduce(N & 0x7FFF)
