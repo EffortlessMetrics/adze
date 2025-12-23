@@ -5,6 +5,7 @@ use std::fs;
 use std::path::Path;
 
 /// Test result for a single file
+#[allow(dead_code)] // For future use in structured test output
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TestResult {
     pub file: String,
@@ -62,7 +63,7 @@ pub fn run_tests(
         eprintln!("  - Tree-sitter compatible corpus testing");
         eprintln!("  - Automatic test generation from corpus files");
         eprintln!();
-        eprintln!("For updates, see: https://github.com/hydro-project/rust-sitter");
+        eprintln!("For updates, see: https://github.com/EffortlessMetrics/rust-sitter");
 
         std::process::exit(64); // EX_USAGE
     }

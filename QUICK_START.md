@@ -1,0 +1,206 @@
+# Quick Start - Get Parsing in 5 Minutes
+
+**Goal**: Get a working parser running in 5 minutes or less.
+
+No deep knowledge required. Copy, paste, run, parse! 🚀
+
+---
+
+## Step 1: Install (30 seconds)
+
+```bash
+# Create new project
+cargo new my-parser
+cd my-parser
+
+# Add dependencies
+cat >> Cargo.toml <<'EOF'
+
+[dependencies]
+rust-sitter = "0.6"
+
+[build-dependencies]
+rust-sitter-tool = "0.6"
+EOF
+```
+
+---
+
+## Step 2: Create Build Script (30 seconds)
+
+Create `build.rs`:
+
+```rust
+use std::path::PathBuf;
+
+fn main() {
+    rust_sitter_tool::build_parsers(&PathBuf::from("src/main.rs"));
+}
+```
+
+---
+
+## Step 3: Define Your Grammar (2 minutes)
+
+Replace `src/main.rs` with this:
+
+```rust
+// Define a simple calculator grammar
+#[rust_sitter::grammar("calc")]
+mod grammar {
+    #[rust_sitter::language]
+    #[derive(Debug)]
+    pub enum Expr {
+        Number(
+            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            i32
+        ),
+
+        #[rust_sitter::prec_left(1)]
+        Add(
+            Box<Expr>,
+            #[rust_sitter::leaf(text = "+")] (),
+            Box<Expr>,
+        ),
+
+        #[rust_sitter::prec_left(2)]
+        Mul(
+            Box<Expr>,
+            #[rust_sitter::leaf(text = "*")] (),
+            Box<Expr>,
+        ),
+    }
+
+    #[rust_sitter::extra]
+    struct Whitespace {
+        #[rust_sitter::leaf(pattern = r"\s")]
+        _whitespace: (),
+    }
+}
+
+fn main() {
+    // Parse an expression
+    let result = grammar::parse("2 + 3 * 4");
+
+    match result {
+        Ok(expr) => println!("✅ Parsed: {:#?}", expr),
+        Err(e) => println!("❌ Error: {}", e),
+    }
+}
+```
+
+---
+
+## Step 4: Build and Run (1 minute)
+
+```bash
+cargo build
+cargo run
+```
+
+**Expected output**:
+```
+✅ Parsed: Add(
+    Number(2),
+    (),
+    Mul(
+        Number(3),
+        (),
+        Number(4),
+    ),
+)
+```
+
+---
+
+## 🎉 Success!
+
+You just:
+- ✅ Defined a grammar with operator precedence
+- ✅ Generated a parser at compile time
+- ✅ Parsed `2 + 3 * 4` correctly as `2 + (3 * 4)`
+- ✅ Got a typed Rust AST
+
+**Total time**: ~5 minutes
+
+---
+
+## What Just Happened?
+
+1. **`#[rust_sitter::grammar("calc")]`** - Declares a grammar named "calc"
+2. **`#[rust_sitter::language]`** - Marks the root type for parsing
+3. **`#[rust_sitter::leaf]`** - Defines how to match text (`pattern` or `text`)
+4. **`#[rust_sitter::prec_left(N)]`** - Sets operator precedence (higher = tighter)
+5. **`build.rs`** - Generates the parser at build time
+6. **`grammar::parse()`** - Parse text into your Rust type
+
+---
+
+## Next Steps
+
+### Try Different Inputs
+
+```rust
+// In main()
+for input in &["1 + 2", "5 * 6", "1 + 2 * 3", "10"] {
+    match grammar::parse(input) {
+        Ok(expr) => println!("✅ '{}' → {:?}", input, expr),
+        Err(e) => println!("❌ '{}' → {}", input, e),
+    }
+}
+```
+
+### Add More Operators
+
+```rust
+#[rust_sitter::prec_left(1)]
+Sub(Box<Expr>, #[rust_sitter::leaf(text = "-")] (), Box<Expr>),
+
+#[rust_sitter::prec_left(2)]
+Div(Box<Expr>, #[rust_sitter::leaf(text = "/")] (), Box<Expr>),
+```
+
+### Add Parentheses
+
+```rust
+Paren(
+    #[rust_sitter::leaf(text = "(")] (),
+    Box<Expr>,
+    #[rust_sitter::leaf(text = ")")] (),
+),
+```
+
+---
+
+## Common Issues
+
+### Build error: "parser not found"
+**Solution**: Make sure `build.rs` exists and contains the `build_parsers` call.
+
+### Parse error: "unexpected token"
+**Solution**: Check your `pattern` regex or `text` matches what you're parsing.
+
+### Wrong precedence
+**Solution**: Higher `prec_left` numbers bind tighter. Multiplication (2) should be higher than addition (1).
+
+---
+
+## Learn More
+
+- **Full Tutorial**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)
+- **More Examples**: [example/src/](./example/src/)
+- **API Docs**: [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+- **Grammar Guide**: [GAPS.md](./GAPS.md) - Section on grammar patterns
+
+---
+
+## Get Help
+
+- **Questions?** Check [FAQ.md](./FAQ.md)
+- **Stuck?** See [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) (coming in v0.7.0)
+- **Want to contribute?** See [CONTRIBUTING.md](./CONTRIBUTING.md)
+- **Report bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
+
+---
+
+**Ready to build something bigger?** Check out the [full tutorial](./docs/GETTING_STARTED.md)!

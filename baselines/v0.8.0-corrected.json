@@ -1,0 +1,37 @@
+{
+  "version": "v0.8.0-corrected",
+  "date": "2025-11-20T20:38:43.434899142+00:00",
+  "platform": "linux x86_64 (Rust 1.89.0)",
+  "benchmarks": {
+    "fixture_loading_large": {
+      "mean_ns": 0.909035758306278,
+      "stddev_ns": 0.021405813077458175,
+      "samples": 100
+    },
+    "arithmetic_parsing/parse/large": {
+      "mean_ns": 1202329.650046448,
+      "stddev_ns": 86188.15710454536,
+      "samples": 100
+    },
+    "arithmetic_parsing/parse/small": {
+      "mean_ns": 46708.69458443362,
+      "stddev_ns": 3935.476162961477,
+      "samples": 100
+    },
+    "arithmetic_parsing/parse/medium": {
+      "mean_ns": 226687.8033737526,
+      "stddev_ns": 19572.77725576026,
+      "samples": 100
+    },
+    "fixture_loading_small": {
+      "mean_ns": 0.926107853675258,
+      "stddev_ns": 0.07691687834756646,
+      "samples": 100
+    },
+    "validate_parse_result": {
+      "mean_ns": 0.34925210185685157,
+      "stddev_ns": 0.009728270241414434,
+      "samples": 100
+    }
+  }
+}

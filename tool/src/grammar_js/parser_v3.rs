@@ -411,7 +411,9 @@ impl GrammarJsParserV3 {
 
     fn parse_function_block(&self, block: &str) -> Result<Rule> {
         // Function blocks have JavaScript code that ends with a return statement
-        // We need to extract the return value
+        // We need to extract the return value and handle inline const helper functions
+
+        eprintln!("Debug: parse_function_block called with block:\n{}", block);
 
         // Special case: binary_operator-style table definitions
         if block.contains("const table = [") {
@@ -419,6 +421,43 @@ impl GrammarJsParserV3 {
             // For now, return a placeholder since we can't execute JavaScript
             eprintln!("Warning: Complex JavaScript table definition found, returning placeholder");
             return Ok(Rule::Choice { members: vec![] });
+        }
+
+        // Extract const helper function declarations
+        let mut helpers: HashMap<String, (String, String)> = HashMap::new();
+        let lines: Vec<&str> = block.lines().collect();
+
+        for line in &lines {
+            let trimmed = line.trim();
+            if trimmed.starts_with("const ") {
+                // Parse: const helperName = (param) => body
+                if let Some(eq_pos) = trimmed.find('=') {
+                    let helper_name = trimmed[6..eq_pos].trim();
+                    let rhs = trimmed[eq_pos + 1..].trim();
+
+                    // Check for arrow function: (param) => body
+                    if let Some(arrow_pos) = rhs.find("=>") {
+                        let params = rhs[..arrow_pos].trim();
+                        let body = rhs[arrow_pos + 2..].trim();
+
+                        // Extract parameter name from (param) or param
+                        let param_name = params
+                            .trim_matches(|c: char| c == '(' || c == ')' || c.is_whitespace());
+
+                        // Remove trailing semicolon from body if present
+                        let body = body.trim_end_matches(';').trim();
+
+                        helpers.insert(
+                            helper_name.to_string(),
+                            (param_name.to_string(), body.to_string()),
+                        );
+                        eprintln!(
+                            "Debug: Registered helper '{}' with param '{}' and body '{}'",
+                            helper_name, param_name, body
+                        );
+                    }
+                }
+            }
         }
 
         // Find the last 'return' statement
@@ -470,8 +509,58 @@ impl GrammarJsParserV3 {
                 }
             }
 
-            let return_expr = return_content[..end_pos].trim();
-            self.parse_rule(return_expr)
+            let mut return_expr = return_content[..end_pos].trim().to_string();
+
+            // Expand inline helper function calls
+            for (helper_name, (param_name, body)) in &helpers {
+                // Look for helperName(arg) pattern
+                let call_pattern = format!("{}(", helper_name);
+                if return_expr.contains(&call_pattern) {
+                    eprintln!(
+                        "Debug: Expanding helper '{}' in return expression",
+                        helper_name
+                    );
+
+                    // Find the argument to the helper function call
+                    if let Some(call_start) = return_expr.find(&call_pattern) {
+                        let args_start = call_start + call_pattern.len();
+
+                        // Extract the argument (handle nested parens)
+                        let mut depth = 1;
+                        let mut arg_end = args_start;
+                        let chars: Vec<char> = return_expr.chars().collect();
+
+                        for (i, ch) in chars.iter().enumerate().skip(args_start) {
+                            match ch {
+                                '(' => depth += 1,
+                                ')' => {
+                                    depth -= 1;
+                                    if depth == 0 {
+                                        arg_end = i;
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+
+                        let arg = &return_expr[args_start..arg_end];
+                        eprintln!("Debug: Helper argument: '{}'", arg);
+
+                        // Substitute parameter with argument in the body
+                        let expanded = body.replace(param_name, arg);
+                        eprintln!("Debug: Expanded body: '{}'", expanded);
+
+                        // Replace the helper call with the expanded body
+                        let replacement = expanded.clone();
+                        let call_expr = &return_expr[call_start..=arg_end];
+                        return_expr = return_expr.replace(call_expr, &replacement);
+                        eprintln!("Debug: New return expression: '{}'", return_expr);
+                    }
+                }
+            }
+
+            self.parse_rule(&return_expr)
         } else {
             bail!("Function block must contain a return statement")
         }

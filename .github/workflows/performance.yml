@@ -1,0 +1,211 @@
+name: Performance Regression Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'runtime/**'
+      - 'runtime2/**'
+      - 'glr-core/**'
+      - 'tablegen/**'
+      - 'benchmarks/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'docs/PERFORMANCE_BASELINE.md'
+
+# Only run one performance test at a time per PR
+concurrency:
+  group: performance-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  performance-check:
+    name: Performance Regression Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache base dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-bench-base-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bench-base-
+            ${{ runner.os }}-cargo-bench-
+
+      - name: Install critcmp
+        run: cargo install critcmp || true
+
+      - name: Run baseline benchmarks
+        run: |
+          echo "::group::Running baseline benchmarks"
+          # Run core benchmarks with shorter measurement time for CI
+          cargo bench -p rust-sitter-glr-core -- --save-baseline pr-base
+          cargo bench -p rust-sitter --lib -- --save-baseline pr-base
+
+          # Run GLR performance benchmarks (Week 1 baseline - see docs/PERFORMANCE_BASELINE.md)
+          cargo bench -p rust-sitter-benchmarks --bench glr_hot -- --save-baseline pr-base
+          cargo bench -p rust-sitter-benchmarks --bench glr_performance -- --save-baseline pr-base
+          echo "::endgroup::"
+        env:
+          BENCH_QUICK: 1  # Use quick mode for CI
+
+      - name: Save baseline results
+        run: |
+          mkdir -p /tmp/baseline
+          cp -r target/criterion /tmp/baseline/
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          clean: false  # Keep target directory
+
+      - name: Restore baseline results
+        run: |
+          cp -r /tmp/baseline/criterion target/
+
+      - name: Run PR benchmarks
+        run: |
+          echo "::group::Running PR benchmarks"
+          cargo bench -p rust-sitter-glr-core -- --save-baseline pr-head
+          cargo bench -p rust-sitter --lib -- --save-baseline pr-head
+
+          # Run GLR performance benchmarks (Week 1 baseline - see docs/PERFORMANCE_BASELINE.md)
+          cargo bench -p rust-sitter-benchmarks --bench glr_hot -- --save-baseline pr-head
+          cargo bench -p rust-sitter-benchmarks --bench glr_performance -- --save-baseline pr-head
+          echo "::endgroup::"
+        env:
+          BENCH_QUICK: 1
+
+      - name: Compare performance
+        id: compare
+        run: |
+          echo "::group::Performance Comparison"
+          critcmp pr-base pr-head > performance_report.txt || true
+          cat performance_report.txt
+          echo "::endgroup::"
+
+          # Check for significant regressions (>5% slower per docs/PERFORMANCE_BASELINE.md)
+          # Critical paths to monitor:
+          # - Python 1000 lines: 62.4µs baseline -> >65µs alert
+          # - GLR fork operation: 73ns baseline -> >77ns alert
+          # - Expression (100 ops): 11ns baseline -> >12ns alert
+          if grep -E 'x 1\.0[5-9][0-9]+ slower|x 1\.[1-9][0-9]+ slower|x [2-9]\.[0-9]+ slower' performance_report.txt; then
+            echo "regression=true" >> $GITHUB_OUTPUT
+            echo "::warning::Performance regression detected (>5% slower on some benchmarks)"
+            echo "::warning::See docs/PERFORMANCE_BASELINE.md for critical path thresholds"
+          else
+            echo "regression=false" >> $GITHUB_OUTPUT
+            echo "::notice::No significant performance regressions detected (within 5% threshold)"
+          fi
+
+      - name: Create performance comment
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs = require('fs');
+            let report = '';
+            try {
+              report = fs.readFileSync('performance_report.txt', 'utf8');
+            } catch (e) {
+              report = 'Unable to generate performance report';
+            }
+
+            const regression = '${{ steps.compare.outputs.regression }}' === 'true';
+            const emoji = regression ? '⚠️' : '✅';
+            const status = regression ? '**Warning: Performance Regression Detected**' : 'No Significant Regressions';
+
+            const body = `## ${emoji} Performance Report
+
+${status}
+
+<details>
+<summary>Benchmark Comparison (click to expand)</summary>
+
+\`\`\`
+${report}
+\`\`\`
+
+</details>
+
+<details>
+<summary>How to interpret these results</summary>
+
+- **Faster/Slower**: Shows performance change relative to base branch
+- **x N faster/slower**: Multiplier of performance change
+- ⚠️ **Regressions >5%** should be investigated before merging
+- Small variations (<3%) are normal and may be noise
+- See [docs/PERFORMANCE_BASELINE.md](../docs/PERFORMANCE_BASELINE.md) for critical path thresholds
+
+**Critical Paths** (from baseline):
+- Python 1000 lines: 62.4µs (alert if >65µs)
+- GLR fork operation: 73ns (alert if >77ns)
+- Expression (100 ops): 11ns (alert if >12ns)
+
+</details>
+
+---
+*Benchmarks run with quick mode for CI. For detailed analysis, run \`cargo bench\` locally.*
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: body
+            });
+
+      - name: Check for breaking regressions
+        if: steps.compare.outputs.regression == 'true'
+        run: |
+          echo "::warning::Performance regression detected (>5% slower on some benchmarks)"
+          echo "::warning::Review the performance report above and consider optimizing before merging"
+          echo "::warning::Critical paths documented in docs/PERFORMANCE_BASELINE.md"
+          # Don't fail the CI, just warn (can be tightened later)
+          # exit 1  # Uncomment to make regressions fail CI
+
+  quick-smoke-test:
+    name: Quick Performance Smoke Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-smoke-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Quick benchmark smoke test
+        run: |
+          # Just ensure benchmarks compile and run
+          cargo bench -p rust-sitter-glr-core --no-run
+          cargo bench -p rust-sitter --lib --no-run
+          echo "✅ Benchmark compilation successful"

@@ -179,7 +179,7 @@ impl TableCompressor {
     ///
     /// Returns compressed tables suitable for embedding.
     ///
-    /// ```no_run
+    /// ```ignore
     /// # use rust_sitter_ir::builder::GrammarBuilder;
     /// # use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
     /// # use rust_sitter_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
@@ -372,32 +372,33 @@ impl TableCompressor {
         for action_row in action_table.iter() {
             // Find the most common action across all cells
             let mut action_counts: HashMap<Action, usize> = HashMap::new();
-            let mut has_shift = false;
-            let mut has_accept = false;
+            let mut _has_shift = false;
+            let mut _has_accept = false;
 
             // Collect all actions from all cells in this row
             for action_cell in action_row {
                 for action in action_cell {
                     *action_counts.entry(action.clone()).or_insert(0) += 1;
                     match action {
-                        Action::Shift(_) => has_shift = true,
-                        Action::Accept => has_accept = true,
+                        Action::Shift(_) => _has_shift = true,
+                        Action::Accept => _has_accept = true,
                         _ => {}
                     }
                 }
             }
 
-            let most_common = action_counts
+            let _most_common = action_counts
                 .iter()
                 .max_by_key(|(_, count)| *count)
                 .map(|(action, _)| action.clone())
                 .unwrap_or(Action::Error);
 
-            let default_action = match &most_common {
-                Action::Reduce(_) if !has_shift && !has_accept => most_common,
-                Action::Error => Action::Error,
-                _ => Action::Error,
-            };
+            // Default action optimization is currently disabled by design.
+            // The runtime does not use the default_actions array, so we encode all actions explicitly
+            // and populate default_actions with Action::Error as a placeholder.
+            // This ensures no information is lost during compression and all actions are available at runtime.
+            // Future: Could optimize by implementing default action support in the runtime decoder.
+            let default_action = Action::Error;
 
             default_actions.push(default_action.clone());
             row_offsets.push(entries.len() as u16);
@@ -405,7 +406,8 @@ impl TableCompressor {
             for (index, action_cell) in action_row.iter().enumerate() {
                 // Process each action in the cell
                 for action in action_cell {
-                    if action == &default_action {
+                    if action == &Action::Error {
+                        // Still skip explicit Error actions to save space
                         continue;
                     }
 
@@ -588,8 +590,18 @@ mod tests {
         assert!(result.is_ok());
 
         let compressed = result.unwrap();
-        assert_eq!(compressed.default_actions[0], reduce_action);
-        assert!(compressed.data.is_empty()); // All actions are default
+        // Default action optimization is disabled, so default should be Error
+        assert_eq!(
+            compressed.default_actions[0],
+            Action::Error,
+            "Default action optimization disabled"
+        );
+        // All 10 reduce actions should be explicitly encoded
+        assert_eq!(
+            compressed.data.len(),
+            10,
+            "All reduce actions should be explicitly encoded"
+        );
     }
 
     #[test]

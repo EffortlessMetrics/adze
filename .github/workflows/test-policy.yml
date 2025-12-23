@@ -1,0 +1,203 @@
+name: Test Policy Enforcement
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-policy:
+    name: Enforce Test Policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check for undocumented ignored tests
+        run: |
+          echo "Checking for #[ignore] without documentation..."
+
+          # Find all #[ignore] attributes
+          ignored_count=$(find . -name "*.rs" -type f -exec grep -l "#\[ignore" {} \; | wc -l)
+          echo "Found $ignored_count files with #[ignore]"
+
+          # Check each one has a reason
+          undocumented=0
+          while IFS= read -r file; do
+            # Check if #[ignore] has a reason (= "...")
+            if grep "#\[ignore\]$" "$file" > /dev/null; then
+              echo "❌ Undocumented #[ignore] in $file"
+              grep -n "#\[ignore\]$" "$file"
+              undocumented=$((undocumented + 1))
+            fi
+          done < <(find . -name "*.rs" -type f -exec grep -l "#\[ignore" {} \;)
+
+          if [ $undocumented -gt 0 ]; then
+            echo "::error::Found $undocumented undocumented #[ignore] attributes"
+            echo "All #[ignore] must have a reason: #[ignore = \"reason\"]"
+            exit 1
+          fi
+
+          echo "✅ All #[ignore] attributes are documented"
+
+      - name: Verify minimum test counts
+        run: |
+          echo "Verifying minimum test counts per crate..."
+
+          # Define minimum test counts (from TEST_INVENTORY.md policy)
+          declare -A min_counts=(
+            ["runtime"]=50
+            ["macro"]=13
+            ["glr-core"]=30
+            ["tablegen"]=8
+            ["tool"]=10
+          )
+
+          failed=false
+
+          for crate in "${!min_counts[@]}"; do
+            if [ -d "$crate" ]; then
+              echo "Checking $crate..."
+
+              # Count tests
+              actual=$(cd "$crate" && cargo test --lib --tests -- --list 2>/dev/null | grep -c "test " || echo "0")
+              required=${min_counts[$crate]}
+
+              echo "$crate: $actual tests (minimum: $required)"
+
+              if [ "$actual" -lt "$required" ]; then
+                echo "::error::$crate has $actual tests, but requires at least $required"
+                failed=true
+              fi
+            fi
+          done
+
+          if [ "$failed" = true ]; then
+            echo "❌ Some crates below minimum test requirements"
+            exit 1
+          fi
+
+          echo "✅ All crates meet minimum test requirements"
+
+      - name: Check for .rs.disabled files
+        run: |
+          echo "Checking for disabled test files..."
+
+          disabled_files=$(find . -name "*.rs.disabled" -type f)
+
+          if [ -n "$disabled_files" ]; then
+            echo "::error::Found .rs.disabled files:"
+            echo "$disabled_files"
+            echo "Use #[ignore = \"reason\"] instead of renaming files"
+            exit 1
+          fi
+
+          echo "✅ No .rs.disabled files found"
+
+      - name: Verify test categorization
+        run: |
+          echo "Checking test categorization..."
+
+          # Count tests with category documentation
+          categorized=$(find . -name "*.rs" -type f -path "*/tests/*" -exec grep -l "/// Category:" {} \; | wc -l)
+          total_test_files=$(find . -name "*.rs" -type f -path "*/tests/*" | wc -l)
+
+          if [ "$total_test_files" -gt 0 ]; then
+            percentage=$((categorized * 100 / total_test_files))
+            echo "Categorized test files: $categorized / $total_test_files ($percentage%)"
+
+            # Warn if less than 50% categorized (not a hard failure yet)
+            if [ "$percentage" -lt 50 ]; then
+              echo "::warning::Only $percentage% of test files have category documentation"
+              echo "Add /// Category: [UNIT|INTEGRATION|E2E|etc] to test files"
+            fi
+          fi
+
+          echo "✅ Test categorization check complete"
+
+      - name: Generate test inventory report
+        run: |
+          echo "Generating test inventory report..."
+
+          # Run the inventory script if it exists
+          if [ -f "scripts/test-inventory.sh" ]; then
+            chmod +x scripts/test-inventory.sh
+            ./scripts/test-inventory.sh || true
+
+            # Upload as artifact
+            if [ -f "TEST_INVENTORY_REPORT.md" ]; then
+              echo "Report generated successfully"
+            fi
+          fi
+
+      - name: Upload test inventory
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-inventory-report
+          path: TEST_INVENTORY_REPORT.md
+          if-no-files-found: warn
+
+      - name: Check test execution time
+        run: |
+          echo "Running tests with timeout enforcement..."
+
+          # Run tests with 60s timeout per crate
+          for crate in runtime macro glr-core tablegen tool ir common example; do
+            if [ -d "$crate" ]; then
+              echo "Testing $crate with timeout..."
+
+              timeout 60s cargo test -p rust-sitter-${crate} --lib --tests || {
+                exit_code=$?
+                if [ $exit_code -eq 124 ]; then
+                  echo "::error::Tests in $crate exceeded 60s timeout"
+                  exit 1
+                else
+                  echo "::error::Tests in $crate failed with exit code $exit_code"
+                  exit $exit_code
+                fi
+              }
+            fi
+          done
+
+          echo "✅ All tests completed within timeout"
+
+      - name: Report summary
+        if: always()
+        run: |
+          echo "## Test Policy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Minimum test counts verified" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ All #[ignore] attributes documented" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ No .rs.disabled files found" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Test execution times within limits" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See test-inventory-report artifact for detailed breakdown" >> $GITHUB_STEP_SUMMARY

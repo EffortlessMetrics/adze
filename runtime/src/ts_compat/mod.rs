@@ -6,12 +6,36 @@
 //! This module provides a compatibility layer that mimics the Tree-sitter API,
 //! allowing existing Tree-sitter code to work with rust-sitter with minimal changes.
 
-use crate::parser_v4::{Parser as CoreParser, Tree as CoreTree};
+use crate::parser_v4::{ParseNode, Parser as CoreParser};
 use crate::pure_incremental::Edit as CoreEdit;
 use crate::pure_parser;
 use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::Grammar;
 use std::sync::Arc;
+
+/// An owned tree representation for ts_compat layer.
+/// This provides the interface expected by ts_compat::Tree without lifetime constraints.
+#[derive(Clone, Debug)]
+pub(crate) struct OwnedCoreTree {
+    /// The root parse node
+    pub root: ParseNode,
+    /// Source text that was parsed
+    pub source: Vec<u8>,
+    /// Number of parse errors
+    pub error_count: usize,
+}
+
+impl OwnedCoreTree {
+    /// Get the root symbol ID
+    pub(crate) fn root_kind(&self) -> u16 {
+        self.root.symbol.0
+    }
+
+    /// Get the error count
+    pub(crate) fn error_count(&self) -> usize {
+        self.error_count
+    }
+}
 
 /// A position in a document, identified by row and column.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
@@ -110,50 +134,25 @@ impl Parser {
     }
 
     /// Parse source code, optionally reusing an old tree for incremental parsing.
-    pub fn parse(&mut self, source: &str, old: Option<&Tree>) -> Option<Tree> {
+    ///
+    /// Note: Incremental parsing is currently disabled and falls back to fresh parsing
+    /// for consistency. The `old` parameter is accepted for API compatibility but ignored.
+    pub fn parse(&mut self, source: &str, _old: Option<&Tree>) -> Option<Tree> {
         let core_parser = self.core.as_mut()?;
         let lang = self.lang.as_ref()?;
 
-        match old {
-            #[cfg(feature = "incremental_glr")]
-            Some(old_tree) if old_tree.last_edit.is_some() => {
-                // Try incremental parsing using the stored edit
-                if let Some(edit) = &old_tree.last_edit
-                    && let Some(new_core) = crate::glr_incremental::reparse(
-                        &lang.grammar,
-                        &lang.table,
-                        source.as_bytes(),
-                        &old_tree.core,
-                        edit,
-                    )
-                {
-                    return Some(Tree {
-                        core: new_core,
-                        last_edit: None,
-                        language: lang.clone(),
-                    });
-                }
-                // Fall back to fresh parse if incremental parsing failed
-                match core_parser.parse(source) {
-                    Ok(t) => Some(Tree {
-                        core: t,
-                        last_edit: None,
-                        language: lang.clone(),
-                    }),
-                    Err(_) => None,
-                }
-            }
-            _ => {
-                // Fresh parse
-                match core_parser.parse(source) {
-                    Ok(t) => Some(Tree {
-                        core: t,
-                        last_edit: None,
-                        language: lang.clone(),
-                    }),
-                    Err(_) => None,
-                }
-            }
+        // Use parse_tree() which returns an owned ParseNode
+        match core_parser.parse_tree(source) {
+            Ok(root) => Some(Tree {
+                core: OwnedCoreTree {
+                    root,
+                    source: source.as_bytes().to_vec(),
+                    error_count: 0, // TODO: track error count properly
+                },
+                last_edit: None,
+                language: lang.clone(),
+            }),
+            Err(_) => None,
         }
     }
 
@@ -172,7 +171,7 @@ impl Default for Parser {
 /// A parsed syntax tree.
 #[derive(Clone, Debug)]
 pub struct Tree {
-    pub(crate) core: CoreTree,
+    pub(crate) core: OwnedCoreTree,
     pub(crate) last_edit: Option<CoreEdit>,
     pub(crate) language: Arc<Language>,
 }
@@ -277,15 +276,15 @@ impl<'a> Node<'a> {
     }
 
     /// Convert byte position to Point (row, column)
-    fn byte_to_point(source: &str, byte_pos: usize) -> Point {
+    fn byte_to_point(source: &[u8], byte_pos: usize) -> Point {
         let mut row = 0;
         let mut column = 0;
 
-        for (i, ch) in source.char_indices() {
+        for (i, &byte) in source.iter().enumerate() {
             if i >= byte_pos {
                 break;
             }
-            if ch == '\n' {
+            if byte == b'\n' {
                 row += 1;
                 column = 0;
             } else {
