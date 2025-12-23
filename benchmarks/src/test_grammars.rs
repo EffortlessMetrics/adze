@@ -194,9 +194,9 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
     let symbol_metadata = vec![
         SymbolMetadata {
             name: "expression".to_string(),
-            visible: true,
-            named: true,
-            supertype: false,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: false, // expression is a non-terminal
             is_extra: false,
@@ -205,9 +205,9 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         },
         SymbolMetadata {
             name: "number".to_string(),
-            visible: true,
-            named: true,
-            supertype: false,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: true, // number is a terminal
             is_extra: false,
@@ -216,9 +216,9 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         },
         SymbolMetadata {
             name: "plus".to_string(),
-            visible: true,
-            named: false,
-            supertype: false,
+            is_visible: true,
+            is_named: false,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: true, // plus is a terminal
             is_extra: false,
@@ -227,9 +227,9 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         },
         SymbolMetadata {
             name: "mult".to_string(),
-            visible: true,
-            named: false,
-            supertype: false,
+            is_visible: true,
+            is_named: false,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: true, // mult is a terminal
             is_extra: false,
@@ -238,9 +238,9 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         },
         SymbolMetadata {
             name: "lparen".to_string(),
-            visible: true,
-            named: false,
-            supertype: false,
+            is_visible: true,
+            is_named: false,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: true, // lparen is a terminal
             is_extra: false,
@@ -249,9 +249,9 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         },
         SymbolMetadata {
             name: "rparen".to_string(),
-            visible: true,
-            named: false,
-            supertype: false,
+            is_visible: true,
+            is_named: false,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: true, // rparen is a terminal
             is_extra: false,

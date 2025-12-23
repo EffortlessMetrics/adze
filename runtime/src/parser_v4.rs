@@ -1516,14 +1516,9 @@ impl Parser {
         self.glr_state = GLRParserState::new();
         self.input.clear();
         self.position = 0;
-        // TODO: Add reset method to ExternalScannerRuntime to reset scanner state
-        // For now, we just recreate the runtime if needed
-        if self.external_runtime.is_some() {
-            // Recreate the runtime with the same external tokens
-            if let Some(ref runtime) = self.external_runtime {
-                let tokens = runtime.get_external_tokens().to_vec();
-                self.external_runtime = Some(ExternalScannerRuntime::new(tokens));
-            }
+        // Reset external scanner state if present
+        if let Some(ref mut runtime) = self.external_runtime {
+            runtime.reset();
         }
     }
 

@@ -33,9 +33,9 @@ fn encode_actions_minimal() {
             // name/visibility flags are not read by the encoder; just fill enough
             SymbolMetadata {
                 name: "s0".into(),
-                visible: true,
-                named: false,
-                supertype: false,
+                is_visible: true,
+                is_named: false,
+                is_supertype: false,
                 is_terminal: true,
                 is_extra: false,
                 is_fragile: false,
@@ -43,9 +43,9 @@ fn encode_actions_minimal() {
             },
             SymbolMetadata {
                 name: "s1".into(),
-                visible: true,
-                named: false,
-                supertype: false,
+                is_visible: true,
+                is_named: false,
+                is_supertype: false,
                 is_terminal: false,
                 is_extra: false,
                 is_fragile: false,
@@ -53,9 +53,9 @@ fn encode_actions_minimal() {
             },
             SymbolMetadata {
                 name: "s2".into(),
-                visible: true,
-                named: false,
-                supertype: false,
+                is_visible: true,
+                is_named: false,
+                is_supertype: false,
                 is_terminal: false,
                 is_extra: false,
                 is_fragile: false,

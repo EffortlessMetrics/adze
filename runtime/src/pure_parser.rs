@@ -1885,7 +1885,8 @@ impl<'a> ExternalLexer<'a> {
         ext_lexer.token_end = ext_lexer.position;
     }
 
-    // Additional methods for external scanner compatibility
+    // Additional methods for external scanner compatibility (required for C ABI)
+    #[allow(dead_code)]
     unsafe extern "C" fn get_column(lexer: *mut crate::lex::TsLexer) -> u32 {
         if lexer.is_null() {
             return 0;
@@ -1898,6 +1899,7 @@ impl<'a> ExternalLexer<'a> {
         ext_lexer.column as u32
     }
 
+    #[allow(dead_code)]
     unsafe extern "C" fn is_at_included_range_start(lexer: *mut crate::lex::TsLexer) -> bool {
         if lexer.is_null() {
             return false;
@@ -1910,6 +1912,7 @@ impl<'a> ExternalLexer<'a> {
         ext_lexer.position == 0
     }
 
+    #[allow(dead_code)]
     unsafe extern "C" fn eof(lexer: *mut crate::lex::TsLexer) -> bool {
         if lexer.is_null() {
             return true;

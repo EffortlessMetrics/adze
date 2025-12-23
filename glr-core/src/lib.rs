@@ -1882,9 +1882,9 @@ pub type ActionCell = Vec<Action>;
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct SymbolMetadata {
     pub name: String,
-    pub visible: bool,
-    pub named: bool,
-    pub supertype: bool,
+    pub is_visible: bool,
+    pub is_named: bool,
+    pub is_supertype: bool,
     // Additional fields required by API contracts
     pub is_terminal: bool,
     pub is_extra: bool,
@@ -2752,9 +2752,9 @@ pub fn build_lr1_automaton(
     for (symbol_id, token) in &grammar.tokens {
         symbol_metadata.push(SymbolMetadata {
             name: token.name.clone(),
-            visible: !token.name.starts_with('_'),
-            named: !matches!(&token.pattern, TokenPattern::String(_)),
-            supertype: false,
+            is_visible: !token.name.starts_with('_'),
+            is_named: !matches!(&token.pattern, TokenPattern::String(_)),
+            is_supertype: false,
             // Additional fields required by API contracts
             is_terminal: true,
             is_extra: grammar.extras.contains(symbol_id),
@@ -2768,9 +2768,9 @@ pub fn build_lr1_automaton(
         let is_supertype = grammar.supertypes.contains(symbol_id);
         symbol_metadata.push(SymbolMetadata {
             name: format!("rule_{}", symbol_id.0),
-            visible: true,
-            named: true,
-            supertype: is_supertype,
+            is_visible: true,
+            is_named: true,
+            is_supertype,
             // Additional fields required by API contracts
             is_terminal: false,
             is_extra: false,   // non-terminals are never extra
@@ -2783,9 +2783,9 @@ pub fn build_lr1_automaton(
     for external in &grammar.externals {
         symbol_metadata.push(SymbolMetadata {
             name: external.name.clone(),
-            visible: !external.name.starts_with('_'),
-            named: true,
-            supertype: false,
+            is_visible: !external.name.starts_with('_'),
+            is_named: true,
+            is_supertype: false,
             // Additional fields required by API contracts
             is_terminal: true,             // external symbols are terminals
             is_extra: false,               // TODO: check if external symbol is in extras
@@ -3250,9 +3250,9 @@ mod tests {
     fn test_symbol_metadata() {
         let metadata = SymbolMetadata {
             name: "expression".to_string(),
-            visible: true,
-            named: true,
-            supertype: false,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
             // Additional fields required by API contracts
             is_terminal: false,
             is_extra: false,
@@ -3261,9 +3261,9 @@ mod tests {
         };
 
         assert_eq!(metadata.name, "expression");
-        assert!(metadata.visible);
-        assert!(metadata.named);
-        assert!(!metadata.supertype);
+        assert!(metadata.is_visible);
+        assert!(metadata.is_named);
+        assert!(!metadata.is_supertype);
         assert!(!metadata.is_terminal);
         assert!(!metadata.is_extra);
         assert!(!metadata.is_fragile);

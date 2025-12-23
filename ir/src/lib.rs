@@ -180,10 +180,10 @@ impl Grammar {
         // Register all tokens
         for (symbol_id, token) in token_entries {
             let metadata = SymbolMetadata {
-                visible: !token.name.starts_with('_'),
-                named: false,
-                hidden: self.extras.contains(symbol_id),
-                terminal: true,
+                is_visible: !token.name.starts_with('_'),
+                is_named: false,
+                is_hidden: self.extras.contains(symbol_id),
+                is_terminal: true,
             };
             registry.register(&token.name, metadata);
         }
@@ -196,10 +196,10 @@ impl Grammar {
         for (symbol_id, name) in rule_entries {
             if !self.tokens.contains_key(symbol_id) {
                 let metadata = SymbolMetadata {
-                    visible: !name.starts_with('_'),
-                    named: true,
-                    hidden: name.starts_with('_'),
-                    terminal: false,
+                    is_visible: !name.starts_with('_'),
+                    is_named: true,
+                    is_hidden: name.starts_with('_'),
+                    is_terminal: false,
                 };
                 registry.register(name, metadata);
             }
@@ -208,10 +208,10 @@ impl Grammar {
         // Register externals
         for external in &self.externals {
             let metadata = SymbolMetadata {
-                visible: true,
-                named: false,
-                hidden: false,
-                terminal: true,
+                is_visible: true,
+                is_named: false,
+                is_hidden: false,
+                is_terminal: true,
             };
             registry.register(&external.name, metadata);
         }
@@ -266,26 +266,137 @@ pub enum TokenPattern {
     Regex(String),
 }
 
-/// Grammar symbol types
+/// Grammar symbol types representing the building blocks of grammar rules.
+///
+/// Symbols in a grammar can be either simple (terminals, non-terminals, externals)
+/// or complex (optional, repetition, choice, sequence). Complex symbols must be
+/// normalized into simple rules before GLR parser generation.
+///
+/// # Simple Symbols (GLR-Ready)
+///
+/// These symbols can be directly used in LR(1) item sets and parse table generation:
+/// - `Terminal`: Lexical tokens defined in the grammar's token set
+/// - `NonTerminal`: Grammar rules that can be expanded into other symbols
+/// - `External`: Tokens produced by external scanners (e.g., indentation)
+/// - `Epsilon`: Empty production (matches zero symbols)
+///
+/// # Complex Symbols (Require Normalization)
+///
+/// These symbols provide syntactic sugar but must be converted to auxiliary rules:
+/// - `Optional`: Matches zero or one occurrence of the inner symbol
+/// - `Repeat`: Matches zero or more occurrences (Kleene star)
+/// - `RepeatOne`: Matches one or more occurrences (Kleene plus)
+/// - `Choice`: Matches one of several alternative symbols
+/// - `Sequence`: Matches a sequence of symbols in order
+///
+/// # Normalization Process
+///
+/// Complex symbols are normalized by [`Grammar::normalize()`] which creates auxiliary
+/// non-terminal rules. For example:
+///
+/// ```text
+/// Optional(Terminal("x")) => aux_N -> Terminal("x") | Epsilon
+/// Repeat(Terminal("x"))   => aux_N -> aux_N Terminal("x") | Epsilon
+/// Choice([A, B, C])       => aux_N -> A | B | C
+/// ```
+///
+/// # Examples
+///
+/// ```ignore
+/// // Simple symbols - ready for GLR parsing
+/// let token = Symbol::Terminal(SymbolId(1));
+/// let rule_ref = Symbol::NonTerminal(SymbolId(2));
+///
+/// // Complex symbols - need normalization
+/// let optional_comma = Symbol::Optional(Box::new(Symbol::Terminal(SymbolId(3))));
+/// let repeat_stmt = Symbol::Repeat(Box::new(Symbol::NonTerminal(SymbolId(4))));
+/// let choice = Symbol::Choice(vec![
+///     Symbol::Terminal(SymbolId(5)),
+///     Symbol::Terminal(SymbolId(6)),
+/// ]);
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Symbol {
-    /// Terminal symbol
+    /// Terminal symbol representing a lexical token.
+    ///
+    /// Terminals are the atomic units of a language, typically matched by regular
+    /// expressions or string literals. Examples: keywords, operators, identifiers.
     Terminal(SymbolId),
-    /// Non-terminal symbol
+
+    /// Non-terminal symbol representing a grammar rule.
+    ///
+    /// Non-terminals expand into sequences of other symbols (terminals or non-terminals).
+    /// They define the hierarchical structure of the language.
     NonTerminal(SymbolId),
-    /// External scanner symbol
+
+    /// External scanner symbol for context-sensitive lexing.
+    ///
+    /// External symbols are produced by custom scanner code, enabling parsing of
+    /// constructs that cannot be expressed with regular expressions (e.g., Python
+    /// indentation, here-documents, template literals).
     External(SymbolId),
-    /// Optional symbol (zero or one)
+
+    /// Optional symbol matching zero or one occurrence.
+    ///
+    /// Normalized to: `aux -> inner | Epsilon`
+    ///
+    /// # Example
+    /// ```text
+    /// Optional(Terminal("?")) => aux_1000 -> Terminal("?") | Epsilon
+    /// ```
     Optional(Box<Symbol>),
-    /// Zero or more repetitions
+
+    /// Repetition matching zero or more occurrences (Kleene star).
+    ///
+    /// Normalized to left-recursive rule for parser efficiency:
+    /// `aux -> aux inner | Epsilon`
+    ///
+    /// # Example
+    /// ```text
+    /// Repeat(Terminal(",")) => aux_1001 -> aux_1001 Terminal(",") | Epsilon
+    /// ```
     Repeat(Box<Symbol>),
-    /// One or more repetitions
+
+    /// Repetition matching one or more occurrences (Kleene plus).
+    ///
+    /// Normalized to: `aux -> aux inner | inner`
+    ///
+    /// # Example
+    /// ```text
+    /// RepeatOne(NonTerminal("stmt")) =>
+    ///   aux_1002 -> aux_1002 NonTerminal("stmt") | NonTerminal("stmt")
+    /// ```
     RepeatOne(Box<Symbol>),
-    /// Choice between symbols
+
+    /// Choice between multiple alternative symbols.
+    ///
+    /// Normalized to separate rules for each alternative:
+    /// `aux -> choice1 | choice2 | choice3`
+    ///
+    /// # Example
+    /// ```text
+    /// Choice([A, B, C]) =>
+    ///   aux_1003 -> A
+    ///   aux_1003 -> B
+    ///   aux_1003 -> C
+    /// ```
     Choice(Vec<Symbol>),
-    /// Sequence of symbols
+
+    /// Sequence of symbols that must appear in order.
+    ///
+    /// If the sequence contains more than one symbol after normalization,
+    /// it is converted to an auxiliary rule: `aux -> symbol1 symbol2 symbol3`
+    ///
+    /// # Example
+    /// ```text
+    /// Sequence([A, B, C]) => aux_1004 -> A B C
+    /// ```
     Sequence(Vec<Symbol>),
-    /// Empty production
+
+    /// Empty production matching zero symbols.
+    ///
+    /// Used for optional parts of rules and as the base case for repetitions.
+    /// In LR parsing, this creates epsilon transitions.
     Epsilon,
 }
 
@@ -403,13 +514,13 @@ impl fmt::Display for ProductionId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SymbolMetadata {
     /// Whether the symbol is visible
-    pub visible: bool,
+    pub is_visible: bool,
     /// Whether the symbol is named
-    pub named: bool,
+    pub is_named: bool,
     /// Whether the symbol is hidden
-    pub hidden: bool,
+    pub is_hidden: bool,
     /// Whether the symbol is a terminal
-    pub terminal: bool,
+    pub is_terminal: bool,
 }
 
 /// Grammar validation and processing
@@ -500,8 +611,97 @@ impl Grammar {
         // This will be implemented based on Tree-sitter's optimization strategies
     }
 
-    /// Normalize complex symbols by creating auxiliary rules
-    /// This expands Optional, Repeat, Choice, etc. into standard rules
+    /// Normalize complex symbols by creating auxiliary rules for GLR parsing.
+    ///
+    /// This method transforms complex symbols (`Optional`, `Repeat`, `RepeatOne`, `Choice`,
+    /// `Sequence`) into simple non-terminal rules that can be processed by the GLR parser
+    /// generator. Each complex symbol is replaced with a reference to a newly created
+    /// auxiliary non-terminal rule.
+    ///
+    /// # Why Normalization is Necessary
+    ///
+    /// GLR parser generators operate on LR(1) grammars, which only support simple
+    /// production rules of the form `A -> B C D`. Complex symbols like `Optional(X)`
+    /// or `Repeat(Y)` are syntactic sugar that must be expanded into standard rules
+    /// before FIRST/FOLLOW set computation and LR(1) item set generation.
+    ///
+    /// # Auxiliary Rule Generation Strategy
+    ///
+    /// The normalization process creates auxiliary non-terminal symbols with IDs starting
+    /// at `max_existing_id + 1000` to avoid conflicts with existing symbols. The auxiliary
+    /// rules are named `_auxN` where N is the symbol ID.
+    ///
+    /// ## Normalization Patterns
+    ///
+    /// | Complex Symbol | Auxiliary Rules Generated |
+    /// |----------------|---------------------------|
+    /// | `Optional(X)` | `aux -> X \| Epsilon` |
+    /// | `Repeat(X)` | `aux -> aux X \| Epsilon` (left-recursive) |
+    /// | `RepeatOne(X)` | `aux -> aux X \| X` (left-recursive) |
+    /// | `Choice([X, Y, Z])` | `aux -> X`, `aux -> Y`, `aux -> Z` |
+    /// | `Sequence([X, Y])` | `aux -> X Y` (if length > 1) |
+    ///
+    /// # Idempotency
+    ///
+    /// This method is idempotent - calling it multiple times has no additional effect
+    /// after the first normalization. Normalized symbols (terminals, non-terminals,
+    /// externals, epsilon) are left unchanged.
+    ///
+    /// # Algorithm Details
+    ///
+    /// 1. **Symbol ID Allocation**: Finds the maximum existing symbol ID and allocates
+    ///    auxiliary symbols starting at `max_id + 1000`, bounded by `60000` to stay
+    ///    within `u16` range.
+    ///
+    /// 2. **Recursive Processing**: Processes each rule's right-hand side recursively,
+    ///    normalizing nested complex symbols from the inside out.
+    ///
+    /// 3. **Rule Replacement**: Replaces original rules containing complex symbols with
+    ///    normalized versions, preserving precedence, associativity, and field mappings.
+    ///
+    /// 4. **Registry Update**: Adds auxiliary symbol names to `rule_names` map for
+    ///    debugging and error reporting.
+    ///
+    /// # Production ID Management
+    ///
+    /// Production IDs are allocated sequentially during normalization to ensure each
+    /// rule alternative has a unique identifier. This is critical for parse tree
+    /// construction and disambiguation.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let mut grammar = Grammar::new("example".to_string());
+    ///
+    /// // Before normalization:
+    /// // rule: stmt -> Optional(Terminal("if"))
+    /// grammar.add_rule(Rule {
+    ///     lhs: SymbolId(1),
+    ///     rhs: vec![Symbol::Optional(Box::new(Symbol::Terminal(SymbolId(10))))],
+    ///     precedence: None,
+    ///     associativity: None,
+    ///     fields: vec![],
+    ///     production_id: ProductionId(0),
+    /// });
+    ///
+    /// grammar.normalize()?;
+    ///
+    /// // After normalization:
+    /// // rule: stmt -> NonTerminal(aux_1000)
+    /// // aux_1000 -> Terminal("if")
+    /// // aux_1000 -> Epsilon
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns `GrammarError` if normalization encounters invalid symbol references
+    /// during recursive processing.
+    ///
+    /// # See Also
+    ///
+    /// - [`normalize_symbol()`](Self::normalize_symbol) - Normalizes a single symbol
+    /// - [`normalize_symbol_list()`](Self::normalize_symbol_list) - Normalizes a list of symbols
+    /// - [`Symbol`] - Documentation on symbol types and their normalization patterns
     pub fn normalize(&mut self) -> Result<(), GrammarError> {
         let mut new_rules_to_add = Vec::new();
 
@@ -566,7 +766,37 @@ impl Grammar {
         Ok(())
     }
 
-    /// Helper function to normalize a list of symbols recursively
+    /// Normalize a list of symbols recursively, processing each symbol in sequence.
+    ///
+    /// This helper function normalizes multiple symbols and collects all generated
+    /// auxiliary rules. It is used for processing the right-hand side of rules and
+    /// the contents of `Sequence` symbols.
+    ///
+    /// # Parameters
+    ///
+    /// - `symbols`: The slice of symbols to normalize
+    /// - `aux_counter`: Mutable counter for allocating unique auxiliary symbol IDs
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing:
+    /// - `Vec<Symbol>`: The normalized symbols (complex symbols replaced with aux references)
+    /// - `Vec<Rule>`: All auxiliary rules generated during normalization
+    ///
+    /// # Algorithm
+    ///
+    /// Iterates through each symbol, calling [`normalize_symbol()`](Self::normalize_symbol)
+    /// and accumulating the results. The auxiliary rules from all symbols are combined
+    /// into a single vector.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// // Input: [Terminal(1), Optional(Terminal(2)), NonTerminal(3)]
+    /// // Output:
+    /// //   normalized: [Terminal(1), NonTerminal(aux_1000), NonTerminal(3)]
+    /// //   aux_rules: [aux_1000 -> Terminal(2), aux_1000 -> Epsilon]
+    /// ```
     fn normalize_symbol_list(
         &self,
         symbols: &[Symbol],
@@ -584,7 +814,114 @@ impl Grammar {
         Ok((normalized_symbols, auxiliary_rules))
     }
 
-    /// Helper function to normalize a single symbol recursively
+    /// Normalize a single symbol recursively, creating auxiliary rules as needed.
+    ///
+    /// This is the core normalization function that implements the transformation patterns
+    /// for each type of complex symbol. Simple symbols are returned unchanged, while complex
+    /// symbols are replaced with references to newly created auxiliary non-terminals.
+    ///
+    /// # Parameters
+    ///
+    /// - `symbol`: The symbol to normalize
+    /// - `aux_counter`: Mutable counter for allocating unique auxiliary symbol IDs and production IDs
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing:
+    /// - `Symbol`: The normalized symbol (either the original or a reference to an auxiliary rule)
+    /// - `Vec<Rule>`: Auxiliary rules generated for this symbol (empty for simple symbols)
+    ///
+    /// # Normalization Rules by Symbol Type
+    ///
+    /// ## Simple Symbols (No Transformation)
+    ///
+    /// - `Terminal(id)`: Returned as-is
+    /// - `NonTerminal(id)`: Returned as-is
+    /// - `External(id)`: Returned as-is
+    /// - `Epsilon`: Returned as-is
+    ///
+    /// ## Optional(inner)
+    ///
+    /// Creates auxiliary rules:
+    /// ```text
+    /// aux_N -> <normalized_inner>
+    /// aux_N -> Epsilon
+    /// ```
+    /// Returns: `NonTerminal(aux_N)`
+    ///
+    /// ## Repeat(inner) - Zero or More
+    ///
+    /// Creates left-recursive auxiliary rules for efficient parsing:
+    /// ```text
+    /// aux_N -> aux_N <normalized_inner>
+    /// aux_N -> Epsilon
+    /// ```
+    /// Returns: `NonTerminal(aux_N)`
+    ///
+    /// **Why Left Recursion?** Left-recursive rules (`A -> A x`) are more efficient in
+    /// LR parsers than right-recursive rules (`A -> x A`) because they build the parse
+    /// tree incrementally without deep stack nesting.
+    ///
+    /// ## RepeatOne(inner) - One or More
+    ///
+    /// Creates left-recursive auxiliary rules with non-empty base case:
+    /// ```text
+    /// aux_N -> aux_N <normalized_inner>
+    /// aux_N -> <normalized_inner>
+    /// ```
+    /// Returns: `NonTerminal(aux_N)`
+    ///
+    /// ## Choice(alternatives)
+    ///
+    /// Creates one auxiliary rule per alternative:
+    /// ```text
+    /// aux_N -> <normalized_alt1>
+    /// aux_N -> <normalized_alt2>
+    /// aux_N -> <normalized_alt3>
+    /// ```
+    /// Returns: `NonTerminal(aux_N)`
+    ///
+    /// ## Sequence(symbols)
+    ///
+    /// Normalizes each symbol in the sequence. If the normalized sequence has:
+    /// - **One symbol**: Returns that symbol directly (no auxiliary rule needed)
+    /// - **Multiple symbols**: Creates auxiliary rule `aux_N -> s1 s2 s3 ...`
+    ///
+    /// # Recursive Processing
+    ///
+    /// Complex symbols can be nested (e.g., `Optional(Repeat(Choice([A, B])))`).
+    /// This function processes them recursively, normalizing from the innermost
+    /// symbol outward, ensuring all nested complex symbols are eliminated.
+    ///
+    /// # Production ID Allocation
+    ///
+    /// Each auxiliary rule is assigned a unique `ProductionId` by incrementing
+    /// `aux_counter`. This ensures parse trees can distinguish between different
+    /// rule alternatives during disambiguation.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// // Simple symbol - no change
+    /// normalize_symbol(&Symbol::Terminal(SymbolId(5)), &mut counter)
+    /// // => (Symbol::Terminal(SymbolId(5)), vec![])
+    ///
+    /// // Optional - creates 2 auxiliary rules
+    /// normalize_symbol(&Symbol::Optional(Box::new(Symbol::Terminal(SymbolId(5)))), &mut counter)
+    /// // => (Symbol::NonTerminal(SymbolId(1000)), vec![
+    /// //      Rule { lhs: SymbolId(1000), rhs: vec![Terminal(5)], ... },
+    /// //      Rule { lhs: SymbolId(1000), rhs: vec![Epsilon], ... }
+    /// //    ])
+    ///
+    /// // Nested complex symbols
+    /// normalize_symbol(
+    ///     &Symbol::Repeat(Box::new(
+    ///         Symbol::Optional(Box::new(Symbol::Terminal(SymbolId(5))))
+    ///     )),
+    ///     &mut counter
+    /// )
+    /// // First normalizes Optional to aux_1000, then creates Repeat rules for aux_1001
+    /// ```
     fn normalize_symbol(
         &self,
         symbol: &Symbol,

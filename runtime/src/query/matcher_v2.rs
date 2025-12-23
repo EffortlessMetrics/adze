@@ -215,7 +215,7 @@ impl<'a> QueryMatcher<'a> {
     fn node_is_named(&self, node: &ParseNode) -> bool {
         self.symbol_metadata
             .get(node.symbol.0 as usize)
-            .map(|m| m.named)
+            .map(|m| m.is_named)
             .unwrap_or(true)
     }
 
@@ -380,9 +380,9 @@ mod tests {
         vec![
             SymbolMetadata {
                 name: "root".to_string(),
-                visible: true,
-                named: true,
-                supertype: false,
+                is_visible: true,
+                is_named: true,
+                is_supertype: false,
                 is_terminal: false,
                 is_extra: false,
                 is_fragile: false,
@@ -390,9 +390,9 @@ mod tests {
             },
             SymbolMetadata {
                 name: "identifier".to_string(),
-                visible: true,
-                named: true,
-                supertype: false,
+                is_visible: true,
+                is_named: true,
+                is_supertype: false,
                 is_terminal: true,
                 is_extra: false,
                 is_fragile: false,

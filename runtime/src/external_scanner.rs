@@ -106,6 +106,13 @@ impl ExternalScannerRuntime {
         &self.external_tokens
     }
 
+    /// Reset the scanner state
+    ///
+    /// This clears any accumulated state and prepares the scanner for a fresh parse
+    pub fn reset(&mut self) {
+        self.state = ExternalScannerState::new();
+    }
+
     /// Execute external scanner
     pub fn scan(
         &mut self,

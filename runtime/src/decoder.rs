@@ -17,134 +17,88 @@ use crate::pure_parser::{TSLanguage, TSParseAction};
 use crate::ts_format::TSActionTag;
 
 /// Load token patterns from a Tree-sitter grammar.json file
-/// For now, returns an empty map - will be implemented when serde_json is available
-pub fn load_token_patterns(_grammar_json_path: &Path) -> HashMap<String, TokenPattern> {
-    // TODO: Implement actual JSON parsing when serialization feature is fixed
-    // For now, return a minimal set of hardcoded patterns for testing
+///
+/// Note: Full JSON parsing implementation is deferred. The grammar_json module
+/// provides alternative JSON grammar support when the `serialization` feature is enabled.
+/// This function currently returns a hardcoded set of common Python patterns for testing.
+///
+/// This function now uses static string references to avoid allocating 50+ strings at runtime.
+pub fn load_token_patterns(_grammar_json_path: &Path) -> HashMap<&'static str, TokenPattern> {
+    // Returns a minimal set of hardcoded patterns for testing
+    // Full JSON parsing is available via the grammar_json module when needed
     let mut patterns = HashMap::new();
 
     // Add some basic Python keywords that we know are needed
-    patterns.insert("def".to_string(), TokenPattern::String("def".to_string()));
-    patterns.insert("pass".to_string(), TokenPattern::String("pass".to_string()));
-    patterns.insert(
-        "return".to_string(),
-        TokenPattern::String("return".to_string()),
-    );
-    patterns.insert("if".to_string(), TokenPattern::String("if".to_string()));
-    patterns.insert("else".to_string(), TokenPattern::String("else".to_string()));
-    patterns.insert("elif".to_string(), TokenPattern::String("elif".to_string()));
-    patterns.insert(
-        "while".to_string(),
-        TokenPattern::String("while".to_string()),
-    );
-    patterns.insert("for".to_string(), TokenPattern::String("for".to_string()));
-    patterns.insert("in".to_string(), TokenPattern::String("in".to_string()));
-    patterns.insert(
-        "class".to_string(),
-        TokenPattern::String("class".to_string()),
-    );
-    patterns.insert(
-        "import".to_string(),
-        TokenPattern::String("import".to_string()),
-    );
-    patterns.insert("from".to_string(), TokenPattern::String("from".to_string()));
-    patterns.insert("as".to_string(), TokenPattern::String("as".to_string()));
-    patterns.insert("try".to_string(), TokenPattern::String("try".to_string()));
-    patterns.insert(
-        "except".to_string(),
-        TokenPattern::String("except".to_string()),
-    );
-    patterns.insert(
-        "finally".to_string(),
-        TokenPattern::String("finally".to_string()),
-    );
-    patterns.insert("with".to_string(), TokenPattern::String("with".to_string()));
-    patterns.insert(
-        "async".to_string(),
-        TokenPattern::String("async".to_string()),
-    );
-    patterns.insert(
-        "await".to_string(),
-        TokenPattern::String("await".to_string()),
-    );
-    patterns.insert(
-        "lambda".to_string(),
-        TokenPattern::String("lambda".to_string()),
-    );
-    patterns.insert(
-        "yield".to_string(),
-        TokenPattern::String("yield".to_string()),
-    );
-    patterns.insert(
-        "assert".to_string(),
-        TokenPattern::String("assert".to_string()),
-    );
-    patterns.insert(
-        "break".to_string(),
-        TokenPattern::String("break".to_string()),
-    );
-    patterns.insert(
-        "continue".to_string(),
-        TokenPattern::String("continue".to_string()),
-    );
-    patterns.insert("del".to_string(), TokenPattern::String("del".to_string()));
-    patterns.insert(
-        "global".to_string(),
-        TokenPattern::String("global".to_string()),
-    );
-    patterns.insert(
-        "nonlocal".to_string(),
-        TokenPattern::String("nonlocal".to_string()),
-    );
-    patterns.insert(
-        "raise".to_string(),
-        TokenPattern::String("raise".to_string()),
-    );
-    patterns.insert("None".to_string(), TokenPattern::String("None".to_string()));
-    patterns.insert("True".to_string(), TokenPattern::String("True".to_string()));
-    patterns.insert(
-        "False".to_string(),
-        TokenPattern::String("False".to_string()),
-    );
-    patterns.insert("and".to_string(), TokenPattern::String("and".to_string()));
-    patterns.insert("or".to_string(), TokenPattern::String("or".to_string()));
-    patterns.insert("not".to_string(), TokenPattern::String("not".to_string()));
-    patterns.insert("is".to_string(), TokenPattern::String("is".to_string()));
+    patterns.insert("def", TokenPattern::String("def".to_string()));
+    patterns.insert("pass", TokenPattern::String("pass".to_string()));
+    patterns.insert("return", TokenPattern::String("return".to_string()));
+    patterns.insert("if", TokenPattern::String("if".to_string()));
+    patterns.insert("else", TokenPattern::String("else".to_string()));
+    patterns.insert("elif", TokenPattern::String("elif".to_string()));
+    patterns.insert("while", TokenPattern::String("while".to_string()));
+    patterns.insert("for", TokenPattern::String("for".to_string()));
+    patterns.insert("in", TokenPattern::String("in".to_string()));
+    patterns.insert("class", TokenPattern::String("class".to_string()));
+    patterns.insert("import", TokenPattern::String("import".to_string()));
+    patterns.insert("from", TokenPattern::String("from".to_string()));
+    patterns.insert("as", TokenPattern::String("as".to_string()));
+    patterns.insert("try", TokenPattern::String("try".to_string()));
+    patterns.insert("except", TokenPattern::String("except".to_string()));
+    patterns.insert("finally", TokenPattern::String("finally".to_string()));
+    patterns.insert("with", TokenPattern::String("with".to_string()));
+    patterns.insert("async", TokenPattern::String("async".to_string()));
+    patterns.insert("await", TokenPattern::String("await".to_string()));
+    patterns.insert("lambda", TokenPattern::String("lambda".to_string()));
+    patterns.insert("yield", TokenPattern::String("yield".to_string()));
+    patterns.insert("assert", TokenPattern::String("assert".to_string()));
+    patterns.insert("break", TokenPattern::String("break".to_string()));
+    patterns.insert("continue", TokenPattern::String("continue".to_string()));
+    patterns.insert("del", TokenPattern::String("del".to_string()));
+    patterns.insert("global", TokenPattern::String("global".to_string()));
+    patterns.insert("nonlocal", TokenPattern::String("nonlocal".to_string()));
+    patterns.insert("raise", TokenPattern::String("raise".to_string()));
+    patterns.insert("None", TokenPattern::String("None".to_string()));
+    patterns.insert("True", TokenPattern::String("True".to_string()));
+    patterns.insert("False", TokenPattern::String("False".to_string()));
+    patterns.insert("and", TokenPattern::String("and".to_string()));
+    patterns.insert("or", TokenPattern::String("or".to_string()));
+    patterns.insert("not", TokenPattern::String("not".to_string()));
+    patterns.insert("is", TokenPattern::String("is".to_string()));
 
     // Common symbols
-    patterns.insert(":".to_string(), TokenPattern::String(":".to_string()));
-    patterns.insert("(".to_string(), TokenPattern::String("(".to_string()));
-    patterns.insert(")".to_string(), TokenPattern::String(")".to_string()));
-    patterns.insert("[".to_string(), TokenPattern::String("[".to_string()));
-    patterns.insert("]".to_string(), TokenPattern::String("]".to_string()));
-    patterns.insert("{".to_string(), TokenPattern::String("{".to_string()));
-    patterns.insert("}".to_string(), TokenPattern::String("}".to_string()));
-    patterns.insert(",".to_string(), TokenPattern::String(",".to_string()));
-    patterns.insert(".".to_string(), TokenPattern::String(".".to_string()));
-    patterns.insert(";".to_string(), TokenPattern::String(";".to_string()));
-    patterns.insert("=".to_string(), TokenPattern::String("=".to_string()));
-    patterns.insert("+".to_string(), TokenPattern::String("+".to_string()));
-    patterns.insert("-".to_string(), TokenPattern::String("-".to_string()));
-    patterns.insert("*".to_string(), TokenPattern::String("*".to_string()));
-    patterns.insert("/".to_string(), TokenPattern::String("/".to_string()));
-    patterns.insert("%".to_string(), TokenPattern::String("%".to_string()));
-    patterns.insert("**".to_string(), TokenPattern::String("**".to_string()));
-    patterns.insert("//".to_string(), TokenPattern::String("//".to_string()));
-    patterns.insert("==".to_string(), TokenPattern::String("==".to_string()));
-    patterns.insert("!=".to_string(), TokenPattern::String("!=".to_string()));
-    patterns.insert("<".to_string(), TokenPattern::String("<".to_string()));
-    patterns.insert(">".to_string(), TokenPattern::String(">".to_string()));
-    patterns.insert("<=".to_string(), TokenPattern::String("<=".to_string()));
-    patterns.insert(">=".to_string(), TokenPattern::String(">=".to_string()));
-    patterns.insert("+=".to_string(), TokenPattern::String("+=".to_string()));
-    patterns.insert("-=".to_string(), TokenPattern::String("-=".to_string()));
-    patterns.insert("*=".to_string(), TokenPattern::String("*=".to_string()));
-    patterns.insert("/=".to_string(), TokenPattern::String("/=".to_string()));
-    patterns.insert("->".to_string(), TokenPattern::String("->".to_string()));
+    patterns.insert(":", TokenPattern::String(":".to_string()));
+    patterns.insert("(", TokenPattern::String("(".to_string()));
+    patterns.insert(")", TokenPattern::String(")".to_string()));
+    patterns.insert("[", TokenPattern::String("[".to_string()));
+    patterns.insert("]", TokenPattern::String("]".to_string()));
+    patterns.insert("{", TokenPattern::String("{".to_string()));
+    patterns.insert("}", TokenPattern::String("}".to_string()));
+    patterns.insert(",", TokenPattern::String(",".to_string()));
+    patterns.insert(".", TokenPattern::String(".".to_string()));
+    patterns.insert(";", TokenPattern::String(";".to_string()));
+    patterns.insert("=", TokenPattern::String("=".to_string()));
+    patterns.insert("+", TokenPattern::String("+".to_string()));
+    patterns.insert("-", TokenPattern::String("-".to_string()));
+    patterns.insert("*", TokenPattern::String("*".to_string()));
+    patterns.insert("/", TokenPattern::String("/".to_string()));
+    patterns.insert("%", TokenPattern::String("%".to_string()));
+    patterns.insert("**", TokenPattern::String("**".to_string()));
+    patterns.insert("//", TokenPattern::String("//".to_string()));
+    patterns.insert("==", TokenPattern::String("==".to_string()));
+    patterns.insert("!=", TokenPattern::String("!=".to_string()));
+    patterns.insert("<", TokenPattern::String("<".to_string()));
+    patterns.insert(">", TokenPattern::String(">".to_string()));
+    patterns.insert("<=", TokenPattern::String("<=".to_string()));
+    patterns.insert(">=", TokenPattern::String(">=".to_string()));
+    patterns.insert("+=", TokenPattern::String("+=".to_string()));
+    patterns.insert("-=", TokenPattern::String("-=".to_string()));
+    patterns.insert("*=", TokenPattern::String("*=".to_string()));
+    patterns.insert("/=", TokenPattern::String("/=".to_string()));
+    patterns.insert("->", TokenPattern::String("->".to_string()));
 
     // Identifiers (regex pattern)
     patterns.insert(
-        "identifier".to_string(),
+        "identifier",
         TokenPattern::Regex(r"[_\p{XID_Start}][_\p{XID_Continue}]*".to_string()),
     );
 
@@ -189,7 +143,8 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Process symbols to determine tokens
+    // Process symbols to determine tokens and extras
+    let mut extras = Vec::new();
     for i in 0..lang.symbol_count as usize {
         let metadata = if lang.symbol_metadata.is_null() {
             // If symbol_metadata pointer is null, assume all symbols are non-terminal
@@ -199,6 +154,11 @@ pub fn decode_grammar_with_patterns(
         };
         let name = &symbol_names[i];
         let symbol_id = SymbolId(i as u16);
+
+        // Check if this symbol is an extra (bit 0x04 in metadata)
+        if (metadata & 0x04) != 0 {
+            extras.push(symbol_id);
+        }
 
         if is_terminal(metadata, name) {
             // This is a token
@@ -329,43 +289,6 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Decode field names
-    let mut field_name_map = IndexMap::new();
-    if !lang.field_names.is_null() {
-        for i in 0..lang.field_count as usize {
-            unsafe {
-                let name_ptr = *lang.field_names.add(i);
-                if !name_ptr.is_null() {
-                    let name = CStr::from_ptr(name_ptr as *const c_char)
-                        .to_string_lossy()
-                        .into_owned();
-                    field_name_map.insert(FieldId(i as u16), name);
-                }
-            }
-        }
-    }
-
-    // Decode field map entries: (production_id -> [(field_id, position)])
-    let mut fields_by_rule: HashMap<u16, Vec<(FieldId, usize)>> = HashMap::new();
-    if !lang.field_map_slices.is_null() && !lang.field_map_entries.is_null() {
-        for pid in 0..lang.production_count as usize {
-            let start = unsafe { *lang.field_map_slices.add(pid * 2) } as usize;
-            let len = unsafe { *lang.field_map_slices.add(pid * 2 + 1) } as usize;
-            for j in 0..len {
-                let entry_index = (start + j) * 2;
-                let low = unsafe { *lang.field_map_entries.add(entry_index) } as u32;
-                let high = unsafe { *lang.field_map_entries.add(entry_index + 1) } as u32;
-                let packed = (high << 16) | low;
-                let field_id = (packed & 0xFFFF) as u16;
-                let child_index = ((packed >> 16) & 0xFF) as usize;
-                fields_by_rule
-                    .entry(pid as u16)
-                    .or_default()
-                    .push((FieldId(field_id), child_index));
-            }
-        }
-    }
-
     // Only populate additional rules from parse_rules if we don't have proper TSRule data
     // This avoids overwriting correct rule data with incomplete data
     let mut production_ids = IndexMap::new();
@@ -432,7 +355,7 @@ pub fn decode_grammar_with_patterns(
         precedences: vec![],
         conflicts: vec![],
         externals,
-        extras: vec![],
+        extras,
         fields: field_names_map,
         supertypes: vec![],
         inline_rules: vec![],
@@ -575,9 +498,9 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
         symbol_metadata.push(SymbolMetadata {
             name,
-            visible: (ts_metadata & 0x01) != 0,
-            named: (ts_metadata & 0x02) != 0,
-            supertype: (ts_metadata & 0x08) != 0,
+            is_visible: (ts_metadata & 0x01) != 0,
+            is_named: (ts_metadata & 0x02) != 0,
+            is_supertype: (ts_metadata & 0x08) != 0,
             // Additional fields required by GLR core API contracts
             is_terminal,
             is_extra: (ts_metadata & 0x04) != 0,
@@ -840,9 +763,13 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         external_token_count: lang.external_token_count as usize,
         lex_modes,
         extras: extras.clone(),
-        dynamic_prec_by_rule: Vec::new(), // TODO: Decode from language
-        rule_assoc_by_rule: Vec::new(),   // TODO: Decode from language
-        alias_sequences: Vec::new(),      // TODO: Decode from language
+        // Note: These per-rule metadata arrays are not populated from TSLanguage
+        // because the information is already available in the grammar rules themselves.
+        // When generating tables from scratch (in tablegen), these are populated from grammar.
+        // For decoded tables, the parser uses rule.precedence and rule.associativity directly.
+        dynamic_prec_by_rule: Vec::new(),
+        rule_assoc_by_rule: Vec::new(),
+        alias_sequences: Vec::new(),
         field_names,
         field_map,
     };

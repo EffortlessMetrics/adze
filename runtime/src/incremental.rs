@@ -180,8 +180,10 @@ impl IncrementalParser {
 
         // If edits affect less than 10% of the text, try incremental parsing
         if total_edit_size < text_size / 10 {
-            // TODO: Implement actual subtree reuse logic
-            // For now, fall back to full reparse
+            // Note: This legacy incremental parser is deprecated.
+            // For production incremental parsing, use `glr_incremental` or `pure_incremental` modules
+            // which provide full subtree reuse with GLR-aware fork tracking.
+            // This module is kept only for backward compatibility behind the `legacy-parsers` feature.
         }
 
         // Full reparse

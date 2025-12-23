@@ -24,17 +24,23 @@ fn main() {
         symbol_metadata: vec![
             SymbolMetadata {
                 name: "token".to_string(),
-                visible: true,
-                named: false,
-                supertype: false,
-                // MISSING: is_terminal, is_extra, is_fragile, symbol_id
+                is_visible: true,
+                is_named: false,
+                is_supertype: false,
+                is_terminal: true,
+                is_extra: false,
+                is_fragile: false,
+                symbol_id: SymbolId(0),
             },
             SymbolMetadata {
                 name: "S".to_string(),
-                visible: true,
-                named: true,
-                supertype: false,
-                // MISSING: is_terminal, is_extra, is_fragile, symbol_id
+                is_visible: true,
+                is_named: true,
+                is_supertype: false,
+                is_terminal: false,
+                is_extra: false,
+                is_fragile: false,
+                symbol_id: SymbolId(1),
             },
         ],
         external_scanner_states: vec![],

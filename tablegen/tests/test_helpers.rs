@@ -10,9 +10,9 @@ pub fn create_minimal_parse_table(grammar: Grammar) -> ParseTable {
         goto_table: vec![vec![StateId(0)]],
         symbol_metadata: vec![SymbolMetadata {
             name: "EOF".to_string(),
-            visible: true,
-            named: true,
-            supertype: false,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
             // Additional fields required by GLR core API contracts
             is_terminal: true, // EOF is typically a terminal
             is_extra: false,
@@ -71,9 +71,9 @@ pub fn create_test_parse_table_with_content(
         symbol_metadata: vec![
             SymbolMetadata {
                 name: "symbol".to_string(),
-                visible: true,
-                named: true,
-                supertype: false,
+                is_visible: true,
+                is_named: true,
+                is_supertype: false,
                 // Additional fields required by GLR core API contracts
                 is_terminal: true, // Default to terminal for test symbols
                 is_extra: false,
