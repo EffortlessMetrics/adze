@@ -2261,7 +2261,9 @@ pub fn build_lr1_automaton(
         .map(|s| s.0)
         .max()
         .unwrap_or(0);
-    let eof_symbol = SymbolId(max_symbol + 1);
+    let eof_symbol = SymbolId(max_symbol.checked_add(1).ok_or_else(|| {
+        GLRError::StateMachine("EOF symbol would overflow u16: grammar has too many symbols".into())
+    })?);
 
     // Create augmented grammar with S' -> S $ rule
     let mut augmented_grammar = grammar.clone();
@@ -2276,8 +2278,14 @@ pub fn build_lr1_automaton(
 
     if let Some(_name) = grammar.rule_names.get(&original_start) {}
 
-    // Create a new start symbol S' with a high ID that won't conflict
-    let augmented_start = SymbolId(65535); // High ID to avoid conflicts
+    // Create a new start symbol S' with an ID that won't conflict with existing symbols
+    // Since eof_symbol = max_symbol + 1, we use max_symbol + 2 for augmented_start
+    let augmented_start_id = max_symbol.checked_add(2).ok_or_else(|| {
+        GLRError::StateMachine(
+            "Augmented start symbol would overflow u16: grammar has too many symbols".into(),
+        )
+    })?;
+    let augmented_start = SymbolId(augmented_start_id);
 
     // Add S' -> S rule (we'll handle $ implicitly in the LR construction)
     let augmented_rule = Rule {
@@ -2286,7 +2294,7 @@ pub fn build_lr1_automaton(
         precedence: None,
         associativity: None,
         fields: vec![],
-        production_id: ProductionId(65535), // High ID to avoid conflicts
+        production_id: ProductionId(augmented_start_id), // Use same ID to avoid conflicts
     };
     augmented_grammar
         .rules
