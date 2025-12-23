@@ -154,6 +154,28 @@ pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
 #[doc(hidden)]
 pub use version_info::{CompareResult, VersionInfo, compare_versions};
 
+// ============================================================================
+// EOF Symbol Sentinel Handling
+// ============================================================================
+//
+// FirstFollowSets uses SymbolId(0) as an internal sentinel to represent EOF
+// in FIRST/FOLLOW set computations. However, the actual EOF symbol in the
+// parse table is dynamically assigned to avoid conflicts with grammar symbols.
+//
+// Use these helpers at the boundary where FIRST/FOLLOW results become real
+// lookahead symbols in the parse table.
+
+/// Internal EOF sentinel used by FirstFollowSets.
+/// This is NOT the actual EOF symbol - use `parse_table.eof_symbol` for that.
+const EOF_SENTINEL: SymbolId = SymbolId(0);
+
+/// Map a symbol from FOLLOW set output to actual parse table symbol.
+/// Replaces the EOF sentinel (SymbolId(0)) with the actual EOF symbol.
+#[inline]
+fn map_follow_symbol(sym: SymbolId, eof_symbol: SymbolId) -> SymbolId {
+    if sym == EOF_SENTINEL { eof_symbol } else { sym }
+}
+
 // Precedence resolution structures
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum Assoc {
@@ -2312,10 +2334,13 @@ pub fn build_lr1_automaton(
     }
 
     // Calculate EOF symbol ID to avoid conflicts with existing symbols
+    // IMPORTANT: Include grammar.rules.keys() to account for non-terminals that
+    // may not have entries in rule_names (fixes EOF/non-terminal symbol ID collision)
     let max_symbol = grammar
         .tokens
         .keys()
         .chain(grammar.rule_names.keys())
+        .chain(grammar.rules.keys()) // Include all non-terminal LHS symbols
         .chain(grammar.externals.iter().map(|e| &e.symbol_id))
         .map(|s| s.0)
         .max()
@@ -2633,12 +2658,12 @@ pub fn build_lr1_automaton(
                         let lookaheads_to_check: Vec<SymbolId> = if is_empty_production {
                             // Get FOLLOW set for the LHS of this rule
                             if let Some(follow_set) = first_follow.follow(rule.lhs) {
-                                let symbols: Vec<_> =
-                                    follow_set.ones().map(|idx| SymbolId(idx as u16)).collect();
-                                for sym in &symbols {
-                                    if symbol_to_index.contains_key(sym) {}
-                                }
-                                symbols
+                                // Map FOLLOW set symbols to actual parse table symbols.
+                                // This replaces EOF_SENTINEL (SymbolId(0)) with the actual eof_symbol.
+                                follow_set
+                                    .ones()
+                                    .map(|idx| map_follow_symbol(SymbolId(idx as u16), eof_symbol))
+                                    .collect()
                             } else {
                                 vec![item.lookahead]
                             }
