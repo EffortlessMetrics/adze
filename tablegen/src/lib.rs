@@ -957,6 +957,8 @@ mod tests {
         );
 
         // Override to put EOF at column 0 for test compatibility
+        // Also update eof_symbol to match the new mapping
+        parse_table.eof_symbol = SymbolId(0);
         parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
         parse_table.symbol_to_index.insert(SymbolId(1), 1);
@@ -986,6 +988,8 @@ mod tests {
         );
 
         // Set EOF at column 0 for compatibility with existing test logic
+        // Also update eof_symbol to match the new mapping
+        parse_table.eof_symbol = SymbolId(0);
         parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
 
@@ -1191,6 +1195,8 @@ mod tests {
         );
 
         // Override to put EOF at column 0 for test compatibility
+        // Also update eof_symbol to match the new mapping
+        parse_table.eof_symbol = SymbolId(0);
         parse_table.symbol_to_index.clear();
         parse_table.symbol_to_index.insert(SymbolId(0), 0);
         parse_table.symbol_to_index.insert(SymbolId(1), 1);

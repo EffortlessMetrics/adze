@@ -212,9 +212,8 @@ impl TableCompressor {
         );
 
         // Only assert EOF presence if the parse table actually exposes an EOF mapping
-        // Don't assume EOF is at column 0 - derive it from symbol_to_index
-        use rust_sitter_ir::SymbolId;
-        if let Some(&eof_idx) = parse_table.symbol_to_index.get(&SymbolId(0)) {
+        // Don't assume EOF is at column 0 - derive it from symbol_to_index using the actual eof_symbol
+        if let Some(&eof_idx) = parse_table.symbol_to_index.get(&parse_table.eof_symbol) {
             debug_assert!(
                 token_indices.contains(&eof_idx),
                 "token_indices must contain EOF column (derived from symbol_to_index)"
@@ -224,11 +223,13 @@ impl TableCompressor {
         let token_set: FxHashSet<usize> = token_indices.iter().copied().collect();
 
         // Fetch EOF column index once and reuse it everywhere
+        // Use parse_table.eof_symbol instead of hardcoded SymbolId(0) since EOF symbol
+        // is computed as max_symbol + 1 in build_lr1_automaton
         let eof_idx = *parse_table
             .symbol_to_index
-            .get(&SymbolId(0))
+            .get(&parse_table.eof_symbol)
             .ok_or_else(|| TableGenError::InvalidTable(
-                "EOF (symbol 0) not found in symbol_to_index map - this is a critical invariant violation".into()
+                format!("EOF (symbol {}) not found in symbol_to_index map - this is a critical invariant violation", parse_table.eof_symbol.0)
             ))?;
 
         // Validation: Ensure state 0 has at least one token shift action
