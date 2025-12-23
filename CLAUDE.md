@@ -758,9 +758,8 @@ Successfully completed comprehensive golden test integration with rust-sitter-ge
 3. **Incremental Parsing Disabled**: The incremental parsing path in `glr_incremental.rs` is
    currently disabled and falls back to fresh parsing. The infrastructure exists but has
    architectural issues causing behavioral inconsistencies. See `glr_incremental.rs:281-297`.
-4. **Integration Test Failure**: `test_parentheses_grammar_generation` in tablegen fails due
-   to symbol layout issues in abi_builder.rs (non-terminal at terminal index position).
 
 **Resolved Issues**:
+- ✅ **EOF Symbol Layout** (PR #90, Issue #89): Fixed EOF/non-terminal symbol ID collision in abi_builder.rs
 - ✅ **EOF Symbol Handling** (PR #67): Fixed hardcoded SymbolId(0) to use parse_table.eof_symbol
 - ✅ **Test Connectivity** (August 2025): All test files properly connected and running
