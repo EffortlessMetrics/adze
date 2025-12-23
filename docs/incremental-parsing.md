@@ -2,19 +2,20 @@
 
 ## Overview
 
-rust-sitter provides **production-ready incremental parsing capabilities** (implemented in PR #62) that dramatically improve performance when handling text edits. Instead of reparsing the entire document after each change, the incremental parser identifies and reuses unchanged subtrees, making parse time proportional to the edit size rather than document size.
+rust-sitter includes incremental parsing infrastructure (implemented in PR #62) designed to improve performance when handling text edits. The incremental parser identifies and reuses unchanged subtrees, making parse time proportional to the edit size rather than document size.
 
-**Status**: ✅ **Production Ready** - Complete implementation with working `reparse()` method integrated into main Parser API
+**Status**: ⚠️ **Experimental / Currently Disabled** - The incremental parsing path is currently disabled and falls back to fresh parsing for consistency. The infrastructure exists but has architectural issues causing behavioral differences between incremental and fresh parsing. See `glr_incremental.rs` for details.
 
-## Key Benefits (Demonstrated in PR #62)
+## Design Goals (Historical Benchmarks from PR #62)
+
+When active, the incremental parser demonstrated:
 
 - **16x speedup** for single character edits (215μs vs 3.5ms)
 - **999/1000 subtree reuse** for typical single-token changes
 - **Automatic fallback** ensures parsing always succeeds
 - **Zero overhead** when feature is disabled (graceful degradation)
-- **Production ready** with comprehensive test coverage
 
-This makes rust-sitter suitable for real-time IDE features where parsing must keep up with user typing.
+**Note**: These benchmarks were measured when incremental reuse was fully enabled. The current implementation conservatively falls back to fresh parsing.
 
 ## Architecture
 

@@ -40,7 +40,7 @@ This beta release delivers critical correctness fixes for the GLR parser, achiev
 
 ### 🚀 Major Release: Production-Ready GLR with Safety Hardening
 
-This release delivers a production-ready GLR parser with comprehensive safety improvements, honest CLI feedback, and the **Direct Forest Splicing** algorithm for 16x faster incremental parsing.
+This release delivers a production-ready GLR parser with comprehensive safety improvements and honest CLI feedback. The **Direct Forest Splicing** algorithm for incremental parsing is included but currently disabled pending correctness parity with fresh parsing.
 
 ### ✨ Added
 
@@ -50,12 +50,11 @@ This release delivers a production-ready GLR parser with comprehensive safety im
   - Size and alignment checks for `TSLexer` and `TSExternalScannerData`
   - `destroy_lexer()` function for proper resource cleanup
 
-- **Direct Forest Splicing Algorithm**
+- **Direct Forest Splicing Algorithm** *(infrastructure present, currently disabled)*
   - Revolutionary approach replacing GSS snapshot/restore
-  - **16.34x performance improvement** on incremental edits
-  - O(edit size) complexity achieved
-  - 99.9% subtree reuse on large documents
-  - 100% ambiguity preservation for ambiguous grammars
+  - Historical benchmarks: **16.34x performance improvement** on incremental edits
+  - O(edit size) complexity design
+  - **Status**: Currently falls back to fresh parsing for correctness parity
 
 - **Enhanced GLR Parser Architecture**  
   - Multi-action cells: `Vec<Vec<Vec<Action>>>`

@@ -1,6 +1,8 @@
 # Incremental Parsing Examples
 
-This document provides comprehensive examples demonstrating the production-ready incremental parsing features in rust-sitter (PR #62).
+> **⚠️ Status**: The incremental parsing path is currently **disabled** and falls back to fresh parsing for consistency. The examples below document the intended API, but the implementation currently falls back to fresh parsing.
+
+This document provides examples demonstrating the incremental parsing infrastructure in rust-sitter (PR #62).
 
 ## Example 1: Basic Single Edit
 

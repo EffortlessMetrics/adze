@@ -1,5 +1,7 @@
 # Direct Forest Splicing: A Revolutionary Approach to GLR Incremental Parsing
 
+> **⚠️ Implementation Status**: The Direct Forest Splicing algorithm is currently **disabled** and falls back to fresh parsing for consistency. The algorithm is implemented but has known issues that cause behavioral differences with fresh parsing. See `glr_incremental.rs` for details.
+
 > **Understanding-Oriented Documentation**: This document explains the theoretical foundations, design decisions, and architectural benefits of the Direct Forest Splicing algorithm implemented in PR #62.
 
 ## Overview

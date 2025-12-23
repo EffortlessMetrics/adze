@@ -1,6 +1,8 @@
 # How to Use GLR Incremental Parsing in rust-sitter
 
-This guide demonstrates how to use rust-sitter's GLR incremental parsing implementation (completed September 2025) with fork-aware subtree reuse and conservative fallback strategies.
+> **⚠️ Status**: The incremental parsing path is currently **disabled** and falls back to fresh parsing for consistency. The infrastructure documented here exists but has known issues. See `glr_incremental.rs` for details.
+
+This guide documents rust-sitter's GLR incremental parsing infrastructure (implemented September 2025) with fork-aware subtree reuse and conservative fallback strategies.
 
 ## Prerequisites
 
@@ -609,11 +611,13 @@ impl CodeAnalyzer {
 
 ## Conclusion
 
-rust-sitter's incremental parsing provides significant performance improvements for text editing scenarios. The Direct Forest Splicing algorithm achieves 16x speedup for typical edits while maintaining correctness and GLR compatibility.
+rust-sitter includes incremental parsing infrastructure designed for text editing scenarios. The Direct Forest Splicing algorithm is designed to achieve significant speedups while maintaining GLR compatibility.
+
+**Current Status**: The incremental parsing path is currently disabled and falls back to fresh parsing for consistency. See `glr_incremental.rs` for details.
 
 **Key Takeaways**:
-- ✅ Use `incremental_glr` feature for production
-- ✅ Monitor reuse with global counters
+- ⚠️ Incremental feature currently falls back to fresh parsing
+- ✅ Monitor reuse with global counters (when enabled)
 - ✅ Handle fallback gracefully
 - ✅ Consider edit size and grammar complexity
 - ✅ Test performance in release builds
