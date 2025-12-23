@@ -1296,7 +1296,7 @@ impl Parser {
             // "DEBUG reduce: Stack before reduction has {} entries",
             // self.stack.len()
             // );
-            for entry in self.stack.iter() {
+            for (_i, entry) in self.stack.iter().enumerate() {
                 if let Some(ref _subtree) = entry.subtree {
                     // eprintln!(
                     // "  Stack[{}]: state={}, symbol={}",

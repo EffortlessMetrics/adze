@@ -92,7 +92,7 @@ This specification provides a complete roadmap for building the pure-Rust Tree-s
 ## 📚 Additional Resources
 
 - [Tree-sitter Documentation](https://tree-sitter.github.io/tree-sitter/)
-- [rust-sitter Repository](https://github.com/hydro-project/rust-sitter)
+- [rust-sitter Repository](https://github.com/EffortlessMetrics/rust-sitter)
 - [Tree-sitter Grammar Development Guide](https://tree-sitter.github.io/tree-sitter/creating-parsers)
 
 ---

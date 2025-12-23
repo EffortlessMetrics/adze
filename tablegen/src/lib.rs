@@ -27,6 +27,8 @@ pub mod external_scanner;
 pub mod external_scanner_v2;
 /// Language builder for generating static parsers
 pub mod generate;
+/// Schema validation for parse tables
+pub mod schema;
 /// Helper utilities for table generation
 pub mod helpers;
 pub mod language_gen;
