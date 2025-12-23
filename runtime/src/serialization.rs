@@ -821,7 +821,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: TreeStatistics type needs to be defined
+    #[ignore = "TODO: TreeStatistics type needs to be defined"]
     fn test_tree_statistics() {
         // TODO: TreeStatistics type needs to be defined - this test is incomplete
         // This test is disabled until TreeStatistics is properly implemented

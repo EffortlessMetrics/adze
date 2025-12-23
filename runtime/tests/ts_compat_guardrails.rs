@@ -41,7 +41,7 @@ fn table_guardrails() {
         .iter()
         .find(|m| m.name == "expression")
         .expect("Expression symbol not found");
-    assert!(expr_symbol.named, "Expression should be a named symbol");
+    assert!(expr_symbol.is_named, "Expression should be a named symbol");
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn language_metadata() {
         .iter()
         .find(|m| m.name == "number")
         .expect("number symbol not found");
-    assert!(number_symbol.named, "number should be a named token");
+    assert!(number_symbol.is_named, "number should be a named token");
 }
 
 #[test]

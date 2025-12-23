@@ -101,7 +101,10 @@ impl SmallRowState {
         let mut state = SmallRowState::new();
 
         // Data is in pairs: [col, value, col, value, ...]
-        assert!(data.len() % 2 == 0, "Small row data must have even length");
+        assert!(
+            data.len().is_multiple_of(2),
+            "Small row data must have even length"
+        );
 
         for i in (0..data.len()).step_by(2) {
             let col = data[i];

@@ -36,6 +36,7 @@ mod ts_compat_golden {
 }
 
 // Legacy test structures (preserved for reference)
+#[allow(dead_code)]
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct GoldenTest {
     name: String,
@@ -45,6 +46,7 @@ struct GoldenTest {
     expected_tables: GoldenTables,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct GoldenTables {
     symbol_count: u32,

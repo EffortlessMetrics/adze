@@ -130,11 +130,11 @@ fn comprehensive_indentation_scan_diagnostics() {
                     std::cmp::Ordering::Less => {
                         if valid_symbols.get(1001) == Some(&true) {
                             // DEDENT
-                            let mut dedent_count = 0;
+                            let mut _dedent_count = 0;
                             while self.stack.len() > 1 && *self.stack.last().unwrap() > indent_level
                             {
                                 self.stack.pop();
-                                dedent_count += 1;
+                                _dedent_count += 1;
                             }
                             lexer.mark_end();
                             return Some(ScanResult {

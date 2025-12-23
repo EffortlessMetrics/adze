@@ -123,7 +123,7 @@ fn test_incremental_vs_full_parse_equivalence() {
     let mut parser = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
     // Test multiple edit scenarios
-    let test_cases = vec![
+    let test_cases = [
         ("123", "1234", 3, 3, 4), // Insert at end
         ("1234", "123", 3, 4, 3), // Delete at end
         ("123", "1243", 2, 3, 3), // Replace middle

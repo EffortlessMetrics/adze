@@ -2,7 +2,6 @@
 // These tests are not yet compatible with the incremental GLR feature.
 #![cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
 
-use rust_sitter::external_scanner::ScanResult;
 use rust_sitter::unified_parser::Parser;
 use serial_test::serial;
 
@@ -19,7 +18,6 @@ mod unified_json_helper;
 #[ignore = "pure-rust parser integration unstable"]
 #[cfg(feature = "pure-rust")]
 #[serial]
-#[ignore]
 fn test_complete_workflow() {
     // This test demonstrates the complete workflow of the pure-Rust implementation
 
@@ -87,7 +85,6 @@ fn test_complete_workflow() {
 #[ignore = "pure-rust parser integration unstable"]
 #[cfg(feature = "pure-rust")]
 #[serial]
-#[ignore]
 fn test_error_recovery() {
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();
@@ -114,7 +111,6 @@ fn test_error_recovery() {
 #[ignore = "pure-rust parser integration unstable"]
 #[cfg(feature = "pure-rust")]
 #[serial]
-#[ignore]
 fn test_cancellation() {
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -155,7 +151,6 @@ fn test_cancellation() {
 #[ignore = "pure-rust parser integration unstable"]
 #[cfg(feature = "pure-rust")]
 #[serial]
-#[ignore]
 fn test_timeout() {
     let mut parser = Parser::new();
     let language = unified_json_helper::unified_json_language();
