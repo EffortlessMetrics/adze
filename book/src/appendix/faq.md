@@ -184,7 +184,7 @@ We welcome contributions! See our [Contributing Guide](../development/contributi
 
 ### Where do I report bugs?
 
-Please report issues on our [GitHub repository](https://github.com/hydro-project/rust-sitter/issues).
+Please report issues on our [GitHub repository](https://github.com/EffortlessMetrics/rust-sitter/issues).
 
 ### How do I add a new language grammar?
 

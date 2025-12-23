@@ -2,10 +2,9 @@
 
 use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::*;
-use rust_sitter_tablegen::{TableCompressor, abi_builder::AbiLanguageBuilder};
+use rust_sitter_tablegen::{TableCompressor, abi_builder::AbiLanguageBuilder, helpers};
 
 #[test]
-#[ignore]
 fn test_compressed_table_generation() {
     // Create a simple grammar: S -> 'a' | 'b'
     let mut grammar = Grammar::new("simple".to_string());
@@ -55,8 +54,8 @@ fn test_compressed_table_generation() {
 
     // Compress the tables
     let compressor = TableCompressor::new();
-    // Create minimal token indices for test
-    let token_indices = vec![0]; // EOF is always a token
+    // Collect token indices properly from grammar and parse table
+    let token_indices = helpers::collect_token_indices(&grammar, &parse_table);
     let compressed = compressor
         .compress(&parse_table, &token_indices, false)
         .unwrap();
@@ -79,7 +78,6 @@ fn test_compressed_table_generation() {
 }
 
 #[test]
-#[ignore]
 fn test_table_compression_algorithms() {
     use rust_sitter_glr_core::Action;
     use rust_sitter_ir::{RuleId, StateId};
@@ -94,7 +92,8 @@ fn test_table_compression_algorithms() {
 
     let reduce = Action::Reduce(RuleId(17));
     let encoded_reduce = compressor.encode_action_small(&reduce).unwrap();
-    assert_eq!(encoded_reduce, 0x8000 | (17 << 1));
+    // Tree-sitter uses 1-based production IDs for reduce actions
+    assert_eq!(encoded_reduce, 0x8000 | (17 + 1));
 
     let accept = Action::Accept;
     let encoded_accept = compressor.encode_action_small(&accept).unwrap();
@@ -106,7 +105,6 @@ fn test_table_compression_algorithms() {
 }
 
 #[test]
-#[ignore]
 fn test_goto_table_compression() {
     use rust_sitter_ir::StateId;
     use rust_sitter_tablegen::compress::*;
@@ -143,7 +141,6 @@ fn test_goto_table_compression() {
 }
 
 #[test]
-#[ignore]
 fn test_deterministic_table_generation() {
     // Create identical grammars and verify they produce identical compressed tables
     let grammar1 = create_test_grammar("test1");
@@ -156,13 +153,14 @@ fn test_deterministic_table_generation() {
     let parse_table2 = build_lr1_automaton(&grammar2, &first_follow2).unwrap();
 
     let compressor = TableCompressor::new();
-    // Create minimal token indices for test
-    let token_indices = vec![0]; // EOF is always a token
+    // Collect token indices properly from grammar and parse table
+    let token_indices1 = helpers::collect_token_indices(&grammar1, &parse_table1);
+    let token_indices2 = helpers::collect_token_indices(&grammar2, &parse_table2);
     let compressed1 = compressor
-        .compress(&parse_table1, &token_indices, false)
+        .compress(&parse_table1, &token_indices1, false)
         .unwrap();
     let compressed2 = compressor
-        .compress(&parse_table2, &token_indices, false)
+        .compress(&parse_table2, &token_indices2, false)
         .unwrap();
 
     // Verify deterministic compression

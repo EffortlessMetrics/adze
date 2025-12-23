@@ -65,9 +65,13 @@ fn benchmark_arena_allocator(c: &mut Criterion) {
     // Node allocation benchmark
     #[derive(Clone)]
     struct ParseNode {
+        #[allow(dead_code)]
         symbol: u16,
+        #[allow(dead_code)]
         start: usize,
+        #[allow(dead_code)]
         end: usize,
+        #[allow(dead_code)]
         children: Vec<usize>, // Indices instead of pointers for simplicity
     }
 
@@ -109,7 +113,7 @@ fn benchmark_arena_allocator(c: &mut Criterion) {
         b.iter(|| unsafe {
             let mut ptrs = Vec::new();
             for i in 0..100 {
-                let i32_ptr = arena.alloc(i as i32);
+                let i32_ptr = arena.alloc(i);
                 let f64_ptr = arena.alloc(i as f64);
                 let vec_ptr = arena.alloc(vec![i; 10]);
                 ptrs.push((i32_ptr, f64_ptr, vec_ptr));

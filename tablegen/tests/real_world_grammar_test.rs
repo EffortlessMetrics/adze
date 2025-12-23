@@ -327,7 +327,10 @@ fn create_json_grammar() -> Grammar {
 
 #[test]
 fn test_json_node_types_generation() {
-    let grammar = create_json_grammar();
+    let mut grammar = create_json_grammar();
+
+    // Normalize the grammar to convert complex symbols (for node type generation we just need normalization)
+    grammar.normalize();
     let generator = NodeTypesGenerator::new(&grammar);
     let node_types_result = generator.generate();
 
@@ -357,10 +360,10 @@ fn test_json_node_types_generation() {
 
 #[test]
 fn test_json_language_generation() {
-    let grammar = create_json_grammar();
+    let mut grammar = create_json_grammar();
 
-    // Create a minimal parse table for testing
-    let first_follow = FirstFollowSets::compute(&grammar).unwrap();
+    // Create a minimal parse table for testing using automatic normalization
+    let first_follow = FirstFollowSets::compute_normalized(&mut grammar).unwrap();
     let parse_table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Should build parse table");
 

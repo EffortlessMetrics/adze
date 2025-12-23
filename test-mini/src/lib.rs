@@ -2,6 +2,7 @@
 
 #[rust_sitter::grammar("mini")]
 pub mod grammar {
+    #[derive(Debug)]
     #[rust_sitter::language]
     pub struct Program {
         #[rust_sitter::leaf(pattern = r"\d+", text = true)]

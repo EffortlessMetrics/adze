@@ -40,10 +40,10 @@ impl SymbolRegistry {
         registry.register(
             "end",
             SymbolMetadata {
-                is_visible: true,
-                is_named: false,
-                is_hidden: false,
-                is_terminal: true,
+                visible: true,
+                named: false,
+                hidden: false,
+                terminal: true,
             },
         );
 
@@ -143,10 +143,10 @@ mod tests {
         // Register symbols in same order
         for name in ["number", "plus", "minus", "expr"] {
             let meta = SymbolMetadata {
-                is_visible: true,
-                is_named: name == "expr",
-                is_hidden: false,
-                is_terminal: name != "expr",
+                visible: true,
+                named: name == "expr",
+                hidden: false,
+                terminal: name != "expr",
             };
             reg1.register(name, meta);
             reg2.register(name, meta);

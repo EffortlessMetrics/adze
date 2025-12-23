@@ -83,7 +83,7 @@
 
 **Deliverables:**
 1. **Developer Experience:**
-   - [ ] LSP generator from grammar definitions
+   - [x] LSP generator from grammar definitions
    - [ ] Syntax highlighting generator
    - [ ] Code folding and outline support
    - [ ] Grammar testing framework

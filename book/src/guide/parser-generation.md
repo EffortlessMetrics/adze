@@ -77,11 +77,14 @@ The parser uses LR(1) tables containing:
 - **Goto Table**: Maps (state, non-terminal) → state
 - **Reduce Table**: Production rules for reductions
 
-### GLR Extensions (Production Ready)
+### GLR Extensions (Production Ready - Enhanced v0.6.1)
 
-GLR parsing in runtime2 provides:
+GLR parsing in runtime2 provides robust conflict resolution:
 - **Multi-Action Cells**: Each (state, symbol) pair can hold multiple conflicting actions
 - **Runtime Forking**: Parser dynamically forks on conflicts, exploring all valid paths
+- **Precedence Disambiguation**: Correctly resolves operator precedence (e.g., `1+2*3` → `1+(2*3)`)
+- **Error Recovery**: Graceful handling of malformed input with error node insertion
+- **EOF Processing**: Fixed `process_eof()` parameter usage for proper end-of-input handling
 - **Forest Management**: Efficient handling of ambiguous parse forests
 - **Tree Conversion**: High-performance forest-to-tree conversion with metrics
 - **Conflict Preservation**: Precedence/associativity orders actions but preserves alternatives
@@ -99,6 +102,37 @@ struct Module {
 // 2. Files with statements (shift tokens)
 let tree = parser.parse_utf8("", None)?;          // Empty file
 let tree = parser.parse_utf8("def main():", None)?; // With statement
+
+// Error recovery example:
+let tree = parser.parse_utf8("1 + + 2", None)?;   // Recovers from double operator
+// Result includes error nodes for invalid syntax while continuing to parse
+```
+
+### Error Recovery Enhancements (v0.6.1)
+
+The GLR parser now includes robust error recovery:
+
+```rust
+// Input with syntax errors:
+let malformed_input = "def func( # missing closing paren\n  pass";
+
+// Parser gracefully recovers:
+let tree = parser.parse_utf8(malformed_input, None)?;
+
+// Parse tree includes error nodes:
+Module {
+    statements: vec![
+        FunctionDef {
+            name: Identifier("func"),
+            params: ErrorNode {           // Error recovery inserted
+                children: [/* partial param list */]
+            },
+            body: Block {
+                statements: [Pass]        // Continues parsing after error
+            }
+        }
+    ]
+}
 ```
 
 ## Debugging Generation

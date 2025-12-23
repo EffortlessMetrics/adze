@@ -1,61 +1,61 @@
 ---
-source: example/src/words.rs
+source: src/words.rs
 expression: "grammar::parse(\"ifhello\")"
 ---
 Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "symbol 105",
+                "end",
             ),
             start: 0,
             end: 0,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 102",
+                "end",
             ),
             start: 1,
             end: 1,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 104",
+                "end",
             ),
             start: 2,
             end: 2,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 101",
+                "end",
             ),
             start: 3,
             end: 3,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 108",
+                "end",
             ),
             start: 4,
             end: 4,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 108",
+                "end",
             ),
             start: 5,
             end: 5,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 111",
+                "end",
             ),
             start: 6,
             end: 6,
         },
         ParseError {
             reason: UnexpectedToken(
-                "symbol 0",
+                "end",
             ),
             start: 7,
             end: 7,

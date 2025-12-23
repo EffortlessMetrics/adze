@@ -13,9 +13,9 @@ edition = "2024"
 [output.html]
 theme = "rust"
 default-theme = "rust"
-git-repository-url = "https://github.com/hydro-project/rust-sitter"
+git-repository-url = "https://github.com/EffortlessMetrics/rust-sitter"
 git-repository-icon = "fa-github"
-edit-url-template = "https://github.com/hydro-project/rust-sitter/edit/main/book/{path}"
+edit-url-template = "https://github.com/EffortlessMetrics/rust-sitter/edit/main/book/{path}"
 
 [output.html.playground]
 runnable = false

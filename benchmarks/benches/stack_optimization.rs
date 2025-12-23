@@ -55,6 +55,7 @@ fn benchmark_memory_pooling(c: &mut Criterion) {
 
     #[derive(Default)]
     struct TestNode {
+        #[allow(dead_code)]
         data: [u64; 16], // Larger node to make allocation cost visible
     }
 
@@ -98,7 +99,7 @@ fn benchmark_fork_merge_patterns(c: &mut Criterion) {
     // Simulate a parse that forks frequently
     group.bench_function("frequent_fork_pattern", |b| {
         b.iter(|| {
-            let mut stack = StackNode::with_state(0);
+            let stack = StackNode::with_state(0);
             let mut active_stacks = vec![stack];
 
             // Simulate parsing with frequent forks

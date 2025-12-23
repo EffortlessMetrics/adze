@@ -5,7 +5,7 @@
 // Implements Tree-sitter's query language for pattern matching on GLR trees
 
 use rust_sitter_ir::{Grammar, SymbolId};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt;
 
 /// A simple tree representation for query matching
@@ -28,8 +28,6 @@ pub struct Query {
     pub capture_names: HashMap<String, u32>,
     /// Predicate functions
     pub predicates: Vec<Predicate>,
-    /// Set of symbols considered "named" (non-terminals)
-    pub named_symbols: HashSet<SymbolId>,
 }
 
 /// A pattern is a tree structure to match
@@ -45,14 +43,14 @@ pub struct Pattern {
 #[derive(Debug, Clone)]
 pub struct PatternNode {
     /// The symbol to match (None for wildcard)
-    pub symbol: Option<SymbolId>,
+    symbol: Option<SymbolId>,
     /// Capture name if this node should be captured
-    pub capture: Option<String>,
+    capture: Option<String>,
     /// Child patterns
-    pub children: Vec<PatternChild>,
+    children: Vec<PatternChild>,
     /// Whether this is an anchor (must match at root)
     #[allow(dead_code)]
-    pub is_anchor: bool,
+    is_anchor: bool,
 }
 
 /// A child in a pattern can be required or have quantifiers
@@ -161,14 +159,10 @@ impl<'a> QueryParser<'a> {
             return Err(QueryError::EmptyQuery);
         }
 
-        // Collect named symbol ids from grammar for quick lookup during matching
-        let named_symbols = self.grammar.rule_names.keys().cloned().collect();
-
         Ok(Query {
             patterns,
             capture_names,
             predicates,
-            named_symbols,
         })
     }
 
@@ -204,16 +198,6 @@ impl<'a> QueryParser<'a> {
         next_capture_id: &mut u32,
     ) -> Result<PatternNode, QueryError> {
         self.skip_whitespace();
-        if self.peek_char() == Some('#') {
-            // This is likely a malformed standalone predicate
-            // Try to parse the identifier after # to give a better error
-            self.advance(); // consume #
-            if let Ok(predicate_name) = self.parse_identifier() {
-                return Err(QueryError::UnknownPredicate(predicate_name));
-            } else {
-                return Err(QueryError::ExpectedIdentifier(self.position));
-            }
-        }
 
         // Check for anchor
         let is_anchor = self.consume_char('.');
@@ -547,27 +531,25 @@ impl<'a> Iterator for QueryMatches<'a> {
     type Item = QueryMatch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            // Continue searching for more matches with current pattern
-            if let Some(result) = self.find_next_match() {
+        while self.pattern_index < self.query.patterns.len() {
+            let pattern = &self.query.patterns[self.pattern_index];
+
+            // Try to match pattern at current position
+            if let Some(result) = self.find_next_match(pattern) {
                 return Some(result);
             }
 
-            // If no more matches for current pattern, move to next pattern
-            if self.pattern_index + 1 >= self.query.patterns.len() {
-                return None;
-            }
-
+            // Move to next pattern
             self.pattern_index += 1;
             self.node_stack = vec![(self.root, 0)];
-            self.captures.clear();
         }
+
+        None
     }
 }
 
 impl<'a> QueryMatches<'a> {
-    fn find_next_match(&mut self) -> Option<QueryMatch> {
-        let pattern = &self.query.patterns[self.pattern_index];
+    fn find_next_match(&mut self, pattern: &Pattern) -> Option<QueryMatch> {
         while let Some((node, depth)) = self.node_stack.pop() {
             // Check depth limit
             if let Some(max) = self.max_depth
@@ -583,18 +565,20 @@ impl<'a> QueryMatches<'a> {
             if self.match_pattern_node(&pattern.root, node, depth) {
                 // Check predicates
                 if self.check_predicates(pattern) {
-                    // Add children to stack for continued traversal (depth-first)
-                    self.add_children_to_stack(node, depth + 1);
-
                     // Found a match!
-                    return Some(QueryMatch {
+                    let result = QueryMatch {
                         pattern_index: self.pattern_index,
                         captures: self.captures.clone(),
-                    });
+                    };
+
+                    // Continue searching from children
+                    self.add_children_to_stack(node, depth + 1);
+
+                    return Some(result);
                 }
             }
 
-            // Add children to stack for continued traversal (depth-first)
+            // Add children to continue depth-first search
             self.add_children_to_stack(node, depth + 1);
         }
 
@@ -637,128 +621,130 @@ impl<'a> QueryMatches<'a> {
         pattern_children: &[PatternChild],
         node_children: &'a [Subtree],
     ) -> bool {
-        // If no pattern children were specified, match regardless of node children
+        // If no pattern children, match any node
         if pattern_children.is_empty() {
             return true;
         }
 
-        let mut node_index = 0;
-
-        for pattern_child in pattern_children {
-            let expected_named = pattern_child
-                .node
-                .symbol
-                .map(|s| self.query.named_symbols.contains(&s))
-                .unwrap_or(false);
-
-            match pattern_child.quantifier {
-                Quantifier::One => {
-                    if expected_named {
-                        while node_index < node_children.len()
-                            && !self.node_is_named(&node_children[node_index])
-                        {
-                            node_index += 1;
-                        }
-                    }
-                    if node_index >= node_children.len()
-                        || !self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        )
-                    {
-                        return false;
-                    }
-                    node_index += 1;
-                }
-                Quantifier::ZeroOrOne => {
-                    if expected_named {
-                        while node_index < node_children.len()
-                            && !self.node_is_named(&node_children[node_index])
-                        {
-                            node_index += 1;
-                        }
-                    }
-                    if node_index < node_children.len()
-                        && self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        )
-                    {
-                        node_index += 1;
-                    }
-                }
-                Quantifier::ZeroOrMore => {
-                    while node_index < node_children.len() {
-                        if expected_named && !self.node_is_named(&node_children[node_index]) {
-                            node_index += 1;
-                            continue;
-                        }
-                        if self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        ) {
-                            node_index += 1;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-                Quantifier::OneOrMore => {
-                    if expected_named {
-                        while node_index < node_children.len()
-                            && !self.node_is_named(&node_children[node_index])
-                        {
-                            node_index += 1;
-                        }
-                    }
-                    if node_index >= node_children.len()
-                        || !self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        )
-                    {
-                        return false;
-                    }
-                    node_index += 1;
-                    loop {
-                        if node_index >= node_children.len() {
-                            break;
-                        }
-                        if expected_named && !self.node_is_named(&node_children[node_index]) {
-                            node_index += 1;
-                            continue;
-                        }
-                        if self.match_pattern_node(
-                            &pattern_child.node,
-                            &node_children[node_index],
-                            0,
-                        ) {
-                            node_index += 1;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Ensure remaining named children are ignorable
-        while node_index < node_children.len() {
-            if self.node_is_named(&node_children[node_index]) {
-                return false;
-            }
-            node_index += 1;
-        }
-
-        true
+        // Try to match pattern children as a subsequence of node children
+        // This allows Tree-sitter queries like (parent (child)) to match
+        // even if parent has other children besides child
+        self.match_children_subsequence(pattern_children, node_children, 0, 0)
     }
 
-    fn node_is_named(&self, node: &Subtree) -> bool {
-        self.query.named_symbols.contains(&node.symbol)
+    fn match_children_subsequence(
+        &mut self,
+        pattern_children: &[PatternChild],
+        node_children: &'a [Subtree],
+        pattern_idx: usize,
+        node_idx: usize,
+    ) -> bool {
+        // All pattern children matched
+        if pattern_idx >= pattern_children.len() {
+            return true;
+        }
+
+        let pattern_child = &pattern_children[pattern_idx];
+
+        match pattern_child.quantifier {
+            Quantifier::One => {
+                // Find the first matching node child starting from node_idx
+                for i in node_idx..node_children.len() {
+                    if self.match_pattern_node(&pattern_child.node, &node_children[i], 0) {
+                        // Found a match, continue with next pattern child
+                        return self.match_children_subsequence(
+                            pattern_children,
+                            node_children,
+                            pattern_idx + 1,
+                            i + 1,
+                        );
+                    }
+                }
+                false
+            }
+            Quantifier::ZeroOrOne => {
+                // Try matching, but also try skipping this pattern
+                for i in node_idx..node_children.len() {
+                    if self.match_pattern_node(&pattern_child.node, &node_children[i], 0)
+                        && self.match_children_subsequence(
+                            pattern_children,
+                            node_children,
+                            pattern_idx + 1,
+                            i + 1,
+                        )
+                    {
+                        return true;
+                    }
+                }
+                // Also try skipping this pattern (zero matches)
+                self.match_children_subsequence(
+                    pattern_children,
+                    node_children,
+                    pattern_idx + 1,
+                    node_idx,
+                )
+            }
+            Quantifier::ZeroOrMore => {
+                // Match as many as possible, but also allow zero matches
+                let mut current_node_idx = node_idx;
+                loop {
+                    // Try continuing with next pattern
+                    if self.match_children_subsequence(
+                        pattern_children,
+                        node_children,
+                        pattern_idx + 1,
+                        current_node_idx,
+                    ) {
+                        return true;
+                    }
+
+                    // Try matching one more
+                    if current_node_idx >= node_children.len() {
+                        break;
+                    }
+                    if self.match_pattern_node(
+                        &pattern_child.node,
+                        &node_children[current_node_idx],
+                        0,
+                    ) {
+                        current_node_idx += 1;
+                    } else {
+                        break;
+                    }
+                }
+                false
+            }
+            Quantifier::OneOrMore => {
+                // Must match at least once
+                let mut matched = false;
+                for i in node_idx..node_children.len() {
+                    if self.match_pattern_node(&pattern_child.node, &node_children[i], 0) {
+                        matched = true;
+                        // Try continuing after this match
+                        if self.match_children_subsequence(
+                            pattern_children,
+                            node_children,
+                            pattern_idx + 1,
+                            i + 1,
+                        ) {
+                            return true;
+                        }
+                        // Try matching more (greedy)
+                    } else if matched {
+                        // Already matched at least once, try continuing
+                        return self.match_children_subsequence(
+                            pattern_children,
+                            node_children,
+                            pattern_idx + 1,
+                            i,
+                        );
+                    } else {
+                        break;
+                    }
+                }
+                false
+            }
+        }
     }
 
     fn check_predicates(&self, pattern: &Pattern) -> bool {

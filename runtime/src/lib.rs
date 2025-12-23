@@ -3,7 +3,7 @@
 #![deny(private_interfaces)]
 #![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
 #![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", warn(missing_docs))]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 #![allow(clippy::missing_safety_doc)] // Many FFI functions - safety documented at module level
 #![allow(clippy::needless_range_loop)] // Sometimes clearer than iterators
@@ -115,6 +115,10 @@ mod parser_v3;
 // Current parser version
 /// Arena allocator for parse tree nodes.
 pub mod arena_allocator;
+/// Arena-allocated parse tree node.
+pub mod node;
+/// Parser backend selection logic.
+pub mod parser_selection;
 /// Version 4 parser implementation (GLR).
 #[cfg(feature = "pure-rust")]
 pub mod parser_v4;
@@ -129,6 +133,8 @@ pub mod pure_parser;
 pub mod query;
 /// Stack pooling for efficient parsing.
 pub mod stack_pool;
+/// Tree node data structure for arena allocation.
+pub mod tree_node_data;
 // #[cfg(feature = "serialization")]
 /// Tree serialization utilities.
 #[cfg(feature = "serialization")]
@@ -213,6 +219,72 @@ pub mod sealed {
 pub trait Extract<Output>: sealed::Sealed {
     /// Associated function type for leaf node extraction.
     type LeafFn: ?Sized;
+
+    /// Whether this grammar has shift/reduce or reduce/reduce conflicts.
+    ///
+    /// This constant is set at grammar generation time by analyzing the parse table.
+    /// - `true`: Grammar has conflicts, requires GLR parser (parser_v4)
+    /// - `false`: Grammar is conflict-free, can use simple LR parser (pure_parser)
+    ///
+    /// Used by `ParserBackend::select()` to choose the appropriate parser.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// // Simple grammar without conflicts
+    /// impl Extract for SimpleGrammar {
+    ///     const HAS_CONFLICTS: bool = false;
+    /// }
+    ///
+    /// // Grammar with left-associative operators (has conflicts)
+    /// impl Extract for ArithmeticGrammar {
+    ///     const HAS_CONFLICTS: bool = true;
+    /// }
+    /// ```
+    const HAS_CONFLICTS: bool = false;
+
+    /// Grammar name as specified in `#[rust_sitter::grammar("name")]`.
+    ///
+    /// This constant is used to look up external scanners in the scanner registry.
+    /// Must match the name used when registering the external scanner.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// #[rust_sitter::grammar("python")]
+    /// mod python {
+    ///     // GRAMMAR_NAME will be "python"
+    /// }
+    /// ```
+    #[cfg(feature = "pure-rust")]
+    const GRAMMAR_NAME: &'static str = "unknown";
+
+    /// Grammar definition in JSON format (Tree-sitter compatible).
+    ///
+    /// This constant contains the complete grammar definition including:
+    /// - Symbol names and IDs
+    /// - Production rules
+    /// - Precedence and associativity
+    /// - External tokens
+    ///
+    /// Used by `parser_v4` to construct the Grammar and ParseTable at runtime
+    /// when the `glr` feature is enabled.
+    ///
+    /// # Format
+    ///
+    /// The JSON follows the Tree-sitter grammar.json schema:
+    /// ```json
+    /// {
+    ///   "name": "grammar_name",
+    ///   "rules": { ... },
+    ///   "precedences": [ ... ],
+    ///   "conflicts": [ ... ],
+    ///   ...
+    /// }
+    /// ```
+    #[cfg(feature = "pure-rust")]
+    const GRAMMAR_JSON: &'static str = "{}";
+
     /// Extracts a Rust value from a Tree-sitter node.
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
@@ -286,6 +358,32 @@ mod tests {
     }
 
     #[test]
+    fn index_edge_cases() {
+        let source = "hello";
+
+        // Empty span at start
+        let span = Spanned {
+            value: (),
+            span: (0, 0),
+        };
+        assert_eq!(&source[span], "");
+
+        // Empty span at end
+        let span = Spanned {
+            value: (),
+            span: (5, 5),
+        };
+        assert_eq!(&source[span], "");
+
+        // Full string
+        let span = Spanned {
+            value: (),
+            span: (0, 5),
+        };
+        assert_eq!(&source[span], "hello");
+    }
+
+    #[test]
     #[should_panic(expected = "Invalid span")]
     fn index_invalid_span_panics() {
         let source = "hello";
@@ -319,84 +417,119 @@ mod tests {
         let _ = &mut s[span];
     }
 
+    // New comprehensive span validation tests
+
     #[test]
-    fn span_error_validation_valid_range() {
-        let source = "hello world";
-        let span = Spanned::new((), (0, 5));
-        assert!(span.validate_for_str(source).is_ok());
+    fn validate_span_valid() {
+        assert!(validate_span((0, 5), 10).is_ok());
+        assert!(validate_span((0, 0), 5).is_ok());
+        assert!(validate_span((5, 5), 5).is_ok());
+        assert!(validate_span((2, 8), 10).is_ok());
     }
 
     #[test]
-    fn span_error_validation_invalid_range() {
-        let source = "hello";
-        let span = Spanned::new((), (3, 2)); // start > end
-        let err = span.validate_for_str(source).unwrap_err();
-        assert_eq!(err, SpanError::InvalidRange { start: 3, end: 2 });
+    fn validate_span_start_greater_than_end() {
+        let result = validate_span((5, 3), 10);
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert_eq!(error.reason, SpanErrorReason::StartGreaterThanEnd);
+        assert_eq!(error.span, (5, 3));
+        assert_eq!(error.source_len, 10);
     }
 
     #[test]
-    fn span_error_validation_out_of_bounds() {
-        let source = "hello";
-        let span = Spanned::new((), (0, 10)); // end > source.len()
-        let err = span.validate_for_str(source).unwrap_err();
-        assert_eq!(
-            err,
-            SpanError::OutOfBounds {
-                span: (0, 10),
-                length: 5
-            }
-        );
+    fn validate_span_start_out_of_bounds() {
+        let result = validate_span((11, 12), 10);
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert_eq!(error.reason, SpanErrorReason::StartOutOfBounds);
+        assert_eq!(error.span, (11, 12));
+        assert_eq!(error.source_len, 10);
     }
 
     #[test]
-    fn try_slice_str_success() {
-        let source = "hello world";
-        let span = Spanned::new((), (6, 11));
-        let result = span.try_slice_str(source).unwrap();
-        assert_eq!(result, "world");
-    }
-
-    #[test]
-    fn try_slice_str_failure() {
-        let source = "hello";
-        let span = Spanned::new((), (0, 10));
-        let err = span.try_slice_str(source).unwrap_err();
-        assert!(matches!(err, SpanError::OutOfBounds { .. }));
-    }
-
-    #[test]
-    fn try_slice_str_mut_success() {
-        let mut source = String::from("hello world");
-        let span = Spanned::new((), (6, 11));
-        let result = span.try_slice_str_mut(&mut source).unwrap();
-        result.make_ascii_uppercase();
-        assert_eq!(source, "hello WORLD");
-    }
-
-    #[test]
-    fn try_slice_str_mut_failure() {
-        let mut source = String::from("hello");
-        let span = Spanned::new((), (0, 10));
-        let err = span.try_slice_str_mut(&mut source).unwrap_err();
-        assert!(matches!(err, SpanError::OutOfBounds { .. }));
+    fn validate_span_end_out_of_bounds() {
+        let result = validate_span((5, 11), 10);
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert_eq!(error.reason, SpanErrorReason::EndOutOfBounds);
+        assert_eq!(error.span, (5, 11));
+        assert_eq!(error.source_len, 10);
     }
 
     #[test]
     fn span_error_display() {
-        let error1 = SpanError::InvalidRange { start: 5, end: 3 };
-        assert_eq!(
-            error1.to_string(),
-            "Invalid span range: start (5) > end (3)"
-        );
+        let error = SpanError {
+            span: (5, 3),
+            source_len: 10,
+            reason: SpanErrorReason::StartGreaterThanEnd,
+        };
+        assert_eq!(error.to_string(), "Invalid span 5..3: start (5) > end (3)");
 
-        let error2 = SpanError::OutOfBounds {
-            span: (0, 10),
-            length: 5,
+        let error = SpanError {
+            span: (11, 12),
+            source_len: 10,
+            reason: SpanErrorReason::StartOutOfBounds,
         };
         assert_eq!(
-            error2.to_string(),
-            "Span 0..10 is out of bounds for length 5"
+            error.to_string(),
+            "Invalid span 11..12: start (11) > source length (10)"
         );
+
+        let error = SpanError {
+            span: (5, 11),
+            source_len: 10,
+            reason: SpanErrorReason::EndOutOfBounds,
+        };
+        assert_eq!(
+            error.to_string(),
+            "Invalid span 5..11: end (11) > source length (10)"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid span: Invalid span 12..15: start (12) > source length (5)")]
+    fn index_start_out_of_bounds_detailed_error() {
+        let source = "hello";
+        let span = Spanned {
+            value: (),
+            span: (12, 15),
+        };
+        let _ = &source[span];
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid span: Invalid span 2..10: end (10) > source length (5)")]
+    fn index_end_out_of_bounds_detailed_error() {
+        let source = "hello";
+        let span = Spanned {
+            value: (),
+            span: (2, 10),
+        };
+        let _ = &source[span];
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid span: Invalid span 5..3: start (5) > end (3)")]
+    fn index_start_greater_than_end_detailed_error() {
+        let source = "hello world";
+        let span = Spanned {
+            value: (),
+            span: (5, 3),
+        };
+        let _ = &source[span];
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid span: Invalid span 7..9: start (7) > source length (5)")]
+    fn index_mut_start_out_of_bounds_detailed_error() {
+        let mut source = String::from("hello");
+        let span = Spanned {
+            value: (),
+            span: (7, 9),
+        };
+        let s = source.as_mut_str();
+        let _ = &mut s[span];
     }
 }
 
@@ -575,46 +708,6 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-/// Error type for span validation operations
-pub enum SpanError {
-    /// The span start index is greater than the span end index
-    InvalidRange {
-        /// Start index of the invalid span
-        start: usize,
-        /// End index of the invalid span
-        end: usize,
-    },
-    /// The span extends beyond the bounds of the target string or buffer
-    OutOfBounds {
-        /// The span range (start, end) that is out of bounds
-        span: (usize, usize),
-        /// The actual length of the target string or buffer
-        length: usize,
-    },
-}
-
-impl std::fmt::Display for SpanError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SpanError::InvalidRange { start, end } => {
-                write!(f, "Invalid span range: start ({start}) > end ({end})")
-            }
-            SpanError::OutOfBounds {
-                span: (start, end),
-                length,
-            } => {
-                write!(
-                    f,
-                    "Span {start}..{end} is out of bounds for length {length}"
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for SpanError {}
-
 #[derive(Clone, Debug)]
 /// A wrapper around a value that also contains the span of the value in the source.
 pub struct Spanned<T> {
@@ -630,40 +723,6 @@ impl<T> Deref for Spanned<T> {
 
     fn deref(&self) -> &T {
         &self.value
-    }
-}
-
-impl<T> Spanned<T> {
-    /// Create a new Spanned value with the given span
-    pub fn new(value: T, span: (usize, usize)) -> Self {
-        Self { value, span }
-    }
-
-    /// Validate that this span is within the bounds of the given string
-    pub fn validate_for_str(&self, s: &str) -> Result<(), SpanError> {
-        let (start, end) = self.span;
-        if start > end {
-            return Err(SpanError::InvalidRange { start, end });
-        }
-        if end > s.len() {
-            return Err(SpanError::OutOfBounds {
-                span: self.span,
-                length: s.len(),
-            });
-        }
-        Ok(())
-    }
-
-    /// Safely extract a substring using this span, returning a Result instead of panicking
-    pub fn try_slice_str<'a>(&self, s: &'a str) -> Result<&'a str, SpanError> {
-        self.validate_for_str(s)?;
-        Ok(&s[self.span.0..self.span.1])
-    }
-
-    /// Safely extract a mutable substring using this span, returning a Result instead of panicking
-    pub fn try_slice_str_mut<'a>(&self, s: &'a mut str) -> Result<&'a mut str, SpanError> {
-        self.validate_for_str(s)?;
-        Ok(&mut s[self.span.0..self.span.1])
     }
 }
 
@@ -701,26 +760,127 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
     }
 }
 
+/// Error type for invalid span operations.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpanError {
+    /// The invalid span that was used.
+    pub span: (usize, usize),
+    /// The length of the source being indexed.
+    pub source_len: usize,
+    /// Detailed description of what went wrong.
+    pub reason: SpanErrorReason,
+}
+
+/// Specific reasons for span validation failures.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpanErrorReason {
+    /// Start position is greater than end position.
+    StartGreaterThanEnd,
+    /// Start position exceeds source length.
+    StartOutOfBounds,
+    /// End position exceeds source length.
+    EndOutOfBounds,
+}
+
+impl std::fmt::Display for SpanError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (start, end) = self.span;
+        match self.reason {
+            SpanErrorReason::StartGreaterThanEnd => {
+                write!(
+                    f,
+                    "Invalid span {start}..{end}: start ({start}) > end ({end})"
+                )
+            }
+            SpanErrorReason::StartOutOfBounds => {
+                write!(
+                    f,
+                    "Invalid span {start}..{end}: start ({start}) > source length ({})",
+                    self.source_len
+                )
+            }
+            SpanErrorReason::EndOutOfBounds => {
+                write!(
+                    f,
+                    "Invalid span {start}..{end}: end ({end}) > source length ({})",
+                    self.source_len
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for SpanError {}
+
+/// Validates a span against a source of given length.
+///
+/// Performs comprehensive bounds checking before any memory access.
+/// Returns `Ok(())` if the span is valid, or `Err(SpanError)` with detailed
+/// error information if the span is invalid.
+fn validate_span(span: (usize, usize), source_len: usize) -> Result<(), SpanError> {
+    let (start, end) = span;
+
+    // Check if start > end
+    if start > end {
+        return Err(SpanError {
+            span,
+            source_len,
+            reason: SpanErrorReason::StartGreaterThanEnd,
+        });
+    }
+
+    // Check if start > source_len
+    if start > source_len {
+        return Err(SpanError {
+            span,
+            source_len,
+            reason: SpanErrorReason::StartOutOfBounds,
+        });
+    }
+
+    // Check if end > source_len
+    if end > source_len {
+        return Err(SpanError {
+            span,
+            source_len,
+            reason: SpanErrorReason::EndOutOfBounds,
+        });
+    }
+
+    Ok(())
+}
+
 impl<T> std::ops::Index<Spanned<T>> for str {
     type Output = str;
 
     fn index(&self, span: Spanned<T>) -> &Self::Output {
         let (start, end) = span.span;
-        self.get(start..end).unwrap_or_else(|| {
-            panic!(
-                "Invalid span {start}..{end} for string of length {}",
-                self.len()
-            )
-        })
+        let source_len = self.len();
+
+        // Proactive span validation before any memory access
+        if let Err(error) = validate_span(span.span, source_len) {
+            panic!("Invalid span: {}", error);
+        }
+
+        // Safe to access since we've validated the span
+        // Using direct indexing here is safe because we've already validated bounds
+        &self[start..end]
     }
 }
 
 impl<T> std::ops::IndexMut<Spanned<T>> for str {
     fn index_mut(&mut self, span: Spanned<T>) -> &mut Self::Output {
         let (start, end) = span.span;
-        let len = self.len();
-        self.get_mut(start..end)
-            .unwrap_or_else(|| panic!("Invalid span {start}..{end} for string of length {len}",))
+        let source_len = self.len();
+
+        // Proactive span validation before any memory access
+        if let Err(error) = validate_span(span.span, source_len) {
+            panic!("Invalid span: {}", error);
+        }
+
+        // Safe to access since we've validated the span
+        // Using direct indexing here is safe because we've already validated bounds
+        &mut self[start..end]
     }
 }
 

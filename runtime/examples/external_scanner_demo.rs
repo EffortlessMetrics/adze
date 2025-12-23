@@ -20,6 +20,7 @@ impl ExternalScanner for PythonStringsScanner {
 }
 
 fn main() {
+    // Enable backtrace for debugging - safe in examples
     unsafe {
         std::env::set_var("RUST_BACKTRACE", "1");
     }

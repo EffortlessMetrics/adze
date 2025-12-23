@@ -441,22 +441,44 @@ impl Parser {
 
 /// Simple lexer implementation for testing
 pub struct SimpleLexer {
-    /// Token patterns (symbol_id, regex_pattern)
-    patterns: Vec<(SymbolId, String)>,
+    /// Token patterns keyed by symbol ID
+    patterns: Vec<(SymbolId, Pattern)>,
+}
+
+/// Matcher for a token pattern
+enum Pattern {
+    /// Literal string match
+    String(String),
+    /// Precompiled regular expression
+    Regex(regex::Regex),
 }
 
 impl SimpleLexer {
     pub fn new() -> Self {
         Self {
             patterns: vec![
-                (SymbolId(1), r"\d+".to_string()), // Numbers
-                (SymbolId(2), r"\+".to_string()),  // Plus
-                (SymbolId(3), r"-".to_string()),   // Minus
-                (SymbolId(4), r"\*".to_string()),  // Multiply
-                (SymbolId(5), r"/".to_string()),   // Divide
-                (SymbolId(6), r"\(".to_string()),  // Left paren
-                (SymbolId(7), r"\)".to_string()),  // Right paren
-                (SymbolId(8), r"\s+".to_string()), // Whitespace (ignored)
+                // Numbers
+                (
+                    SymbolId(1),
+                    Pattern::Regex(regex::Regex::new(r"^\d+").unwrap()),
+                ),
+                // Plus
+                (SymbolId(2), Pattern::String("+".to_string())),
+                // Minus
+                (SymbolId(3), Pattern::String("-".to_string())),
+                // Multiply
+                (SymbolId(4), Pattern::String("*".to_string())),
+                // Divide
+                (SymbolId(5), Pattern::String("/".to_string())),
+                // Left paren
+                (SymbolId(6), Pattern::String("(".to_string())),
+                // Right paren
+                (SymbolId(7), Pattern::String(")".to_string())),
+                // Whitespace (ignored)
+                (
+                    SymbolId(8),
+                    Pattern::Regex(regex::Regex::new(r"^\s+").unwrap()),
+                ),
             ],
         }
     }
@@ -464,60 +486,51 @@ impl SimpleLexer {
 
 impl Lexer for SimpleLexer {
     fn next_token(&mut self, input: &[u8], position: usize) -> Option<Token> {
-        // Skip whitespace
         let mut pos = position;
-        while pos < input.len() && input[pos].is_ascii_whitespace() {
-            pos += 1;
-        }
 
-        if pos >= input.len() {
-            return None;
-        }
+        'outer: while pos < input.len() {
+            let remaining = std::str::from_utf8(&input[pos..]).ok()?;
 
-        // Try to match each pattern
-        for (symbol_id, _pattern) in &self.patterns {
-            // TODO: Implement actual regex matching
-            // For now, just do simple character matching
-            match input[pos] {
-                b'0'..=b'9' => {
-                    // Match number
-                    let start = pos;
-                    while pos < input.len() && input[pos].is_ascii_digit() {
-                        pos += 1;
+            for (symbol_id, pattern) in &self.patterns {
+                match pattern {
+                    Pattern::String(s) => {
+                        if remaining.starts_with(s) {
+                            let start = pos;
+                            let end = pos + s.len();
+                            if *symbol_id == SymbolId(8) {
+                                pos = end;
+                                continue 'outer;
+                            }
+                            return Some(Token {
+                                symbol: *symbol_id,
+                                text: input[start..end].to_vec(),
+                                start,
+                                end,
+                            });
+                        }
                     }
-                    return Some(Token {
-                        symbol: *symbol_id,
-                        text: input[start..pos].to_vec(),
-                        start,
-                        end: pos,
-                    });
+                    Pattern::Regex(re) => {
+                        if let Some(mat) = re.find(remaining) {
+                            if mat.start() == 0 && mat.end() > 0 {
+                                let start = pos;
+                                let end = pos + mat.end();
+                                if *symbol_id == SymbolId(8) {
+                                    pos = end;
+                                    continue 'outer;
+                                }
+                                return Some(Token {
+                                    symbol: *symbol_id,
+                                    text: input[start..end].to_vec(),
+                                    start,
+                                    end,
+                                });
+                            }
+                        }
+                    }
                 }
-                b'+' if *symbol_id == SymbolId(2) => {
-                    return Some(Token {
-                        symbol: *symbol_id,
-                        text: vec![b'+'],
-                        start: pos,
-                        end: pos + 1,
-                    });
-                }
-                b'-' if *symbol_id == SymbolId(3) => {
-                    return Some(Token {
-                        symbol: *symbol_id,
-                        text: vec![b'-'],
-                        start: pos,
-                        end: pos + 1,
-                    });
-                }
-                b'*' if *symbol_id == SymbolId(4) => {
-                    return Some(Token {
-                        symbol: *symbol_id,
-                        text: vec![b'*'],
-                        start: pos,
-                        end: pos + 1,
-                    });
-                }
-                _ => continue,
             }
+
+            break;
         }
 
         None

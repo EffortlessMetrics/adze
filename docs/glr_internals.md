@@ -211,17 +211,60 @@ pub enum ForestNode {
 - **Memory**: Shared GSS reduces duplication
 - **Optimization**: Precedence/associativity prunes unnecessary forks
 
-## Example: Python's "State 0" Bug
+## Example: Precedence Disambiguation Fixes
 
-Before GLR:
+GLR parsing now correctly handles precedence conflicts:
+
+```rust
+// Expression: 1 + 2 * 3
+// Should parse as: 1 + (2 * 3) due to operator precedence
+```
+
+**Before Fix**: Ambiguous parse - both `(1 + 2) * 3` and `1 + (2 * 3)` possible
+**After Fix**: Precedence rules correctly disambiguate to `1 + (2 * 3)`
+
+```rust
+// GLR action table preserves both actions but orders by precedence:
+action_table[state][PLUS_TOKEN] = vec![
+    Reduce(multiply_rule),  // Higher precedence - preferred
+    Shift(plus_state)       // Lower precedence - fallback
+];
+```
+
+## Example: Error Recovery Improvements
+
+GLR now handles malformed input gracefully:
+
+```rust
+// Input: "1 + + 2" (double plus operator)
+```
+
+**Before Fix**: Parser would crash or produce unpredictable results
+**After Fix**: Parser recovers by inserting error nodes and continuing:
+
+```rust
+// Parse tree includes error recovery:
+BinaryOp {
+    left: Number(1),
+    op: Plus,
+    right: ErrorNode {
+        children: [Plus, Number(2)]  // Recovered invalid sequence
+    }
+}
+```
+
+## Example: EOF Handling Fixes
+
+Fixed `process_eof()` parameter usage for proper end-of-input handling:
+
 ```python
 # Empty file or file starting with 'def'?
 def foo(): pass
 ```
 
-Problem: State 0 had single action, couldn't handle both cases.
+**Before Fix**: State 0 had single action, couldn't handle both cases.
+**After Fix**: Correct EOF processing enables both interpretations:
 
-After GLR:
 ```rust
 action_table[0][DEF_TOKEN] = vec![
     Shift(state_1),    // Start parsing statement

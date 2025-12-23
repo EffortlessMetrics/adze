@@ -1242,21 +1242,39 @@ impl Parser {
     /// Decode action from parse table
     fn decode_action(&self, _language: &TSLanguage, action_index: usize) -> Action {
         // Decode action from index
+        //
+        // Action Encoding Contract (must match tablegen/src/compress.rs):
+        // ┌──────────┬──────────────┬──────────────────┐
+        // │ Encoding │ Meaning      │ Bits             │
+        // ├──────────┼──────────────┼──────────────────┤
+        // │ 0x0000   │ Error        │ 0000000000000000 │
+        // │ 0x0001   │ Shift(1)     │ 0nnnnnnnnnnnnnnn │
+        // │ 0x7FFF   │ Shift(32767) │ 0111111111111111 │
+        // │ 0x8000   │ Reduce(0)    │ 1nnnnnnnnnnnnnnn │
+        // │ 0xFFFE   │ Reduce(32766)│ 1111111111111110 │
+        // │ 0xFFFF   │ Accept       │ 1111111111111111 │
+        // └──────────┴──────────────┴──────────────────┘
+        //
+        // IMPORTANT: Order matters!
+        // 1. Check Accept (0xFFFF) FIRST - it has high bit set and would match Reduce
+        // 2. Check Error (0x0000) SECOND - it would otherwise match Shift(0)
+        // 3. Check Reduce (high bit set)
+        // 4. Everything else is Shift
 
-        // In the pure-Rust implementation, actions are encoded directly in the parse table
-        // High bit set = reduce, otherwise shift
-        if action_index & 0x8000 != 0 {
-            // Reduce action
-            let production_id = (action_index & 0x7FFF) as u16;
-            // Reduce action
-            Action::Reduce(production_id)
-        } else if action_index == 0xFFFF {
+        if action_index == 0xFFFF {
             // Accept action (encoded as 0xFFFF in compression)
             Action::Accept
+        } else if action_index == 0 {
+            // Error action (encoded as 0 or missing from table)
+            // tablegen/compress.rs skips Action::Error entries to save space
+            Action::Error
+        } else if action_index & 0x8000 != 0 {
+            // Reduce action (high bit set)
+            let production_id = (action_index & 0x7FFF) as u16;
+            Action::Reduce(production_id)
         } else {
-            // Shift action
+            // Shift action (low values, no high bit)
             let next_state = action_index as u16;
-            // Shift action
             Action::Shift(next_state)
         }
     }
@@ -1446,10 +1464,10 @@ impl Parser {
                 0
             };
 
-            ////eprintln!($
-            //"DEBUG reduce: Looking up goto for symbol {} from state {}",
-            //symbol, prev_state
-            //);
+            // eprintln!(
+            // "DEBUG reduce: Looking up goto for symbol {} from state {}",
+            // symbol, prev_state
+            // );
 
             // Debug: Show all gotos available from this state
             if source.len() < 20 && prev_state == 0 {
@@ -1463,10 +1481,11 @@ impl Parser {
 
             // Look up goto state for the non-terminal we just reduced to
             // eprintln!(
-            // "DEBUG reduce: About to call get_goto with prev_state={}, symbol={}",
-            // prev_state, symbol
+            // "DEBUG reduce: About to call get_goto with prev_state={}, symbol={}, token_count={}",
+            // prev_state, symbol, language.token_count
             // );
             if let Some(goto_state) = self.get_goto(language, prev_state, symbol) {
+                // eprintln!("DEBUG reduce: Found goto_state={}", goto_state);
                 // Push the reduced node with the goto state
                 self.stack.push(StackEntry {
                     state: goto_state,

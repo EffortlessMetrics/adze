@@ -177,15 +177,15 @@ fn test_accept_action_exists_in_generated_code() {
         "Missing parse table"
     );
 
-    // The Accept action is encoded as 0x7FFF in the parse table
+    // The Accept action is encoded as 0xFFFF (65535) in the parse table
     // Check for this value in the generated code
-    let has_accept = code_str.contains("0x7FFF") ||     // Accept action encoding  
-                      code_str.contains("32767") ||      // Decimal form of 0x7FFF
-                      code_str.contains("0x7fff"); // Lowercase variant
+    let has_accept = code_str.contains("0xFFFF") ||     // Accept action encoding (uppercase)
+                      code_str.contains("0xffff") ||     // Accept action encoding (lowercase)
+                      code_str.contains("65535"); // Decimal form of 0xFFFF
 
     assert!(
         has_accept,
-        "No Accept action (0x7FFF) found in generated parse table. This means the parse table cannot terminate parsing."
+        "No Accept action (0xFFFF/65535) found in generated parse table. This means the parse table cannot terminate parsing."
     );
 
     println!("✓ Accept action found in generated code");

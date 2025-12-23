@@ -27,7 +27,8 @@ fn parse_requires_language() {
 fn can_access_tree_nodes() {
     let tree = Tree::new_stub();
     let root = tree.root_node();
-    assert_eq!(root.kind(), "placeholder");
+    // Phase 3.3: Node::kind() returns "unknown" when language is not set
+    assert_eq!(root.kind(), "unknown");
     assert_eq!(root.child_count(), 0);
 }
 

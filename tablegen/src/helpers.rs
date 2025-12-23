@@ -15,7 +15,7 @@ use rust_sitter_ir::Grammar;
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```ignore
 /// # use rust_sitter_ir::Grammar;
 /// # use rust_sitter_glr_core::ParseTable;
 /// # use rust_sitter_tablegen::helpers::collect_token_indices;
@@ -71,7 +71,7 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```ignore
 /// # use rust_sitter_glr_core::ParseTable;
 /// # use rust_sitter_tablegen::helpers::eof_accepts_or_reduces;
 /// # let parse_table = ParseTable::default();

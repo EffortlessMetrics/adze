@@ -62,6 +62,9 @@ pub use error::Result as GlrResult;
 /// Back-compat alias: prefer `GlrError`; `GLRError` remains for now.
 pub use GLRError as GlrError;
 
+/// Conflict inspection API for analyzing GLR parse table conflicts
+pub mod conflict_inspection;
+
 // Re-export key types from rust-sitter-ir for API consumers
 pub use rust_sitter_ir::{Grammar, StateId, SymbolId};
 
@@ -92,6 +95,10 @@ pub mod stack;
 /// Telemetry counters for tracking GLR parser operations.
 pub mod telemetry;
 pub mod ts_lexer;
+
+/// ParseTable serialization for GLR mode
+#[cfg(feature = "serialization")]
+pub mod serialization;
 
 // Trace macro for debugging GLR conflicts and decisions
 /// Internal tracing macro used by the GLR runtime in debug/test builds.
@@ -161,11 +168,17 @@ struct TokPrec {
     assoc: Assoc,
 }
 
+#[derive(Copy, Clone, Debug)]
+struct RulePrec {
+    prec: u8,
+    assoc: Assoc,
+}
+
 struct PrecTables {
     // table-indexed; entries 0..token_count-1 may be Some(..); others None
     tok_prec_by_index: Vec<Option<TokPrec>>,
-    // production_id -> precedence value (derived if not explicit)
-    rule_prec: Vec<u8>,
+    // production_id -> precedence and associativity
+    rule_prec: Vec<RulePrec>,
 }
 
 fn build_prec_tables(
@@ -182,6 +195,7 @@ fn build_prec_tables(
 
     // token precedence by table index
     let mut tok_prec_by_index = vec![None; symbol_to_index.len()];
+    let tok_prec_len = tok_prec_by_index.len(); // Capture length before closure
 
     // Helper: set token precedence preferring higher numeric level
     let mut set_tok_prec = |tok_idx: usize, new: TokPrec| {
@@ -195,7 +209,13 @@ fn build_prec_tables(
     };
 
     // production precedence: explicit if present, else rightmost-terminal precedence
-    let mut rule_prec = vec![0u8; production_count as usize];
+    let mut rule_prec = vec![
+        RulePrec {
+            prec: 0,
+            assoc: Assoc::None
+        };
+        production_count as usize
+    ];
 
     // Two-pass approach: first collect rule precedence, then derive token precedence
     for rules in grammar.rules.values() {
@@ -215,36 +235,46 @@ fn build_prec_tables(
                 }
             });
 
-            // 2) Derive token precedence from the rightmost terminal if this rule carries
-            //    an explicit precedence (+ associativity) attribute
-            if let (Some(level), Some(assoc)) = (explicit, rule.associativity) {
-                let assoc_val = match assoc {
+            // Get rule associativity (defaults to None if not specified)
+            let rule_assoc = rule
+                .associativity
+                .map(|assoc| match assoc {
                     Associativity::Left => Assoc::Left,
                     Associativity::Right => Assoc::Right,
                     Associativity::None => Assoc::None,
-                };
+                })
+                .unwrap_or(Assoc::None);
 
+            // 2) Derive token precedence from the rightmost terminal if this rule carries
+            //    an explicit precedence (+ associativity) attribute
+            if let Some(level) = explicit {
                 // Find rightmost terminal in RHS
-                if let Some(tok_idx) = rule.rhs.iter().rev().find_map(|sym| {
+                let tok_idx_opt = rule.rhs.iter().rev().find_map(|sym| {
                     if let Symbol::Terminal(id) = sym {
                         symbol_to_index.get(id).copied()
                     } else {
                         None
                     }
-                }) && (tok_idx as u32) < token_count
+                });
+
+                if let Some(tok_idx) = tok_idx_opt
+                    && tok_idx < tok_prec_len
                 {
                     set_tok_prec(
                         tok_idx,
                         TokPrec {
                             prec: level,
-                            assoc: assoc_val,
+                            assoc: rule_assoc,
                         },
                     );
                 }
             }
 
-            // 3) Store the rule precedence
-            rule_prec[pid] = explicit.unwrap_or(0);
+            // 3) Store the rule precedence AND associativity
+            rule_prec[pid] = RulePrec {
+                prec: explicit.unwrap_or(0),
+                assoc: rule_assoc,
+            };
         }
     }
 
@@ -257,11 +287,11 @@ fn build_prec_tables(
             }
 
             // Skip if already has precedence
-            if rule_prec[pid] > 0 {
+            if rule_prec[pid].prec > 0 {
                 continue;
             }
 
-            // Inherit from rightmost terminal token precedence
+            // Inherit from rightmost terminal token precedence AND associativity
             let derived = rule
                 .rhs
                 .iter()
@@ -270,7 +300,7 @@ fn build_prec_tables(
                     if let Symbol::Terminal(id) = sym {
                         symbol_to_index.get(id).and_then(|&idx| {
                             if (idx as u32) < token_count {
-                                tok_prec_by_index[idx].map(|t| t.prec)
+                                tok_prec_by_index[idx]
                             } else {
                                 None
                             }
@@ -279,9 +309,15 @@ fn build_prec_tables(
                         None
                     }
                 })
-                .unwrap_or(0);
+                .unwrap_or(TokPrec {
+                    prec: 0,
+                    assoc: Assoc::None,
+                });
 
-            rule_prec[pid] = derived;
+            rule_prec[pid] = RulePrec {
+                prec: derived.prec,
+                assoc: derived.assoc,
+            };
         }
     }
 
@@ -321,16 +357,18 @@ fn decide_with_precedence(
     let rulep = prec.rule_prec[reduce_prod_id as usize];
 
     // If either has no precedence info (0), can't decide
-    if tokp.prec == 0 || rulep == 0 {
+    if tokp.prec == 0 || rulep.prec == 0 {
         return PrecDecision::NoInfo;
     }
 
     use core::cmp::Ordering::*;
-    match (tokp.prec.cmp(&rulep), tokp.assoc) {
+    // FIX: Use RULE's associativity, not token's!
+    // When precedences are equal, the rule's associativity determines shift vs reduce
+    match (tokp.prec.cmp(&rulep.prec), rulep.assoc) {
         (Greater, _) => PrecDecision::PreferShift,
         (Less, _) => PrecDecision::PreferReduce,
-        (Equal, Assoc::Left) => PrecDecision::PreferReduce, // classic Yacc
-        (Equal, Assoc::Right) => PrecDecision::PreferShift,
+        (Equal, Assoc::Left) => PrecDecision::PreferReduce, // left-assoc: reduce first
+        (Equal, Assoc::Right) => PrecDecision::PreferShift, // right-assoc: shift first
         (Equal, Assoc::None) => PrecDecision::Error,
     }
 }
@@ -338,8 +376,8 @@ fn decide_with_precedence(
 // Handle reduce/reduce conflicts (prefer higher rule precedence, tie -> lowest pid)
 #[inline]
 fn decide_reduce_reduce(a: u16, b: u16, prec: &PrecTables) -> u16 {
-    let pa = prec.rule_prec.get(a as usize).copied().unwrap_or(0);
-    let pb = prec.rule_prec.get(b as usize).copied().unwrap_or(0);
+    let pa = prec.rule_prec.get(a as usize).map(|r| r.prec).unwrap_or(0);
+    let pb = prec.rule_prec.get(b as usize).map(|r| r.prec).unwrap_or(0);
     if pa > pb {
         a
     } else if pb > pa {
@@ -484,12 +522,23 @@ impl FirstFollowSets {
             Symbol::Epsilon => 0,
         }
     }
+
+    /// Compute FIRST/FOLLOW sets for the given grammar with automatic normalization
+    /// This method automatically normalizes complex symbols (Repeat, Choice, etc.) before computation
+    pub fn compute_normalized(grammar: &mut Grammar) -> Result<Self, GLRError> {
+        // Normalize the grammar to convert complex symbols to simple rules
+        grammar.normalize();
+
+        // Now compute FIRST/FOLLOW sets on the normalized grammar
+        Self::compute(grammar)
+    }
+
     /// Compute FIRST/FOLLOW sets for the given grammar
     pub fn compute(grammar: &Grammar) -> Result<Self, GLRError> {
         // Clone and normalize the grammar if it contains complex symbols
         let normalized_grammar = {
             let mut cloned = grammar.clone();
-            cloned.normalize().map_err(GLRError::GrammarError)?;
+            let _ = cloned.normalize(); // normalize returns Vec<Rule>, ignore it
             cloned
         };
 
@@ -1375,6 +1424,7 @@ impl ItemSetCollection {
 
 /// Lexer mode for a parser state
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct LexMode {
     /// Internal lexer DFA state
     pub lex_state: u16,
@@ -1384,6 +1434,7 @@ pub struct LexMode {
 
 /// How GOTO table columns are indexed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub enum GotoIndexing {
     /// Use nonterminal_to_index mapping (standard)
     NonterminalMap,
@@ -1393,6 +1444,7 @@ pub enum GotoIndexing {
 
 /// GLR-compatible parse table supporting multiple actions per state
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseTable {
     /// ACTION table: indexed by `[state][terminal]` using symbol_to_index
@@ -1444,6 +1496,7 @@ pub struct ParseTable {
 
 /// Parse rule for reduction
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseRule {
     pub lhs: SymbolId,
@@ -1879,6 +1932,7 @@ pub type ActionCell = Vec<Action>;
 
 /// Symbol metadata for the parse table
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct SymbolMetadata {
     pub name: String,
@@ -2066,20 +2120,25 @@ impl ConflictResolver {
                 };
 
                 // Compare precedences
+                // PRECEDENCE RESOLUTION: When precedence can definitively resolve the conflict,
+                // we eliminate the lower-precedence action (not just re-order).
+                // This ensures correct parsing for unambiguous grammars.
                 match compare_precedences(shift_prec, reduce_prec) {
                     PrecedenceComparison::PreferShift => {
+                        // Shift wins - eliminate reduce action
                         conflict.actions = vec![shift];
                     }
                     PrecedenceComparison::PreferReduce => {
+                        // Reduce wins - eliminate shift action
                         conflict.actions = vec![reduce];
                     }
                     PrecedenceComparison::Error => {
                         // Non-associative conflict - this is an error
-                        // For now, keep both actions (GLR will handle it)
+                        // Keep Fork to signal ambiguity for error reporting
                         conflict.actions = vec![Action::Fork(vec![shift, reduce])];
                     }
                     PrecedenceComparison::None => {
-                        // No precedence info - use GLR fork
+                        // No precedence info - use GLR fork to explore all paths
                         conflict.actions = vec![Action::Fork(vec![shift, reduce])];
                     }
                 }
@@ -2624,6 +2683,11 @@ pub fn build_lr1_automaton(
         production_count,
     );
 
+    // Calculate the first non-terminal index
+    // Terminals are: EOF (index 0) + token_symbols (indices 1..=token_symbols.len())
+    // So first non-terminal is at index token_symbols.len() + 1
+    let first_nonterminal_idx = token_symbols.len() + 1;
+
     // Resolve conflicts using precedence
     for ((state_idx, symbol_idx), _actions) in conflicts_by_state {
         // Guard rail: validate indices
@@ -2634,7 +2698,8 @@ pub fn build_lr1_automaton(
         );
 
         // Only resolve on TOKEN columns (never on gotos)
-        if (symbol_idx as u32) >= token_count {
+        // Terminals occupy indices 0 (EOF) through token_symbols.len()
+        if symbol_idx >= first_nonterminal_idx {
             continue; // Skip non-terminal columns
         }
 

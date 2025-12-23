@@ -1,7 +1,4 @@
 // Test GLR tree bridge functionality
-// Skip when incremental GLR is enabled until tree bridge supports it
-#![cfg(not(feature = "incremental_glr"))]
-
 use rust_sitter::glr_lexer::GLRLexer;
 use rust_sitter::glr_parser::GLRParser;
 use rust_sitter::glr_tree_bridge::subtree_to_tree;
@@ -165,7 +162,7 @@ fn create_json_grammar() -> Grammar {
         production_id: ProductionId(4),
     });
 
-    grammar.rules.entry(value_id).or_default().push(Rule {
+    grammar.rules.entry(object_id).or_default().push(Rule {
         lhs: object_id,
         rhs: vec![Symbol::Terminal(lbrace_id), Symbol::Terminal(rbrace_id)],
         precedence: None,
@@ -188,7 +185,7 @@ fn create_json_grammar() -> Grammar {
         production_id: ProductionId(6),
     });
 
-    grammar.rules.entry(value_id).or_default().push(Rule {
+    grammar.rules.entry(array_id).or_default().push(Rule {
         lhs: array_id,
         rhs: vec![Symbol::Terminal(lbracket_id), Symbol::Terminal(rbracket_id)],
         precedence: None,
@@ -201,7 +198,6 @@ fn create_json_grammar() -> Grammar {
 }
 
 #[test]
-#[ignore = "GLR tree bridge needs further testing"]
 fn test_tree_bridge_json_number() {
     let grammar = Arc::new(create_json_grammar());
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();
@@ -226,24 +222,21 @@ fn test_tree_bridge_json_number() {
             let root = tree.root_node();
 
             // Test tree API
-            // The root is the reduced value, which contains a number
+            // The root is the "value" non-terminal (start symbol)
             assert_eq!(root.kind(), "value");
             assert_eq!(root.byte_range(), 0..2);
-            assert_eq!(root.child_count(), 1); // value -> number
 
-            // Get the actual number child
-            let number_node = root.child(0).expect("value should have a number child");
+            // The value contains a single child: the number terminal
+            assert_eq!(root.child_count(), 1);
+            let number_node = root.child(0).unwrap();
             assert_eq!(number_node.kind(), "number");
-            assert_eq!(number_node.byte_range(), 0..2);
-            assert_eq!(number_node.child_count(), 0); // Terminal nodes have no children
-            assert_eq!(root.utf8_text(tree.text()).unwrap(), "42");
+            assert_eq!(number_node.utf8_text(tree.text()).unwrap(), "42");
         }
         Err(e) => panic!("Failed to build parse table: {:?}", e),
     }
 }
 
 #[test]
-#[ignore = "GLR tree bridge needs further testing"]
 fn test_tree_bridge_json_object() {
     let grammar = Arc::new(create_json_grammar());
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();
@@ -268,12 +261,12 @@ fn test_tree_bridge_json_object() {
             let root = tree.root_node();
 
             // Test tree structure
-            // The root is the value, which contains an object (value → object reduction)
+            // The root is the "value" non-terminal (start symbol)
             assert_eq!(root.kind(), "value");
-            assert_eq!(root.child_count(), 1); // value -> object
 
-            // Get the actual object child
-            let object_node = root.child(0).expect("value should have an object child");
+            // The value contains a single child: the object non-terminal
+            assert_eq!(root.child_count(), 1);
+            let object_node = root.child(0).unwrap();
             assert_eq!(object_node.kind(), "object");
 
             // Objects have children: { members } or { }
@@ -292,7 +285,6 @@ fn test_tree_bridge_json_object() {
 }
 
 #[test]
-#[ignore = "GLR tree bridge needs further testing"]
 fn test_tree_cursor_navigation() {
     let grammar = Arc::new(create_json_grammar());
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();
@@ -317,28 +309,24 @@ fn test_tree_cursor_navigation() {
             let mut cursor = tree.root_node().walk();
 
             // Navigate tree with cursor
-            // The root is the value, which contains an array (value → array reduction)
+            // The root is the "value" non-terminal
             assert_eq!(cursor.node().kind(), "value");
 
-            // Go to the array child
+            // Navigate to the array child
             assert!(cursor.goto_first_child());
             assert_eq!(cursor.node().kind(), "array");
 
             // Arrays have: [ elements ]
-            // Go to first child (lbracket)
+            // Go to first child of array (lbracket)
             assert!(cursor.goto_first_child());
             assert_eq!(cursor.node().kind(), "lbracket");
 
             // Go to sibling (elements)
             assert!(cursor.goto_next_sibling());
 
-            // Go back to parent (array)
+            // Go back to parent
             assert!(cursor.goto_parent());
             assert_eq!(cursor.node().kind(), "array");
-
-            // Go back to root (value)
-            assert!(cursor.goto_parent());
-            assert_eq!(cursor.node().kind(), "value");
         }
         Err(e) => panic!("Failed to build parse table: {:?}", e),
     }

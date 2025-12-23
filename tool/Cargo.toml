@@ -2,7 +2,7 @@
 name = "rust-sitter-tool"
 description = "The external tool for Rust Sitter that extracts grammars from Rust definitions"
 readme = "../README.md"
-repository = "https://github.com/hydro-project/rust-sitter"
+repository = "https://github.com/EffortlessMetrics/rust-sitter"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 license = "MIT"
@@ -11,13 +11,14 @@ keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
 
 [features]
-default = ["build_parsers"]
+default = ["build_parsers", "serialization"]
 build_parsers = [
     "dep:tempfile",
     "dep:tree-sitter",
     "dep:tree-sitter-generate",
     "dep:cc",
 ]
+serialization = ["rust-sitter-tablegen/serialization", "rust-sitter-glr-core/serialization"]
 no_opt = []   # compile without the optimizer for debugging
 optimize = ["rust-sitter-ir/optimize"]
 strict_docs = [] # Enable strict documentation requirements

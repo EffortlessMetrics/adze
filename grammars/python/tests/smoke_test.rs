@@ -26,7 +26,7 @@ fn test_python_language_exists() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "Python grammar parser needs lexer/tokenizer fixes - returns root kind 0 instead of expected 267"]
 fn test_simple_python_parse() {
     // Register the scanner
     rust_sitter_python::register_scanner();

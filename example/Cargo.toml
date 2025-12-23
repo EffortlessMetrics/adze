@@ -9,6 +9,8 @@ publish = false
 [features]
 default = ["pure-rust"]
 pure-rust = ["rust-sitter/pure-rust"]
+glr = ["rust-sitter/glr"]
+pure-rust-glr = ["pure-rust", "glr"]  # Phase 3.3: Combined feature for GLR runtime testing
 c-backend = [
   "rust-sitter/tree-sitter-c2rust",
   "rust-sitter/tree-sitter-standard",
@@ -31,6 +33,7 @@ toml = "0.8"
 [dev-dependencies]
 insta = "1.39"
 wasm-bindgen-test = "0.3.0"
+rust-sitter-glr-core = { path = "../glr-core" }
 
 [[test]]
 name = "pure_rust_parser_tests"

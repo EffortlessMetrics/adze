@@ -1,6 +1,6 @@
 //! Simple example showing the Tree-sitter-compatible API
 
-use rust_sitter_runtime::{Parser, test_helpers::stub_language};
+use rust_sitter_runtime::{Language, Parser, test_helpers::stub_language};
 
 fn main() {
     // Create a parser

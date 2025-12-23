@@ -1,46 +1,43 @@
 #[cfg(feature = "glr-core")]
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
 #[cfg(feature = "glr-core")]
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern,
 };
 use rust_sitter_runtime::{Language, Parser, Token, language::SymbolMetadata};
 use std::sync::{
-    Arc, LazyLock,
+    Arc,
     atomic::{AtomicUsize, Ordering},
 };
 
 #[cfg(feature = "glr-core")]
 fn make_language(counter: Arc<AtomicUsize>) -> Language {
-    // Use a static lazy-initialized table to avoid Box::leak
-    static TEST_TABLE: LazyLock<ParseTable> = LazyLock::new(|| {
-        let mut grammar = Grammar::new("test".to_string());
-        let a_id = SymbolId(1);
-        grammar.tokens.insert(
-            a_id,
-            IrToken {
-                name: "a".to_string(),
-                pattern: TokenPattern::String("a".to_string()),
-                fragile: false,
-            },
-        );
-        let start_id = SymbolId(2);
-        grammar.rule_names.insert(start_id, "start".to_string());
-        grammar.rules.insert(
-            start_id,
-            vec![Rule {
-                lhs: start_id,
-                rhs: vec![Symbol::Terminal(a_id)],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(0),
-                fields: vec![],
-            }],
-        );
-        let ff = FirstFollowSets::compute(&grammar).unwrap();
-        build_lr1_automaton(&grammar, &ff).expect("table")
-    });
-    let table = &*TEST_TABLE;
+    let mut grammar = Grammar::new("test".to_string());
+    let a_id = SymbolId(1);
+    grammar.tokens.insert(
+        a_id,
+        IrToken {
+            name: "a".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+    let start_id = SymbolId(2);
+    grammar.rule_names.insert(start_id, "start".to_string());
+    grammar.rules.insert(
+        start_id,
+        vec![Rule {
+            lhs: start_id,
+            rhs: vec![Symbol::Terminal(a_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: vec![],
+        }],
+    );
+    let ff = FirstFollowSets::compute(&grammar).unwrap();
+    let table = build_lr1_automaton(&grammar, &ff).expect("table");
+    let table: &'static _ = Box::leak(Box::new(table));
 
     let t_counter = counter.clone();
 

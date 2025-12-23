@@ -96,9 +96,11 @@ pub fn generate_lexer(
     // Second: Add other string patterns (operators, punctuation)
     for (symbol_index, s) in other_strings {
         if s.len() == 1 {
-            let ch_byte = s.as_bytes()[0];
+            let ch = s.chars().next().unwrap();
+            let byte_literal = format!("b'{}'", ch);
+            let byte_token: proc_macro2::TokenStream = byte_literal.parse().unwrap();
             token_matches.push(quote! {
-                if input[position] == #ch_byte {
+                if input[position] == #byte_token {
                     state.result_symbol = #symbol_index;
                     state.result_length = 1;
                     return true;

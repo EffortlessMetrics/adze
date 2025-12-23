@@ -164,6 +164,9 @@ mod incremental_properties {
         };
         grammar.add_rule(rule3);
 
+        // The start symbol is automatically determined by Grammar::start_symbol() method
+        // which returns the first symbol with rules or follows Tree-sitter conventions
+
         let table = build_table(&grammar);
         (grammar, table)
     }

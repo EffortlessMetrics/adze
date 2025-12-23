@@ -397,6 +397,36 @@ impl GrammarJsConverter {
                                 );
                             }
                         }
+                        JsRule::Seq {
+                            members: seq_members,
+                        } => {
+                            // Handle SEQ directly in CHOICE (e.g., inlined Binary variant)
+                            // Convert each member of the SEQ to a symbol and create a production
+                            eprintln!(
+                                "Debug: CHOICE member {} is SEQ with {} members for {}",
+                                i,
+                                seq_members.len(),
+                                lhs.0
+                            );
+                            let mut rhs = Vec::new();
+                            for seq_member in seq_members {
+                                if let Some(symbol) = self.rule_to_symbol(grammar, seq_member) {
+                                    rhs.push(symbol);
+                                } else {
+                                    eprintln!(
+                                        "Debug: Failed to convert SEQ member in CHOICE for {}",
+                                        lhs.0
+                                    );
+                                }
+                            }
+                            if !rhs.is_empty() {
+                                eprintln!(
+                                    "Debug: Adding rule {} -> {:?} (from inlined SEQ)",
+                                    lhs.0, rhs
+                                );
+                                self.add_rule(grammar, lhs, rhs, None, None);
+                            }
+                        }
                         _ => {
                             // For non-precedence members, convert normally
                             if let Some(symbol) = self.rule_to_symbol(grammar, member) {

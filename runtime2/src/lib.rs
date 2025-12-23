@@ -35,8 +35,17 @@ pub mod tree;
 mod builder;
 #[cfg(feature = "glr-core")]
 mod engine;
+/// Forest-to-tree conversion for GLR parsing (Phase 3.2)
+#[cfg(feature = "pure-rust-glr")]
+pub mod forest_converter;
+/// GLR parsing engine (Phase 3.1)
+#[cfg(feature = "pure-rust-glr")]
+pub mod glr_engine;
 /// Token types and lexing helpers.
 pub mod token;
+/// Lexical scanner (tokenizer) for GLR parsing (Phase 3.2)
+#[cfg(feature = "pure-rust-glr")]
+pub mod tokenizer;
 
 /// Test helper utilities for creating stub languages and parse tables.
 ///

@@ -137,19 +137,18 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
                 }
 
                 // Check if we need to move to next range
-                if let Some(range) = self.current_range()
-                    && self.cursor >= range.end
-                    && self.ranges.next + 1 < self.ranges.spans.len()
-                {
-                    // Move to next range
-                    self.ranges.next += 1;
-                    if let Some(next_range) = self.ranges.spans.get(self.ranges.next) {
-                        self.cursor = next_range.start;
-                        // Recalculate position for new range
-                        let (row, col) =
-                            position_to_line_col(self.src, self.cursor, self.line_starts);
-                        self.row = row;
-                        self.col = col;
+                if let Some(range) = self.current_range() {
+                    if self.cursor >= range.end && self.ranges.next + 1 < self.ranges.spans.len() {
+                        // Move to next range
+                        self.ranges.next += 1;
+                        if let Some(next_range) = self.ranges.spans.get(self.ranges.next) {
+                            self.cursor = next_range.start;
+                            // Recalculate position for new range
+                            let (row, col) =
+                                position_to_line_col(self.src, self.cursor, self.line_starts);
+                            self.row = row;
+                            self.col = col;
+                        }
                     }
                 }
             } else {
@@ -250,26 +249,23 @@ mod tests {
         let ranges = vec![0..5, 6..11]; // Split at space
         let mut adapter = TSLexerAdapter::new(input, 0, &line_starts, ranges);
 
-        // Debug: Check starting position
-        assert_eq!(adapter.cursor, 0);
-        assert_eq!(adapter.lookahead(), Some(b'h'));
+        // Advance to end of first range
+        for _ in 0..5 {
+            adapter.advance(1);
+        }
 
-        // Advance through the first range
-        adapter.advance(1); // cursor should be 1 (e)
-        assert_eq!(adapter.cursor, 1);
-        adapter.advance(1); // cursor should be 2 (l)
-        assert_eq!(adapter.cursor, 2);
-        adapter.advance(1); // cursor should be 3 (l)
-        assert_eq!(adapter.cursor, 3);
-        adapter.advance(1); // cursor should be 4 (o)
-        assert_eq!(adapter.cursor, 4);
+        // After advancing 5 times from 0, we should be at position 5 (which is the space)
+        // The first range is 0..5, so position 5 is the end (exclusive)
+        // The adapter should automatically jump to the next range (starting at 6)
+        assert_eq!(adapter.cursor, 6);
 
-        // At this point we should be at the end of the first range
-        // The next advance should either stay at 4 or move to next range
+        // We're now at the start of the second range, pointing to 'w'
+        assert_eq!(adapter.lookahead(), Some(b'w'));
+
+        // Advance one more time
         adapter.advance(1);
-        // The actual behavior determines the correct assertion
-        assert_eq!(adapter.cursor, 6); // Moves to start of next range
-        assert_eq!(adapter.lookahead(), Some(b'w')); // First character of next range
+        assert_eq!(adapter.cursor, 7); // Should be at 'o'
+        assert_eq!(adapter.lookahead(), Some(b'o'));
     }
 
     #[test]

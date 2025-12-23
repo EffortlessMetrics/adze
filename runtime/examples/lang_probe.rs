@@ -3,6 +3,7 @@
 use rust_sitter_python::grammar_python::LANGUAGE as PY_LANGUAGE;
 
 fn main() {
+    // Enable backtrace for debugging - safe in examples
     unsafe {
         std::env::set_var("RUST_BACKTRACE", "1");
     }

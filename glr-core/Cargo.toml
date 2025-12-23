@@ -5,8 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 description = "GLR parser generation algorithms for pure-Rust Tree-sitter"
 license = "MIT"
-repository = "https://github.com/hydro-project/rust-sitter"
-homepage = "https://github.com/hydro-project/rust-sitter"
+repository = "https://github.com/EffortlessMetrics/rust-sitter"
+homepage = "https://github.com/EffortlessMetrics/rust-sitter"
 documentation = "https://docs.rs/rust-sitter-glr-core"
 readme = "README.md"
 publish = false
@@ -33,9 +33,13 @@ rayon = { version = "1.0", optional = true }
 rustc-hash = "2.1.1"
 smallvec = "1.13"
 
+# Optional serialization support for GLR mode
+bincode = { version = "1.3", optional = true }
+
 [features]
 default = []
 parallel = ["rayon"]
+serialization = ["bincode"]  # Enable ParseTable serialization for GLR mode
 strict_docs = []
 strict_api = []
 glr-trace = []

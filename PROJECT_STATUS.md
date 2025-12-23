@@ -34,19 +34,36 @@ Rust Sitter v0.6.0-beta achieves a correct GLR parser implementation with succes
 - **LSP Generator Guide**: Creating language servers
 - **Playground Guide**: Using the interactive playground
 
-## 📊 Test Results (January 2025)
+## 📊 Test Results (November 2025)
 
 | Test Suite | Pass Rate | Status |
 |------------|-----------|---------|
+| Macro-Based Grammars | 13/13 (100%) | ✅ Fully working (test-mini 6/6, test-vec-wrapper 7/7) |
+| Integration Tests | 6/6 (100%) | ✅ Real-world parsing with precedence & associativity |
 | Lexer Integration | 2/2 (100%) | ✅ Fully working |
 | Error Recovery | 4/5 (80%) | ✅ Mostly working |
 | Fork/Merge | 30/30 (100%) | ✅ Perfect |
-| Integration | 5/5 (100%) | ✅ Perfect |
 | GLR Parsing | 2/6 (33%) | ⚠️ Test infrastructure issues |
+| Tablegen | All passing | ✅ Accept encoding fixed |
 
-## 🎯 Recent Fixes (January 2025)
+## 🎯 Recent Fixes (November 2025)
 
-### End-Game Correctness Fixes
+### Macro-Based Grammar Generation - **100% Working** ✅
+- **Accept Action Encoding**: Fixed encoding/decoding mismatch (0x7FFF → 0xFFFF)
+- **Decoder Check Order**: Fixed decoder to check Accept before Reduce bit
+- **Token Count Bug**: Corrected token_count to include EOF symbol (+1)
+- **Default Action Optimization**: Disabled to ensure runtime compatibility
+- **GOTO Table Encoding**: Added missing GOTO entries to compressed parse tables
+- **GOTO Offset Calculation**: Fixed offsets to use array indices instead of pair counts
+- **Test Coverage**: All macro-based grammar tests passing (test-mini 6/6, test-vec-wrapper 7/7)
+- **Resolver Tests**: Enabled 4 additional tests validating Vec<> with whitespace handling
+- **Integration Tests**: Added 6 comprehensive real-world parsing tests with benchmarks
+- **Vec Support**: Repetition with Vec<> now works correctly
+- **Text Extraction**: Leaf nodes with `text = true` properly extract source text
+- **Precedence Validation**: Real tests prove operator precedence works (1-2*3 → 1-(2*3))
+- **Associativity Validation**: Real tests prove left-associativity ((20-10)-5)
+
+### End-Game Correctness Fixes (January 2025)
 - **Nonterminal Goto**: Fixed critical bug using action table for nonterminal lookups
 - **True GLR Forking**: Process ALL actions without first-match bias or state dedup
 - **Epsilon Loop Prevention**: Added RedStamp guard with position tracking

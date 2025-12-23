@@ -52,11 +52,9 @@
 //! use rust_sitter_ir::{Grammar, SymbolId};
 //! use rust_sitter_glr_core::ParseTable;
 //!
-//! // Create parser with grammar and parse table
-//! # fn example() {
-//! let grammar = Grammar::default();
-//! let parse_table = ParseTable::default();
-//! let mut parser = GLRParser::new(grammar, parse_table);
+//! // Create parser with grammar and parse table (grammar and parse_table provided by your app)
+//! # fn example(grammar: Grammar, parse_table: ParseTable) {
+//! let mut parser = GLRParser::new(parse_table, grammar);
 //!
 //! // Create lexer and tokenize input
 //! let mut lexer = GLRLexer::new(&grammar);
@@ -68,9 +66,9 @@
 //! }
 //!
 //! // Process EOF and get result
-//! parser.process_eof(0);
+//! parser.process_eof();
 //! match parser.finish() {
-//!     Ok(_tree) => println!("Parse successful!"),
+//!     Ok(tree) => println!("Parse successful!"),
 //!     Err(e) => println!("Parse failed: {}", e),
 //! }
 //! # }
@@ -100,6 +98,34 @@ use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
 use std::collections::VecDeque;
 use std::sync::Arc;
+
+/// Error types specific to GLR parsing operations.
+#[derive(Debug, thiserror::Error)]
+pub enum GLRError {
+    /// Complex symbol found in rule that should have been normalized during grammar preprocessing.
+    ///
+    /// GLR parsing requires that all complex symbols (Optional, Repeat, RepeatOne, Choice, Sequence, Epsilon)
+    /// are normalized into simpler forms during grammar compilation. If this error occurs, it indicates
+    /// that the grammar preprocessing step did not complete properly.
+    ///
+    /// ## Resolution
+    /// Ensure that grammar normalization is run before GLR parsing. Complex symbols should be
+    /// expanded into equivalent rules with only Terminal, NonTerminal, and External symbols.
+    #[error(
+        "Complex symbol '{symbol_type}' not normalized in rule {production_id:?} at position {position}. Complex symbols must be normalized before GLR parsing."
+    )]
+    ComplexSymbolNotNormalized {
+        /// The type of complex symbol that was encountered
+        symbol_type: String,
+        /// The production ID where the symbol was found
+        production_id: rust_sitter_ir::ProductionId,
+        /// The position within the rule's RHS where the symbol occurred
+        position: usize,
+    },
+}
+
+/// Result type for GLR parsing operations.
+pub type GLRResult<T> = Result<T, GLRError>;
 
 // Debug macro for GLR parser
 #[cfg(feature = "debug_glr")]
@@ -771,7 +797,7 @@ impl GLRParser {
                             {
                                 match recovery_action {
                                     RecoveryAction::InsertToken(missing_token) => {
-                                        // Try to shift the missing token
+                                        // Insert the missing token and continue processing
                                         if let Some(&missing_idx) =
                                             self.table.symbol_to_index.get(&missing_token)
                                         {
@@ -783,29 +809,79 @@ impl GLRParser {
                                                 .find(|a| matches!(a, Action::Shift(_)));
                                             if let Some(Action::Shift(new_state)) = shift_action {
                                                 let mut recovery_stack = stack.clone();
-                                                // Create dummy node for inserted token
+                                                // Create error node for inserted token
                                                 let error_node = Arc::new(Subtree::new(
                                                     SubtreeNode {
                                                         symbol_id: missing_token,
                                                         is_error: true,
-                                                        byte_range: byte_offset..byte_offset,
+                                                        byte_range: byte_offset..byte_offset, // Zero width for insertion
                                                     },
-                                                    vec![], // Empty children for error node
+                                                    vec![], // Empty children for inserted token
                                                 ));
                                                 recovery_stack.push(*new_state, error_node);
                                                 recovery_stack.version.enter_error();
-                                                // Re-queue the current token
-                                                self.pending_stacks.push_back(
-                                                    self.stacks.len() + new_stacks.len(),
-                                                );
-                                                new_stacks.push(recovery_stack);
+
+                                                // Now process the current token against the new state
+                                                let new_state_id = *new_state;
+                                                if let Some(&token_idx) =
+                                                    self.table.symbol_to_index.get(&token)
+                                                {
+                                                    let new_action_cell = &self.table.action_table
+                                                        [new_state_id.0 as usize][token_idx];
+
+                                                    // Try processing each action in the cell
+                                                    for action in new_action_cell {
+                                                        match action {
+                                                            Action::Shift(shift_state) => {
+                                                                let mut updated_stack =
+                                                                    recovery_stack.clone();
+                                                                let node = Arc::new(Subtree::new(
+                                                                    SubtreeNode {
+                                                                        symbol_id: token,
+                                                                        is_error: false,
+                                                                        byte_range: byte_offset
+                                                                            ..byte_offset
+                                                                                + text.len(),
+                                                                    },
+                                                                    vec![],
+                                                                ));
+                                                                updated_stack
+                                                                    .push(*shift_state, node);
+                                                                new_stacks.push(updated_stack);
+                                                            }
+                                                            _ => {
+                                                                // Handle other actions (reduce, etc.) - add stack for processing
+                                                                new_stacks
+                                                                    .push(recovery_stack.clone());
+                                                            }
+                                                        }
+                                                    }
+                                                } else {
+                                                    // Token not found in table, keep recovery stack
+                                                    new_stacks.push(recovery_stack);
+                                                }
                                                 continue;
                                             }
                                         }
                                     }
                                     RecoveryAction::DeleteToken => {
-                                        // Skip this token and continue with the same stack
-                                        new_stacks.push(stack.clone());
+                                        // Delete this token - add stack without processing token
+                                        let mut recovery_stack = stack.clone();
+                                        recovery_stack.version.enter_error();
+                                        // Mark stack as having handled this token by deletion
+                                        recovery_stack.version.dynamic_prec -= 1; // Penalize for token deletion
+
+                                        // Create an error node for the deleted token to maintain parse tree structure
+                                        let error_node = Arc::new(Subtree::new(
+                                            SubtreeNode {
+                                                symbol_id: token,
+                                                is_error: true,
+                                                byte_range: byte_offset..byte_offset + text.len(),
+                                            },
+                                            vec![], // No children for deleted token
+                                        ));
+                                        recovery_stack.nodes.push(error_node);
+                                        new_stacks.push(recovery_stack);
                                         continue;
                                     }
                                     RecoveryAction::CreateErrorNode(_) => {
@@ -1407,14 +1483,14 @@ impl GLRParser {
                 for action in action_cell {
                     if let Action::Shift(new_state) = action {
                         let mut new_stack = stack.clone();
-                        // Create synthetic node with zero-width range
+                        // Create synthetic node with zero-width range at current input position
                         new_stack.push(
                             *new_state,
                             Arc::new(Subtree::new(
                                 SubtreeNode {
                                     symbol_id: sym,
                                     is_error: true, // Mark synthetic tokens as error nodes
-                                    byte_range: 0..0, // Zero-width synthetic token
+                                    byte_range: self.input_length..self.input_length, // Zero-width at EOF
                                 },
                                 Vec::new(), // No children for synthetic token
                             )),
@@ -1650,13 +1726,12 @@ impl GLRParser {
                 result
             };
 
-            // Check if this rule has dynamic precedence
-            let dynamic_prec =
-                if let Some(rust_sitter_ir::PrecedenceKind::Dynamic(prec)) = &rule.precedence {
-                    *prec as i32
-                } else {
-                    0
-                };
+            // Check if this rule has precedence (static or dynamic)
+            let dynamic_prec = match &rule.precedence {
+                Some(rust_sitter_ir::PrecedenceKind::Dynamic(prec)) => *prec as i32,
+                Some(rust_sitter_ir::PrecedenceKind::Static(prec)) => *prec as i32, // Add support for static precedence
+                None => 0,
+            };
 
             let subtree = Arc::new(Subtree::with_dynamic_prec_and_fields(
                 node,
@@ -1811,7 +1886,8 @@ impl GLRParser {
         );
 
         // Hard bound: at most a few iterations (guards infinite loops).
-        for _iteration in 0..8 {
+        #[allow(unused_variables)] // Used in debug_glr! macro calls
+        for i in 0..8 {
             // Close first with EOF as lookahead to expose any reduces
             let stacks = std::mem::take(&mut self.stacks);
             let stacks = self.reduce_until_saturated(stacks, eof, self.input_length);
@@ -1821,14 +1897,14 @@ impl GLRParser {
             if self.any_stack_has_action(eof) {
                 debug_glr!(
                     "drive_recovery_until_eof_action: found action for EOF after {} iterations",
-                    _iteration
+                    i
                 );
                 break;
             }
 
             debug_glr!(
                 "drive_recovery_until_eof_action: iteration {} with {} stacks",
-                _iteration,
+                i,
                 self.stacks.len()
             );
 
@@ -1896,44 +1972,132 @@ impl GLRParser {
         // 1. Has exactly one node (the root of the parse tree)
         // 2. That node represents the start symbol (we'll accept any non-terminal for now)
 
-        for stack in &self.stacks {
+        // Debug: Print all available stacks before choosing
+        debug_glr!("finish: have {} stacks to consider", self.stacks.len());
+        #[allow(unused_variables)]
+        for (i, stack) in self.stacks.iter().enumerate() {
+            debug_glr!("Debug stack index: {}", i);
+            debug_glr!(
+                "Stack {}: {} nodes, state {}",
+                i,
+                stack.nodes.len(),
+                stack.current_state().0
+            );
+            if stack.nodes.len() == 1 {
+                #[allow(unused_variables)]
+                let node = &stack.nodes[0];
+                debug_glr!("Debug stack node symbol: {:?}", node.node.symbol_id);
+                debug_glr!(
+                    "  Node: symbol={:?}, range={:?}",
+                    node.node.symbol_id,
+                    node.node.byte_range
+                );
+            }
+        }
+
+        // Collect all complete stacks (same logic as finish_all_alternatives)
+        let mut complete_stacks = Vec::new();
+        #[allow(unused_variables)]
+        for (i, stack) in self.stacks.iter().enumerate() {
+            debug_glr!("Debug stack index: {}", i);
             debug_glr!("finish: stack has {} nodes", stack.nodes.len());
             if stack.nodes.len() == 1 {
-                // Accept if we have exactly one node after EOF processing
-                // This should be the root of the parse tree (the start symbol)
+                #[allow(unused_variables)]
                 let node = &stack.nodes[0];
-                // Check if we encountered errors during parsing (e.g., deleted tokens)
-                if stack.version.in_error && self.error_recovery.is_some() {
-                    // Wrap in error node to indicate parse had errors
-                    let error_node = Arc::new(Subtree::new(
-                        SubtreeNode {
-                            symbol_id: SymbolId(u16::MAX), // Special error symbol
-                            is_error: true,
-                            byte_range: node.node.byte_range.clone(),
-                        },
-                        vec![node.clone()],
-                    ));
-                    return Ok(error_node);
-                }
-                return Ok(node.clone());
-            } else if !stack.nodes.is_empty() {
-                // If we have multiple nodes but error recovery was used,
-                // return a partial tree wrapped in an error node
-                let has_error =
-                    stack.nodes.iter().any(|n| n.node.is_error) || stack.version.in_error;
-                if has_error && self.error_recovery.is_some() {
-                    // Create an error node containing all remaining nodes
-                    let error_node = Arc::new(Subtree::new(
-                        SubtreeNode {
-                            symbol_id: SymbolId(u16::MAX), // Special error symbol
-                            is_error: true,
-                            byte_range: 0..self.input_length,
-                        },
-                        stack.nodes.clone(),
-                    ));
-                    return Ok(error_node);
+                debug_glr!("Debug stack node symbol: {:?}", node.node.symbol_id);
+
+                // CRITICAL: Check that the parse consumed all input
+                // This fix ensures we don't return incomplete parses like "1+2" when input is "1+2*3"
+                if node.node.byte_range.end == self.input_length {
+                    debug_glr!("finish: Stack {} is complete (spans full input)", i);
+                    complete_stacks.push(i);
+                } else {
+                    debug_glr!(
+                        "finish: Rejecting incomplete stack {} - ends at byte {} but input is {} bytes",
+                        i,
+                        node.node.byte_range.end,
+                        self.input_length
+                    );
                 }
             }
+        }
+
+        if complete_stacks.is_empty() {
+            // No complete stacks, check for error recovery cases
+            for stack in &self.stacks {
+                if !stack.nodes.is_empty() {
+                    // If we have multiple nodes but error recovery was used,
+                    // return a partial tree wrapped in an error node
+                    let has_error =
+                        stack.nodes.iter().any(|n| n.node.is_error) || stack.version.in_error;
+                    if has_error && self.error_recovery.is_some() {
+                        // Create an error node containing all remaining nodes
+                        let error_node = Arc::new(Subtree::new(
+                            SubtreeNode {
+                                symbol_id: SymbolId(u16::MAX), // Special error symbol
+                                is_error: true,
+                                byte_range: 0..self.input_length,
+                            },
+                            stack.nodes.clone(),
+                        ));
+                        return Ok(error_node);
+                    }
+                }
+            }
+        } else {
+            // We have complete stacks! Choose the best one using version comparison
+            debug_glr!(
+                "finish: Found {} complete stacks, choosing best",
+                complete_stacks.len()
+            );
+
+            let mut best_stack_idx = complete_stacks[0];
+            for &stack_idx in &complete_stacks[1..] {
+                match compare_versions(
+                    &self.stacks[best_stack_idx].version,
+                    &self.stacks[stack_idx].version,
+                ) {
+                    CompareResult::TakeRight | CompareResult::PreferRight => {
+                        debug_glr!(
+                            "finish: Stack {} is better than stack {}",
+                            stack_idx,
+                            best_stack_idx
+                        );
+                        best_stack_idx = stack_idx;
+                    }
+                    _ => {
+                        debug_glr!(
+                            "finish: Stack {} is not better than stack {}",
+                            stack_idx,
+                            best_stack_idx
+                        );
+                    }
+                }
+            }
+
+            let best_stack = &self.stacks[best_stack_idx];
+            let node = &best_stack.nodes[0];
+
+            debug_glr!(
+                "finish: Choosing stack {} with dynamic_prec={}",
+                best_stack_idx,
+                best_stack.version.dynamic_prec
+            );
+
+            // Check if we encountered errors during parsing (e.g., deleted tokens)
+            if best_stack.version.in_error && self.error_recovery.is_some() {
+                // Wrap in error node to indicate parse had errors
+                let error_node = Arc::new(Subtree::new(
+                    SubtreeNode {
+                        symbol_id: SymbolId(u16::MAX), // Special error symbol
+                        is_error: true,
+                        byte_range: node.node.byte_range.clone(),
+                    },
+                    vec![node.clone()],
+                ));
+                return Ok(error_node);
+            }
+            return Ok(node.clone());
         }
 
         // If no accepted stack, return error with debugging info
@@ -1959,7 +2123,9 @@ impl GLRParser {
             self.stacks.len()
         );
         #[allow(unused_variables)]
+        #[allow(unused_variables)]
         for (i, stack) in self.stacks.iter().enumerate() {
+            debug_glr!("Debug stack index: {}", i);
             debug_glr!(
                 "  Stack {}: {} nodes, state {}",
                 i,
@@ -1979,7 +2145,9 @@ impl GLRParser {
             if stack.nodes.len() == 1 {
                 // Accept if we have exactly one node after EOF processing
                 // This should be the root of the parse tree (the start symbol)
+                #[allow(unused_variables)]
                 let node = &stack.nodes[0];
+                debug_glr!("Debug stack node symbol: {:?}", node.node.symbol_id);
 
                 // CRITICAL: Check that the parse consumed all input
                 if node.node.byte_range.end == self.input_length {
@@ -2023,6 +2191,12 @@ impl GLRParser {
         self.stacks.push(initial_stack);
         self.pending_stacks.clear();
         self.pending_stacks.push_back(0);
+
+        // Reset error recovery state if present
+        if let Some(ref mut recovery_state) = self.recovery_state {
+            recovery_state.reset_consecutive_errors();
+            recovery_state.clear_errors();
+        }
     }
 
     /// Get expected symbols at current parse state
@@ -2046,8 +2220,12 @@ impl GLRParser {
     }
 
     /// Perform all possible reductions on a stack until no more are possible
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GLRError::ComplexSymbolNotNormalized`] if any rule contains unnormalized complex symbols.
     #[allow(dead_code)]
-    fn perform_all_reductions(&self, stack: ParseStack) -> Vec<ParseStack> {
+    fn perform_all_reductions(&self, stack: ParseStack) -> GLRResult<Vec<ParseStack>> {
         let mut result_stacks = vec![];
         let mut work_list = vec![stack];
 
@@ -2059,84 +2237,94 @@ impl GLRParser {
             for (_symbol_id, rules) in &self.grammar.rules {
                 for rule in rules {
                     // Check if we can reduce by this rule
-                    if self.can_reduce(&current_stack, rule) {
-                        // After reduction, we need to find the goto state
-                        // First get the state we'll be in after popping the RHS symbols
-                        let base_state_idx = if current_stack.states.len() > rule.rhs.len() {
-                            current_stack.states[current_stack.states.len() - rule.rhs.len() - 1].0
-                                as usize
-                        } else {
-                            0
-                        };
+                    match self.can_reduce(&current_stack, rule) {
+                        Ok(true) => {
+                            // After reduction, we need to find the goto state
+                            // First get the state we'll be in after popping the RHS symbols
+                            let base_state_idx = if current_stack.states.len() > rule.rhs.len() {
+                                current_stack.states
+                                    [current_stack.states.len() - rule.rhs.len() - 1]
+                                    .0 as usize
+                            } else {
+                                0
+                            };
 
-                        // Get the nonterminal index for the LHS non-terminal
-                        if let Some(&lhs_idx) = self.table.nonterminal_to_index.get(&rule.lhs) {
-                            // Look up the goto state
-                            if base_state_idx < self.table.goto_table.len()
-                                && lhs_idx < self.table.goto_table[base_state_idx].len()
-                            {
-                                let goto_state = self.table.goto_table[base_state_idx][lhs_idx];
-                                if goto_state.0 != 0 {
-                                    // Valid goto state
-                                    has_reduction = true;
+                            // Get the nonterminal index for the LHS non-terminal
+                            if let Some(&lhs_idx) = self.table.nonterminal_to_index.get(&rule.lhs) {
+                                // Look up the goto state
+                                if base_state_idx < self.table.goto_table.len()
+                                    && lhs_idx < self.table.goto_table[base_state_idx].len()
+                                {
+                                    let goto_state = self.table.goto_table[base_state_idx][lhs_idx];
+                                    if goto_state.0 != 0 {
+                                        // Valid goto state
+                                        has_reduction = true;
 
-                                    // Perform the reduction
-                                    let mut reduced_stack = current_stack.clone();
-                                    let children: Vec<Arc<Subtree>> = (0..rule.rhs.len())
-                                        .filter_map(|_| reduced_stack.nodes.pop())
-                                        .collect::<Vec<_>>()
-                                        .into_iter()
-                                        .rev()
-                                        .collect();
+                                        // Perform the reduction
+                                        let mut reduced_stack = current_stack.clone();
+                                        let children: Vec<Arc<Subtree>> = (0..rule.rhs.len())
+                                            .filter_map(|_| reduced_stack.nodes.pop())
+                                            .collect::<Vec<_>>()
+                                            .into_iter()
+                                            .rev()
+                                            .collect();
 
-                                    // Also pop the corresponding states
-                                    for _ in 0..rule.rhs.len() {
-                                        reduced_stack.states.pop();
-                                    }
+                                        // Also pop the corresponding states
+                                        for _ in 0..rule.rhs.len() {
+                                            reduced_stack.states.pop();
+                                        }
 
-                                    // Create new subtree for the reduction
-                                    let byte_range = if children.is_empty() {
-                                        0..0 // Empty production
-                                    } else {
-                                        children[0].node.byte_range.start
-                                            ..children.last().unwrap().node.byte_range.end
-                                    };
+                                        // Create new subtree for the reduction
+                                        let byte_range = if children.is_empty() {
+                                            0..0 // Empty production
+                                        } else {
+                                            children[0].node.byte_range.start
+                                                ..children.last().unwrap().node.byte_range.end
+                                        };
 
-                                    let node = SubtreeNode {
-                                        symbol_id: rule.lhs,
-                                        is_error: false,
-                                        byte_range,
-                                    };
+                                        let node = SubtreeNode {
+                                            symbol_id: rule.lhs,
+                                            is_error: false,
+                                            byte_range,
+                                        };
 
-                                    let dynamic_prec = rule
-                                        .precedence
-                                        .map(|p| match p {
-                                            PrecedenceKind::Static(prec) => prec as i32,
-                                            PrecedenceKind::Dynamic(idx) => {
-                                                // For dynamic precedence, use child's precedence
-                                                let idx_usize = idx as usize;
-                                                if idx_usize < children.len() {
-                                                    children[idx_usize].dynamic_prec
-                                                } else {
-                                                    0
+                                        let dynamic_prec = rule
+                                            .precedence
+                                            .map(|p| match p {
+                                                PrecedenceKind::Static(prec) => prec as i32,
+                                                PrecedenceKind::Dynamic(idx) => {
+                                                    // For dynamic precedence, use child's precedence
+                                                    let idx_usize = idx as usize;
+                                                    if idx_usize < children.len() {
+                                                        children[idx_usize].dynamic_prec
+                                                    } else {
+                                                        0
+                                                    }
                                                 }
-                                            }
-                                        })
-                                        .unwrap_or(0);
+                                            })
+                                            .unwrap_or(0);
 
-                                    let parent = Arc::new(Subtree::with_dynamic_prec(
-                                        node,
-                                        children,
-                                        dynamic_prec,
-                                    ));
+                                        let parent = Arc::new(Subtree::with_dynamic_prec(
+                                            node,
+                                            children,
+                                            dynamic_prec,
+                                        ));
 
-                                    // Push the new subtree
-                                    reduced_stack.push(goto_state, parent);
+                                        // Push the new subtree
+                                        reduced_stack.push(goto_state, parent);
 
-                                    // Continue reducing from this new state
-                                    work_list.push(reduced_stack);
+                                        // Continue reducing from this new state
+                                        work_list.push(reduced_stack);
+                                    }
                                 }
                             }
+                        }
+                        Ok(false) => {
+                            // Cannot reduce with this rule, continue to next rule
+                        }
+                        Err(err) => {
+                            // Return error immediately if normalization check fails
+                            return Err(err);
                         }
                     }
                 }
@@ -2148,14 +2336,23 @@ impl GLRParser {
             }
         }
 
-        result_stacks
+        Ok(result_stacks)
     }
 
     /// Check if we can reduce by a rule
+    ///
+    /// This function validates that all symbols in the rule are normalized (Terminal, NonTerminal, or External)
+    /// and checks if the stack contents match the rule's right-hand side.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GLRError::ComplexSymbolNotNormalized`] if any symbol in the rule's RHS is not normalized.
+    /// Complex symbols (Optional, Repeat, RepeatOne, Choice, Sequence, Epsilon) must be preprocessed
+    /// and normalized before GLR parsing.
     #[allow(dead_code)]
-    fn can_reduce(&self, stack: &ParseStack, rule: &Rule) -> bool {
+    fn can_reduce(&self, stack: &ParseStack, rule: &Rule) -> GLRResult<bool> {
         if stack.nodes.len() < rule.rhs.len() {
-            return false;
+            return Ok(false);
         }
 
         // Check if the top of the stack matches the rule's RHS
@@ -2164,21 +2361,55 @@ impl GLRParser {
             let node_symbol = match symbol {
                 Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
                 Symbol::External(id) => *id,
-                Symbol::Optional(_)
-                | Symbol::Repeat(_)
-                | Symbol::RepeatOne(_)
-                | Symbol::Choice(_)
-                | Symbol::Sequence(_)
-                | Symbol::Epsilon => {
-                    panic!("Complex symbols should be normalized before GLR parsing");
+                Symbol::Optional(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Optional".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::Repeat(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Repeat".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::RepeatOne(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "RepeatOne".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::Choice(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Choice".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::Sequence(_) => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Sequence".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
+                }
+                Symbol::Epsilon => {
+                    return Err(GLRError::ComplexSymbolNotNormalized {
+                        symbol_type: "Epsilon".to_string(),
+                        production_id: rule.production_id,
+                        position: i,
+                    });
                 }
             };
             if stack.nodes[start_idx + i].node.symbol_id != node_symbol {
-                return false;
+                return Ok(false);
             }
         }
 
-        true
+        Ok(true)
     }
 
     /// Get action from parse table for state and symbol

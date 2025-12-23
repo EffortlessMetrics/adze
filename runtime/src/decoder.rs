@@ -17,88 +17,134 @@ use crate::pure_parser::{TSLanguage, TSParseAction};
 use crate::ts_format::TSActionTag;
 
 /// Load token patterns from a Tree-sitter grammar.json file
-///
-/// Note: Full JSON parsing implementation is deferred. The grammar_json module
-/// provides alternative JSON grammar support when the `serialization` feature is enabled.
-/// This function currently returns a hardcoded set of common Python patterns for testing.
-///
-/// This function now uses static string references to avoid allocating 50+ strings at runtime.
-pub fn load_token_patterns(_grammar_json_path: &Path) -> HashMap<&'static str, TokenPattern> {
-    // Returns a minimal set of hardcoded patterns for testing
-    // Full JSON parsing is available via the grammar_json module when needed
+/// For now, returns an empty map - will be implemented when serde_json is available
+pub fn load_token_patterns(_grammar_json_path: &Path) -> HashMap<String, TokenPattern> {
+    // TODO: Implement actual JSON parsing when serialization feature is fixed
+    // For now, return a minimal set of hardcoded patterns for testing
     let mut patterns = HashMap::new();
 
     // Add some basic Python keywords that we know are needed
-    patterns.insert("def", TokenPattern::String("def".to_string()));
-    patterns.insert("pass", TokenPattern::String("pass".to_string()));
-    patterns.insert("return", TokenPattern::String("return".to_string()));
-    patterns.insert("if", TokenPattern::String("if".to_string()));
-    patterns.insert("else", TokenPattern::String("else".to_string()));
-    patterns.insert("elif", TokenPattern::String("elif".to_string()));
-    patterns.insert("while", TokenPattern::String("while".to_string()));
-    patterns.insert("for", TokenPattern::String("for".to_string()));
-    patterns.insert("in", TokenPattern::String("in".to_string()));
-    patterns.insert("class", TokenPattern::String("class".to_string()));
-    patterns.insert("import", TokenPattern::String("import".to_string()));
-    patterns.insert("from", TokenPattern::String("from".to_string()));
-    patterns.insert("as", TokenPattern::String("as".to_string()));
-    patterns.insert("try", TokenPattern::String("try".to_string()));
-    patterns.insert("except", TokenPattern::String("except".to_string()));
-    patterns.insert("finally", TokenPattern::String("finally".to_string()));
-    patterns.insert("with", TokenPattern::String("with".to_string()));
-    patterns.insert("async", TokenPattern::String("async".to_string()));
-    patterns.insert("await", TokenPattern::String("await".to_string()));
-    patterns.insert("lambda", TokenPattern::String("lambda".to_string()));
-    patterns.insert("yield", TokenPattern::String("yield".to_string()));
-    patterns.insert("assert", TokenPattern::String("assert".to_string()));
-    patterns.insert("break", TokenPattern::String("break".to_string()));
-    patterns.insert("continue", TokenPattern::String("continue".to_string()));
-    patterns.insert("del", TokenPattern::String("del".to_string()));
-    patterns.insert("global", TokenPattern::String("global".to_string()));
-    patterns.insert("nonlocal", TokenPattern::String("nonlocal".to_string()));
-    patterns.insert("raise", TokenPattern::String("raise".to_string()));
-    patterns.insert("None", TokenPattern::String("None".to_string()));
-    patterns.insert("True", TokenPattern::String("True".to_string()));
-    patterns.insert("False", TokenPattern::String("False".to_string()));
-    patterns.insert("and", TokenPattern::String("and".to_string()));
-    patterns.insert("or", TokenPattern::String("or".to_string()));
-    patterns.insert("not", TokenPattern::String("not".to_string()));
-    patterns.insert("is", TokenPattern::String("is".to_string()));
+    patterns.insert("def".to_string(), TokenPattern::String("def".to_string()));
+    patterns.insert("pass".to_string(), TokenPattern::String("pass".to_string()));
+    patterns.insert(
+        "return".to_string(),
+        TokenPattern::String("return".to_string()),
+    );
+    patterns.insert("if".to_string(), TokenPattern::String("if".to_string()));
+    patterns.insert("else".to_string(), TokenPattern::String("else".to_string()));
+    patterns.insert("elif".to_string(), TokenPattern::String("elif".to_string()));
+    patterns.insert(
+        "while".to_string(),
+        TokenPattern::String("while".to_string()),
+    );
+    patterns.insert("for".to_string(), TokenPattern::String("for".to_string()));
+    patterns.insert("in".to_string(), TokenPattern::String("in".to_string()));
+    patterns.insert(
+        "class".to_string(),
+        TokenPattern::String("class".to_string()),
+    );
+    patterns.insert(
+        "import".to_string(),
+        TokenPattern::String("import".to_string()),
+    );
+    patterns.insert("from".to_string(), TokenPattern::String("from".to_string()));
+    patterns.insert("as".to_string(), TokenPattern::String("as".to_string()));
+    patterns.insert("try".to_string(), TokenPattern::String("try".to_string()));
+    patterns.insert(
+        "except".to_string(),
+        TokenPattern::String("except".to_string()),
+    );
+    patterns.insert(
+        "finally".to_string(),
+        TokenPattern::String("finally".to_string()),
+    );
+    patterns.insert("with".to_string(), TokenPattern::String("with".to_string()));
+    patterns.insert(
+        "async".to_string(),
+        TokenPattern::String("async".to_string()),
+    );
+    patterns.insert(
+        "await".to_string(),
+        TokenPattern::String("await".to_string()),
+    );
+    patterns.insert(
+        "lambda".to_string(),
+        TokenPattern::String("lambda".to_string()),
+    );
+    patterns.insert(
+        "yield".to_string(),
+        TokenPattern::String("yield".to_string()),
+    );
+    patterns.insert(
+        "assert".to_string(),
+        TokenPattern::String("assert".to_string()),
+    );
+    patterns.insert(
+        "break".to_string(),
+        TokenPattern::String("break".to_string()),
+    );
+    patterns.insert(
+        "continue".to_string(),
+        TokenPattern::String("continue".to_string()),
+    );
+    patterns.insert("del".to_string(), TokenPattern::String("del".to_string()));
+    patterns.insert(
+        "global".to_string(),
+        TokenPattern::String("global".to_string()),
+    );
+    patterns.insert(
+        "nonlocal".to_string(),
+        TokenPattern::String("nonlocal".to_string()),
+    );
+    patterns.insert(
+        "raise".to_string(),
+        TokenPattern::String("raise".to_string()),
+    );
+    patterns.insert("None".to_string(), TokenPattern::String("None".to_string()));
+    patterns.insert("True".to_string(), TokenPattern::String("True".to_string()));
+    patterns.insert(
+        "False".to_string(),
+        TokenPattern::String("False".to_string()),
+    );
+    patterns.insert("and".to_string(), TokenPattern::String("and".to_string()));
+    patterns.insert("or".to_string(), TokenPattern::String("or".to_string()));
+    patterns.insert("not".to_string(), TokenPattern::String("not".to_string()));
+    patterns.insert("is".to_string(), TokenPattern::String("is".to_string()));
 
     // Common symbols
-    patterns.insert(":", TokenPattern::String(":".to_string()));
-    patterns.insert("(", TokenPattern::String("(".to_string()));
-    patterns.insert(")", TokenPattern::String(")".to_string()));
-    patterns.insert("[", TokenPattern::String("[".to_string()));
-    patterns.insert("]", TokenPattern::String("]".to_string()));
-    patterns.insert("{", TokenPattern::String("{".to_string()));
-    patterns.insert("}", TokenPattern::String("}".to_string()));
-    patterns.insert(",", TokenPattern::String(",".to_string()));
-    patterns.insert(".", TokenPattern::String(".".to_string()));
-    patterns.insert(";", TokenPattern::String(";".to_string()));
-    patterns.insert("=", TokenPattern::String("=".to_string()));
-    patterns.insert("+", TokenPattern::String("+".to_string()));
-    patterns.insert("-", TokenPattern::String("-".to_string()));
-    patterns.insert("*", TokenPattern::String("*".to_string()));
-    patterns.insert("/", TokenPattern::String("/".to_string()));
-    patterns.insert("%", TokenPattern::String("%".to_string()));
-    patterns.insert("**", TokenPattern::String("**".to_string()));
-    patterns.insert("//", TokenPattern::String("//".to_string()));
-    patterns.insert("==", TokenPattern::String("==".to_string()));
-    patterns.insert("!=", TokenPattern::String("!=".to_string()));
-    patterns.insert("<", TokenPattern::String("<".to_string()));
-    patterns.insert(">", TokenPattern::String(">".to_string()));
-    patterns.insert("<=", TokenPattern::String("<=".to_string()));
-    patterns.insert(">=", TokenPattern::String(">=".to_string()));
-    patterns.insert("+=", TokenPattern::String("+=".to_string()));
-    patterns.insert("-=", TokenPattern::String("-=".to_string()));
-    patterns.insert("*=", TokenPattern::String("*=".to_string()));
-    patterns.insert("/=", TokenPattern::String("/=".to_string()));
-    patterns.insert("->", TokenPattern::String("->".to_string()));
+    patterns.insert(":".to_string(), TokenPattern::String(":".to_string()));
+    patterns.insert("(".to_string(), TokenPattern::String("(".to_string()));
+    patterns.insert(")".to_string(), TokenPattern::String(")".to_string()));
+    patterns.insert("[".to_string(), TokenPattern::String("[".to_string()));
+    patterns.insert("]".to_string(), TokenPattern::String("]".to_string()));
+    patterns.insert("{".to_string(), TokenPattern::String("{".to_string()));
+    patterns.insert("}".to_string(), TokenPattern::String("}".to_string()));
+    patterns.insert(",".to_string(), TokenPattern::String(",".to_string()));
+    patterns.insert(".".to_string(), TokenPattern::String(".".to_string()));
+    patterns.insert(";".to_string(), TokenPattern::String(";".to_string()));
+    patterns.insert("=".to_string(), TokenPattern::String("=".to_string()));
+    patterns.insert("+".to_string(), TokenPattern::String("+".to_string()));
+    patterns.insert("-".to_string(), TokenPattern::String("-".to_string()));
+    patterns.insert("*".to_string(), TokenPattern::String("*".to_string()));
+    patterns.insert("/".to_string(), TokenPattern::String("/".to_string()));
+    patterns.insert("%".to_string(), TokenPattern::String("%".to_string()));
+    patterns.insert("**".to_string(), TokenPattern::String("**".to_string()));
+    patterns.insert("//".to_string(), TokenPattern::String("//".to_string()));
+    patterns.insert("==".to_string(), TokenPattern::String("==".to_string()));
+    patterns.insert("!=".to_string(), TokenPattern::String("!=".to_string()));
+    patterns.insert("<".to_string(), TokenPattern::String("<".to_string()));
+    patterns.insert(">".to_string(), TokenPattern::String(">".to_string()));
+    patterns.insert("<=".to_string(), TokenPattern::String("<=".to_string()));
+    patterns.insert(">=".to_string(), TokenPattern::String(">=".to_string()));
+    patterns.insert("+=".to_string(), TokenPattern::String("+=".to_string()));
+    patterns.insert("-=".to_string(), TokenPattern::String("-=".to_string()));
+    patterns.insert("*=".to_string(), TokenPattern::String("*=".to_string()));
+    patterns.insert("/=".to_string(), TokenPattern::String("/=".to_string()));
+    patterns.insert("->".to_string(), TokenPattern::String("->".to_string()));
 
     // Identifiers (regex pattern)
     patterns.insert(
-        "identifier",
+        "identifier".to_string(),
         TokenPattern::Regex(r"[_\p{XID_Start}][_\p{XID_Continue}]*".to_string()),
     );
 
@@ -121,104 +167,190 @@ pub fn decode_grammar_with_patterns(
     let mut externals = Vec::new();
     let rule_names = IndexMap::new();
 
-    // Read all symbol names
+    // Read all symbol names with safe slice operations
     if lang.symbol_names.is_null() {
         // If symbol_names pointer is null, generate default names
         for i in 0..lang.symbol_count as usize {
             symbol_names.push(format!("symbol_{}", i));
         }
     } else {
-        for i in 0..lang.symbol_count as usize {
-            unsafe {
-                let name_ptr = *lang.symbol_names.add(i);
+        // Use safe slice operations with comprehensive bounds checking
+        let symbol_count = lang.symbol_count as usize;
+        if symbol_count > 0 {
+            // Create a safe slice from the pointer array
+            let symbol_name_ptrs =
+                unsafe { std::slice::from_raw_parts(lang.symbol_names, symbol_count) };
+
+            for (i, &name_ptr) in symbol_name_ptrs.iter().enumerate() {
                 let name = if name_ptr.is_null() {
                     format!("symbol_{}", i)
                 } else {
-                    CStr::from_ptr(name_ptr as *const c_char)
-                        .to_string_lossy()
-                        .into_owned()
+                    // Safe string conversion with error handling
+                    match unsafe { CStr::from_ptr(name_ptr as *const c_char) }.to_str() {
+                        Ok(valid_str) => valid_str.to_owned(),
+                        Err(_) => {
+                            // Invalid UTF-8, generate safe fallback name
+                            format!("symbol_invalid_{}", i)
+                        }
+                    }
                 };
                 symbol_names.push(name);
             }
         }
     }
 
-    // Process symbols to determine tokens and extras
-    let mut extras = Vec::new();
-    for i in 0..lang.symbol_count as usize {
-        let metadata = if lang.symbol_metadata.is_null() {
-            // If symbol_metadata pointer is null, assume all symbols are non-terminal
-            0u8
-        } else {
-            unsafe { *lang.symbol_metadata.add(i) }
-        };
-        let name = &symbol_names[i];
-        let symbol_id = SymbolId(i as u16);
+    // Process symbols to determine tokens with safe operations
+    if !lang.symbol_metadata.is_null() {
+        let symbol_count = lang.symbol_count as usize;
+        if symbol_count > 0 {
+            // Create a safe slice from the metadata array
+            let symbol_metadata_slice =
+                unsafe { std::slice::from_raw_parts(lang.symbol_metadata, symbol_count) };
 
-        // Check if this symbol is an extra (bit 0x04 in metadata)
-        if (metadata & 0x04) != 0 {
-            extras.push(symbol_id);
+            for (i, &metadata) in symbol_metadata_slice.iter().enumerate() {
+                // Bounds check for symbol_names access
+                if i < symbol_names.len() {
+                    let name = &symbol_names[i];
+                    let symbol_id = SymbolId(i as u16);
+
+                    if is_terminal(metadata, name) {
+                        // This is a token
+                        let pattern = if let Some(real_pattern) = token_patterns.get(name) {
+                            real_pattern.clone()
+                        } else {
+                            rust_sitter_ir::TokenPattern::String(name.clone())
+                        };
+
+                        tokens.insert(
+                            symbol_id,
+                            Token {
+                                name: name.clone(),
+                                pattern,
+                                fragile: false,
+                            },
+                        );
+                    }
+                }
+            }
         }
+    } else {
+        // If symbol_metadata is null, assume all symbols with certain patterns are tokens
+        for i in 0..lang.symbol_count as usize {
+            let name = &symbol_names[i];
+            let symbol_id = SymbolId(i as u16);
 
-        if is_terminal(metadata, name) {
-            // This is a token
-            let pattern = if let Some(real_pattern) = token_patterns.get(name) {
-                real_pattern.clone()
-            } else {
-                rust_sitter_ir::TokenPattern::String(name.clone())
-            };
+            // Heuristic: symbols that are likely terminals based on name patterns
+            if is_likely_terminal_by_name(name) {
+                let pattern = if let Some(real_pattern) = token_patterns.get(name) {
+                    real_pattern.clone()
+                } else {
+                    rust_sitter_ir::TokenPattern::String(name.clone())
+                };
 
-            tokens.insert(
-                symbol_id,
-                Token {
-                    name: name.clone(),
-                    pattern,
-                    fragile: false,
-                },
-            );
+                tokens.insert(
+                    symbol_id,
+                    Token {
+                        name: name.clone(),
+                        pattern,
+                        fragile: false,
+                    },
+                );
+            }
         }
     }
 
-    // Decode field names
+    // Decode field names with safe slice operations
     let mut field_names_map = IndexMap::new();
-    if !lang.field_names.is_null() {
-        for i in 0..lang.field_count as usize {
-            unsafe {
-                let name_ptr = *lang.field_names.add(i);
-                if !name_ptr.is_null() {
-                    let name = CStr::from_ptr(name_ptr as *const c_char)
-                        .to_string_lossy()
-                        .into_owned();
-                    field_names_map.insert(FieldId(i as u16), name);
+    if !lang.field_names.is_null() && lang.field_count > 0 {
+        // Create a safe slice from the field names array
+        let field_count = lang.field_count as usize;
+        let field_name_ptrs = unsafe { std::slice::from_raw_parts(lang.field_names, field_count) };
+
+        for (i, &name_ptr) in field_name_ptrs.iter().enumerate() {
+            if !name_ptr.is_null() {
+                // Safe string conversion with error handling
+                match unsafe { CStr::from_ptr(name_ptr as *const c_char) }.to_str() {
+                    Ok(valid_str) => {
+                        field_names_map.insert(FieldId(i as u16), valid_str.to_owned());
+                    }
+                    Err(_) => {
+                        // Invalid UTF-8, skip this field or use fallback name
+                        field_names_map.insert(FieldId(i as u16), format!("field_invalid_{}", i));
+                    }
                 }
             }
         }
     }
 
-    // Decode production rules from language metadata
-    if !lang.rules.is_null() {
-        for i in 0..lang.rule_count as usize {
-            let ts_rule = unsafe { *lang.rules.add(i) };
+    // Decode production rules from language metadata with bounds checking
+    if !lang.rules.is_null() && lang.rule_count > 0 {
+        let rule_count = lang.rule_count as usize;
+        // Create safe slice from rules array
+        let rules_slice = unsafe { std::slice::from_raw_parts(lang.rules, rule_count) };
+
+        for (i, &ts_rule) in rules_slice.iter().enumerate() {
             let lhs = SymbolId(ts_rule.lhs);
             let rhs_len = ts_rule.rhs_len as usize;
 
+            // Prevent excessive memory allocation
+            if rhs_len > 10000 {
+                // Skip rules with unreasonably large RHS to prevent DoS
+                continue;
+            }
+
             // Build RHS from alias_sequences if available
             let mut rhs = Vec::with_capacity(rhs_len);
-            let has_alias_data = !lang.alias_map.is_null()
-                && !lang.alias_sequences.is_null()
-                && lang.alias_count > 0;
-            if has_alias_data && (i as u32) < lang.alias_count {
-                let offset = unsafe { *lang.alias_map.add(i) } as usize;
-                for j in 0..rhs_len {
-                    let sym_idx = unsafe { *lang.alias_sequences.add(offset + j) };
-                    let sym_id = SymbolId(sym_idx);
-                    let symbol = if (sym_idx as u32) < lang.token_count + lang.external_token_count
-                    {
-                        Symbol::Terminal(sym_id)
+            let has_alias_data = !lang.alias_map.is_null() && !lang.alias_sequences.is_null();
+            if has_alias_data {
+                // Safe access to alias_map with bounds checking
+                let alias_map_slice =
+                    unsafe { std::slice::from_raw_parts(lang.alias_map, rule_count) };
+
+                if i < alias_map_slice.len() {
+                    let offset = alias_map_slice[i] as usize;
+
+                    // Calculate maximum safe access to alias_sequences
+                    // We need to be more careful about the total size here
+                    let max_sequences_needed = offset.saturating_add(rhs_len);
+
+                    // Only proceed if we can safely access the required range
+                    if max_sequences_needed <= usize::MAX / 2 {
+                        // Conservative bound check
+                        let alias_sequences_slice = unsafe {
+                            // Create a slice that covers at least what we need
+                            // Note: We can't know the true size, so we use a conservative estimate
+                            std::slice::from_raw_parts(lang.alias_sequences, max_sequences_needed)
+                        };
+
+                        for j in 0..rhs_len {
+                            let seq_idx = offset + j;
+                            if seq_idx < alias_sequences_slice.len() {
+                                let sym_idx = alias_sequences_slice[seq_idx];
+                                let sym_id = SymbolId(sym_idx);
+                                let symbol = if (sym_idx as u32)
+                                    < lang.token_count + lang.external_token_count
+                                {
+                                    Symbol::Terminal(sym_id)
+                                } else {
+                                    Symbol::NonTerminal(sym_id)
+                                };
+                                rhs.push(symbol);
+                            } else {
+                                // Out of bounds - use placeholder
+                                rhs.push(Symbol::NonTerminal(SymbolId(0)));
+                            }
+                        }
                     } else {
-                        Symbol::NonTerminal(sym_id)
-                    };
-                    rhs.push(symbol);
+                        // Unsafe offset calculation - use placeholder RHS
+                        for _ in 0..rhs_len {
+                            rhs.push(Symbol::NonTerminal(SymbolId(0)));
+                        }
+                    }
+                } else {
+                    // Index out of bounds for alias_map - use placeholder RHS
+                    for _ in 0..rhs_len {
+                        rhs.push(Symbol::NonTerminal(SymbolId(0)));
+                    }
                 }
             } else {
                 // Fallback: build placeholder RHS of correct length
@@ -227,10 +359,17 @@ pub fn decode_grammar_with_patterns(
                 }
             }
 
-            // Dynamic precedence if available
-            let precedence =
-                if !lang.parse_actions.is_null() && (i as u32) < lang.production_id_count {
-                    let action = unsafe { *lang.parse_actions.add(i) };
+            // Dynamic precedence if available with safe access
+            let precedence = if !lang.parse_actions.is_null()
+                && (i as u32) < lang.production_id_count
+            {
+                let production_count = lang.production_id_count as usize;
+                if i < production_count {
+                    // Create safe slice for parse_actions
+                    let parse_actions_slice =
+                        unsafe { std::slice::from_raw_parts(lang.parse_actions, production_count) };
+
+                    let action = parse_actions_slice[i];
                     if action.dynamic_precedence != 0 {
                         Some(PrecedenceKind::Dynamic(action.dynamic_precedence as i16))
                     } else {
@@ -238,41 +377,62 @@ pub fn decode_grammar_with_patterns(
                     }
                 } else {
                     None
-                };
+                }
+            } else {
+                None
+            };
 
             // Associativity metadata currently not encoded
             let associativity = None;
 
-            // Decode field mappings for this production
+            // Decode field mappings for this production with safe bounds checking
             let fields = if lang.field_count > 0
                 && !lang.field_map_slices.is_null()
                 && !lang.field_map_entries.is_null()
             {
-                unsafe {
-                    let slices = std::slice::from_raw_parts(
-                        lang.field_map_slices,
-                        lang.production_id_count as usize * 2,
-                    );
+                let production_count = lang.production_id_count as usize;
+                let slice_count = production_count.saturating_mul(2);
+
+                if slice_count > 0 && slice_count <= usize::MAX / 4 {
+                    // Conservative bounds check
+                    let slices =
+                        unsafe { std::slice::from_raw_parts(lang.field_map_slices, slice_count) };
+
                     let mut out = Vec::new();
-                    if i * 2 + 1 < slices.len() {
-                        let start = slices[i * 2] as usize;
-                        let len = slices[i * 2 + 1] as usize;
-                        if len > 0 {
-                            let entries = std::slice::from_raw_parts(
-                                lang.field_map_entries,
-                                (start + len) * 2,
-                            );
-                            for j in 0..len {
-                                let low = entries[(start + j) * 2];
-                                let high = entries[(start + j) * 2 + 1];
-                                let packed = ((high as u32) << 16) | (low as u32);
-                                let field_id = (packed & 0xFFFF) as u16;
-                                let child_index = ((packed >> 16) & 0xFF) as usize;
-                                out.push((FieldId(field_id), child_index));
+                    let slice_idx = i.saturating_mul(2);
+
+                    if slice_idx + 1 < slices.len() {
+                        let start = slices[slice_idx] as usize;
+                        let len = slices[slice_idx + 1] as usize;
+
+                        // Prevent excessive memory allocation or access
+                        if len > 0 && len <= 10000 {
+                            // Reasonable field limit
+                            let entry_count = start.saturating_add(len).saturating_mul(2);
+
+                            // Check if the calculation is safe
+                            if entry_count <= usize::MAX / 4 && start <= entry_count {
+                                let entries = unsafe {
+                                    std::slice::from_raw_parts(lang.field_map_entries, entry_count)
+                                };
+
+                                for j in 0..len {
+                                    let entry_base = (start + j).saturating_mul(2);
+                                    if entry_base + 1 < entries.len() {
+                                        let low = entries[entry_base];
+                                        let high = entries[entry_base + 1];
+                                        let packed = ((high as u32) << 16) | (low as u32);
+                                        let field_id = (packed & 0xFFFF) as u16;
+                                        let child_index = ((packed >> 16) & 0xFF) as usize;
+                                        out.push((FieldId(field_id), child_index));
+                                    }
+                                }
                             }
                         }
                     }
                     out
+                } else {
+                    Vec::new()
                 }
             } else {
                 Vec::new()
@@ -289,6 +449,63 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
+    // Decode field names with safe operations (avoid duplicate code)
+    let _field_name_map = field_names_map.clone(); // Reuse the safely decoded field names
+
+    // Decode field map entries with comprehensive safety checks
+    let mut fields_by_rule: HashMap<u16, Vec<(FieldId, usize)>> = HashMap::new();
+    if !lang.field_map_slices.is_null()
+        && !lang.field_map_entries.is_null()
+        && lang.production_count > 0
+    {
+        let production_count = lang.production_count as usize;
+        let slice_array_size = production_count.saturating_mul(2);
+
+        if slice_array_size > 0 && slice_array_size <= usize::MAX / 4 {
+            let slices_array =
+                unsafe { std::slice::from_raw_parts(lang.field_map_slices, slice_array_size) };
+
+            for pid in 0..production_count {
+                let slice_base = pid.saturating_mul(2);
+                if slice_base + 1 < slices_array.len() {
+                    let start = slices_array[slice_base] as usize;
+                    let len = slices_array[slice_base + 1] as usize;
+
+                    // Prevent excessive allocations and potential overflow
+                    if len > 0 && len <= 1000 {
+                        // Reasonable limit per production
+                        let total_entries_needed = start.saturating_add(len).saturating_mul(2);
+
+                        // Ensure we can safely access the entries
+                        if total_entries_needed <= usize::MAX / 4 && start <= total_entries_needed {
+                            let entries_array = unsafe {
+                                std::slice::from_raw_parts(
+                                    lang.field_map_entries,
+                                    total_entries_needed,
+                                )
+                            };
+
+                            for j in 0..len {
+                                let entry_base = (start + j).saturating_mul(2);
+                                if entry_base + 1 < entries_array.len() {
+                                    let low = entries_array[entry_base] as u32;
+                                    let high = entries_array[entry_base + 1] as u32;
+                                    let packed = (high << 16) | low;
+                                    let field_id = (packed & 0xFFFF) as u16;
+                                    let child_index = ((packed >> 16) & 0xFF) as usize;
+                                    fields_by_rule
+                                        .entry(pid as u16)
+                                        .or_default()
+                                        .push((FieldId(field_id), child_index));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Only populate additional rules from parse_rules if we don't have proper TSRule data
     // This avoids overwriting correct rule data with incomplete data
     let mut production_ids = IndexMap::new();
@@ -296,20 +513,60 @@ pub fn decode_grammar_with_patterns(
         let parsed_rules = decode_rules(lang);
         let has_alias_data = !lang.alias_map.is_null() && !lang.alias_sequences.is_null();
         for (i, pr) in parsed_rules.into_iter().enumerate() {
-            // Build RHS from alias_sequences if available
-            let mut rhs = Vec::with_capacity(pr.rhs_len as usize);
-            if has_alias_data {
-                let offset = unsafe { *lang.alias_map.add(i) } as usize;
-                for j in 0..pr.rhs_len as usize {
-                    let sym_idx = unsafe { *lang.alias_sequences.add(offset + j) };
-                    let sym_id = SymbolId(sym_idx);
-                    let symbol = if (sym_idx as u32) < lang.token_count + lang.external_token_count
-                    {
-                        Symbol::Terminal(sym_id)
+            // Build RHS from alias_sequences if available with safe access
+            let rhs_len = pr.rhs_len as usize;
+            let mut rhs = Vec::with_capacity(rhs_len);
+
+            if has_alias_data && rhs_len <= 1000 {
+                // Prevent excessive allocations
+                // Safe access to alias_map
+                let alias_map_size = (lang.production_count as usize).max(i + 1);
+                if alias_map_size > 0 {
+                    let alias_map_slice =
+                        unsafe { std::slice::from_raw_parts(lang.alias_map, alias_map_size) };
+
+                    if i < alias_map_slice.len() {
+                        let offset = alias_map_slice[i] as usize;
+                        let total_sequences_needed = offset.saturating_add(rhs_len);
+
+                        // Conservative bounds check for alias_sequences access
+                        if total_sequences_needed <= usize::MAX / 2 {
+                            let alias_sequences_slice = unsafe {
+                                std::slice::from_raw_parts(
+                                    lang.alias_sequences,
+                                    total_sequences_needed,
+                                )
+                            };
+
+                            for j in 0..rhs_len {
+                                let seq_idx = offset + j;
+                                if seq_idx < alias_sequences_slice.len() {
+                                    let sym_idx = alias_sequences_slice[seq_idx];
+                                    let sym_id = SymbolId(sym_idx);
+                                    let symbol = if (sym_idx as u32)
+                                        < lang.token_count + lang.external_token_count
+                                    {
+                                        Symbol::Terminal(sym_id)
+                                    } else {
+                                        Symbol::NonTerminal(sym_id)
+                                    };
+                                    rhs.push(symbol);
+                                } else {
+                                    // Bounds exceeded - use placeholder
+                                    rhs.push(Symbol::NonTerminal(SymbolId(0)));
+                                }
+                            }
+                        } else {
+                            // Unsafe calculation - use empty RHS
+                            // rhs remains empty
+                        }
                     } else {
-                        Symbol::NonTerminal(sym_id)
-                    };
-                    rhs.push(symbol);
+                        // Index out of bounds - use empty RHS
+                        // rhs remains empty
+                    }
+                } else {
+                    // No valid alias map - use empty RHS
+                    // rhs remains empty
                 }
             }
             rules.entry(pr.lhs).or_default().push(Rule {
@@ -329,22 +586,28 @@ pub fn decode_grammar_with_patterns(
         }
     }
 
-    // Process external tokens with null-safe symbol map handling
-    for i in 0..lang.external_token_count as usize {
-        let symbol_id = if lang.external_scanner.symbol_map.is_null() {
-            i as u16
-        } else {
-            unsafe { *lang.external_scanner.symbol_map.add(i) }
-        };
-        if (symbol_id as u32) < lang.symbol_count {
-            let name = symbol_names
-                .get(symbol_id as usize)
-                .cloned()
-                .unwrap_or_else(|| format!("external_{}", i));
-            externals.push(ExternalToken {
-                name,
-                symbol_id: SymbolId(symbol_id),
-            });
+    // Process external tokens with safe access
+    if lang.external_token_count > 0 && !lang.external_scanner.symbol_map.is_null() {
+        let external_count = lang.external_token_count as usize;
+        // Reasonable limit to prevent DoS
+        if external_count <= 1000 {
+            let external_symbol_map = unsafe {
+                std::slice::from_raw_parts(lang.external_scanner.symbol_map, external_count)
+            };
+
+            for (i, &symbol_id) in external_symbol_map.iter().enumerate() {
+                // Validate symbol_id is within bounds
+                if (symbol_id as u32) < lang.symbol_count {
+                    let name = symbol_names
+                        .get(symbol_id as usize)
+                        .cloned()
+                        .unwrap_or_else(|| format!("external_{}", i));
+                    externals.push(ExternalToken {
+                        name,
+                        symbol_id: SymbolId(symbol_id),
+                    });
+                }
+            }
         }
     }
 
@@ -355,7 +618,7 @@ pub fn decode_grammar_with_patterns(
         precedences: vec![],
         conflicts: vec![],
         externals,
-        extras,
+        extras: vec![],
         fields: field_names_map,
         supertypes: vec![],
         inline_rules: vec![],
@@ -369,28 +632,48 @@ pub fn decode_grammar_with_patterns(
 
 fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
     const DEBUG_RULE_PRINT_LIMIT: usize = 5;
-    let n = lang.production_count as usize; // Use production_count, not rule_count
-    let mut rules = Vec::with_capacity(n);
+    let production_count = lang.production_count as usize;
 
-    if lang.production_lhs_index.is_null() {
+    // Prevent excessive allocations to avoid DoS
+    let safe_production_count = production_count.min(100000);
+    let mut rules = Vec::with_capacity(safe_production_count);
+
+    if lang.production_lhs_index.is_null() || production_count == 0 {
         // No rules available, return empty
-        // eprintln!("WARNING: production_lhs_index is null");
         return rules;
     }
 
+    // Create safe slice for production_lhs_index
+    let production_lhs_slice =
+        unsafe { std::slice::from_raw_parts(lang.production_lhs_index, safe_production_count) };
+
+    // Create safe slice for rules if available
+    let rules_slice = if !lang.rules.is_null() && lang.rule_count > 0 {
+        let rule_count = (lang.rule_count as usize).min(safe_production_count);
+        Some(unsafe { std::slice::from_raw_parts(lang.rules, rule_count) })
+    } else {
+        None
+    };
+
     // Use production_lhs_index to get the correct LHS symbols
     // and try to get RHS length from TSRule if available
-    for i in 0..n {
+    for i in 0..safe_production_count {
         // Get LHS from production_lhs_index (which has correct symbol in table index space)
-        let lhs_idx = unsafe { *lang.production_lhs_index.add(i) };
+        let lhs_idx = if i < production_lhs_slice.len() {
+            production_lhs_slice[i]
+        } else {
+            0 // Fallback for out-of-bounds
+        };
 
         // Try to get rhs_len from TSRule if available
-        let rhs_len = if !lang.rules.is_null() && i < lang.rule_count as usize {
-            let tsr = unsafe { *lang.rules.add(i) };
-            tsr.rhs_len as u16
+        let rhs_len = if let Some(rules_slice) = rules_slice {
+            if i < rules_slice.len() {
+                rules_slice[i].rhs_len as u16
+            } else {
+                0 // Fallback for out-of-bounds
+            }
         } else {
-            // Fallback: we don't know the RHS length
-            0
+            0 // Fallback: we don't know the RHS length
         };
 
         if i < DEBUG_RULE_PRINT_LIMIT {
@@ -468,23 +751,22 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
         // Decode symbol metadata
         let (ts_metadata, name) = unsafe {
-            let ts_metadata = if lang.symbol_metadata.is_null() {
-                // If symbol_metadata pointer is null, assume all symbols are non-terminal
-                0u8
-            } else {
+            let ts_metadata = if !lang.symbol_metadata.is_null() {
                 *lang.symbol_metadata.add(i)
+            } else {
+                0 // Default metadata when not available
             };
-            let name = if lang.symbol_names.is_null() {
+            let name_ptr = if !lang.symbol_names.is_null() {
+                *lang.symbol_names.add(i)
+            } else {
+                std::ptr::null()
+            };
+            let name = if name_ptr.is_null() {
                 format!("symbol_{}", i)
             } else {
-                let name_ptr = *lang.symbol_names.add(i);
-                if name_ptr.is_null() {
-                    format!("symbol_{}", i)
-                } else {
-                    CStr::from_ptr(name_ptr as *const c_char)
-                        .to_string_lossy()
-                        .into_owned()
-                }
+                CStr::from_ptr(name_ptr as *const c_char)
+                    .to_string_lossy()
+                    .into_owned()
             };
             (ts_metadata, name)
         };
@@ -669,15 +951,16 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         }
     }
 
-    // Decode lex modes
-    let lex_modes = if !lang.lex_modes.is_null() {
-        (0..lang.state_count as usize)
-            .map(|i| unsafe {
-                let m = *lang.lex_modes.add(i);
-                LexMode {
-                    lex_state: m.lex_state,
-                    external_lex_state: m.external_lex_state,
-                }
+    // Decode lex modes with safe access
+    let lex_modes = if !lang.lex_modes.is_null() && lang.state_count > 0 {
+        let state_count = lang.state_count as usize;
+        let lex_modes_slice = unsafe { std::slice::from_raw_parts(lang.lex_modes, state_count) };
+
+        lex_modes_slice
+            .iter()
+            .map(|&m| LexMode {
+                lex_state: m.lex_state,
+                external_lex_state: m.external_lex_state,
             })
             .collect()
     } else {
@@ -763,13 +1046,9 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         external_token_count: lang.external_token_count as usize,
         lex_modes,
         extras: extras.clone(),
-        // Note: These per-rule metadata arrays are not populated from TSLanguage
-        // because the information is already available in the grammar rules themselves.
-        // When generating tables from scratch (in tablegen), these are populated from grammar.
-        // For decoded tables, the parser uses rule.precedence and rule.associativity directly.
-        dynamic_prec_by_rule: Vec::new(),
-        rule_assoc_by_rule: Vec::new(),
-        alias_sequences: Vec::new(),
+        dynamic_prec_by_rule: Vec::new(), // TODO: Decode from language
+        rule_assoc_by_rule: Vec::new(),   // TODO: Decode from language
+        alias_sequences: Vec::new(),      // TODO: Decode from language
         field_names,
         field_map,
     };
@@ -825,6 +1104,63 @@ fn is_terminal(metadata: u8, name: &str) -> bool {
                 | "string_content"
                 | "string_end"
         )
+}
+
+/// Heuristic to determine if a symbol is likely a terminal when metadata is unavailable
+fn is_likely_terminal_by_name(name: &str) -> bool {
+    // When metadata is not available, use name-based heuristics
+    // This mirrors the logic from is_terminal but without metadata bits
+
+    // Obvious terminal patterns
+    if name.starts_with("anon_sym_")
+        || name.starts_with("aux_sym_")
+        || name.starts_with("sym_")
+        || name == "ERROR"
+        || name.starts_with("ts_builtin_sym_")
+    {
+        return true;
+    }
+
+    // Common terminal names
+    if matches!(
+        name,
+        "identifier"
+            | "integer"
+            | "float"
+            | "string"
+            | "comment"
+            | "newline"
+            | "indent"
+            | "dedent"
+            | "string_start"
+            | "string_content"
+            | "string_end"
+    ) {
+        return true;
+    }
+
+    // Exclude patterns that are definitely non-terminals
+    if name.starts_with("_") && name[1..].chars().all(|c| c.is_ascii_digit()) {
+        // Names like _119, _26 are non-terminals
+        return false;
+    }
+
+    // Single character symbols are usually terminals
+    if name.len() == 1 {
+        return true;
+    }
+
+    // Multi-character punctuation is usually terminal
+    if name.len() <= 3
+        && name
+            .chars()
+            .all(|c| !c.is_alphanumeric() && !c.is_whitespace())
+    {
+        return true;
+    }
+
+    // Default to non-terminal for safety
+    false
 }
 
 /// Check if a symbol is hidden based on metadata

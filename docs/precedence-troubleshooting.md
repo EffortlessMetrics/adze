@@ -269,12 +269,32 @@ Precedence errors include specific context:
 - The expected format for each attribute type
 - The valid range for precedence values
 
-## Integration with GLR Parsing
+## Integration with GLR Parsing (Enhanced in v0.6.1)
 
-In rust-sitter's GLR mode:
-- Multiple precedence conflicts are preserved for ambiguity handling
-- Precedence helps order actions but doesn't eliminate them completely
-- This enables parsing of inherently ambiguous grammars
+In rust-sitter's GLR mode with recent fixes:
+- **Precedence Disambiguation**: Correctly resolves operator precedence conflicts (e.g., `1+2*3` → `1+(2*3)`)
+- **Action Ordering**: Multiple precedence conflicts are preserved but properly ordered by precedence level
+- **Conflict Preservation**: Precedence helps order actions but doesn't eliminate them completely for ambiguity handling
+- **Error Recovery**: Enhanced error reporting provides specific guidance for precedence attribute issues
+- **Validation Improvements**: Comprehensive precedence attribute validation with actionable error messages
+
+### GLR Precedence Resolution
+
+```rust
+// Example: Expression with operator precedence
+#[rust_sitter::prec_left(1)]   // Lower precedence (looser binding)
+Add(Box<Expr>, (), Box<Expr>),
+
+#[rust_sitter::prec_left(2)]   // Higher precedence (tighter binding)
+Mul(Box<Expr>, (), Box<Expr>),
+```
+
+**GLR Behavior**: When parsing `1 + 2 * 3`, the GLR parser:
+1. **Preserves both actions** in the action table for ambiguity handling
+2. **Orders by precedence** to prefer `Reduce(multiply_rule)` over `Shift(plus)`
+3. **Produces correct result**: `Add(1, (), Mul(2, (), 3))` representing `1 + (2 * 3)`
+
+This enables parsing of inherently ambiguous grammars while maintaining correct precedence semantics.
 
 ## Migration from Tree-sitter
 

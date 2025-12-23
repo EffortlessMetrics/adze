@@ -165,7 +165,7 @@ Thanks to all contributors who made this release possible:
 
 ## 🐛 Bug Reports
 
-Please report issues on our [GitHub repository](https://github.com/hydro-project/rust-sitter/issues).
+Please report issues on our [GitHub repository](https://github.com/EffortlessMetrics/rust-sitter/issues).
 
 ## 📅 Future Plans
 
@@ -177,4 +177,4 @@ Please report issues on our [GitHub repository](https://github.com/hydro-project
 
 ---
 
-**Full Changelog**: [v0.4.5...v0.5.0](https://github.com/hydro-project/rust-sitter/compare/v0.4.5...v0.5.0)
+**Full Changelog**: [v0.4.5...v0.5.0](https://github.com/EffortlessMetrics/rust-sitter/compare/v0.4.5...v0.5.0)

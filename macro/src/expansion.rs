@@ -48,6 +48,40 @@ fn gen_field(ident_str: String, leaf: Field) -> Expr {
             .map(|p| p.expr.clone())
     });
 
+    // ❌ CRITICAL BUG: Transform functions are captured but never executed! (Issue #74)
+    //
+    // PROBLEM: This code generates the macro expansion for transform functions like:
+    //   #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
+    // But the generated code only captures the closure, it doesn't actually CALL it!
+    //
+    // CURRENT FLOW:
+    // 1. User writes: transform = |s| s.parse::<i32>().unwrap()
+    // 2. This code captures it as: Some(&#closure)
+    // 3. Generated parser code gets closure but never executes it
+    // 4. Result: Raw text is used instead of transformed value
+    //
+    // IMPACT:
+    // - Numbers remain as strings instead of i32
+    // - Custom transforms for dates, enums, etc. don't work
+    // - Grammar definitions look like they support transforms but silently fail
+    // - Combined with lexer issue #74, creates completely broken parsing
+    //
+    // TODO (HIGH PRIORITY - Issue #74):
+    // Generate code that actually EXECUTES the transform:
+    // ```rust
+    // let raw_text = extract_raw_text(cursor, source);
+    // match transform_fn(raw_text) {
+    //     Ok(transformed) => transformed,
+    //     Err(e) => return Err(ParseError::TransformFailed(e))
+    // }
+    // ```
+    //
+    // REQUIRED CHANGES:
+    // 1. Generate transform execution code instead of just capturing closure
+    // 2. Add proper error handling for transform failures
+    // 3. Ensure type safety between pattern match and transform result
+    // 4. Test with actual transform functions to verify execution
+    //
     let (leaf_type, closure_expr): (Type, Expr) = match transform_param {
         Some(closure) => {
             let mut non_leaf = HashSet::new();
@@ -56,6 +90,7 @@ fn gen_field(ident_str: String, leaf: Field) -> Expr {
             non_leaf.insert("Option");
             non_leaf.insert("Vec");
             let wrapped_leaf_type = wrap_leaf_type(&leaf_type, &non_leaf);
+            // ❌ BUG: This just captures the closure, doesn't execute it!
             (wrapped_leaf_type, syn::parse_quote!(Some(&#closure)))
         }
         None => (leaf_type, syn::parse_quote!(None)),
@@ -371,6 +406,9 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         impl ::rust_sitter::Extract<#enum_name> for #enum_name {
                             type LeafFn = ();
 
+                            #[cfg(feature = "pure-rust")]
+                            const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
+
                             #[allow(non_snake_case)]
                             #[cfg(not(feature = "pure-rust"))]
                             fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
@@ -469,6 +507,9 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                     let extract_impl: Item = syn::parse_quote! {
                         impl ::rust_sitter::Extract<#struct_name> for #struct_name {
                             type LeafFn = ();
+
+                            #[cfg(feature = "pure-rust")]
+                            const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
 
                             #[allow(non_snake_case)]
                             #[cfg(not(feature = "pure-rust"))]

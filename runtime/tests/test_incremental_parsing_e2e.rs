@@ -106,9 +106,9 @@ mod incremental_e2e_tests {
 #[test]
 fn test_incremental_feature_disabled() {
     // When the incremental_glr feature is disabled, the module shouldn't be available
-    // This test ensures proper feature gating works by simply compiling and running
+    // This test ensures proper feature gating
 
     // Just a simple test to verify feature gating works
     // Feature is disabled, so incremental functionality shouldn't be available
-    // Test passes by not panicking
+    // No assertions needed - test passes if it compiles
 }

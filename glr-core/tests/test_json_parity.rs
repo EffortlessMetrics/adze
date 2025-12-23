@@ -128,10 +128,10 @@ fn test_json_simple_object() {
                 visible: sym["visible"].as_bool().unwrap_or(false),
                 named: sym["named"].as_bool().unwrap_or(false),
                 supertype: false,
-                is_terminal: sym["type"].as_str().unwrap_or("") == "TERMINAL",
+                is_terminal: sym["type"].as_str().unwrap_or("") == "REGULAR",
                 is_extra: false,
                 is_fragile: false,
-                symbol_id: SymbolId(symbol_metadata.len() as u16),
+                symbol_id: rust_sitter_ir::SymbolId(0), // Default value
             });
         }
     }
@@ -299,10 +299,10 @@ fn test_json_simple_object() {
                     if let Some(t) = quote {
                         toks.push((t, start as u32, (start + 1) as u32));
                     }
-                    if let Some(sc) = str_cont
-                        && content_end > content_start
-                    {
-                        toks.push((sc, content_start as u32, content_end as u32));
+                    if let Some(sc) = str_cont {
+                        if content_end > content_start {
+                            toks.push((sc, content_start as u32, content_end as u32));
+                        }
                     }
                     if pos < b.len() && b[pos] == b'"' {
                         if let Some(t) = quote {

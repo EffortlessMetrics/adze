@@ -11,7 +11,7 @@ fn test_normalize_optional_symbol() {
     assert!(matches!(original_rule.rhs[0], Symbol::Optional(_)));
 
     // Normalize
-    grammar.normalize().unwrap();
+    grammar.normalize();
 
     // After normalization, Optional should be replaced with auxiliary non-terminal
     let normalized_rule = &grammar.rules[&SymbolId(1)][0];
@@ -47,7 +47,7 @@ fn test_normalize_repeat_symbol() {
     let mut grammar = create_test_grammar_with_repeat();
 
     // Normalize
-    grammar.normalize().unwrap();
+    grammar.normalize();
 
     // Check that Repeat was replaced with auxiliary non-terminal
     let normalized_rule = &grammar.rules[&SymbolId(1)][0];
@@ -84,7 +84,7 @@ fn test_normalize_sequence_symbol() {
     let mut grammar = create_test_grammar_with_sequence();
 
     // Normalize
-    grammar.normalize().unwrap();
+    grammar.normalize();
 
     // Check that Sequence was handled correctly (should create aux rule for multi-element sequences)
     let normalized_rule = &grammar.rules[&SymbolId(1)][0];
@@ -124,7 +124,7 @@ fn test_normalize_nested_complex_symbols() {
     let mut grammar = create_test_grammar_with_nested_symbols();
 
     // Normalize
-    grammar.normalize().unwrap();
+    grammar.normalize();
 
     // Should have created auxiliary rules for the nested structures
     let normalized_rule = &grammar.rules[&SymbolId(1)][0];
@@ -156,7 +156,7 @@ fn test_normalize_preserves_existing_rules() {
     let original_simple_rules_count = grammar.rules[&SymbolId(2)].len();
 
     // Normalize
-    grammar.normalize().unwrap();
+    grammar.normalize();
 
     // Simple rules should be preserved unchanged
     let preserved_rules_count = grammar.rules[&SymbolId(2)].len();
@@ -174,9 +174,9 @@ fn test_normalize_idempotent() {
     let mut grammar2 = grammar1.clone();
 
     // Normalize both grammars
-    grammar1.normalize().unwrap();
-    grammar2.normalize().unwrap();
-    grammar2.normalize().unwrap(); // Second normalization should do nothing
+    grammar1.normalize();
+    grammar2.normalize();
+    grammar2.normalize(); // Second normalization should do nothing
 
     // Should be equivalent (both should have same structure)
     assert_eq!(grammar1.rules.len(), grammar2.rules.len());

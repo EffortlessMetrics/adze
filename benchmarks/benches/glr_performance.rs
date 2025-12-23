@@ -45,8 +45,33 @@ fn benchmark_glr_parsing(c: &mut Criterion) {
             &code,
             |b, source| {
                 b.iter(|| {
-                    // TODO: Replace with actual Python parser once integrated
-                    // For now, simulate parsing workload
+                    // ❌ CRITICAL BUG: This is NOT parsing, just character counting!
+                    //
+                    // PROBLEM: This benchmark claims to measure "parse_python" performance,
+                    // but actually measures character iteration speed (~0.1ns per char).
+                    // This creates completely false performance claims like "815 MB/sec"
+                    // that are 100x faster than real parsers because we're not parsing!
+                    //
+                    // IMPACT:
+                    // - README claims "100x faster than Tree-sitter" based on this
+                    // - Users adopt rust-sitter expecting this performance
+                    // - Documentation shows false "118M tokens/sec" throughput
+                    //
+                    // TODO (HIGH PRIORITY - Issue #73):
+                    // 1. Replace with actual Python parser once lexer is fixed
+                    // 2. Remove all performance claims until real benchmarks exist
+                    // 3. Add disclaimer that current benchmarks are mocks
+                    // 4. Test with real Python grammar and source code
+                    //
+                    // REAL FIX NEEDED:
+                    // ```rust
+                    // let mut parser = Parser::new();
+                    // parser.set_language(&PYTHON_LANGUAGE).unwrap();
+                    // let tree = parser.parse(source, None).unwrap();
+                    // black_box(tree)
+                    // ```
+                    //
+                    // For now, simulate parsing workload (MOCK - NOT REAL PARSING)
                     let mut tokens = 0;
                     for char in source.chars() {
                         if char.is_alphanumeric() || char.is_whitespace() {
@@ -65,11 +90,37 @@ fn benchmark_glr_parsing(c: &mut Criterion) {
 fn benchmark_fork_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("fork_operations");
 
-    // Simulate different fork scenarios
+    // ❌ CRITICAL BUG: These are NOT GLR operations, just Vec::clone()!
+    //
+    // PROBLEM: This benchmark claims to measure GLR "fork operations" but actually
+    // measures simple Vec::clone() performance (~85ns). This has nothing to do with
+    // the complex GLR parsing operations it pretends to benchmark.
+    //
+    // WHAT GLR FORKS ACTUALLY ARE:
+    // - Parse state duplication when shift/reduce conflicts occur
+    // - Grammar rule application with different precedence
+    // - Parse stack management with LR(1) states and lookahead
+    // - Symbol table handling and reduction operations
+    // - Parse forest construction for ambiguous derivations
+    //
+    // WHAT THIS ACTUALLY MEASURES:
+    // - Memory allocation for small integer vectors
+    // - Simple clone operations with no parsing logic
+    // - Basic Vec::push() performance
+    //
+    // TODO (MEDIUM PRIORITY - Issue #75):
+    // Replace with real GLR fork benchmarks once parser works:
+    // ```rust
+    // let parser = GLRParser::new(ambiguous_grammar());
+    // let forest = parser.parse("1 + 2 * 3"); // Creates real forks
+    // black_box(forest.derivation_count())
+    // ```
+    //
+    // Simulate different fork scenarios (MOCK - NOT REAL GLR)
     group.bench_function("single_fork", |b| {
         b.iter(|| {
             let mut stacks = vec![vec![1, 2, 3]];
-            // Simulate fork
+            // Simulate fork (FAKE: just Vec::clone, not GLR fork)
             let forked = stacks[0].clone();
             stacks.push(forked);
             black_box(stacks)
@@ -79,9 +130,10 @@ fn benchmark_fork_operations(c: &mut Criterion) {
     group.bench_function("multiple_forks_10", |b| {
         b.iter(|| {
             let mut stacks = vec![vec![1, 2, 3, 4, 5]];
+            // ❌ FAKE GLR: This is just Vec operations, not grammar conflicts
             for _ in 0..10 {
-                let forked = stacks[0].clone();
-                stacks.push(forked);
+                let forked = stacks[0].clone(); // NOT a GLR parse stack fork
+                stacks.push(forked); // NOT adding parse states
             }
             black_box(stacks)
         });

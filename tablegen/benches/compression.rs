@@ -229,7 +229,8 @@ fn bench_parse_table_generation(c: &mut Criterion) {
 
     c.bench_function("parse_table_generation", |b| {
         b.iter(|| {
-            let first_follow = FirstFollowSets::compute(black_box(&grammar)).unwrap();
+            let first_follow = FirstFollowSets::compute(black_box(&grammar))
+                .expect("Failed to compute first/follow sets");
             let parse_table = build_lr1_automaton(black_box(&grammar), black_box(&first_follow));
             parse_table
         })

@@ -27,6 +27,14 @@ harness = false
 name = "stack_optimization"
 harness = false
 
+[[bench]]
+name = "glr_performance_real"
+harness = false
+
+[[bench]]
+name = "arena_vs_box_allocation"
+harness = false
+
 [dependencies]
 rust-sitter = { path = "../runtime", features = ["pure-rust"] }
 rust-sitter-example = { path = "../example" }

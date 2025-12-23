@@ -1,7 +1,4 @@
 // Debug parse table generation for ambiguous grammars
-// Skip when incremental GLR is enabled until debug tooling is updated
-#![cfg(not(feature = "incremental_glr"))]
-
 use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
@@ -19,9 +16,9 @@ fn create_ambiguous_grammar() -> Grammar {
         },
     );
 
-    // Non-terminal E (start symbol)
+    // Non-terminal E
     let e_id = SymbolId(10);
-    grammar.rule_names.insert(e_id, "Expression".to_string());
+    grammar.rule_names.insert(e_id, "E".to_string());
 
     // Rule 1: E → a
     let rule1 = Rule {
@@ -56,7 +53,6 @@ fn create_ambiguous_grammar() -> Grammar {
 }
 
 #[test]
-#[ignore = "parse table conflict detection needs fixing"]
 fn test_parse_table_has_conflicts() {
     let grammar = create_ambiguous_grammar();
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();
