@@ -530,50 +530,6 @@ impl<'a> TransformWalker<'a> {
 
 #[cfg(test)]
 mod tests {
-
-    // Mock Node for testing
-    #[derive(Debug, Clone, Copy)]
-    #[allow(dead_code)]
-    struct MockNode {
-        kind: &'static str,
-        is_named: bool,
-        is_error: bool,
-        child_count: usize,
-    }
-
-    // Note: In real tests, we'd use actual Tree-sitter nodes
-
-    // TODO: Re-enable these tests once we have a way to create test Nodes
-    // #[test]
-    // fn test_stats_visitor() {
-    //     let mut visitor = StatsVisitor::default();
-    //
-    //     // Simulate visiting nodes
-    //     visitor.enter_node(&Node::default());
-    //     visitor.visit_leaf(&Node::default(), "test");
-    //     visitor.leave_node(&Node::default());
-    //
-    //     assert_eq!(visitor.total_nodes, 1);
-    //     assert_eq!(visitor.leaf_nodes, 1);
-    //     assert_eq!(visitor.max_depth, 1);
-    // }
-    //
-    // #[test]
-    // fn test_pretty_print_visitor() {
-    //     let mut visitor = PrettyPrintVisitor::new();
-    //
-    //     // Simulate visiting nodes
-    //     visitor.enter_node(&Node::default());
-    //     visitor.visit_leaf(&Node::default(), "hello");
-    //     visitor.leave_node(&Node::default());
-    //
-    //     let output = visitor.output();
-    //     assert!(output.contains("hello"));
-    // }
-}
-
-#[cfg(test)]
-mod tests2 {
     use super::*;
     use crate::pure_parser::Point;
 
@@ -620,6 +576,35 @@ mod tests2 {
         fn visit_error(&mut self, _node: &Node) {
             self.errors.push("error".to_string());
         }
+    }
+
+    #[test]
+    fn test_stats_visitor() {
+        let mut visitor = StatsVisitor::default();
+
+        // Simulate visiting nodes
+        let node = create_test_node();
+        visitor.enter_node(&node);
+        visitor.visit_leaf(&node, "test");
+        visitor.leave_node(&node);
+
+        assert_eq!(visitor.total_nodes, 1);
+        assert_eq!(visitor.leaf_nodes, 1);
+        assert_eq!(visitor.max_depth, 1);
+    }
+
+    #[test]
+    fn test_pretty_print_visitor() {
+        let mut visitor = PrettyPrintVisitor::new();
+
+        // Simulate visiting nodes
+        let node = create_test_node();
+        visitor.enter_node(&node);
+        visitor.visit_leaf(&node, "hello");
+        visitor.leave_node(&node);
+
+        let output = visitor.output();
+        assert!(output.contains("hello"));
     }
 
     #[test]
