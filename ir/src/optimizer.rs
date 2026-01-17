@@ -3,7 +3,9 @@
 
 #[cfg(test)]
 use crate::Token;
-use crate::{Grammar, ProductionId, Rule, Symbol, SymbolId, TokenPattern};
+use crate::{
+    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, TokenPattern,
+};
 use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
 
@@ -109,6 +111,11 @@ impl GrammarOptimizer {
         // Mark start symbol as used
         if let Some(start_symbol) = grammar.start_symbol() {
             self.used_symbols.insert(start_symbol);
+
+            // Treat start symbol as source_file (protected root) if not otherwise determined
+            if self.source_file_id.is_none() {
+                self.source_file_id = Some(start_symbol);
+            }
         }
 
         // Always mark source_file as used if it exists (Tree-sitter compatibility)
@@ -353,61 +360,127 @@ impl GrammarOptimizer {
     /// Eliminate unit rules (A -> B)
     fn eliminate_unit_rules(&mut self, grammar: &mut Grammar) -> usize {
         let mut eliminated = 0;
-        let mut unit_rules = Vec::new();
 
-        // Get the start symbol to prevent creating terminal productions for it
-        let start_symbol = grammar.start_symbol();
+        // 1. Build unit dependency graph: A -> B
+        // Map: LHS -> Vec<(RHS_Symbol, Precedence, Associativity)>
+        let mut unit_graph: HashMap<SymbolId, Vec<(SymbolId, Option<PrecedenceKind>, Option<Associativity>)>> =
+            HashMap::new();
+        let mut all_non_terminals = HashSet::new();
 
-        // Find unit rules
+        // Also track which rules are unit rules to remove them later
+        let mut unit_rule_ids = HashSet::new();
+
         for rule in grammar.all_rules() {
-            if rule.rhs.len() == 1
-                && let Symbol::NonTerminal(_) = &rule.rhs[0]
-            {
-                unit_rules.push(rule.clone());
+            // Check if LHS is non-terminal (it always is in this structure, but we collect them)
+            all_non_terminals.insert(rule.lhs);
+            if rule.rhs.len() == 1 {
+                if let Symbol::NonTerminal(rhs) = rule.rhs[0] {
+                    // This is a unit rule: LHS -> RHS
+                    unit_graph.entry(rule.lhs).or_default().push((
+                        rhs,
+                        rule.precedence.clone(),
+                        rule.associativity.clone(),
+                    ));
+                    unit_rule_ids.insert(rule.production_id);
+                }
             }
         }
 
-        // For each unit rule A -> B, add rules A -> γ for each B -> γ
-        let mut new_rules = Vec::new();
-        for unit_rule in unit_rules {
-            if let Symbol::NonTerminal(target) = &unit_rule.rhs[0] {
-                if let Some(target_rules) = grammar.get_rules_for_symbol(*target) {
-                    for target_rule in target_rules {
-                        // Skip if this would create a terminal production for the start symbol
-                        if Some(unit_rule.lhs) == start_symbol
-                            && target_rule
-                                .rhs
-                                .iter()
-                                .any(|s| matches!(s, Symbol::Terminal(_)))
-                        {
+        // 2. Compute transitive closure / reachable paths
+        // We want for each A: set of (B, path_prec, path_assoc)
+        let mut reachables: HashMap<
+            SymbolId,
+            HashMap<SymbolId, (Option<PrecedenceKind>, Option<Associativity>)>,
+        > = HashMap::new();
+
+        for &start_node in &all_non_terminals {
+            let mut visited = HashSet::new();
+            let mut queue = std::collections::VecDeque::new();
+
+            // Initialize visited with start_node to prevent cycles back to itself
+            visited.insert(start_node);
+
+            if let Some(neighbors) = unit_graph.get(&start_node) {
+                for (target, prec, assoc) in neighbors {
+                    if visited.insert(*target) {
+                        queue.push_back((*target, prec.clone(), assoc.clone()));
+                        reachables
+                            .entry(start_node)
+                            .or_default()
+                            .insert(*target, (prec.clone(), assoc.clone()));
+                    }
+                }
+            }
+
+            while let Some((current, curr_prec, curr_assoc)) = queue.pop_front() {
+                if let Some(neighbors) = unit_graph.get(&current) {
+                    for (next, next_prec, next_assoc) in neighbors {
+                        // Logic: closer to target (next) overrides
+                        let combined_prec = next_prec.clone().or(curr_prec.clone());
+                        let combined_assoc = next_assoc.clone().or(curr_assoc.clone());
+
+                        if visited.insert(*next) {
+                            queue.push_back((*next, combined_prec.clone(), combined_assoc.clone()));
+                            reachables
+                                .entry(start_node)
+                                .or_default()
+                                .insert(*next, (combined_prec, combined_assoc));
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Generate new rules
+        let mut next_prod_id = grammar
+            .rules
+            .values()
+            .flat_map(|rs| rs.iter())
+            .map(|r| r.production_id.0)
+            .max()
+            .unwrap_or(0)
+            + 1;
+
+        let mut rules_to_add = Vec::new();
+
+        for (source, targets) in reachables {
+            for (target, (path_prec, path_assoc)) in targets {
+                if let Some(target_rules) = grammar.get_rules_for_symbol(target) {
+                    for rule in target_rules {
+                        // Skip unit rules (we handled them by traversing)
+                        let is_unit = rule.rhs.len() == 1
+                            && matches!(rule.rhs[0], Symbol::NonTerminal(_));
+                        if is_unit {
                             continue;
                         }
 
-                        // Create new rule A -> γ
                         let new_rule = Rule {
-                            lhs: unit_rule.lhs,
-                            rhs: target_rule.rhs.clone(),
-                            precedence: target_rule.precedence.or(unit_rule.precedence),
-                            associativity: target_rule.associativity.or(unit_rule.associativity),
-                            fields: target_rule.fields.clone(),
-                            production_id: self.create_new_production_id(grammar),
+                            lhs: source,
+                            rhs: rule.rhs.clone(),
+                            // Rule prec overrides path prec
+                            precedence: rule.precedence.clone().or(path_prec.clone()),
+                            associativity: rule.associativity.clone().or(path_assoc.clone()),
+                            fields: rule.fields.clone(),
+                            production_id: ProductionId(next_prod_id),
                         };
-                        new_rules.push(new_rule);
-                        eliminated += 1;
-                    }
-                }
-                // Remove the unit rule from the appropriate symbol's rules
-                if let Some(symbol_rules) = grammar.rules.get_mut(&unit_rule.lhs) {
-                    symbol_rules.retain(|r| r.production_id != unit_rule.production_id);
-                    if symbol_rules.is_empty() {
-                        grammar.rules.shift_remove(&unit_rule.lhs);
+                        next_prod_id += 1;
+                        rules_to_add.push(new_rule);
                     }
                 }
             }
         }
 
-        // Add all new rules
-        for rule in new_rules {
+        // 4. Remove unit rules
+        let mut removed_count = 0;
+        for rules in grammar.rules.values_mut() {
+            let len_before = rules.len();
+            rules.retain(|r| !unit_rule_ids.contains(&r.production_id));
+            removed_count += len_before - rules.len();
+        }
+        eliminated = removed_count;
+
+        // 5. Add new rules
+        for rule in rules_to_add {
             grammar.add_rule(rule);
         }
 

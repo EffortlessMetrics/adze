@@ -283,11 +283,10 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
     // Grammar converted from JSON
 
     // Optimize the grammar
-    // TODO: Re-enable optimization after fixing unit rule elimination
-    // #[cfg(not(feature = "no_opt"))]
-    // {
-    //     grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
-    // }
+    #[cfg(not(feature = "no_opt"))]
+    {
+        grammar = optimize_grammar(grammar).context("Failed to optimize grammar")?;
+    }
 
     // Grammar optimized successfully
 
