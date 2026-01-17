@@ -1359,8 +1359,13 @@ impl Parser {
 
         impl<'a> crate::external_scanner::Lexer for LexerAdapter<'a> {
             fn lookahead(&self) -> Option<u8> {
-                if self.parser.position < self.parser.input.len() {
-                    Some(self.parser.input[self.parser.position])
+                self.peek(0)
+            }
+
+            fn peek(&self, offset: usize) -> Option<u8> {
+                let pos = self.parser.position + offset;
+                if pos < self.parser.input.len() {
+                    Some(self.parser.input[pos])
                 } else {
                     None
                 }
@@ -1828,8 +1833,13 @@ impl Parser {
 /// Implement the Lexer trait for Parser so it can be used by external scanners
 impl crate::external_scanner::Lexer for Parser {
     fn lookahead(&self) -> Option<u8> {
-        if self.position < self.input.len() {
-            Some(self.input[self.position])
+        self.peek(0)
+    }
+
+    fn peek(&self, offset: usize) -> Option<u8> {
+        let pos = self.position + offset;
+        if pos < self.input.len() {
+            Some(self.input[pos])
         } else {
             None
         }

@@ -207,7 +207,11 @@ fn test_scanner_state_serialization() {
 
     impl<'a> rust_sitter::external_scanner::Lexer for MockLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
-            self.input.get(self.position).copied()
+            self.peek(0)
+        }
+
+        fn peek(&self, offset: usize) -> Option<u8> {
+            self.input.get(self.position + offset).copied()
         }
 
         fn advance(&mut self, n: usize) {
@@ -277,7 +281,11 @@ fn test_multiple_dedents() {
 
     impl<'a> rust_sitter::external_scanner::Lexer for MockLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
-            self.input.get(self.position).copied()
+            self.peek(0)
+        }
+
+        fn peek(&self, offset: usize) -> Option<u8> {
+            self.input.get(self.position + offset).copied()
         }
 
         fn advance(&mut self, n: usize) {

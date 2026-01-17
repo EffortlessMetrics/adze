@@ -92,17 +92,37 @@ impl<'a> TSLexerAdapter<'a> {
 
 impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
     fn lookahead(&self) -> Option<u8> {
-        // Check if we're at the end of current range
-        if let Some(range) = self.current_range() {
-            if self.cursor >= range.end {
-                return None; // EOF for this range
+        self.peek(0)
+    }
+
+    fn peek(&self, offset: usize) -> Option<u8> {
+        // This implementation of peek is complicated by the ranges logic.
+        // We need to look ahead across ranges if necessary.
+        let mut current_pos = self.cursor;
+        let mut current_range_idx = self.ranges.next;
+        let mut remaining_offset = offset;
+
+        while let Some(range) = self.ranges.spans.get(current_range_idx) {
+            let available_in_range = range.end.saturating_sub(current_pos);
+
+            if remaining_offset < available_in_range {
+                // The target is within this range
+                return self.src.get(current_pos + remaining_offset).copied();
             }
-        } else {
-            return None; // No more ranges
+
+            // Move to next range
+            remaining_offset -= available_in_range;
+            current_range_idx += 1;
+
+            // If there is a next range, start at its beginning
+            if let Some(next_range) = self.ranges.spans.get(current_range_idx) {
+                current_pos = next_range.start;
+            } else {
+                return None; // EOF
+            }
         }
 
-        // Return current byte or None for EOF
-        self.src.get(self.cursor).copied()
+        None
     }
 
     fn advance(&mut self, n: usize) {

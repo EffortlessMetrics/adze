@@ -13,7 +13,11 @@ fn comprehensive_indentation_scan_diagnostics() {
 
     impl Lexer for DiagnosticLexer {
         fn lookahead(&self) -> Option<u8> {
-            self.input.get(self.position).copied()
+            self.peek(0)
+        }
+
+        fn peek(&self, offset: usize) -> Option<u8> {
+            self.input.get(self.position + offset).copied()
         }
 
         fn advance(&mut self, n: usize) {

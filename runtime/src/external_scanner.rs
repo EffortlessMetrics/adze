@@ -57,6 +57,9 @@ pub trait Lexer {
     /// Get the next byte at the current position
     fn lookahead(&self) -> Option<u8>;
 
+    /// Get the byte at offset n from current position
+    fn peek(&self, offset: usize) -> Option<u8>;
+
     /// Advance the lexer by n bytes
     fn advance(&mut self, n: usize);
 
@@ -385,8 +388,13 @@ mod tests {
             }
 
             fn lookahead(&self) -> Option<u8> {
-                if self.position < self.input.len() {
-                    Some(self.input[self.position])
+                self.peek(0)
+            }
+
+            fn peek(&self, offset: usize) -> Option<u8> {
+                let pos = self.position + offset;
+                if pos < self.input.len() {
+                    Some(self.input[pos])
                 } else {
                     None
                 }
@@ -460,8 +468,13 @@ mod tests {
             }
 
             fn lookahead(&self) -> Option<u8> {
-                if self.position < self.input.len() {
-                    Some(self.input[self.position])
+                self.peek(0)
+            }
+
+            fn peek(&self, offset: usize) -> Option<u8> {
+                let pos = self.position + offset;
+                if pos < self.input.len() {
+                    Some(self.input[pos])
                 } else {
                     None
                 }
@@ -509,8 +522,13 @@ mod tests {
             }
 
             fn lookahead(&self) -> Option<u8> {
-                if self.position < self.input.len() {
-                    Some(self.input[self.position])
+                self.peek(0)
+            }
+
+            fn peek(&self, offset: usize) -> Option<u8> {
+                let pos = self.position + offset;
+                if pos < self.input.len() {
+                    Some(self.input[pos])
                 } else {
                     None
                 }
