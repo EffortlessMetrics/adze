@@ -6,7 +6,7 @@
 //!
 //! # Design
 //!
-//! - **Typed arena**: Only allocates `TreeNode` types
+//! - **Typed arena**: Only allocates `TreeNodeData` types
 //! - **Chunked growth**: Allocates memory in exponentially growing chunks
 //! - **Handle-based**: Uses `NodeHandle` for safe indirect references
 //! - **Reset capability**: Arena can be cleared and reused across parses
@@ -14,17 +14,17 @@
 //! # Example
 //!
 //! ```
-//! use rust_sitter::arena_allocator::{TreeArena, TreeNode};
+//! use rust_sitter::arena_allocator::{TreeArena};
+//! use rust_sitter::tree_node_data::TreeNodeData;
 //!
 //! let mut arena = TreeArena::new();
 //!
 //! // Allocate nodes
-//! let child1 = arena.alloc(TreeNode::leaf(1));
-//! let child2 = arena.alloc(TreeNode::leaf(2));
-//! let parent = arena.alloc(TreeNode::branch(vec![child1, child2]));
+//! let child1 = arena.alloc(TreeNodeData::leaf(1, 0, 5));
+//! let child2 = arena.alloc(TreeNodeData::leaf(2, 5, 10));
 //!
 //! // Access nodes
-//! assert_eq!(arena.get(child1).value(), 1);
+//! assert_eq!(arena.get(child1).symbol(), 1);
 //!
 //! // Reuse arena for next parse
 //! arena.reset();
@@ -49,6 +49,7 @@
 //! Related: docs/adr/0001-arena-allocator-for-parse-trees.md
 
 use std::mem;
+use crate::tree_node_data::TreeNodeData;
 
 /// Default initial chunk size (1024 nodes ~= 64KB for typical node size)
 const DEFAULT_CHUNK_SIZE: usize = 1024;
@@ -70,7 +71,7 @@ pub struct TreeArena {
 /// A single chunk of allocated tree nodes
 #[derive(Debug)]
 struct Chunk {
-    data: Vec<TreeNode>,
+    data: Vec<TreeNodeData>,
     capacity: usize,
 }
 
@@ -86,17 +87,17 @@ impl Chunk {
         self.data.len() >= self.capacity
     }
 
-    fn alloc(&mut self, node: TreeNode) -> usize {
+    fn alloc(&mut self, node: TreeNodeData) -> usize {
         let idx = self.data.len();
         self.data.push(node);
         idx
     }
 
-    fn get(&self, idx: usize) -> &TreeNode {
+    fn get(&self, idx: usize) -> &TreeNodeData {
         &self.data[idx]
     }
 
-    fn get_mut(&mut self, idx: usize) -> &mut TreeNode {
+    fn get_mut(&mut self, idx: usize) -> &mut TreeNodeData {
         &mut self.data[idx]
     }
 
@@ -171,7 +172,7 @@ impl TreeArena {
     /// # Performance
     ///
     /// O(1) amortized. May allocate a new chunk (O(n)) if current chunk is full.
-    pub fn alloc(&mut self, node: TreeNode) -> NodeHandle {
+    pub fn alloc(&mut self, node: TreeNodeData) -> NodeHandle {
         // Check if current chunk is full
         if self.chunks[self.current_chunk_idx].is_full() {
             self.allocate_new_chunk();
@@ -274,7 +275,7 @@ impl TreeArena {
 
     /// Get approximate memory usage in bytes
     pub fn memory_usage(&self) -> usize {
-        let node_size = mem::size_of::<TreeNode>();
+        let node_size = mem::size_of::<TreeNodeData>();
         self.capacity() * node_size
     }
 
@@ -312,42 +313,24 @@ impl Default for TreeArena {
 /// This type provides safe access to arena-allocated nodes through
 /// the `Deref` trait.
 pub struct TreeNodeRef<'arena> {
-    node: &'arena TreeNode,
+    node: &'arena TreeNodeData,
 }
 
 impl<'arena> TreeNodeRef<'arena> {
     /// Get the underlying node reference
-    pub fn get_ref(&self) -> &'arena TreeNode {
+    pub fn get_ref(&self) -> &'arena TreeNodeData {
         self.node
     }
 
     /// Get the underlying node reference (backwards-compatible alias)
     #[allow(clippy::wrong_self_convention, clippy::should_implement_trait)]
-    pub fn as_ref(&self) -> &'arena TreeNode {
+    pub fn as_ref(&self) -> &'arena TreeNodeData {
         self.get_ref()
-    }
-
-    /// Get node value (for leaf nodes)
-    pub fn value(&self) -> i32 {
-        match self.node.kind {
-            TreeNodeKind::Leaf { value } => value,
-            TreeNodeKind::Branch { .. } => panic!("Branch node has no value"),
-        }
-    }
-
-    /// Check if this is a branch node
-    pub fn is_branch(&self) -> bool {
-        matches!(self.node.kind, TreeNodeKind::Branch { .. })
-    }
-
-    /// Check if this is a leaf node
-    pub fn is_leaf(&self) -> bool {
-        matches!(self.node.kind, TreeNodeKind::Leaf { .. })
     }
 }
 
 impl<'arena> std::ops::Deref for TreeNodeRef<'arena> {
-    type Target = TreeNode;
+    type Target = TreeNodeData;
 
     fn deref(&self) -> &Self::Target {
         self.node
@@ -356,22 +339,11 @@ impl<'arena> std::ops::Deref for TreeNodeRef<'arena> {
 
 /// Mutable reference to a tree node
 pub struct TreeNodeRefMut<'arena> {
-    node: &'arena mut TreeNode,
-}
-
-impl<'arena> TreeNodeRefMut<'arena> {
-    /// Set the value of a leaf node
-    pub fn set_value(&mut self, value: i32) {
-        if let TreeNodeKind::Leaf { value: ref mut v } = self.node.kind {
-            *v = value;
-        } else {
-            panic!("Cannot set value on branch node");
-        }
-    }
+    node: &'arena mut TreeNodeData,
 }
 
 impl<'arena> std::ops::Deref for TreeNodeRefMut<'arena> {
-    type Target = TreeNode;
+    type Target = TreeNodeData;
 
     fn deref(&self) -> &Self::Target {
         self.node
@@ -384,55 +356,6 @@ impl<'arena> std::ops::DerefMut for TreeNodeRefMut<'arena> {
     }
 }
 
-/// A node in the parse tree
-///
-/// Simplified for arena allocator demonstration.
-/// In production, this would include symbol type, span, fields, etc.
-#[derive(Clone, Debug, PartialEq)]
-pub struct TreeNode {
-    kind: TreeNodeKind,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-enum TreeNodeKind {
-    Leaf { value: i32 },
-    Branch { children: Vec<NodeHandle> },
-}
-
-impl TreeNode {
-    /// Create a leaf node with a value
-    pub fn leaf(value: i32) -> Self {
-        TreeNode {
-            kind: TreeNodeKind::Leaf { value },
-        }
-    }
-
-    /// Create a branch node with children
-    pub fn branch(children: Vec<NodeHandle>) -> Self {
-        TreeNode {
-            kind: TreeNodeKind::Branch { children },
-        }
-    }
-
-    /// Get value (panics if not a leaf)
-    pub fn value(&self) -> i32 {
-        match self.kind {
-            TreeNodeKind::Leaf { value } => value,
-            TreeNodeKind::Branch { .. } => panic!("Branch node has no value"),
-        }
-    }
-
-    /// Check if this is a leaf
-    pub fn is_leaf(&self) -> bool {
-        matches!(self.kind, TreeNodeKind::Leaf { .. })
-    }
-
-    /// Check if this is a branch
-    pub fn is_branch(&self) -> bool {
-        matches!(self.kind, TreeNodeKind::Branch { .. })
-    }
-}
-
 /// Arena metrics snapshot
 ///
 /// Provides information about the current state of a TreeArena.
@@ -442,7 +365,8 @@ impl TreeNode {
 /// # Example
 ///
 /// ```
-/// use rust_sitter::arena_allocator::{TreeArena, TreeNode};
+/// use rust_sitter::arena_allocator::{TreeArena};
+/// use rust_sitter::tree_node_data::TreeNodeData;
 ///
 /// let mut arena = TreeArena::new();
 ///
@@ -451,7 +375,7 @@ impl TreeNode {
 /// assert_eq!(metrics.len(), 0);
 ///
 /// // After allocation
-/// arena.alloc(TreeNode::leaf(42));
+/// arena.alloc(TreeNodeData::leaf(42, 0, 1));
 /// let metrics = arena.metrics();
 /// assert_eq!(metrics.len(), 1);
 /// ```
@@ -534,35 +458,35 @@ mod tests {
     #[test]
     fn test_basic_allocation() {
         let mut arena = TreeArena::new();
-        let handle = arena.alloc(TreeNode::leaf(42));
+        let handle = arena.alloc(TreeNodeData::leaf(42, 0, 10));
 
         assert_eq!(arena.len(), 1);
-        assert_eq!(arena.get(handle).value(), 42);
+        assert_eq!(arena.get(handle).symbol(), 42);
     }
 
     #[test]
     fn test_multiple_allocations() {
         let mut arena = TreeArena::new();
 
-        let h1 = arena.alloc(TreeNode::leaf(1));
-        let h2 = arena.alloc(TreeNode::leaf(2));
-        let h3 = arena.alloc(TreeNode::leaf(3));
+        let h1 = arena.alloc(TreeNodeData::leaf(1, 0, 5));
+        let h2 = arena.alloc(TreeNodeData::leaf(2, 5, 10));
+        let h3 = arena.alloc(TreeNodeData::leaf(3, 10, 15));
 
         assert_eq!(arena.len(), 3);
-        assert_eq!(arena.get(h1).value(), 1);
-        assert_eq!(arena.get(h2).value(), 2);
-        assert_eq!(arena.get(h3).value(), 3);
+        assert_eq!(arena.get(h1).symbol(), 1);
+        assert_eq!(arena.get(h2).symbol(), 2);
+        assert_eq!(arena.get(h3).symbol(), 3);
     }
 
     #[test]
     fn test_chunk_growth() {
         let mut arena = TreeArena::with_capacity(2);
 
-        arena.alloc(TreeNode::leaf(1));
-        arena.alloc(TreeNode::leaf(2));
+        arena.alloc(TreeNodeData::leaf(1, 0, 5));
+        arena.alloc(TreeNodeData::leaf(2, 5, 10));
         assert_eq!(arena.num_chunks(), 1);
 
-        arena.alloc(TreeNode::leaf(3));
+        arena.alloc(TreeNodeData::leaf(3, 10, 15));
         assert_eq!(arena.num_chunks(), 2);
     }
 
@@ -571,7 +495,7 @@ mod tests {
         let mut arena = TreeArena::new();
 
         for i in 0..10 {
-            arena.alloc(TreeNode::leaf(i));
+            arena.alloc(TreeNodeData::leaf(i as u16, 0, 1));
         }
 
         assert_eq!(arena.len(), 10);
@@ -586,11 +510,12 @@ mod tests {
     fn test_branch_nodes() {
         let mut arena = TreeArena::new();
 
-        let child1 = arena.alloc(TreeNode::leaf(1));
-        let child2 = arena.alloc(TreeNode::leaf(2));
-        let parent = arena.alloc(TreeNode::branch(vec![child1, child2]));
+        let child1 = arena.alloc(TreeNodeData::leaf(1, 0, 5));
+        let child2 = arena.alloc(TreeNodeData::leaf(2, 5, 10));
+        let parent = arena.alloc(TreeNodeData::branch(10, 0, 10, vec![child1, child2]));
 
-        assert!(arena.get(parent).is_branch());
+        assert!(!arena.get(parent).is_leaf());
         assert!(arena.get(child1).is_leaf());
+        assert_eq!(arena.get(parent).child_count(), 2);
     }
 }

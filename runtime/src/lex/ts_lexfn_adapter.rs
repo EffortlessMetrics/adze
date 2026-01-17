@@ -63,20 +63,21 @@ unsafe extern "C" fn mark_end(lex: *mut TsLexer) {
 }
 
 /// Adapter that exposes Tree-sitter's C-style lexing API over a byte slice.
-pub struct TsLexFnAdapter<'a> {
-    lang_lex: unsafe extern "C" fn(*mut c_void, TSLexState) -> bool,
+pub struct TsLexFnAdapter<'a, S: Copy> {
+    lang_lex: unsafe extern "C" fn(*mut c_void, S) -> bool,
     backing: Backing<'a>,
     ts: TsLexer,
-    state_tag: TSLexState,
+    state_tag: S,
     // cache of last token
     look: Option<Token>,
 }
 
-impl<'a> TsLexFnAdapter<'a> {
+impl<'a, S: Copy> TsLexFnAdapter<'a, S> {
     /// Create a new [`TsLexFnAdapter`] for the given input and language lexer.
     pub fn new(
         input: &'a [u8],
-        lang_lex: unsafe extern "C" fn(*mut c_void, TSLexState) -> bool,
+        lang_lex: unsafe extern "C" fn(*mut c_void, S) -> bool,
+        initial_state: S,
     ) -> Self {
         let backing = Backing {
             input,
@@ -97,7 +98,7 @@ impl<'a> TsLexFnAdapter<'a> {
             lang_lex,
             backing,
             ts,
-            state_tag: TSLexState(0),
+            state_tag: initial_state,
             look: None,
         };
 
@@ -105,6 +106,16 @@ impl<'a> TsLexFnAdapter<'a> {
         adapter.ts.data = &mut adapter.backing as *mut _ as *mut c_void;
 
         adapter
+    }
+
+    /// Set the lexer state to use for the next token.
+    pub fn set_state(&mut self, state: S) {
+        self.state_tag = state;
+        // Invalidate the lookahead token because it might have been lexed with the wrong state
+        // if we are switching state before consuming it.
+        // However, standard usage is: consume token, switch state, peek/consume next token.
+        // If we peeked, then switched state, the peeked token is invalid.
+        self.look = None;
     }
 
     fn next_internal(&mut self) -> Option<Token> {
@@ -165,7 +176,7 @@ impl<'a> TsLexFnAdapter<'a> {
     }
 }
 
-impl<'a> TokenSource for TsLexFnAdapter<'a> {
+impl<'a, S: Copy> TokenSource for TsLexFnAdapter<'a, S> {
     fn peek(&mut self) -> Option<Token> {
         if self.look.is_none() {
             self.look = self.next_internal();

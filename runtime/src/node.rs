@@ -83,10 +83,7 @@ impl<'arena> Node<'arena> {
     /// allocates TreeNodeData in the arena. For Day 4, we're establishing the
     /// type signatures.
     pub fn data(&self) -> &'arena TreeNodeData {
-        // TODO(Phase 2 Day 5): Implement when TreeArena stores TreeNodeData
-        // For now, we need to integrate TreeNodeData allocation into TreeArena
-        // Current TreeArena stores TreeNode (demo type), not TreeNodeData
-        unimplemented!("data() will be implemented in Day 5 parse() integration")
+        self.arena.get(self.handle).get_ref()
     }
 
     /// Get the node's symbol/kind ID
@@ -253,8 +250,11 @@ impl<'arena> Node<'arena> {
     ///
     /// Full implementation in Day 5 when TreeArena stores TreeNodeData.
     pub fn children(&self) -> NodeChildren<'arena> {
-        // TODO(Phase 2 Day 5): Implement when TreeArena stores TreeNodeData
-        unimplemented!("children() will be implemented in Day 5 parse() integration")
+        NodeChildren {
+            handles: self.data().children(),
+            arena: self.arena,
+            index: 0,
+        }
     }
 
     /// Iterate over named children only
@@ -338,8 +338,8 @@ mod tests {
         fn takes_copy<T: Copy>(_: T) {}
 
         let mut arena = TreeArena::new();
-        // Use TreeNode::leaf() which matches arena.alloc() signature
-        let handle = arena.alloc(crate::arena_allocator::TreeNode::leaf(42));
+        // Use TreeNodeData::leaf() which matches arena.alloc() signature
+        let handle = arena.alloc(crate::tree_node_data::TreeNodeData::leaf(42, 0, 1));
         let node = Node::new(handle, &arena);
 
         takes_copy(node);

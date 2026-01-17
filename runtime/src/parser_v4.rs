@@ -9,6 +9,7 @@ use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
+use crate::tree_node_data::TreeNodeData;
 use anyhow::{Result, anyhow, bail};
 use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
 use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
@@ -426,46 +427,217 @@ impl Parser {
         language: &crate::pure_parser::TSLanguage,
     ) -> Result<Tree<'a>> {
         // Check if language has a custom lexer
-        if let Some(_lex_fn) = language.lex_fn {
-            // ❌ CRITICAL BLOCKER: This is why parsing doesn't work! (Issue #74)
-            //
-            // PROBLEM: All grammars with custom lexers (transform functions) fall back
-            // to this broken path. The "type conversion not yet implemented safely"
-            // means NO REAL PARSING HAPPENS for grammars like:
-            //   #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
-            //
-            // IMPACT:
-            // - Python grammar can't parse numbers, strings, or identifiers
-            // - All performance benchmarks are measuring fallback behavior
-            // - Users get thousands of warning messages instead of parsed trees
-            // - Project appears functional but actually cannot parse real code
-            //
-            // ROOT CAUSE: TSLexState type incompatibility between:
-            // - Generated grammar lexer functions (expect one TSLexState layout)
-            // - Runtime lexer state management (uses different TSLexState layout)
-            // - Unsafe transmute was avoided, but no safe alternative was implemented
-            //
-            // REQUIRED FIX (HIGH PRIORITY):
-            // 1. Implement safe TSLexState type conversion system
-            // 2. Create proper lexer function call interface with error handling
-            // 3. Add transform function execution pipeline
-            // 4. Replace eprintln! warning with proper Result<> error handling
-            //
-            // TEMPORARY WORKAROUND NEEDED:
-            // Until fixed, this should return an Error instead of silently falling back:
-            // ```rust
-            // return Err(ParseError::LexerNotImplemented(
-            //     "Custom lexer functions require TSLexState type conversion - see Issue #74"
-            // ));
-            // ```
-            //
-            // TODO: Need to implement proper type-safe conversion between TSLexState types
-            // For now, fall back to regular parsing to avoid unsafe transmute
-            // The different TSLexState types are not directly compatible
-            eprintln!(
-                "Warning: Custom lexer function provided but type conversion not yet implemented safely"
-            );
-            self.parse(input) // ❌ WRONG: This fallback doesn't work either!
+        if let Some(lex_fn) = language.lex_fn {
+            use crate::lex::{TokenSource, TsLexFnAdapter};
+
+            // Store the input
+            self.input = input.as_bytes().to_vec();
+            self.position = 0;
+
+            // Initialize the parser state
+            let mut state_stack: Vec<StateId> = vec![StateId(0)]; // Start in state 0
+            let mut symbol_stack: Vec<SymbolId> = vec![];
+            let mut node_stack: Vec<ParseNode> = vec![];
+            let mut _error_count = 0;
+
+            // Initial state is state 0
+            let initial_lex_state = unsafe {
+                if !language.lex_modes.is_null() && language.state_count > 0 {
+                    *language.lex_modes
+                } else {
+                    crate::pure_parser::TSLexState {
+                        lex_state: 0,
+                        external_lex_state: 0,
+                    }
+                }
+            };
+
+            // Create the TsLexFnAdapter with proper TSLexState type
+            let mut token_source = TsLexFnAdapter::new(input.as_bytes(), lex_fn, initial_lex_state);
+
+            // Main parsing loop with safety limits
+            let mut loop_iterations = 0;
+            const MAX_LOOP_ITERATIONS: usize = 1_000_000; // Prevent infinite loops
+
+            loop {
+                // Safety check to prevent infinite loops
+                loop_iterations += 1;
+                if loop_iterations > MAX_LOOP_ITERATIONS {
+                    bail!(
+                        "Parser exceeded maximum iteration limit ({}), possible infinite loop",
+                        MAX_LOOP_ITERATIONS
+                    );
+                }
+
+                // Enhanced safety checks to prevent various attack vectors
+                if state_stack.len() > 10000 {
+                    bail!("Parse stack overflow: {} states", state_stack.len());
+                }
+                if symbol_stack.len() > 10000 {
+                    bail!("Symbol stack overflow: {} symbols", symbol_stack.len());
+                }
+                if node_stack.len() > 10000 {
+                    bail!("Node stack overflow: {} nodes", node_stack.len());
+                }
+
+                // Get current state
+                let current_state = *state_stack
+                    .last()
+                    .ok_or_else(|| anyhow!("State stack is empty"))?;
+
+                // Update lexer state based on current parser state
+                let lex_state = unsafe {
+                    if !language.lex_modes.is_null()
+                        && (current_state.0 as u32) < language.state_count
+                    {
+                        *language.lex_modes.add(current_state.0 as usize)
+                    } else {
+                        crate::pure_parser::TSLexState {
+                            lex_state: 0,
+                            external_lex_state: 0,
+                        }
+                    }
+                };
+                token_source.set_state(lex_state);
+
+                // Get the next token from the token source
+                let token = if let Some(tok) = token_source.peek() {
+                    tok
+                } else {
+                    // We're at EOF - use the table's EOF symbol
+                    let eof_sym = self.parse_table.eof_symbol.0; // Extract u16 from SymbolId
+                    crate::lex::Token {
+                        sym: eof_sym,
+                        start: token_source.offset(),
+                        len: 0,
+                    }
+                };
+
+                let lookahead = SymbolId(token.sym);
+
+                // Get the actions for this state and lookahead symbol
+                let mut actions = self.get_parse_actions(current_state, lookahead)?;
+
+                // Sort actions by priority (highest first) to prefer better actions
+                actions.sort_by_key(|a| -self.action_priority(a));
+
+                if actions.is_empty() {
+                    // No valid action - error recovery needed
+                    if lookahead == self.parse_table.eof_symbol {
+                        // We're at EOF with no valid reduce - accept if we can
+                        if state_stack.len() == 2 && state_stack[0] == StateId(0) {
+                            // Accept state - success!
+                            break;
+                        }
+                        // Otherwise it's an error
+                        _error_count += 1;
+                        break;
+                    }
+
+                    // Skip this token and continue
+                    _error_count += 1;
+                    token_source.bump();
+                    continue;
+                }
+
+                // Execute the first action (for now, just pick the first)
+                let action = &actions[0];
+                match action {
+                    Action::Shift(next_state) => {
+                        state_stack.push(*next_state);
+                        symbol_stack.push(lookahead);
+                        node_stack.push(ParseNode {
+                            symbol: lookahead,
+                            symbol_id: lookahead,
+                            start_byte: token.start,
+                            end_byte: token.start + token.len,
+                            field_name: None,
+                            children: vec![],
+                        });
+                        token_source.bump();
+                    }
+                    Action::Reduce(rule_idx) => {
+                        let rule = self
+                            .parse_table
+                            .rules
+                            .get(rule_idx.0 as usize)
+                            .ok_or_else(|| {
+                                anyhow!(
+                                    "Invalid rule index: {} (table has {} rules)",
+                                    rule_idx.0,
+                                    self.parse_table.rules.len()
+                                )
+                            })?;
+
+                        let rhs_len = rule.rhs_len as usize;
+
+                        // Pop RHS symbols from stacks
+                        let mut children = vec![];
+                        for _ in 0..rhs_len {
+                            state_stack.pop();
+                            symbol_stack.pop();
+                            if let Some(node) = node_stack.pop() {
+                                children.push(node);
+                            }
+                        }
+                        children.reverse();
+
+                        // Get goto state
+                        let prev_state = *state_stack
+                            .last()
+                            .ok_or_else(|| anyhow!("State stack empty after reduce"))?;
+
+                        let goto_state = self.get_goto_state(prev_state, rule.lhs)?;
+
+                        // Push LHS and new state
+                        state_stack.push(goto_state);
+                        symbol_stack.push(rule.lhs);
+
+                        let start_byte = children
+                            .first()
+                            .map(|n| n.start_byte)
+                            .unwrap_or(token.start);
+                        let end_byte = children.last().map(|n| n.end_byte).unwrap_or(token.start);
+
+                        node_stack.push(ParseNode {
+                            symbol: rule.lhs,
+                            symbol_id: rule.lhs,
+                            start_byte,
+                            end_byte,
+                            field_name: None,
+                            children,
+                        });
+                    }
+                    Action::Accept => {
+                        break; // Exit the parse loop successfully
+                    }
+                    _ => {
+                        bail!("Unhandled action type: {:?}", action);
+                    }
+                }
+
+                // Check for accept condition
+                if state_stack.len() == 2
+                    && symbol_stack.len() == 1
+                    && let Some(start) = self.grammar.start_symbol()
+                    && symbol_stack[0] == start
+                {
+                    break;
+                }
+            }
+
+            // Construct the final tree
+            let root_node = node_stack
+                .pop()
+                .ok_or_else(|| anyhow!("No root node after accept"))?;
+
+            let root_handle = self.build_arena_tree(root_node);
+
+            Ok(Tree {
+                root: root_handle,
+                arena: &self.arena,
+                error_count: _error_count,
+            })
         } else {
             self.parse(input)
         }
@@ -492,7 +664,9 @@ impl Parser {
         let mut _error_count = 0;
 
         // Create the TsLexFnAdapter directly - no type conversion needed
-        let mut token_source = TsLexFnAdapter::new(input.as_bytes(), lex_fn);
+        // Use default TSLexState(0) for backward compatibility
+        let mut token_source =
+            TsLexFnAdapter::new(input.as_bytes(), lex_fn, crate::lex::TSLexState(0));
 
         // Main parsing loop with safety limits
         let mut loop_iterations = 0;
@@ -682,13 +856,18 @@ impl Parser {
             }
         }
 
-        // TODO(Phase 2 Day 5): Return arena-based Tree
-        // Ok(Tree {
-        //     root: root_handle,
-        //     arena: &self.arena,
-        //     error_count,
-        // })
-        unimplemented!("parse_with_custom_lexer will be updated in Phase 2 Day 5")
+        // Construct the final tree
+        let root_node = node_stack
+            .pop()
+            .ok_or_else(|| anyhow!("No root node after accept"))?;
+
+        let root_handle = self.build_arena_tree(root_node);
+
+        Ok(Tree {
+            root: root_handle,
+            arena: &self.arena,
+            error_count: _error_count,
+        })
     }
 
     /// Parse the input string and return the full parse tree
@@ -723,15 +902,18 @@ impl Parser {
     /// let tree = parser.parse("1 + 2")?;
     /// let root = tree.root_node();
     /// ```
-    pub fn parse<'a>(&'a mut self, _input: &str) -> Result<Tree<'a>> {
-        // TODO(Phase 2 Day 5): Implement arena-based parsing
-        // This will:
-        // 1. self.arena.reset() to clear previous parse
-        // 2. Allocate TreeNodeData in arena during tree construction
-        // 3. Return Tree { root: NodeHandle, arena: &self.arena, error_count }
-        //
-        // For now (Day 4), we're establishing type signatures
-        unimplemented!("parse() will be fully implemented in Phase 2 Day 5")
+    pub fn parse<'a>(&'a mut self, input: &str) -> Result<Tree<'a>> {
+        // Use parse_internal to get ParseNode, then convert to arena
+        let (root_node, error_count) = self.parse_internal(input, true)?;
+
+        self.arena.reset();
+        let root_handle = self.build_arena_tree(root_node);
+
+        Ok(Tree {
+            root: root_handle,
+            arena: &self.arena,
+            error_count,
+        })
     }
 
     /// Internal parsing implementation shared by parse() and parse_tree()
@@ -1822,6 +2004,31 @@ impl Parser {
     /// Get the GLR parser statistics
     pub fn get_glr_stats(&self) -> &crate::glr_forest::GLRStats {
         self.glr_state.get_stats()
+    }
+
+    /// Recursively build arena tree from ParseNode
+    fn build_arena_tree(&mut self, node: ParseNode) -> NodeHandle {
+        let mut child_handles = Vec::with_capacity(node.children.len());
+        for child in node.children {
+            child_handles.push(self.build_arena_tree(child));
+        }
+
+        let mut tree_node = if child_handles.is_empty() {
+            TreeNodeData::leaf(
+                node.symbol.0,
+                node.start_byte as u32,
+                node.end_byte as u32,
+            )
+        } else {
+            TreeNodeData::branch(
+                node.symbol.0,
+                node.start_byte as u32,
+                node.end_byte as u32,
+                child_handles,
+            )
+        };
+
+        self.arena.alloc(tree_node)
     }
 }
 
