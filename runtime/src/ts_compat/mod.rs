@@ -143,11 +143,11 @@ impl Parser {
 
         // Use parse_tree() which returns an owned ParseNode
         match core_parser.parse_tree(source) {
-            Ok(root) => Some(Tree {
+            Ok((root, error_count)) => Some(Tree {
                 core: OwnedCoreTree {
                     root,
                     source: source.as_bytes().to_vec(),
-                    error_count: 0, // TODO: track error count properly
+                    error_count,
                 },
                 last_edit: None,
                 language: lang.clone(),

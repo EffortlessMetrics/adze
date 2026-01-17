@@ -691,15 +691,15 @@ impl Parser {
         unimplemented!("parse_with_custom_lexer will be updated in Phase 2 Day 5")
     }
 
-    /// Parse the input string and return the full parse tree
+    /// Parse the input string and return the full parse tree and error count
     ///
     /// This method returns the complete ParseNode tree, which can be used
     /// for extraction and AST construction. For a simpler API that returns
     /// just metadata, use `parse()`.
-    pub fn parse_tree(&mut self, input: &str) -> Result<ParseNode> {
-        // Extract just the parse tree, ignoring error count
-        let (root, _error_count) = self.parse_internal(input, true)?;
-        Ok(root)
+    pub fn parse_tree(&mut self, input: &str) -> Result<(ParseNode, usize)> {
+        // Extract the parse tree and error count
+        let (root, error_count) = self.parse_internal(input, true)?;
+        Ok((root, error_count))
     }
 
     /// Parse the input string and return minimal tree metadata
@@ -1925,5 +1925,39 @@ mod tests {
         // TODO: Fix external scanner loading in tests
         // assert!(parser.external_scanner.is_some());
         // assert!(parser.external_runtime.is_some());
+    }
+
+    #[test]
+    fn test_parser_parse_tree_error_count() {
+        // Create a minimal grammar
+        let mut grammar = Grammar::new("test_grammar".to_string());
+        grammar.add_rule(Rule { lhs: SymbolId(1), rhs: vec![], precedence: None, associativity: None, fields: vec![], production_id: rust_sitter_ir::ProductionId(0) });
+
+        let mut parse_table = ParseTable::default();
+        parse_table.grammar = grammar.clone();
+        parse_table.eof_symbol = SymbolId(0);
+
+        let mut parser = Parser::new(grammar, parse_table, "test_grammar".to_string());
+
+        // Parsing empty input with empty grammar should result in an error
+        let result = parser.parse_tree("");
+
+        // It returns Ok((node, error_count)) where error_count should be > 0 because
+        // we have no actions and it will fail to find actions or match EOF if no start symbol
+        // (Wait, start symbol is set but no rules/actions)
+
+        if let Ok((_node, error_count)) = result {
+             // In parse_internal:
+             // 1. It calls next_token, gets EOF (SymbolId 0).
+             // 2. get_parse_actions(state 0, symbol 0) -> returns [] since table is empty.
+             // 3. actions is empty.
+             // 4. lookahead is EOF (0).
+             // 5. It increments error_count and breaks.
+             assert_eq!(error_count, 1, "Expected 1 error count");
+        } else {
+            // If it returns Err, that's unexpected for this specific flow based on code reading,
+            // but let's see.
+            panic!("Parser returned Err: {:?}", result.err());
+        }
     }
 }

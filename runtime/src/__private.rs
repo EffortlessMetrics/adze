@@ -380,7 +380,7 @@ fn parse_with_glr<T: Extract<T>>(
     let mut parser = Parser::from_language(lang, T::GRAMMAR_NAME.to_string());
 
     // Parse to get root ParseNode
-    let root_node = parser.parse_tree(input).map_err(|e| {
+    let (root_node, _error_count) = parser.parse_tree(input).map_err(|e| {
         vec![crate::errors::ParseError {
             reason: crate::errors::ParseErrorReason::UnexpectedToken(e.to_string()),
             start: 0,
