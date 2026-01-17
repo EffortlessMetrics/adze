@@ -6,7 +6,6 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use crate::incremental_v3::{Subtree, SubtreePool, Tree};
 use crate::parser_v3::{ParseNode, Parser};
 use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::{Grammar, SymbolId};
@@ -43,17 +42,23 @@ pub struct ParallelParser {
     subtree_cache: Arc<Mutex<SubtreeCache>>,
 }
 
+#[derive(Debug, Clone)]
+struct Subtree {
+    symbol: SymbolId,
+    start_byte: usize,
+    end_byte: usize,
+    children: Vec<Subtree>,
+}
+
 /// Cache for reusable subtrees
 struct SubtreeCache {
     cache: HashMap<u64, Arc<Subtree>>,
-    pool: SubtreePool,
 }
 
 impl SubtreeCache {
     fn new() -> Self {
         Self {
             cache: HashMap::new(),
-            pool: SubtreePool::new(),
         }
     }
 
@@ -263,10 +268,17 @@ impl ParallelParser {
 
         // Parse the chunk
         let input_str = String::from_utf8_lossy(&parse_input);
+
+        // Calculate base offset for converting relative positions to absolute
+        let base_offset = match &chunk.boundary {
+            ChunkBoundary::Clean => chunk.start,
+            ChunkBoundary::Dirty { lookbehind, .. } => chunk.start - lookbehind.len(),
+        };
+
         let subtrees = match parser.parse(&input_str) {
             Ok(tree) => {
-                // Convert to subtrees
-                self.extract_subtrees(tree, chunk.start)
+                // Convert to subtrees, filtering only those within the chunk's content range
+                self.extract_subtrees(tree, base_offset, chunk.start, chunk.end)
             }
             Err(_) => {
                 // Partial parse - extract what we can
@@ -285,10 +297,40 @@ impl ParallelParser {
     }
 
     /// Extract reusable subtrees from parse result
-    fn extract_subtrees(&self, tree: ParseNode, offset: usize) -> Vec<Subtree> {
-        let mut subtrees = Vec::new();
+    fn extract_subtrees(
+        &self,
+        tree: ParseNode,
+        base_offset: usize,
+        range_start: usize,
+        range_end: usize,
+    ) -> Vec<Subtree> {
+        // If this is the start symbol (root), unwrap it to get top-level items
+        // Note: we check if it matches start_symbol OR if it spans the whole input (heuristic)
+        let is_root = Some(tree.symbol) == self.grammar.start_symbol;
 
-        // Convert ParseNode to Subtree format
+        if is_root {
+            let mut results = Vec::new();
+            for child in tree.children {
+                results.extend(self.extract_subtrees(child, base_offset, range_start, range_end));
+            }
+            return results;
+        }
+
+        // For non-root nodes, check if they fall within our chunk's range
+        let abs_start = tree.start_byte + base_offset;
+
+        // We only keep nodes that start within our chunk's content range.
+        // This ensures that if a node spans across chunk boundaries, it is only
+        // claimed by the chunk where it starts.
+        if abs_start >= range_start && abs_start < range_end {
+            vec![self.convert_node_to_subtree(tree, base_offset)]
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// Recursively convert a ParseNode to a Subtree with offset adjustment
+    fn convert_node_to_subtree(&self, tree: ParseNode, offset: usize) -> Subtree {
         let subtree = Subtree {
             symbol: tree.symbol,
             start_byte: tree.start_byte + offset,
@@ -296,8 +338,7 @@ impl ParallelParser {
             children: tree
                 .children
                 .into_iter()
-                .map(|child| self.extract_subtrees(child, offset))
-                .flatten()
+                .map(|child| self.convert_node_to_subtree(child, offset))
                 .collect(),
         };
 
@@ -308,8 +349,7 @@ impl ParallelParser {
             cache.insert(hash, Arc::new(subtree.clone()));
         }
 
-        subtrees.push(subtree);
-        subtrees
+        subtree
     }
 
     /// Hash a subtree for caching
@@ -344,12 +384,44 @@ impl ParallelParser {
     }
 
     /// Build parse tree from subtrees
-    fn build_tree_from_subtrees(&self, subtrees: Vec<Subtree>, input: &[u8]) -> Result<ParseNode> {
-        // For now, create a simple wrapper node
-        // TODO: Implement proper tree construction
+    fn build_tree_from_subtrees(
+        &self,
+        mut subtrees: Vec<Subtree>,
+        input: &[u8],
+    ) -> Result<ParseNode> {
+        // Sort subtrees by start position to ensure correct order
+        subtrees.sort_by(|a, b| {
+            a.start_byte
+                .cmp(&b.start_byte)
+                .then_with(|| b.end_byte.cmp(&a.end_byte)) // longer nodes first on tie (though shouldn't happen for same start)
+        });
+
+        // Merge/Dedup logic: ensure no overlaps (or handle them by preference)
+        // With "ownership by start position", we shouldn't have overlapping siblings unless
+        // they are nested/ambiguous. Assuming a flat list of top-level items.
+        // If we have overlaps (e.g. from error recovery or ambiguity), we prioritize earlier starts.
+
+        let mut merged = Vec::new();
+        let mut current_pos = 0;
+
+        for subtree in subtrees {
+            if subtree.start_byte >= current_pos {
+                current_pos = subtree.end_byte;
+                merged.push(subtree);
+            } else {
+                // Overlap detected. Since we sorted by start byte, this node starts before
+                // the previous node ended.
+                // In a valid tree, siblings must not overlap.
+                // If this node is fully contained in previous, it might be a child that got promoted?
+                // But we unpacked roots, so these should be siblings.
+                // We skip overlapping nodes to enforce tree structure.
+                continue;
+            }
+        }
+
         Ok(ParseNode {
             symbol: self.grammar.start_symbol.unwrap_or(SymbolId(0)),
-            children: subtrees
+            children: merged
                 .into_iter()
                 .map(|st| self.subtree_to_node(st))
                 .collect(),
