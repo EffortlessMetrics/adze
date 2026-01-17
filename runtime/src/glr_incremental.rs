@@ -29,6 +29,17 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+/// Statistics about the last parse operation
+#[derive(Debug, Clone, Default)]
+pub struct ParsingStats {
+    /// Number of bytes reused from previous parse
+    pub bytes_reused: usize,
+    /// Total bytes in the current parse
+    pub total_bytes: usize,
+    /// Number of nodes reused
+    pub nodes_reused: usize,
+}
+
 /// Simple edit descriptor for byte-based edits
 #[derive(Debug, Clone)]
 pub struct Edit {
@@ -490,6 +501,8 @@ pub struct IncrementalGLRParser {
     tokens: Vec<GLRToken>,
     /// Edit byte delta (new_text.len() - old_text.len())
     edit_byte_delta: isize,
+    /// Statistics about the last parse
+    stats: ParsingStats,
 }
 
 /// Tracks fork relationships and dependencies
@@ -560,6 +573,7 @@ impl IncrementalGLRParser {
             chunk_suffix_len: 0,
             tokens: vec![],
             edit_byte_delta: 0,
+            stats: ParsingStats::default(),
         }
     }
 
@@ -582,7 +596,13 @@ impl IncrementalGLRParser {
             chunk_suffix_len: 0,
             tokens: vec![],
             edit_byte_delta: 0,
+            stats: ParsingStats::default(),
         }
+    }
+
+    /// Get statistics about the last parse
+    pub fn stats(&self) -> &ParsingStats {
+        &self.stats
     }
 
     /// Parse with incremental reuse
@@ -633,6 +653,13 @@ impl IncrementalGLRParser {
         // Calculate total input length from tokens
         let total_bytes = tokens.last().map(|t| t.end_byte).unwrap_or(0);
         parser.process_eof(total_bytes);
+
+        // Update stats
+        self.stats = ParsingStats {
+            bytes_reused: 0,
+            total_bytes,
+            nodes_reused: 0,
+        };
 
         match parser.finish_all_alternatives() {
             Ok(trees) => {
@@ -920,9 +947,19 @@ impl IncrementalGLRParser {
 
                 // Update reuse counter with actual node count, not token count
                 let reuse_count = prefix_nodes.len() + suffix_nodes.len();
+                let bytes_reused: usize = prefix_nodes.iter().map(|n| n.byte_range.len()).sum::<usize>()
+                    + suffix_nodes.iter().map(|n| n.byte_range.len()).sum::<usize>();
+
                 if reuse_count > 0 {
                     SUBTREE_REUSE_COUNT.fetch_add(reuse_count, Ordering::SeqCst);
                 }
+
+                // Update stats
+                self.stats = ParsingStats {
+                    bytes_reused,
+                    total_bytes: tokens.last().map(|t| t.end_byte).unwrap_or(0),
+                    nodes_reused: reuse_count,
+                };
 
                 self.forest = Some(spliced_forest.clone());
                 self.previous_forest = Some(spliced_forest.clone());

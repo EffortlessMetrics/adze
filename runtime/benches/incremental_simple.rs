@@ -2,7 +2,7 @@
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::{
-    glr_incremental::{Edit, GLRToken, IncrementalGLRParser},
+    glr_incremental::{Edit, GLREdit, GLRToken, IncrementalGLRParser},
     glr_lexer::TokenWithPosition,
     glr_parser::GLRParser,
 };
@@ -138,24 +138,32 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
 
         // Print reuse stats for debugging
         if *size <= 50 {
-            let glr_parser = GLRParser::new(parse_table.clone(), (*grammar).clone());
-            let mut incremental = IncrementalGLRParser::new(glr_parser, grammar.clone());
+            let mut incremental =
+                IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
 
             if let Ok(tree) = incremental.parse_incremental(&tokens, &[]) {
-                let _ = incremental.parse_incremental(&edited_tokens, &[edit]);
-                // TODO: stats() method no longer exists
-                // let stats = incremental.stats();
-                // println!(
-                //     "Size {}: Reused {} bytes out of {} ({:.1}%)",
-                //     size,
-                //     stats.bytes_reused,
-                //     stats.total_bytes,
-                //     if stats.total_bytes > 0 {
-                //         (stats.bytes_reused as f64 / stats.total_bytes as f64) * 100.0
-                //     } else {
-                //         0.0
-                //     }
-                // );
+                let glr_edit = GLREdit {
+                    old_range: edit.start_byte..edit.old_end_byte,
+                    new_text: vec![], // we removed "a" (and the space is implied by offset logic in create_tokens but effectively removed)
+                    old_token_range: edit_pos..(edit_pos + 1),
+                    new_tokens: vec![],
+                    old_tokens: tokens.clone(),
+                    old_forest: Some(tree.clone()),
+                };
+
+                let _ = incremental.parse_incremental(&edited_tokens, &[glr_edit]);
+                let stats = incremental.stats();
+                println!(
+                    "Size {}: Reused {} bytes out of {} ({:.1}%)",
+                    size,
+                    stats.bytes_reused,
+                    stats.total_bytes,
+                    if stats.total_bytes > 0 {
+                        (stats.bytes_reused as f64 / stats.total_bytes as f64) * 100.0
+                    } else {
+                        0.0
+                    }
+                );
             }
         }
     }
