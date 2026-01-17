@@ -2,44 +2,28 @@
 
 [Introduction](README.md)
 
-# Getting Started
+# Tutorials
 
-- [Installation](getting-started/installation.md)
-- [Quick Start](getting-started/quickstart.md)
-- [Migration Guide](getting-started/migration.md)
+- [Getting Started with Rust Sitter](tutorials/getting-started.md)
 
-# User Guide
+# How-To Guides
 
-- [Grammar Definition](guide/grammar-definition.md)
-- [Parser Generation](guide/parser-generation.md)
-- [Incremental Parsing](guide/incremental-parsing.md)
-- [Query and Pattern Matching](guide/query-patterns.md)
-- [Error Recovery](guide/error-recovery.md)
-- [Performance Optimization](guide/performance.md)
-
-# Advanced Topics
-
-- [GLR Parsing](advanced/glr-parsing.md)
-- [Grammar Optimization](advanced/optimizer-usage.md)
-- [External Scanners](advanced/external-scanners.md)
-- [Predicate Evaluation](advanced/predicate-evaluation.md)
-- [Visualization Tools](advanced/visualization.md)
+- [Installation](how-to/installation.md)
+- [Migrating from Tree-sitter](how-to/migration-guide.md)
+- [Defining a Grammar](how-to/define-a-grammar.md)
+- [Generating a Parser](how-to/generate-a-parser.md)
+- [Using Incremental Parsing](how-to/use-incremental-parsing.md)
+- [Optimizing a Grammar](how-to/optimize-a-grammar.md)
+- [Visualizing a Grammar](how-to/visualize-a-grammar.md)
 
 # Reference
 
-- [API Documentation](reference/api.md)
-- [Grammar Examples](reference/grammar-examples.md)
-- [Language Support](reference/language-support.md)
-- [Known Limitations](reference/known-limitations.md)
+- [Changelog](reference/changelog.md)
 
-# Development
+# Explanation
 
-- [Contributing](development/contributing.md)
-- [Architecture](development/architecture.md)
-- [Testing](development/testing.md)
-- [Release Process](development/release.md)
-
-# Appendix
-
-- [Changelog](appendix/changelog.md)
-- [FAQ](appendix/faq.md)
+- [Predicate Evaluation](explanation/predicate-evaluation.md)
+- [GLR Internals](explanation/glr-internals.md)
+- [Incremental Parsing Concepts](explanation/incremental-parsing-concepts.md)
+- [Empty Production Rules](explanation/empty-production-rules.md)
+- [Frequently Asked Questions](explanation/faq.md)
