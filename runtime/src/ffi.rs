@@ -11,6 +11,7 @@ pub type TSSymbol = u16;
 
 /// Tree-sitter symbol metadata
 #[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TSSymbolMetadata {
     pub visible: bool,
     pub named: bool,

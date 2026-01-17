@@ -4,7 +4,7 @@
 
 /// Field-aware tree structures where field names are stored as edge properties
 /// This design correctly models that field-ness is a property of parent→child relationships
-use crate::ffi::TSSymbol;
+use crate::ffi::{TSSymbol, TSSymbolMetadata};
 use std::sync::Arc;
 
 /// A child node with an optional field identifier
@@ -134,12 +134,22 @@ pub struct TSLanguage {
     pub field_names: Vec<&'static str>,
     /// Symbol names table
     pub symbol_names: Vec<&'static str>,
+    /// Symbol metadata table
+    pub symbol_metadata: Vec<TSSymbolMetadata>,
     /// Production field mappings: production_id -> child_index -> field_id
     pub production_field_map: Vec<Vec<Option<u16>>>,
     // ... other language data
 }
 
 impl TSLanguage {
+    /// Check if a symbol is named
+    pub fn is_named(&self, symbol: TSSymbol) -> bool {
+        self.symbol_metadata
+            .get(symbol as usize)
+            .map(|m| m.named)
+            .unwrap_or(false)
+    }
+
     /// Look up a field ID by name (binary search since names are sorted)
     pub fn field_id_for_name(&self, name: &str) -> Option<u16> {
         self.field_names
@@ -210,6 +220,8 @@ impl ParsedNode {
             (start, end)
         };
 
+        let is_named = language.is_named(symbol);
+
         ParsedNode {
             symbol,
             children: parsed_children,
@@ -220,7 +232,7 @@ impl ParsedNode {
             is_extra: false,
             is_error: false,
             is_missing: false,
-            is_named: true, // TODO: Get from symbol metadata
+            is_named,
             language: Some(language),
         }
     }
