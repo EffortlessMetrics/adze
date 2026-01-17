@@ -2,7 +2,7 @@
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rust_sitter::{
-    glr_incremental::{Edit, GLRToken, IncrementalGLRParser},
+    glr_incremental::{Edit, GLREdit, GLRToken, IncrementalGLRParser},
     glr_lexer::TokenWithPosition,
     glr_parser::GLRParser,
 };
@@ -100,6 +100,14 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
         let mut edited_tokens = tokens.clone();
         if edit_pos < edited_tokens.len() {
             edited_tokens.remove(edit_pos);
+            // Fix byte positions for subsequent tokens
+            // The edit removes 1 byte (from edit_pos*2 to edit_pos*2+1).
+            // But wait, the implicit space is at edit_pos*2+1.
+            // If we remove "a" (length 1), the subsequent text shifts by 1.
+            for token in edited_tokens.iter_mut().skip(edit_pos) {
+                token.start_byte -= 1;
+                token.end_byte -= 1;
+            }
         }
 
         let edit = Edit {
@@ -119,15 +127,29 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
                         let mut incremental =
                             IncrementalGLRParser::new((*grammar).clone(), parse_table.clone());
                         let tree = incremental.parse_incremental(orig_tokens, &[]);
-                        (incremental, tree)
+
+                        // Construct GLREdit if we have a tree
+                        let glr_edit = if let Ok(tree) = &tree {
+                            Some(GLREdit {
+                                old_range: edit.start_byte..edit.old_end_byte,
+                                new_text: vec![], // We removed 'a'
+                                old_token_range: (edit_pos)..(edit_pos + 1), // Removed one token
+                                new_tokens: vec![], // No replacing tokens
+                                old_tokens: orig_tokens.clone(),
+                                old_forest: Some(tree.clone()),
+                            })
+                        } else {
+                            None
+                        };
+
+                        (incremental, glr_edit)
                     },
-                    |(mut incremental, tree)| {
-                        if let Ok(tree) = tree {
+                    |(mut incremental, glr_edit)| {
+                        if let Some(glr_edit) = glr_edit {
                             // Benchmark: reparse with edit
-                            // TODO: Fix incremental parsing API
                             let _ = incremental.parse_incremental(
                                 black_box(new_tokens),
-                                black_box(&[]), // Temporarily disable edits
+                                black_box(&[glr_edit]),
                             );
                         }
                     },
@@ -135,29 +157,6 @@ fn benchmark_incremental_parsing(c: &mut Criterion) {
                 );
             },
         );
-
-        // Print reuse stats for debugging
-        if *size <= 50 {
-            let glr_parser = GLRParser::new(parse_table.clone(), (*grammar).clone());
-            let mut incremental = IncrementalGLRParser::new(glr_parser, grammar.clone());
-
-            if let Ok(tree) = incremental.parse_incremental(&tokens, &[]) {
-                let _ = incremental.parse_incremental(&edited_tokens, &[edit]);
-                // TODO: stats() method no longer exists
-                // let stats = incremental.stats();
-                // println!(
-                //     "Size {}: Reused {} bytes out of {} ({:.1}%)",
-                //     size,
-                //     stats.bytes_reused,
-                //     stats.total_bytes,
-                //     if stats.total_bytes > 0 {
-                //         (stats.bytes_reused as f64 / stats.total_bytes as f64) * 100.0
-                //     } else {
-                //         0.0
-                //     }
-                // );
-            }
-        }
     }
 
     group.finish();
