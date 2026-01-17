@@ -6,7 +6,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
-rust-sitter-glr-core = { path = "../glr-core" }
+rust-sitter-glr-core = { path = "../glr-core", features = ["test-helpers"] }
 rust-sitter-ir = { path = "../ir" }
 
 [features]

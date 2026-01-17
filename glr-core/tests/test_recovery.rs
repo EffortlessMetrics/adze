@@ -243,16 +243,16 @@ fn test_empty_object_with_recovery() {
 
     // TODO: Verify no error nodes were created
     // debug_error_stats method needs to be implemented on Forest
-    // #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
-    // {
-    //     let (has_error, missing, cost) = forest.debug_error_stats();
-    //     assert!(!has_error, "Valid JSON '{{}}' must have no error chunks");
-    //     assert_eq!(
-    //         missing, 0,
-    //         "Valid JSON '{{}}' must not insert missing terminals"
-    //     );
-    //     assert_eq!(cost, 0, "Valid JSON '{{}}' must have zero error cost");
-    // }
+    #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
+    {
+        let (has_error, missing, cost) = forest.debug_error_stats();
+        assert!(!has_error, "Valid JSON '{{}}' must have no error chunks");
+        assert_eq!(
+            missing, 0,
+            "Valid JSON '{{}}' must not insert missing terminals"
+        );
+        assert_eq!(cost, 0, "Valid JSON '{{}}' must have zero error cost");
+    }
 }
 
 #[test]
@@ -376,16 +376,16 @@ fn test_valid_json_no_errors() {
 
             // TODO: Verify no error nodes were created using debug_error_stats
             // debug_error_stats method needs to be implemented on Forest
-            // #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
-            // {
-            //     let (has_error, missing, cost) = forest.debug_error_stats();
-            //     assert!(!has_error, "Valid JSON '{{}}' must have no error chunks");
-            //     assert_eq!(
-            //         missing, 0,
-            //         "Valid JSON '{{}}' must not insert missing terminals"
-            //     );
-            //     assert_eq!(cost, 0, "Valid JSON '{{}}' must have zero error cost");
-            // }
+            #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
+            {
+                let (has_error, missing, cost) = forest.debug_error_stats();
+                assert!(!has_error, "Valid JSON '{{}}' must have no error chunks");
+                assert_eq!(
+                    missing, 0,
+                    "Valid JSON '{{}}' must not insert missing terminals"
+                );
+                assert_eq!(cost, 0, "Valid JSON '{{}}' must have zero error cost");
+            }
         }
     }
 
@@ -413,19 +413,19 @@ fn test_valid_json_no_errors() {
         let result = driver.parse_streaming("[]", lexer, None::<fn(&str, usize, &[bool], _) -> _>);
         assert!(result.is_ok(), "Empty array should parse without errors");
 
-        if let Ok(_forest) = result {
+        if let Ok(forest) = result {
             // TODO: Verify no error nodes were created using debug_error_stats
             // debug_error_stats method needs to be implemented on Forest
-            // #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
-            // {
-            //     let (has_error, missing, cost) = forest.debug_error_stats();
-            //     assert!(!has_error, "Valid JSON '[]' must have no error chunks");
-            //     assert_eq!(
-            //         missing, 0,
-            //         "Valid JSON '[]' must not insert missing terminals"
-            //     );
-            //     assert_eq!(cost, 0, "Valid JSON '[]' must have zero error cost");
-            // }
+            #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
+            {
+                let (has_error, missing, cost) = forest.debug_error_stats();
+                assert!(!has_error, "Valid JSON '[]' must have no error chunks");
+                assert_eq!(
+                    missing, 0,
+                    "Valid JSON '[]' must not insert missing terminals"
+                );
+                assert_eq!(cost, 0, "Valid JSON '[]' must have zero error cost");
+            }
         }
     }
 
@@ -439,7 +439,6 @@ fn test_valid_json_no_errors() {
 }
 
 #[test]
-#[ignore] // debug_error_stats method needs to be implemented
 fn test_gentle_errors_bounded_recovery() {
     // Test B: Gentle errors should recover with bounded cost
     let (_grammar, mut table) = create_test_grammar();
@@ -487,13 +486,13 @@ fn test_gentle_errors_bounded_recovery() {
 
                 // Check that error_cost is bounded (≤ beam width)
                 // TODO: Implement debug_error_stats method on Forest
-                // let (has_error, _missing, cost) = forest.debug_error_stats();
-                // assert!(has_error, "Malformed input should have error markers");
-                // assert!(
-                //     cost <= rust_sitter_glr_core::Driver::RECOVERY_BEAM + 1,
-                //     "Recovery cost {} should be bounded by beam width",
-                //     cost
-                // );
+                let (has_error, _missing, cost) = forest.debug_error_stats();
+                assert!(has_error, "Malformed input should have error markers");
+                assert!(
+                    cost <= rust_sitter_glr_core::Driver::RECOVERY_BEAM + 1,
+                    "Recovery cost {} should be bounded by beam width",
+                    cost
+                );
             }
             Err(_) => {
                 // Acceptable if recovery can't handle this case
@@ -610,7 +609,6 @@ fn test_gentle_errors_bounded_recovery() {
 }
 
 #[test]
-#[ignore] // debug_error_stats method needs to be implemented
 fn test_cell_parity_after_lbrace() {
     // Create a JSON grammar and parse table
     let (_grammar, table) = create_test_grammar();
@@ -682,13 +680,13 @@ fn test_cell_parity_after_lbrace() {
 
     if let Ok(forest) = result {
         // TODO: Implement debug_error_stats method on Forest
-        // let (has_error, missing, cost) = forest.debug_error_stats();
-        // assert!(!has_error, "Valid JSON '{{}}' must have no error chunks");
-        // assert_eq!(
-        //     missing, 0,
-        //     "Valid JSON '{{}}' must not insert missing terminals"
-        // );
-        // assert_eq!(cost, 0, "Valid JSON '{{}}' must have zero error cost");
+        let (has_error, missing, cost) = forest.debug_error_stats();
+        assert!(!has_error, "Valid JSON '{{}}' must have no error chunks");
+        assert_eq!(
+            missing, 0,
+            "Valid JSON '{{}}' must not insert missing terminals"
+        );
+        assert_eq!(cost, 0, "Valid JSON '{{}}' must have zero error cost");
     }
 }
 
