@@ -225,8 +225,8 @@ impl<'t> Driver<'t> {
             let token_end = lookahead.end as usize;
 
             // Process all stacks with this token
-            let prev_stacks = state.stacks.clone(); // Keep snapshot for recovery
-            state.stacks.clear(); // Clear for filling with new_stacks
+            let prev_stacks = std::mem::take(&mut state.stacks); // Take ownership to avoid clone
+            // state.stacks is now empty, ready for filling with new_stacks
             let mut new_stacks = Vec::new();
             let mut has_any_real_action = false;
 
@@ -458,8 +458,8 @@ impl<'t> Driver<'t> {
             debug_assert!(kind <= u16::MAX as u32, "terminal id overflow");
             let lookahead = SymbolId(kind as u16);
 
-            let prev_stacks = state.stacks.clone(); // Keep snapshot for recovery
-            state.stacks.clear(); // Clear for filling with new_stacks
+            let prev_stacks = std::mem::take(&mut state.stacks); // Take ownership to avoid clone
+            // state.stacks is now empty, ready for filling with new_stacks
             let mut new_stacks = Vec::with_capacity(prev_stacks.len());
 
             for mut stk in prev_stacks.iter().cloned() {
@@ -877,8 +877,8 @@ impl<'t> Driver<'t> {
         let mut progressed = false;
         let mut next = Vec::new();
 
-        // Clone stacks to avoid borrow issues
-        let stacks = state.stacks.clone();
+        // Take stacks to avoid clone
+        let stacks = std::mem::take(&mut state.stacks);
 
         for stk in &stacks {
             let top = *stk.states.last().unwrap();
@@ -958,6 +958,9 @@ impl<'t> Driver<'t> {
 
         if progressed {
             state.stacks = Self::prune_by_cost(next);
+        } else {
+            // Restore stacks if no progress
+            state.stacks = stacks;
         }
         Ok(progressed)
     }
@@ -979,7 +982,7 @@ impl<'t> Driver<'t> {
                 stk.error_cost = stk.error_cost.saturating_add(1);
                 stk.pos = *pos;
             }
-            state.stacks = Self::prune_by_cost(state.stacks.clone());
+            state.stacks = Self::prune_by_cost(std::mem::take(&mut state.stacks));
             true
         } else {
             false
