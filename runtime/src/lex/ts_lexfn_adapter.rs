@@ -65,7 +65,7 @@ unsafe extern "C" fn mark_end(lex: *mut TsLexer) {
 /// Adapter that exposes Tree-sitter's C-style lexing API over a byte slice.
 pub struct TsLexFnAdapter<'a> {
     lang_lex: unsafe extern "C" fn(*mut c_void, TSLexState) -> bool,
-    backing: Backing<'a>,
+    backing: Box<Backing<'a>>,
     ts: TsLexer,
     state_tag: TSLexState,
     // cache of last token
@@ -78,33 +78,31 @@ impl<'a> TsLexFnAdapter<'a> {
         input: &'a [u8],
         lang_lex: unsafe extern "C" fn(*mut c_void, TSLexState) -> bool,
     ) -> Self {
-        let backing = Backing {
+        let mut backing = Box::new(Backing {
             input,
             pos: 0,
             mark: 0,
             tok_len: 0,
-        };
+        });
+
+        let backing_ptr = &mut *backing as *mut Backing as *mut c_void;
+
         // create TsLexer pointing to backing
         let ts = TsLexer {
             lookahead,
             advance,
             mark_end,
             result_symbol: u16::MAX,
-            data: std::ptr::null_mut(), // will be set below
+            data: backing_ptr,
         };
 
-        let mut adapter = Self {
+        Self {
             lang_lex,
             backing,
             ts,
             state_tag: TSLexState(0),
             look: None,
-        };
-
-        // Now set the data pointer to our backing
-        adapter.ts.data = &mut adapter.backing as *mut _ as *mut c_void;
-
-        adapter
+        }
     }
 
     fn next_internal(&mut self) -> Option<Token> {
@@ -129,8 +127,12 @@ impl<'a> TsLexFnAdapter<'a> {
         self.backing.tok_len = 0;
         self.ts.result_symbol = u16::MAX;
 
-        // Update the data pointer to ensure it's pointing to our backing
-        self.ts.data = &mut self.backing as *mut _ as *mut c_void;
+        // Note: self.ts.data already points to self.backing (on heap),
+        // so it remains valid even if self is moved. We don't need to update it here.
+        // However, for extra safety in case someone manually messed with it, we *could* update it,
+        // but since backing is Boxed, we would need to do:
+        // self.ts.data = &mut *self.backing as *mut _ as *mut c_void;
+        // Since it's stable, we can rely on initialization.
 
         // Call the language lexer
         let ok = unsafe { (self.lang_lex)(&mut self.ts as *mut _ as *mut c_void, self.state_tag) };
