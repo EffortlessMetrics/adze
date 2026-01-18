@@ -45,10 +45,20 @@
             flex-direction: column;
         }
         
-        label {
+        label, .section-header {
             font-weight: bold;
             margin-bottom: 5px;
             color: #444;
+        }
+
+        .section-header {
+            font-size: 1rem;
+            margin-top: 0;
+        }
+
+        .control-label {
+            margin-right: 10px;
+            margin-bottom: 0;
         }
         
         textarea {
@@ -84,6 +94,7 @@
             gap: 10px;
             margin-bottom: 20px;
             justify-content: center;
+            align-items: center;
         }
         
         button {
@@ -146,6 +157,7 @@
         <p class="subtitle">Pure Rust • WASM-Compatible • Generalized LR Parsing</p>
         
         <div class="controls">
+            <label for="language" class="control-label">Language:</label>
             <select id="language" class="language-select">
                 <option value="python">Python</option>
                 <option value="arithmetic">Arithmetic</option>
@@ -161,8 +173,8 @@
             </div>
             
             <div class="output-section">
-                <label>Parse Result:</label>
-                <div id="output" class="output">
+                <h2 class="section-header">Parse Result:</h2>
+                <div id="output" class="output" aria-live="polite">
                     <span class="loading">Loading WASM module...</span>
                 </div>
             </div>
