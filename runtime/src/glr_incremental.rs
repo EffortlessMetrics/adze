@@ -21,7 +21,7 @@
 //! - The incremental parser preserves all valid interpretations
 
 use crate::glr_parser::GLRParser;
-use crate::subtree::Subtree;
+use crate::subtree::{ChildEdge, Subtree, SubtreeNode};
 use rust_sitter_glr_core::ParseTable;
 use rust_sitter_ir::{Grammar, RuleId, SymbolId};
 use std::collections::{HashMap, HashSet};
@@ -1130,6 +1130,17 @@ impl IncrementalGLRParser {
             .or_else(|| Some(middle_forest.token_range.end))
             .unwrap_or(tokens.len());
 
+        // Convert prefix and suffix nodes to subtrees once
+        let prefix_subtrees: Vec<ChildEdge> = prefix_nodes
+            .iter()
+            .map(|n| ChildEdge::new_without_field(self.convert_forest_to_subtree(n)))
+            .collect();
+
+        let suffix_subtrees: Vec<ChildEdge> = suffix_nodes
+            .iter()
+            .map(|n| ChildEdge::new_without_field(self.convert_forest_to_subtree(n)))
+            .collect();
+
         // For each alternative in the middle forest, create a corresponding alternative
         // in the result forest that includes the prefix and suffix nodes
         let mut new_alternatives = Vec::new();
@@ -1141,6 +1152,22 @@ impl IncrementalGLRParser {
             all_children.extend(middle_alt.children.iter().cloned());
             all_children.extend(suffix_nodes.iter().cloned());
 
+            // Build the subtree children list: prefix + middle + suffix
+            let mut all_subtree_children = prefix_subtrees.clone();
+            all_subtree_children.extend(middle_alt.subtree.children.iter().cloned());
+            all_subtree_children.extend(suffix_subtrees.clone());
+
+            // Create a new subtree representing the spliced result
+            let new_subtree_node = SubtreeNode {
+                symbol_id: middle_forest.symbol,
+                is_error: false,
+                byte_range: combined_start..combined_end,
+            };
+
+            // Use new_with_fields to correctly propagate dynamic precedence
+            let new_subtree =
+                Arc::new(Subtree::new_with_fields(new_subtree_node, all_subtree_children));
+
             // Create a new alternative that preserves the middle alternative's fork_id
             // or creates a new one if needed
             let fork_id = middle_alt.fork_id;
@@ -1149,7 +1176,7 @@ impl IncrementalGLRParser {
                 fork_id,
                 rule_id: middle_alt.rule_id, // Preserve rule_id from middle
                 children: all_children,
-                subtree: middle_alt.subtree.clone(), // This might need adjustment in a full implementation
+                subtree: new_subtree,
             };
 
             new_alternatives.push(new_alternative);
@@ -1163,6 +1190,119 @@ impl IncrementalGLRParser {
             token_range: combined_token_start..combined_token_end,
             cached_subtree: None,
         })
+    }
+
+    /// Convert a ForestNode to a Subtree, correctly handling byte offsets
+    fn convert_forest_to_subtree(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
+        let target_start = node.byte_range.start;
+
+        // Try to use cached subtree
+        if let Some(cached) = &node.cached_subtree {
+            let offset = (target_start as isize) - (cached.node.byte_range.start as isize);
+            return self.shift_subtree(cached, offset);
+        }
+
+        // Fallback: reconstruct from children
+        if let Some(alt) = node.alternatives.first() {
+            if let Some(first_child) = alt.children.first() {
+                let children_offset =
+                    (node.byte_range.start as isize) - (first_child.byte_range.start as isize);
+
+                let subtree_node = SubtreeNode {
+                    symbol_id: node.symbol,
+                    is_error: false,
+                    byte_range: node.byte_range.clone(),
+                };
+
+                let children = alt
+                    .children
+                    .iter()
+                    .map(|child| {
+                        ChildEdge::new_without_field(
+                            self.rebuild_subtree_with_offset(child, children_offset),
+                        )
+                    })
+                    .collect();
+
+                return Arc::new(Subtree::new_with_fields(subtree_node, children));
+            }
+        }
+
+        // Leaf or empty
+        let subtree_node = SubtreeNode {
+            symbol_id: node.symbol,
+            is_error: false,
+            byte_range: node.byte_range.clone(),
+        };
+        Arc::new(Subtree::new(subtree_node, vec![]))
+    }
+
+    /// Rebuild a subtree from a node with an applied offset
+    fn rebuild_subtree_with_offset(&self, node: &Arc<ForestNode>, offset: isize) -> Arc<Subtree> {
+        if let Some(cached) = &node.cached_subtree {
+            return self.shift_subtree(cached, offset);
+        }
+
+        let mut new_range = node.byte_range.clone();
+        if offset != 0 {
+            new_range = self.shift_range(&new_range, offset);
+        }
+
+        let subtree_node = SubtreeNode {
+            symbol_id: node.symbol,
+            is_error: false,
+            byte_range: new_range,
+        };
+
+        let children = if let Some(alt) = node.alternatives.first() {
+            alt.children
+                .iter()
+                .map(|child| {
+                    ChildEdge::new_without_field(self.rebuild_subtree_with_offset(child, offset))
+                })
+                .collect()
+        } else {
+            vec![]
+        };
+
+        Arc::new(Subtree::new_with_fields(subtree_node, children))
+    }
+
+    /// Shift a subtree's byte ranges by an offset
+    fn shift_subtree(&self, subtree: &Arc<Subtree>, offset: isize) -> Arc<Subtree> {
+        if offset == 0 {
+            return subtree.clone();
+        }
+
+        let mut new_node = subtree.node.clone();
+        new_node.byte_range = self.shift_range(&new_node.byte_range, offset);
+
+        let new_children: Vec<ChildEdge> = subtree
+            .children
+            .iter()
+            .map(|edge| ChildEdge {
+                subtree: self.shift_subtree(&edge.subtree, offset),
+                field_id: edge.field_id,
+            })
+            .collect();
+
+        // Also shift alternatives!
+        let mut new_subtree = Subtree::new_with_fields(new_node, new_children);
+
+        // Copy dynamic precedence
+        new_subtree.dynamic_prec = subtree.dynamic_prec;
+
+        // Handle alternatives
+        for alt in &subtree.alternatives {
+            new_subtree.alternatives.push(self.shift_subtree(alt, offset));
+        }
+
+        Arc::new(new_subtree)
+    }
+
+    /// Helper to shift a range
+    fn shift_range(&self, range: &Range<usize>, offset: isize) -> Range<usize> {
+        ((range.start as isize + offset) as usize)..((range.end as isize + offset) as usize)
     }
 
     /// Inject a reusable subtree into the parser, preserving ambiguity
@@ -1566,5 +1706,129 @@ mod tests {
         tracker.merge_forks(fork1, fork2, 100);
         assert!(tracker.fork_merges[&fork1].contains(&100));
         assert!(tracker.fork_merges[&fork2].contains(&100));
+    }
+
+    #[test]
+    fn test_ambiguity_splicing() {
+        use smallvec::SmallVec;
+
+        // Create dummy grammar/table
+        let grammar = Grammar::default();
+        let table = ParseTable::default();
+
+        let mut parser = IncrementalGLRParser::new(grammar, table);
+
+        // Create prefix node
+        let prefix_node = Arc::new(ForestNode {
+            symbol: SymbolId(1),
+            alternatives: vec![], // Leaf-like
+            byte_range: 0..5,
+            token_range: 0..1,
+            cached_subtree: None,
+        });
+
+        // Create suffix node with cached subtree (to test shift)
+        // Suffix node is at 15..20
+        // Cached subtree is at 10..15 (so offset is +5)
+        let cached_suffix = Arc::new(Subtree {
+            node: SubtreeNode {
+                symbol_id: SymbolId(2),
+                is_error: false,
+                byte_range: 10..15,
+            },
+            dynamic_prec: 0,
+            children: vec![],
+            alternatives: SmallVec::new(),
+        });
+
+        let suffix_node = Arc::new(ForestNode {
+            symbol: SymbolId(2),
+            alternatives: vec![],
+            byte_range: 15..20,
+            token_range: 4..5,
+            cached_subtree: Some(cached_suffix),
+        });
+
+        // Create middle forest with ambiguity
+        // Two alternatives.
+        // Alt 1 subtree
+        let middle_subtree1 = Arc::new(Subtree {
+            node: SubtreeNode {
+                symbol_id: SymbolId(3),
+                is_error: false,
+                byte_range: 5..15,
+            },
+            dynamic_prec: 0,
+            children: vec![],
+            alternatives: SmallVec::new(),
+        });
+
+        // Alt 2 subtree
+        let middle_subtree2 = Arc::new(Subtree {
+            node: SubtreeNode {
+                symbol_id: SymbolId(3),
+                is_error: false,
+                byte_range: 5..15,
+            },
+            dynamic_prec: 0,
+            children: vec![],
+            alternatives: SmallVec::new(),
+        });
+
+        let alt1 = ForkAlternative {
+            fork_id: 1,
+            rule_id: None,
+            children: vec![], // Empty children for simplicity
+            subtree: middle_subtree1,
+        };
+
+        let alt2 = ForkAlternative {
+            fork_id: 2,
+            rule_id: None,
+            children: vec![],
+            subtree: middle_subtree2,
+        };
+
+        let middle_forest = Arc::new(ForestNode {
+            symbol: SymbolId(0), // Start symbol
+            alternatives: vec![alt1, alt2],
+            byte_range: 5..15,
+            token_range: 1..4,
+            cached_subtree: None,
+        });
+
+        let tokens = vec![]; // Dummy tokens
+
+        // Splice
+        let result = parser.splice_forests(
+            vec![prefix_node],
+            middle_forest,
+            vec![suffix_node],
+            &tokens,
+        );
+
+        // Assertions
+        // 1. Check alternatives count
+        assert_eq!(result.alternatives.len(), 2);
+        // 2. Check byte range
+        assert_eq!(result.byte_range, 0..20);
+
+        // 3. Check alternative 1
+        let res_alt1 = &result.alternatives[0];
+        // Children should be: prefix(1) + middle_alt1_children(0) + suffix(1) = 2
+        assert_eq!(res_alt1.children.len(), 2);
+        // Subtree should have same children
+        assert_eq!(res_alt1.subtree.children.len(), 2);
+        assert_eq!(res_alt1.subtree.node.byte_range, 0..20);
+
+        // Check first child of subtree (prefix)
+        let child0 = &res_alt1.subtree.children[0];
+        assert_eq!(child0.subtree.node.byte_range, 0..5);
+
+        // Check second child of subtree (suffix)
+        let child1 = &res_alt1.subtree.children[1];
+        // Suffix should be shifted to 15..20 (it was already 15..20 in ForestNode,
+        // but cached_subtree was 10..15. convert_forest_to_subtree should have shifted it)
+        assert_eq!(child1.subtree.node.byte_range, 15..20);
     }
 }
