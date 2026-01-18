@@ -31,7 +31,7 @@ pub fn v4_tree_to_forest<'arena>(tree: &V4Tree<'arena>) -> Arc<ForestNode> {
 ///
 /// TODO(Phase 2 Day 5): Update for Tree<'arena>
 #[allow(unused_variables)]
-pub fn forest_to_v4_tree<'arena>(forest: &ForestNode) -> V4Tree<'arena> {
+pub fn forest_to_v4_tree<'arena>(forest: &ForestNode, source: String) -> V4Tree<'arena> {
     // TODO(Phase 2 Day 5): Construct Tree<'arena> with NodeHandle
     // This function needs to allocate nodes in an arena and construct
     // a Tree with proper root handle and arena reference
@@ -42,10 +42,16 @@ pub fn forest_to_v4_tree<'arena>(forest: &ForestNode) -> V4Tree<'arena> {
 fn count_errors_in_forest(forest: &ForestNode) -> usize {
     let mut error_count = 0;
 
+    if forest.is_error {
+        error_count += 1;
+    }
+
     // For simplicity, just check the first alternative
     if let Some(alt) = forest.alternatives.first() {
         if alt.subtree.is_error() {
-            error_count += 1;
+             // Subtree already counts errors? No, SubtreeNode has is_error.
+             // But if forest node is error, we counted it.
+             // If children have errors, we need to recurse.
         }
         // Recursively count errors in children
         for child in &alt.children {
@@ -85,6 +91,7 @@ mod tests {
         let subtree = Arc::new(Subtree::new(subtree_node, vec![]));
         let _forest = ForestNode {
             symbol: SymbolId(42),
+            is_error: false,
             alternatives: vec![ForkAlternative {
                 fork_id: 0,
                 rule_id: None,
@@ -97,7 +104,7 @@ mod tests {
         };
 
         // TODO: Implement forest_to_v4_tree and update test
-        // let v4_tree = forest_to_v4_tree(&forest);
+        // let v4_tree = forest_to_v4_tree(&forest, "test".to_string());
         // assert_eq!(v4_tree.error_count(), 0);
     }
 }

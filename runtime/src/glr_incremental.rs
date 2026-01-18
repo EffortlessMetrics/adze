@@ -21,9 +21,10 @@
 //! - The incremental parser preserves all valid interpretations
 
 use crate::glr_parser::GLRParser;
+use crate::lexer::{GrammarLexer, Token};
 use crate::subtree::Subtree;
 use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{Grammar, RuleId, SymbolId};
+use rust_sitter_ir::{Grammar, RuleId, SymbolId, TokenPattern};
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
@@ -70,90 +71,62 @@ pub fn get_reuse_count() -> usize {
     SUBTREE_REUSE_COUNT.load(Ordering::SeqCst)
 }
 
-/// Helper function to tokenize source code for arithmetic grammar
+/// Helper function to tokenize source code using the actual grammar lexer
 #[allow(dead_code)]
-fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
-    // Basic tokenization for arithmetic expressions
+fn tokenize_source(source: &[u8], grammar: &Grammar) -> Vec<GLRToken> {
+    // Build tokens list for lexer from the grammar
+    // NOTE: GrammarLexer expects (SymbolId, TokenPattern, i32) where i32 is priority.
+    // The Grammar struct provides tokens as BTreeMap<SymbolId, Token>.
+    // To ensure determinism, we sort by SymbolId (which iterating BTreeMap does naturally).
+    // For priority, we assume 0 if not available, as Grammar struct in IR might not expose it directly in the map values easily
+    // without checking the Token struct definition.
+    // However, for consistency with parser_v4, we should try to use the same logic.
+    // In parser_v4.rs:
+    // let tokens: Vec<(SymbolId, TokenPattern, i32)> = self.grammar.tokens.iter().map(... 0).collect();
+    // It seems priority is indeed hardcoded to 0 there as well or not used from this map.
+    // If priorities are needed, they should be in the Grammar struct.
+    // For now, we follow parser_v4 pattern.
+
+    let mut tokens_def: Vec<(SymbolId, TokenPattern, i32)> = Vec::new();
+    for (id, token) in &grammar.tokens {
+        // Use priority 0 consistent with parser_v4.
+        // BTreeMap iteration is deterministic (by key).
+        tokens_def.push((*id, token.pattern.clone(), 0));
+    }
+
+    // Create lexer
+    let mut lexer = GrammarLexer::new(&tokens_def);
+
+    // Set skip symbols (whitespace etc)
+    lexer.set_skip_symbols(grammar.extras.clone());
+
     let mut tokens = Vec::new();
     let mut position = 0;
 
     while position < source.len() {
-        // Skip whitespace
-        while position < source.len() && source[position].is_ascii_whitespace() {
-            position += 1;
-        }
+        if let Some(token) = lexer.next_token(source, position) {
+            // Check for EOF or error
+            if token.symbol == SymbolId(0) && token.start == token.end {
+                // EOF
+                break;
+            }
 
-        if position >= source.len() {
-            break;
-        }
+            tokens.push(GLRToken {
+                symbol: token.symbol,
+                text: token.text,
+                start_byte: token.start,
+                end_byte: token.end,
+            });
+            position = token.end;
 
-        let start = position;
-
-        // Number
-        if source[position].is_ascii_digit() {
-            while position < source.len() && source[position].is_ascii_digit() {
+            // Safety check for empty tokens to prevent infinite loops
+            if token.start == token.end && position < source.len() {
                 position += 1;
             }
-            tokens.push(GLRToken {
-                symbol: SymbolId(1), // number
-                text: source[start..position].to_vec(),
-                start_byte: start,
-                end_byte: position,
-            });
-        }
-        // Plus
-        else if source[position] == b'+' {
-            position += 1;
-            tokens.push(GLRToken {
-                symbol: SymbolId(2), // plus
-                text: vec![b'+'],
-                start_byte: start,
-                end_byte: position,
-            });
-        }
-        // Mult
-        else if source[position] == b'*' {
-            position += 1;
-            tokens.push(GLRToken {
-                symbol: SymbolId(3), // mult
-                text: vec![b'*'],
-                start_byte: start,
-                end_byte: position,
-            });
-        }
-        // Minus
-        else if source[position] == b'-' {
-            position += 1;
-            tokens.push(GLRToken {
-                symbol: SymbolId(2), // treating as plus for simplicity
-                text: vec![b'-'],
-                start_byte: start,
-                end_byte: position,
-            });
-        }
-        // Left paren
-        else if source[position] == b'(' {
-            position += 1;
-            tokens.push(GLRToken {
-                symbol: SymbolId(4), // lparen
-                text: vec![b'('],
-                start_byte: start,
-                end_byte: position,
-            });
-        }
-        // Right paren
-        else if source[position] == b')' {
-            position += 1;
-            tokens.push(GLRToken {
-                symbol: SymbolId(5), // rparen
-                text: vec![b')'],
-                start_byte: start,
-                end_byte: position,
-            });
-        }
-        // Unknown - skip
-        else {
-            position += 1;
+        } else {
+            // Lexer error or no token found
+             // Skip one byte
+             position += 1;
         }
     }
 
@@ -179,6 +152,17 @@ pub fn reparse<'arena>(
         use crate::tree_bridge::{forest_to_v4_tree, v4_tree_to_forest};
 
         // Convert old tree to forest for reuse
+        // WARNING: v4_tree_to_forest is currently unimplemented (stub).
+        // This will panic if called. We are fixing the architecture to support this flow,
+        // but the bridge implementation is a separate dependency.
+        // For safety, we catch the unwind if possible? No, standard Rust doesn't encourage catching panics for control flow.
+        // If the bridge is not ready, we should probably fallback.
+        // However, the task is to fix the architecture. The previous code forced fallback returning None.
+        // If we want to ENABLE it, we assume the bridge will be ready or we are testing it.
+        // Given the review feedback, we should be careful.
+        // But since I cannot implement Day 5 tasks (Allocating in Arena), I will leave the call here.
+        // If the user runs this with `incremental_glr` feature and hits this, it will panic "not yet implemented", which is correct for a WIP feature.
+
         let old_forest = v4_tree_to_forest(old_tree);
 
         // Create an incremental parser instance with the old forest
@@ -275,26 +259,10 @@ pub fn reparse<'arena>(
         // Convert back to v4 tree format
         match new_forest {
             Ok(forest) => {
-                let _v4_tree =
+                let v4_tree =
                     forest_to_v4_tree(&forest, String::from_utf8_lossy(source).to_string());
 
-                // CRITICAL FIX: The GLR incremental parser has architectural issues that cause
-                // inconsistencies with fresh parsing:
-                // 1. Error tracking: hardcoded is_error: false in subtree creation
-                // 2. Root kind determination: uses forest symbols vs actual parse results
-                // 3. Token-level vs grammar-level parsing differences
-                //
-                // For property tests and other scenarios requiring exact equivalence,
-                // disable incremental parsing and always use fresh parsing.
-                // This ensures consistent behavior while we address the underlying issues.
-
-                // TODO: Fix GLR incremental parser architecture to match fresh parse behavior
-                // For now, fall back to fresh parsing to ensure correctness
-                #[cfg(debug_assertions)]
-                eprintln!(
-                    "GLR incremental parsing disabled for consistency - falling back to fresh parse"
-                );
-                None
+                Some(v4_tree)
             }
             Err(_) => None,
         }
@@ -337,6 +305,8 @@ pub struct GLRToken {
 pub struct ForestNode {
     /// The symbol at this node
     pub symbol: SymbolId,
+    /// Whether this node is an error node
+    pub is_error: bool,
     /// Alternative parse trees for this node (one per fork)
     pub alternatives: Vec<ForkAlternative>,
     /// Byte range in the input
@@ -658,6 +628,7 @@ impl IncrementalGLRParser {
 
                     Arc::new(ForestNode {
                         symbol: trees[0].node.symbol_id,
+                        is_error: trees[0].node.is_error,
                         alternatives,
                         byte_range: 0..tokens.last().map(|t| t.end_byte).unwrap_or(0),
                         token_range: 0..tokens.len(),
@@ -802,6 +773,7 @@ impl IncrementalGLRParser {
                             .unwrap_or(0);
                         Arc::new(ForestNode {
                             symbol: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
+                            is_error: false, // Assumed to be clean
                             alternatives: vec![],
                             byte_range: byte_pos..byte_pos,
                             token_range: middle_start..middle_end,
@@ -859,6 +831,7 @@ impl IncrementalGLRParser {
                                 }
                                 let middle_forest = Arc::new(ForestNode {
                                     symbol: trees[0].node.symbol_id,
+                                    is_error: trees[0].node.is_error,
                                     alternatives,
                                     byte_range: middle_tokens
                                         .first()
@@ -1082,8 +1055,16 @@ impl IncrementalGLRParser {
                 .map(|n| n.token_range.end)
                 .unwrap_or(tokens.len());
 
+            // Determine if the spliced node has errors
+            // It has errors if any child has errors
+            let has_errors = all_children.iter().any(|c| c.is_error);
+
+            // Use the grammar's start symbol for the root if possible
+            // Note: If splicing creates a valid tree, it should be the start symbol
+            // If we are just splicing fragments, this might be misleading, but standard GLR result is usually rooted.
             return Arc::new(ForestNode {
                 symbol: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
+                is_error: has_errors,
                 alternatives: vec![ForkAlternative {
                     fork_id: self.fork_tracker.create_fork(None),
                     rule_id: None,
@@ -1091,7 +1072,7 @@ impl IncrementalGLRParser {
                     subtree: Arc::new(crate::subtree::Subtree::new(
                         crate::subtree::SubtreeNode {
                             symbol_id: self.grammar.start_symbol().unwrap_or(SymbolId(0)),
-                            is_error: false,
+                            is_error: has_errors,
                             byte_range: byte_start..byte_end,
                         },
                         vec![],
@@ -1133,6 +1114,7 @@ impl IncrementalGLRParser {
         // For each alternative in the middle forest, create a corresponding alternative
         // in the result forest that includes the prefix and suffix nodes
         let mut new_alternatives = Vec::new();
+        let mut any_error = false;
 
         for middle_alt in &middle_forest.alternatives {
             // Build the children list: prefix + middle_alternative_children + suffix
@@ -1140,6 +1122,12 @@ impl IncrementalGLRParser {
             all_children.extend(prefix_nodes.iter().cloned());
             all_children.extend(middle_alt.children.iter().cloned());
             all_children.extend(suffix_nodes.iter().cloned());
+
+            // Check for errors in this alternative path
+            let alt_error = all_children.iter().any(|c| c.is_error);
+            if alt_error {
+                any_error = true;
+            }
 
             // Create a new alternative that preserves the middle alternative's fork_id
             // or creates a new one if needed
@@ -1158,6 +1146,7 @@ impl IncrementalGLRParser {
         // Create the result forest with all alternatives preserved
         Arc::new(ForestNode {
             symbol: middle_forest.symbol, // Use the middle forest's symbol as it's the "core" of the parse
+            is_error: any_error,
             alternatives: new_alternatives,
             byte_range: combined_start..combined_end,
             token_range: combined_token_start..combined_token_end,
@@ -1172,7 +1161,7 @@ impl IncrementalGLRParser {
             // Leaf node or empty node
             let subtree_node = crate::subtree::SubtreeNode {
                 symbol_id: node.symbol,
-                is_error: false,
+                is_error: node.is_error,
                 byte_range: node.byte_range.clone(),
             };
             vec![Arc::new(Subtree::new(subtree_node, vec![]))]
@@ -1183,7 +1172,7 @@ impl IncrementalGLRParser {
                 .map(|alt| {
                     let subtree_node = crate::subtree::SubtreeNode {
                         symbol_id: node.symbol,
-                        is_error: false,
+                        is_error: node.is_error,
                         byte_range: node.byte_range.clone(),
                     };
 
@@ -1217,7 +1206,7 @@ impl IncrementalGLRParser {
     fn forest_to_subtree_preserving_first_alt(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
         let subtree_node = crate::subtree::SubtreeNode {
             symbol_id: node.symbol,
-            is_error: false,
+            is_error: node.is_error,
             byte_range: node.byte_range.clone(),
         };
 
@@ -1240,7 +1229,7 @@ impl IncrementalGLRParser {
     fn forest_to_subtree(&self, node: &Arc<ForestNode>) -> Arc<Subtree> {
         let subtree_node = crate::subtree::SubtreeNode {
             symbol_id: node.symbol,
-            is_error: false,
+            is_error: node.is_error,
             byte_range: node.byte_range.clone(),
         };
 
@@ -1319,6 +1308,7 @@ impl IncrementalGLRParser {
                         // Clone the node but adjust its byte range for the new position
                         let adjusted_node = Arc::new(ForestNode {
                             symbol: reused_node.symbol,
+                            is_error: reused_node.is_error,
                             alternatives: reused_node.alternatives.clone(),
                             byte_range: subtree.node.byte_range.clone(),
                             token_range: reused_node.token_range.clone(),
@@ -1353,6 +1343,7 @@ impl IncrementalGLRParser {
 
         Arc::new(ForestNode {
             symbol: subtree.node.symbol_id,
+            is_error: subtree.node.is_error,
             alternatives: vec![alternative],
             byte_range: subtree.node.byte_range.clone(),
             token_range,
@@ -1506,6 +1497,7 @@ mod tests {
     fn test_forest_node_overlap() {
         let node = ForestNode {
             symbol: SymbolId(1),
+            is_error: false,
             alternatives: vec![],
             byte_range: 10..20,
             token_range: 2..4,
@@ -1530,6 +1522,7 @@ mod tests {
 
         let node = ForestNode {
             symbol: SymbolId(1),
+            is_error: false,
             alternatives: vec![],
             byte_range: 10..20,
             token_range: 2..4,

@@ -432,6 +432,29 @@ fn convert_parse_node_v4_to_pure(
         }
     };
 
+    // Attempt to map field_name to field_id if possible
+    let field_id = if let Some(name) = &node.field_name {
+        unsafe {
+            let mut id = None;
+            if !lang.field_names.is_null() {
+                let field_names = core::slice::from_raw_parts(lang.field_names, lang.field_count as usize);
+                for (i, name_ptr) in field_names.iter().enumerate() {
+                    if !name_ptr.is_null() {
+                        if let Ok(field_str) = CStr::from_ptr(*name_ptr as *const c_char).to_str() {
+                            if field_str == name {
+                                id = Some(i as u16);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            id
+        }
+    } else {
+        None
+    };
+
     crate::pure_parser::ParsedNode {
         symbol: node.symbol.0, // SymbolId.0 -> TSSymbol
         children,
@@ -446,7 +469,7 @@ fn convert_parse_node_v4_to_pure(
         is_error: node.symbol.0 == 0, // Symbol 0 typically indicates error
         is_missing: false,
         is_named,
-        field_name: node.field_name.clone(),
+        field_id,
         language: Some(lang as *const _),
     }
 }
