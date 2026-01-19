@@ -146,11 +146,11 @@
         <p class="subtitle">Pure Rust • WASM-Compatible • Generalized LR Parsing</p>
         
         <div class="controls">
-            <select id="language" class="language-select">
+            <select id="language" class="language-select" aria-label="Select Language">
                 <option value="python">Python</option>
                 <option value="arithmetic">Arithmetic</option>
             </select>
-            <button onclick="parseCode()">Parse</button>
+            <button onclick="parseCode()" title="Parse (Ctrl+Enter)">Parse</button>
             <button onclick="loadExample()">Load Example</button>
         </div>
         
@@ -162,7 +162,7 @@
             
             <div class="output-section">
                 <label>Parse Result:</label>
-                <div id="output" class="output">
+                <div id="output" class="output" aria-live="polite">
                     <span class="loading">Loading WASM module...</span>
                 </div>
             </div>
@@ -245,6 +245,14 @@ for i in range(10):
                 inputEl.value = `1 + 2 * 3 + 4 * 5 + 6 * 7`;
             }
         };
+
+        // Keyboard shortcuts
+        document.getElementById('input').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                parseCode();
+            }
+        });
         
         // Load WASM on page load
         loadWasm();
