@@ -1184,7 +1184,10 @@ impl GLRParser {
 
             // Apply each reduce action
             let mut any_reduction_applied = false;
-            for (reduce_action, _) in reduces {
+            let num_reduces = reduces.len();
+            let mut stack_opt = Some(stack);
+
+            for (i, (reduce_action, _)) in reduces.into_iter().enumerate() {
                 let rule_id = match reduce_action {
                     Action::Reduce(rid) => rid,
                     _ => continue,
@@ -1196,13 +1199,14 @@ impl GLRParser {
 
                 // Only stamp epsilon reductions to prevent loops
                 if rhs_len == 0 {
-                    let (start_byte, end_byte) = if let Some(n) = stack.nodes.last() {
+                    let s = stack_opt.as_ref().expect("Stack should be present during iteration");
+                    let (start_byte, end_byte) = if let Some(n) = s.nodes.last() {
                         (n.node.byte_range.start, n.node.byte_range.end)
                     } else {
                         (lookahead_end, lookahead_end)
                     };
                     let stamp = RedStamp {
-                        state: stack.current_state(),
+                        state: s.current_state(),
                         rule: rule_id,
                         start: start_byte,
                         end: end_byte,
@@ -1223,8 +1227,25 @@ impl GLRParser {
 
                 debug_glr!("  Applying reduction: rule {}", rule_id.0);
 
-                // Fork the stack for this reduction
-                let mut reduced_stack = stack.fork(self.next_stack_id);
+                // Optimization: reuse the stack for the last reduction if possible
+                // We can reuse if this is the last reduction AND we don't need the original stack
+                // for shift/accept actions later.
+                let is_last = i == num_reduces - 1;
+                let can_reuse = is_last && !has_shift && !has_accept;
+
+                // Fork or reuse the stack for this reduction
+                let mut reduced_stack = if can_reuse {
+                    // Reuse the stack (move ownership)
+                    let mut s = stack_opt.take().expect("Stack missing for last reduction");
+                    s.id = self.next_stack_id;
+                    s
+                } else {
+                    // Clone the stack
+                    stack_opt
+                        .as_ref()
+                        .expect("Stack missing for fork")
+                        .fork(self.next_stack_id)
+                };
                 self.next_stack_id += 1;
 
                 // Apply the reduction (this will pop symbols and push via GOTO)
@@ -1260,7 +1281,9 @@ impl GLRParser {
             // If no reductions were applied from this stack and it has no shift/accept,
             // then this stack is fully saturated
             if !any_reduction_applied && !has_shift && !has_accept {
-                saturated_stacks.push(stack);
+                if let Some(s) = stack_opt {
+                    saturated_stacks.push(s);
+                }
             }
         }
 
