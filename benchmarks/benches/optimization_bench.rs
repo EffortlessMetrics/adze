@@ -1,5 +1,4 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::arena_allocator::{Arena, TypedArena};
 use rust_sitter::stack_pool::StackPool;
 
 fn benchmark_stack_pool(c: &mut Criterion) {
@@ -59,79 +58,12 @@ fn benchmark_stack_pool(c: &mut Criterion) {
     group.finish();
 }
 
-fn benchmark_arena_allocator(c: &mut Criterion) {
-    let mut group = c.benchmark_group("arena_allocator");
-
-    // Node allocation benchmark
-    #[derive(Clone)]
-    struct ParseNode {
-        #[allow(dead_code)]
-        symbol: u16,
-        #[allow(dead_code)]
-        start: usize,
-        #[allow(dead_code)]
-        end: usize,
-        #[allow(dead_code)]
-        children: Vec<usize>, // Indices instead of pointers for simplicity
-    }
-
-    group.bench_function("vec_allocation", |b| {
-        b.iter(|| {
-            let mut nodes = Vec::new();
-            for i in 0..1000 {
-                nodes.push(ParseNode {
-                    symbol: (i % 256) as u16,
-                    start: i * 10,
-                    end: i * 10 + 5,
-                    children: vec![],
-                });
-            }
-            black_box(nodes)
-        });
-    });
-
-    group.bench_function("arena_allocation", |b| {
-        let arena = Arena::new(256);
-        b.iter(|| {
-            let mut refs = Vec::new();
-            for i in 0..1000 {
-                let node = arena.alloc(ParseNode {
-                    symbol: (i % 256) as u16,
-                    start: i * 10,
-                    end: i * 10 + 5,
-                    children: vec![],
-                });
-                refs.push(node);
-            }
-            black_box(refs)
-        });
-    });
-
-    // Heterogeneous allocation benchmark
-    group.bench_function("typed_arena", |b| {
-        let arena = TypedArena::new(4096);
-        b.iter(|| unsafe {
-            let mut ptrs = Vec::new();
-            for i in 0..100 {
-                let i32_ptr = arena.alloc(i);
-                let f64_ptr = arena.alloc(i as f64);
-                let vec_ptr = arena.alloc(vec![i; 10]);
-                ptrs.push((i32_ptr, f64_ptr, vec_ptr));
-            }
-            black_box(ptrs)
-        });
-    });
-
-    group.finish();
-}
-
 fn benchmark_combined_optimizations(c: &mut Criterion) {
     let mut group = c.benchmark_group("combined_optimizations");
 
     // Simulate a parsing workload with both optimizations
     group.bench_function("parse_simulation", |b| {
         let pool = StackPool::new(32);
-        let arena = Arena::new(512);
 
         b.iter(|| {
             // Simulate parsing with forks
@@ -151,8 +83,7 @@ fn benchmark_combined_optimizations(c: &mut Criterion) {
                 }
 
                 // Allocate parse nodes
-                let node = arena.alloc(step);
-                nodes.push(node);
+                nodes.push(step);
 
                 // Update stack
                 stack.push(step);
@@ -217,7 +148,6 @@ fn benchmark_memory_patterns(c: &mut Criterion) {
 criterion_group!(
     benches,
     benchmark_stack_pool,
-    benchmark_arena_allocator,
     benchmark_combined_optimizations,
     benchmark_memory_patterns
 );
