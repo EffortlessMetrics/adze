@@ -84,6 +84,7 @@
             gap: 10px;
             margin-bottom: 20px;
             justify-content: center;
+            align-items: center;
         }
         
         button {
@@ -146,11 +147,12 @@
         <p class="subtitle">Pure Rust • WASM-Compatible • Generalized LR Parsing</p>
         
         <div class="controls">
-            <select id="language" class="language-select">
+            <label for="language">Language:</label>
+            <select id="language" class="language-select" onchange="loadExample()">
                 <option value="python">Python</option>
                 <option value="arithmetic">Arithmetic</option>
             </select>
-            <button onclick="parseCode()">Parse</button>
+            <button onclick="parseCode()" title="Press Ctrl+Enter to parse">Parse</button>
             <button onclick="loadExample()">Load Example</button>
         </div>
         
@@ -246,6 +248,14 @@ for i in range(10):
             }
         };
         
+        // Add keyboard shortcut
+        document.getElementById('input').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                parseCode();
+            }
+        });
+
         // Load WASM on page load
         loadWasm();
     </script>
