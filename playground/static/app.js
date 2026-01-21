@@ -164,7 +164,7 @@ class Playground {
 
     displayErrors(errors) {
         const errorList = errors.map(err => 
-            `<div class="error-item">Line ${err.line}, Column ${err.column}: ${err.message}</div>`
+            `<div class="error-item">Line ${err.line}, Column ${err.column}: ${this.escapeHtml(err.message)}</div>`
         ).join('');
         
         document.getElementById('error-list').innerHTML = errorList;
@@ -202,7 +202,7 @@ class Playground {
                 <div class="conflict-list">
                     ${analysis.conflicts.map(c => `
                         <div class="conflict-item">
-                            <strong>${c.kind}</strong> in state ${c.state}: ${c.description}
+                            <strong>${c.kind}</strong> in state ${c.state}: ${this.escapeHtml(c.description)}
                         </div>
                     `).join('')}
                 </div>
@@ -213,7 +213,7 @@ class Playground {
                 <div class="suggestion-list">
                     ${analysis.suggestions.map(s => `
                         <div class="suggestion-item ${s.level.toLowerCase()}">
-                            ${s.message}
+                            ${this.escapeHtml(s.message)}
                         </div>
                     `).join('')}
                 </div>
@@ -228,25 +228,54 @@ class Playground {
     }
 
     updateTestList() {
-        const html = this.tests.map(test => `
-            <div class="test-item">
-                <span>${test.name}</span>
-                <button onclick="playground.loadTest('${test.name}')">Load</button>
-            </div>
-        `).join('');
+        const container = document.getElementById('test-list');
+        container.innerHTML = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        this.tests.forEach(test => {
+            const div = document.createElement('div');
+            div.className = 'test-item';
+
+            const span = document.createElement('span');
+            span.textContent = test.name;
+            div.appendChild(span);
+
+            const btn = document.createElement('button');
+            btn.textContent = 'Load';
+            btn.addEventListener('click', () => this.loadTest(test.name));
+            div.appendChild(btn);
+
+            container.appendChild(div);
+        });
     }
 
     displayTestResults(results) {
-        const html = results.map(([test, result]) => `
-            <div class="test-item ${result.success ? 'pass' : 'fail'}">
-                <span>${test.name}</span>
-                <span>${result.success ? '✓ PASS' : '✗ FAIL'}</span>
-            </div>
-        `).join('');
+        const container = document.getElementById('test-list');
+        container.innerHTML = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        results.forEach(([test, result]) => {
+            const div = document.createElement('div');
+            div.className = `test-item ${result.success ? 'pass' : 'fail'}`;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = test.name;
+            div.appendChild(nameSpan);
+
+            const resultSpan = document.createElement('span');
+            resultSpan.textContent = result.success ? '✓ PASS' : '✗ FAIL';
+            div.appendChild(resultSpan);
+
+            container.appendChild(div);
+        });
+    }
+
+    escapeHtml(unsafe) {
+        if (unsafe == null) return '';
+        return String(unsafe)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     loadTest(name) {
