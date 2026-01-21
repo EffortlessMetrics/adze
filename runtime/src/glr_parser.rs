@@ -628,11 +628,19 @@ impl GLRParser {
                 // Process ALL actions in the cell without collapsing
                 // This ensures true GLR behavior by exploring all alternatives
                 let mut processed_any = false;
+                let action_count = action_cell.len();
+                let mut stack_opt = Some(stack);
 
-                for action in &action_cell {
+                for (idx, action) in action_cell.iter().enumerate() {
+                    let is_last_action = idx == action_count - 1;
+
                     match action {
                         Action::Shift(new_state) => {
-                            let mut new_stack = stack.clone();
+                            let mut new_stack = if is_last_action {
+                                stack_opt.take().unwrap()
+                            } else {
+                                stack_opt.as_ref().unwrap().clone()
+                            };
                             new_stack.push(
                                 *new_state,
                                 Arc::new(Subtree::new(
@@ -651,13 +659,22 @@ impl GLRParser {
                         Action::Accept => {
                             // Collect accepting stacks for aggregation
                             accepted_any = true;
-                            accept_stacks.push(stack.clone());
+                            let accept_stack = if is_last_action {
+                                stack_opt.take().unwrap()
+                            } else {
+                                stack_opt.as_ref().unwrap().clone()
+                            };
+                            accept_stacks.push(accept_stack);
                             processed_any = true;
                         }
 
                         Action::Reduce(rule_id) => {
                             // Apply the reduction directly
-                            let mut reduced_stack = stack.clone();
+                            let mut reduced_stack = if is_last_action {
+                                stack_opt.take().unwrap()
+                            } else {
+                                stack_opt.as_ref().unwrap().clone()
+                            };
                             self.perform_reduction_on_stack(
                                 &mut reduced_stack,
                                 *rule_id,
@@ -686,12 +703,27 @@ impl GLRParser {
                                 token.0
                             );
 
+                            let stack_source = if is_last_action {
+                                stack_opt.take().unwrap()
+                            } else {
+                                stack_opt.as_ref().unwrap().clone()
+                            };
+                            let fork_count = actions.len();
+                            let mut fork_stack_opt = Some(stack_source);
+
                             // Fork the stack for EACH action to explore all parse paths
                             #[allow(unused_variables)]
                             for (i, fork_action) in actions.iter().enumerate() {
+                                let is_last_fork = i == fork_count - 1;
                                 match fork_action {
                                     Action::Shift(new_state) => {
-                                        let mut forked = stack.fork(self.next_stack_id);
+                                        let mut forked = if is_last_fork {
+                                            let mut s = fork_stack_opt.take().unwrap();
+                                            s.id = self.next_stack_id;
+                                            s
+                                        } else {
+                                            fork_stack_opt.as_ref().unwrap().fork(self.next_stack_id)
+                                        };
                                         self.next_stack_id += 1;
 
                                         forked.push(
@@ -712,7 +744,13 @@ impl GLRParser {
 
                                     Action::Reduce(rule_id) => {
                                         // Reductions should have been handled in phase 1, but if not, handle them
-                                        let mut forked = stack.fork(self.next_stack_id);
+                                        let mut forked = if is_last_fork {
+                                            let mut s = fork_stack_opt.take().unwrap();
+                                            s.id = self.next_stack_id;
+                                            s
+                                        } else {
+                                            fork_stack_opt.as_ref().unwrap().fork(self.next_stack_id)
+                                        };
                                         self.next_stack_id += 1;
                                         self.perform_reduction_on_stack(
                                             &mut forked,
@@ -730,8 +768,17 @@ impl GLRParser {
                                             i,
                                             nested_actions.len()
                                         );
+
+                                        // Simple clone strategy for nested forks for now to avoid complexity
+                                        // Optimization: We could pass fork_stack_opt down if we refactored
+                                        let base_stack = if is_last_fork {
+                                            fork_stack_opt.take().unwrap()
+                                        } else {
+                                            fork_stack_opt.as_ref().unwrap().clone()
+                                        };
+
                                         for nested_action in nested_actions {
-                                            let mut nested_fork = stack.fork(self.next_stack_id);
+                                            let mut nested_fork = base_stack.fork(self.next_stack_id);
                                             self.next_stack_id += 1;
 
                                             match nested_action {
@@ -777,7 +824,11 @@ impl GLRParser {
                         Action::Recover => {
                             // Handle Recover action - similar to Error but with specific recovery
                             // For now, treat it as an error
-                            let mut error_stack = stack.clone();
+                            let mut error_stack = if is_last_action {
+                                stack_opt.take().unwrap()
+                            } else {
+                                stack_opt.as_ref().unwrap().clone()
+                            };
                             error_stack.version.enter_error();
                             new_stacks.push(error_stack);
                             processed_any = true;
@@ -795,6 +846,10 @@ impl GLRParser {
                                     &self.grammar,
                                 )
                             {
+                                // Recovery usually involves complex logic with multiple paths
+                                // For simplicity and safety, we use clone here as recovery is not the happy path
+                                let stack_ref = stack_opt.as_ref().unwrap();
+
                                 match recovery_action {
                                     RecoveryAction::InsertToken(missing_token) => {
                                         // Insert the missing token and continue processing
@@ -808,7 +863,7 @@ impl GLRParser {
                                                 .iter()
                                                 .find(|a| matches!(a, Action::Shift(_)));
                                             if let Some(Action::Shift(new_state)) = shift_action {
-                                                let mut recovery_stack = stack.clone();
+                                                let mut recovery_stack = stack_ref.clone();
                                                 // Create error node for inserted token
                                                 let error_node = Arc::new(Subtree::new(
                                                     SubtreeNode {
@@ -866,7 +921,7 @@ impl GLRParser {
                                     }
                                     RecoveryAction::DeleteToken => {
                                         // Delete this token - add stack without processing token
-                                        let mut recovery_stack = stack.clone();
+                                        let mut recovery_stack = stack_ref.clone();
                                         recovery_stack.version.enter_error();
                                         // Mark stack as having handled this token by deletion
                                         recovery_stack.version.dynamic_prec -= 1; // Penalize for token deletion
@@ -896,7 +951,7 @@ impl GLRParser {
                                             children: vec![],
                                             alternatives: smallvec::SmallVec::new(),
                                         });
-                                        let mut error_stack = stack.clone();
+                                        let mut error_stack = stack_ref.clone();
                                         // Just add the error node without changing state
                                         error_stack.nodes.push(error_node);
                                         error_stack.version.enter_error();
@@ -908,7 +963,11 @@ impl GLRParser {
                             }
 
                             // Default error handling - mark stack as errored
-                            let mut error_stack = stack.clone();
+                            let mut error_stack = if is_last_action {
+                                stack_opt.take().unwrap()
+                            } else {
+                                stack_opt.as_ref().unwrap().clone()
+                            };
                             error_stack.version.enter_error();
                             new_stacks.push(error_stack);
                             processed_any = true;
@@ -916,7 +975,11 @@ impl GLRParser {
 
                         _ => {
                             // Unknown action type - treat as error
-                            let mut error_stack = stack.clone();
+                            let mut error_stack = if is_last_action {
+                                stack_opt.take().unwrap()
+                            } else {
+                                stack_opt.as_ref().unwrap().clone()
+                            };
                             error_stack.version.enter_error();
                             new_stacks.push(error_stack);
                             processed_any = true;
@@ -926,7 +989,9 @@ impl GLRParser {
 
                 // If no actions were processed, keep the original stack
                 if !processed_any {
-                    new_stacks.push(stack);
+                    if let Some(s) = stack_opt.take() {
+                        new_stacks.push(s);
+                    }
                 }
             } else {
                 // No symbol in index - keep the stack
@@ -1184,7 +1249,10 @@ impl GLRParser {
 
             // Apply each reduce action
             let mut any_reduction_applied = false;
-            for (reduce_action, _) in reduces {
+            let reduces_count = reduces.len();
+            let mut stack_opt = Some(stack);
+
+            for (i, (reduce_action, _)) in reduces.into_iter().enumerate() {
                 let rule_id = match reduce_action {
                     Action::Reduce(rid) => rid,
                     _ => continue,
@@ -1196,13 +1264,14 @@ impl GLRParser {
 
                 // Only stamp epsilon reductions to prevent loops
                 if rhs_len == 0 {
-                    let (start_byte, end_byte) = if let Some(n) = stack.nodes.last() {
+                    let stack_ref = stack_opt.as_ref().unwrap();
+                    let (start_byte, end_byte) = if let Some(n) = stack_ref.nodes.last() {
                         (n.node.byte_range.start, n.node.byte_range.end)
                     } else {
                         (lookahead_end, lookahead_end)
                     };
                     let stamp = RedStamp {
-                        state: stack.current_state(),
+                        state: stack_ref.current_state(),
                         rule: rule_id,
                         start: start_byte,
                         end: end_byte,
@@ -1223,8 +1292,15 @@ impl GLRParser {
 
                 debug_glr!("  Applying reduction: rule {}", rule_id.0);
 
-                // Fork the stack for this reduction
-                let mut reduced_stack = stack.fork(self.next_stack_id);
+                // Fork the stack for this reduction, or reuse if it's the last one
+                let mut reduced_stack = if i == reduces_count - 1 {
+                    // Reuse stack for the last reduction to avoid cloning
+                    let mut s = stack_opt.take().unwrap();
+                    s.id = self.next_stack_id;
+                    s
+                } else {
+                    stack_opt.as_ref().unwrap().fork(self.next_stack_id)
+                };
                 self.next_stack_id += 1;
 
                 // Apply the reduction (this will pop symbols and push via GOTO)
@@ -1260,7 +1336,9 @@ impl GLRParser {
             // If no reductions were applied from this stack and it has no shift/accept,
             // then this stack is fully saturated
             if !any_reduction_applied && !has_shift && !has_accept {
-                saturated_stacks.push(stack);
+                if let Some(s) = stack_opt.take() {
+                    saturated_stacks.push(s);
+                }
             }
         }
 

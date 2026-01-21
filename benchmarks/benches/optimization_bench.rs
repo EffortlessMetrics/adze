@@ -1,5 +1,5 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::arena_allocator::{Arena, TypedArena};
+use rust_sitter::arena_allocator::{TreeArena, TreeNode};
 use rust_sitter::stack_pool::StackPool;
 
 fn benchmark_stack_pool(c: &mut Criterion) {
@@ -91,34 +91,27 @@ fn benchmark_arena_allocator(c: &mut Criterion) {
     });
 
     group.bench_function("arena_allocation", |b| {
-        let arena = Arena::new(256);
+        let mut arena = TreeArena::new();
         b.iter(|| {
+            // We reuse arena logic if we want, but here we allocate fresh?
+            // The original bench allocated new Arena(256) every iter?
+            // "let arena = Arena::new(256);" was inside "group.bench_function", but outside "b.iter".
+            // No, wait. "let arena = Arena::new(256);" was before b.iter in the original code.
+            // But Arena from bumpalo usually is reset or new every time if we want to measure allocation?
+            // Actually usually we want to measure `alloc` speed.
+
+            // TreeArena::new() allocates vectors.
+            // If we put it outside, we fill it up.
+            // We should reset it inside.
+
+            arena.reset();
             let mut refs = Vec::new();
             for i in 0..1000 {
-                let node = arena.alloc(ParseNode {
-                    symbol: (i % 256) as u16,
-                    start: i * 10,
-                    end: i * 10 + 5,
-                    children: vec![],
-                });
+                // TreeArena only supports TreeNode. We simulate by creating a leaf.
+                let node = arena.alloc(TreeNode::leaf(i));
                 refs.push(node);
             }
             black_box(refs)
-        });
-    });
-
-    // Heterogeneous allocation benchmark
-    group.bench_function("typed_arena", |b| {
-        let arena = TypedArena::new(4096);
-        b.iter(|| unsafe {
-            let mut ptrs = Vec::new();
-            for i in 0..100 {
-                let i32_ptr = arena.alloc(i);
-                let f64_ptr = arena.alloc(i as f64);
-                let vec_ptr = arena.alloc(vec![i; 10]);
-                ptrs.push((i32_ptr, f64_ptr, vec_ptr));
-            }
-            black_box(ptrs)
         });
     });
 
@@ -131,9 +124,11 @@ fn benchmark_combined_optimizations(c: &mut Criterion) {
     // Simulate a parsing workload with both optimizations
     group.bench_function("parse_simulation", |b| {
         let pool = StackPool::new(32);
-        let arena = Arena::new(512);
+        let mut arena = TreeArena::with_capacity(512);
 
         b.iter(|| {
+            arena.reset();
+
             // Simulate parsing with forks
             let mut stacks = Vec::new();
             let mut nodes = Vec::new();
@@ -151,7 +146,7 @@ fn benchmark_combined_optimizations(c: &mut Criterion) {
                 }
 
                 // Allocate parse nodes
-                let node = arena.alloc(step);
+                let node = arena.alloc(TreeNode::leaf(step));
                 nodes.push(node);
 
                 // Update stack
