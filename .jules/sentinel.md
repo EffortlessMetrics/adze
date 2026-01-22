@@ -1,0 +1,4 @@
+## 2025-05-23 - Vanilla JS XSS Vulnerabilities
+**Vulnerability:** Found multiple DOM-based Cross-Site Scripting (XSS) vulnerabilities in `playground/static/app.js` where user-controlled input (test names, error messages) was interpolated into HTML strings and assigned to `innerHTML`. Also found unsafe inline `onclick` handlers.
+**Learning:** In "pure" JavaScript projects without modern frameworks, developers often resort to template literals and `innerHTML` for convenience, inadvertently creating XSS vectors. Inline event handlers (e.g., `onclick="..."`) are particularly dangerous as they require complex escaping context (HTML attribute + JS string).
+**Prevention:** Strictly enforce a policy of using `document.createElement`, `textContent`, and `addEventListener` for all dynamic content. If HTML insertion is absolutely necessary, use a dedicated sanitizer library like DOMPurify.
