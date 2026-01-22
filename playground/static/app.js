@@ -34,7 +34,14 @@ class Playground {
 
     async parse(visualize = false) {
         const input = document.getElementById('input-code').value;
+        const parseBtn = document.getElementById('parse-btn');
+        const visualizeBtn = document.getElementById('visualize-btn');
+        const originalText = parseBtn.textContent;
+
         this.setStatus('Parsing...');
+        parseBtn.disabled = true;
+        visualizeBtn.disabled = true;
+        parseBtn.textContent = 'Parsing...';
         
         try {
             const response = await fetch('/api/parse', {
@@ -62,6 +69,10 @@ class Playground {
             }
         } catch (error) {
             this.setStatus('Error: ' + error.message, 'error');
+        } finally {
+            parseBtn.disabled = false;
+            visualizeBtn.disabled = false;
+            parseBtn.textContent = originalText;
         }
     }
 
