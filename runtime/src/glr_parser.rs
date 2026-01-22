@@ -91,7 +91,7 @@ pub fn safe_dedup_threshold() -> usize {
 }
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
-use crate::subtree::{Subtree, SubtreeNode};
+use crate::subtree::{ChildEdge, FIELD_NONE, Subtree, SubtreeNode};
 use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
 use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
@@ -1679,51 +1679,72 @@ impl GLRParser {
                 rule.rhs,
                 rule.rhs.len()
             );
-            let children = stack.pop(rule.rhs.len());
+            let rhs_len = rule.rhs.len();
+            let start_idx = stack.nodes.len() - rhs_len;
+
+            // Drain nodes directly from the stack to avoid intermediate allocation
+            let children_iter = stack.nodes.drain(start_idx..);
+
+            // Apply field mappings to children
+            let children_with_fields: Vec<ChildEdge> = if rule.fields.is_empty() {
+                // No fields, use FIELD_NONE for all children
+                children_iter
+                    .map(ChildEdge::new_without_field)
+                    .collect()
+            } else {
+                // Apply field mappings based on rule.fields
+                children_iter
+                    .enumerate()
+                    .map(|(idx, child)| {
+                        // Find field ID for this child position
+                        let field_id = rule
+                            .fields
+                            .iter()
+                            .find(|(_, pos)| *pos == idx)
+                            .map(|(field_id, _)| field_id.0)
+                            .unwrap_or(FIELD_NONE);
+
+                        ChildEdge::new(child, field_id)
+                    })
+                    .collect()
+            };
+
+            // Also truncate the corresponding states
+            stack.states.truncate(stack.states.len() - rhs_len);
+
             debug_glr!(
                 "  Popped {} children, stack now has {} nodes",
-                children.len(),
+                rhs_len,
                 stack.nodes.len()
             );
 
             // Create new subtree for the reduction
             // For epsilon reductions (empty RHS), use lookahead_end as the position
-            let byte_range = if children.is_empty() {
+            let byte_range = if children_with_fields.is_empty() {
                 // Epsilon: zero-width span at the current lookahead end
                 lookahead_end..lookahead_end
             } else {
                 // Normal: span from first child start to last child end
-                children[0].node.byte_range.start..children.last().unwrap().node.byte_range.end
+                children_with_fields
+                    .first()
+                    .unwrap()
+                    .subtree
+                    .node
+                    .byte_range
+                    .start
+                    ..children_with_fields
+                        .last()
+                        .unwrap()
+                        .subtree
+                        .node
+                        .byte_range
+                        .end
             };
 
             let node = SubtreeNode {
                 symbol_id: rule.lhs,
                 is_error: false,
                 byte_range,
-            };
-
-            // Apply field mappings to children
-            let children_with_fields = if rule.fields.is_empty() {
-                // No fields, use FIELD_NONE for all children
-                children
-                    .into_iter()
-                    .map(crate::subtree::ChildEdge::new_without_field)
-                    .collect()
-            } else {
-                // Apply field mappings based on rule.fields
-                let mut result = Vec::with_capacity(children.len());
-                for (idx, child) in children.into_iter().enumerate() {
-                    // Find field ID for this child position
-                    let field_id = rule
-                        .fields
-                        .iter()
-                        .find(|(_, pos)| *pos == idx)
-                        .map(|(field_id, _)| field_id.0)
-                        .unwrap_or(crate::subtree::FIELD_NONE);
-
-                    result.push(crate::subtree::ChildEdge::new(child, field_id));
-                }
-                result
             };
 
             // Check if this rule has precedence (static or dynamic)
