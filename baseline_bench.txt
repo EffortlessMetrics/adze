@@ -1,0 +1,797 @@
+info: syncing channel updates for '1.89.0-x86_64-unknown-linux-gnu'
+info: latest update on 2025-08-07, rust version 1.89.0 (29483883e 2025-08-04)
+info: downloading component 'cargo'
+info: downloading component 'clippy'
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
+info: downloading component 'rustfmt'
+info: installing component 'cargo'
+info: installing component 'clippy'
+info: installing component 'rust-std'
+info: installing component 'rustc'
+info: installing component 'rustfmt'
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded adler2 v2.0.1
+  Downloaded anstyle-query v1.1.4
+  Downloaded anstyle v1.0.11
+  Downloaded equivalent v1.0.2
+  Downloaded anstream v0.6.20
+  Downloaded dhat v0.3.3
+  Downloaded crossbeam-deque v0.8.6
+  Downloaded icu_normalizer v2.0.0
+  Downloaded openssl-probe v0.1.6
+  Downloaded strsim v0.11.1
+  Downloaded either v1.15.0
+  Downloaded hex v0.4.3
+  Downloaded http-range-header v0.3.1
+  Downloaded zerofrom v0.1.6
+  Downloaded stable_deref_trait v1.2.0
+  Downloaded smallbitvec v2.6.0
+  Downloaded fnv v1.0.7
+  Downloaded c2rust-bitfields-derive v0.2.1
+  Downloaded tower-service v0.3.3
+  Downloaded itoa v1.0.15
+  Downloaded httpdate v1.0.3
+  Downloaded rand_xorshift v0.4.0
+  Downloaded ppv-lite86 v0.2.21
+  Downloaded typed-arena v2.0.2
+  Downloaded topological-sort v0.2.2
+  Downloaded clap_derive v4.5.47
+  Downloaded bumpalo v3.19.0
+  Downloaded serde_spanned v0.6.9
+  Downloaded futures-channel v0.3.31
+  Downloaded predicates-core v1.0.9
+  Downloaded toml v0.8.23
+  Downloaded notify-types v2.0.0
+  Downloaded rustc-hash v2.1.1
+  Downloaded libloading v0.8.8
+  Downloaded pin-utils v0.1.0
+  Downloaded oorandom v11.1.5
+  Downloaded serial_test_derive v3.2.0
+  Downloaded once_cell v1.21.3
+  Downloaded parking_lot v0.12.4
+  Downloaded openssl-macros v0.1.1
+  Downloaded openssl-sys v0.9.109
+  Downloaded mio v1.0.4
+  Downloaded itertools v0.10.5
+  Downloaded serde_spanned v1.0.0
+  Downloaded idna v1.1.0
+  Downloaded icu_properties_data v2.0.1
+  Downloaded winnow v0.7.13
+  Downloaded tree-sitter v0.25.9
+  Downloaded zerocopy v0.8.27
+  Downloaded regex v1.11.2
+  Downloaded tree-sitter-c2rust v0.25.2
+  Downloaded unicode-width v0.2.1
+  Downloaded syn v2.0.106
+  Downloaded vcpkg v0.2.15
+  Downloaded proptest v1.7.0
+  Downloaded openssl v0.10.73
+  Downloaded regex-automata v0.4.10
+  Downloaded regex-syntax v0.8.6
+  Downloaded object v0.36.7
+  Downloaded libc v0.2.175
+  Downloaded jiff v0.2.15
+  Downloaded syn v1.0.109
+  Downloaded tree-sitter v0.20.10
+  Downloaded zerovec v0.11.4
+  Downloaded tower-http v0.4.4
+  Downloaded tokio-util v0.7.16
+  Downloaded insta v1.43.2
+  Downloaded rayon-core v1.13.0
+  Downloaded tree-sitter-generate v0.25.9
+  Downloaded tower v0.4.13
+  Downloaded bstr v1.12.0
+  Downloaded web-sys v0.3.78
+  Downloaded zerotrie v0.2.2
+  Downloaded encoding_rs v0.8.35
+  Downloaded tracing v0.1.41
+  Downloaded toml_edit v0.22.27
+  Downloaded indexmap v2.11.0
+  Downloaded icu_provider v2.0.0
+  Downloaded yansi v1.0.1
+  Downloaded url v2.5.7
+  Downloaded tokio v1.47.1
+  Downloaded typenum v1.18.0
+  Downloaded gimli v0.31.1
+  Downloaded proc-macro2 v1.0.101
+  Downloaded serde_json v1.0.143
+  Downloaded icu_properties v2.0.1
+  Downloaded xshell v0.2.7
+  Downloaded writeable v0.6.1
+  Downloaded tracing-core v0.1.34
+  Downloaded toml v0.9.5
+  Downloaded termcolor v1.4.1
+  Downloaded tempfile v3.21.0
+  Downloaded synstructure v0.13.2
+  Downloaded icu_normalizer_data v2.0.0
+  Downloaded chrono v0.4.41
+  Downloaded quote v1.0.40
+  Downloaded reqwest v0.11.27
+  Downloaded parking_lot_core v0.9.11
+  Downloaded inotify v0.11.0
+  Downloaded yoke v0.8.0
+  Downloaded wasm-bindgen-backend v0.2.101
+  Downloaded wasm-bindgen v0.2.101
+  Downloaded unicode-ident v1.0.18
+  Downloaded trybuild v1.0.110
+  Downloaded socket2 v0.6.0
+  Downloaded socket2 v0.5.10
+  Downloaded similar v2.7.0
+  Downloaded lock_api v0.4.13
+  Downloaded serde_urlencoded v0.7.1
+  Downloaded native-tls v0.2.14
+  Downloaded pin-project-lite v0.2.16
+  Downloaded plotters v0.3.7
+  Downloaded scc v2.4.0
+  Downloaded rayon v1.11.0
+  Downloaded tinytemplate v1.2.1
+  Downloaded hashbrown v0.15.5
+  Downloaded h2 v0.3.27
+  Downloaded futures-util v0.3.31
+  Downloaded clap_builder v4.5.47
+  Downloaded serial_test v3.2.0
+  Downloaded quick-error v1.2.3
+  Downloaded linux-raw-sys v0.9.4
+  Downloaded rustc_version v0.4.1
+  Downloaded pin-project-internal v1.1.10
+  Downloaded pretty_assertions v1.4.1
+  Downloaded is_terminal_polyfill v1.70.1
+  Downloaded zerovec-derive v0.11.1
+  Downloaded toml_parser v1.0.2
+  Downloaded thiserror-impl v1.0.69
+  Downloaded rustc_version_runtime v0.3.0
+  Downloaded lsp-types v0.94.1
+  Downloaded log v0.4.28
+  Downloaded num-traits v0.2.19
+  Downloaded prettyplease v0.2.37
+  Downloaded serde v1.0.219
+  Downloaded rand v0.9.2
+  Downloaded memchr v2.7.5
+  Downloaded indoc v2.0.6
+  Downloaded xshell-macros v0.2.7
+  Downloaded toml_writer v1.0.2
+  Downloaded toml_datetime v0.7.0
+  Downloaded rustix v1.0.8
+  Downloaded tinystr v0.8.1
+  Downloaded thiserror-impl v2.0.16
+  Downloaded icu_locale_core v2.0.0
+  Downloaded icu_collections v2.0.0
+  Downloaded http v0.2.12
+  Downloaded criterion v0.5.1
+  Downloaded cc v1.2.36
+  Downloaded litemap v0.8.0
+  Downloaded normalize-line-endings v0.3.0
+  Downloaded rustc-demangle v0.1.26
+  Downloaded notify v8.2.0
+  Downloaded sha2 v0.10.9
+  Downloaded serde_derive v1.0.219
+  Downloaded pin-project v1.1.10
+  Downloaded miniz_oxide v0.8.9
+  Downloaded js-sys v0.3.78
+  Downloaded ipnet v2.11.0
+  Downloaded idna_adapter v1.2.1
+  Downloaded wasm-bindgen-macro-support v0.2.101
+  Downloaded walkdir v2.5.0
+  Downloaded tokio-native-tls v0.3.1
+  Downloaded thiserror v2.0.16
+  Downloaded thiserror v1.0.69
+  Downloaded half v2.6.0
+  Downloaded futures v0.3.31
+  Downloaded clap v4.5.47
+  Downloaded shlex v1.3.0
+  Downloaded predicates v3.1.3
+  Downloaded pkg-config v0.3.32
+  Downloaded ryu v1.0.20
+  Downloaded matchit v0.7.3
+  Downloaded yoke-derive v0.8.0
+  Downloaded tokio-macros v2.5.0
+  Downloaded termtree v0.5.1
+  Downloaded syn-inline-mod v0.6.0
+  Downloaded iana-time-zone v0.1.63
+  Downloaded httparse v1.10.1
+  Downloaded glob v0.3.3
+  Downloaded colored v3.0.0
+  Downloaded bytes v1.10.1
+  Downloaded rustc-hash v1.1.0
+  Downloaded serde_path_to_error v0.1.17
+  Downloaded semver v1.0.26
+  Downloaded sdd v3.0.10
+  Downloaded rusty-fork v0.3.0
+  Downloaded rustversion v1.0.22
+  Downloaded rustls-pemfile v1.0.4
+  Downloaded rand_core v0.9.3
+  Downloaded is-terminal v0.4.16
+  Downloaded inotify-sys v0.1.5
+  Downloaded zerofrom-derive v0.1.6
+  Downloaded wasm-bindgen-macro v0.2.101
+  Downloaded version_check v0.9.5
+  Downloaded utf8parse v0.2.2
+  Downloaded utf8_iter v1.0.4
+  Downloaded try-lock v0.2.5
+  Downloaded tree-sitter-language v0.1.5
+  Downloaded tree-sitter-json v0.24.8
+  Downloaded tower-layer v0.3.3
+  Downloaded toml_write v0.1.2
+  Downloaded toml_datetime v0.6.11
+  Downloaded lazy_static v1.5.0
+  Downloaded predicates-tree v1.0.12
+  Downloaded unarray v0.1.4
+  Downloaded crossbeam-utils v0.8.21
+  Downloaded streaming-iterator v0.1.9
+  Downloaded smallvec v1.15.1
+  Downloaded signal-hook-registry v1.4.6
+  Downloaded diff v0.1.13
+  Downloaded rand_chacha v0.9.0
+  Downloaded fixedbitset v0.5.7
+  Downloaded find-msvc-tools v0.1.1
+  Downloaded criterion-plot v0.5.0
+  Downloaded codemap-diagnostic v0.1.2
+  Downloaded serde_repr v0.1.20
+  Downloaded scopeguard v1.2.0
+  Downloaded same-file v1.0.6
+  Downloaded potential_utf v0.1.3
+  Downloaded wasm-bindgen-shared v0.2.101
+  Downloaded want v0.3.1
+  Downloaded wait-timeout v0.2.1
+  Downloaded futures-sink v0.3.31
+  Downloaded bincode v1.3.3
+  Downloaded base64 v0.21.7
+  Downloaded thousands v0.2.0
+  Downloaded plotters-svg v0.3.7
+  Downloaded plotters-backend v0.3.7
+  Downloaded percent-encoding v2.3.2
+  Downloaded mintex v0.1.4
+  Downloaded mime v0.3.17
+  Downloaded http-body v0.4.6
+  Downloaded futures-executor v0.3.31
+  Downloaded hyper-tls v0.5.0
+  Downloaded heck v0.5.0
+  Downloaded futures-core v0.3.31
+  Downloaded foreign-types-shared v0.1.1
+  Downloaded float-cmp v0.10.0
+  Downloaded colorchoice v1.0.4
+  Downloaded foreign-types v0.3.2
+  Downloaded generic-array v0.14.7
+  Downloaded console v0.15.11
+  Downloaded ciborium-ll v0.2.2
+  Downloaded target-triple v0.1.4
+  Downloaded sync_wrapper v0.1.2
+  Downloaded slab v0.4.11
+  Downloaded form_urlencoded v1.2.2
+  Downloaded env_logger v0.11.8
+  Downloaded fastrand v2.3.0
+  Downloaded crypto-common v0.1.6
+  Downloaded difflib v0.4.0
+  Downloaded ciborium-io v0.2.2
+  Downloaded errno v0.3.13
+  Downloaded env_filter v0.1.3
+  Downloaded clap_lex v0.7.5
+  Downloaded doc-comment v0.3.3
+  Downloaded ciborium v0.2.2
+  Downloaded cfg-if v1.0.3
+  Downloaded cast v0.3.0
+  Downloaded block-buffer v0.10.4
+  Downloaded bitflags v1.3.2
+  Downloaded futures-task v0.3.31
+  Downloaded futures-io v0.3.31
+  Downloaded displaydoc v0.2.5
+  Downloaded digest v0.10.7
+  Downloaded crossbeam-epoch v0.9.18
+  Downloaded codemap v0.1.3
+  Downloaded camino v1.1.12
+  Downloaded c2rust-bitfields v0.3.0
+  Downloaded bitflags v2.9.4
+  Downloaded bit-vec v0.8.0
+  Downloaded bit-set v0.8.0
+  Downloaded backtrace v0.3.75
+  Downloaded axum v0.6.20
+  Downloaded aho-corasick v1.1.3
+  Downloaded hyper v0.14.32
+  Downloaded getrandom v0.3.3
+  Downloaded cpufeatures v0.2.17
+  Downloaded anyhow v1.0.99
+  Downloaded async-trait v0.1.89
+  Downloaded ahash v0.8.12
+  Downloaded addr2line v0.24.2
+  Downloaded anes v0.1.6
+  Downloaded axum-core v0.3.4
+  Downloaded autocfg v1.5.0
+  Downloaded assert_cmd v2.0.17
+  Downloaded anstyle-parse v0.2.7
+   Compiling proc-macro2 v1.0.101
+   Compiling unicode-ident v1.0.18
+   Compiling serde v1.0.219
+   Compiling libc v0.2.175
+   Compiling version_check v0.9.5
+   Compiling autocfg v1.5.0
+   Compiling typenum v1.18.0
+   Compiling generic-array v0.14.7
+   Compiling semver v1.0.26
+   Compiling getrandom v0.3.3
+   Compiling cfg-if v1.0.3
+   Compiling anyhow v1.0.99
+   Compiling thiserror v2.0.16
+   Compiling num-traits v0.2.19
+   Compiling quote v1.0.40
+   Compiling memchr v2.7.5
+   Compiling syn v2.0.106
+   Compiling shlex v1.3.0
+   Compiling find-msvc-tools v0.1.1
+   Compiling hashbrown v0.15.5
+   Compiling equivalent v1.0.2
+   Compiling cc v1.2.36
+   Compiling syn v1.0.109
+   Compiling serde_json v1.0.143
+   Compiling itoa v1.0.15
+   Compiling ryu v1.0.20
+   Compiling rustix v1.0.8
+   Compiling tree-sitter-c2rust v0.25.2
+   Compiling aho-corasick v1.1.3
+   Compiling regex-syntax v0.8.6
+   Compiling c2rust-bitfields-derive v0.2.1
+   Compiling regex-automata v0.4.10
+   Compiling serde_derive v1.0.219
+   Compiling thiserror-impl v2.0.16
+   Compiling heck v0.5.0
+   Compiling tree-sitter-language v0.1.5
+   Compiling streaming-iterator v0.1.9
+   Compiling once_cell v1.21.3
+   Compiling utf8parse v0.2.2
+   Compiling anstyle-parse v0.2.7
+   Compiling clap_derive v4.5.47
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.6
+   Compiling regex v1.11.2
+   Compiling anstyle-query v1.1.4
+   Compiling rustc-hash v2.1.1
+   Compiling is_terminal_polyfill v1.70.1
+   Compiling colorchoice v1.0.4
+   Compiling anstyle v1.0.11
+   Compiling anstream v0.6.20
+   Compiling digest v0.10.7
+   Compiling c2rust-bitfields v0.3.0
+   Compiling rust-sitter-common v0.8.0-dev (/app/common)
+   Compiling strsim v0.11.1
+   Compiling linux-raw-sys v0.9.4
+   Compiling typed-arena v2.0.2
+   Compiling fixedbitset v0.5.7
+   Compiling iana-time-zone v0.1.63
+   Compiling cpufeatures v0.2.17
+   Compiling smallvec v1.15.1
+   Compiling prettyplease v0.2.37
+   Compiling bitflags v2.9.4
+   Compiling clap_lex v0.7.5
+   Compiling indexmap v2.11.0
+   Compiling bincode v1.3.3
+   Compiling rustc_version v0.4.1
+   Compiling clap_builder v4.5.47
+   Compiling rustc_version_runtime v0.3.0
+   Compiling rust-sitter-ir v0.8.0-dev (/app/ir)
+   Compiling tree-sitter v0.25.9
+   Compiling rust-sitter-glr-core v0.8.0-dev (/app/glr-core)
+   Compiling chrono v0.4.41
+   Compiling sha2 v0.10.9
+   Compiling indoc v2.0.6
+   Compiling crossbeam-utils v0.8.21
+   Compiling fastrand v2.3.0
+   Compiling topological-sort v0.2.2
+   Compiling smallbitvec v2.6.0
+   Compiling log v0.4.28
+   Compiling tempfile v3.21.0
+   Compiling rust-sitter-tablegen v0.8.0-dev (/app/tablegen)
+   Compiling tree-sitter-generate v0.25.9
+   Compiling clap v4.5.47
+   Compiling syn-inline-mod v0.6.0
+   Compiling zerocopy v0.8.27
+   Compiling glob v0.3.3
+   Compiling rust-sitter-tool v0.8.0-dev (/app/tool)
+   Compiling crossbeam-epoch v0.9.18
+   Compiling rayon-core v1.13.0
+   Compiling either v1.15.0
+   Compiling crossbeam-deque v0.8.6
+   Compiling ahash v0.8.12
+   Compiling rayon v1.11.0
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling futures-sink v0.3.31
+   Compiling winnow v0.7.13
+   Compiling futures-core v0.3.31
+   Compiling toml_write v0.1.2
+   Compiling rust-sitter v0.8.0-dev (/app/runtime)
+   Compiling futures-channel v0.3.31
+   Compiling rust-sitter-macro v0.8.0-dev (/app/macro)
+   Compiling toml_edit v0.22.27
+   Compiling rand_core v0.9.3
+   Compiling lock_api v0.4.13
+   Compiling slab v0.4.11
+   Compiling futures-io v0.3.31
+   Compiling futures-task v0.3.31
+   Compiling parking_lot_core v0.9.11
+   Compiling pin-utils v0.1.0
+   Compiling pin-project-lite v0.2.16
+   Compiling futures-util v0.3.31
+   Compiling toml v0.8.23
+   Compiling tree-sitter-json v0.24.8
+   Compiling half v2.6.0
+   Compiling ciborium-io v0.2.2
+   Compiling thiserror v1.0.69
+   Compiling pkg-config v0.3.32
+   Compiling scopeguard v1.2.0
+   Compiling plotters-backend v0.3.7
+   Compiling plotters-svg v0.3.7
+   Compiling ts-bridge v0.1.0 (/app/tools/ts-bridge)
+   Compiling ciborium-ll v0.2.2
+   Compiling futures-executor v0.3.31
+   Compiling rust-sitter-example v0.8.0-dev (/app/example)
+   Compiling ppv-lite86 v0.2.21
+   Compiling itertools v0.10.5
+   Compiling rust-sitter-python v0.1.0 (/app/grammars/python)
+   Compiling rust-sitter-python-simple v0.1.0 (/app/grammars/python-simple)
+   Compiling thiserror-impl v1.0.69
+   Compiling wait-timeout v0.2.1
+   Compiling cast v0.3.0
+   Compiling unicode-width v0.2.1
+   Compiling termcolor v1.4.1
+   Compiling sdd v3.0.10
+   Compiling quick-error v1.2.3
+   Compiling fnv v1.0.7
+   Compiling bit-vec v0.8.0
+   Compiling same-file v1.0.6
+   Compiling codemap v0.1.3
+   Compiling codemap-diagnostic v0.1.2
+   Compiling bit-set v0.8.0
+   Compiling walkdir v2.5.0
+   Compiling rusty-fork v0.3.0
+   Compiling scc v2.4.0
+   Compiling console v0.15.11
+   Compiling criterion-plot v0.5.0
+   Compiling rand_chacha v0.9.0
+   Compiling parking_lot v0.12.4
+   Compiling futures v0.3.31
+   Compiling ciborium v0.2.2
+   Compiling plotters v0.3.7
+   Compiling rand v0.9.2
+   Compiling rand_xorshift v0.4.0
+   Compiling tinytemplate v1.2.1
+   Compiling serial_test_derive v3.2.0
+   Compiling is-terminal v0.4.16
+   Compiling libloading v0.8.8
+   Compiling unarray v0.1.4
+   Compiling anes v0.1.6
+   Compiling lazy_static v1.5.0
+   Compiling similar v2.7.0
+   Compiling oorandom v11.1.5
+   Compiling criterion v0.5.1
+   Compiling serial_test v3.2.0
+   Compiling insta v1.43.2
+   Compiling proptest v1.7.0
+   Compiling glr-test-support v0.1.0 (/app/glr-test-support)
+   Compiling hex v0.4.3
+    Finished `bench` profile [optimized + debuginfo] target(s) in 2m 10s
+     Running benches/glr_parser_bench.rs (target/release/deps/glr_parser_bench-27f3a3a9e0bce805)
+Gnuplot not found, using plotters backend
+Initial state 0 after closure has 13 items:
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=6
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=6
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=2
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=3
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=6
+  Item: NT(0) ->  • T(1) , lookahead=2
+  Item: NT(0) ->  • T(1) , lookahead=3
+  Item: NT(0) ->  • T(1) , lookahead=6
+  Item: NT(7) ->  • NT(0) , lookahead=6
+State 0 expects transitions for:
+  Terminals: {SymbolId(1), SymbolId(4)}
+  Nonterminals: {SymbolId(0)}
+
+=== State 0 Analysis ===
+State 0 has 13 items:
+  Item 0: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 1: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 2: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 3: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 4: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 5: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 6: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 7: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 8: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 9: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 10: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 11: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 12: NT(7) -> • NT(0)  (rule_id=7)
+    -> next symbol: NonTerminal(SymbolId(0))
+
+State 0 summary:
+  Total symbols that can be shifted: 3
+  Terminals: 6
+  Non-terminals: 7
+  Symbols: {Terminal(SymbolId(1)), Terminal(SymbolId(4)), NonTerminal(SymbolId(0))}
+
+  State 0 GOTO: symbol SymbolId(1) -> state 1
+  State 0 GOTO: symbol SymbolId(4) -> state 2
+  State 0 GOTO: symbol SymbolId(0) -> state 3
+DEBUG: Collection goto table has 37 entries
+DEBUG: Augmented grammar has 5 tokens
+=== Symbol Classification Debug ===
+Tokens in augmented_grammar: [1, 2, 3, 4, 5]
+Externals in augmented_grammar: []
+Original grammar tokens: 5
+Collection goto_table size: 37
+State 0 has 3 goto entries
+  Symbol 1 -> State 1
+  Symbol 4 -> State 2
+  Symbol 0 -> State 3
+State 0 goto entry: symbol 1 -> state 1, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 1 (idx=1) -> state 1
+State 0 goto entry: symbol 4 -> state 2, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 4 (idx=4) -> state 2
+State 0 goto entry: symbol 0 -> state 3, is_terminal=false (in tokens=false, in externals=false, is EOF=true)
+Benchmarking parse_simple_expression
+Benchmarking parse_simple_expression: Warming up for 3.0000 s
+Benchmarking parse_simple_expression: Collecting 100 samples in estimated 5.7045 s (40k iterations)
+Benchmarking parse_simple_expression: Analyzing
+parse_simple_expression time:   [137.93 µs 139.08 µs 140.95 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+
+Initial state 0 after closure has 13 items:
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=6
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=6
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=2
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=3
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=6
+  Item: NT(0) ->  • T(1) , lookahead=2
+  Item: NT(0) ->  • T(1) , lookahead=3
+  Item: NT(0) ->  • T(1) , lookahead=6
+  Item: NT(7) ->  • NT(0) , lookahead=6
+State 0 expects transitions for:
+  Terminals: {SymbolId(1), SymbolId(4)}
+  Nonterminals: {SymbolId(0)}
+
+=== State 0 Analysis ===
+State 0 has 13 items:
+  Item 0: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 1: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 2: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 3: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 4: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 5: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 6: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 7: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 8: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 9: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 10: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 11: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 12: NT(7) -> • NT(0)  (rule_id=7)
+    -> next symbol: NonTerminal(SymbolId(0))
+
+State 0 summary:
+  Total symbols that can be shifted: 3
+  Terminals: 6
+  Non-terminals: 7
+  Symbols: {Terminal(SymbolId(1)), Terminal(SymbolId(4)), NonTerminal(SymbolId(0))}
+
+  State 0 GOTO: symbol SymbolId(1) -> state 1
+  State 0 GOTO: symbol SymbolId(4) -> state 2
+  State 0 GOTO: symbol SymbolId(0) -> state 3
+DEBUG: Collection goto table has 37 entries
+DEBUG: Augmented grammar has 5 tokens
+=== Symbol Classification Debug ===
+Tokens in augmented_grammar: [1, 2, 3, 4, 5]
+Externals in augmented_grammar: []
+Original grammar tokens: 5
+Collection goto_table size: 37
+State 0 has 3 goto entries
+  Symbol 1 -> State 1
+  Symbol 4 -> State 2
+  Symbol 0 -> State 3
+State 0 goto entry: symbol 1 -> state 1, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 1 (idx=1) -> state 1
+State 0 goto entry: symbol 4 -> state 2, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 4 (idx=4) -> state 2
+State 0 goto entry: symbol 0 -> state 3, is_terminal=false (in tokens=false, in externals=false, is EOF=true)
+Benchmarking parse_deeply_nested
+Benchmarking parse_deeply_nested: Warming up for 3.0000 s
+Benchmarking parse_deeply_nested: Collecting 100 samples in estimated 5.7183 s (35k iterations)
+Benchmarking parse_deeply_nested: Analyzing
+parse_deeply_nested     time:   [160.65 µs 161.26 µs 162.17 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+
+Initial state 0 after closure has 13 items:
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=6
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=6
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=2
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=3
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=6
+  Item: NT(0) ->  • T(1) , lookahead=2
+  Item: NT(0) ->  • T(1) , lookahead=3
+  Item: NT(0) ->  • T(1) , lookahead=6
+  Item: NT(7) ->  • NT(0) , lookahead=6
+State 0 expects transitions for:
+  Terminals: {SymbolId(1), SymbolId(4)}
+  Nonterminals: {SymbolId(0)}
+
+=== State 0 Analysis ===
+State 0 has 13 items:
+  Item 0: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 1: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 2: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 3: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 4: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 5: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 6: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 7: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 8: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 9: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 10: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 11: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 12: NT(7) -> • NT(0)  (rule_id=7)
+    -> next symbol: NonTerminal(SymbolId(0))
+
+State 0 summary:
+  Total symbols that can be shifted: 3
+  Terminals: 6
+  Non-terminals: 7
+  Symbols: {Terminal(SymbolId(1)), Terminal(SymbolId(4)), NonTerminal(SymbolId(0))}
+
+  State 0 GOTO: symbol SymbolId(1) -> state 1
+  State 0 GOTO: symbol SymbolId(4) -> state 2
+  State 0 GOTO: symbol SymbolId(0) -> state 3
+DEBUG: Collection goto table has 37 entries
+DEBUG: Augmented grammar has 5 tokens
+=== Symbol Classification Debug ===
+Tokens in augmented_grammar: [1, 2, 3, 4, 5]
+Externals in augmented_grammar: []
+Original grammar tokens: 5
+Collection goto_table size: 37
+State 0 has 3 goto entries
+  Symbol 1 -> State 1
+  Symbol 4 -> State 2
+  Symbol 0 -> State 3
+State 0 goto entry: symbol 1 -> state 1, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 1 (idx=1) -> state 1
+State 0 goto entry: symbol 4 -> state 2, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 4 (idx=4) -> state 2
+State 0 goto entry: symbol 0 -> state 3, is_terminal=false (in tokens=false, in externals=false, is EOF=true)
+Benchmarking parse_highly_ambiguous
+Benchmarking parse_highly_ambiguous: Warming up for 3.0000 s
+Benchmarking parse_highly_ambiguous: Collecting 100 samples in estimated 5.8605 s (20k iterations)
+Benchmarking parse_highly_ambiguous: Analyzing
+parse_highly_ambiguous  time:   [295.32 µs 300.55 µs 307.57 µs]
+Found 17 outliers among 100 measurements (17.00%)
+  2 (2.00%) high mild
+  15 (15.00%) high severe
+
+Initial state 0 after closure has 13 items:
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=6
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=6
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=2
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=3
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=6
+  Item: NT(0) ->  • T(1) , lookahead=2
+  Item: NT(0) ->  • T(1) , lookahead=3
+  Item: NT(0) ->  • T(1) , lookahead=6
+  Item: NT(7) ->  • NT(0) , lookahead=6
+State 0 expects transitions for:
+  Terminals: {SymbolId(1), SymbolId(4)}
+  Nonterminals: {SymbolId(0)}
+
+=== State 0 Analysis ===
+State 0 has 13 items:
+  Item 0: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 1: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 2: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 3: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 4: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 5: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 6: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 7: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 8: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 9: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 10: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 11: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 12: NT(7) -> • NT(0)  (rule_id=7)
+    -> next symbol: NonTerminal(SymbolId(0))
+
+State 0 summary:
+  Total symbols that can be shifted: 3
+  Terminals: 6
+  Non-terminals: 7
+  Symbols: {Terminal(SymbolId(1)), Terminal(SymbolId(4)), NonTerminal(SymbolId(0))}
+
+  State 0 GOTO: symbol SymbolId(1) -> state 1
+  State 0 GOTO: symbol SymbolId(4) -> state 2
+  State 0 GOTO: symbol SymbolId(0) -> state 3
+DEBUG: Collection goto table has 37 entries
+DEBUG: Augmented grammar has 5 tokens
+=== Symbol Classification Debug ===
+Tokens in augmented_grammar: [1, 2, 3, 4, 5]
+Externals in augmented_grammar: []
+Original grammar tokens: 5
+Collection goto_table size: 37
+State 0 has 3 goto entries
+  Symbol 1 -> State 1
+  Symbol 4 -> State 2
+  Symbol 0 -> State 3
+State 0 goto entry: symbol 1 -> state 1, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 1 (idx=1) -> state 1
+State 0 goto entry: symbol 4 -> state 2, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 4 (idx=4) -> state 2
+State 0 goto entry: symbol 0 -> state 3, is_terminal=false (in tokens=false, in externals=false, is EOF=true)
+Benchmarking parse_maximum_forks
+Benchmarking parse_maximum_forks: Warming up for 3.0000 s
+Benchmarking parse_maximum_forks: Collecting 100 samples in estimated 5.1127 s (20k iterations)
+Benchmarking parse_maximum_forks: Analyzing
+parse_maximum_forks     time:   [249.95 µs 250.52 µs 251.22 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) high mild
+  4 (4.00%) high severe

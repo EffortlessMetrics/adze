@@ -1,0 +1,338 @@
+   Compiling rust-sitter v0.8.0-dev (/app/runtime)
+   Compiling rust-sitter-python-simple v0.1.0 (/app/grammars/python-simple)
+   Compiling rust-sitter-python v0.1.0 (/app/grammars/python)
+   Compiling rust-sitter-example v0.8.0-dev (/app/example)
+    Finished `bench` profile [optimized + debuginfo] target(s) in 55.55s
+     Running benches/glr_parser_bench.rs (target/release/deps/glr_parser_bench-27f3a3a9e0bce805)
+Gnuplot not found, using plotters backend
+Initial state 0 after closure has 13 items:
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=6
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=6
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=2
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=3
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=6
+  Item: NT(0) ->  • T(1) , lookahead=2
+  Item: NT(0) ->  • T(1) , lookahead=3
+  Item: NT(0) ->  • T(1) , lookahead=6
+  Item: NT(7) ->  • NT(0) , lookahead=6
+State 0 expects transitions for:
+  Terminals: {SymbolId(1), SymbolId(4)}
+  Nonterminals: {SymbolId(0)}
+
+=== State 0 Analysis ===
+State 0 has 13 items:
+  Item 0: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 1: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 2: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 3: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 4: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 5: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 6: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 7: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 8: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 9: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 10: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 11: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 12: NT(7) -> • NT(0)  (rule_id=7)
+    -> next symbol: NonTerminal(SymbolId(0))
+
+State 0 summary:
+  Total symbols that can be shifted: 3
+  Terminals: 6
+  Non-terminals: 7
+  Symbols: {Terminal(SymbolId(1)), Terminal(SymbolId(4)), NonTerminal(SymbolId(0))}
+
+  State 0 GOTO: symbol SymbolId(1) -> state 1
+  State 0 GOTO: symbol SymbolId(4) -> state 2
+  State 0 GOTO: symbol SymbolId(0) -> state 3
+DEBUG: Collection goto table has 37 entries
+DEBUG: Augmented grammar has 5 tokens
+=== Symbol Classification Debug ===
+Tokens in augmented_grammar: [1, 2, 3, 4, 5]
+Externals in augmented_grammar: []
+Original grammar tokens: 5
+Collection goto_table size: 37
+State 0 has 3 goto entries
+  Symbol 1 -> State 1
+  Symbol 4 -> State 2
+  Symbol 0 -> State 3
+State 0 goto entry: symbol 1 -> state 1, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 1 (idx=1) -> state 1
+State 0 goto entry: symbol 4 -> state 2, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 4 (idx=4) -> state 2
+State 0 goto entry: symbol 0 -> state 3, is_terminal=false (in tokens=false, in externals=false, is EOF=true)
+Benchmarking parse_simple_expression
+Benchmarking parse_simple_expression: Warming up for 3.0000 s
+Benchmarking parse_simple_expression: Collecting 100 samples in estimated 5.6534 s (40k iterations)
+Benchmarking parse_simple_expression: Analyzing
+parse_simple_expression time:   [159.14 µs 173.47 µs 190.39 µs]
+                        change: [+12.692% +21.916% +31.661%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 20 outliers among 100 measurements (20.00%)
+  1 (1.00%) high mild
+  19 (19.00%) high severe
+
+Initial state 0 after closure has 13 items:
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=6
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=6
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=2
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=3
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=6
+  Item: NT(0) ->  • T(1) , lookahead=2
+  Item: NT(0) ->  • T(1) , lookahead=3
+  Item: NT(0) ->  • T(1) , lookahead=6
+  Item: NT(7) ->  • NT(0) , lookahead=6
+State 0 expects transitions for:
+  Terminals: {SymbolId(1), SymbolId(4)}
+  Nonterminals: {SymbolId(0)}
+
+=== State 0 Analysis ===
+State 0 has 13 items:
+  Item 0: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 1: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 2: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 3: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 4: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 5: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 6: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 7: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 8: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 9: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 10: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 11: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 12: NT(7) -> • NT(0)  (rule_id=7)
+    -> next symbol: NonTerminal(SymbolId(0))
+
+State 0 summary:
+  Total symbols that can be shifted: 3
+  Terminals: 6
+  Non-terminals: 7
+  Symbols: {Terminal(SymbolId(1)), Terminal(SymbolId(4)), NonTerminal(SymbolId(0))}
+
+  State 0 GOTO: symbol SymbolId(1) -> state 1
+  State 0 GOTO: symbol SymbolId(4) -> state 2
+  State 0 GOTO: symbol SymbolId(0) -> state 3
+DEBUG: Collection goto table has 37 entries
+DEBUG: Augmented grammar has 5 tokens
+=== Symbol Classification Debug ===
+Tokens in augmented_grammar: [1, 2, 3, 4, 5]
+Externals in augmented_grammar: []
+Original grammar tokens: 5
+Collection goto_table size: 37
+State 0 has 3 goto entries
+  Symbol 1 -> State 1
+  Symbol 4 -> State 2
+  Symbol 0 -> State 3
+State 0 goto entry: symbol 1 -> state 1, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 1 (idx=1) -> state 1
+State 0 goto entry: symbol 4 -> state 2, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 4 (idx=4) -> state 2
+State 0 goto entry: symbol 0 -> state 3, is_terminal=false (in tokens=false, in externals=false, is EOF=true)
+Benchmarking parse_deeply_nested
+Benchmarking parse_deeply_nested: Warming up for 3.0000 s
+Benchmarking parse_deeply_nested: Collecting 100 samples in estimated 5.0578 s (30k iterations)
+Benchmarking parse_deeply_nested: Analyzing
+parse_deeply_nested     time:   [168.20 µs 169.56 µs 171.09 µs]
+                        change: [+3.2423% +3.9846% +4.7606%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 12 outliers among 100 measurements (12.00%)
+  7 (7.00%) high mild
+  5 (5.00%) high severe
+
+Initial state 0 after closure has 13 items:
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=6
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=6
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=2
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=3
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=6
+  Item: NT(0) ->  • T(1) , lookahead=2
+  Item: NT(0) ->  • T(1) , lookahead=3
+  Item: NT(0) ->  • T(1) , lookahead=6
+  Item: NT(7) ->  • NT(0) , lookahead=6
+State 0 expects transitions for:
+  Terminals: {SymbolId(1), SymbolId(4)}
+  Nonterminals: {SymbolId(0)}
+
+=== State 0 Analysis ===
+State 0 has 13 items:
+  Item 0: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 1: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 2: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 3: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 4: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 5: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 6: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 7: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 8: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 9: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 10: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 11: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 12: NT(7) -> • NT(0)  (rule_id=7)
+    -> next symbol: NonTerminal(SymbolId(0))
+
+State 0 summary:
+  Total symbols that can be shifted: 3
+  Terminals: 6
+  Non-terminals: 7
+  Symbols: {Terminal(SymbolId(1)), Terminal(SymbolId(4)), NonTerminal(SymbolId(0))}
+
+  State 0 GOTO: symbol SymbolId(1) -> state 1
+  State 0 GOTO: symbol SymbolId(4) -> state 2
+  State 0 GOTO: symbol SymbolId(0) -> state 3
+DEBUG: Collection goto table has 37 entries
+DEBUG: Augmented grammar has 5 tokens
+=== Symbol Classification Debug ===
+Tokens in augmented_grammar: [1, 2, 3, 4, 5]
+Externals in augmented_grammar: []
+Original grammar tokens: 5
+Collection goto_table size: 37
+State 0 has 3 goto entries
+  Symbol 1 -> State 1
+  Symbol 4 -> State 2
+  Symbol 0 -> State 3
+State 0 goto entry: symbol 1 -> state 1, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 1 (idx=1) -> state 1
+State 0 goto entry: symbol 4 -> state 2, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 4 (idx=4) -> state 2
+State 0 goto entry: symbol 0 -> state 3, is_terminal=false (in tokens=false, in externals=false, is EOF=true)
+Benchmarking parse_highly_ambiguous
+Benchmarking parse_highly_ambiguous: Warming up for 3.0000 s
+Benchmarking parse_highly_ambiguous: Collecting 100 samples in estimated 6.0225 s (20k iterations)
+Benchmarking parse_highly_ambiguous: Analyzing
+parse_highly_ambiguous  time:   [293.60 µs 294.68 µs 296.23 µs]
+                        change: [-11.003% -6.2084% -1.6323%] (p = 0.01 < 0.05)
+                        Performance has improved.
+Found 13 outliers among 100 measurements (13.00%)
+  5 (5.00%) high mild
+  8 (8.00%) high severe
+
+Initial state 0 after closure has 13 items:
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(2) NT(0) , lookahead=6
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=2
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=3
+  Item: NT(0) ->  • NT(0) T(3) NT(0) , lookahead=6
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=2
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=3
+  Item: NT(0) ->  • T(4) NT(0) T(5) , lookahead=6
+  Item: NT(0) ->  • T(1) , lookahead=2
+  Item: NT(0) ->  • T(1) , lookahead=3
+  Item: NT(0) ->  • T(1) , lookahead=6
+  Item: NT(7) ->  • NT(0) , lookahead=6
+State 0 expects transitions for:
+  Terminals: {SymbolId(1), SymbolId(4)}
+  Nonterminals: {SymbolId(0)}
+
+=== State 0 Analysis ===
+State 0 has 13 items:
+  Item 0: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 1: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 2: NT(0) -> • NT(0) T(2) NT(0)  (rule_id=0)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 3: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 4: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 5: NT(0) -> • NT(0) T(3) NT(0)  (rule_id=1)
+    -> next symbol: NonTerminal(SymbolId(0))
+  Item 6: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 7: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 8: NT(0) -> • T(4) NT(0) T(5)  (rule_id=2)
+    -> next symbol: Terminal(SymbolId(4))
+  Item 9: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 10: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 11: NT(0) -> • T(1)  (rule_id=3)
+    -> next symbol: Terminal(SymbolId(1))
+  Item 12: NT(7) -> • NT(0)  (rule_id=7)
+    -> next symbol: NonTerminal(SymbolId(0))
+
+State 0 summary:
+  Total symbols that can be shifted: 3
+  Terminals: 6
+  Non-terminals: 7
+  Symbols: {Terminal(SymbolId(1)), Terminal(SymbolId(4)), NonTerminal(SymbolId(0))}
+
+  State 0 GOTO: symbol SymbolId(1) -> state 1
+  State 0 GOTO: symbol SymbolId(4) -> state 2
+  State 0 GOTO: symbol SymbolId(0) -> state 3
+DEBUG: Collection goto table has 37 entries
+DEBUG: Augmented grammar has 5 tokens
+=== Symbol Classification Debug ===
+Tokens in augmented_grammar: [1, 2, 3, 4, 5]
+Externals in augmented_grammar: []
+Original grammar tokens: 5
+Collection goto_table size: 37
+State 0 has 3 goto entries
+  Symbol 1 -> State 1
+  Symbol 4 -> State 2
+  Symbol 0 -> State 3
+State 0 goto entry: symbol 1 -> state 1, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 1 (idx=1) -> state 1
+State 0 goto entry: symbol 4 -> state 2, is_terminal=true (in tokens=true, in externals=false, is EOF=false)
+DEBUG: Adding shift action to state 0: symbol 4 (idx=4) -> state 2
+State 0 goto entry: symbol 0 -> state 3, is_terminal=false (in tokens=false, in externals=false, is EOF=true)
+Benchmarking parse_maximum_forks
+Benchmarking parse_maximum_forks: Warming up for 3.0000 s
+Benchmarking parse_maximum_forks: Collecting 100 samples in estimated 5.8303 s (20k iterations)
+Benchmarking parse_maximum_forks: Analyzing
+parse_maximum_forks     time:   [260.81 µs 266.62 µs 273.60 µs]
+                        change: [+2.7944% +3.9077% +5.2895%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) high mild
+  8 (8.00%) high severe
