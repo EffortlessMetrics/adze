@@ -24,8 +24,29 @@ class Playground {
         document.getElementById('import-file').addEventListener('change', (e) => this.import(e));
         
         // Tabs
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+        const tabs = Array.from(document.querySelectorAll('.tab'));
+        tabs.forEach((tab, index) => {
+            tab.addEventListener('click', () => {
+                this.switchTab(tab.dataset.tab);
+                tab.focus();
+            });
+
+            // Keyboard navigation
+            tab.addEventListener('keydown', (e) => {
+                let targetIndex = null;
+                if (e.key === 'ArrowRight') {
+                    targetIndex = (index + 1) % tabs.length;
+                } else if (e.key === 'ArrowLeft') {
+                    targetIndex = (index - 1 + tabs.length) % tabs.length;
+                }
+
+                if (targetIndex !== null) {
+                    e.preventDefault();
+                    const targetTab = tabs[targetIndex];
+                    this.switchTab(targetTab.dataset.tab);
+                    targetTab.focus();
+                }
+            });
         });
         
         // Initial analysis
@@ -260,12 +281,16 @@ class Playground {
     switchTab(tabName) {
         // Update tab buttons
         document.querySelectorAll('.tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
+            const isActive = tab.dataset.tab === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive);
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
         });
         
         // Update tab content
         document.querySelectorAll('.tab-pane').forEach(pane => {
-            pane.classList.toggle('active', pane.id === `${tabName}-tab`);
+            const isActive = pane.id === `${tabName}-tab`;
+            pane.classList.toggle('active', isActive);
         });
     }
 
