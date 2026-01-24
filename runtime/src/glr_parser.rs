@@ -181,12 +181,6 @@ impl ParseStack {
         self.nodes.push(node);
     }
 
-    /// Pop n states and nodes for a reduction
-    fn pop(&mut self, n: usize) -> Vec<Arc<Subtree>> {
-        self.states.truncate(self.states.len() - n);
-        self.nodes.split_off(self.nodes.len() - n)
-    }
-
     /// Clone this stack for forking
     fn fork(&self, new_id: usize) -> Self {
         Self {
@@ -1679,22 +1673,28 @@ impl GLRParser {
                 rule.rhs,
                 rule.rhs.len()
             );
-            let children = stack.pop(rule.rhs.len());
-            debug_glr!(
-                "  Popped {} children, stack now has {} nodes",
-                children.len(),
-                stack.nodes.len()
-            );
+            let rhs_len = rule.rhs.len();
+            let start_index = stack.nodes.len() - rhs_len;
 
-            // Create new subtree for the reduction
-            // For epsilon reductions (empty RHS), use lookahead_end as the position
-            let byte_range = if children.is_empty() {
+            // Determine byte range from stack nodes before removing them
+            let byte_range = if rhs_len == 0 {
                 // Epsilon: zero-width span at the current lookahead end
                 lookahead_end..lookahead_end
             } else {
                 // Normal: span from first child start to last child end
-                children[0].node.byte_range.start..children.last().unwrap().node.byte_range.end
+                let first = &stack.nodes[start_index];
+                let last = stack.nodes.last().unwrap();
+                first.node.byte_range.start..last.node.byte_range.end
             };
+
+            // Remove states (nodes are removed via drain below)
+            stack.states.truncate(stack.states.len() - rhs_len);
+
+            debug_glr!(
+                "  Popped {} children, stack now has {} nodes",
+                rhs_len,
+                stack.nodes.len() - rhs_len
+            );
 
             let node = SubtreeNode {
                 symbol_id: rule.lhs,
@@ -1702,28 +1702,31 @@ impl GLRParser {
                 byte_range,
             };
 
+            // Extract children directly from stack nodes using drain to avoid allocation
+            let children_iter = stack.nodes.drain(start_index..);
+
             // Apply field mappings to children
-            let children_with_fields = if rule.fields.is_empty() {
+            let children_with_fields: Vec<crate::subtree::ChildEdge> = if rule.fields.is_empty() {
                 // No fields, use FIELD_NONE for all children
-                children
-                    .into_iter()
+                children_iter
                     .map(crate::subtree::ChildEdge::new_without_field)
                     .collect()
             } else {
                 // Apply field mappings based on rule.fields
-                let mut result = Vec::with_capacity(children.len());
-                for (idx, child) in children.into_iter().enumerate() {
-                    // Find field ID for this child position
-                    let field_id = rule
-                        .fields
-                        .iter()
-                        .find(|(_, pos)| *pos == idx)
-                        .map(|(field_id, _)| field_id.0)
-                        .unwrap_or(crate::subtree::FIELD_NONE);
+                children_iter
+                    .enumerate()
+                    .map(|(idx, child)| {
+                        // Find field ID for this child position
+                        let field_id = rule
+                            .fields
+                            .iter()
+                            .find(|(_, pos)| *pos == idx)
+                            .map(|(field_id, _)| field_id.0)
+                            .unwrap_or(crate::subtree::FIELD_NONE);
 
-                    result.push(crate::subtree::ChildEdge::new(child, field_id));
-                }
-                result
+                        crate::subtree::ChildEdge::new(child, field_id)
+                    })
+                    .collect()
             };
 
             // Check if this rule has precedence (static or dynamic)
