@@ -38,24 +38,24 @@ function fibonacci(n) {
             </div>
 
             <div class="right-panel">
-                <div class="tabs">
-                    <button class="tab active" data-tab="tree">Parse Tree</button>
-                    <button class="tab" data-tab="analysis">Analysis</button>
-                    <button class="tab" data-tab="visualization">Visualization</button>
-                    <button class="tab" data-tab="timing">Performance</button>
+                <div class="tabs" role="tablist" aria-label="Result Views">
+                    <button class="tab active" data-tab="tree" role="tab" aria-selected="true" aria-controls="tree-tab" id="tab-tree" tabindex="0">Parse Tree</button>
+                    <button class="tab" data-tab="analysis" role="tab" aria-selected="false" aria-controls="analysis-tab" id="tab-analysis" tabindex="-1">Analysis</button>
+                    <button class="tab" data-tab="visualization" role="tab" aria-selected="false" aria-controls="visualization-tab" id="tab-visualization" tabindex="-1">Visualization</button>
+                    <button class="tab" data-tab="timing" role="tab" aria-selected="false" aria-controls="timing-tab" id="tab-timing" tabindex="-1">Performance</button>
                 </div>
 
                 <div class="tab-content">
-                    <div id="tree-tab" class="tab-pane active">
+                    <div id="tree-tab" class="tab-pane active" role="tabpanel" aria-labelledby="tab-tree" tabindex="0">
                         <pre id="parse-tree"></pre>
                     </div>
-                    <div id="analysis-tab" class="tab-pane">
+                    <div id="analysis-tab" class="tab-pane" role="tabpanel" aria-labelledby="tab-analysis" tabindex="0">
                         <div id="analysis-content"></div>
                     </div>
-                    <div id="visualization-tab" class="tab-pane">
+                    <div id="visualization-tab" class="tab-pane" role="tabpanel" aria-labelledby="tab-visualization" tabindex="0">
                         <div id="tree-visualization"></div>
                     </div>
-                    <div id="timing-tab" class="tab-pane">
+                    <div id="timing-tab" class="tab-pane" role="tabpanel" aria-labelledby="tab-timing" tabindex="0">
                         <div id="timing-content"></div>
                     </div>
                 </div>

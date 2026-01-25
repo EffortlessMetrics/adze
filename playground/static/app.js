@@ -24,8 +24,10 @@ class Playground {
         document.getElementById('import-file').addEventListener('change', (e) => this.import(e));
         
         // Tabs
-        document.querySelectorAll('.tab').forEach(tab => {
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach((tab, index) => {
             tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+            tab.addEventListener('keydown', (e) => this.handleTabKey(e, index, tabs));
         });
         
         // Initial analysis
@@ -260,13 +262,35 @@ class Playground {
     switchTab(tabName) {
         // Update tab buttons
         document.querySelectorAll('.tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
+            const isActive = tab.dataset.tab === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive);
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
+            if (isActive) tab.focus();
         });
         
         // Update tab content
         document.querySelectorAll('.tab-pane').forEach(pane => {
             pane.classList.toggle('active', pane.id === `${tabName}-tab`);
         });
+    }
+
+    handleTabKey(e, index, tabs) {
+        let newIndex = index;
+        if (e.key === 'ArrowLeft') {
+            newIndex = (index - 1 + tabs.length) % tabs.length;
+        } else if (e.key === 'ArrowRight') {
+            newIndex = (index + 1) % tabs.length;
+        } else if (e.key === 'Home') {
+            newIndex = 0;
+        } else if (e.key === 'End') {
+            newIndex = tabs.length - 1;
+        } else {
+            return;
+        }
+
+        e.preventDefault();
+        this.switchTab(tabs[newIndex].dataset.tab);
     }
 
     async export() {
