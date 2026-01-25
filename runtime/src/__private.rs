@@ -446,7 +446,30 @@ fn convert_parse_node_v4_to_pure(
         is_error: node.symbol.0 == 0, // Symbol 0 typically indicates error
         is_missing: false,
         is_named,
-        field_name: node.field_name.clone(),
+        field_id: if let Some(name) = &node.field_name {
+            unsafe {
+                if !lang.field_names.is_null() {
+                    let field_names =
+                        std::slice::from_raw_parts(lang.field_names, lang.field_count as usize);
+                    (0..lang.field_count as usize).find_map(|i| {
+                        let ptr = field_names[i];
+                        if !ptr.is_null() {
+                            let c_str = CStr::from_ptr(ptr as *const c_char);
+                            if let Ok(s) = c_str.to_str() {
+                                if s == name {
+                                    return Some(i as u16);
+                                }
+                            }
+                        }
+                        None
+                    })
+                } else {
+                    None
+                }
+            }
+        } else {
+            None
+        },
         language: Some(lang as *const _),
     }
 }

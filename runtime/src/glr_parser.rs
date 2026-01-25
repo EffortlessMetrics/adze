@@ -187,6 +187,12 @@ impl ParseStack {
         self.nodes.split_off(self.nodes.len() - n)
     }
 
+    /// Pop n states and nodes for a reduction, returning an iterator to avoid allocation
+    fn pop_drain(&mut self, n: usize) -> std::vec::Drain<'_, Arc<Subtree>> {
+        self.states.truncate(self.states.len() - n);
+        self.nodes.drain(self.nodes.len() - n..)
+    }
+
     /// Clone this stack for forking
     fn fork(&self, new_id: usize) -> Self {
         Self {
@@ -1679,51 +1685,58 @@ impl GLRParser {
                 rule.rhs,
                 rule.rhs.len()
             );
-            let children = stack.pop(rule.rhs.len());
+            let rhs_len = rule.rhs.len();
+            let children_iter = stack.pop_drain(rhs_len);
             debug_glr!(
                 "  Popped {} children, stack now has {} nodes",
-                children.len(),
+                rhs_len,
                 stack.nodes.len()
             );
 
+            // Apply field mappings to children directly from iterator
+            let children_with_fields: Vec<crate::subtree::ChildEdge> = if rule.fields.is_empty() {
+                // No fields, use FIELD_NONE for all children
+                children_iter
+                    .map(crate::subtree::ChildEdge::new_without_field)
+                    .collect()
+            } else {
+                // Apply field mappings based on rule.fields
+                children_iter
+                    .enumerate()
+                    .map(|(idx, child)| {
+                        let field_id = rule
+                            .fields
+                            .iter()
+                            .find(|(_, pos)| *pos == idx)
+                            .map(|(field_id, _)| field_id.0)
+                            .unwrap_or(crate::subtree::FIELD_NONE);
+
+                        crate::subtree::ChildEdge::new(child, field_id)
+                    })
+                    .collect()
+            };
+
             // Create new subtree for the reduction
             // For epsilon reductions (empty RHS), use lookahead_end as the position
-            let byte_range = if children.is_empty() {
+            let byte_range = if children_with_fields.is_empty() {
                 // Epsilon: zero-width span at the current lookahead end
                 lookahead_end..lookahead_end
             } else {
                 // Normal: span from first child start to last child end
-                children[0].node.byte_range.start..children.last().unwrap().node.byte_range.end
+                children_with_fields[0].subtree.node.byte_range.start
+                    ..children_with_fields
+                        .last()
+                        .unwrap()
+                        .subtree
+                        .node
+                        .byte_range
+                        .end
             };
 
             let node = SubtreeNode {
                 symbol_id: rule.lhs,
                 is_error: false,
                 byte_range,
-            };
-
-            // Apply field mappings to children
-            let children_with_fields = if rule.fields.is_empty() {
-                // No fields, use FIELD_NONE for all children
-                children
-                    .into_iter()
-                    .map(crate::subtree::ChildEdge::new_without_field)
-                    .collect()
-            } else {
-                // Apply field mappings based on rule.fields
-                let mut result = Vec::with_capacity(children.len());
-                for (idx, child) in children.into_iter().enumerate() {
-                    // Find field ID for this child position
-                    let field_id = rule
-                        .fields
-                        .iter()
-                        .find(|(_, pos)| *pos == idx)
-                        .map(|(field_id, _)| field_id.0)
-                        .unwrap_or(crate::subtree::FIELD_NONE);
-
-                    result.push(crate::subtree::ChildEdge::new(child, field_id));
-                }
-                result
             };
 
             // Check if this rule has precedence (static or dynamic)
