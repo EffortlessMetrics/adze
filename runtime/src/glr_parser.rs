@@ -1082,6 +1082,10 @@ impl GLRParser {
         let mut steps = 0usize;
         const MAX_STEPS: usize = 64; // very conservative; never reached in sane grammars
         while let Some(stack) = worklist.pop_front() {
+            // Optimization: Avoid cloning the stack when possible
+            let mut stack_container = Some(stack);
+            let stack_ref = stack_container.as_ref().unwrap();
+
             if steps >= MAX_STEPS {
                 debug_glr!(
                     "  Warning: Reached max epsilon closure steps ({})",
@@ -1090,7 +1094,7 @@ impl GLRParser {
                 break;
             }
             steps += 1;
-            let state = stack.current_state();
+            let state = stack_ref.current_state();
 
             // Get actions for this state and lookahead
             // If symbol_idx is None (e.g. EOF not in table), still check for epsilon reductions
@@ -1164,27 +1168,31 @@ impl GLRParser {
             let has_shift = action_cell.iter().any(|a| matches!(a, Action::Shift(_)));
             if has_shift {
                 debug_glr!("  Stack has shift action - preserving for phase 2");
-                shift_stacks.push(stack.clone());
+                shift_stacks.push(stack_ref.clone());
             }
 
             // Check for other non-reduce actions
             let has_accept = action_cell.iter().any(|a| matches!(a, Action::Accept));
             if has_accept {
                 debug_glr!("  Stack has accept action - preserving");
-                saturated_stacks.push(stack.clone());
+                saturated_stacks.push(stack_ref.clone());
             }
 
             if reduces.is_empty() {
                 // No reduces available - this stack is saturated
                 if !has_shift && !has_accept {
-                    saturated_stacks.push(stack);
+                    // Use the original stack if available (should be, since no actions took it)
+                    if let Some(stack) = stack_container {
+                        saturated_stacks.push(stack);
+                    }
                 }
                 continue;
             }
 
             // Apply each reduce action
             let mut any_reduction_applied = false;
-            for (reduce_action, _) in reduces {
+            let reduces_len = reduces.len();
+            for (i, (reduce_action, _)) in reduces.into_iter().enumerate() {
                 let rule_id = match reduce_action {
                     Action::Reduce(rid) => rid,
                     _ => continue,
@@ -1196,13 +1204,13 @@ impl GLRParser {
 
                 // Only stamp epsilon reductions to prevent loops
                 if rhs_len == 0 {
-                    let (start_byte, end_byte) = if let Some(n) = stack.nodes.last() {
+                    let (start_byte, end_byte) = if let Some(n) = stack_container.as_ref().unwrap().nodes.last() {
                         (n.node.byte_range.start, n.node.byte_range.end)
                     } else {
                         (lookahead_end, lookahead_end)
                     };
                     let stamp = RedStamp {
-                        state: stack.current_state(),
+                        state: stack_container.as_ref().unwrap().current_state(),
                         rule: rule_id,
                         start: start_byte,
                         end: end_byte,
@@ -1223,8 +1231,21 @@ impl GLRParser {
 
                 debug_glr!("  Applying reduction: rule {}", rule_id.0);
 
-                // Fork the stack for this reduction
-                let mut reduced_stack = stack.fork(self.next_stack_id);
+                // Optimization: reuse stack for the last reduction if possible
+                let can_reuse_stack = i == reduces_len - 1 && !has_shift && !has_accept;
+
+                // Fork OR Reuse the stack for this reduction
+                let mut reduced_stack = if can_reuse_stack {
+                    if let Some(mut s) = stack_container.take() {
+                        s.id = self.next_stack_id;
+                        s
+                    } else {
+                        // This should logically not happen if logic is correct
+                        stack_container.as_ref().unwrap().fork(self.next_stack_id)
+                    }
+                } else {
+                    stack_container.as_ref().unwrap().fork(self.next_stack_id)
+                };
                 self.next_stack_id += 1;
 
                 // Apply the reduction (this will pop symbols and push via GOTO)
@@ -1260,7 +1281,9 @@ impl GLRParser {
             // If no reductions were applied from this stack and it has no shift/accept,
             // then this stack is fully saturated
             if !any_reduction_applied && !has_shift && !has_accept {
-                saturated_stacks.push(stack);
+                if let Some(stack) = stack_container {
+                    saturated_stacks.push(stack);
+                }
             }
         }
 
