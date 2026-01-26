@@ -30,6 +30,48 @@ class Playground {
         
         // Initial analysis
         this.analyze();
+
+        this.initTabs();
+    }
+
+    initTabs() {
+        const tabList = document.querySelector('[role="tablist"]');
+        const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+
+        if (!tabList || tabs.length === 0) return;
+
+        tabList.addEventListener('keydown', (e) => {
+            const currentTab = document.activeElement;
+            const currentIndex = tabs.indexOf(currentTab);
+
+            if (currentIndex === -1) return;
+
+            let nextIndex = null;
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    nextIndex = currentIndex - 1;
+                    if (nextIndex < 0) nextIndex = tabs.length - 1;
+                    break;
+                case 'ArrowRight':
+                    nextIndex = currentIndex + 1;
+                    if (nextIndex >= tabs.length) nextIndex = 0;
+                    break;
+                case 'Home':
+                    nextIndex = 0;
+                    break;
+                case 'End':
+                    nextIndex = tabs.length - 1;
+                    break;
+                default:
+                    return;
+            }
+
+            e.preventDefault();
+            const nextTab = tabs[nextIndex];
+            this.switchTab(nextTab.dataset.tab);
+            nextTab.focus();
+        });
     }
 
     async parse(visualize = false) {
@@ -260,7 +302,10 @@ class Playground {
     switchTab(tabName) {
         // Update tab buttons
         document.querySelectorAll('.tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
+            const isActive = tab.dataset.tab === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
         });
         
         // Update tab content
