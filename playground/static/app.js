@@ -133,41 +133,78 @@ class Playground {
     }
 
     displayTiming(timing) {
-        const html = `
-            <div class="timing-chart">
-                <div class="timing-bar">
-                    <span class="timing-label">Lexing</span>
-                    <div class="timing-progress">
-                        <div class="timing-fill" style="width: ${(timing.lexing_ms / timing.total_ms) * 100}%"></div>
-                    </div>
-                    <span class="timing-value">${timing.lexing_ms.toFixed(2)}ms</span>
-                </div>
-                <div class="timing-bar">
-                    <span class="timing-label">Parsing</span>
-                    <div class="timing-progress">
-                        <div class="timing-fill" style="width: ${(timing.parsing_ms / timing.total_ms) * 100}%"></div>
-                    </div>
-                    <span class="timing-value">${timing.parsing_ms.toFixed(2)}ms</span>
-                </div>
-                <div class="timing-bar">
-                    <span class="timing-label">Total</span>
-                    <div class="timing-progress">
-                        <div class="timing-fill" style="width: 100%"></div>
-                    </div>
-                    <span class="timing-value">${timing.total_ms.toFixed(2)}ms</span>
-                </div>
-            </div>
-        `;
+        const container = document.getElementById('timing-content');
+        container.textContent = '';
         
-        document.getElementById('timing-content').innerHTML = html;
+        const chart = document.createElement('div');
+        chart.className = 'timing-chart';
+
+        const createBar = (label, value, total) => {
+            const bar = document.createElement('div');
+            bar.className = 'timing-bar';
+
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'timing-label';
+            labelSpan.textContent = label;
+            bar.appendChild(labelSpan);
+
+            const progress = document.createElement('div');
+            progress.className = 'timing-progress';
+            const fill = document.createElement('div');
+            fill.className = 'timing-fill';
+            fill.style.width = `${(value / total) * 100}%`;
+            progress.appendChild(fill);
+            bar.appendChild(progress);
+
+            const valueSpan = document.createElement('span');
+            valueSpan.className = 'timing-value';
+            valueSpan.textContent = `${value.toFixed(2)}ms`;
+            bar.appendChild(valueSpan);
+
+            return bar;
+        };
+
+        chart.appendChild(createBar('Lexing', timing.lexing_ms, timing.total_ms));
+        chart.appendChild(createBar('Parsing', timing.parsing_ms, timing.total_ms));
+
+        // Total bar (100%)
+        const totalBar = document.createElement('div');
+        totalBar.className = 'timing-bar';
+
+        const label = document.createElement('span');
+        label.className = 'timing-label';
+        label.textContent = 'Total';
+        totalBar.appendChild(label);
+
+        const progress = document.createElement('div');
+        progress.className = 'timing-progress';
+        const fill = document.createElement('div');
+        fill.className = 'timing-fill';
+        fill.style.width = '100%';
+        progress.appendChild(fill);
+        totalBar.appendChild(progress);
+
+        const value = document.createElement('span');
+        value.className = 'timing-value';
+        value.textContent = `${timing.total_ms.toFixed(2)}ms`;
+        totalBar.appendChild(value);
+
+        chart.appendChild(totalBar);
+
+        container.appendChild(chart);
     }
 
     displayErrors(errors) {
-        const errorList = errors.map(err => 
-            `<div class="error-item">Line ${err.line}, Column ${err.column}: ${err.message}</div>`
-        ).join('');
-        
-        document.getElementById('error-list').innerHTML = errorList;
+        const errorList = document.getElementById('error-list');
+        errorList.textContent = '';
+
+        errors.forEach(err => {
+            const div = document.createElement('div');
+            div.className = 'error-item';
+            div.textContent = `Line ${err.line}, Column ${err.column}: ${err.message}`;
+            errorList.appendChild(div);
+        });
+
         document.getElementById('errors').style.display = 'block';
     }
 
@@ -176,51 +213,70 @@ class Playground {
     }
 
     displayAnalysis(analysis) {
+        const container = document.getElementById('analysis-content');
+        container.textContent = '';
+
         const stats = analysis.grammar_stats;
-        const html = `
-            <div class="stat-grid">
-                <div class="stat-card">
-                    <h4>Rules</h4>
-                    <div class="value">${stats.rule_count}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Terminals</h4>
-                    <div class="value">${stats.terminal_count}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Non-terminals</h4>
-                    <div class="value">${stats.nonterminal_count}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Avg Rule Length</h4>
-                    <div class="value">${stats.avg_rule_length.toFixed(1)}</div>
-                </div>
-            </div>
-            
-            ${analysis.conflicts.length > 0 ? `
-                <h3>Conflicts</h3>
-                <div class="conflict-list">
-                    ${analysis.conflicts.map(c => `
-                        <div class="conflict-item">
-                            <strong>${c.kind}</strong> in state ${c.state}: ${c.description}
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
-            
-            ${analysis.suggestions.length > 0 ? `
-                <h3>Suggestions</h3>
-                <div class="suggestion-list">
-                    ${analysis.suggestions.map(s => `
-                        <div class="suggestion-item ${s.level.toLowerCase()}">
-                            ${s.message}
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
-        `;
-        
-        document.getElementById('analysis-content').innerHTML = html;
+        const grid = document.createElement('div');
+        grid.className = 'stat-grid';
+
+        const createStat = (label, value) => {
+            const card = document.createElement('div');
+            card.className = 'stat-card';
+            const h4 = document.createElement('h4');
+            h4.textContent = label;
+            const v = document.createElement('div');
+            v.className = 'value';
+            v.textContent = value;
+            card.appendChild(h4);
+            card.appendChild(v);
+            return card;
+        };
+
+        grid.appendChild(createStat('Rules', stats.rule_count));
+        grid.appendChild(createStat('Terminals', stats.terminal_count));
+        grid.appendChild(createStat('Non-terminals', stats.nonterminal_count));
+        grid.appendChild(createStat('Avg Rule Length', stats.avg_rule_length.toFixed(1)));
+        container.appendChild(grid);
+
+        if (analysis.conflicts.length > 0) {
+            const h3 = document.createElement('h3');
+            h3.textContent = 'Conflicts';
+            container.appendChild(h3);
+
+            const list = document.createElement('div');
+            list.className = 'conflict-list';
+
+            analysis.conflicts.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'conflict-item';
+
+                const strong = document.createElement('strong');
+                strong.textContent = c.kind;
+                item.appendChild(strong);
+                item.appendChild(document.createTextNode(` in state ${c.state}: ${c.description}`));
+
+                list.appendChild(item);
+            });
+            container.appendChild(list);
+        }
+
+        if (analysis.suggestions.length > 0) {
+            const h3 = document.createElement('h3');
+            h3.textContent = 'Suggestions';
+            container.appendChild(h3);
+
+            const list = document.createElement('div');
+            list.className = 'suggestion-list';
+
+            analysis.suggestions.forEach(s => {
+                const item = document.createElement('div');
+                item.className = `suggestion-item ${s.level.toLowerCase()}`;
+                item.textContent = s.message;
+                list.appendChild(item);
+            });
+            container.appendChild(list);
+        }
     }
 
     displayVisualization(svg) {
@@ -228,25 +284,44 @@ class Playground {
     }
 
     updateTestList() {
-        const html = this.tests.map(test => `
-            <div class="test-item">
-                <span>${test.name}</span>
-                <button onclick="playground.loadTest('${test.name}')">Load</button>
-            </div>
-        `).join('');
+        const container = document.getElementById('test-list');
+        container.textContent = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        this.tests.forEach(test => {
+            const div = document.createElement('div');
+            div.className = 'test-item';
+
+            const span = document.createElement('span');
+            span.textContent = test.name;
+            div.appendChild(span);
+
+            const btn = document.createElement('button');
+            btn.textContent = 'Load';
+            btn.addEventListener('click', () => playground.loadTest(test.name));
+            div.appendChild(btn);
+
+            container.appendChild(div);
+        });
     }
 
     displayTestResults(results) {
-        const html = results.map(([test, result]) => `
-            <div class="test-item ${result.success ? 'pass' : 'fail'}">
-                <span>${test.name}</span>
-                <span>${result.success ? '✓ PASS' : '✗ FAIL'}</span>
-            </div>
-        `).join('');
+        const container = document.getElementById('test-list');
+        container.textContent = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        results.forEach(([test, result]) => {
+            const div = document.createElement('div');
+            div.className = `test-item ${result.success ? 'pass' : 'fail'}`;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = test.name;
+            div.appendChild(nameSpan);
+
+            const resultSpan = document.createElement('span');
+            resultSpan.textContent = result.success ? '✓ PASS' : '✗ FAIL';
+            div.appendChild(resultSpan);
+
+            container.appendChild(div);
+        });
     }
 
     loadTest(name) {
