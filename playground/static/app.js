@@ -24,8 +24,36 @@ class Playground {
         document.getElementById('import-file').addEventListener('change', (e) => this.import(e));
         
         // Tabs
-        document.querySelectorAll('.tab').forEach(tab => {
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
             tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+
+            // Keyboard navigation for tabs
+            tab.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    const direction = e.key === 'ArrowRight' ? 1 : -1;
+                    const tabsArray = Array.from(tabs);
+                    const currentIndex = tabsArray.indexOf(e.target);
+                    let nextIndex = (currentIndex + direction + tabsArray.length) % tabsArray.length;
+
+                    const nextTab = tabsArray[nextIndex];
+                    nextTab.focus();
+                    nextTab.click();
+                }
+            });
+        });
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                // Only trigger if we're in the input area or body
+                if (document.activeElement === document.body ||
+                    document.activeElement.id === 'input-code') {
+                    e.preventDefault();
+                    this.parse(false);
+                }
+            }
         });
         
         // Initial analysis
@@ -260,7 +288,10 @@ class Playground {
     switchTab(tabName) {
         // Update tab buttons
         document.querySelectorAll('.tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
+            const isActive = tab.dataset.tab === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive);
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
         });
         
         // Update tab content
