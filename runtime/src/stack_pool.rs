@@ -2,14 +2,14 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
 use std::cell::RefCell;
-use std::collections::VecDeque;
 use std::rc::Rc;
 
 /// A pool of reusable parse stacks to reduce allocation overhead
 /// during GLR parsing when forks are created and destroyed frequently.
 pub struct StackPool<T: Clone> {
     /// Pool of available stacks ready for reuse
-    available: RefCell<VecDeque<Vec<T>>>,
+    /// Uses LIFO (stack) behavior for better cache locality of recently released stacks.
+    available: RefCell<Vec<Vec<T>>>,
     /// Maximum number of stacks to keep in the pool
     max_pool_size: usize,
     /// Statistics for monitoring pool performance
@@ -29,7 +29,7 @@ impl<T: Clone> StackPool<T> {
     /// Create a new stack pool with the specified maximum size
     pub fn new(max_pool_size: usize) -> Self {
         StackPool {
-            available: RefCell::new(VecDeque::with_capacity(max_pool_size)),
+            available: RefCell::new(Vec::with_capacity(max_pool_size)),
             max_pool_size,
             stats: RefCell::new(PoolStats::default()),
         }
@@ -40,7 +40,8 @@ impl<T: Clone> StackPool<T> {
         let mut pool = self.available.borrow_mut();
         let mut stats = self.stats.borrow_mut();
 
-        if let Some(mut stack) = pool.pop_front() {
+        // LIFO: pop the most recently used stack (better cache locality)
+        if let Some(mut stack) = pool.pop() {
             stack.clear(); // Ensure it's empty for reuse
             stats.pool_hits += 1;
             stats.reuse_count += 1;
@@ -59,7 +60,8 @@ impl<T: Clone> StackPool<T> {
 
         // Try to find a stack with at least the requested capacity
         if let Some(pos) = pool.iter().position(|s| s.capacity() >= capacity) {
-            let mut stack = pool.remove(pos).unwrap();
+            // O(1) removal using swap_remove, since order doesn't matter
+            let mut stack = pool.swap_remove(pos);
             stack.clear();
             stats.pool_hits += 1;
             stats.reuse_count += 1;
@@ -78,7 +80,8 @@ impl<T: Clone> StackPool<T> {
         // Only keep stacks that aren't too large (to avoid memory bloat)
         if stack.capacity() <= 4096 && pool.len() < self.max_pool_size {
             stack.clear();
-            pool.push_back(stack);
+            // LIFO: push to the end
+            pool.push(stack);
 
             let mut stats = self.stats.borrow_mut();
             stats.max_pool_depth = stats.max_pool_depth.max(pool.len());
