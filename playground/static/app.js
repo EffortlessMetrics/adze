@@ -163,11 +163,16 @@ class Playground {
     }
 
     displayErrors(errors) {
-        const errorList = errors.map(err => 
-            `<div class="error-item">Line ${err.line}, Column ${err.column}: ${err.message}</div>`
-        ).join('');
+        const errorList = document.getElementById('error-list');
+        errorList.textContent = '';
+
+        errors.forEach(err => {
+            const div = document.createElement('div');
+            div.className = 'error-item';
+            div.textContent = `Line ${err.line}, Column ${err.column}: ${err.message}`;
+            errorList.appendChild(div);
+        });
         
-        document.getElementById('error-list').innerHTML = errorList;
         document.getElementById('errors').style.display = 'block';
     }
 
@@ -177,50 +182,73 @@ class Playground {
 
     displayAnalysis(analysis) {
         const stats = analysis.grammar_stats;
-        const html = `
-            <div class="stat-grid">
-                <div class="stat-card">
-                    <h4>Rules</h4>
-                    <div class="value">${stats.rule_count}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Terminals</h4>
-                    <div class="value">${stats.terminal_count}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Non-terminals</h4>
-                    <div class="value">${stats.nonterminal_count}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Avg Rule Length</h4>
-                    <div class="value">${stats.avg_rule_length.toFixed(1)}</div>
-                </div>
-            </div>
+        const container = document.getElementById('analysis-content');
+        container.textContent = '';
+
+        // Stat Grid
+        const grid = document.createElement('div');
+        grid.className = 'stat-grid';
+
+        const createStatCard = (title, value) => {
+            const card = document.createElement('div');
+            card.className = 'stat-card';
+            const h4 = document.createElement('h4');
+            h4.textContent = title;
+            const v = document.createElement('div');
+            v.className = 'value';
+            v.textContent = value;
+            card.appendChild(h4);
+            card.appendChild(v);
+            return card;
+        };
+
+        grid.appendChild(createStatCard('Rules', stats.rule_count));
+        grid.appendChild(createStatCard('Terminals', stats.terminal_count));
+        grid.appendChild(createStatCard('Non-terminals', stats.nonterminal_count));
+        grid.appendChild(createStatCard('Avg Rule Length', stats.avg_rule_length.toFixed(1)));
+
+        container.appendChild(grid);
+
+        // Conflicts
+        if (analysis.conflicts.length > 0) {
+            const h3 = document.createElement('h3');
+            h3.textContent = 'Conflicts';
+            container.appendChild(h3);
             
-            ${analysis.conflicts.length > 0 ? `
-                <h3>Conflicts</h3>
-                <div class="conflict-list">
-                    ${analysis.conflicts.map(c => `
-                        <div class="conflict-item">
-                            <strong>${c.kind}</strong> in state ${c.state}: ${c.description}
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
+            const list = document.createElement('div');
+            list.className = 'conflict-list';
             
-            ${analysis.suggestions.length > 0 ? `
-                <h3>Suggestions</h3>
-                <div class="suggestion-list">
-                    ${analysis.suggestions.map(s => `
-                        <div class="suggestion-item ${s.level.toLowerCase()}">
-                            ${s.message}
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
-        `;
+            analysis.conflicts.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'conflict-item';
+
+                const strong = document.createElement('strong');
+                strong.textContent = c.kind;
+
+                item.appendChild(strong);
+                item.appendChild(document.createTextNode(` in state ${c.state}: ${c.description}`));
+                list.appendChild(item);
+            });
+            container.appendChild(list);
+        }
         
-        document.getElementById('analysis-content').innerHTML = html;
+        // Suggestions
+        if (analysis.suggestions.length > 0) {
+            const h3 = document.createElement('h3');
+            h3.textContent = 'Suggestions';
+            container.appendChild(h3);
+
+            const list = document.createElement('div');
+            list.className = 'suggestion-list';
+
+            analysis.suggestions.forEach(s => {
+                const item = document.createElement('div');
+                item.className = `suggestion-item ${s.level.toLowerCase()}`;
+                item.textContent = s.message;
+                list.appendChild(item);
+            });
+            container.appendChild(list);
+        }
     }
 
     displayVisualization(svg) {
@@ -228,25 +256,44 @@ class Playground {
     }
 
     updateTestList() {
-        const html = this.tests.map(test => `
-            <div class="test-item">
-                <span>${test.name}</span>
-                <button onclick="playground.loadTest('${test.name}')">Load</button>
-            </div>
-        `).join('');
+        const list = document.getElementById('test-list');
+        list.textContent = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        this.tests.forEach(test => {
+            const item = document.createElement('div');
+            item.className = 'test-item';
+
+            const span = document.createElement('span');
+            span.textContent = test.name;
+
+            const button = document.createElement('button');
+            button.textContent = 'Load';
+            button.addEventListener('click', () => this.loadTest(test.name));
+
+            item.appendChild(span);
+            item.appendChild(button);
+            list.appendChild(item);
+        });
     }
 
     displayTestResults(results) {
-        const html = results.map(([test, result]) => `
-            <div class="test-item ${result.success ? 'pass' : 'fail'}">
-                <span>${test.name}</span>
-                <span>${result.success ? '✓ PASS' : '✗ FAIL'}</span>
-            </div>
-        `).join('');
+        const list = document.getElementById('test-list');
+        list.textContent = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        results.forEach(([test, result]) => {
+            const item = document.createElement('div');
+            item.className = `test-item ${result.success ? 'pass' : 'fail'}`;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = test.name;
+
+            const statusSpan = document.createElement('span');
+            statusSpan.textContent = result.success ? '✓ PASS' : '✗ FAIL';
+
+            item.appendChild(nameSpan);
+            item.appendChild(statusSpan);
+            list.appendChild(item);
+        });
     }
 
     loadTest(name) {

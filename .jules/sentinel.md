@@ -1,0 +1,4 @@
+## 2025-11-20 - DOM XSS in Playground Frontend
+**Vulnerability:** Found multiple instances of Cross-Site Scripting (XSS) in `playground/static/app.js` where user input (test names, error messages) was directly injected into the DOM using `innerHTML`. This allowed arbitrary JavaScript execution if a user loaded a malicious test session or triggered a specific error.
+**Learning:** The vulnerability existed because of the convenience of template literals combined with `innerHTML` for rendering lists and status messages. Frontend code without a build step or framework (like React/Vue) often defaults to `innerHTML` which is dangerous.
+**Prevention:** Always use `textContent` for text and `document.createElement` for structure when dealing with dynamic content. If HTML must be used, sanitize it first (e.g., DOMPurify), but prefer DOM APIs. Avoid inline event handlers like `onclick="..."` which require string interpolation of arguments.
