@@ -954,12 +954,12 @@ impl GLRParser {
             use std::ptr;
             new_stacks.dedup_by(|a, b| {
                 a.current_state() == b.current_state()
-                    && a.nodes.last().is_some()
-                    && b.nodes.last().is_some()
-                    && ptr::eq(
-                        a.nodes.last().unwrap().as_ref(),
-                        b.nodes.last().unwrap().as_ref(),
-                    )
+                    && a.nodes.len() == b.nodes.len()
+                    && a.nodes
+                        .iter()
+                        .zip(b.nodes.iter())
+                        .rev()
+                        .all(|(na, nb)| ptr::eq(na.as_ref(), nb.as_ref()))
             });
         }
 

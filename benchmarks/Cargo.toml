@@ -35,6 +35,10 @@ harness = false
 name = "arena_vs_box_allocation"
 harness = false
 
+[[bench]]
+name = "glr_ambiguity_stress"
+harness = false
+
 [dependencies]
 rust-sitter = { path = "../runtime", features = ["pure-rust"] }
 rust-sitter-example = { path = "../example" }
