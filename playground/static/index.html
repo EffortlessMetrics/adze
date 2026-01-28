@@ -18,7 +18,7 @@
             <div class="left-panel">
                 <div class="section">
                     <h2>Input Code</h2>
-                    <textarea id="input-code" placeholder="Enter code to parse...">// Example JavaScript
+                    <textarea id="input-code" aria-label="Code Input" placeholder="Enter code to parse...">// Example JavaScript
 function fibonacci(n) {
     if (n <= 1) return n;
     return fibonacci(n - 1) + fibonacci(n - 2);
@@ -38,24 +38,24 @@ function fibonacci(n) {
             </div>
 
             <div class="right-panel">
-                <div class="tabs">
-                    <button class="tab active" data-tab="tree">Parse Tree</button>
-                    <button class="tab" data-tab="analysis">Analysis</button>
-                    <button class="tab" data-tab="visualization">Visualization</button>
-                    <button class="tab" data-tab="timing">Performance</button>
+                <div class="tabs" role="tablist">
+                    <button class="tab active" data-tab="tree" role="tab" id="tab-tree" aria-controls="tree-tab" aria-selected="true">Parse Tree</button>
+                    <button class="tab" data-tab="analysis" role="tab" id="tab-analysis" aria-controls="analysis-tab" aria-selected="false">Analysis</button>
+                    <button class="tab" data-tab="visualization" role="tab" id="tab-visualization" aria-controls="visualization-tab" aria-selected="false">Visualization</button>
+                    <button class="tab" data-tab="timing" role="tab" id="tab-timing" aria-controls="timing-tab" aria-selected="false">Performance</button>
                 </div>
 
                 <div class="tab-content">
-                    <div id="tree-tab" class="tab-pane active">
+                    <div id="tree-tab" class="tab-pane active" role="tabpanel" aria-labelledby="tab-tree">
                         <pre id="parse-tree"></pre>
                     </div>
-                    <div id="analysis-tab" class="tab-pane">
+                    <div id="analysis-tab" class="tab-pane" role="tabpanel" aria-labelledby="tab-analysis">
                         <div id="analysis-content"></div>
                     </div>
-                    <div id="visualization-tab" class="tab-pane">
+                    <div id="visualization-tab" class="tab-pane" role="tabpanel" aria-labelledby="tab-visualization">
                         <div id="tree-visualization"></div>
                     </div>
-                    <div id="timing-tab" class="tab-pane">
+                    <div id="timing-tab" class="tab-pane" role="tabpanel" aria-labelledby="tab-timing">
                         <div id="timing-content"></div>
                     </div>
                 </div>
