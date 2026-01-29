@@ -28,13 +28,28 @@ class Playground {
             tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
         });
         
+        // Keyboard shortcuts
+        document.getElementById('input-code').addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                this.parse(false);
+            }
+        });
+
         // Initial analysis
         this.analyze();
     }
 
     async parse(visualize = false) {
         const input = document.getElementById('input-code').value;
+        const parseBtn = document.getElementById('parse-btn');
+        const visualizeBtn = document.getElementById('visualize-btn');
+        const originalText = parseBtn.textContent;
+
         this.setStatus('Parsing...');
+        parseBtn.disabled = true;
+        visualizeBtn.disabled = true;
+        parseBtn.textContent = 'Parsing...';
         
         try {
             const response = await fetch('/api/parse', {
@@ -62,6 +77,10 @@ class Playground {
             }
         } catch (error) {
             this.setStatus('Error: ' + error.message, 'error');
+        } finally {
+            parseBtn.disabled = false;
+            visualizeBtn.disabled = false;
+            parseBtn.textContent = originalText;
         }
     }
 

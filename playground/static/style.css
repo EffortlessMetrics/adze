@@ -119,6 +119,11 @@ button:not(.primary):hover {
     background-color: #D0D0D0;
 }
 
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .tabs {
     display: flex;
     gap: 5px;
