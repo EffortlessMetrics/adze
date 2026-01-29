@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 use rayon::prelude::*;
-use std::collections::HashMap;
+use ahash::{AHashMap, AHasher};
 use std::sync::{Arc, Mutex};
 
 use crate::incremental_v3::{Subtree, SubtreePool, Tree};
@@ -45,14 +45,14 @@ pub struct ParallelParser {
 
 /// Cache for reusable subtrees
 struct SubtreeCache {
-    cache: HashMap<u64, Arc<Subtree>>,
+    cache: AHashMap<u64, Arc<Subtree>>,
     pool: SubtreePool,
 }
 
 impl SubtreeCache {
     fn new() -> Self {
         Self {
-            cache: HashMap::new(),
+            cache: AHashMap::new(),
             pool: SubtreePool::new(),
         }
     }
@@ -314,10 +314,9 @@ impl ParallelParser {
 
     /// Hash a subtree for caching
     fn hash_subtree(&self, subtree: &Subtree) -> u64 {
-        use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = AHasher::default();
         subtree.symbol.hash(&mut hasher);
         subtree.start_byte.hash(&mut hasher);
         subtree.end_byte.hash(&mut hasher);

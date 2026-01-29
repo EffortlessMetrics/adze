@@ -1033,7 +1033,8 @@ impl GLRParser {
         token: SymbolId,
         lookahead_end: usize,
     ) -> Vec<ParseStack> {
-        use std::collections::{HashSet, VecDeque};
+        use ahash::AHashSet;
+        use std::collections::VecDeque;
 
         // Track which reductions we've already applied at a given position
         // to avoid infinite epsilon loops
@@ -1044,11 +1045,11 @@ impl GLRParser {
             start: usize, // start byte position for precise stamping
             end: usize,   // end byte position to prevent epsilon re-fires at same position
         }
-        let mut seen_reductions = HashSet::<RedStamp>::new();
+        let mut seen_reductions = AHashSet::<RedStamp>::new();
 
         // Track which (stack_id, state_id) tops we've already expanded for this lookahead.
         // This bounds the worklist and prevents infinite exploration.
-        let mut seen_tops = HashSet::<(u16, usize)>::new(); // (state, top_ptr)
+        let mut seen_tops = AHashSet::<(u16, usize)>::new(); // (state, top_ptr)
 
         // Worklist of stacks to try reduces from
         let mut worklist = VecDeque::new();
@@ -1306,7 +1307,7 @@ impl GLRParser {
     /// Compress stacks with identical tops to prevent explosion
     /// This preserves all derivations by packing alternatives at the top
     fn compress_identical_tops(&mut self, mut stacks: Vec<ParseStack>) -> Vec<ParseStack> {
-        use std::collections::HashMap;
+        use ahash::AHashMap;
 
         // If we have few stacks, no need to compress
         if stacks.len() <= 10 {
@@ -1322,7 +1323,7 @@ impl GLRParser {
         }
 
         // Map from top key to index in output vector
-        let mut keep: HashMap<TopKey, usize> = HashMap::new();
+        let mut keep: AHashMap<TopKey, usize> = AHashMap::new();
         let mut out: Vec<ParseStack> = Vec::new();
         #[cfg_attr(not(feature = "glr_telemetry"), allow(unused_variables))]
         let mut packed_count = 0usize;
