@@ -24,8 +24,34 @@ class Playground {
         document.getElementById('import-file').addEventListener('change', (e) => this.import(e));
         
         // Tabs
-        document.querySelectorAll('.tab').forEach(tab => {
+        const tabs = document.querySelectorAll('.tab');
+        const tabList = document.querySelector('.tabs');
+
+        tabs.forEach(tab => {
             tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+        });
+
+        // Tab Keyboard Navigation
+        tabList.addEventListener('keydown', (e) => {
+            const currentTab = document.activeElement;
+            if (!currentTab.classList.contains('tab')) return;
+
+            const tabsArray = Array.from(tabs);
+            const index = tabsArray.indexOf(currentTab);
+            let nextIndex = null;
+
+            if (e.key === 'ArrowRight') {
+                nextIndex = (index + 1) % tabsArray.length;
+            } else if (e.key === 'ArrowLeft') {
+                nextIndex = (index - 1 + tabsArray.length) % tabsArray.length;
+            }
+
+            if (nextIndex !== null) {
+                e.preventDefault();
+                const nextTab = tabsArray[nextIndex];
+                this.switchTab(nextTab.dataset.tab);
+                nextTab.focus();
+            }
         });
         
         // Initial analysis
@@ -260,7 +286,10 @@ class Playground {
     switchTab(tabName) {
         // Update tab buttons
         document.querySelectorAll('.tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
+            const isActive = tab.dataset.tab === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive);
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
         });
         
         // Update tab content
