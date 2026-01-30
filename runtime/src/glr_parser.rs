@@ -520,6 +520,205 @@ impl GLRParser {
         self.shift_synthetic_token(token);
     }
 
+
+    #[allow(clippy::too_many_arguments)]
+    fn process_single_action(
+        &mut self,
+        action: &Action,
+        mut stack: ParseStack,
+        token: SymbolId,
+        text: &str,
+        byte_offset: usize,
+        new_stacks: &mut Vec<ParseStack>,
+        accept_stacks: &mut Vec<ParseStack>,
+        accepted_any: &mut bool,
+    ) {
+        match action {
+            Action::Shift(new_state) => {
+                stack.push(
+                    *new_state,
+                    Arc::new(Subtree::new(
+                        SubtreeNode {
+                            symbol_id: token,
+                            is_error: false,
+                            byte_range: byte_offset..byte_offset + text.len(),
+                        },
+                        vec![],
+                    )),
+                );
+                new_stacks.push(stack);
+            }
+
+            Action::Accept => {
+                *accepted_any = true;
+                accept_stacks.push(stack);
+            }
+
+            Action::Reduce(rule_id) => {
+                self.perform_reduction_on_stack(
+                    &mut stack,
+                    *rule_id,
+                    byte_offset + text.len(),
+                );
+
+                let closed = self.reduce_until_saturated(
+                    vec![stack],
+                    token,
+                    byte_offset + text.len(),
+                );
+                new_stacks.extend(closed);
+            }
+
+            Action::Fork(actions) => {
+                debug_glr!(
+                    "DEBUG: GLR Fork! Creating {} stacks for state {} with token {}",
+                    actions.len(),
+                    stack.current_state().0,
+                    token.0
+                );
+
+                if let Some((last, rest)) = actions.split_last() {
+                    for (i, fork_action) in rest.iter().enumerate() {
+                        let forked = stack.fork(self.next_stack_id);
+                        self.next_stack_id += 1;
+                        debug_glr!("  Fork {}: Action {:?}", i, fork_action);
+                        self.process_single_action(
+                            fork_action,
+                            forked,
+                            token,
+                            text,
+                            byte_offset,
+                            new_stacks,
+                            accept_stacks,
+                            accepted_any,
+                        );
+                    }
+
+                    debug_glr!("  Fork last: Action {:?}", last);
+                    self.process_single_action(
+                        last,
+                        stack,
+                        token,
+                        text,
+                        byte_offset,
+                        new_stacks,
+                        accept_stacks,
+                        accepted_any,
+                    );
+                }
+            }
+
+            Action::Recover => {
+                let mut error_stack = stack;
+                error_stack.version.enter_error();
+                new_stacks.push(error_stack);
+            }
+
+            Action::Error => {
+                 if let Some(recovery_state) = &mut self.recovery_state
+                    && let Some(recovery_action) = recovery_state.suggest_recovery(
+                        stack.current_state(),
+                        token,
+                        &self.table,
+                        &self.grammar,
+                    ) {
+                        match recovery_action {
+                            RecoveryAction::InsertToken(missing_token) => {
+                                if let Some(&missing_idx) =
+                                    self.table.symbol_to_index.get(&missing_token)
+                                {
+                                    let missing_action_cell = &self.table.action_table
+                                        [stack.current_state().0 as usize][missing_idx];
+                                    let shift_action = missing_action_cell
+                                        .iter()
+                                        .find(|a| matches!(a, Action::Shift(_)));
+                                    if let Some(Action::Shift(new_state)) = shift_action {
+                                        let mut recovery_stack = stack;
+                                        let error_node = Arc::new(Subtree::new(
+                                            SubtreeNode {
+                                                symbol_id: missing_token,
+                                                is_error: true,
+                                                byte_range: byte_offset..byte_offset,
+                                            },
+                                            vec![],
+                                        ));
+                                        recovery_stack.push(*new_state, error_node);
+                                        recovery_stack.version.enter_error();
+
+                                        let new_state_id = *new_state;
+                                        if let Some(&token_idx) =
+                                            self.table.symbol_to_index.get(&token)
+                                        {
+                                            // FIX: Clone to avoid borrowing self.table while calling self.process_single_action
+                                            let new_action_cell = self.table.action_table
+                                                [new_state_id.0 as usize][token_idx].clone();
+
+                                            if let Some((last, rest)) = new_action_cell.split_last() {
+                                                for action in rest {
+                                                    self.process_single_action(action, recovery_stack.clone(), token, text, byte_offset, new_stacks, accept_stacks, accepted_any);
+                                                }
+                                                self.process_single_action(last, recovery_stack, token, text, byte_offset, new_stacks, accept_stacks, accepted_any);
+                                            } else {
+                                                 new_stacks.push(recovery_stack);
+                                            }
+                                        } else {
+                                            new_stacks.push(recovery_stack);
+                                        }
+                                        return;
+                                    }
+                                }
+                            }
+                            RecoveryAction::DeleteToken => {
+                                let mut recovery_stack = stack;
+                                recovery_stack.version.enter_error();
+                                recovery_stack.version.dynamic_prec -= 1;
+
+                                let error_node = Arc::new(Subtree::new(
+                                    SubtreeNode {
+                                        symbol_id: token,
+                                        is_error: true,
+                                        byte_range: byte_offset..byte_offset + text.len(),
+                                    },
+                                    vec![],
+                                ));
+                                recovery_stack.nodes.push(error_node);
+                                new_stacks.push(recovery_stack);
+                                return;
+                            }
+                            RecoveryAction::CreateErrorNode(_) => {
+                                let error_node = Arc::new(Subtree {
+                                    node: SubtreeNode {
+                                        symbol_id: token,
+                                        is_error: true,
+                                        byte_range: byte_offset..byte_offset + text.len(),
+                                    },
+                                    dynamic_prec: 0,
+                                    children: vec![],
+                                    alternatives: smallvec::SmallVec::new(),
+                                });
+                                let mut error_stack = stack;
+                                error_stack.nodes.push(error_node);
+                                error_stack.version.enter_error();
+                                new_stacks.push(error_stack);
+                                return;
+                            }
+                            _ => {}
+                        }
+                    }
+
+                    let mut error_stack = stack;
+                    error_stack.version.enter_error();
+                    new_stacks.push(error_stack);
+            }
+
+            _ => {
+                let mut error_stack = stack;
+                error_stack.version.enter_error();
+                new_stacks.push(error_stack);
+            }
+        }
+    }
+
     /// Process one token through all active stacks
     ///
     /// This is the main entry point for processing tokens. It implements the two-phase
@@ -627,305 +826,32 @@ impl GLRParser {
 
                 // Process ALL actions in the cell without collapsing
                 // This ensures true GLR behavior by exploring all alternatives
-                let mut processed_any = false;
-
-                for action in &action_cell {
-                    match action {
-                        Action::Shift(new_state) => {
-                            let mut new_stack = stack.clone();
-                            new_stack.push(
-                                *new_state,
-                                Arc::new(Subtree::new(
-                                    SubtreeNode {
-                                        symbol_id: token,
-                                        is_error: false,
-                                        byte_range: byte_offset..byte_offset + text.len(),
-                                    },
-                                    vec![],
-                                )),
-                            );
-                            new_stacks.push(new_stack);
-                            processed_any = true;
-                        }
-
-                        Action::Accept => {
-                            // Collect accepting stacks for aggregation
-                            accepted_any = true;
-                            accept_stacks.push(stack.clone());
-                            processed_any = true;
-                        }
-
-                        Action::Reduce(rule_id) => {
-                            // Apply the reduction directly
-                            let mut reduced_stack = stack.clone();
-                            self.perform_reduction_on_stack(
-                                &mut reduced_stack,
-                                *rule_id,
-                                byte_offset + text.len(),
-                            );
-
-                            // Re-saturate with the SAME lookahead to reach fixed point
-                            // This ensures cascaded reduces and accepts are discovered
-                            let closed = self.reduce_until_saturated(
-                                vec![reduced_stack],
-                                token,
-                                byte_offset + text.len(),
-                            );
-                            new_stacks.extend(closed);
-                            processed_any = true;
-                        }
-
-                        Action::Fork(actions) => {
-                            // TRUE GLR FORKING! Always fork for ambiguity preservation
-                            // Note: we ignore the conflict resolver to maintain all parse alternatives
-                            // This is the critical part where we maintain ambiguity by forking stacks
-                            debug_glr!(
-                                "DEBUG: GLR Fork! Creating {} stacks for state {} with token {}",
-                                actions.len(),
-                                state.0,
-                                token.0
-                            );
-
-                            // Fork the stack for EACH action to explore all parse paths
-                            #[allow(unused_variables)]
-                            for (i, fork_action) in actions.iter().enumerate() {
-                                match fork_action {
-                                    Action::Shift(new_state) => {
-                                        let mut forked = stack.fork(self.next_stack_id);
-                                        self.next_stack_id += 1;
-
-                                        forked.push(
-                                            *new_state,
-                                            Arc::new(Subtree::new(
-                                                SubtreeNode {
-                                                    symbol_id: token,
-                                                    is_error: false,
-                                                    byte_range: byte_offset
-                                                        ..byte_offset + text.len(),
-                                                },
-                                                vec![],
-                                            )),
-                                        );
-                                        debug_glr!("  Fork {}: Shift to state {}", i, new_state.0);
-                                        new_stacks.push(forked);
-                                    }
-
-                                    Action::Reduce(rule_id) => {
-                                        // Reductions should have been handled in phase 1, but if not, handle them
-                                        let mut forked = stack.fork(self.next_stack_id);
-                                        self.next_stack_id += 1;
-                                        self.perform_reduction_on_stack(
-                                            &mut forked,
-                                            *rule_id,
-                                            byte_offset + text.len(),
-                                        );
-                                        debug_glr!("  Fork {}: Reduce by rule {}", i, rule_id.0);
-                                        new_stacks.push(forked);
-                                    }
-
-                                    Action::Fork(nested_actions) => {
-                                        // Handle nested Fork recursively
-                                        debug_glr!(
-                                            "  Fork {}: Nested fork with {} actions",
-                                            i,
-                                            nested_actions.len()
-                                        );
-                                        for nested_action in nested_actions {
-                                            let mut nested_fork = stack.fork(self.next_stack_id);
-                                            self.next_stack_id += 1;
-
-                                            match nested_action {
-                                                Action::Shift(new_state) => {
-                                                    nested_fork.push(
-                                                        *new_state,
-                                                        Arc::new(Subtree::new(
-                                                            SubtreeNode {
-                                                                symbol_id: token,
-                                                                is_error: false,
-                                                                byte_range: byte_offset
-                                                                    ..byte_offset + text.len(),
-                                                            },
-                                                            vec![],
-                                                        )),
-                                                    );
-                                                    new_stacks.push(nested_fork);
-                                                }
-                                                Action::Reduce(rule_id) => {
-                                                    self.perform_reduction_on_stack(
-                                                        &mut nested_fork,
-                                                        *rule_id,
-                                                        byte_offset + text.len(),
-                                                    );
-                                                    new_stacks.push(nested_fork);
-                                                }
-                                                _ => {
-                                                    new_stacks.push(nested_fork);
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    _ => {
-                                        debug_glr!("  Fork {}: Other action", i);
-                                    }
-                                }
-                            }
-
-                            processed_any = true;
-                        }
-
-                        Action::Recover => {
-                            // Handle Recover action - similar to Error but with specific recovery
-                            // For now, treat it as an error
-                            let mut error_stack = stack.clone();
-                            error_stack.version.enter_error();
-                            new_stacks.push(error_stack);
-                            processed_any = true;
-                        }
-
-                        Action::Error => {
-                            // println!("    Action: Error");
-
-                            // Try error recovery if enabled
-                            if let Some(recovery_state) = &mut self.recovery_state
-                                && let Some(recovery_action) = recovery_state.suggest_recovery(
-                                    state,
-                                    token,
-                                    &self.table,
-                                    &self.grammar,
-                                )
-                            {
-                                match recovery_action {
-                                    RecoveryAction::InsertToken(missing_token) => {
-                                        // Insert the missing token and continue processing
-                                        if let Some(&missing_idx) =
-                                            self.table.symbol_to_index.get(&missing_token)
-                                        {
-                                            let missing_action_cell = &self.table.action_table
-                                                [state.0 as usize][missing_idx];
-                                            // Find shift action in cell
-                                            let shift_action = missing_action_cell
-                                                .iter()
-                                                .find(|a| matches!(a, Action::Shift(_)));
-                                            if let Some(Action::Shift(new_state)) = shift_action {
-                                                let mut recovery_stack = stack.clone();
-                                                // Create error node for inserted token
-                                                let error_node = Arc::new(Subtree::new(
-                                                    SubtreeNode {
-                                                        symbol_id: missing_token,
-                                                        is_error: true,
-                                                        byte_range: byte_offset..byte_offset, // Zero width for insertion
-                                                    },
-                                                    vec![], // Empty children for inserted token
-                                                ));
-                                                recovery_stack.push(*new_state, error_node);
-                                                recovery_stack.version.enter_error();
-
-                                                // Now process the current token against the new state
-                                                let new_state_id = *new_state;
-                                                if let Some(&token_idx) =
-                                                    self.table.symbol_to_index.get(&token)
-                                                {
-                                                    let new_action_cell = &self.table.action_table
-                                                        [new_state_id.0 as usize][token_idx];
-
-                                                    // Try processing each action in the cell
-                                                    for action in new_action_cell {
-                                                        match action {
-                                                            Action::Shift(shift_state) => {
-                                                                let mut updated_stack =
-                                                                    recovery_stack.clone();
-                                                                let node = Arc::new(Subtree::new(
-                                                                    SubtreeNode {
-                                                                        symbol_id: token,
-                                                                        is_error: false,
-                                                                        byte_range: byte_offset
-                                                                            ..byte_offset
-                                                                                + text.len(),
-                                                                    },
-                                                                    vec![],
-                                                                ));
-                                                                updated_stack
-                                                                    .push(*shift_state, node);
-                                                                new_stacks.push(updated_stack);
-                                                            }
-                                                            _ => {
-                                                                // Handle other actions (reduce, etc.) - add stack for processing
-                                                                new_stacks
-                                                                    .push(recovery_stack.clone());
-                                                            }
-                                                        }
-                                                    }
-                                                } else {
-                                                    // Token not found in table, keep recovery stack
-                                                    new_stacks.push(recovery_stack);
-                                                }
-                                                continue;
-                                            }
-                                        }
-                                    }
-                                    RecoveryAction::DeleteToken => {
-                                        // Delete this token - add stack without processing token
-                                        let mut recovery_stack = stack.clone();
-                                        recovery_stack.version.enter_error();
-                                        // Mark stack as having handled this token by deletion
-                                        recovery_stack.version.dynamic_prec -= 1; // Penalize for token deletion
-
-                                        // Create an error node for the deleted token to maintain parse tree structure
-                                        let error_node = Arc::new(Subtree::new(
-                                            SubtreeNode {
-                                                symbol_id: token,
-                                                is_error: true,
-                                                byte_range: byte_offset..byte_offset + text.len(),
-                                            },
-                                            vec![], // No children for deleted token
-                                        ));
-                                        recovery_stack.nodes.push(error_node);
-                                        new_stacks.push(recovery_stack);
-                                        continue;
-                                    }
-                                    RecoveryAction::CreateErrorNode(_) => {
-                                        // Create an error node containing the unexpected token
-                                        let error_node = Arc::new(Subtree {
-                                            node: SubtreeNode {
-                                                symbol_id: token,
-                                                is_error: true,
-                                                byte_range: byte_offset..byte_offset + text.len(),
-                                            },
-                                            dynamic_prec: 0,
-                                            children: vec![],
-                                            alternatives: smallvec::SmallVec::new(),
-                                        });
-                                        let mut error_stack = stack.clone();
-                                        // Just add the error node without changing state
-                                        error_stack.nodes.push(error_node);
-                                        error_stack.version.enter_error();
-                                        new_stacks.push(error_stack);
-                                        continue;
-                                    }
-                                    _ => {} // Other recovery actions not implemented yet
-                                }
-                            }
-
-                            // Default error handling - mark stack as errored
-                            let mut error_stack = stack.clone();
-                            error_stack.version.enter_error();
-                            new_stacks.push(error_stack);
-                            processed_any = true;
-                        }
-
-                        _ => {
-                            // Unknown action type - treat as error
-                            let mut error_stack = stack.clone();
-                            error_stack.version.enter_error();
-                            new_stacks.push(error_stack);
-                            processed_any = true;
-                        }
+                if let Some((last, rest)) = action_cell.split_last() {
+                    for action in rest {
+                        self.process_single_action(
+                            action,
+                            stack.clone(),
+                            token,
+                            text,
+                            byte_offset,
+                            &mut new_stacks,
+                            &mut accept_stacks,
+                            &mut accepted_any
+                        );
                     }
-                }
-
-                // If no actions were processed, keep the original stack
-                if !processed_any {
+                    // Reuse stack for last action
+                    self.process_single_action(
+                        last,
+                        stack,
+                        token,
+                        text,
+                        byte_offset,
+                        &mut new_stacks,
+                        &mut accept_stacks,
+                        &mut accepted_any
+                    );
+                } else {
+                    // If no actions were processed, keep the original stack
                     new_stacks.push(stack);
                 }
             } else {
