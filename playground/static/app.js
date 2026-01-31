@@ -24,8 +24,41 @@ class Playground {
         document.getElementById('import-file').addEventListener('change', (e) => this.import(e));
         
         // Tabs
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+        const tabs = document.querySelectorAll('.tab');
+        const tabArray = Array.from(tabs);
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                this.switchTab(tab.dataset.tab);
+                tab.focus();
+            });
+
+            tab.addEventListener('keydown', (e) => {
+                const index = tabArray.indexOf(tab);
+                let nextIndex = null;
+
+                switch (e.key) {
+                    case 'ArrowRight':
+                        nextIndex = (index + 1) % tabArray.length;
+                        break;
+                    case 'ArrowLeft':
+                        nextIndex = (index - 1 + tabArray.length) % tabArray.length;
+                        break;
+                    case 'Home':
+                        nextIndex = 0;
+                        break;
+                    case 'End':
+                        nextIndex = tabArray.length - 1;
+                        break;
+                }
+
+                if (nextIndex !== null) {
+                    e.preventDefault();
+                    const nextTab = tabArray[nextIndex];
+                    this.switchTab(nextTab.dataset.tab);
+                    nextTab.focus();
+                }
+            });
         });
         
         // Initial analysis
@@ -260,7 +293,10 @@ class Playground {
     switchTab(tabName) {
         // Update tab buttons
         document.querySelectorAll('.tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
+            const isActive = tab.dataset.tab === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive);
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
         });
         
         // Update tab content
