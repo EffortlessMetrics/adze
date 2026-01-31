@@ -132,42 +132,63 @@ class Playground {
         }
     }
 
+    // Helper for creating elements with text content (XSS protection)
+    createElement(tag, className, text) {
+        const el = document.createElement(tag);
+        if (className) el.className = className;
+        if (text !== undefined && text !== null) el.textContent = text;
+        return el;
+    }
+
     displayTiming(timing) {
-        const html = `
-            <div class="timing-chart">
-                <div class="timing-bar">
-                    <span class="timing-label">Lexing</span>
-                    <div class="timing-progress">
-                        <div class="timing-fill" style="width: ${(timing.lexing_ms / timing.total_ms) * 100}%"></div>
-                    </div>
-                    <span class="timing-value">${timing.lexing_ms.toFixed(2)}ms</span>
-                </div>
-                <div class="timing-bar">
-                    <span class="timing-label">Parsing</span>
-                    <div class="timing-progress">
-                        <div class="timing-fill" style="width: ${(timing.parsing_ms / timing.total_ms) * 100}%"></div>
-                    </div>
-                    <span class="timing-value">${timing.parsing_ms.toFixed(2)}ms</span>
-                </div>
-                <div class="timing-bar">
-                    <span class="timing-label">Total</span>
-                    <div class="timing-progress">
-                        <div class="timing-fill" style="width: 100%"></div>
-                    </div>
-                    <span class="timing-value">${timing.total_ms.toFixed(2)}ms</span>
-                </div>
-            </div>
-        `;
+        const container = document.getElementById('timing-content');
+        container.textContent = '';
+
+        const createBar = (label, ms) => {
+            const bar = this.createElement('div', 'timing-bar');
+
+            const labelSpan = this.createElement('span', 'timing-label', label);
+            bar.appendChild(labelSpan);
+
+            const progress = this.createElement('div', 'timing-progress');
+            const fill = this.createElement('div', 'timing-fill');
+            fill.style.width = `${(ms / timing.total_ms) * 100}%`;
+            progress.appendChild(fill);
+            bar.appendChild(progress);
+
+            const valueSpan = this.createElement('span', 'timing-value', `${ms.toFixed(2)}ms`);
+            bar.appendChild(valueSpan);
+
+            return bar;
+        };
         
-        document.getElementById('timing-content').innerHTML = html;
+        const chart = this.createElement('div', 'timing-chart');
+        chart.appendChild(createBar('Lexing', timing.lexing_ms));
+        chart.appendChild(createBar('Parsing', timing.parsing_ms));
+
+        // Total bar needs manual width 100%
+        const totalBar = this.createElement('div', 'timing-bar');
+        totalBar.appendChild(this.createElement('span', 'timing-label', 'Total'));
+        const totalProgress = this.createElement('div', 'timing-progress');
+        const totalFill = this.createElement('div', 'timing-fill');
+        totalFill.style.width = '100%';
+        totalProgress.appendChild(totalFill);
+        totalBar.appendChild(totalProgress);
+        totalBar.appendChild(this.createElement('span', 'timing-value', `${timing.total_ms.toFixed(2)}ms`));
+        chart.appendChild(totalBar);
+
+        container.appendChild(chart);
     }
 
     displayErrors(errors) {
-        const errorList = errors.map(err => 
-            `<div class="error-item">Line ${err.line}, Column ${err.column}: ${err.message}</div>`
-        ).join('');
+        const container = document.getElementById('error-list');
+        container.textContent = '';
+
+        errors.forEach(err => {
+            const div = this.createElement('div', 'error-item', `Line ${err.line}, Column ${err.column}: ${err.message}`);
+            container.appendChild(div);
+        });
         
-        document.getElementById('error-list').innerHTML = errorList;
         document.getElementById('errors').style.display = 'block';
     }
 
@@ -176,77 +197,83 @@ class Playground {
     }
 
     displayAnalysis(analysis) {
+        const container = document.getElementById('analysis-content');
+        container.textContent = '';
+
         const stats = analysis.grammar_stats;
-        const html = `
-            <div class="stat-grid">
-                <div class="stat-card">
-                    <h4>Rules</h4>
-                    <div class="value">${stats.rule_count}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Terminals</h4>
-                    <div class="value">${stats.terminal_count}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Non-terminals</h4>
-                    <div class="value">${stats.nonterminal_count}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Avg Rule Length</h4>
-                    <div class="value">${stats.avg_rule_length.toFixed(1)}</div>
-                </div>
-            </div>
-            
-            ${analysis.conflicts.length > 0 ? `
-                <h3>Conflicts</h3>
-                <div class="conflict-list">
-                    ${analysis.conflicts.map(c => `
-                        <div class="conflict-item">
-                            <strong>${c.kind}</strong> in state ${c.state}: ${c.description}
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
-            
-            ${analysis.suggestions.length > 0 ? `
-                <h3>Suggestions</h3>
-                <div class="suggestion-list">
-                    ${analysis.suggestions.map(s => `
-                        <div class="suggestion-item ${s.level.toLowerCase()}">
-                            ${s.message}
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
-        `;
         
-        document.getElementById('analysis-content').innerHTML = html;
+        const statGrid = this.createElement('div', 'stat-grid');
+        const addStat = (title, value) => {
+            const card = this.createElement('div', 'stat-card');
+            card.appendChild(this.createElement('h4', '', title));
+            card.appendChild(this.createElement('div', 'value', String(value)));
+            statGrid.appendChild(card);
+        };
+
+        addStat('Rules', stats.rule_count);
+        addStat('Terminals', stats.terminal_count);
+        addStat('Non-terminals', stats.nonterminal_count);
+        addStat('Avg Rule Length', stats.avg_rule_length.toFixed(1));
+
+        container.appendChild(statGrid);
+
+        if (analysis.conflicts.length > 0) {
+            container.appendChild(this.createElement('h3', '', 'Conflicts'));
+            const list = this.createElement('div', 'conflict-list');
+            analysis.conflicts.forEach(c => {
+                const item = this.createElement('div', 'conflict-item');
+                const strong = this.createElement('strong', '', c.kind);
+                item.appendChild(strong);
+                item.appendChild(document.createTextNode(` in state ${c.state}: ${c.description}`));
+                list.appendChild(item);
+            });
+            container.appendChild(list);
+        }
+
+        if (analysis.suggestions.length > 0) {
+            container.appendChild(this.createElement('h3', '', 'Suggestions'));
+            const list = this.createElement('div', 'suggestion-list');
+            analysis.suggestions.forEach(s => {
+                const item = this.createElement('div', `suggestion-item ${s.level.toLowerCase()}`, s.message);
+                list.appendChild(item);
+            });
+            container.appendChild(list);
+        }
     }
 
     displayVisualization(svg) {
+        // SVG injection is intentionally left as innerHTML for visualization support.
+        // This assumes the backend returns safe SVG.
         document.getElementById('tree-visualization').innerHTML = svg;
     }
 
     updateTestList() {
-        const html = this.tests.map(test => `
-            <div class="test-item">
-                <span>${test.name}</span>
-                <button onclick="playground.loadTest('${test.name}')">Load</button>
-            </div>
-        `).join('');
+        const container = document.getElementById('test-list');
+        container.textContent = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        this.tests.forEach(test => {
+            const div = this.createElement('div', 'test-item');
+            div.appendChild(this.createElement('span', '', test.name));
+
+            const btn = this.createElement('button', '', 'Load');
+            // Safe event listener attachment
+            btn.addEventListener('click', () => this.loadTest(test.name));
+            div.appendChild(btn);
+
+            container.appendChild(div);
+        });
     }
 
     displayTestResults(results) {
-        const html = results.map(([test, result]) => `
-            <div class="test-item ${result.success ? 'pass' : 'fail'}">
-                <span>${test.name}</span>
-                <span>${result.success ? '✓ PASS' : '✗ FAIL'}</span>
-            </div>
-        `).join('');
+        const container = document.getElementById('test-list');
+        container.textContent = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        results.forEach(([test, result]) => {
+            const div = this.createElement('div', `test-item ${result.success ? 'pass' : 'fail'}`);
+            div.appendChild(this.createElement('span', '', test.name));
+            div.appendChild(this.createElement('span', '', result.success ? '✓ PASS' : '✗ FAIL'));
+            container.appendChild(div);
+        });
     }
 
     loadTest(name) {
