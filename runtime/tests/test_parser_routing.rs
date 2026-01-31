@@ -58,7 +58,7 @@ mod parser_routing_tests {
         //
         // This behavior is already tested in parser_selection.rs,
         // but we document it here in the context of parsing.
-        use crate::parser_selection::ParserBackend;
+        use rust_sitter::parser_selection::ParserBackend;
 
         // Simulate a grammar with conflicts
         let _backend = ParserBackend::select(true);

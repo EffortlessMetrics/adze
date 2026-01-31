@@ -1093,12 +1093,38 @@ impl GLRParser {
             let state = stack.current_state();
 
             // Get actions for this state and lookahead
-            // If symbol_idx is None (e.g. EOF not in table), still check for epsilon reductions
-            let action_cell = if let Some(idx) = symbol_idx {
-                self.table.action_table[state.0 as usize][idx].clone()
+            let mut reduces: Vec<(Action, i32)> = Vec::new();
+            let mut has_shift = false;
+            let mut has_accept = false;
+
+            if let Some(idx) = symbol_idx {
+                // OPTIMIZATION: Avoid cloning the entire action vector.
+                // We access the table directly by reference to collect only Reduce actions
+                // and check for Shift/Accept flags.
+                let cell = &self.table.action_table[state.0 as usize][idx];
+
+                debug_glr!(
+                    "DEBUG reduce_closure: Processing state {} for token {} ({} actions)",
+                    state.0,
+                    token.0,
+                    cell.len()
+                );
+
+                has_shift = cell.iter().any(|a| matches!(a, Action::Shift(_)));
+                has_accept = cell.iter().any(|a| matches!(a, Action::Accept));
+
+                reduces = cell
+                    .iter()
+                    .filter_map(|a| match a {
+                        Action::Reduce(_rid) => Some((a.clone(), self.action_priority(a))),
+                        _ => None,
+                    })
+                    .collect();
             } else {
                 // No specific lookahead - check for epsilon reductions across all columns
                 // This handles EOF and other unmapped symbols
+                // Note: has_shift/has_accept default to false here as we're only looking for epsilons
+
                 let mut all_reduces = Vec::new();
                 for actions in &self.table.action_table[state.0 as usize] {
                     for action in actions {
@@ -1111,24 +1137,19 @@ impl GLRParser {
                         }
                     }
                 }
-                all_reduces
-            };
 
-            debug_glr!(
-                "DEBUG reduce_closure: Processing state {} for token {} ({} actions)",
-                state.0,
-                token.0,
-                action_cell.len()
-            );
+                debug_glr!(
+                    "DEBUG reduce_closure: Processing state {} for token {} ({} epsilon actions)",
+                    state.0,
+                    token.0,
+                    all_reduces.len()
+                );
 
-            // Extract reduce actions from the specific column
-            let mut reduces: Vec<(Action, i32)> = action_cell
-                .iter()
-                .filter_map(|a| match a {
-                    Action::Reduce(_rid) => Some((a.clone(), self.action_priority(a))),
-                    _ => None,
-                })
-                .collect();
+                for action in all_reduces {
+                    let prio = self.action_priority(&action);
+                    reduces.push((action, prio));
+                }
+            }
 
             // At EOF, if column lacks epsilon reductions, also pull them from entire row
             // This ensures cascading epsilon reductions complete to the start symbol
@@ -1161,14 +1182,12 @@ impl GLRParser {
             reduces.sort_by_key(|(_, prio)| -prio);
 
             // Check if this stack also has shift actions (needs to be preserved)
-            let has_shift = action_cell.iter().any(|a| matches!(a, Action::Shift(_)));
             if has_shift {
                 debug_glr!("  Stack has shift action - preserving for phase 2");
                 shift_stacks.push(stack.clone());
             }
 
             // Check for other non-reduce actions
-            let has_accept = action_cell.iter().any(|a| matches!(a, Action::Accept));
             if has_accept {
                 debug_glr!("  Stack has accept action - preserving");
                 saturated_stacks.push(stack.clone());
