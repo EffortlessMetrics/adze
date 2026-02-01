@@ -1,0 +1,4 @@
+## 2025-02-01 - [Fixed DOM-based XSS in Playground]
+**Vulnerability:** DOM-based Cross-Site Scripting (XSS) via `innerHTML` usage with user-controlled data (test names and error messages).
+**Learning:** The application was directly interpolating user input into HTML strings and assigning them to `innerHTML`. This is a classic pattern that is often overlooked in vanilla JS applications where no framework-provided sanitization exists. The vulnerability was present even in seemingly benign features like displaying a list of test names.
+**Prevention:** Avoid `innerHTML` when inserting user-controlled data. Use `textContent` for text updates, and `document.createElement()`/`appendChild()` for structural updates. If HTML insertion is absolutely necessary, use a sanitization library like DOMPurify.
