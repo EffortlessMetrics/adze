@@ -1379,7 +1379,7 @@ impl Parser {
             }
 
             // Pop child_count entries from the stack
-            let mut children = Vec::new();
+            let mut children = Vec::with_capacity(child_count);
             let mut start_byte = usize::MAX;
             let mut end_byte = 0;
             let mut start_point = Point {
