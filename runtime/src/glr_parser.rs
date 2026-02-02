@@ -181,10 +181,11 @@ impl ParseStack {
         self.nodes.push(node);
     }
 
-    /// Pop n states and nodes for a reduction
-    fn pop(&mut self, n: usize) -> Vec<Arc<Subtree>> {
+    /// Drain n states and nodes for a reduction, avoiding allocation
+    fn drain_nodes(&mut self, n: usize) -> std::vec::Drain<'_, Arc<Subtree>> {
         self.states.truncate(self.states.len() - n);
-        self.nodes.split_off(self.nodes.len() - n)
+        let start = self.nodes.len() - n;
+        self.nodes.drain(start..)
     }
 
     /// Clone this stack for forking
@@ -1679,51 +1680,53 @@ impl GLRParser {
                 rule.rhs,
                 rule.rhs.len()
             );
-            let children = stack.pop(rule.rhs.len());
             debug_glr!(
-                "  Popped {} children, stack now has {} nodes",
-                children.len(),
+                "  Popping {} children from stack of {}",
+                rule.rhs.len(),
                 stack.nodes.len()
             );
 
-            // Create new subtree for the reduction
-            // For epsilon reductions (empty RHS), use lookahead_end as the position
-            let byte_range = if children.is_empty() {
+            // Apply field mappings to children and calculate byte range on the fly
+            let mut children_with_fields = Vec::with_capacity(rule.rhs.len());
+            let mut first_start = None;
+            let mut last_end = None;
+
+            for (idx, child) in stack.drain_nodes(rule.rhs.len()).enumerate() {
+                if idx == 0 {
+                    first_start = Some(child.node.byte_range.start);
+                }
+                last_end = Some(child.node.byte_range.end);
+
+                let field_id = if rule.fields.is_empty() {
+                    crate::subtree::FIELD_NONE
+                } else {
+                    rule.fields
+                        .iter()
+                        .find(|(_, pos)| *pos == idx)
+                        .map(|(field_id, _)| field_id.0)
+                        .unwrap_or(crate::subtree::FIELD_NONE)
+                };
+
+                children_with_fields.push(crate::subtree::ChildEdge::new(child, field_id));
+            }
+
+            debug_glr!(
+                "  Popped {} children, stack now has {} nodes",
+                children_with_fields.len(),
+                stack.nodes.len()
+            );
+
+            let byte_range = if let (Some(start), Some(end)) = (first_start, last_end) {
+                start..end
+            } else {
                 // Epsilon: zero-width span at the current lookahead end
                 lookahead_end..lookahead_end
-            } else {
-                // Normal: span from first child start to last child end
-                children[0].node.byte_range.start..children.last().unwrap().node.byte_range.end
             };
 
             let node = SubtreeNode {
                 symbol_id: rule.lhs,
                 is_error: false,
                 byte_range,
-            };
-
-            // Apply field mappings to children
-            let children_with_fields = if rule.fields.is_empty() {
-                // No fields, use FIELD_NONE for all children
-                children
-                    .into_iter()
-                    .map(crate::subtree::ChildEdge::new_without_field)
-                    .collect()
-            } else {
-                // Apply field mappings based on rule.fields
-                let mut result = Vec::with_capacity(children.len());
-                for (idx, child) in children.into_iter().enumerate() {
-                    // Find field ID for this child position
-                    let field_id = rule
-                        .fields
-                        .iter()
-                        .find(|(_, pos)| *pos == idx)
-                        .map(|(field_id, _)| field_id.0)
-                        .unwrap_or(crate::subtree::FIELD_NONE);
-
-                    result.push(crate::subtree::ChildEdge::new(child, field_id));
-                }
-                result
             };
 
             // Check if this rule has precedence (static or dynamic)
