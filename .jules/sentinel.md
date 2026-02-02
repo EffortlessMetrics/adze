@@ -1,0 +1,4 @@
+## 2025-11-20 - [DOM-based XSS in Frontend Playground]
+**Vulnerability:** The playground frontend utilized `innerHTML` to render error messages and test case lists, where the content included user-controlled input (e.g., test names, parser error messages reflecting input). This allowed for Cross-Site Scripting (XSS) via crafted inputs or test names.
+**Learning:** Even in simple "playground" tools, reflecting user input without sanitization is a critical risk. Concatenating strings to build HTML is error-prone and insecure by default.
+**Prevention:** Always use safe DOM manipulation methods like `textContent` for text and `createElement`/`appendChild` for structure. Avoid `innerHTML` unless absolutely necessary and the content is strictly sanitized. Use event listeners (`element.addEventListener` or `element.onclick`) instead of inline event handlers (`onclick="..."`) to avoid injection in attribute strings.
