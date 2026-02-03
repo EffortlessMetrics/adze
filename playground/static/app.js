@@ -24,8 +24,30 @@ class Playground {
         document.getElementById('import-file').addEventListener('change', (e) => this.import(e));
         
         // Tabs
-        document.querySelectorAll('.tab').forEach(tab => {
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach((tab, index) => {
             tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+
+            // Keyboard navigation
+            tab.addEventListener('keydown', (e) => {
+                let targetIndex = -1;
+
+                if (e.key === 'ArrowRight') {
+                    targetIndex = (index + 1) % tabs.length;
+                } else if (e.key === 'ArrowLeft') {
+                    targetIndex = (index - 1 + tabs.length) % tabs.length;
+                } else if (e.key === 'Home') {
+                    targetIndex = 0;
+                } else if (e.key === 'End') {
+                    targetIndex = tabs.length - 1;
+                }
+
+                if (targetIndex !== -1) {
+                    e.preventDefault();
+                    tabs[targetIndex].focus();
+                    tabs[targetIndex].click();
+                }
+            });
         });
         
         // Initial analysis
@@ -260,7 +282,10 @@ class Playground {
     switchTab(tabName) {
         // Update tab buttons
         document.querySelectorAll('.tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
+            const isActive = tab.dataset.tab === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive);
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
         });
         
         // Update tab content

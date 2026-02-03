@@ -337,3 +337,9 @@ footer {
         overflow-x: auto;
     }
 }
+/* Accessibility Focus Styles */
+.tab:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+    background-color: rgba(74, 144, 226, 0.1);
+}
