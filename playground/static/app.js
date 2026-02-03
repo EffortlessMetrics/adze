@@ -163,11 +163,16 @@ class Playground {
     }
 
     displayErrors(errors) {
-        const errorList = errors.map(err => 
-            `<div class="error-item">Line ${err.line}, Column ${err.column}: ${err.message}</div>`
-        ).join('');
+        const container = document.getElementById('error-list');
+        container.innerHTML = '';
+
+        errors.forEach(err => {
+            const div = document.createElement('div');
+            div.className = 'error-item';
+            div.textContent = `Line ${err.line}, Column ${err.column}: ${err.message}`;
+            container.appendChild(div);
+        });
         
-        document.getElementById('error-list').innerHTML = errorList;
         document.getElementById('errors').style.display = 'block';
     }
 
@@ -228,25 +233,44 @@ class Playground {
     }
 
     updateTestList() {
-        const html = this.tests.map(test => `
-            <div class="test-item">
-                <span>${test.name}</span>
-                <button onclick="playground.loadTest('${test.name}')">Load</button>
-            </div>
-        `).join('');
+        const container = document.getElementById('test-list');
+        container.innerHTML = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        this.tests.forEach(test => {
+            const div = document.createElement('div');
+            div.className = 'test-item';
+
+            const span = document.createElement('span');
+            span.textContent = test.name;
+            div.appendChild(span);
+
+            const button = document.createElement('button');
+            button.textContent = 'Load';
+            button.addEventListener('click', () => this.loadTest(test.name));
+            div.appendChild(button);
+
+            container.appendChild(div);
+        });
     }
 
     displayTestResults(results) {
-        const html = results.map(([test, result]) => `
-            <div class="test-item ${result.success ? 'pass' : 'fail'}">
-                <span>${test.name}</span>
-                <span>${result.success ? '✓ PASS' : '✗ FAIL'}</span>
-            </div>
-        `).join('');
+        const container = document.getElementById('test-list');
+        container.innerHTML = '';
         
-        document.getElementById('test-list').innerHTML = html;
+        results.forEach(([test, result]) => {
+            const div = document.createElement('div');
+            div.className = `test-item ${result.success ? 'pass' : 'fail'}`;
+
+            const spanName = document.createElement('span');
+            spanName.textContent = test.name;
+            div.appendChild(spanName);
+
+            const spanResult = document.createElement('span');
+            spanResult.textContent = result.success ? '✓ PASS' : '✗ FAIL';
+            div.appendChild(spanResult);
+
+            container.appendChild(div);
+        });
     }
 
     loadTest(name) {

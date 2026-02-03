@@ -1,0 +1,4 @@
+## 2025-02-12 - DOM-based XSS in Playground
+**Vulnerability:** The playground frontend utilized `innerHTML` to render user-supplied data (test names and error messages) directly into the DOM. This allowed for Cross-Site Scripting (XSS) attacks where malicious scripts could be executed by injecting HTML tags (e.g., `<img onerror=...>`).
+**Learning:** Even in internal or "playground" tools, treating user input as trusted HTML is dangerous. Template literals used for HTML construction are a common source of these vulnerabilities because they look clean but bypass standard escaping mechanisms.
+**Prevention:** Always use `textContent` or `innerText` when displaying user-supplied text. If structure is needed, build the DOM tree programmatically using `document.createElement` and `appendChild`, or use a reputable sanitization library if raw HTML is absolutely necessary.
