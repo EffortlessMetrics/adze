@@ -96,6 +96,7 @@ use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compa
 use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
+use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
@@ -1094,8 +1095,8 @@ impl GLRParser {
 
             // Get actions for this state and lookahead
             // If symbol_idx is None (e.g. EOF not in table), still check for epsilon reductions
-            let action_cell = if let Some(idx) = symbol_idx {
-                self.table.action_table[state.0 as usize][idx].clone()
+            let action_cell: Cow<[Action]> = if let Some(idx) = symbol_idx {
+                Cow::Borrowed(&self.table.action_table[state.0 as usize][idx])
             } else {
                 // No specific lookahead - check for epsilon reductions across all columns
                 // This handles EOF and other unmapped symbols
@@ -1111,7 +1112,7 @@ impl GLRParser {
                         }
                     }
                 }
-                all_reduces
+                Cow::Owned(all_reduces)
             };
 
             debug_glr!(
