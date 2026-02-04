@@ -91,12 +91,14 @@ pub fn safe_dedup_threshold() -> usize {
 }
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
+use crate::stack_pool::StackPool;
 use crate::subtree::{Subtree, SubtreeNode};
 use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
 use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
 use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use rust_sitter_ir::{RuleId, StateId, SymbolId};
 use std::collections::VecDeque;
+use std::rc::Rc;
 use std::sync::Arc;
 
 /// Error types specific to GLR parsing operations.
@@ -167,6 +169,23 @@ impl ParseStack {
         }
     }
 
+    fn new_with_pool(
+        initial_state: StateId,
+        id: usize,
+        state_pool: &StackPool<StateId>,
+        node_pool: &StackPool<Arc<Subtree>>,
+    ) -> Self {
+        let mut states = state_pool.acquire();
+        states.push(initial_state);
+        let nodes = node_pool.acquire();
+        Self {
+            states,
+            nodes,
+            version: VersionInfo::new(),
+            id,
+        }
+    }
+
     /// Get the current state
     fn current_state(&self) -> StateId {
         *self.states.last().expect("Empty state stack")
@@ -195,6 +214,45 @@ impl ParseStack {
             version: self.version.clone(),
             id: new_id,
         }
+    }
+
+    /// Clone this stack for forking, using pools
+    fn fork_with_pool(
+        &self,
+        new_id: usize,
+        state_pool: &StackPool<StateId>,
+        node_pool: &StackPool<Arc<Subtree>>,
+    ) -> Self {
+        Self {
+            states: state_pool.clone_stack(&self.states),
+            nodes: node_pool.clone_stack(&self.nodes),
+            version: self.version.clone(),
+            id: new_id,
+        }
+    }
+
+    /// Clone this stack using pools (preserving ID)
+    fn clone_with_pool(
+        &self,
+        state_pool: &StackPool<StateId>,
+        node_pool: &StackPool<Arc<Subtree>>,
+    ) -> Self {
+        Self {
+            states: state_pool.clone_stack(&self.states),
+            nodes: node_pool.clone_stack(&self.nodes),
+            version: self.version.clone(),
+            id: self.id,
+        }
+    }
+
+    /// Release stack resources to pools
+    fn release_to_pool(
+        self,
+        state_pool: &StackPool<StateId>,
+        node_pool: &StackPool<Arc<Subtree>>,
+    ) {
+        state_pool.release(self.states);
+        node_pool.release(self.nodes);
     }
 
     /// Print tree structure for debugging
@@ -318,6 +376,12 @@ pub struct GLRParser {
 
     /// Pending synthetic tokens to process
     pending_synthetic_tokens: VecDeque<SymbolId>,
+
+    /// Pool for reusing state stacks
+    state_pool: Rc<StackPool<StateId>>,
+
+    /// Pool for reusing node stacks
+    node_pool: Rc<StackPool<Arc<Subtree>>>,
 
     /// Telemetry counters for performance monitoring
     #[cfg(feature = "glr_telemetry")]
@@ -447,7 +511,10 @@ impl GLRParser {
     }
 
     pub fn new(table: ParseTable, grammar: Grammar) -> Self {
-        let initial_stack = ParseStack::new(StateId(0), 0);
+        let state_pool = Rc::new(StackPool::new(1024));
+        let node_pool = Rc::new(StackPool::new(1024));
+        let initial_stack =
+            ParseStack::new_with_pool(StateId(0), 0, &state_pool, &node_pool);
 
         // Compute FIRST/FOLLOW sets for the resolver
         let first_follow =
@@ -467,6 +534,8 @@ impl GLRParser {
             deleted_in_row: 0,
             inserted_in_row: 0,
             pending_synthetic_tokens: VecDeque::new(),
+            state_pool,
+            node_pool,
             #[cfg(feature = "glr_telemetry")]
             telemetry: TelemetryCounters::default(),
         }
@@ -632,7 +701,8 @@ impl GLRParser {
                 for action in &action_cell {
                     match action {
                         Action::Shift(new_state) => {
-                            let mut new_stack = stack.clone();
+                            let mut new_stack =
+                                stack.clone_with_pool(&self.state_pool, &self.node_pool);
                             new_stack.push(
                                 *new_state,
                                 Arc::new(Subtree::new(
@@ -651,13 +721,15 @@ impl GLRParser {
                         Action::Accept => {
                             // Collect accepting stacks for aggregation
                             accepted_any = true;
-                            accept_stacks.push(stack.clone());
+                            accept_stacks
+                                .push(stack.clone_with_pool(&self.state_pool, &self.node_pool));
                             processed_any = true;
                         }
 
                         Action::Reduce(rule_id) => {
                             // Apply the reduction directly
-                            let mut reduced_stack = stack.clone();
+                            let mut reduced_stack =
+                                stack.clone_with_pool(&self.state_pool, &self.node_pool);
                             self.perform_reduction_on_stack(
                                 &mut reduced_stack,
                                 *rule_id,
@@ -691,7 +763,11 @@ impl GLRParser {
                             for (i, fork_action) in actions.iter().enumerate() {
                                 match fork_action {
                                     Action::Shift(new_state) => {
-                                        let mut forked = stack.fork(self.next_stack_id);
+                                        let mut forked = stack.fork_with_pool(
+                                            self.next_stack_id,
+                                            &self.state_pool,
+                                            &self.node_pool,
+                                        );
                                         self.next_stack_id += 1;
 
                                         forked.push(
@@ -712,7 +788,11 @@ impl GLRParser {
 
                                     Action::Reduce(rule_id) => {
                                         // Reductions should have been handled in phase 1, but if not, handle them
-                                        let mut forked = stack.fork(self.next_stack_id);
+                                        let mut forked = stack.fork_with_pool(
+                                            self.next_stack_id,
+                                            &self.state_pool,
+                                            &self.node_pool,
+                                        );
                                         self.next_stack_id += 1;
                                         self.perform_reduction_on_stack(
                                             &mut forked,
@@ -731,7 +811,11 @@ impl GLRParser {
                                             nested_actions.len()
                                         );
                                         for nested_action in nested_actions {
-                                            let mut nested_fork = stack.fork(self.next_stack_id);
+                                            let mut nested_fork = stack.fork_with_pool(
+                                                self.next_stack_id,
+                                                &self.state_pool,
+                                                &self.node_pool,
+                                            );
                                             self.next_stack_id += 1;
 
                                             match nested_action {
@@ -777,7 +861,8 @@ impl GLRParser {
                         Action::Recover => {
                             // Handle Recover action - similar to Error but with specific recovery
                             // For now, treat it as an error
-                            let mut error_stack = stack.clone();
+                            let mut error_stack =
+                                stack.clone_with_pool(&self.state_pool, &self.node_pool);
                             error_stack.version.enter_error();
                             new_stacks.push(error_stack);
                             processed_any = true;
@@ -808,7 +893,10 @@ impl GLRParser {
                                                 .iter()
                                                 .find(|a| matches!(a, Action::Shift(_)));
                                             if let Some(Action::Shift(new_state)) = shift_action {
-                                                let mut recovery_stack = stack.clone();
+                                                let mut recovery_stack = stack.clone_with_pool(
+                                                    &self.state_pool,
+                                                    &self.node_pool,
+                                                );
                                                 // Create error node for inserted token
                                                 let error_node = Arc::new(Subtree::new(
                                                     SubtreeNode {
@@ -834,7 +922,10 @@ impl GLRParser {
                                                         match action {
                                                             Action::Shift(shift_state) => {
                                                                 let mut updated_stack =
-                                                                    recovery_stack.clone();
+                                                                    recovery_stack.clone_with_pool(
+                                                                        &self.state_pool,
+                                                                        &self.node_pool,
+                                                                    );
                                                                 let node = Arc::new(Subtree::new(
                                                                     SubtreeNode {
                                                                         symbol_id: token,
@@ -851,8 +942,12 @@ impl GLRParser {
                                                             }
                                                             _ => {
                                                                 // Handle other actions (reduce, etc.) - add stack for processing
-                                                                new_stacks
-                                                                    .push(recovery_stack.clone());
+                                                                new_stacks.push(
+                                                                    recovery_stack.clone_with_pool(
+                                                                        &self.state_pool,
+                                                                        &self.node_pool,
+                                                                    ),
+                                                                );
                                                             }
                                                         }
                                                     }
@@ -866,7 +961,8 @@ impl GLRParser {
                                     }
                                     RecoveryAction::DeleteToken => {
                                         // Delete this token - add stack without processing token
-                                        let mut recovery_stack = stack.clone();
+                                        let mut recovery_stack =
+                                            stack.clone_with_pool(&self.state_pool, &self.node_pool);
                                         recovery_stack.version.enter_error();
                                         // Mark stack as having handled this token by deletion
                                         recovery_stack.version.dynamic_prec -= 1; // Penalize for token deletion
@@ -896,7 +992,8 @@ impl GLRParser {
                                             children: vec![],
                                             alternatives: smallvec::SmallVec::new(),
                                         });
-                                        let mut error_stack = stack.clone();
+                                        let mut error_stack =
+                                            stack.clone_with_pool(&self.state_pool, &self.node_pool);
                                         // Just add the error node without changing state
                                         error_stack.nodes.push(error_node);
                                         error_stack.version.enter_error();
@@ -908,7 +1005,8 @@ impl GLRParser {
                             }
 
                             // Default error handling - mark stack as errored
-                            let mut error_stack = stack.clone();
+                            let mut error_stack =
+                                stack.clone_with_pool(&self.state_pool, &self.node_pool);
                             error_stack.version.enter_error();
                             new_stacks.push(error_stack);
                             processed_any = true;
@@ -916,7 +1014,8 @@ impl GLRParser {
 
                         _ => {
                             // Unknown action type - treat as error
-                            let mut error_stack = stack.clone();
+                            let mut error_stack =
+                                stack.clone_with_pool(&self.state_pool, &self.node_pool);
                             error_stack.version.enter_error();
                             new_stacks.push(error_stack);
                             processed_any = true;
@@ -927,6 +1026,8 @@ impl GLRParser {
                 // If no actions were processed, keep the original stack
                 if !processed_any {
                     new_stacks.push(stack);
+                } else {
+                    stack.release_to_pool(&self.state_pool, &self.node_pool);
                 }
             } else {
                 // No symbol in index - keep the stack
@@ -1164,20 +1265,22 @@ impl GLRParser {
             let has_shift = action_cell.iter().any(|a| matches!(a, Action::Shift(_)));
             if has_shift {
                 debug_glr!("  Stack has shift action - preserving for phase 2");
-                shift_stacks.push(stack.clone());
+                shift_stacks.push(stack.clone_with_pool(&self.state_pool, &self.node_pool));
             }
 
             // Check for other non-reduce actions
             let has_accept = action_cell.iter().any(|a| matches!(a, Action::Accept));
             if has_accept {
                 debug_glr!("  Stack has accept action - preserving");
-                saturated_stacks.push(stack.clone());
+                saturated_stacks.push(stack.clone_with_pool(&self.state_pool, &self.node_pool));
             }
 
             if reduces.is_empty() {
                 // No reduces available - this stack is saturated
                 if !has_shift && !has_accept {
                     saturated_stacks.push(stack);
+                } else {
+                    stack.release_to_pool(&self.state_pool, &self.node_pool);
                 }
                 continue;
             }
@@ -1224,7 +1327,11 @@ impl GLRParser {
                 debug_glr!("  Applying reduction: rule {}", rule_id.0);
 
                 // Fork the stack for this reduction
-                let mut reduced_stack = stack.fork(self.next_stack_id);
+                let mut reduced_stack = stack.fork_with_pool(
+                    self.next_stack_id,
+                    &self.state_pool,
+                    &self.node_pool,
+                );
                 self.next_stack_id += 1;
 
                 // Apply the reduction (this will pop symbols and push via GOTO)
@@ -1261,6 +1368,8 @@ impl GLRParser {
             // then this stack is fully saturated
             if !any_reduction_applied && !has_shift && !has_accept {
                 saturated_stacks.push(stack);
+            } else {
+                stack.release_to_pool(&self.state_pool, &self.node_pool);
             }
         }
 
@@ -1482,7 +1591,8 @@ impl GLRParser {
                 // Handle shift actions for the synthetic token
                 for action in action_cell {
                     if let Action::Shift(new_state) = action {
-                        let mut new_stack = stack.clone();
+                        let mut new_stack =
+                            stack.clone_with_pool(&self.state_pool, &self.node_pool);
                         // Create synthetic node with zero-width range at current input position
                         new_stack.push(
                             *new_state,
@@ -1506,6 +1616,8 @@ impl GLRParser {
             // so we don't lose all paths
             if !shifted {
                 new_stacks.push(stack);
+            } else {
+                stack.release_to_pool(&self.state_pool, &self.node_pool);
             }
         }
 
@@ -2185,8 +2297,15 @@ impl GLRParser {
 
     /// Reset parser state for reuse
     pub fn reset(&mut self) {
-        self.stacks.clear();
-        let initial_stack = ParseStack::new(StateId(0), self.next_stack_id);
+        for stack in self.stacks.drain(..) {
+            stack.release_to_pool(&self.state_pool, &self.node_pool);
+        }
+        let initial_stack = ParseStack::new_with_pool(
+            StateId(0),
+            self.next_stack_id,
+            &self.state_pool,
+            &self.node_pool,
+        );
         self.next_stack_id += 1;
         self.stacks.push(initial_stack);
         self.pending_stacks.clear();
@@ -2445,6 +2564,9 @@ impl GLRParser {
 
     /// Restore the GSS state from a snapshot
     pub fn set_gss_state(&mut self, stacks: Vec<ParseStack>) {
+        for stack in self.stacks.drain(..) {
+            stack.release_to_pool(&self.state_pool, &self.node_pool);
+        }
         self.stacks = stacks;
         self.pending_stacks.clear();
         // Re-populate pending stacks with all current stack indices
@@ -2456,6 +2578,10 @@ impl GLRParser {
     /// Restore GSS state selectively - only restore the most promising stacks
     /// This is a performance optimization for incremental parsing
     pub fn set_gss_state_selective(&mut self, stacks: Vec<ParseStack>) {
+        for stack in self.stacks.drain(..) {
+            stack.release_to_pool(&self.state_pool, &self.node_pool);
+        }
+
         if stacks.is_empty() {
             self.stacks = stacks;
             self.pending_stacks.clear();
@@ -2499,7 +2625,7 @@ impl GLRParser {
 
         for subtree in subtrees {
             for stack in &self.stacks {
-                let new_stack = stack.clone();
+                let new_stack = stack.clone_with_pool(&self.state_pool, &self.node_pool);
 
                 // Get the current state
                 let current_state = new_stack.current_state();
@@ -2519,13 +2645,15 @@ impl GLRParser {
                         for action in action_cell {
                             if let Action::Shift(next_state) = action {
                                 // Push the subtree and advance to the next state
-                                let mut forked_stack = new_stack.clone();
+                                let mut forked_stack =
+                                    new_stack.clone_with_pool(&self.state_pool, &self.node_pool);
                                 forked_stack.push(*next_state, subtree.clone());
                                 new_stacks.push(forked_stack);
                             }
                         }
                     }
                 }
+                new_stack.release_to_pool(&self.state_pool, &self.node_pool);
             }
         }
 
@@ -2533,6 +2661,9 @@ impl GLRParser {
             return Err("Cannot inject any subtrees in current state".to_string());
         }
 
+        for stack in self.stacks.drain(..) {
+            stack.release_to_pool(&self.state_pool, &self.node_pool);
+        }
         self.stacks = new_stacks;
         Ok(())
     }
@@ -2547,7 +2678,7 @@ impl GLRParser {
         // For each active stack, inject the subtree
         let mut new_stacks = Vec::new();
         for stack in &self.stacks {
-            let mut new_stack = stack.clone();
+            let mut new_stack = stack.clone_with_pool(&self.state_pool, &self.node_pool);
 
             // Get the current state
             let current_state = new_stack.current_state();
@@ -2568,12 +2699,15 @@ impl GLRParser {
                         if let Action::Shift(next_state) = action {
                             // Push the subtree and advance to the next state
                             new_stack.push(*next_state, subtree.clone());
-                            new_stacks.push(new_stack.clone());
+                            new_stacks.push(
+                                new_stack.clone_with_pool(&self.state_pool, &self.node_pool),
+                            );
                             break;
                         }
                     }
                 }
             }
+            new_stack.release_to_pool(&self.state_pool, &self.node_pool);
         }
 
         if new_stacks.is_empty() {
@@ -2583,6 +2717,9 @@ impl GLRParser {
             ));
         }
 
+        for stack in self.stacks.drain(..) {
+            stack.release_to_pool(&self.state_pool, &self.node_pool);
+        }
         self.stacks = new_stacks;
         Ok(())
     }

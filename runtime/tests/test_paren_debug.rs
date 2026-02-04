@@ -10,6 +10,8 @@ mod error_recovery;
 mod glr_lexer;
 #[path = "../src/glr_parser.rs"]
 mod glr_parser;
+#[path = "../src/stack_pool.rs"]
+mod stack_pool;
 #[path = "../src/subtree.rs"]
 mod subtree;
 
