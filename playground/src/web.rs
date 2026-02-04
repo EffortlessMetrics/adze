@@ -12,8 +12,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tower_http::cors::CorsLayer;
-
 type SharedSession = Arc<Mutex<PlaygroundSession>>;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -50,7 +48,6 @@ pub fn launch_server(session: PlaygroundSession, port: u16) -> Result<()> {
             .route("/api/import", post(import_handler))
             .route("/static/app.js", get(js_handler))
             .route("/static/style.css", get(css_handler))
-            .layer(CorsLayer::permissive())
             .with_state(shared_session);
 
         let addr = format!("0.0.0.0:{}", port).parse().unwrap();
