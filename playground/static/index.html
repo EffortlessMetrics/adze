@@ -23,17 +23,18 @@ function fibonacci(n) {
     if (n <= 1) return n;
     return fibonacci(n - 1) + fibonacci(n - 2);
 }</textarea>
+                    <div class="hint">Pro tip: Press Ctrl+Enter to parse</div>
                     <div class="button-group">
-                        <button id="parse-btn" class="primary">Parse</button>
-                        <button id="visualize-btn">Visualize</button>
-                        <button id="add-test-btn">Add Test</button>
+                        <button id="parse-btn" class="primary" aria-label="Parse Code">Parse</button>
+                        <button id="visualize-btn" aria-label="Visualize Parse Tree">Visualize</button>
+                        <button id="add-test-btn" aria-label="Add New Test Case">Add Test</button>
                     </div>
                 </div>
 
                 <div class="section">
                     <h2>Test Cases</h2>
                     <div id="test-list"></div>
-                    <button id="run-tests-btn">Run All Tests</button>
+                    <button id="run-tests-btn" aria-label="Run All Tests">Run All Tests</button>
                 </div>
             </div>
 
