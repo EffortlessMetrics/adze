@@ -12,6 +12,14 @@ class Playground {
         document.getElementById('parse-btn').addEventListener('click', () => this.parse(false));
         document.getElementById('visualize-btn').addEventListener('click', () => this.parse(true));
         
+        // Keyboard shortcuts
+        document.getElementById('input-code').addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                this.parse(false);
+            }
+        });
+
         // Test management
         document.getElementById('add-test-btn').addEventListener('click', () => this.addTest());
         document.getElementById('run-tests-btn').addEventListener('click', () => this.runTests());
