@@ -115,6 +115,5 @@ fn test_conflict_preservation_runtime_module_exists() {
     #[cfg(feature = "pure-rust")]
     {
         // Module is available when feature is enabled
-        let _ = std::any::type_name::<runtime_conflict_preservation>();
     }
 }

@@ -181,10 +181,11 @@ impl ParseStack {
         self.nodes.push(node);
     }
 
-    /// Pop n states and nodes for a reduction
-    fn pop(&mut self, n: usize) -> Vec<Arc<Subtree>> {
+    /// Pop n states and drain n nodes for a reduction
+    fn drain_nodes(&mut self, n: usize) -> std::vec::Drain<Arc<Subtree>> {
         self.states.truncate(self.states.len() - n);
-        self.nodes.split_off(self.nodes.len() - n)
+        let len = self.nodes.len();
+        self.nodes.drain((len - n)..)
     }
 
     /// Clone this stack for forking
@@ -1679,22 +1680,29 @@ impl GLRParser {
                 rule.rhs,
                 rule.rhs.len()
             );
-            let children = stack.pop(rule.rhs.len());
-            debug_glr!(
-                "  Popped {} children, stack now has {} nodes",
-                children.len(),
-                stack.nodes.len()
-            );
 
-            // Create new subtree for the reduction
+            let rhs_len = rule.rhs.len();
+
+            // Calculate byte range before draining nodes
             // For epsilon reductions (empty RHS), use lookahead_end as the position
-            let byte_range = if children.is_empty() {
-                // Epsilon: zero-width span at the current lookahead end
+            let byte_range = if rhs_len == 0 {
                 lookahead_end..lookahead_end
             } else {
                 // Normal: span from first child start to last child end
-                children[0].node.byte_range.start..children.last().unwrap().node.byte_range.end
+                // We access the nodes directly from the stack before they are drained
+                let start_idx = stack.nodes.len() - rhs_len;
+                let start = stack.nodes[start_idx].node.byte_range.start;
+                let end = stack.nodes.last().unwrap().node.byte_range.end;
+                start..end
             };
+
+            let remaining_len = stack.nodes.len() - rhs_len;
+            let children_iter = stack.drain_nodes(rhs_len);
+            debug_glr!(
+                "  Popped {} children, stack now has {} nodes",
+                rhs_len,
+                remaining_len
+            );
 
             let node = SubtreeNode {
                 symbol_id: rule.lhs,
@@ -1705,14 +1713,13 @@ impl GLRParser {
             // Apply field mappings to children
             let children_with_fields = if rule.fields.is_empty() {
                 // No fields, use FIELD_NONE for all children
-                children
-                    .into_iter()
+                children_iter
                     .map(crate::subtree::ChildEdge::new_without_field)
                     .collect()
             } else {
                 // Apply field mappings based on rule.fields
-                let mut result = Vec::with_capacity(children.len());
-                for (idx, child) in children.into_iter().enumerate() {
+                let mut result = Vec::with_capacity(rhs_len);
+                for (idx, child) in children_iter.enumerate() {
                     // Find field ID for this child position
                     let field_id = rule
                         .fields
