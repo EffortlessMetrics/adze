@@ -43,28 +43,24 @@ exists with this signature.
 
 **Root cause:** Same unified parser API drift as item 2.
 
-### 6. `runtime/tests/arena_allocator_test.rs` (1 warning)
-
-**Error:** `unexpected cfg condition value: proptest` (clippy, `-D warnings`)
-
 ---
 
 ## Separate Crate Errors
 
-### 7. `grammars/python/tests/smoke_test.rs`
+### 6. `grammars/python/tests/smoke_test.rs`
 
 **Error:** `no method 'root_kind' found for struct 'Tree'`
 
 **Root cause:** The `Tree` API does not expose a `root_kind()` method; test was
 written against a planned but unimplemented interface.
 
-### 8. `grammars/python/tests/incremental_glr_test.rs`
+### 7. `grammars/python/tests/incremental_glr_test.rs`
 
 **Error:** `no method 'parse' found for struct 'Parser'`
 
 **Root cause:** Same unified parser API drift as item 2.
 
-### 9. `rust-sitter-runtime` (runtime2) - `glr_parse_simple` test failure
+### 8. `rust-sitter-runtime` (runtime2) - `glr_parse_simple` test failure
 
 **Error:** `ParseError: no valid parse paths at byte 1`
 
@@ -81,13 +77,9 @@ cargo clippy -p rust-sitter --lib -- -D warnings  # passes
 
 The supported CI lane (`just ci-supported`) excludes the broken test targets.
 
-## Feature-Gated Errors (non-default features)
+## Resolved Items
 
-### `runtime/tests/ts_compat_guardrails.rs` (lines 44, 61)
-
-**Feature gate:** `ts-compat` (non-default)
-
-**Error:** `no field 'named' on SymbolMetadata`
-
-**Root cause:** `glr-core`'s `SymbolMetadata` uses `is_named`; this test
-references the old field name `named`.
+- **`runtime/tests/arena_allocator_test.rs`** — `unexpected cfg condition value: proptest`
+  warning already suppressed by `#[allow(unexpected_cfgs)]` (line 418). No action needed.
+- **`runtime/tests/ts_compat_guardrails.rs`** — `named` → `is_named` field rename
+  applied. Feature-gated behind `ts-compat` + `pure-rust` (non-default).
