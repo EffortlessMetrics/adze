@@ -407,3 +407,10 @@ The smoke test verifies symbol exports and linkage across all platforms.
 - `RUSTFLAGS=-D warnings` is enforced in CI to catch all warnings
 - `cargo fmt --check` runs automatically to ensure consistent formatting
 - All cargo commands use `--locked` to ensure reproducible builds
+
+### Stable CI Lane
+
+The `just ci-supported` recipe is the stable green gate for PRs. It tests only
+the packages and targets that are known to pass. See `docs/status/KNOWN_RED.md`
+for the list of test files with compilation errors (API drift in test code, not
+library code) that are excluded from this lane.
