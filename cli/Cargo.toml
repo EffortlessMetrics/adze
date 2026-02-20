@@ -4,7 +4,7 @@ version = "0.8.0-dev"
 edition = "2024"
 authors = ["Tree-sitter Contributors"]
 description = "CLI tools for rust-sitter grammar development"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 
 [[bin]]
 name = "rust-sitter"

@@ -5,8 +5,14 @@
 //!
 //! Reference: docs/plans/BDD_GLR_CONFLICT_PRESERVATION.md
 
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use rust_sitter_glr_core::{
+    Action, Conflict, ConflictResolver, ConflictType, FirstFollowSets, ParseTable,
+    build_lr1_automaton,
+};
+use rust_sitter_ir::{
+    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
+    Token, TokenPattern,
+};
 
 /// Helper: Create the dangling-else grammar for conflict testing
 fn create_dangling_else_grammar() -> Grammar {
@@ -116,6 +122,168 @@ fn create_dangling_else_grammar() -> Grammar {
 
     let _ = grammar.get_or_build_registry();
     grammar
+}
+
+/// Helper: Create arithmetic grammar with precedence annotations
+///
+/// Rules:
+/// - Expr -> Expr + Expr  (rule 0, precedence 1, configurable associativity)
+/// - Expr -> Expr * Expr  (rule 1, precedence 2, left-associative)
+/// - Expr -> num          (rule 2)
+fn create_precedence_grammar(plus_assoc: Associativity) -> Grammar {
+    let mut grammar = Grammar::new("precedence_expr".to_string());
+
+    let plus_id = SymbolId(1);
+    let star_id = SymbolId(2);
+    let num_id = SymbolId(3);
+    let expr_id = SymbolId(10);
+
+    grammar.tokens.insert(
+        plus_id,
+        Token {
+            name: "+".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        star_id,
+        Token {
+            name: "*".to_string(),
+            pattern: TokenPattern::String("*".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        num_id,
+        Token {
+            name: "num".to_string(),
+            pattern: TokenPattern::String("num".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.rule_names.insert(expr_id, "Expr".to_string());
+    grammar.rules.insert(
+        expr_id,
+        vec![
+            Rule {
+                lhs: expr_id,
+                rhs: vec![
+                    Symbol::NonTerminal(expr_id),
+                    Symbol::Terminal(plus_id),
+                    Symbol::NonTerminal(expr_id),
+                ],
+                precedence: Some(PrecedenceKind::Static(1)),
+                associativity: Some(plus_assoc),
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: expr_id,
+                rhs: vec![
+                    Symbol::NonTerminal(expr_id),
+                    Symbol::Terminal(star_id),
+                    Symbol::NonTerminal(expr_id),
+                ],
+                precedence: Some(PrecedenceKind::Static(2)),
+                associativity: Some(Associativity::Left),
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+            Rule {
+                lhs: expr_id,
+                rhs: vec![Symbol::Terminal(num_id)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(2),
+                fields: vec![],
+            },
+        ],
+    );
+
+    let _ = grammar.get_or_build_registry();
+    grammar
+}
+
+/// Helper: Create arithmetic grammar with no precedence metadata
+fn create_no_precedence_grammar() -> Grammar {
+    let mut grammar = Grammar::new("no_precedence_expr".to_string());
+
+    let plus_id = SymbolId(1);
+    let num_id = SymbolId(2);
+    let expr_id = SymbolId(10);
+
+    grammar.tokens.insert(
+        plus_id,
+        Token {
+            name: "+".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        num_id,
+        Token {
+            name: "num".to_string(),
+            pattern: TokenPattern::String("num".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar.rule_names.insert(expr_id, "Expr".to_string());
+    grammar.rules.insert(
+        expr_id,
+        vec![
+            Rule {
+                lhs: expr_id,
+                rhs: vec![
+                    Symbol::NonTerminal(expr_id),
+                    Symbol::Terminal(plus_id),
+                    Symbol::NonTerminal(expr_id),
+                ],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: expr_id,
+                rhs: vec![Symbol::Terminal(num_id)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+        ],
+    );
+
+    let _ = grammar.get_or_build_registry();
+    grammar
+}
+
+/// Helper: Resolve a synthetic shift/reduce conflict against a grammar
+fn resolve_shift_reduce_actions(
+    grammar: &Grammar,
+    symbol: SymbolId,
+    reduce_rule: RuleId,
+) -> Vec<Action> {
+    let mut resolver = ConflictResolver {
+        conflicts: vec![Conflict {
+            state: StateId(42),
+            symbol,
+            actions: vec![Action::Shift(StateId(7)), Action::Reduce(reduce_rule)],
+            conflict_type: ConflictType::ShiftReduce,
+        }],
+    };
+
+    resolver.resolve_conflicts(grammar);
+    resolver
+        .conflicts
+        .first()
+        .expect("expected one conflict")
+        .actions
+        .clone()
 }
 
 /// Helper: Analyze parse table for conflicts
@@ -260,24 +428,92 @@ fn scenario_6_multi_action_cells_generated() {
 
 //
 // ============================================================================
-// Scenario 2-5: Precedence Ordering Validation
+// Scenario 2: Preserve Conflicts with Precedence Ordering (PreferShift)
 // ============================================================================
 //
 
 #[test]
-fn scenario_2_5_precedence_ordering() {
-    // This is a placeholder for precedence ordering tests.
-    // These scenarios require grammars with explicit precedence/associativity.
-    //
-    // TODO: Implement scenarios 2-5 when precedence is added to dangling-else grammar:
-    // - Scenario 2: PreferShift → [shift, reduce]
-    // - Scenario 3: PreferReduce → [reduce, shift]
-    // - Scenario 4: No precedence → Fork
-    // - Scenario 5: Non-associative → Fork (error)
+fn scenario_2_prefer_shift_resolution() {
+    // GIVEN a conflict where lookahead token (*) has higher precedence than reduce rule (+)
+    let grammar = create_precedence_grammar(Associativity::Left);
 
-    println!("\n=== Scenarios 2-5: Precedence Ordering ===");
-    println!("⏳ Deferred: Requires grammar with explicit precedence annotations");
-    println!("   See: BDD_GLR_CONFLICT_PRESERVATION.md for full spec");
+    // WHEN shift/reduce conflict is resolved on lookahead '*'
+    let actions = resolve_shift_reduce_actions(&grammar, SymbolId(2), RuleId(0));
+
+    // THEN shift action is preferred and reduce is eliminated
+    assert_eq!(actions, vec![Action::Shift(StateId(7))]);
+}
+
+//
+// ============================================================================
+// Scenario 3: Preserve Conflicts with Precedence Ordering (PreferReduce)
+// ============================================================================
+//
+
+#[test]
+fn scenario_3_prefer_reduce_resolution() {
+    // GIVEN a conflict where reduce rule (*) has higher precedence than lookahead token (+)
+    let grammar = create_precedence_grammar(Associativity::Left);
+
+    // WHEN shift/reduce conflict is resolved on lookahead '+'
+    let actions = resolve_shift_reduce_actions(&grammar, SymbolId(1), RuleId(1));
+
+    // THEN reduce action is preferred and shift is eliminated
+    assert_eq!(actions, vec![Action::Reduce(RuleId(1))]);
+}
+
+//
+// ============================================================================
+// Scenario 4: Use Fork for No Precedence Information
+// ============================================================================
+//
+
+#[test]
+fn scenario_4_fork_when_no_precedence_information() {
+    // GIVEN a conflict with no precedence metadata on token or rule
+    let grammar = create_no_precedence_grammar();
+
+    // WHEN shift/reduce conflict is resolved
+    let actions = resolve_shift_reduce_actions(&grammar, SymbolId(1), RuleId(0));
+
+    // THEN resolver keeps both paths via Fork
+    assert_eq!(actions.len(), 1);
+    match &actions[0] {
+        Action::Fork(inner) => {
+            assert_eq!(
+                inner,
+                &vec![Action::Shift(StateId(7)), Action::Reduce(RuleId(0))]
+            );
+        }
+        other => panic!("expected Fork action, got {:?}", other),
+    }
+}
+
+//
+// ============================================================================
+// Scenario 5: Use Fork for Non-Associative Conflicts
+// ============================================================================
+//
+
+#[test]
+fn scenario_5_fork_when_non_associative() {
+    // GIVEN equal precedence with non-associative rule
+    let grammar = create_precedence_grammar(Associativity::None);
+
+    // WHEN shift/reduce conflict is resolved on '+'
+    let actions = resolve_shift_reduce_actions(&grammar, SymbolId(1), RuleId(0));
+
+    // THEN resolver returns Fork to preserve ambiguity/error path
+    assert_eq!(actions.len(), 1);
+    match &actions[0] {
+        Action::Fork(inner) => {
+            assert_eq!(
+                inner,
+                &vec![Action::Shift(StateId(7)), Action::Reduce(RuleId(0))]
+            );
+        }
+        other => panic!("expected Fork action, got {:?}", other),
+    }
 }
 
 //
@@ -324,15 +560,14 @@ fn bdd_test_summary() {
     println!("\n=== BDD GLR Conflict Preservation Test Summary ===");
     println!();
     println!("✅ Scenario 1: Conflict detection - IMPLEMENTED");
-    println!("⏳ Scenario 2: PreferShift ordering - DEFERRED");
-    println!("⏳ Scenario 3: PreferReduce ordering - DEFERRED");
-    println!("⏳ Scenario 4: Fork for no precedence - DEFERRED");
-    println!("⏳ Scenario 5: Fork for non-associative - DEFERRED");
+    println!("✅ Scenario 2: PreferShift ordering - IMPLEMENTED");
+    println!("✅ Scenario 3: PreferReduce ordering - IMPLEMENTED");
+    println!("✅ Scenario 4: Fork for no precedence - IMPLEMENTED");
+    println!("✅ Scenario 5: Fork for non-associative - IMPLEMENTED");
     println!("✅ Scenario 6: Multi-action cell generation - IMPLEMENTED");
     println!("⏳ Scenario 7: GLR runtime fork/merge - DEFERRED (runtime2 integration)");
     println!("⏳ Scenario 8: Precedence affects tree selection - DEFERRED (runtime2 integration)");
     println!();
-    println!("Phase 1 (glr-core unit tests): 2/8 scenarios complete");
-    println!("Next: Implement scenarios 2-5 with precedence-annotated grammars");
+    println!("Phase 1 (glr-core unit tests): 6/8 scenarios complete");
     println!("Next: Implement scenarios 7-8 in runtime2 end-to-end tests");
 }
