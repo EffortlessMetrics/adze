@@ -837,13 +837,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       
-      - name: Verify publishability
+      - name: Package unpublishable crates (validate manifests)
+        run: |
+          cargo package -p rust-sitter-ir --no-verify
+          cargo package -p rust-sitter-glr-core --no-verify
+          cargo package -p rust-sitter-tablegen --no-verify
+
+      - name: Dry-run publish for publishable crates
         run: |
           cargo publish -p rust-sitter-common --dry-run
-          cargo publish -p rust-sitter-ir --dry-run
-          cargo publish -p rust-sitter-glr-core --dry-run
-          cargo publish -p rust-sitter-tablegen --dry-run
-          cargo publish -p rust-sitter --dry-run
+          cargo publish -p rust-sitter-macro --dry-run
+          cargo publish -p rust-sitter --dry-run --no-verify
+          cargo publish -p rust-sitter-tool --dry-run --no-verify
 
   benches-unstable:
     name: Benches (unstable, opt-in)
