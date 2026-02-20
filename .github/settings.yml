@@ -1,10 +1,8 @@
 repository:
   # See https://developer.github.com/v3/repos/#edit for all available settings.
-  name: rust-sitter
   description: A package for defining tree-sitter grammars alongside Rust logic
   homepage: https://github.com/EffortlessMetrics/rust-sitter
   topics: rust, parsing, tree-sitter, codegen, incremental-parsing, glr-parsing
-  private: false
   has_issues: true
   has_projects: true
   has_wiki: false
@@ -24,11 +22,6 @@ branches:
         required_approving_review_count: 1
         dismiss_stale_reviews: true
         require_code_owner_reviews: false
-      required_status_checks:
-        strict: true
-        contexts:
-          - "CI / Lint"
-          - "core-tests / core"
       enforce_admins: false
       restrictions: null
 
