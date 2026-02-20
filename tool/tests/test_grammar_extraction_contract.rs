@@ -35,10 +35,10 @@ impl GrammarAnalysis {
         let mut production_patterns = Vec::new();
 
         // Collect all symbol names
-        for (id, name) in &grammar.rule_names {
+        for (_id, name) in &grammar.rule_names {
             symbol_names.insert(name.clone());
         }
-        for (id, token) in &grammar.tokens {
+        for (_id, token) in &grammar.tokens {
             symbol_names.insert(token.name.clone());
         }
 
@@ -684,24 +684,24 @@ fn test_inlining_preserves_field_structure() {
     // The implementation uses full path (Expr_Binary_0) which provides more context
     // and better collision avoidance than just Binary_0
     for (i, field) in seq_members.iter().enumerate() {
-        if let Some(field_obj) = field.as_object() {
-            if field_obj.get("type").and_then(|t| t.as_str()) == Some("FIELD") {
-                let field_name = field_obj
-                    .get("name")
-                    .and_then(|n| n.as_str())
-                    .expect("Field must have name");
+        if let Some(field_obj) = field.as_object()
+            && field_obj.get("type").and_then(|t| t.as_str()) == Some("FIELD")
+        {
+            let field_name = field_obj
+                .get("name")
+                .and_then(|n| n.as_str())
+                .expect("Field must have name");
 
-                // Check that field name includes variant context and index
-                // Current implementation: Expr_Binary_0, Expr_Binary_1, etc.
-                // Alternative valid: Binary_0, Binary_1, etc.
-                let has_variant_context =
-                    field_name.contains("Binary") && field_name.contains(&i.to_string());
-                assert!(
-                    has_variant_context,
-                    "TDD FAIL: Field name '{}' should preserve variant context and index {}",
-                    field_name, i
-                );
-            }
+            // Check that field name includes variant context and index
+            // Current implementation: Expr_Binary_0, Expr_Binary_1, etc.
+            // Alternative valid: Binary_0, Binary_1, etc.
+            let has_variant_context =
+                field_name.contains("Binary") && field_name.contains(&i.to_string());
+            assert!(
+                has_variant_context,
+                "TDD FAIL: Field name '{}' should preserve variant context and index {}",
+                field_name, i
+            );
         }
     }
 

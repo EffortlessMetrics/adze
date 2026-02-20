@@ -1,5 +1,6 @@
 //! Deep decode of ambiguous_expr parse table to understand why no conflicts are found
 
+#[cfg(all(feature = "pure-rust", feature = "glr"))]
 use rust_sitter_glr_core::Action;
 
 #[cfg(all(feature = "pure-rust", feature = "glr"))]

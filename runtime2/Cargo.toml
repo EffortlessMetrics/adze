@@ -64,6 +64,10 @@ name = "simple_parse"
 required-features = ["test-utils", "glr-core"]
 
 [[example]]
+name = "arithmetic"
+required-features = ["pure-rust-glr", "test-utils"]
+
+[[example]]
 name = "precedence_debug"
 required-features = ["pure-rust-glr"]
 

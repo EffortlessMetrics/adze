@@ -748,10 +748,10 @@ impl Parser {
         };
 
         // Try external scanner first if available
-        if lex_mode.external_lex_state != 0 && language.external_scanner.scan.is_some() {
+        if lex_mode.external_lex_state != 0
+            && let Some(scan_fn) = language.external_scanner.scan
+        {
             unsafe {
-                let scan_fn = language.external_scanner.scan.unwrap();
-
                 // Build valid symbols array from external_lex_state bitset.
                 // Tree-sitter's external scanners expect a 1-based array of flags
                 // with index 0 unused, so allocate an extra slot and shift bits.
@@ -1296,7 +1296,7 @@ impl Parser {
             // "DEBUG reduce: Stack before reduction has {} entries",
             // self.stack.len()
             // );
-            for (_i, entry) in self.stack.iter().enumerate() {
+            for entry in self.stack.iter() {
                 if let Some(ref _subtree) = entry.subtree {
                     // eprintln!(
                     // "  Stack[{}]: state={}, symbol={}",

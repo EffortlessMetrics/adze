@@ -70,7 +70,7 @@ mod tests {
         // 1. V4Tree (parser_v4::Tree<'arena>) doesn't have root_kind/source fields
         // 2. v4_tree_to_forest is unimplemented
         // Once Phase 2 Day 5 is complete, update this test.
-        let _forest: Arc<ForestNode> = unimplemented!();
+        unimplemented!();
     }
 
     #[test]

@@ -415,6 +415,7 @@ fn test_mutable_access() {
 // Property Tests (if proptest is available)
 // ============================================================================
 
+#[allow(unexpected_cfgs)]
 #[cfg(feature = "proptest")]
 mod property_tests {
     use super::*;

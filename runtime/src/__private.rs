@@ -446,7 +446,7 @@ fn convert_parse_node_v4_to_pure(
         is_error: node.symbol.0 == 0, // Symbol 0 typically indicates error
         is_missing: false,
         is_named,
-        field_name: node.field_name.clone(),
+        field_id: None, // TODO: Convert field_name to field_id using language field_names
         language: Some(lang as *const _),
     }
 }

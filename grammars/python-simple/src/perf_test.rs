@@ -27,7 +27,7 @@ mod tests {
 
             // Warmup
             for _ in 0..100 {
-                let _ = parser.parse(code, None);
+                let _ = parser.parse_with_error(code);
             }
 
             // Measure
@@ -35,8 +35,7 @@ mod tests {
             let start = Instant::now();
 
             for _ in 0..iterations {
-                let tree = parser.parse(code, None).unwrap();
-                assert!(!tree.source.is_empty());
+                let _tree = parser.parse_with_error(code).unwrap();
             }
 
             let elapsed = start.elapsed();
@@ -63,8 +62,7 @@ mod tests {
         let iterations = 100;
 
         for _ in 0..iterations {
-            let tree = parser.parse(&large_code, None).unwrap();
-            assert!(!tree.source.is_empty());
+            let _tree = parser.parse_with_error(&large_code).unwrap();
         }
 
         let elapsed = start.elapsed();

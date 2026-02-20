@@ -12,7 +12,6 @@ use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 mod json_grammar;
 #[allow(clippy::duplicate_mod)]
 #[path = "support/language_builder.rs"]
-#[allow(clippy::duplicate_mod)]
 mod language_builder;
 
 // Note: unified_json_helper removed to avoid FFI segmentation faults

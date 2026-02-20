@@ -8,10 +8,10 @@
 ///
 /// Spec: docs/specs/TABLE_GENERATION_VALIDATION_CONTRACT.md
 /// Phase: 2-3 Bridge - GLR Conflict Preservation across ABI
-
 // These tests require example grammars to be built with pure-rust feature
 #[cfg(feature = "pure-rust")]
 mod runtime_conflict_preservation {
+    #[allow(unused_imports)]
     use rust_sitter_glr_core::conflict_inspection::*;
 
     /// Test: Ambiguous Expression Grammar Conflicts Survive Encoding/Decoding
@@ -111,10 +111,6 @@ mod runtime_conflict_preservation {
 #[test]
 fn test_conflict_preservation_runtime_module_exists() {
     // This test ensures the module structure is correct
-    // even without pure-rust feature
-    #[cfg(feature = "pure-rust")]
-    {
-        // Module is available when feature is enabled
-        let _ = std::any::type_name::<runtime_conflict_preservation>();
-    }
+    // even without pure-rust feature.
+    // The fact that this file compiles is the verification.
 }

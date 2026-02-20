@@ -1,5 +1,7 @@
 /target
 **/target/
+/target-*/
+**/target-*/
 
 # Bench/fuzz artifacts
 bench-output.txt

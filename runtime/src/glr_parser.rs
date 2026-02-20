@@ -1324,8 +1324,11 @@ impl GLRParser {
         // Map from top key to index in output vector
         let mut keep: HashMap<TopKey, usize> = HashMap::new();
         let mut out: Vec<ParseStack> = Vec::new();
-        #[cfg_attr(not(feature = "glr_telemetry"), allow(unused_variables))]
+        #[cfg(any(feature = "glr_telemetry", feature = "debug_glr"))]
         let mut packed_count = 0usize;
+
+        #[cfg(any(feature = "glr_telemetry", feature = "debug_glr"))]
+        let input_count = stacks.len();
 
         for mut stack in stacks.drain(..) {
             // Get the top node info, if any
@@ -1359,7 +1362,10 @@ impl GLRParser {
 
                     // Push the merged top back
                     kept.nodes.push(Arc::new(merged_subtree));
-                    packed_count += 1;
+                    #[cfg(any(feature = "glr_telemetry", feature = "debug_glr"))]
+                    {
+                        packed_count += 1;
+                    }
 
                     // Keep the highest dynamic precedence
                     if stack.version.dynamic_prec > kept.version.dynamic_prec {
@@ -1374,8 +1380,6 @@ impl GLRParser {
             }
         }
 
-        #[cfg_attr(not(feature = "glr_telemetry"), allow(unused_variables))]
-        let input_count = stacks.len() + out.len();
         #[cfg(feature = "glr_telemetry")]
         {
             self.bump_telemetry(|t| {

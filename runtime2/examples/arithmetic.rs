@@ -154,28 +154,28 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
     // Symbol metadata
     let symbol_metadata = vec![
         SymbolMetadata {
-            terminal: true,
-            visible: false,
+            is_terminal: true,
+            is_visible: false,
             is_supertype: false,
         }, // EOF
         SymbolMetadata {
-            terminal: true,
-            visible: true,
+            is_terminal: true,
+            is_visible: true,
             is_supertype: false,
         }, // NUMBER
         SymbolMetadata {
-            terminal: true,
-            visible: true,
+            is_terminal: true,
+            is_visible: true,
             is_supertype: false,
         }, // MINUS
         SymbolMetadata {
-            terminal: true,
-            visible: true,
+            is_terminal: true,
+            is_visible: true,
             is_supertype: false,
         }, // STAR
         SymbolMetadata {
-            terminal: false,
-            visible: true,
+            is_terminal: false,
+            is_visible: true,
             is_supertype: false,
         }, // expr
     ];

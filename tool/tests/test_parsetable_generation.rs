@@ -7,7 +7,6 @@
 
 use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_json};
 use std::fs;
-use std::path::PathBuf;
 
 /// Helper: Create a minimal test grammar JSON
 fn create_test_grammar_json() -> String {

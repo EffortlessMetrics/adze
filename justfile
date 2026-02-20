@@ -55,6 +55,21 @@ bench-perf:
 snap:
     cargo insta review
 
+# Supported CI lane - must always be green
+# See docs/status/KNOWN_RED.md for what is excluded and why.
+ci-supported:
+    cargo fmt --all -- --check
+    cargo clippy -p rust-sitter --lib -- -D warnings
+    cargo clippy -p rust-sitter-macro -p rust-sitter-tool \
+        -p rust-sitter-common -p rust-sitter-ir -p rust-sitter-glr-core \
+        -p rust-sitter-tablegen \
+        --all-targets -- -D warnings
+    cargo test -p rust-sitter --lib
+    cargo test -p rust-sitter-tool \
+        -p rust-sitter-common -p rust-sitter-ir -p rust-sitter-glr-core \
+        -p rust-sitter-tablegen \
+        --lib --tests --bins
+
 # Clean build artifacts
 clean:
     cargo clean

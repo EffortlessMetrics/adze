@@ -13,34 +13,60 @@ use std::collections::HashSet;
 pub enum SchemaError {
     /// Invalid action encoding
     InvalidActionEncoding {
+        /// The action that failed encoding validation
         action: Action,
+        /// The encoded u16 value that was produced
         encoded_value: u16,
+        /// Human-readable explanation of the encoding failure
         reason: String,
     },
 
     /// State ID out of bounds
-    InvalidStateId { state_id: u16, max_states: usize },
+    InvalidStateId {
+        /// The invalid state ID that was encountered
+        state_id: u16,
+        /// The maximum number of valid states in the table
+        max_states: usize,
+    },
 
     /// Symbol ID out of bounds
-    InvalidSymbolId { symbol_id: u16, max_symbols: usize },
+    InvalidSymbolId {
+        /// The invalid symbol ID that was encountered
+        symbol_id: u16,
+        /// The maximum number of valid symbols in the grammar
+        max_symbols: usize,
+    },
 
     /// Production ID out of bounds
     InvalidProductionId {
+        /// The invalid production ID that was encountered
         production_id: u16,
+        /// The maximum number of valid productions in the grammar
         max_productions: usize,
     },
 
     /// Duplicate entry in action table
-    DuplicateActionEntry { state: u16, symbol: u16 },
+    DuplicateActionEntry {
+        /// The state ID where the duplicate was found
+        state: u16,
+        /// The symbol ID where the duplicate was found
+        symbol: u16,
+    },
 
     /// Missing Accept state
     MissingAcceptState,
 
     /// Invalid EOF handling
-    InvalidEOFHandling { reason: String },
+    InvalidEOFHandling {
+        /// Human-readable explanation of the EOF handling failure
+        reason: String,
+    },
 
     /// Compressed table integrity failure
-    CompressedTableIntegrity { reason: String },
+    CompressedTableIntegrity {
+        /// Human-readable explanation of the integrity failure
+        reason: String,
+    },
 }
 
 impl std::fmt::Display for SchemaError {

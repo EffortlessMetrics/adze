@@ -5,6 +5,8 @@
 //!
 //! Contract: docs/specs/PHASE_3.3_COMPONENT_2_PARITY.md
 
+#![cfg(feature = "pure-rust-glr")]
+
 use rust_sitter_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
 use rust_sitter_ir::{
     Grammar, ProductionId, Rule, Symbol, Token as IrToken, TokenPattern as IrTokenPattern,

@@ -91,7 +91,7 @@ impl<'a> TreeSerializer<'a> {
         let mut serialized = SerializedNode {
             kind: format!("symbol_{}", node.symbol), // Convert symbol to string
             is_named: node.is_named,
-            field_name: node.field_name.clone(),
+            field_name: node.field_id.map(|id| format!("field_{}", id)), // Convert field_id to placeholder name
             start_position: (
                 node.start_point.row as usize,
                 node.start_point.column as usize,
@@ -211,12 +211,13 @@ impl<'a> CompactSerializer<'a> {
         serde_json::to_string(&root)
     }
 
+    #[cfg(feature = "pure-rust")]
     fn serialize_node(&self, node: &Node) -> CompactNode {
         let mut compact = CompactNode {
             kind: node.kind().to_string(),
             start: Some(node.start_byte),
             end: Some(node.end_byte),
-            field: node.field_name.as_ref().map(|s| s.to_string()),
+            field: node.field_id.map(|id| format!("field_{}", id)),
             children: Vec::new(),
             text: None,
         };
@@ -233,6 +234,41 @@ impl<'a> CompactSerializer<'a> {
                     let child = cursor.node();
                     if child.is_named {
                         compact.children.push(self.serialize_node(child));
+                    }
+
+                    if !cursor.goto_next_sibling() {
+                        break;
+                    }
+                }
+            }
+        }
+
+        compact
+    }
+
+    #[cfg(not(feature = "pure-rust"))]
+    fn serialize_node(&self, node: &Node) -> CompactNode {
+        let mut compact = CompactNode {
+            kind: node.kind().to_string(),
+            start: Some(node.start_byte()),
+            end: Some(node.end_byte()),
+            field: node.field_name().map(|s| s.to_string()),
+            children: Vec::new(),
+            text: None,
+        };
+
+        if node.child_count() == 0 {
+            compact.text = node.utf8_text(self.source).ok().map(|s| s.to_string());
+            // Don't include position for leaf nodes to save space
+            compact.start = None;
+            compact.end = None;
+        } else {
+            let mut cursor = node.walk();
+            if cursor.goto_first_child() {
+                loop {
+                    let child = cursor.node();
+                    if child.is_named() {
+                        compact.children.push(self.serialize_node(&child));
                     }
 
                     if !cursor.goto_next_sibling() {
@@ -269,6 +305,7 @@ impl<'a> SExpressionSerializer<'a> {
         self.serialize_node(tree.root_node())
     }
 
+    #[cfg(feature = "pure-rust")]
     fn serialize_node(&self, node: &Node) -> String {
         let mut result = String::new();
 
@@ -281,8 +318,8 @@ impl<'a> SExpressionSerializer<'a> {
             // Internal node
             result.push('(');
 
-            if let Some(field_name) = node.field_name.as_ref() {
-                result.push_str(&format!("{}: ", field_name));
+            if let Some(field_id) = node.field_id {
+                result.push_str(&format!("field_{}: ", field_id));
             }
 
             result.push_str(node.kind());
@@ -302,6 +339,53 @@ impl<'a> SExpressionSerializer<'a> {
                 loop {
                     result.push(' ');
                     result.push_str(&self.serialize_node(cursor.node()));
+
+                    if !cursor.goto_next_sibling() {
+                        break;
+                    }
+                }
+            }
+
+            result.push(')');
+        }
+
+        result
+    }
+
+    #[cfg(not(feature = "pure-rust"))]
+    fn serialize_node(&self, node: &Node) -> String {
+        let mut result = String::new();
+
+        if node.child_count() == 0 {
+            // Leaf node
+            if let Ok(text) = node.utf8_text(self.source) {
+                result.push_str(&format!("\"{}\"", text.replace('"', "\\\"")));
+            }
+        } else {
+            // Internal node
+            result.push('(');
+
+            if let Some(field_name) = node.field_name() {
+                result.push_str(&format!("{}: ", field_name));
+            }
+
+            result.push_str(node.kind());
+
+            if self.include_positions {
+                result.push_str(&format!(
+                    " [{},{}-{},{}]",
+                    node.start_position().row,
+                    node.start_position().column,
+                    node.end_position().row,
+                    node.end_position().column
+                ));
+            }
+
+            let mut cursor = node.walk();
+            if cursor.goto_first_child() {
+                loop {
+                    result.push(' ');
+                    result.push_str(&self.serialize_node(&cursor.node()));
 
                     if !cursor.goto_next_sibling() {
                         break;
@@ -384,6 +468,7 @@ impl BinarySerializer {
         }
     }
 
+    #[cfg(feature = "pure-rust")]
     fn serialize_node_binary(&mut self, node: &Node, output: &mut Vec<u8>) {
         // Write node type ID (2 bytes)
         let type_id = self.get_node_type_id(node.kind());
@@ -400,14 +485,13 @@ impl BinarySerializer {
         if node.is_missing {
             flags |= 0x04;
         }
-        if node.field_name.is_some() {
+        if node.field_id.is_some() {
             flags |= 0x08;
         }
         output.push(flags);
 
-        // Write field name ID if present (2 bytes)
-        if let Some(field_name) = node.field_name.as_ref() {
-            let field_id = self.get_field_name_id(field_name);
+        // Write field ID if present (2 bytes)
+        if let Some(field_id) = node.field_id {
             output.extend_from_slice(&field_id.to_le_bytes());
         }
 
@@ -425,6 +509,56 @@ impl BinarySerializer {
             if cursor.goto_first_child() {
                 loop {
                     self.serialize_node_binary(cursor.node(), output);
+                    if !cursor.goto_next_sibling() {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(not(feature = "pure-rust"))]
+    fn serialize_node_binary(&mut self, node: &Node, output: &mut Vec<u8>) {
+        // Write node type ID (2 bytes)
+        let type_id = self.get_node_type_id(node.kind());
+        output.extend_from_slice(&type_id.to_le_bytes());
+
+        // Write flags (1 byte)
+        let mut flags = 0u8;
+        if node.is_named() {
+            flags |= 0x01;
+        }
+        if node.is_error() {
+            flags |= 0x02;
+        }
+        if node.is_missing() {
+            flags |= 0x04;
+        }
+        if node.field_name().is_some() {
+            flags |= 0x08;
+        }
+        output.push(flags);
+
+        // Write field name ID if present (2 bytes)
+        if let Some(field_name) = node.field_name() {
+            let field_id = self.get_field_name_id(field_name);
+            output.extend_from_slice(&field_id.to_le_bytes());
+        }
+
+        // Write positions (4 bytes each)
+        output.extend_from_slice(&(node.start_byte() as u32).to_le_bytes());
+        output.extend_from_slice(&(node.end_byte() as u32).to_le_bytes());
+
+        // Write child count (2 bytes)
+        let child_count = node.child_count() as u16;
+        output.extend_from_slice(&child_count.to_le_bytes());
+
+        // Serialize children
+        if child_count > 0 {
+            let mut cursor = node.walk();
+            if cursor.goto_first_child() {
+                loop {
+                    self.serialize_node_binary(&cursor.node(), output);
                     if !cursor.goto_next_sibling() {
                         break;
                     }
