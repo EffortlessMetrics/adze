@@ -259,4 +259,155 @@ mod tests {
         assert_eq!(tokens.len(), 1); // EOF only
         assert_eq!(tokens[0].kind, 0); // EOF
     }
+
+    #[test]
+    fn given_keyword_and_identifier_when_lengths_tie_then_keyword_wins() {
+        // Given
+        let tokenizer = Tokenizer::new(
+            vec![
+                TokenPattern {
+                    symbol_id: SymbolId(1),
+                    matcher: Matcher::Literal("if".to_string()),
+                    is_keyword: true,
+                },
+                TokenPattern {
+                    symbol_id: SymbolId(2),
+                    matcher: Matcher::Regex(regex::Regex::new(r"^[a-z]+").unwrap()),
+                    is_keyword: false,
+                },
+            ],
+            WhitespaceMode::Skip,
+        );
+
+        // When
+        let tokens = tokenizer.scan(b"if").expect("tokenization should succeed");
+
+        // Then
+        assert_eq!(tokens[0].kind, 1);
+        assert_eq!(tokens[0].start, 0);
+        assert_eq!(tokens[0].end, 2);
+        assert_eq!(tokens[1].kind, 0);
+    }
+
+    #[test]
+    fn given_literal_and_regex_overlap_when_regex_is_longer_then_maximal_munch_chooses_regex() {
+        // Given
+        let tokenizer = Tokenizer::new(
+            vec![
+                TokenPattern {
+                    symbol_id: SymbolId(1),
+                    matcher: Matcher::Literal("if".to_string()),
+                    is_keyword: true,
+                },
+                TokenPattern {
+                    symbol_id: SymbolId(2),
+                    matcher: Matcher::Regex(regex::Regex::new(r"^[a-z]+").unwrap()),
+                    is_keyword: false,
+                },
+            ],
+            WhitespaceMode::Skip,
+        );
+
+        // When
+        let tokens = tokenizer.scan(b"ifx").expect("tokenization should succeed");
+
+        // Then
+        assert_eq!(tokens[0].kind, 2);
+        assert_eq!(tokens[0].start, 0);
+        assert_eq!(tokens[0].end, 3);
+    }
+
+    #[test]
+    fn given_whitespace_skip_mode_when_scanning_then_whitespace_tokens_are_not_emitted() {
+        // Given
+        let tokenizer = Tokenizer::new(
+            vec![
+                TokenPattern {
+                    symbol_id: SymbolId(1),
+                    matcher: Matcher::Regex(regex::Regex::new(r"^\d+").unwrap()),
+                    is_keyword: false,
+                },
+                TokenPattern {
+                    symbol_id: SymbolId(2),
+                    matcher: Matcher::Literal("+".to_string()),
+                    is_keyword: false,
+                },
+                TokenPattern {
+                    symbol_id: SymbolId(255),
+                    matcher: Matcher::Regex(regex::Regex::new(r"^\s+").unwrap()),
+                    is_keyword: false,
+                },
+            ],
+            WhitespaceMode::Skip,
+        );
+
+        // When
+        let tokens = tokenizer
+            .scan(b"1 + 2")
+            .expect("tokenization should succeed");
+
+        // Then
+        assert_eq!(
+            tokens.iter().map(|t| t.kind).collect::<Vec<_>>(),
+            vec![1, 2, 1, 0]
+        );
+        assert_eq!(tokens[0].start, 0);
+        assert_eq!(tokens[1].start, 2);
+        assert_eq!(tokens[2].start, 4);
+    }
+
+    #[test]
+    fn given_whitespace_preserve_mode_when_scanning_then_whitespace_tokens_are_emitted() {
+        // Given
+        let tokenizer = Tokenizer::new(
+            vec![
+                TokenPattern {
+                    symbol_id: SymbolId(1),
+                    matcher: Matcher::Regex(regex::Regex::new(r"^\d+").unwrap()),
+                    is_keyword: false,
+                },
+                TokenPattern {
+                    symbol_id: SymbolId(255),
+                    matcher: Matcher::Regex(regex::Regex::new(r"^\s+").unwrap()),
+                    is_keyword: false,
+                },
+            ],
+            WhitespaceMode::Preserve,
+        );
+
+        // When
+        let tokens = tokenizer.scan(b"1 2").expect("tokenization should succeed");
+
+        // Then
+        assert_eq!(
+            tokens.iter().map(|t| t.kind).collect::<Vec<_>>(),
+            vec![1, 255, 1, 0]
+        );
+    }
+
+    #[test]
+    fn given_invalid_character_when_scanning_then_error_reports_position_and_snippet() {
+        // Given
+        let tokenizer = Tokenizer::new(
+            vec![TokenPattern {
+                symbol_id: SymbolId(1),
+                matcher: Matcher::Literal("+".to_string()),
+                is_keyword: false,
+            }],
+            WhitespaceMode::Skip,
+        );
+
+        // When
+        let err = tokenizer
+            .scan(b"+@")
+            .expect_err("invalid input should return tokenization error");
+
+        // Then
+        match err {
+            TokenizerError::InvalidToken { position, snippet } => {
+                assert_eq!(position, 1);
+                assert_eq!(snippet, "@");
+            }
+        }
+    }
 }

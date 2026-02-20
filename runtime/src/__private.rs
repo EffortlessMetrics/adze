@@ -459,3 +459,125 @@ fn parse_with_glr<T: Extract<T>>(
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
     unreachable!("GLR parser should not be called when glr feature is disabled")
 }
+
+#[cfg(all(test, feature = "pure-rust"))]
+mod tests {
+    use super::*;
+    use crate::pure_parser::{ParsedNode, Point};
+
+    fn node(
+        symbol: u16,
+        start: usize,
+        end: usize,
+        field_id: Option<u16>,
+        children: Vec<ParsedNode>,
+    ) -> ParsedNode {
+        ParsedNode {
+            symbol,
+            children,
+            start_byte: start,
+            end_byte: end,
+            start_point: Point {
+                row: 0,
+                column: start as u32,
+            },
+            end_point: Point {
+                row: 0,
+                column: end as u32,
+            },
+            is_extra: false,
+            is_error: false,
+            is_missing: false,
+            is_named: true,
+            field_id,
+            language: None,
+        }
+    }
+
+    #[test]
+    fn given_parent_with_children_when_extracting_struct_then_cursor_starts_at_first_child() {
+        // Given
+        let first = node(11, 0, 1, None, vec![]);
+        let second = node(22, 1, 2, None, vec![]);
+        let root = node(99, 5, 7, None, vec![first, second]);
+
+        // When
+        let (first_symbol, initial_start_byte, can_move_to_second, second_symbol) =
+            extract_struct_or_variant(&root, |cursor_opt, start_byte| {
+                let cursor = cursor_opt
+                    .as_mut()
+                    .expect("cursor should start at first child");
+                let first_symbol = cursor.node().symbol;
+                let can_move_to_second = cursor.goto_next_sibling();
+                let second_symbol = cursor.node().symbol;
+                (first_symbol, *start_byte, can_move_to_second, second_symbol)
+            });
+
+        // Then
+        assert_eq!(first_symbol, 11);
+        assert_eq!(initial_start_byte, 5);
+        assert!(can_move_to_second);
+        assert_eq!(second_symbol, 22);
+    }
+
+    #[test]
+    fn given_single_field_struct_when_extract_field_then_parent_node_is_extracted() {
+        // Given
+        let root = node(7, 2, 5, None, vec![]);
+        let mut cursor_opt = Some(TreeCursor::new(&root));
+        let mut last_idx = 0;
+
+        // When
+        let extracted: String = extract_field::<String, String>(
+            &mut cursor_opt,
+            b"xxabc",
+            &mut last_idx,
+            "value",
+            None,
+        );
+
+        // Then
+        assert_eq!(extracted, "abc");
+        assert!(cursor_opt.is_none());
+        assert_eq!(last_idx, 5);
+    }
+
+    #[test]
+    fn given_unlabeled_children_when_extracting_named_field_then_result_is_default() {
+        // Given
+        let child1 = node(1, 0, 1, None, vec![]);
+        let child2 = node(2, 1, 2, None, vec![]);
+        let root = node(9, 0, 2, None, vec![child1, child2]);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+        assert!(cursor.goto_next_sibling());
+        let mut cursor_opt = Some(cursor);
+        let mut last_idx = 1;
+
+        // When
+        let extracted: String = extract_field::<String, String>(
+            &mut cursor_opt,
+            b"ab",
+            &mut last_idx,
+            "missing_field",
+            None,
+        );
+
+        // Then
+        assert_eq!(extracted, "");
+        assert_eq!(last_idx, 2);
+        assert!(cursor_opt.is_some());
+    }
+
+    #[test]
+    fn given_child_with_field_id_but_no_language_when_reading_field_name_then_returns_none() {
+        // Given
+        let child = node(2, 0, 1, Some(0), vec![]);
+        let root = node(1, 0, 1, None, vec![child]);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+
+        // When / Then
+        assert_eq!(cursor.field_name(), None);
+    }
+}

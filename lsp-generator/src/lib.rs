@@ -177,7 +177,8 @@ mod tests {
     use super::*;
     use anyhow::Result;
     use rust_sitter_ir::builder::GrammarBuilder;
-    use tempfile::NamedTempFile;
+    use std::fs;
+    use tempfile::{NamedTempFile, tempdir};
 
     #[test]
     fn test_lsp_builder() {
@@ -301,6 +302,81 @@ mod tests {
         assert_eq!(loaded.tokens.len(), 1);
         let start = loaded.start_symbol().expect("start symbol");
         assert_eq!(loaded.rules.get(&start).map(|r| r.len()), Some(1));
+        Ok(())
+    }
+
+    #[test]
+    fn given_generator_with_all_features_when_generate_then_writes_complete_lsp_project()
+    -> Result<()> {
+        // Given
+        let grammar = GrammarBuilder::new("mini_lang")
+            .token("KW_LET", "let")
+            .token("IDENT", "[a-zA-Z_][a-zA-Z0-9_]*")
+            .rule("stmt", vec!["KW_LET", "IDENT"])
+            .start("stmt")
+            .build();
+        let output_dir = tempdir()?;
+        let generator = LspGenerator::new(grammar)
+            .with_config(LspConfig {
+                name: "mini_lang_lsp".to_string(),
+                version: "0.3.0".to_string(),
+                ..Default::default()
+            })
+            .with_all_features();
+
+        // When
+        generator.generate(output_dir.path())?;
+
+        // Then
+        let server_path = output_dir.path().join("server.rs");
+        let handlers_path = output_dir.path().join("handlers.rs");
+        let cargo_path = output_dir.path().join("Cargo.toml");
+        let main_path = output_dir.path().join("main.rs");
+        assert!(server_path.exists());
+        assert!(handlers_path.exists());
+        assert!(cargo_path.exists());
+        assert!(main_path.exists());
+
+        let server = fs::read_to_string(server_path)?;
+        let handlers = fs::read_to_string(handlers_path)?;
+        let cargo_toml = fs::read_to_string(cargo_path)?;
+        let main = fs::read_to_string(main_path)?;
+
+        assert!(server.contains("pub struct MiniLangLsp"));
+        assert!(handlers.contains("handle_completion"));
+        assert!(handlers.contains("handle_hover"));
+        assert!(handlers.contains("handle_diagnostics"));
+        assert!(cargo_toml.contains("name = \"mini_lang_lsp\""));
+        assert!(cargo_toml.contains("mini_lang = { path = \"../grammars/mini_lang\" }"));
+        assert!(main.contains("server::MiniLangLsp::new(client)"));
+        Ok(())
+    }
+
+    #[test]
+    fn given_builder_with_unknown_feature_when_build_then_known_features_still_generate()
+    -> Result<()> {
+        // Given
+        let grammar = GrammarBuilder::new("feature_lang")
+            .token("KW_IF", "if")
+            .rule("stmt", vec!["KW_IF"])
+            .start("stmt")
+            .build();
+        let mut grammar_file = NamedTempFile::new()?;
+        serde_json::to_writer(grammar_file.as_file_mut(), &grammar)?;
+        let output_dir = tempdir()?;
+
+        // When
+        LspBuilder::new("feature_lang_lsp")
+            .grammar_path(grammar_file.path())
+            .output_dir(output_dir.path())
+            .feature("completion")
+            .feature("unknown-feature")
+            .build()?;
+
+        // Then
+        let handlers = fs::read_to_string(output_dir.path().join("handlers.rs"))?;
+        assert!(handlers.contains("handle_completion"));
+        assert!(!handlers.contains("handle_hover"));
         Ok(())
     }
 

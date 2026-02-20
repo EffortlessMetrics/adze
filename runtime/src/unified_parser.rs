@@ -250,4 +250,43 @@ mod tests {
         let result = parser.parse_with_old_tree(b"test", None, None);
         assert!(result.is_none());
     }
+
+    #[test]
+    fn given_parser_without_language_when_parse_with_error_then_returns_explicit_message() {
+        // Given
+        let mut parser = Parser::new();
+
+        // When
+        let err = parser
+            .parse_with_error("x = 1")
+            .expect_err("parse should fail without language");
+
+        // Then
+        assert!(err.to_string().contains("No language set"));
+    }
+
+    #[test]
+    fn given_timeout_set_when_debug_formatted_then_debug_includes_timeout_flag() {
+        // Given
+        let mut parser = Parser::new();
+        parser.set_timeout_micros(5_000);
+
+        // When
+        let debug = format!("{:?}", parser);
+
+        // Then
+        assert!(debug.contains("language: None"));
+        assert!(debug.contains("has_timeout: true"));
+    }
+
+    #[test]
+    fn given_default_parser_when_created_then_state_matches_new_parser() {
+        // Given
+        let parser = Parser::default();
+
+        // Then
+        assert!(!parser.has_language());
+        assert_eq!(parser.language_name(), None);
+        assert!(parser.get_glr_stats().is_none());
+    }
 }

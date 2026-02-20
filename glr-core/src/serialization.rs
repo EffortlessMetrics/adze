@@ -26,7 +26,7 @@
 //!
 //! # Example
 //!
-//! ```ignore
+//! ```no_run
 //! use rust_sitter_glr_core::ParseTable;
 //!
 //! # fn build_parse_table() -> ParseTable { todo!() }
@@ -38,7 +38,7 @@
 //! // Deserialize
 //! let restored = ParseTable::from_bytes(&bytes)?;
 //!
-//! assert_eq!(table, restored);
+//! assert_eq!(bytes, restored.to_bytes()?);
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
@@ -108,7 +108,7 @@ impl ParseTable {
     ///
     /// # Example
     ///
-    /// ```ignore
+    /// ```no_run
     /// # use rust_sitter_glr_core::ParseTable;
     /// # fn create_table() -> ParseTable { todo!() }
     /// let table = create_table();
@@ -146,10 +146,11 @@ impl ParseTable {
     ///
     /// # Example
     ///
-    /// ```ignore
+    /// ```no_run
     /// # use rust_sitter_glr_core::ParseTable;
-    /// let bytes = include_bytes!("grammar.parsetable");
-    /// let table = ParseTable::from_bytes(bytes)?;
+    /// # fn get_serialized_bytes() -> Vec<u8> { todo!() }
+    /// let bytes = get_serialized_bytes();
+    /// let table = ParseTable::from_bytes(&bytes)?;
     /// assert!(table.state_count > 0);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```

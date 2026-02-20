@@ -440,6 +440,35 @@ impl ParseForest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_sitter_glr_core::ParseTable;
+
+    fn shift_then_accept_table() -> &'static ParseTable {
+        let mut table = ParseTable::default();
+        table.state_count = 2;
+        table.symbol_count = 2;
+        table.action_table = vec![
+            vec![vec![], vec![Action::Shift(StateId(1))]],
+            vec![vec![Action::Accept], vec![]],
+        ];
+        table.goto_table = vec![vec![], vec![]];
+        Box::leak(Box::new(table))
+    }
+
+    fn forking_shift_table() -> &'static ParseTable {
+        let mut table = ParseTable::default();
+        table.state_count = 3;
+        table.symbol_count = 2;
+        table.action_table = vec![
+            vec![
+                vec![],
+                vec![Action::Shift(StateId(1)), Action::Shift(StateId(2))],
+            ],
+            vec![vec![], vec![]],
+            vec![vec![], vec![]],
+        ];
+        table.goto_table = vec![vec![], vec![], vec![]];
+        Box::leak(Box::new(table))
+    }
 
     #[test]
     fn test_glr_config_default() {
@@ -455,5 +484,127 @@ mod tests {
         assert_eq!(forest.root_count(), 0);
     }
 
-    // More tests will be added as we implement the engine
+    #[test]
+    fn given_shift_then_accept_table_when_parsing_valid_tokens_then_returns_single_root() {
+        // Given
+        let table = shift_then_accept_table();
+        let mut engine = GLREngine::new(table, GLRConfig::default());
+        let tokens = vec![
+            Token {
+                kind: 1,
+                start: 0,
+                end: 1,
+            },
+            Token {
+                kind: 0,
+                start: 1,
+                end: 1,
+            },
+        ];
+
+        // When
+        let forest = engine.parse(&tokens).expect("parse should succeed");
+
+        // Then
+        assert_eq!(forest.root_count(), 1);
+        assert_eq!(forest.node_count(), 1);
+        let root_node = &forest.nodes[forest.roots[0].0];
+        assert_eq!(root_node.symbol, SymbolId(1));
+        assert_eq!(root_node.range, 0..1);
+    }
+
+    #[test]
+    fn given_empty_token_stream_when_parsing_then_returns_clear_error() {
+        // Given
+        let table = shift_then_accept_table();
+        let mut engine = GLREngine::new(table, GLRConfig::default());
+
+        // When
+        let err = engine.parse(&[]).expect_err("empty stream should error");
+
+        // Then
+        assert!(err.to_string().contains("Empty token stream"));
+    }
+
+    #[test]
+    fn given_missing_actions_when_parsing_then_returns_syntax_error_with_position() {
+        // Given
+        let mut table = ParseTable::default();
+        table.state_count = 1;
+        table.symbol_count = 2;
+        table.action_table = vec![vec![vec![], vec![]]];
+        table.goto_table = vec![vec![]];
+        let table = Box::leak(Box::new(table));
+        let mut engine = GLREngine::new(table, GLRConfig::default());
+        let tokens = vec![Token {
+            kind: 1,
+            start: 7,
+            end: 8,
+        }];
+
+        // When
+        let err = engine.parse(&tokens).expect_err("parse should fail");
+
+        // Then
+        assert!(
+            err.to_string()
+                .contains("Syntax error: unexpected token at position 7")
+        );
+    }
+
+    #[test]
+    fn given_conflicting_shifts_when_fork_limit_is_small_then_parse_fails_with_limit_error() {
+        // Given
+        let table = forking_shift_table();
+        let mut engine = GLREngine::new(
+            table,
+            GLRConfig {
+                max_forks: 1,
+                max_forest_nodes: 10,
+            },
+        );
+        let tokens = vec![Token {
+            kind: 1,
+            start: 0,
+            end: 1,
+        }];
+
+        // When
+        let err = engine
+            .parse(&tokens)
+            .expect_err("fork limit should be enforced");
+
+        // Then
+        assert!(err.to_string().contains("Fork limit exceeded"));
+    }
+
+    #[test]
+    fn given_engine_after_parse_when_reset_then_stack_and_forest_return_to_initial_state() {
+        // Given
+        let table = shift_then_accept_table();
+        let mut engine = GLREngine::new(table, GLRConfig::default());
+        let tokens = vec![
+            Token {
+                kind: 1,
+                start: 0,
+                end: 1,
+            },
+            Token {
+                kind: 0,
+                start: 1,
+                end: 1,
+            },
+        ];
+        let _ = engine.parse(&tokens).expect("parse should succeed");
+
+        // When
+        engine.reset();
+
+        // Then
+        assert_eq!(engine.stacks.len(), 1);
+        assert_eq!(engine.stacks[0].states, vec![StateId(0)]);
+        assert!(engine.stacks[0].nodes.is_empty());
+        assert_eq!(engine.forest.node_count(), 0);
+        assert_eq!(engine.forest.root_count(), 0);
+    }
 }

@@ -397,10 +397,12 @@ fn offset_to_position(text: &str, offset: usize) -> lsp_types::Position {{
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use anyhow::Result;
     use lsp_types::{
         HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,
     };
+    use rust_sitter_ir::builder::GrammarBuilder;
     use std::collections::HashMap;
     use std::io::Write;
     use tempfile::NamedTempFile;
@@ -476,5 +478,91 @@ mod tests {
             Some("Sample documentation".to_string())
         );
         assert_eq!(test_lookup_documentation("missing", &docs), None);
+    }
+
+    #[test]
+    fn given_mixed_token_patterns_when_building_completion_provider_then_only_word_keywords_are_suggested()
+     {
+        // Given
+        let grammar = GrammarBuilder::new("completion_lang")
+            .token("KW_IF", "if")
+            .token("KW_ASYNC", "async")
+            .token("PLUS", "+")
+            .token("NUMBER", "[0-9]+")
+            .rule("expr", vec!["KW_IF"])
+            .start("expr")
+            .build();
+
+        // When
+        let provider = CompletionProvider::new(&grammar);
+
+        // Then
+        let mut keywords = provider.keywords.clone();
+        keywords.sort();
+        assert_eq!(keywords, vec!["async".to_string(), "if".to_string()]);
+        assert!(provider.symbols.contains(&"expr".to_string()));
+
+        let handler = provider.generate_handler();
+        assert!(handler.contains("label: \"if\".to_string()"));
+        assert!(handler.contains("label: \"expr\".to_string()"));
+        assert!(!handler.contains("label: \"+\".to_string()"));
+    }
+
+    #[test]
+    fn given_completion_provider_when_requesting_capabilities_then_trigger_characters_are_exposed()
+    {
+        // Given
+        let grammar = GrammarBuilder::new("completion_caps")
+            .token("KW_LET", "let")
+            .rule("statement", vec!["KW_LET"])
+            .start("statement")
+            .build();
+        let provider = CompletionProvider::new(&grammar);
+
+        // When
+        let capabilities = provider.capabilities();
+
+        // Then
+        assert_eq!(
+            capabilities["completionProvider"]["resolveProvider"],
+            serde_json::json!(false)
+        );
+        assert_eq!(
+            capabilities["completionProvider"]["triggerCharacters"],
+            serde_json::json!([".", ":"])
+        );
+    }
+
+    #[test]
+    fn given_grammar_name_when_generating_diagnostics_handler_then_parse_uses_that_grammar() {
+        // Given
+        let grammar = GrammarBuilder::new("mini_parser")
+            .token("IDENT", "[a-zA-Z_][a-zA-Z0-9_]*")
+            .rule("stmt", vec!["IDENT"])
+            .start("stmt")
+            .build();
+        let provider = DiagnosticsProvider::new(&grammar);
+
+        // When
+        let handler = provider.generate_handler();
+        let imports = provider.required_imports();
+        let capabilities = provider.capabilities();
+
+        // Then
+        assert!(handler.contains("match mini_parser::parse(text)"));
+        assert!(handler.contains("fn offset_to_position"));
+        assert!(
+            imports
+                .iter()
+                .any(|i| i.contains("DiagnosticSeverity") && i.contains("Url"))
+        );
+        assert_eq!(
+            capabilities["textDocumentSync"]["change"],
+            serde_json::json!(1)
+        );
+        assert_eq!(
+            capabilities["textDocumentSync"]["openClose"],
+            serde_json::json!(true)
+        );
     }
 }

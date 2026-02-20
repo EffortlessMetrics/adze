@@ -69,6 +69,7 @@ ci-supported:
         -p rust-sitter-common -p rust-sitter-ir -p rust-sitter-glr-core \
         -p rust-sitter-tablegen \
         --lib --tests --bins
+    cargo test -p rust-sitter-glr-core --features serialization --doc
 
 # Clean build artifacts
 clean:
