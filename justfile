@@ -65,7 +65,7 @@ ci-supported:
         -p rust-sitter-tablegen \
         --all-targets -- -D warnings
     cargo test -p rust-sitter --lib
-    cargo test -p rust-sitter-tool \
+    cargo test -p rust-sitter-macro -p rust-sitter-tool \
         -p rust-sitter-common -p rust-sitter-ir -p rust-sitter-glr-core \
         -p rust-sitter-tablegen \
         --lib --tests --bins

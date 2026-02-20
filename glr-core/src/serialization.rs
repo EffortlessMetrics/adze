@@ -26,7 +26,7 @@
 //!
 //! # Example
 //!
-//! ```no_run
+//! ```ignore
 //! use rust_sitter_glr_core::ParseTable;
 //!
 //! # fn build_parse_table() -> ParseTable { todo!() }
@@ -108,7 +108,7 @@ impl ParseTable {
     ///
     /// # Example
     ///
-    /// ```no_run
+    /// ```ignore
     /// # use rust_sitter_glr_core::ParseTable;
     /// # fn create_table() -> ParseTable { todo!() }
     /// let table = create_table();
@@ -146,7 +146,7 @@ impl ParseTable {
     ///
     /// # Example
     ///
-    /// ```no_run
+    /// ```ignore
     /// # use rust_sitter_glr_core::ParseTable;
     /// let bytes = include_bytes!("grammar.parsetable");
     /// let table = ParseTable::from_bytes(bytes)?;

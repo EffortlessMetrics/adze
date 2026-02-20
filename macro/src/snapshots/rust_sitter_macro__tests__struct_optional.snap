@@ -9,6 +9,8 @@ mod grammar {
     }
     impl ::rust_sitter::Extract<Language> for Language {
         type LeafFn = ();
+        #[cfg(feature = "pure-rust")]
+        const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
         #[allow(non_snake_case)]
         #[cfg(not(feature = "pure-rust"))]
         fn extract(
@@ -69,6 +71,8 @@ mod grammar {
     }
     impl ::rust_sitter::Extract<Number> for Number {
         type LeafFn = ();
+        #[cfg(feature = "pure-rust")]
+        const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
         #[allow(non_snake_case)]
         #[cfg(not(feature = "pure-rust"))]
         fn extract(
