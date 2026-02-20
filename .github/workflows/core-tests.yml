@@ -1,5 +1,8 @@
 name: core-tests
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'  # nightly canary
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
