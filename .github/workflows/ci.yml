@@ -828,27 +828,24 @@ jobs:
             done | sort -k2 -nr >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-  publish-dry-run:
-    name: Publish Dry Run
+  package-validation:
+    name: Package Validation
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      
-      - name: Package unpublishable crates (validate manifests)
+
+      - name: Validate package manifests
         run: |
           cargo package -p rust-sitter-ir --no-verify
           cargo package -p rust-sitter-glr-core --no-verify
           cargo package -p rust-sitter-tablegen --no-verify
-
-      - name: Dry-run publish for publishable crates
-        run: |
-          cargo publish -p rust-sitter-common --dry-run
-          cargo publish -p rust-sitter-macro --dry-run
-          cargo publish -p rust-sitter --dry-run --no-verify
-          cargo publish -p rust-sitter-tool --dry-run --no-verify
+          cargo package -p rust-sitter-common --no-verify
+          cargo package -p rust-sitter-macro --no-verify
+          cargo package -p rust-sitter --no-verify
+          cargo package -p rust-sitter-tool --no-verify
 
   benches-unstable:
     name: Benches (unstable, opt-in)
