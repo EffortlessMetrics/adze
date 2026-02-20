@@ -138,6 +138,9 @@ impl LanguageServer for {} {{
             handlers.push(feature.generate_handler());
         }
 
+        let mut seen_imports = std::collections::HashSet::new();
+        imports.retain(|import| seen_imports.insert(import.clone()));
+
         Ok(format!(
             r#"// Generated handlers for LSP server
 {}
@@ -214,23 +217,30 @@ async fn main() {{
     }
 
     fn generate_capabilities(&self, features: &[Box<dyn LspFeature>]) -> String {
-        let mut capabilities = Vec::new();
+        let mut merged_capabilities: Vec<(String, serde_json::Value)> = Vec::new();
 
         // Merge capabilities from all features
         for feature in features {
             let caps = feature.capabilities();
             if let Some(obj) = caps.as_object() {
                 for (key, value) in obj {
-                    capabilities.push(format!(
-                        "{}: {},",
-                        key,
-                        serde_json::to_string(value).unwrap()
-                    ));
+                    if let Some((_, existing_value)) = merged_capabilities
+                        .iter_mut()
+                        .find(|(existing_key, _)| existing_key == key)
+                    {
+                        *existing_value = value.clone();
+                    } else {
+                        merged_capabilities.push((key.clone(), value.clone()));
+                    }
                 }
             }
         }
 
-        capabilities.join("\n                ")
+        merged_capabilities
+            .into_iter()
+            .map(|(key, value)| format!("{}: {},", key, serde_json::to_string(&value).unwrap()))
+            .collect::<Vec<_>>()
+            .join("\n                ")
     }
 }
 
@@ -450,5 +460,73 @@ mod tests {
         assert!(server.contains("// Generated LSP server for bdd_server"));
         assert!(server.contains("pub struct BddServer"));
         assert!(server.contains("hoverProvider: true"));
+    }
+
+    #[test]
+    fn given_duplicate_capability_keys_when_generating_capabilities_then_last_value_wins_once() {
+        // Given
+        let grammar = sample_grammar();
+        let config = LspConfig::default();
+        let generator = LspCodeGenerator::new(&grammar, &config);
+        let features: Vec<Box<dyn LspFeature>> = vec![
+            Box::new(MockFeature::new(
+                "first-completion",
+                vec![],
+                "",
+                json!({"completionProvider": {"resolveProvider": false}}),
+            )),
+            Box::new(MockFeature::new(
+                "second-completion",
+                vec![],
+                "",
+                json!({"completionProvider": {"resolveProvider": true}}),
+            )),
+        ];
+
+        // When
+        let capabilities = generator.generate_capabilities(&features);
+
+        // Then
+        assert_eq!(capabilities.matches("completionProvider").count(), 1);
+        assert!(capabilities.contains("{\"resolveProvider\":true}"));
+        assert!(!capabilities.contains("{\"resolveProvider\":false}"));
+    }
+
+    #[test]
+    fn given_duplicate_imports_when_generating_handlers_then_each_import_is_emitted_once() {
+        // Given
+        let grammar = sample_grammar();
+        let config = LspConfig::default();
+        let generator = LspCodeGenerator::new(&grammar, &config);
+        let features: Vec<Box<dyn LspFeature>> = vec![
+            Box::new(MockFeature::new(
+                "first",
+                vec![
+                    "use crate::shared::util;".to_string(),
+                    "use crate::first::run;".to_string(),
+                ],
+                "fn handle_first() {}",
+                json!({}),
+            )),
+            Box::new(MockFeature::new(
+                "second",
+                vec![
+                    "use crate::shared::util;".to_string(),
+                    "use crate::second::run;".to_string(),
+                ],
+                "fn handle_second() {}",
+                json!({}),
+            )),
+        ];
+
+        // When
+        let handlers = generator.generate_handlers(&features).expect("handlers");
+
+        // Then
+        assert_eq!(handlers.matches("use crate::shared::util;").count(), 1);
+        assert_eq!(handlers.matches("use crate::first::run;").count(), 1);
+        assert_eq!(handlers.matches("use crate::second::run;").count(), 1);
+        assert!(handlers.contains("fn handle_first() {}"));
+        assert!(handlers.contains("fn handle_second() {}"));
     }
 }

@@ -37,24 +37,32 @@ impl LspGenerator {
         self
     }
 
+    fn enable_feature_once(&mut self, feature: Box<dyn LspFeature>) {
+        if self
+            .features
+            .iter()
+            .any(|existing| existing.name() == feature.name())
+        {
+            return;
+        }
+        self.features.push(feature);
+    }
+
     /// Enable completion support
     pub fn with_completion(mut self) -> Self {
-        self.features
-            .push(Box::new(CompletionProvider::new(&self.grammar)));
+        self.enable_feature_once(Box::new(CompletionProvider::new(&self.grammar)));
         self
     }
 
     /// Enable hover support  
     pub fn with_hover(mut self) -> Self {
-        self.features
-            .push(Box::new(HoverProvider::new(&self.grammar)));
+        self.enable_feature_once(Box::new(HoverProvider::new(&self.grammar)));
         self
     }
 
     /// Enable diagnostics support
     pub fn with_diagnostics(mut self) -> Self {
-        self.features
-            .push(Box::new(DiagnosticsProvider::new(&self.grammar)));
+        self.enable_feature_once(Box::new(DiagnosticsProvider::new(&self.grammar)));
         self
     }
 
@@ -526,5 +534,81 @@ mod tests {
 
         assert_eq!(generator.features.len(), 3);
         assert!(generator.features.iter().any(|f| f.name() == "hover"));
+    }
+
+    #[test]
+    fn given_duplicate_feature_enablement_when_configuring_generator_then_feature_set_is_unique() {
+        // Given
+        let grammar = Grammar::default();
+
+        // When
+        let generator = LspGenerator::new(grammar)
+            .with_hover()
+            .with_hover()
+            .with_all_features()
+            .with_completion();
+
+        // Then
+        assert_eq!(generator.features.len(), 3);
+        assert_eq!(
+            generator
+                .features
+                .iter()
+                .filter(|f| f.name() == "completion")
+                .count(),
+            1
+        );
+        assert_eq!(
+            generator
+                .features
+                .iter()
+                .filter(|f| f.name() == "hover")
+                .count(),
+            1
+        );
+        assert_eq!(
+            generator
+                .features
+                .iter()
+                .filter(|f| f.name() == "diagnostics")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn given_builder_with_all_and_specific_features_when_building_then_handlers_are_not_duplicated()
+    -> Result<()> {
+        // Given
+        let grammar = GrammarBuilder::new("dedupe_lang")
+            .token("KW_FN", "fn")
+            .rule("item", vec!["KW_FN"])
+            .start("item")
+            .build();
+        let mut grammar_file = NamedTempFile::new()?;
+        serde_json::to_writer(grammar_file.as_file_mut(), &grammar)?;
+        let output_dir = tempdir()?;
+
+        // When
+        LspBuilder::new("dedupe_lang_lsp")
+            .grammar_path(grammar_file.path())
+            .output_dir(output_dir.path())
+            .feature("all")
+            .feature("hover")
+            .feature("completion")
+            .build()?;
+
+        // Then
+        let handlers = fs::read_to_string(output_dir.path().join("handlers.rs"))?;
+        assert_eq!(
+            handlers.matches("pub async fn handle_completion(").count(),
+            1
+        );
+        assert_eq!(handlers.matches("pub async fn handle_hover(").count(), 1);
+        assert_eq!(
+            handlers.matches("pub async fn handle_diagnostics(").count(),
+            1
+        );
+        Ok(())
     }
 }

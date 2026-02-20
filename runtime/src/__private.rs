@@ -463,7 +463,61 @@ fn parse_with_glr<T: Extract<T>>(
 #[cfg(all(test, feature = "pure-rust"))]
 mod tests {
     use super::*;
-    use crate::pure_parser::{ParsedNode, Point};
+    use crate::pure_parser::{
+        ExternalScanner, ParsedNode, Point, TSLanguage, TSLexState, TSParseAction, TSRule,
+    };
+    use core::ptr;
+
+    static FIELD_NAME_VALUE: &[u8] = b"value\0";
+    static FIELD_NAME_NAME: &[u8] = b"name\0";
+
+    #[repr(transparent)]
+    struct FieldNames([*const u8; 2]);
+    unsafe impl Sync for FieldNames {}
+
+    static FIELD_NAMES: FieldNames =
+        FieldNames([FIELD_NAME_VALUE.as_ptr(), FIELD_NAME_NAME.as_ptr()]);
+    static LEX_MODES: [TSLexState; 1] = [TSLexState {
+        lex_state: 0,
+        external_lex_state: 0,
+    }];
+
+    static FIELD_LANGUAGE: TSLanguage = TSLanguage {
+        version: 15,
+        symbol_count: 0,
+        alias_count: 0,
+        token_count: 0,
+        external_token_count: 0,
+        state_count: 0,
+        large_state_count: 0,
+        production_id_count: 0,
+        field_count: 2,
+        max_alias_sequence_length: 0,
+        production_id_map: ptr::null(),
+        parse_table: ptr::null(),
+        small_parse_table: ptr::null(),
+        small_parse_table_map: ptr::null(),
+        parse_actions: ptr::null::<TSParseAction>(),
+        symbol_names: ptr::null(),
+        field_names: FIELD_NAMES.0.as_ptr(),
+        field_map_slices: ptr::null(),
+        field_map_entries: ptr::null(),
+        symbol_metadata: ptr::null(),
+        public_symbol_map: ptr::null(),
+        alias_map: ptr::null(),
+        alias_sequences: ptr::null(),
+        lex_modes: LEX_MODES.as_ptr(),
+        lex_fn: None,
+        keyword_lex_fn: None,
+        keyword_capture_token: 0,
+        external_scanner: ExternalScanner::default(),
+        primary_state_ids: ptr::null(),
+        production_lhs_index: ptr::null(),
+        production_count: 0,
+        eof_symbol: 0,
+        rules: ptr::null::<TSRule>(),
+        rule_count: 0,
+    };
 
     fn node(
         symbol: u16,
@@ -579,5 +633,65 @@ mod tests {
 
         // When / Then
         assert_eq!(cursor.field_name(), None);
+    }
+
+    #[test]
+    fn given_valid_field_table_when_reading_field_name_then_cursor_resolves_field_label() {
+        // Given
+        let child = node(2, 0, 1, Some(1), vec![]);
+        let mut root = node(1, 0, 1, None, vec![child]);
+        root.language = Some(&FIELD_LANGUAGE as *const _);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+
+        // When / Then
+        assert_eq!(cursor.field_name(), Some("name"));
+    }
+
+    #[test]
+    fn given_out_of_range_field_id_when_reading_field_name_then_returns_none() {
+        // Given
+        let child = node(2, 0, 1, Some(2), vec![]);
+        let mut root = node(1, 0, 1, None, vec![child]);
+        root.language = Some(&FIELD_LANGUAGE as *const _);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+
+        // When / Then
+        assert_eq!(cursor.field_name(), None);
+    }
+
+    #[test]
+    fn given_struct_without_children_when_extracting_variant_then_cursor_is_absent() {
+        // Given
+        let root = node(77, 3, 9, None, vec![]);
+
+        // When
+        let (cursor_missing, start_byte) =
+            extract_struct_or_variant(&root, |cursor_opt, idx| (cursor_opt.is_none(), *idx));
+
+        // Then
+        assert!(cursor_missing);
+        assert_eq!(start_byte, 3);
+    }
+
+    #[test]
+    fn given_missing_cursor_when_extracting_field_then_default_is_returned_without_advancing() {
+        // Given
+        let mut cursor_opt: Option<TreeCursor> = None;
+        let mut last_idx = 4;
+
+        // When
+        let extracted: String = extract_field::<String, String>(
+            &mut cursor_opt,
+            b"abcdef",
+            &mut last_idx,
+            "name",
+            None,
+        );
+
+        // Then
+        assert_eq!(extracted, "");
+        assert_eq!(last_idx, 4);
     }
 }
