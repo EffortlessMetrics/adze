@@ -413,7 +413,7 @@ spec:
     spec:
       containers:
       - name: playground
-        image: rustsitter/playground:latest
+        image: adze/playground:latest
         ports:
         - containerPort: 8080
 ```
@@ -493,6 +493,6 @@ Browse example grammars:
 ## Resources
 
 - [Playground Tutorial](https://docs.adze.dev/playground/tutorial)
-- [Video Walkthrough](https://youtube.com/@rustsitter)
+- [Video Walkthrough](https://youtube.com/@effortlessmetrics)
 - [Example Grammars](https://github.com/adze/playground-examples)
 - [Report Issues](https://github.com/adze/playground/issues)

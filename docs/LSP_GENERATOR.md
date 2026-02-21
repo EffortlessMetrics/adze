@@ -718,4 +718,4 @@ output = "stdout"
 - [LSP Specification](https://microsoft.github.io/language-server-protocol/)
 - [VS Code Extension Guide](https://code.visualstudio.com/api)
 - [LSP Tutorial](https://docs.adze.dev/lsp/tutorial)
-- [Video: Building an LSP](https://youtube.com/@rustsitter)
+- [Video: Building an LSP](https://youtube.com/@effortlessmetrics)
