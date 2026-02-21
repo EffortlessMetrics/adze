@@ -27,6 +27,7 @@ dependencies = [
  "adze-macro",
  "adze-python",
  "adze-python-simple",
+ "adze-runtime-governance-api",
  "adze-tablegen",
  "ahash",
  "anyhow",
@@ -51,6 +52,55 @@ dependencies = [
  "tree-sitter-json",
  "ts-bridge",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "adze-bdd-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-contract",
+]
+
+[[package]]
+name = "adze-bdd-governance-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-contract",
+]
+
+[[package]]
+name = "adze-bdd-governance-fixtures"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-governance-contract",
+ "adze-governance-runtime-reporting",
+]
+
+[[package]]
+name = "adze-bdd-grammar-fixtures"
+version = "0.1.0"
+dependencies = [
+ "adze-glr-core",
+ "adze-ir",
+]
+
+[[package]]
+name = "adze-bdd-grid-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+]
+
+[[package]]
+name = "adze-bdd-grid-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-bdd-scenario-fixtures"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-governance-fixtures",
+ "adze-bdd-grammar-fixtures",
 ]
 
 [[package]]
@@ -113,10 +163,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-feature-policy-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-feature-policy-core",
+]
+
+[[package]]
+name = "adze-feature-policy-core"
+version = "0.1.0"
+
+[[package]]
 name = "adze-glr-core"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-bdd-scenario-fixtures",
  "adze-ir",
+ "adze-parser-contract",
  "bincode",
  "criterion",
  "dhat",
@@ -152,6 +215,58 @@ dependencies = [
  "adze-python",
  "anyhow",
  "sha2",
+]
+
+[[package]]
+name = "adze-governance-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-parser-governance-contract",
+]
+
+[[package]]
+name = "adze-governance-matrix-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-core",
+]
+
+[[package]]
+name = "adze-governance-matrix-core"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-core-impl",
+]
+
+[[package]]
+name = "adze-governance-matrix-core-impl"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
+]
+
+[[package]]
+name = "adze-governance-metadata"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
+ "serde",
+]
+
+[[package]]
+name = "adze-governance-runtime-core"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-runtime-reporting",
+]
+
+[[package]]
+name = "adze-governance-runtime-reporting"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-contract",
 ]
 
 [[package]]
@@ -203,6 +318,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-parser-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-contract",
+]
+
+[[package]]
+name = "adze-parser-feature-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-feature-policy-contract",
+]
+
+[[package]]
+name = "adze-parser-governance-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-governance-contract",
+]
+
+[[package]]
+name = "adze-parsetable-metadata"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-metadata",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "adze-playground"
 version = "0.1.0"
 dependencies = [
@@ -241,8 +387,12 @@ dependencies = [
 name = "adze-runtime"
 version = "0.1.0"
 dependencies = [
+ "adze-bdd-scenario-fixtures",
  "adze-glr-core",
  "adze-ir",
+ "adze-parser-contract",
+ "adze-parsetable-metadata",
+ "adze-runtime2-governance",
  "adze-tablegen",
  "bumpalo",
  "criterion",
@@ -250,17 +400,48 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "rustc-hash 2.1.1",
+ "serde_json",
  "smallvec",
  "thiserror 1.0.69",
  "typed-arena",
 ]
 
 [[package]]
+name = "adze-runtime-governance"
+version = "0.1.0"
+dependencies = [
+ "adze-runtime-governance-matrix",
+]
+
+[[package]]
+name = "adze-runtime-governance-api"
+version = "0.1.0"
+dependencies = [
+ "adze-runtime-governance",
+]
+
+[[package]]
+name = "adze-runtime-governance-matrix"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-runtime-core",
+]
+
+[[package]]
+name = "adze-runtime2-governance"
+version = "0.1.0"
+dependencies = [
+ "adze-runtime-governance-matrix",
+]
+
+[[package]]
 name = "adze-tablegen"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-bdd-grid-core",
  "adze-glr-core",
  "adze-ir",
+ "adze-parsetable-metadata",
  "chrono",
  "criterion",
  "indexmap",

@@ -1,0 +1,17 @@
+[package]
+name = "adze-bdd-grid-contract"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Shared BDD scenario grid contracts for parser and runtime progress tracking."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }

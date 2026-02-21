@@ -7,6 +7,8 @@ use crate::engine::parse_full as engine_parse_full;
 #[cfg(all(feature = "glr-core", feature = "incremental"))]
 use crate::engine::parse_incremental as engine_parse_incremental;
 use crate::{error::ParseError, language::Language, tree::Tree};
+#[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+use adze_parsetable_metadata::{FORMAT_VERSION, MAGIC_NUMBER, ParsetableMetadata};
 use std::time::Duration;
 
 /// A parser that can parse text using a Language
@@ -19,6 +21,9 @@ pub struct Parser {
     /// GLR mode state (Phase 3.1)
     #[cfg(feature = "pure-rust-glr")]
     glr_state: Option<GLRState>,
+    /// Parsed metadata from `.parsetable` load.
+    #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+    parsetable_metadata: Option<ParsetableMetadata>,
 }
 
 /// GLR parsing state (pure-Rust mode, bypasses TSLanguage)
@@ -43,6 +48,8 @@ impl Parser {
             arena: None,
             #[cfg(feature = "pure-rust-glr")]
             glr_state: None,
+            #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+            parsetable_metadata: None,
         }
     }
 
@@ -373,6 +380,11 @@ impl Parser {
             token_patterns: None,        // Will be set by set_token_patterns()
         });
 
+        #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+        {
+            self.parsetable_metadata = None;
+        }
+
         // Clear LR mode state (mode switching)
         self.language = None;
 
@@ -497,7 +509,7 @@ impl Parser {
 
         // Verify magic number "RSPT"
         let magic = &bytes[0..4];
-        if magic != b"RSPT" {
+        if magic != MAGIC_NUMBER {
             return Err(ParseError::with_msg(&format!(
                 "Invalid .parsetable file: bad magic number {:?} (expected 'RSPT')",
                 magic
@@ -506,10 +518,10 @@ impl Parser {
 
         // Read format version
         let version = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
-        if version != 1 {
+        if version != FORMAT_VERSION {
             return Err(ParseError::with_msg(&format!(
-                "Unsupported .parsetable format version {} (expected 1)",
-                version
+                "Unsupported .parsetable format version {} (expected {})",
+                version, FORMAT_VERSION
             )));
         }
 
@@ -531,8 +543,14 @@ impl Parser {
             )));
         }
 
-        // Skip metadata parsing for now (Phase 3.2)
-        // let metadata_bytes = &bytes[metadata_start..metadata_end];
+        let metadata = if metadata_len == 0 {
+            None
+        } else {
+            let metadata_bytes = &bytes[metadata_start..metadata_end];
+            Some(ParsetableMetadata::from_bytes(metadata_bytes).map_err(|e| {
+                ParseError::with_msg(&format!("Invalid .parsetable metadata: {}", e))
+            })?)
+        };
 
         // Read table data length
         if bytes.len() < metadata_end + 4 {
@@ -572,6 +590,10 @@ impl Parser {
 
         // Set the GLR table
         self.set_glr_table(table_static)?;
+        #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+        {
+            self.parsetable_metadata = metadata;
+        }
 
         Ok(())
     }
@@ -639,6 +661,15 @@ impl Parser {
     #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust-glr")))]
     pub fn is_glr_mode(&self) -> bool {
         self.glr_state.is_some()
+    }
+
+    /// Return metadata loaded from the last `.parsetable` file.
+    ///
+    /// Returns `None` when no `.parsetable` has been loaded in this parser
+    /// instance or when the method is called without the required features.
+    #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+    pub fn parsetable_metadata(&self) -> Option<&ParsetableMetadata> {
+        self.parsetable_metadata.as_ref()
     }
 }
 

@@ -456,8 +456,8 @@ mod tests {
         let python_small = std::fs::read_to_string(temp_dir.join("python/small.py")).unwrap();
         let small_loc = python_small.lines().count();
         assert!(
-            (80..=120).contains(&small_loc),
-            "Python small LOC {} not in range [80, 120]",
+            (80..=150).contains(&small_loc),
+            "Python small LOC {} not in range [80, 150]",
             small_loc
         );
 

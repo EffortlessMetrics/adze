@@ -1,0 +1,21 @@
+[package]
+name = "adze-runtime-governance-api"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Runtime API facade for parser governance, feature-flag profiles, and BDD reporting."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+pure-rust = ["adze-runtime-governance/pure-rust"]
+tree-sitter-standard = ["adze-runtime-governance/tree-sitter-standard"]
+tree-sitter-c2rust = ["adze-runtime-governance/tree-sitter-c2rust"]
+glr = ["pure-rust", "adze-runtime-governance/glr"]
+strict_api = ["adze-runtime-governance/strict_api"]
+strict_docs = ["adze-runtime-governance/strict_docs"]
+
+[dependencies]
+adze-runtime-governance = { version = "0.1.0", path = "../runtime-governance" }

@@ -1,8 +1,7 @@
 # Adze Roadmap
 
-**Last Updated**: February 2026
-**Current Version**: v0.6.x
-**Status**: Macro-Based Grammar Generation Production-Ready
+**Published: 0.6.x (beta) · Dev head: 0.8.0-dev (unreleased) · MSRV: 1.92**
+**Status**: GLR Parser Usable, Stabilization In Progress
 
 ---
 
@@ -10,22 +9,27 @@
 
 | Component | Status |
 |-----------|--------|
-| Core GLR Parser | Complete |
-| Macro-Based Grammars | Complete |
-| Precedence/Associativity | Validated |
-| Build Infrastructure | Mature |
-| Documentation | Good |
-| Incremental Parsing | Partial - feature-gated, needs completion |
-| Query System | Partial - predicates incomplete |
-| Performance | Unknown - no benchmarks run |
+| Macro-Based Grammars | Usable — `example/` has working demos |
+| Core GLR Parser | Algorithmic tests pass |
+| GLR Runtime (`runtime2/`) | Passes own test suite, not yet default |
+| Tree-sitter Interop | Validated via golden tests for selected grammars |
+| Grammar Crates | Python, JavaScript, Go compile; not published |
+| CLI Tool | Exists (`cli/`), early stage |
+| LSP Generator | Prototype (`lsp-generator/`) |
+| Golden Tests | Working — validates against Tree-sitter reference |
+| Documentation | mdBook + guides in `book/` |
+| Incremental Parsing | Infrastructure exists, conservative fallback |
+| Query System | Partial — predicates incomplete |
+| Performance | Benchmark infra exists, baselines not published |
+| BDD/Governance Contracts | In development (`crates/`) |
 
 ---
 
-## v0.6.x (Current)
+## v0.6.x — Foundation (Completed)
 
-### What Actually Works Today
+### What Works
 
-**Macro-Based Grammar Generation** (Complete)
+**Macro-Based Grammar Generation**
 - Define grammars with `#[adze::grammar]` annotations
 - Generate working parsers at compile time
 - Correct operator precedence (`1-2*3` -> `1-(2*3)`)
@@ -34,213 +38,101 @@
 - Vec<> repetition with `#[repeat]`
 - Whitespace handling with `#[extra]`
 
-**Core Parser** (Algorithmically Correct)
+**Core Parser**
 - GLR parsing with multi-action cells
 - Fork/merge on conflicts
 - Error recovery (basic rejection of invalid input)
 - Phase-2 re-closure for cascaded reductions
-- Accept aggregation (no missed derivations)
-- EOF recovery without data loss
-- Epsilon loop prevention
 
-**Infrastructure** (Production-Grade)
+**Infrastructure**
 - CI/CD workflows covering lint, test, fuzz, benchmarks
 - Pure-Rust implementation (no C dependencies)
 - WASM compilation support
-- Comprehensive test suite
 - Zero clippy warnings across workspace
 
-**Documentation**
-- Getting Started guide with complete examples
-- Up-to-date README and CHANGELOG
-- API documentation
-- Migration guides
-
-### What This Enables
-
-**You can build right now:**
-1. Parser for custom DSLs using Rust macros
-2. Arithmetic expression evaluators with correct precedence
-3. Config file parsers with nested structures
-4. Simple programming language parsers
-5. WASM-based browser parsers with zero runtime deps
-
-**See**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) for complete working examples
+**See**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) for working examples
 
 ---
 
-## v0.7.0 - Feature Completion (Target: Q1 2026 -- at risk)
+## v0.7.0 — Absorbed Into 0.8.0-dev
 
-**Target**: January-March 2026
-**Focus**: Complete incremental parsing, query system, and performance baseline
-**Current Status**: Many items are still in progress. The Q1 2026 timeline is tight and some scope may slip to v0.8.0.
+v0.7.0 was never formally released. Planned scope was absorbed into the current 0.8.0-dev branch.
 
-### Scope
+**Done** (now in dev head):
+- GLR runtime (`runtime2/`) with Tree-sitter compatible API
+- Grammar crates for Python, JavaScript, Go
+- Golden test framework validating against Tree-sitter reference
+- mdBook documentation, CLI prototype, playground prototype
+- External scanner integration (pure-Rust `ExternalScanner` trait)
+- ts-bridge tool for extracting Tree-sitter parse tables
 
-**1. Incremental Parsing Completion** (Priority: High)
-- [ ] Implement `parse_with_old_tree` functionality
-- [ ] Enable ignored incremental tests
-- [ ] Benchmark incremental vs full parse performance
-- [ ] Document subtree reuse strategies
-- **Estimated**: 2-3 weeks
+**Carried forward to 0.8.0**:
+- Incremental parsing enablement
+- Query system predicate completion
+- Performance baseline publication
 
-**2. Query System Completion** (Priority: High)
-- [ ] Finish predicate implementation: `#eq?`, `#match?`, `#any-of?`, `#is?`, `#is-not?`
-- [ ] Enable ignored query tests
+---
+
+## v0.8.0 — Stabilize & Publish (Current Target)
+
+**Focus**: Get what exists into publishable shape.
+
+**1. Publish Pipeline**
+- [ ] Resolve `publish = false` on workspace crates
+- [ ] Dry-run publish with `cargo publish --dry-run`
+- [ ] Ensure version consistency across workspace
+
+**2. Documentation Polish**
+- [ ] Update version references throughout docs
+- [ ] Ensure mdBook builds clean
+- [ ] Review and update API documentation
+
+**3. Performance Baseline**
+- [ ] Run existing benchmarks, document results
+- [ ] Add performance regression checks to CI
+
+**4. Incremental Parsing**
+- [ ] Decide: enable conservative path or defer to 0.9.0
+- [ ] If enabled, validate against golden tests
+
+**5. Query System**
+- [ ] Finish predicate implementation (`#eq?`, `#match?`, etc.)
 - [ ] Document query API with examples
-- [ ] Add query cookbook with common patterns
-- **Estimated**: 1-2 weeks
-
-**3. Performance Baseline** (Priority: Critical)
-- [ ] Run existing benchmarks vs tree-sitter-c
-- [ ] Document current performance characteristics
-- [ ] Identify optimization opportunities (flamegraphs, profiling)
-- [ ] Add performance regression tests to CI
-- **Estimated**: 1-2 weeks
-
-**4. Test Maintenance** (Priority: High)
-- [ ] Re-enable ignored tests across the workspace
-- [ ] Achieve >95% test pass rate (excluding intentional benchmarks)
-- **Estimated**: 2-3 weeks
-
-**5. API Stabilization** (Priority: High)
-- [ ] Freeze public API surface for v1.0
-- [ ] Document breaking vs non-breaking changes
-- [ ] Create API stability guarantees document
-- [ ] Migration guide for 0.6 -> 0.7
-- **Estimated**: Ongoing throughout v0.7 development
-
-### Success Criteria
-
-- Incremental parsing fully operational
-- Query system complete with predicates
-- Performance baseline documented
-- Ignored tests minimized (all documented)
-- API stability guarantees published
-
-### Dependencies
-
-- **None** - All work can proceed in parallel
 
 ---
 
-## v0.8.0 - Performance & Polish (Q2-Q3 2026)
+## v0.9.0 — Harden for Broader Use
 
-**Target**: April-September 2026
-**Focus**: Performance optimization, developer experience
+Prototypes exist for several ecosystem tools. Focus is hardening what's already built.
 
-### Scope
-
-**1. Performance Optimization** (Priority: Critical)
-- [ ] Target: Within 3x of tree-sitter-c for typical grammars
-- [ ] Implement shared parse-stack pool
-- [ ] Arena allocation tuning for parse trees
-- [ ] Memory profiling with heaptrack
-- [ ] SIMD lexing experiments (if beneficial)
-
-**2. Developer Experience** (Priority: High)
-- [ ] Enhanced grammar debugger with fork visualization
-- [ ] Improved error messages with suggestions
-- [ ] CLI enhancements (format, validate, profile commands)
-- [ ] VS Code extension prototype
-
-**3. Grammar Ecosystem** (Priority: Medium)
-- [ ] Grammar contribution guide
-- [ ] Example grammar repository
-- [ ] Testing framework for contributed grammars
-- [ ] Community grammar showcase page
-
-**4. Documentation** (Priority: Medium)
-- [ ] Video tutorial series (5-10 short videos)
-- [ ] Grammar author's cookbook
-- [ ] Performance tuning guide
-- [ ] Troubleshooting guide
-
-### Success Criteria
-
-- Parse performance within 3x of tree-sitter-c
-- Community-contributed grammars
-- CLI provides debugging tools
-- Complete video tutorial series
+- LSP generator: move from prototype to usable for selected grammars
+- Playground: improve interactive experience, WASM size optimization
+- Grammar crates: publish Python, JavaScript, Go if quality bar is met
+- CLI: add grammar validation and debugging commands
+- Community infrastructure: contribution guide, grammar testing framework
 
 ---
 
-## v0.9.0 - Community Ready (Q3-Q4 2026)
+## v1.0.0 — Stable Release (2027)
 
-**Target**: July-December 2026
-**Focus**: Ecosystem maturity, community infrastructure
-
-### Scope
-
-**1. Language Server Protocol**
-- [ ] LSP implementation using existing generator
-- [ ] Syntax highlighting generation
-- [ ] Code folding support
-- [ ] Outline provider
-
-**2. Web Platform**
-- [ ] Interactive playground enhancements
-- [ ] Grammar editor with live preview
-- [ ] Share/embed functionality
-- [ ] WASM size optimization (<500KB)
-
-**3. Advanced Grammar Support**
-- [ ] Python: Full parity with tree-sitter-python
-- [ ] JavaScript/TypeScript: JSX support
-- [ ] Rust: Macro and lifetime support
-- [ ] Production-quality grammars for multiple languages
-
-**4. Community Infrastructure**
-- [ ] Grammar registry/catalog
-- [ ] Automated grammar testing
-- [ ] Contribution workflow
-- [ ] Governance model
-
-### Success Criteria
-
-- LSP servers for 3+ languages working
-- Web playground production-ready
-- Community grammars in registry
-- Documented governance and contribution process
-
----
-
-## v1.0.0 - Stable Release (Late 2026 / Early 2027)
-
-**Target**: Q4 2026 or Q1 2027 depending on v0.9.0 readiness
-**Focus**: API stability, production hardening, long-term support
+**Focus**: API stability, production hardening, long-term support.
 
 ### API Guarantees
-
-**Stability Promises**:
 - Semantic versioning strictly enforced
 - No breaking changes to public API
 - Grammar macro syntax frozen (only additions allowed)
-- Clear deprecation policy (min 3 months notice)
+- Clear deprecation policy
 
 ### Production Checklist
-
 - [ ] API frozen and fully documented
 - [ ] Performance benchmarks in CI (regression tests)
 - [ ] Security audit complete
-- [ ] Production deployment case studies
 - [ ] Comprehensive error messages with suggestions
 - [ ] Migration guides for all 0.x versions
-- [ ] Long-term support plan (LTS)
-
-### Success Criteria
-
-- Production deployments documented
-- Community grammars in ecosystem
-- Full tree-sitter feature parity
-- Security audit passed
-- Performance competitive (<3x tree-sitter-c)
 
 ---
 
 ## What We're NOT Building
-
-**Clear Non-Goals**:
 
 1. **Tree-Sitter Replacement Everywhere**: We target Rust-native use cases, especially WASM. Tree-sitter-c remains the best choice for many scenarios.
 
@@ -258,7 +150,7 @@
 
 ### Principles
 
-1. **Ship Working Code**: v0.6.x proves macro generation works completely
+1. **Ship Working Code**: v0.6.x proves macro generation works; dev head adds GLR runtime and grammar crates
 2. **Measure Then Optimize**: No performance work without benchmarks
 3. **Community Driven**: Let real use cases guide priorities
 4. **Document Everything**: Every feature needs examples and tests
@@ -308,7 +200,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and contribution 
 
 - **GitHub Issues**: Bug reports and feature requests
 - **GitHub Discussions**: Questions and community chat
-- **Discord**: (coming with v1.0)
 
 ---
 

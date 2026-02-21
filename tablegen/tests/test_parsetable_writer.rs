@@ -4,9 +4,12 @@
 
 #![cfg(feature = "serialization")]
 
+use adze_bdd_grid_core::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID};
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
 use adze_ir::{Grammar, RuleId};
-use adze_tablegen::parsetable_writer::{FORMAT_VERSION, MAGIC_NUMBER, ParsetableWriter};
+use adze_tablegen::parsetable_writer::{
+    FORMAT_VERSION, GovernanceMetadata, MAGIC_NUMBER, ParsetableWriter,
+};
 use std::fs;
 use std::io::Read;
 
@@ -233,6 +236,36 @@ fn test_metadata_statistics() {
     assert_eq!(metadata.statistics.state_count, 2);
     assert_eq!(metadata.statistics.symbol_count, 2);
     assert_eq!(metadata.statistics.rule_count, 0);
+}
+
+#[test]
+fn test_metadata_includes_feature_profile_and_governance() {
+    let grammar = create_test_grammar();
+    let parse_table = create_test_parse_table();
+
+    let writer = ParsetableWriter::new(&grammar, &parse_table, "test", "1.0.0");
+    let metadata = writer.metadata();
+
+    assert!(
+        metadata.feature_profile.is_some(),
+        "Feature profile should be present"
+    );
+    assert!(
+        metadata.governance.is_some(),
+        "Governance metadata should be present"
+    );
+
+    let feature_profile = metadata
+        .feature_profile
+        .as_ref()
+        .expect("feature profile is present");
+    let governance = metadata.governance.as_ref().expect("governance is present");
+    let expected_governance = GovernanceMetadata::for_grid(
+        BddPhase::Runtime,
+        GLR_CONFLICT_PRESERVATION_GRID,
+        feature_profile.as_profile(),
+    );
+    assert_eq!(governance, &expected_governance);
 }
 
 /// Test 8: File size is reasonable

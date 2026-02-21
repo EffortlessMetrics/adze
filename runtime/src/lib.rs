@@ -38,6 +38,12 @@ pub use ffi::TSSymbol;
 /// Type alias for symbol identifiers.
 pub type SymbolId = TSSymbol;
 
+pub use parser_selection::{
+    ParserBackend, ParserFeatureProfile, bdd_progress_report_for_current_profile,
+    bdd_status_line_for_current_profile, current_backend_for, parser_feature_profile_for_runtime,
+    runtime_governance_snapshot,
+};
+
 // Stable re-exports for core functionality
 // Note: ts_compat is already declared below as a module, not a re-export
 

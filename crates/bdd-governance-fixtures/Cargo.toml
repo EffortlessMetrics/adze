@@ -1,0 +1,18 @@
+[package]
+name = "adze-bdd-governance-fixtures"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "BDD progress/reporting helpers bound to parser feature profiles."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-governance-runtime-reporting = { version = "0.1.0", path = "../governance-runtime-reporting" }
+adze-bdd-governance-contract = { version = "0.1.0", path = "../bdd-governance-contract" }

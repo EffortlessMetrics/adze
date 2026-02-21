@@ -23,122 +23,18 @@
 //! └────────────────────────────────────────────┘
 //! ```
 
+use adze_bdd_grid_core::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID};
 use adze_glr_core::ParseTable;
 use adze_ir::Grammar;
-use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::Write;
 use std::path::Path;
-use thiserror::Error;
 
-/// Magic number identifying .parsetable files: "RSPT" (Adze Parse Table)
-pub const MAGIC_NUMBER: [u8; 4] = [0x52, 0x53, 0x50, 0x54]; // "RSPT"
-
-/// Current .parsetable format version
-pub const FORMAT_VERSION: u32 = 1;
-
-/// Metadata schema version
-pub const METADATA_SCHEMA_VERSION: &str = "1.0";
-
-/// Error types for .parsetable file operations
-#[derive(Debug, Error)]
-pub enum ParsetableError {
-    /// I/O error during file operations
-    #[error("I/O error: {0}")]
-    Io(#[from] io::Error),
-
-    /// Serialization error
-    #[error("Serialization error: {0}")]
-    Serialization(String),
-
-    /// Invalid metadata
-    #[error("Invalid metadata: {0}")]
-    InvalidMetadata(String),
-
-    /// Grammar hash computation failed
-    #[error("Grammar hash computation failed: {0}")]
-    HashError(String),
-}
-
-/// Metadata embedded in .parsetable files
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ParsetableMetadata {
-    /// Metadata schema version
-    pub schema_version: String,
-
-    /// Grammar information
-    pub grammar: GrammarInfo,
-
-    /// Generation information
-    pub generation: GenerationInfo,
-
-    /// Parse table statistics
-    pub statistics: TableStatistics,
-
-    /// Feature flags
-    pub features: FeatureFlags,
-}
-
-/// Grammar identification information
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GrammarInfo {
-    /// Grammar name (e.g., "python", "rust")
-    pub name: String,
-
-    /// Grammar version (semver)
-    pub version: String,
-
-    /// Language name
-    pub language: String,
-}
-
-/// Information about table generation
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GenerationInfo {
-    /// ISO8601 timestamp of generation
-    pub timestamp: String,
-
-    /// tablegen version
-    pub tool_version: String,
-
-    /// Rust compiler version
-    pub rust_version: String,
-
-    /// Build host triple
-    pub host_triple: String,
-}
-
-/// Parse table statistics
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TableStatistics {
-    /// Number of parser states
-    pub state_count: usize,
-
-    /// Number of grammar symbols
-    pub symbol_count: usize,
-
-    /// Number of production rules
-    pub rule_count: usize,
-
-    /// Number of GLR conflicts detected
-    pub conflict_count: usize,
-
-    /// Number of action table cells with >1 action
-    pub multi_action_cells: usize,
-}
-
-/// Feature flags for parser capabilities
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FeatureFlags {
-    /// GLR parsing enabled
-    pub glr_enabled: bool,
-
-    /// External scanner present
-    pub external_scanner: bool,
-
-    /// Incremental parsing supported
-    pub incremental: bool,
-}
+pub use adze_parsetable_metadata::{
+    FORMAT_VERSION, FeatureFlags, GenerationInfo, GovernanceMetadata, GrammarInfo, MAGIC_NUMBER,
+    METADATA_SCHEMA_VERSION, ParserFeatureProfileSnapshot, ParsetableError, ParsetableMetadata,
+    TableStatistics,
+};
 
 /// Writer for .parsetable binary files
 pub struct ParsetableWriter<'a> {
@@ -178,7 +74,7 @@ impl<'a> ParsetableWriter<'a> {
         grammar_name: impl Into<String>,
         grammar_version: impl Into<String>,
     ) -> ParsetableMetadata {
-        // Count multi-action cells
+        // Count multi-action cells.
         let multi_action_cells = parse_table
             .action_table
             .iter()
@@ -186,8 +82,16 @@ impl<'a> ParsetableWriter<'a> {
             .filter(|cell| cell.len() > 1)
             .count();
 
-        // Count conflicts (simplified - actual conflict detection is more complex)
+        // Count conflicts (simplified - actual conflict detection is more complex).
         let conflict_count = multi_action_cells;
+
+        // BDD progress is emitted as operational metadata for tooling diagnostics.
+        let feature_profile = ParserFeatureProfileSnapshot::from_env();
+        let governance = GovernanceMetadata::for_grid(
+            BddPhase::Runtime,
+            GLR_CONFLICT_PRESERVATION_GRID,
+            feature_profile.as_profile(),
+        );
 
         ParsetableMetadata {
             schema_version: METADATA_SCHEMA_VERSION.to_string(),
@@ -212,20 +116,22 @@ impl<'a> ParsetableWriter<'a> {
             features: FeatureFlags {
                 glr_enabled: multi_action_cells > 0,
                 external_scanner: !parse_table.external_scanner_states.is_empty(),
-                incremental: false, // TODO: Detect incremental support
+                incremental: cfg!(feature = "incremental_glr"),
             },
+            feature_profile: Some(feature_profile),
+            governance: Some(governance),
         }
     }
 
     /// Compute SHA-256 hash of grammar source
     ///
-    /// This is a placeholder - actual implementation will hash grammar definition
+    /// This is a placeholder - actual implementation will hash grammar definition.
     fn compute_grammar_hash(&self) -> [u8; 32] {
         use sha2::{Digest, Sha256};
 
         let mut hasher = Sha256::new();
 
-        // Hash grammar name and rules as a simple identifier
+        // Hash grammar name and rules as a simple identifier.
         hasher.update(self.grammar.name.as_bytes());
         for rule in &self.parse_table.rules {
             hasher.update((rule.lhs.0 as u32).to_le_bytes());
@@ -247,17 +153,17 @@ impl<'a> ParsetableWriter<'a> {
     pub fn write_file<P: AsRef<Path>>(&self, path: P) -> Result<(), ParsetableError> {
         let mut file = File::create(path)?;
 
-        // 1. Write magic number
+        // 1. Write magic number.
         file.write_all(&MAGIC_NUMBER)?;
 
-        // 2. Write format version (little-endian)
+        // 2. Write format version (little-endian).
         file.write_all(&FORMAT_VERSION.to_le_bytes())?;
 
-        // 3. Write grammar hash
+        // 3. Write grammar hash.
         let hash = self.compute_grammar_hash();
         file.write_all(&hash)?;
 
-        // 4. Write metadata
+        // 4. Write metadata.
         let metadata_json = serde_json::to_string_pretty(&self.metadata).map_err(|e| {
             ParsetableError::Serialization(format!("Metadata JSON serialization failed: {}", e))
         })?;
@@ -266,7 +172,7 @@ impl<'a> ParsetableWriter<'a> {
         file.write_all(&metadata_len.to_le_bytes())?;
         file.write_all(metadata_bytes)?;
 
-        // 5. Write parse table
+        // 5. Write parse table.
         #[cfg(feature = "serialization")]
         {
             let table_bytes = self.parse_table.to_bytes().map_err(|e| {

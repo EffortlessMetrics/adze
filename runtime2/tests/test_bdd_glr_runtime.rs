@@ -7,386 +7,93 @@
 
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
-use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-use adze_ir::{
-    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern,
+use adze_bdd_scenario_fixtures::{
+    BddPhase, DANGLING_ELSE_SYMBOL_METADATA, DANGLING_ELSE_TOKEN_PATTERNS,
+    PRECEDENCE_ARITHMETIC_SYMBOL_METADATA, PRECEDENCE_ARITHMETIC_TOKEN_PATTERNS,
+    SymbolMetadataSpec, TokenPatternKind, TokenPatternSpec,
+    build_runtime_dangling_else_parse_table, build_runtime_precedence_arithmetic_parse_table,
+    count_multi_action_cells,
 };
+use adze_glr_core::ParseTable;
+use adze_ir::Associativity;
 use adze_runtime::{
-    Parser,
+    Parser, bdd_progress_report_for_current_profile,
     language::SymbolMetadata,
     tokenizer::{Matcher, TokenPattern as RuntimeTokenPattern},
 };
 
-/// Count cells in parse table action matrix that contain multiple actions.
-fn count_multi_action_cells(parse_table: &ParseTable) -> usize {
-    parse_table
-        .action_table
+fn build_runtime_symbol_metadata(specs: &[SymbolMetadataSpec]) -> Vec<SymbolMetadata> {
+    specs
         .iter()
-        .flat_map(|row| row.iter())
-        .filter(|cell| cell.len() > 1)
-        .count()
+        .map(|spec| SymbolMetadata {
+            is_terminal: spec.is_terminal,
+            is_visible: spec.is_visible,
+            is_supertype: spec.is_supertype,
+        })
+        .collect()
 }
 
-/// Helper: Create the dangling-else grammar
-fn create_dangling_else_grammar() -> Grammar {
-    let mut grammar = Grammar::new("if_then_else".to_string());
-
-    // Terminals
-    let if_id = SymbolId(1);
-    let then_id = SymbolId(2);
-    let else_id = SymbolId(3);
-    let expr_id = SymbolId(4);
-    let stmt_id = SymbolId(5);
-
-    grammar.tokens.insert(
-        if_id,
-        Token {
-            name: "if".to_string(),
-            pattern: TokenPattern::String("if".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.tokens.insert(
-        then_id,
-        Token {
-            name: "then".to_string(),
-            pattern: TokenPattern::String("then".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.tokens.insert(
-        else_id,
-        Token {
-            name: "else".to_string(),
-            pattern: TokenPattern::String("else".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.tokens.insert(
-        expr_id,
-        Token {
-            name: "expr".to_string(),
-            pattern: TokenPattern::String("expr".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.tokens.insert(
-        stmt_id,
-        Token {
-            name: "stmt".to_string(),
-            pattern: TokenPattern::String("stmt".to_string()),
-            fragile: false,
-        },
-    );
-
-    // Non-terminal S
-    let s_id = SymbolId(10);
-    grammar.rule_names.insert(s_id, "S".to_string());
-
-    // Rules creating the dangling else problem
-    grammar.rules.insert(
-        s_id,
-        vec![
-            // S → if expr then S
-            Rule {
-                lhs: s_id,
-                rhs: vec![
-                    Symbol::Terminal(if_id),
-                    Symbol::Terminal(expr_id),
-                    Symbol::Terminal(then_id),
-                    Symbol::NonTerminal(s_id),
-                ],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(0),
-                fields: vec![],
+fn build_runtime_token_patterns(patterns: &[TokenPatternSpec]) -> Vec<RuntimeTokenPattern> {
+    patterns
+        .iter()
+        .map(|pattern| RuntimeTokenPattern {
+            symbol_id: pattern.symbol_id,
+            matcher: match pattern.matcher {
+                TokenPatternKind::Regex(pattern) => Matcher::Regex(
+                    regex::Regex::new(pattern).expect("fixture regex pattern should compile"),
+                ),
+                TokenPatternKind::Literal(literal) => Matcher::Literal(literal.to_string()),
             },
-            // S → if expr then S else S
-            Rule {
-                lhs: s_id,
-                rhs: vec![
-                    Symbol::Terminal(if_id),
-                    Symbol::Terminal(expr_id),
-                    Symbol::Terminal(then_id),
-                    Symbol::NonTerminal(s_id),
-                    Symbol::Terminal(else_id),
-                    Symbol::NonTerminal(s_id),
-                ],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(1),
-                fields: vec![],
-            },
-            // S → stmt
-            Rule {
-                lhs: s_id,
-                rhs: vec![Symbol::Terminal(stmt_id)],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(2),
-                fields: vec![],
-            },
-        ],
-    );
-
-    let _ = grammar.get_or_build_registry();
-    grammar
+            is_keyword: pattern.is_keyword,
+        })
+        .collect()
 }
 
-/// Build and normalize dangling-else parse table for runtime tests.
+fn build_runtime_parser(
+    parse_table: &'static ParseTable,
+    symbol_metadata: &[SymbolMetadataSpec],
+    token_patterns: &[TokenPatternSpec],
+) -> Parser {
+    let mut parser = Parser::new();
+    parser
+        .set_glr_table(parse_table)
+        .expect("Setting GLR table should succeed");
+    parser
+        .set_symbol_metadata(build_runtime_symbol_metadata(symbol_metadata))
+        .expect("Setting symbol metadata should succeed");
+    parser
+        .set_token_patterns(build_runtime_token_patterns(token_patterns))
+        .expect("Setting token patterns should succeed");
+    parser
+}
+
 fn build_dangling_else_parse_table() -> &'static ParseTable {
-    let grammar = create_dangling_else_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar).expect("FIRST/FOLLOW computation failed");
-    let parse_table = build_lr1_automaton(&grammar, &first_follow)
-        .expect("LR(1) automaton build failed")
-        .normalize_eof_to_zero()
-        .with_detected_goto_indexing();
-    Box::leak(Box::new(parse_table))
+    Box::leak(Box::new(
+        build_runtime_dangling_else_parse_table().expect("LR(1) automaton build failed"),
+    ))
 }
 
-/// Create parser configured for dangling-else grammar.
 fn create_dangling_else_parser(parse_table: &'static ParseTable) -> Parser {
-    let mut parser = Parser::new();
-    parser
-        .set_glr_table(parse_table)
-        .expect("Setting GLR table should succeed");
-
-    // Metadata count matches parse_table.symbol_count after normalization.
-    parser
-        .set_symbol_metadata(vec![
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: false,
-                is_supertype: false,
-            }, // EOF (0)
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: true,
-                is_supertype: false,
-            }, // if
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: true,
-                is_supertype: false,
-            }, // then
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: true,
-                is_supertype: false,
-            }, // else
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: true,
-                is_supertype: false,
-            }, // expr
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: true,
-                is_supertype: false,
-            }, // stmt
-            SymbolMetadata {
-                is_terminal: false,
-                is_visible: true,
-                is_supertype: false,
-            }, // S
-        ])
-        .expect("Setting symbol metadata should succeed");
-
-    // Include whitespace pattern (symbol 255 convention) so BDD input can be readable.
-    parser
-        .set_token_patterns(vec![
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(255),
-                matcher: Matcher::Regex(regex::Regex::new(r"\s+").unwrap()),
-                is_keyword: false,
-            },
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(1),
-                matcher: Matcher::Literal("if".to_string()),
-                is_keyword: true,
-            },
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(2),
-                matcher: Matcher::Literal("then".to_string()),
-                is_keyword: true,
-            },
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(3),
-                matcher: Matcher::Literal("else".to_string()),
-                is_keyword: true,
-            },
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(4),
-                matcher: Matcher::Literal("expr".to_string()),
-                is_keyword: false,
-            },
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(5),
-                matcher: Matcher::Literal("stmt".to_string()),
-                is_keyword: false,
-            },
-        ])
-        .expect("Setting token patterns should succeed");
-
-    parser
+    build_runtime_parser(
+        parse_table,
+        DANGLING_ELSE_SYMBOL_METADATA,
+        DANGLING_ELSE_TOKEN_PATTERNS,
+    )
 }
 
-/// Helper: Create arithmetic grammar with precedence metadata.
-fn create_precedence_arithmetic_grammar() -> Grammar {
-    let mut grammar = Grammar::new("precedence_expr".to_string());
-
-    let number_id = SymbolId(1);
-    let plus_id = SymbolId(2);
-    let star_id = SymbolId(3);
-    let expr_id = SymbolId(10);
-
-    grammar.tokens.insert(
-        number_id,
-        Token {
-            name: "NUMBER".to_string(),
-            pattern: TokenPattern::Regex(r"\d+".to_string()),
-            fragile: false,
-        },
-    );
-    grammar.tokens.insert(
-        plus_id,
-        Token {
-            name: "PLUS".to_string(),
-            pattern: TokenPattern::String("+".to_string()),
-            fragile: false,
-        },
-    );
-    grammar.tokens.insert(
-        star_id,
-        Token {
-            name: "STAR".to_string(),
-            pattern: TokenPattern::String("*".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.rule_names.insert(expr_id, "Expr".to_string());
-    grammar.rules.insert(
-        expr_id,
-        vec![
-            Rule {
-                lhs: expr_id,
-                rhs: vec![Symbol::Terminal(number_id)],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(0),
-                fields: vec![],
-            },
-            Rule {
-                lhs: expr_id,
-                rhs: vec![
-                    Symbol::NonTerminal(expr_id),
-                    Symbol::Terminal(plus_id),
-                    Symbol::NonTerminal(expr_id),
-                ],
-                precedence: Some(PrecedenceKind::Static(1)),
-                associativity: Some(Associativity::Left),
-                production_id: ProductionId(1),
-                fields: vec![],
-            },
-            Rule {
-                lhs: expr_id,
-                rhs: vec![
-                    Symbol::NonTerminal(expr_id),
-                    Symbol::Terminal(star_id),
-                    Symbol::NonTerminal(expr_id),
-                ],
-                precedence: Some(PrecedenceKind::Static(2)),
-                associativity: Some(Associativity::Left),
-                production_id: ProductionId(2),
-                fields: vec![],
-            },
-        ],
-    );
-
-    let _ = grammar.get_or_build_registry();
-    grammar
-}
-
-/// Build parse table for arithmetic precedence scenario.
 fn build_precedence_arithmetic_parse_table() -> &'static ParseTable {
-    let grammar = create_precedence_arithmetic_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar).expect("FIRST/FOLLOW computation failed");
-    let parse_table = build_lr1_automaton(&grammar, &first_follow)
-        .expect("LR(1) automaton build failed")
-        .normalize_eof_to_zero()
-        .with_detected_goto_indexing();
-    Box::leak(Box::new(parse_table))
+    Box::leak(Box::new(
+        build_runtime_precedence_arithmetic_parse_table(Associativity::Left)
+            .expect("LR(1) automaton build failed"),
+    ))
 }
 
-/// Create parser configured for arithmetic precedence grammar.
 fn create_precedence_arithmetic_parser(parse_table: &'static ParseTable) -> Parser {
-    let mut parser = Parser::new();
-    parser
-        .set_glr_table(parse_table)
-        .expect("Setting GLR table should succeed");
-
-    parser
-        .set_symbol_metadata(vec![
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: false,
-                is_supertype: false,
-            }, // EOF
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: true,
-                is_supertype: false,
-            }, // NUMBER
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: true,
-                is_supertype: false,
-            }, // PLUS
-            SymbolMetadata {
-                is_terminal: true,
-                is_visible: true,
-                is_supertype: false,
-            }, // STAR
-            SymbolMetadata {
-                is_terminal: false,
-                is_visible: true,
-                is_supertype: false,
-            }, // Expr
-        ])
-        .expect("Setting symbol metadata should succeed");
-
-    parser
-        .set_token_patterns(vec![
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(255),
-                matcher: Matcher::Regex(regex::Regex::new(r"\s+").unwrap()),
-                is_keyword: false,
-            },
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(1),
-                matcher: Matcher::Regex(regex::Regex::new(r"\d+").unwrap()),
-                is_keyword: false,
-            },
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(2),
-                matcher: Matcher::Literal("+".to_string()),
-                is_keyword: false,
-            },
-            RuntimeTokenPattern {
-                symbol_id: SymbolId(3),
-                matcher: Matcher::Literal("*".to_string()),
-                is_keyword: false,
-            },
-        ])
-        .expect("Setting token patterns should succeed");
-
-    parser
+    build_runtime_parser(
+        parse_table,
+        PRECEDENCE_ARITHMETIC_SYMBOL_METADATA,
+        PRECEDENCE_ARITHMETIC_TOKEN_PATTERNS,
+    )
 }
 
 //
@@ -538,33 +245,9 @@ fn scenario_8_precedence_tree_selection() {
 
 #[test]
 fn bdd_runtime_test_summary() {
-    println!("\n=== BDD GLR Runtime Test Summary (Runtime2) ===");
-    println!();
-    println!("✅ Scenario 7: GLR runtime parses ambiguous input - COMPLETE");
-    println!("   Status: PASSING - whitespace-aware tokenization + conflict-preserving table");
-    println!();
-    println!("✅ Scenario 7b: GLR runtime parses simple input - COMPLETE");
-    println!("   Status: PASSING - Validates GLR parsing with symbol name resolution");
-    println!("   Fixed: Critical Phase 3.3 bug (sparse symbol ID handling)");
-    println!();
-    println!("✅ Scenario 8: Precedence affects tree selection - COMPLETE");
-    println!("   Status: PASSING - precedence resolves conflicts deterministically");
-    println!();
-    println!("Phase 2 (runtime2 integration tests): 3/3 complete");
-    println!("  ✅ Basic GLR parsing with conflict-preserving tables");
-    println!("  ✅ Symbol name resolution from grammar");
-    println!("  ✅ Complex input tokenization (whitespace)");
-    println!("  ✅ Precedence-driven deterministic parse selection");
-    println!();
-    println!("Combined BDD Progress:");
-    println!("  Phase 1 (glr-core): 6/6 core scenarios ✅");
-    println!("  Phase 2 (runtime2): 3/3 scenarios ✅");
-    println!("  Total: 9/9 implemented scenarios (100%)");
-    println!();
-    println!("Key Achievement:");
-    println!("  ✅ GLR conflict preservation verified end-to-end");
-    println!("  ✅ Parse tables correctly preserve multi-action cells");
-    println!("  ✅ Runtime successfully parses with GLR tables");
-    println!("  ✅ Tree nodes have correct symbol names from grammar");
-    println!("  ✅ Precedence and associativity scenarios now executable in CI");
+    let status = bdd_progress_report_for_current_profile(
+        BddPhase::Runtime,
+        "Phase 2 (runtime2 integration tests)",
+    );
+    println!("{status}");
 }

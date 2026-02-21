@@ -5,328 +5,16 @@
 //!
 //! Reference: docs/plans/BDD_GLR_CONFLICT_PRESERVATION.md
 
-use adze_glr_core::{
-    Action, Conflict, ConflictResolver, ConflictType, FirstFollowSets, ParseTable,
-    build_lr1_automaton,
+use adze_bdd_scenario_fixtures::{
+    BddPhase, analyze_conflicts, bdd_progress_report_for_current_profile, build_lr1_parse_table,
+    dangling_else_grammar, no_precedence_grammar, precedence_arithmetic_grammar,
+    resolve_shift_reduce_actions,
 };
-use adze_ir::{
-    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
-    Token, TokenPattern,
-};
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{Associativity, RuleId, StateId, SymbolId};
 
-/// Helper: Create the dangling-else grammar for conflict testing
-fn create_dangling_else_grammar() -> Grammar {
-    let mut grammar = Grammar::new("if_then_else".to_string());
-
-    // Terminals
-    let if_id = SymbolId(1);
-    let then_id = SymbolId(2);
-    let else_id = SymbolId(3);
-    let expr_id = SymbolId(4);
-    let stmt_id = SymbolId(5);
-
-    grammar.tokens.insert(
-        if_id,
-        Token {
-            name: "if".to_string(),
-            pattern: TokenPattern::String("if".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.tokens.insert(
-        then_id,
-        Token {
-            name: "then".to_string(),
-            pattern: TokenPattern::String("then".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.tokens.insert(
-        else_id,
-        Token {
-            name: "else".to_string(),
-            pattern: TokenPattern::String("else".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.tokens.insert(
-        expr_id,
-        Token {
-            name: "expr".to_string(),
-            pattern: TokenPattern::String("expr".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.tokens.insert(
-        stmt_id,
-        Token {
-            name: "stmt".to_string(),
-            pattern: TokenPattern::String("stmt".to_string()),
-            fragile: false,
-        },
-    );
-
-    // Non-terminal S
-    let s_id = SymbolId(10);
-    grammar.rule_names.insert(s_id, "S".to_string());
-
-    // Rules creating the dangling else problem
-    grammar.rules.insert(
-        s_id,
-        vec![
-            // S → if expr then S
-            Rule {
-                lhs: s_id,
-                rhs: vec![
-                    Symbol::Terminal(if_id),
-                    Symbol::Terminal(expr_id),
-                    Symbol::Terminal(then_id),
-                    Symbol::NonTerminal(s_id),
-                ],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(0),
-                fields: vec![],
-            },
-            // S → if expr then S else S
-            Rule {
-                lhs: s_id,
-                rhs: vec![
-                    Symbol::Terminal(if_id),
-                    Symbol::Terminal(expr_id),
-                    Symbol::Terminal(then_id),
-                    Symbol::NonTerminal(s_id),
-                    Symbol::Terminal(else_id),
-                    Symbol::NonTerminal(s_id),
-                ],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(1),
-                fields: vec![],
-            },
-            // S → stmt
-            Rule {
-                lhs: s_id,
-                rhs: vec![Symbol::Terminal(stmt_id)],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(2),
-                fields: vec![],
-            },
-        ],
-    );
-
-    let _ = grammar.get_or_build_registry();
-    grammar
-}
-
-/// Helper: Create arithmetic grammar with precedence annotations
-///
-/// Rules:
-/// - Expr -> Expr + Expr  (rule 0, precedence 1, configurable associativity)
-/// - Expr -> Expr * Expr  (rule 1, precedence 2, left-associative)
-/// - Expr -> num          (rule 2)
-fn create_precedence_grammar(plus_assoc: Associativity) -> Grammar {
-    let mut grammar = Grammar::new("precedence_expr".to_string());
-
-    let plus_id = SymbolId(1);
-    let star_id = SymbolId(2);
-    let num_id = SymbolId(3);
-    let expr_id = SymbolId(10);
-
-    grammar.tokens.insert(
-        plus_id,
-        Token {
-            name: "+".to_string(),
-            pattern: TokenPattern::String("+".to_string()),
-            fragile: false,
-        },
-    );
-    grammar.tokens.insert(
-        star_id,
-        Token {
-            name: "*".to_string(),
-            pattern: TokenPattern::String("*".to_string()),
-            fragile: false,
-        },
-    );
-    grammar.tokens.insert(
-        num_id,
-        Token {
-            name: "num".to_string(),
-            pattern: TokenPattern::String("num".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.rule_names.insert(expr_id, "Expr".to_string());
-    grammar.rules.insert(
-        expr_id,
-        vec![
-            Rule {
-                lhs: expr_id,
-                rhs: vec![
-                    Symbol::NonTerminal(expr_id),
-                    Symbol::Terminal(plus_id),
-                    Symbol::NonTerminal(expr_id),
-                ],
-                precedence: Some(PrecedenceKind::Static(1)),
-                associativity: Some(plus_assoc),
-                production_id: ProductionId(0),
-                fields: vec![],
-            },
-            Rule {
-                lhs: expr_id,
-                rhs: vec![
-                    Symbol::NonTerminal(expr_id),
-                    Symbol::Terminal(star_id),
-                    Symbol::NonTerminal(expr_id),
-                ],
-                precedence: Some(PrecedenceKind::Static(2)),
-                associativity: Some(Associativity::Left),
-                production_id: ProductionId(1),
-                fields: vec![],
-            },
-            Rule {
-                lhs: expr_id,
-                rhs: vec![Symbol::Terminal(num_id)],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(2),
-                fields: vec![],
-            },
-        ],
-    );
-
-    let _ = grammar.get_or_build_registry();
-    grammar
-}
-
-/// Helper: Create arithmetic grammar with no precedence metadata
-fn create_no_precedence_grammar() -> Grammar {
-    let mut grammar = Grammar::new("no_precedence_expr".to_string());
-
-    let plus_id = SymbolId(1);
-    let num_id = SymbolId(2);
-    let expr_id = SymbolId(10);
-
-    grammar.tokens.insert(
-        plus_id,
-        Token {
-            name: "+".to_string(),
-            pattern: TokenPattern::String("+".to_string()),
-            fragile: false,
-        },
-    );
-    grammar.tokens.insert(
-        num_id,
-        Token {
-            name: "num".to_string(),
-            pattern: TokenPattern::String("num".to_string()),
-            fragile: false,
-        },
-    );
-
-    grammar.rule_names.insert(expr_id, "Expr".to_string());
-    grammar.rules.insert(
-        expr_id,
-        vec![
-            Rule {
-                lhs: expr_id,
-                rhs: vec![
-                    Symbol::NonTerminal(expr_id),
-                    Symbol::Terminal(plus_id),
-                    Symbol::NonTerminal(expr_id),
-                ],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(0),
-                fields: vec![],
-            },
-            Rule {
-                lhs: expr_id,
-                rhs: vec![Symbol::Terminal(num_id)],
-                precedence: None,
-                associativity: None,
-                production_id: ProductionId(1),
-                fields: vec![],
-            },
-        ],
-    );
-
-    let _ = grammar.get_or_build_registry();
-    grammar
-}
-
-/// Helper: Resolve a synthetic shift/reduce conflict against a grammar
-fn resolve_shift_reduce_actions(
-    grammar: &Grammar,
-    symbol: SymbolId,
-    reduce_rule: RuleId,
-) -> Vec<Action> {
-    let mut resolver = ConflictResolver {
-        conflicts: vec![Conflict {
-            state: StateId(42),
-            symbol,
-            actions: vec![Action::Shift(StateId(7)), Action::Reduce(reduce_rule)],
-            conflict_type: ConflictType::ShiftReduce,
-        }],
-    };
-
-    resolver.resolve_conflicts(grammar);
-    resolver
-        .conflicts
-        .first()
-        .expect("expected one conflict")
-        .actions
-        .clone()
-}
-
-/// Helper: Analyze parse table for conflicts
-struct ConflictAnalysis {
-    total_conflicts: usize,
-    shift_reduce_conflicts: usize,
-    reduce_reduce_conflicts: usize,
-    conflict_details: Vec<(usize, usize, Vec<Action>)>, // (state, symbol, actions)
-}
-
-fn analyze_conflicts(parse_table: &ParseTable) -> ConflictAnalysis {
-    let mut analysis = ConflictAnalysis {
-        total_conflicts: 0,
-        shift_reduce_conflicts: 0,
-        reduce_reduce_conflicts: 0,
-        conflict_details: vec![],
-    };
-
-    for state in 0..parse_table.state_count {
-        for sym in 0..parse_table.symbol_count {
-            let actions = &parse_table.action_table[state][sym];
-            if actions.len() > 1 {
-                analysis.total_conflicts += 1;
-
-                // Classify conflict type
-                let has_shift = actions.iter().any(|a| matches!(a, Action::Shift(_)));
-                let has_reduce = actions.iter().any(|a| matches!(a, Action::Reduce(_)));
-
-                if has_shift && has_reduce {
-                    analysis.shift_reduce_conflicts += 1;
-                } else if !has_shift && has_reduce {
-                    analysis.reduce_reduce_conflicts += 1;
-                }
-
-                analysis
-                    .conflict_details
-                    .push((state, sym, actions.clone()));
-            }
-        }
-    }
-
-    analysis
-}
+const PRECEDENCE_PLUS_TOKEN: SymbolId = SymbolId(2);
+const PRECEDENCE_STAR_TOKEN: SymbolId = SymbolId(3);
 
 //
 // ============================================================================
@@ -337,12 +25,10 @@ fn analyze_conflicts(parse_table: &ParseTable) -> ConflictAnalysis {
 #[test]
 fn scenario_1_detect_shift_reduce_conflicts() {
     // GIVEN a grammar with inherent shift/reduce ambiguity (dangling else)
-    let grammar = create_dangling_else_grammar();
+    let grammar = dangling_else_grammar();
 
     // WHEN the LR(1) automaton is constructed
-    let first_follow = FirstFollowSets::compute(&grammar).expect("FIRST/FOLLOW computation failed");
-    let parse_table =
-        build_lr1_automaton(&grammar, &first_follow).expect("LR(1) automaton build failed");
+    let parse_table = build_lr1_parse_table(&grammar).expect("LR(1) automaton build failed");
 
     // THEN shift/reduce conflicts are detected in the parse table
     let analysis = analyze_conflicts(&parse_table);
@@ -388,9 +74,8 @@ fn scenario_1_detect_shift_reduce_conflicts() {
 #[test]
 fn scenario_6_multi_action_cells_generated() {
     // GIVEN a grammar with preserved conflicts
-    let grammar = create_dangling_else_grammar();
-    let first_follow = FirstFollowSets::compute(&grammar).expect("FIRST/FOLLOW failed");
-    let parse_table = build_lr1_automaton(&grammar, &first_follow).expect("LR(1) build failed");
+    let grammar = dangling_else_grammar();
+    let parse_table = build_lr1_parse_table(&grammar).expect("LR(1) build failed");
 
     // WHEN the parse table is inspected
     let analysis = analyze_conflicts(&parse_table);
@@ -435,10 +120,10 @@ fn scenario_6_multi_action_cells_generated() {
 #[test]
 fn scenario_2_prefer_shift_resolution() {
     // GIVEN a conflict where lookahead token (*) has higher precedence than reduce rule (+)
-    let grammar = create_precedence_grammar(Associativity::Left);
+    let grammar = precedence_arithmetic_grammar(Associativity::Left);
 
     // WHEN shift/reduce conflict is resolved on lookahead '*'
-    let actions = resolve_shift_reduce_actions(&grammar, SymbolId(2), RuleId(0));
+    let actions = resolve_shift_reduce_actions(&grammar, PRECEDENCE_STAR_TOKEN, RuleId(0));
 
     // THEN shift action is preferred and reduce is eliminated
     assert_eq!(actions, vec![Action::Shift(StateId(7))]);
@@ -453,10 +138,10 @@ fn scenario_2_prefer_shift_resolution() {
 #[test]
 fn scenario_3_prefer_reduce_resolution() {
     // GIVEN a conflict where reduce rule (*) has higher precedence than lookahead token (+)
-    let grammar = create_precedence_grammar(Associativity::Left);
+    let grammar = precedence_arithmetic_grammar(Associativity::Left);
 
     // WHEN shift/reduce conflict is resolved on lookahead '+'
-    let actions = resolve_shift_reduce_actions(&grammar, SymbolId(1), RuleId(1));
+    let actions = resolve_shift_reduce_actions(&grammar, PRECEDENCE_PLUS_TOKEN, RuleId(1));
 
     // THEN reduce action is preferred and shift is eliminated
     assert_eq!(actions, vec![Action::Reduce(RuleId(1))]);
@@ -471,7 +156,7 @@ fn scenario_3_prefer_reduce_resolution() {
 #[test]
 fn scenario_4_fork_when_no_precedence_information() {
     // GIVEN a conflict with no precedence metadata on token or rule
-    let grammar = create_no_precedence_grammar();
+    let grammar = no_precedence_grammar();
 
     // WHEN shift/reduce conflict is resolved
     let actions = resolve_shift_reduce_actions(&grammar, SymbolId(1), RuleId(0));
@@ -498,10 +183,10 @@ fn scenario_4_fork_when_no_precedence_information() {
 #[test]
 fn scenario_5_fork_when_non_associative() {
     // GIVEN equal precedence with non-associative rule
-    let grammar = create_precedence_grammar(Associativity::None);
+    let grammar = precedence_arithmetic_grammar(Associativity::None);
 
     // WHEN shift/reduce conflict is resolved on '+'
-    let actions = resolve_shift_reduce_actions(&grammar, SymbolId(1), RuleId(0));
+    let actions = resolve_shift_reduce_actions(&grammar, PRECEDENCE_PLUS_TOKEN, RuleId(0));
 
     // THEN resolver returns Fork to preserve ambiguity/error path
     assert_eq!(actions.len(), 1);
@@ -557,17 +242,7 @@ fn print_parse_table(parse_table: &ParseTable) {
 
 #[test]
 fn bdd_test_summary() {
-    println!("\n=== BDD GLR Conflict Preservation Test Summary ===");
-    println!();
-    println!("✅ Scenario 1: Conflict detection - IMPLEMENTED");
-    println!("✅ Scenario 2: PreferShift ordering - IMPLEMENTED");
-    println!("✅ Scenario 3: PreferReduce ordering - IMPLEMENTED");
-    println!("✅ Scenario 4: Fork for no precedence - IMPLEMENTED");
-    println!("✅ Scenario 5: Fork for non-associative - IMPLEMENTED");
-    println!("✅ Scenario 6: Multi-action cell generation - IMPLEMENTED");
-    println!("⏳ Scenario 7: GLR runtime fork/merge - DEFERRED (runtime2 integration)");
-    println!("⏳ Scenario 8: Precedence affects tree selection - DEFERRED (runtime2 integration)");
-    println!();
-    println!("Phase 1 (glr-core unit tests): 6/8 scenarios complete");
-    println!("Next: Implement scenarios 7-8 in runtime2 end-to-end tests");
+    let status =
+        bdd_progress_report_for_current_profile(BddPhase::Core, "Phase 1 (glr-core unit tests)");
+    println!("{status}");
 }

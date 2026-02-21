@@ -57,7 +57,11 @@ pub use external_scanner::ExternalScannerGenerator;
 pub use generate::LanguageBuilder;
 pub use node_types::NodeTypesGenerator;
 #[cfg(feature = "serialization")]
-pub use parsetable_writer::{ParsetableError, ParsetableMetadata, ParsetableWriter};
+pub use parsetable_writer::{
+    FORMAT_VERSION, FeatureFlags, GenerationInfo, GovernanceMetadata, GrammarInfo, MAGIC_NUMBER,
+    METADATA_SCHEMA_VERSION, ParserFeatureProfileSnapshot, ParsetableError, ParsetableMetadata,
+    ParsetableWriter, TableStatistics,
+};
 pub use validation::{LanguageValidator, ValidationError};
 
 // use indexmap::IndexMap; // Currently unused

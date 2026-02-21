@@ -54,6 +54,9 @@ pub mod tokenizer;
 pub mod test_helpers;
 
 // Re-exports for convenience
+pub use adze_parsetable_metadata::{
+    GovernanceMetadata, ParserFeatureProfileSnapshot, ParsetableMetadata,
+};
 pub use error::{ParseError, ParseErrorKind};
 pub use external_scanner::{ExternalScanner, ScanResult};
 pub use language::Language;
@@ -62,8 +65,50 @@ pub use parser::Parser;
 pub use token::Token;
 pub use tree::Tree;
 
+// Governance + feature-flag reporting compatibility surface for runtime2 consumers.
+pub use adze_runtime2_governance::*;
+
 #[cfg(feature = "incremental")]
 pub use tree::EditError;
+
+/// Return the active runtime2 parser feature profile.
+pub const fn parser_feature_profile_for_current_runtime2() -> ParserFeatureProfile {
+    parser_feature_profile_for_runtime2(cfg!(feature = "pure-rust-glr"))
+}
+
+/// Resolve the backend for the active runtime2 feature profile.
+pub const fn current_backend_for_runtime2(has_conflicts: bool) -> ParserBackend {
+    resolve_runtime2_backend(cfg!(feature = "pure-rust-glr"), has_conflicts)
+}
+
+/// Resolve the backend for the active runtime2 feature profile.
+///
+/// This mirrors the runtime crate helper shape (`current_backend_for`) while
+/// preserving the runtime2 context for consumers that need an explicit entry point.
+pub const fn current_backend_for(has_conflicts: bool) -> ParserBackend {
+    current_backend_for_runtime2(has_conflicts)
+}
+
+/// Build the BDD progress report for the active runtime2 profile.
+///
+/// Uses the active runtime2 feature profile and the canonical GLR scenario grid.
+pub fn bdd_progress_report_for_current_profile(phase: BddPhase, phase_title: &str) -> String {
+    bdd_progress_report_for_runtime2_profile(
+        phase,
+        phase_title,
+        parser_feature_profile_for_current_runtime2(),
+    )
+}
+
+/// Build the BDD progress status line for the active runtime2 profile.
+///
+/// Status line is a compact machine-readable summary suitable for CI logging.
+pub fn bdd_progress_status_line_for_current_profile(phase: BddPhase) -> String {
+    bdd_progress_status_line_for_runtime2_profile(
+        phase,
+        parser_feature_profile_for_current_runtime2(),
+    )
+}
 
 /// Input edit information for incremental parsing
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

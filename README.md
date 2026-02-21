@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/adze)](https://crates.io/crates/adze)
+[![MSRV](https://img.shields.io/badge/MSRV-1.92-blue)](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
 
 **AST-first grammar toolchain for Rust.**
 
@@ -53,25 +55,31 @@ cargo add --build adze-tool
 
 ---
 
-## Status (v0.6.x -- February 2026)
+## Status
 
-**Stable -- Macro path**:
+**Published: 0.6.x (beta) · Dev head: 0.8.0-dev (unreleased) · MSRV: 1.92**
+
+**Usable today — Macro path**:
 - Macro-based grammar definition and code generation: working
 - Type-safe AST extraction: working
 - Precedence, associativity, repetition, optionals: working
 - Pure Rust with zero C dependencies
 
-**Stable -- GLR core**:
+**Usable today — GLR core**:
 - GLR table generation: algorithmically correct, tested in isolation
 - ActionCell architecture supporting shift/reduce and reduce/reduce conflicts
-- Production grammars (Python with 273 symbols, external scanners) compile successfully
+- Grammar crates (Python, JavaScript, Go) compile successfully
 
-**Experimental -- GLR runtime wiring**:
-- GLR tables are generated correctly, but the default runtime for macro grammars uses simple LR
-- Full GLR runtime (`parser_v4`) exists and passes its own test suite, but is not yet the default
-- Incremental parsing infrastructure exists but is disabled (falls back to fresh parsing)
+**GLR runtime** (`runtime2/`):
+- Passes its own test suite; not yet the default backend for macro grammars
 
-For production use today: the macro path with the default backend is stable. The pure-Rust GLR runtime path is experimental.
+**Incremental parsing**:
+- Infrastructure exists, currently falls back to fresh parsing for consistency
+
+**Ecosystem tools** (early stage):
+- CLI (`cli/`), LSP generator (`lsp-generator/`), golden tests (`golden-tests/`), playground (`playground/`) exist as prototypes
+
+> This repo tracks dev head; published crate versions lag behind. When in doubt, trust the working examples in `example/`.
 
 ---
 
@@ -169,6 +177,7 @@ impl adze::ExternalScanner for IndentScanner {
 
 ## Documentation
 
+- **[Book](./book/)** -- mdBook-based guide and reference
 - **[Quick Start](./QUICK_START.md)** -- Get parsing in 5 minutes
 - **[Full Tutorial](./docs/GETTING_STARTED.md)** -- Complete guide
 - **[API Reference](./API_DOCUMENTATION.md)** -- Complete API
@@ -182,12 +191,22 @@ impl adze::ExternalScanner for IndentScanner {
 
 ## Installation
 
+**Published (stable)**:
 ```toml
 [dependencies]
 adze = "0.6"
 
 [build-dependencies]
 adze-tool = "0.6"
+```
+
+**Dev head (unreleased — next publish target is 0.8.0)**:
+```toml
+[dependencies]
+adze = { git = "https://github.com/EffortlessMetrics/adze" }
+
+[build-dependencies]
+adze-tool = { git = "https://github.com/EffortlessMetrics/adze" }
 ```
 
 Create `build.rs`:
@@ -205,11 +224,20 @@ fn main() {
 
 ## Examples
 
-Working grammars are in [example/src/](./example/src/):
+**Macro grammars** in [example/src/](./example/src/):
 - Arithmetic expressions with precedence
 - Repetition and delimiter patterns
 - Optional fields
 - Word boundaries
+
+**Grammar crates** in [grammars/](./grammars/):
+- Python, JavaScript, Go — compile against the GLR core; not yet published
+
+**Golden tests** in [golden-tests/](./golden-tests/):
+- Validate adze-generated parsers against Tree-sitter reference implementations
+
+**Downstream demo** in [samples/downstream-demo/](./samples/downstream-demo/):
+- Consumer integration example for parser crates built from adze grammars
 
 Run the example tests:
 ```bash
@@ -218,12 +246,47 @@ cargo test -p adze-example
 
 ---
 
+## Workspace Layout
+
+**Core** — the macro-based grammar pipeline:
+- [`runtime/`](./runtime/) — main runtime library (the `adze` crate)
+- [`macro/`](./macro/) — proc-macro definitions (`adze-macro`)
+- [`tool/`](./tool/) — build-time code generation (`adze-tool`)
+- [`common/`](./common/) — shared grammar expansion logic
+
+**GLR Engine** — pure-Rust parser generation:
+- [`ir/`](./ir/) — grammar intermediate representation
+- [`glr-core/`](./glr-core/) — FIRST/FOLLOW, LR(1) item sets, conflict resolution
+- [`tablegen/`](./tablegen/) — table compression and FFI-compatible Language generation
+- [`runtime2/`](./runtime2/) — GLR runtime with Tree-sitter compatible API
+
+**Grammars**: [`grammars/`](./grammars/) — Python, JavaScript, Go grammar crates
+
+**Tools**:
+- [`cli/`](./cli/) — command-line interface (early stage)
+- [`lsp-generator/`](./lsp-generator/) — LSP server generator (prototype)
+- [`playground/`](./playground/) — interactive grammar playground (prototype)
+- [`wasm-demo/`](./wasm-demo/) — WebAssembly demo
+- [`tools/ts-bridge/`](./tools/ts-bridge/) — Tree-sitter to GLR bridge
+
+**Testing**:
+- [`golden-tests/`](./golden-tests/) — validation against Tree-sitter reference
+- [`benchmarks/`](./benchmarks/) — performance benchmarks
+- [`example/`](./example/) — example grammars with snapshot tests
+- [`runtime/fuzz/`](./runtime/fuzz/) — fuzz testing
+
+**Internal**: [`crates/`](./crates/) — BDD contracts, governance — in development
+
+---
+
 ## Contributing
 
 Contributions are welcome. See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for development setup, coding standards, and PR guidelines.
 
+**Requirements**: Rust 1.92.0+ (MSRV), Rust 2024 edition.
+
 Before submitting a PR:
-1. Run tests: `cargo test`
+1. Run tests: `cargo test` (or `./scripts/test-capped.sh` for stable concurrency)
 2. Run linter: `cargo clippy --all -- -D warnings`
 3. Run formatter: `cargo fmt -- --check`
 
@@ -237,13 +300,14 @@ Questions? Open a [GitHub Issue](https://github.com/EffortlessMetrics/adze/issue
 - LR-family parsing (GLR in adze, LR(1) in tree-sitter)
 - Error recovery
 - External scanner support
+- Tree-sitter interoperability: validated via golden tests for selected grammars
 - Incremental parsing (tree-sitter mature; adze experimental)
 
 **Differences**:
 - **Grammar source**: Rust types (adze) vs JavaScript DSL (tree-sitter)
 - **Parse output**: Typed Rust AST (adze) vs generic syntax tree (tree-sitter)
 - **Build dependencies**: Pure Rust (adze) vs C compiler + Node.js (tree-sitter)
-- **Ambiguity**: GLR with multiple parse paths (adze) vs single-parse LR (tree-sitter)
+- **Ambiguity**: GLR runtime exists and passes its test suite (adze) vs single-parse LR (tree-sitter)
 
 **Choose adze when you**:
 - Want type-safe parsing in pure Rust

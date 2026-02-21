@@ -1,0 +1,179 @@
+//! Shared governance metadata building blocks for BDD scenario progress and parser feature profiles.
+//!
+//! This crate intentionally owns the small, reusable metadata types used by build-time
+//! artifacts and runtime dashboards.
+
+#![forbid(unsafe_op_in_unsafe_fn)]
+#![deny(missing_docs)]
+#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
+#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+
+use adze_bdd_grid_core::{BddPhase, BddScenario, bdd_progress};
+use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+use serde::{Deserialize, Serialize};
+
+/// Snapshot of parser feature flags captured in build artifacts and diagnostics.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ParserFeatureProfileSnapshot {
+    /// Pure-rust mode flag.
+    pub pure_rust: bool,
+    /// `tree-sitter-standard` feature flag.
+    pub tree_sitter_standard: bool,
+    /// `tree-sitter-c2rust` feature flag.
+    pub tree_sitter_c2rust: bool,
+    /// GLR feature flag.
+    pub glr: bool,
+}
+
+impl ParserFeatureProfileSnapshot {
+    /// Create a snapshot from explicit parser feature flags.
+    pub const fn new(
+        pure_rust: bool,
+        tree_sitter_standard: bool,
+        tree_sitter_c2rust: bool,
+        glr: bool,
+    ) -> Self {
+        Self {
+            pure_rust,
+            tree_sitter_standard,
+            tree_sitter_c2rust,
+            glr,
+        }
+    }
+
+    /// Create a snapshot from the parser-profile contract.
+    pub const fn from_profile(profile: ParserFeatureProfile) -> Self {
+        Self {
+            pure_rust: profile.pure_rust,
+            tree_sitter_standard: profile.tree_sitter_standard,
+            tree_sitter_c2rust: profile.tree_sitter_c2rust,
+            glr: profile.glr,
+        }
+    }
+
+    /// Resolve an equivalent parser-profile from this snapshot.
+    pub const fn as_profile(self) -> ParserFeatureProfile {
+        ParserFeatureProfile {
+            pure_rust: self.pure_rust,
+            tree_sitter_standard: self.tree_sitter_standard,
+            tree_sitter_c2rust: self.tree_sitter_c2rust,
+            glr: self.glr,
+        }
+    }
+
+    /// Build a snapshot from Cargo feature environment variables.
+    pub fn from_env() -> Self {
+        Self {
+            pure_rust: env_flag(&["CARGO_FEATURE_PURE_RUST", "ADZE_USE_PURE_RUST"]),
+            tree_sitter_standard: env_flag(&["CARGO_FEATURE_TREE_SITTER_STANDARD"]),
+            tree_sitter_c2rust: env_flag(&["CARGO_FEATURE_TREE_SITTER_C2RUST"]),
+            glr: env_flag(&["CARGO_FEATURE_GLR"]),
+        }
+    }
+
+    /// Return the non-conflict backend name implied by this profile.
+    pub const fn non_conflict_backend(self) -> &'static str {
+        if self.glr {
+            ParserBackend::GLR.name()
+        } else if self.pure_rust {
+            ParserBackend::PureRust.name()
+        } else {
+            ParserBackend::TreeSitter.name()
+        }
+    }
+
+    /// Resolve the non-conflict backend for this profile.
+    pub const fn resolve_non_conflict_backend(self) -> ParserBackend {
+        self.as_profile().resolve_backend(false)
+    }
+
+    /// Resolve backend selection for a grammar with conflicts.
+    pub const fn resolve_conflict_backend(self) -> ParserBackend {
+        self.as_profile().resolve_backend(true)
+    }
+}
+
+fn env_flag(names: &[&str]) -> bool {
+    names.iter().any(|name| std::env::var(name).is_ok())
+}
+
+/// BDD governance metadata embedded in generated parse artifacts.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GovernanceMetadata {
+    /// Phase label for this BDD snapshot.
+    pub phase: String,
+    /// Implemented scenario count.
+    pub implemented: usize,
+    /// Total scenario count.
+    pub total: usize,
+    /// Stable status line for dashboards.
+    pub status_line: String,
+}
+
+impl GovernanceMetadata {
+    /// Whether all known scenarios are complete.
+    pub fn is_complete(&self) -> bool {
+        self.implemented == self.total
+    }
+
+    /// Construct a governance snapshot from explicit counts.
+    pub fn with_counts(
+        phase: impl Into<String>,
+        implemented: usize,
+        total: usize,
+        status_line: impl Into<String>,
+    ) -> Self {
+        Self {
+            phase: phase.into(),
+            implemented,
+            total,
+            status_line: status_line.into(),
+        }
+    }
+
+    /// Build metadata from a BDD scenario grid and parser feature profile.
+    pub fn for_grid(
+        phase: BddPhase,
+        scenarios: &[BddScenario],
+        profile: ParserFeatureProfile,
+    ) -> Self {
+        let (implemented, total) = bdd_progress(phase, scenarios);
+        Self {
+            phase: phase_name(phase).to_string(),
+            implemented,
+            total,
+            status_line: status_line(phase, implemented, total, profile),
+        }
+    }
+}
+
+impl Default for GovernanceMetadata {
+    fn default() -> Self {
+        Self {
+            phase: "runtime".to_string(),
+            implemented: 0,
+            total: 0,
+            status_line: "runtime:0/0".to_string(),
+        }
+    }
+}
+
+fn phase_name(phase: BddPhase) -> &'static str {
+    match phase {
+        BddPhase::Core => "core",
+        BddPhase::Runtime => "runtime",
+    }
+}
+
+fn status_line(
+    phase: BddPhase,
+    implemented: usize,
+    total: usize,
+    profile: ParserFeatureProfile,
+) -> String {
+    let backend = profile.resolve_backend(false).name();
+    let phase_label = phase_name(phase);
+    format!("{phase_label}:{implemented}/{total}:{backend}:{profile}")
+}
