@@ -453,8 +453,8 @@ fn test_keyword_vs_identifier() {
     // "functions" should match as identifier (keyword doesn't match whole word)
     let input = b"functions";
     let token = lexer.scan(input, 0).unwrap();
-    assert_eq!(token.symbol, SymbolId(1)); // TODO: fix keyword boundary detection
-    assert_eq!(token.end, 8); // matches "function" prefix, not full "functions"
+    assert_eq!(token.symbol, SymbolId(2));
+    assert_eq!(token.end, 9);
 }
 
 // Test scan position handling
