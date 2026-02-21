@@ -1,10 +1,8 @@
 //! Test GLR parser against tree-sitter-json extracted tables
 #![cfg(feature = "json-parity")]
 
-use rust_sitter_glr_core::{
-    Action, ActionCell, Driver, LexMode, ParseRule, ParseTable, SymbolMetadata,
-};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, ActionCell, Driver, LexMode, ParseRule, ParseTable, SymbolMetadata};
+use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::BTreeMap;
 use std::fs;
 
@@ -131,7 +129,7 @@ fn test_json_simple_object() {
                 is_terminal: sym["type"].as_str().unwrap_or("") == "REGULAR",
                 is_extra: false,
                 is_fragile: false,
-                symbol_id: rust_sitter_ir::SymbolId(0), // Default value
+                symbol_id: adze_ir::SymbolId(0), // Default value
             });
         }
     }
@@ -176,7 +174,7 @@ fn test_json_simple_object() {
         rule_assoc_by_rule: vec![0; rule_count],
         alias_sequences: vec![],
         field_names: vec![],
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         field_map: BTreeMap::new(),
     };
 

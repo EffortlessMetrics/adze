@@ -5,10 +5,10 @@
 //!
 //! This is the critical missing validation from Phase 2.
 
-use rust_sitter_glr_core::conflict_inspection::*;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::Grammar;
-use rust_sitter_ir::builder::GrammarBuilder;
+use adze_glr_core::conflict_inspection::*;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::Grammar;
+use adze_ir::builder::GrammarBuilder;
 
 /// Build a minimal ambiguous expression grammar programmatically
 ///

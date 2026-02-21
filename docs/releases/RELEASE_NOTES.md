@@ -1,8 +1,8 @@
-# Rust-Sitter v0.5.0 Release Notes
+# Adze v0.5.0 Release Notes
 
 ## 🎉 Major Release: Pure-Rust Tree-sitter Implementation
 
-We are excited to announce the release of Rust-Sitter v0.5.0, featuring a complete pure-Rust implementation of Tree-sitter with significant enhancements and new capabilities.
+We are excited to announce the release of Adze v0.5.0, featuring a complete pure-Rust implementation of Tree-sitter with significant enhancements and new capabilities.
 
 ### 🌟 Highlights
 
@@ -16,14 +16,14 @@ We are excited to announce the release of Rust-Sitter v0.5.0, featuring a comple
 
 ### Core Features
 
-#### 1. Grammar Optimization (`rust-sitter-ir`)
+#### 1. Grammar Optimization (`adze-ir`)
 - Automatic removal of unused symbols and rules
 - Rule inlining for better performance
 - Token pattern merging
 - Left recursion optimization
 - Comprehensive optimization statistics
 
-#### 2. Advanced Error Recovery (`rust-sitter`)
+#### 2. Advanced Error Recovery (`adze`)
 - Multiple recovery strategies:
   - Panic mode with synchronization tokens
   - Token insertion/deletion/substitution
@@ -33,14 +33,14 @@ We are excited to announce the release of Rust-Sitter v0.5.0, featuring a comple
 - Configurable recovery behavior
 - Better error messages with context
 
-#### 3. Conflict Resolution (`rust-sitter-glr-core`)
+#### 3. Conflict Resolution (`adze-glr-core`)
 - Precedence-based resolution
 - Associativity handling
 - GLR fork/merge decision support
 - Detailed conflict statistics
 - Support for complex grammars
 
-#### 4. Grammar Validation (`rust-sitter-ir`)
+#### 4. Grammar Validation (`adze-ir`)
 - Early detection of grammar issues:
   - Undefined symbols
   - Unreachable rules
@@ -50,7 +50,7 @@ We are excited to announce the release of Rust-Sitter v0.5.0, featuring a comple
 - Comprehensive warnings and suggestions
 - Grammar statistics reporting
 
-#### 5. Parse Tree Visitors (`rust-sitter`)
+#### 5. Parse Tree Visitors (`adze`)
 - Flexible visitor pattern API
 - Depth-first and breadth-first traversal
 - Built-in visitors:
@@ -60,7 +60,7 @@ We are excited to announce the release of Rust-Sitter v0.5.0, featuring a comple
   - Tree transformation
 - Easy custom visitor implementation
 
-#### 6. Tree Serialization (`rust-sitter`)
+#### 6. Tree Serialization (`adze`)
 - Multiple serialization formats:
   - JSON (full and compact)
   - S-expressions
@@ -68,7 +68,7 @@ We are excited to announce the release of Rust-Sitter v0.5.0, featuring a comple
 - Configurable serialization options
 - Efficient deserialization
 
-#### 7. Visualization Tools (`rust-sitter-tool`)
+#### 7. Visualization Tools (`adze-tool`)
 - Grammar visualization:
   - Graphviz DOT generation
   - Railroad diagrams
@@ -110,12 +110,12 @@ See our comprehensive [Migration Guide](./MIGRATION_GUIDE.md) for step-by-step i
 
 ```rust
 // Define grammar
-#[rust_sitter::grammar("my_language")]
+#[adze::grammar("my_language")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expression {
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
             i32
         ),
         // ... more rules
@@ -160,12 +160,12 @@ We welcome contributions! Please see our contributing guidelines and check the [
 
 Thanks to all contributors who made this release possible:
 - The original Tree-sitter team for the foundational work
-- The rust-sitter community for feedback and testing
+- The adze community for feedback and testing
 - Contributors to the pure-Rust implementation effort
 
 ## 🐛 Bug Reports
 
-Please report issues on our [GitHub repository](https://github.com/EffortlessMetrics/rust-sitter/issues).
+Please report issues on our [GitHub repository](https://github.com/EffortlessMetrics/adze/issues).
 
 ## 📅 Future Plans
 
@@ -177,4 +177,4 @@ Please report issues on our [GitHub repository](https://github.com/EffortlessMet
 
 ---
 
-**Full Changelog**: [v0.4.5...v0.5.0](https://github.com/EffortlessMetrics/rust-sitter/compare/v0.4.5...v0.5.0)
+**Full Changelog**: [v0.4.5...v0.5.0](https://github.com/EffortlessMetrics/adze/compare/v0.4.5...v0.5.0)

@@ -2,8 +2,8 @@
 
 /// Black-box tests for external scanner functionality
 /// These tests verify the external scanner API behavior from a user perspective
-use rust_sitter::external_scanner_ffi::{RustLexerAdapter, TSLexer, destroy_lexer};
-use rust_sitter::linecol::LineCol;
+use adze::external_scanner_ffi::{RustLexerAdapter, TSLexer, destroy_lexer};
+use adze::linecol::LineCol;
 
 #[test]
 fn test_line_col_tracking_simple() {

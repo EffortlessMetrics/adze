@@ -7,10 +7,10 @@ We have successfully implemented a complete pure-Rust Tree-sitter parser generat
 ## Key Accomplishments
 
 ### 1. Core Infrastructure (✅ Complete)
-- **Grammar IR (`rust-sitter-ir`)**: Full grammar representation with GLR support
-- **GLR Parser Core (`rust-sitter-glr-core`)**: FIRST/FOLLOW sets, LR(1) canonical collection, conflict detection
-- **Table Generation (`rust-sitter-tablegen`)**: Tree-sitter-compatible table compression and static code generation
-- **Runtime (`rust-sitter`)**: Lexer, parser, incremental parsing, and external scanner support
+- **Grammar IR (`adze-ir`)**: Full grammar representation with GLR support
+- **GLR Parser Core (`adze-glr-core`)**: FIRST/FOLLOW sets, LR(1) canonical collection, conflict detection
+- **Table Generation (`adze-tablegen`)**: Tree-sitter-compatible table compression and static code generation
+- **Runtime (`adze`)**: Lexer, parser, incremental parsing, and external scanner support
 
 ### 2. Advanced Features (✅ Complete)
 - **GLR Support**: Handles ambiguous grammars with fork/merge logic
@@ -42,13 +42,13 @@ We have successfully implemented a complete pure-Rust Tree-sitter parser generat
 
 ### Modular Design
 ```
-rust-sitter-ir          → Grammar representation
+adze-ir          → Grammar representation
      ↓
-rust-sitter-glr-core    → Parser generation algorithms
+adze-glr-core    → Parser generation algorithms
      ↓
-rust-sitter-tablegen    → Table compression & code generation
+adze-tablegen    → Table compression & code generation
      ↓
-rust-sitter (runtime)   → Parsing execution
+adze (runtime)   → Parsing execution
 ```
 
 ### Key Innovations
@@ -71,7 +71,7 @@ rust-sitter (runtime)   → Parsing execution
 ### Build Integration
 ```rust
 // In build.rs
-use rust_sitter_tool::GrammarConverter;
+use adze_tool::GrammarConverter;
 
 fn main() {
     let grammar = GrammarConverter::create_sample_grammar();
@@ -81,8 +81,8 @@ fn main() {
 
 ### Runtime Usage
 ```rust
-use rust_sitter::parser_v2::ParserV2;
-use rust_sitter::lexer::GrammarLexer;
+use adze::parser_v2::ParserV2;
+use adze::lexer::GrammarLexer;
 
 let mut lexer = GrammarLexer::new(&patterns);
 let parser = ParserV2::new(grammar, parse_table);
@@ -93,7 +93,7 @@ let tree = parser.parse(tokens)?;
 
 While the implementation is complete and functional, potential future enhancements include:
 
-1. **Grammar Extraction**: Deeper integration with rust-sitter-tool for automatic extraction
+1. **Grammar Extraction**: Deeper integration with adze-tool for automatic extraction
 2. **Optimization Passes**: Grammar-level optimizations before table generation
 3. **Alternative Backends**: Support for different parsing algorithms
 4. **Language Bindings**: Generate parsers for other languages

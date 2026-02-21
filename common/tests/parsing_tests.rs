@@ -1,4 +1,4 @@
-use rust_sitter_common::{
+use adze_common::{
     FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
 };
 use std::collections::HashSet;
@@ -108,7 +108,7 @@ fn test_wrap_leaf_type() {
     let wrapped = wrap_leaf_type(&ty, &skip_over);
     assert_eq!(
         quote::quote!(#wrapped).to_string(),
-        "rust_sitter :: WithLeaf < String >"
+        "adze :: WithLeaf < String >"
     );
 
     // Test wrapping with skip_over types preserved
@@ -116,7 +116,7 @@ fn test_wrap_leaf_type() {
     let wrapped = wrap_leaf_type(&ty, &skip_over);
     assert_eq!(
         quote::quote!(#wrapped).to_string(),
-        "Vec < rust_sitter :: WithLeaf < String > >"
+        "Vec < adze :: WithLeaf < String > >"
     );
 
     // Test wrapping nested skip_over types
@@ -124,6 +124,6 @@ fn test_wrap_leaf_type() {
     let wrapped = wrap_leaf_type(&ty, &skip_over);
     assert_eq!(
         quote::quote!(#wrapped).to_string(),
-        "Option < Vec < rust_sitter :: WithLeaf < i32 > > >"
+        "Option < Vec < adze :: WithLeaf < i32 > > >"
     );
 }

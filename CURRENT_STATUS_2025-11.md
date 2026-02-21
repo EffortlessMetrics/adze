@@ -1,4 +1,4 @@
-# Rust-Sitter Current Status Report
+# Adze Current Status Report
 **Date**: November 15, 2025
 **Version**: v0.6.1-beta
 **Assessment**: Feature-Complete for Macro-Based Grammar Generation
@@ -7,7 +7,7 @@
 
 ## 🎯 Executive Summary
 
-Rust-Sitter has achieved **100% completion** for macro-based grammar generation with full GLR parsing support. The core parsing engine is algorithmically correct, all critical test suites pass, and real-world validation demonstrates production-ready behavior.
+Adze has achieved **100% completion** for macro-based grammar generation with full GLR parsing support. The core parsing engine is algorithmically correct, all critical test suites pass, and real-world validation demonstrates production-ready behavior.
 
 **Key Achievement**: Macro-based grammars work end-to-end from definition to parsing with correct precedence, associativity, and error handling.
 
@@ -290,7 +290,7 @@ Rust-Sitter has achieved **100% completion** for macro-based grammar generation 
 
 ## 🎉 Conclusion
 
-**Rust-Sitter v0.6.1-beta is production-ready for macro-based grammar generation.**
+**Adze v0.6.1-beta is production-ready for macro-based grammar generation.**
 
 The core parsing engine works correctly, test coverage is excellent, and real-world validation proves the system handles complex grammars with proper precedence and associativity. The infrastructure (CI/CD, build system, documentation) is mature and well-maintained.
 

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use rust_sitter_common::*;
+use adze_common::*;
 use serde_json::{Map, Value, json};
 use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, *};
 
@@ -15,11 +15,11 @@ fn gen_field(
 ) -> ToolResult<(Value, bool)> {
     let leaf_attr = leaf_attrs
         .iter()
-        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
+        .find(|attr| attr.path() == &syn::parse_quote!(adze::leaf));
 
     if leaf_attrs
         .iter()
-        .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::word))
+        .any(|attr| attr.path() == &syn::parse_quote!(adze::word))
     {
         if word_rule.is_some() {
             Err(ToolError::MultipleWordRules)?;
@@ -162,7 +162,7 @@ fn gen_field(
 
         let delimited_attr = leaf_attrs
             .iter()
-            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::delimited));
+            .find(|attr| attr.path() == &syn::parse_quote!(adze::delimited));
 
         let delimited_params =
             delimited_attr.and_then(|a| a.parse_args_with(FieldThenParams::parse).ok());
@@ -181,7 +181,7 @@ fn gen_field(
 
         let repeat_attr = leaf_attrs
             .iter()
-            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::repeat));
+            .find(|attr| attr.path() == &syn::parse_quote!(adze::repeat));
 
         let repeat_params = repeat_attr.and_then(|a| {
             a.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
@@ -306,9 +306,9 @@ fn gen_field(
 /// Precedence attributes handler for grammar rules.
 ///
 /// Manages the three types of precedence attributes:
-/// - `#[rust_sitter::prec(n)]`: Non-associative precedence
-/// - `#[rust_sitter::prec_left(n)]`: Left-associative precedence  
-/// - `#[rust_sitter::prec_right(n)]`: Right-associative precedence
+/// - `#[adze::prec(n)]`: Non-associative precedence
+/// - `#[adze::prec_left(n)]`: Left-associative precedence  
+/// - `#[adze::prec_right(n)]`: Right-associative precedence
 ///
 /// Only one precedence attribute can be applied per rule. The precedence value
 /// must be an integer literal in the range 0 to 4294967295 (u32).
@@ -328,13 +328,13 @@ impl<'a> Precs<'a> {
         Self {
             prec: attrs
                 .iter()
-                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec)),
+                .find(|attr| attr.path() == &syn::parse_quote!(adze::prec)),
             prec_left: attrs
                 .iter()
-                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_left)),
+                .find(|attr| attr.path() == &syn::parse_quote!(adze::prec_left)),
             prec_right: attrs
                 .iter()
-                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::prec_right)),
+                .find(|attr| attr.path() == &syn::parse_quote!(adze::prec_right)),
         }
     }
 
@@ -404,7 +404,7 @@ impl<'a> Precs<'a> {
             } else {
                 Err(syn::Error::new(
                     expr.span(),
-                    "Expected integer literal for precedence. Use #[rust_sitter::prec(123)] with a positive integer (0 to 4294967295).",
+                    "Expected integer literal for precedence. Use #[adze::prec(123)] with a positive integer (0 to 4294967295).",
                 ))
             }
         } else if let Some(attr) = self.prec_left {
@@ -427,7 +427,7 @@ impl<'a> Precs<'a> {
             } else {
                 Err(syn::Error::new(
                     expr.span(),
-                    "Expected integer literal for left-associative precedence. Use #[rust_sitter::prec_left(123)] with a positive integer (0 to 4294967295).",
+                    "Expected integer literal for left-associative precedence. Use #[adze::prec_left(123)] with a positive integer (0 to 4294967295).",
                 ))
             }
         } else if let Some(attr) = self.prec_right {
@@ -450,7 +450,7 @@ impl<'a> Precs<'a> {
             } else {
                 Err(syn::Error::new(
                     expr.span(),
-                    "Expected integer literal for right-associative precedence. Use #[rust_sitter::prec_right(123)] with a positive integer (0 to 4294967295).",
+                    "Expected integer literal for right-associative precedence. Use #[adze::prec_right(123)] with a positive integer (0 to 4294967295).",
                 ))
             }
         } else {
@@ -463,7 +463,7 @@ impl<'a> Precs<'a> {
 /// instead of creating an intermediate symbol.
 ///
 /// Inlining Rules (from ADR-0003):
-/// 1. Explicit opt-out: #[rust_sitter::no_inline] → do NOT inline
+/// 1. Explicit opt-out: #[adze::no_inline] → do NOT inline
 /// 2. Unit variants: → do NOT inline (backward compatibility)
 /// 3. Precedence attributes: #[prec], #[prec_left], #[prec_right] → do NOT inline (backward compatibility)
 /// 4. Default: → inline (enables GLR conflict preservation)
@@ -471,7 +471,7 @@ fn should_inline_variant(attrs: &[Attribute], fields: &Fields) -> bool {
     // Rule 1: Check for explicit no_inline attribute
     if attrs
         .iter()
-        .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::no_inline))
+        .any(|attr| attr.path() == &syn::parse_quote!(adze::no_inline))
     {
         return false;
     }
@@ -483,9 +483,9 @@ fn should_inline_variant(attrs: &[Attribute], fields: &Fields) -> bool {
 
     // Rule 3: Variants with precedence never inline (backward compatibility)
     let has_precedence = attrs.iter().any(|attr| {
-        attr.path() == &syn::parse_quote!(rust_sitter::prec)
-            || attr.path() == &syn::parse_quote!(rust_sitter::prec_left)
-            || attr.path() == &syn::parse_quote!(rust_sitter::prec_right)
+        attr.path() == &syn::parse_quote!(adze::prec)
+            || attr.path() == &syn::parse_quote!(adze::prec_left)
+            || attr.path() == &syn::parse_quote!(adze::prec_right)
     });
 
     if has_precedence {
@@ -512,7 +512,7 @@ fn gen_struct_or_variant(
         if let Some(leaf_attrs) = field
             .attrs
             .iter()
-            .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf))
+            .find(|attr| attr.path() == &syn::parse_quote!(adze::leaf))
         {
             // This is a single-leaf variant - return the token directly
             let params = leaf_attrs
@@ -571,9 +571,9 @@ fn gen_struct_or_variant(
 
     // Check for precedence attributes early to determine if we should inline operators
     let has_precedence = attrs.iter().any(|attr| {
-        attr.path() == &syn::parse_quote!(rust_sitter::prec)
-            || attr.path() == &syn::parse_quote!(rust_sitter::prec_left)
-            || attr.path() == &syn::parse_quote!(rust_sitter::prec_right)
+        attr.path() == &syn::parse_quote!(adze::prec)
+            || attr.path() == &syn::parse_quote!(adze::prec_left)
+            || attr.path() == &syn::parse_quote!(adze::prec_right)
     });
 
     fn gen_field_optional(
@@ -619,13 +619,13 @@ fn gen_struct_or_variant(
             if field
                 .attrs
                 .iter()
-                .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::skip))
+                .any(|attr| attr.path() == &syn::parse_quote!(adze::skip))
             {
                 None
             } else {
                 // Check if this is a leaf field with text parameter (operator)
                 let is_operator_field = field.attrs.iter().any(|attr| {
-                    if attr.path() == &syn::parse_quote!(rust_sitter::leaf) {
+                    if attr.path() == &syn::parse_quote!(adze::leaf) {
                         if let Ok(params) = attr.parse_args_with(
                             Punctuated::<NameValueExpr, Token![,]>::parse_terminated,
                         ) {
@@ -643,7 +643,7 @@ fn gen_struct_or_variant(
                     field
                         .attrs
                         .iter()
-                        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf))
+                        .find(|attr| attr.path() == &syn::parse_quote!(adze::leaf))
                         .and_then(|leaf_attr| {
                             leaf_attr
                                 .parse_args_with(
@@ -687,11 +687,11 @@ fn gen_struct_or_variant(
                 if let Some(operator) = inlined_operator {
                     Some(operator)
                 } else {
-                    // Check for #[rust_sitter::field("name")] attribute
+                    // Check for #[adze::field("name")] attribute
                     let field_name = field
                         .attrs
                         .iter()
-                        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::field))
+                        .find(|attr| attr.path() == &syn::parse_quote!(adze::field))
                         .and_then(|attr| {
                             attr.parse_args::<syn::LitStr>().ok().map(|lit| lit.value())
                         });
@@ -812,7 +812,7 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
         .attrs
         .iter()
         .find_map(|a| {
-            if a.path() == &syn::parse_quote!(rust_sitter::grammar) {
+            if a.path() == &syn::parse_quote!(adze::grammar) {
                 let grammar_name_expr = a.parse_args_with(Expr::parse).ok();
                 if let Some(Expr::Lit(ExprLit {
                     attrs: _,
@@ -838,7 +838,7 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
             | Item::Struct(ItemStruct { ident, attrs, .. }) => {
                 if attrs
                     .iter()
-                    .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::language))
+                    .any(|attr| attr.path() == &syn::parse_quote!(adze::language))
                 {
                     Some(ident.clone())
                 } else {
@@ -847,7 +847,7 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
             }
             _ => None,
         })
-        .expect("Each parser must have the root type annotated with `#[rust_sitter::language]`")
+        .expect("Each parser must have the root type annotated with `#[adze::language]`")
         .to_string();
 
     // Insert source_file rule that references the root type
@@ -859,7 +859,7 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
         }),
     );
 
-    // Optionally locate the rule annotated with `#[rust_sitter::word]`.
+    // Optionally locate the rule annotated with `#[adze::word]`.
     let mut word_rule = None;
     for c in contents.iter() {
         let (symbol, attrs) = match c {
@@ -917,19 +917,19 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
                 let is_external = s
                     .attrs
                     .iter()
-                    .any(|a| a.path() == &syn::parse_quote!(rust_sitter::external));
+                    .any(|a| a.path() == &syn::parse_quote!(adze::external));
 
                 // Check if this is an extra token
                 let is_extra = s
                     .attrs
                     .iter()
-                    .any(|a| a.path() == &syn::parse_quote!(rust_sitter::extra));
+                    .any(|a| a.path() == &syn::parse_quote!(adze::extra));
 
                 // Check if this is the word token
                 let is_word = s
                     .attrs
                     .iter()
-                    .any(|a| a.path() == &syn::parse_quote!(rust_sitter::word));
+                    .any(|a| a.path() == &syn::parse_quote!(adze::word));
 
                 if is_word {
                     if word_rule.is_some() {
@@ -958,7 +958,7 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
 
         if attrs
             .iter()
-            .any(|a| a.path() == &syn::parse_quote!(rust_sitter::extra))
+            .any(|a| a.path() == &syn::parse_quote!(adze::extra))
         {
             // For extras, we want to reference the generated rule directly
             // The Whitespace struct generates a rule like "Whitespace" which contains the pattern
@@ -970,7 +970,7 @@ pub fn generate_grammar(module: &ItemMod) -> ToolResult<Value> {
 
         if attrs
             .iter()
-            .any(|a| a.path() == &syn::parse_quote!(rust_sitter::external))
+            .any(|a| a.path() == &syn::parse_quote!(adze::external))
         {
             externals_list.push(json!({
                 "type": "SYMBOL",

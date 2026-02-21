@@ -1,13 +1,13 @@
-// Comprehensive tests for the pure-Rust Tree-sitter implementation
+// Comprehensive tests for the Adze table generator
 // Tests the tablegen module's functionality
 
 #[allow(unused_imports)]
-use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
-use rust_sitter_ir::{
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
+use adze_ir::{
     FieldId, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
     TokenPattern,
 };
-use rust_sitter_tablegen::{NodeTypesGenerator, StaticLanguageGenerator, TableCompressor};
+use adze_tablegen::{NodeTypesGenerator, StaticLanguageGenerator, TableCompressor};
 
 /// Create a simple test grammar
 fn create_test_grammar() -> Grammar {
@@ -141,8 +141,7 @@ fn test_table_compression() {
     let compressor = TableCompressor::new();
 
     // Use the real helper function to collect token indices (mirrors production)
-    let token_indices =
-        rust_sitter_tablegen::helpers::collect_token_indices(&grammar, &parse_table);
+    let token_indices = adze_tablegen::helpers::collect_token_indices(&grammar, &parse_table);
 
     // Canary check: Verify state 0 invariants before compression
     // This ensures our parse table is valid for GLR parsing
@@ -157,7 +156,7 @@ fn test_table_compression() {
 
 // Basic state 0 invariant check (canary test)
 fn assert_state0_basic_invariants(parse_table: &ParseTable, token_indices: &[usize]) {
-    use rust_sitter_ir::SymbolId;
+    use adze_ir::SymbolId;
     use std::collections::HashSet;
 
     // Check for duplicate indices
@@ -270,7 +269,7 @@ fn test_external_tokens() {
     let mut grammar = create_test_grammar();
 
     // Add external tokens
-    grammar.externals.push(rust_sitter_ir::ExternalToken {
+    grammar.externals.push(adze_ir::ExternalToken {
         name: "comment".to_string(),
         symbol_id: SymbolId(100),
     });
@@ -312,7 +311,7 @@ fn test_precedence_in_rules() {
         lhs: SymbolId(11),
         rhs: vec![Symbol::Terminal(SymbolId(2))],
         precedence: Some(PrecedenceKind::Static(10)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        associativity: Some(adze_ir::Associativity::Left),
         fields: vec![],
         production_id: ProductionId(1),
     };
@@ -353,7 +352,7 @@ fn test_compressed_table_format() {
 
 #[test]
 fn test_abi_compatibility() {
-    use rust_sitter_tablegen::abi::*;
+    use adze_tablegen::abi::*;
 
     // Verify ABI constants
     assert_eq!(TREE_SITTER_LANGUAGE_VERSION, 15);

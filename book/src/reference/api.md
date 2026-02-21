@@ -1,17 +1,17 @@
 # API Reference
 
-Complete API reference for rust-sitter library components.
+Complete API reference for adze library components.
 
 For the most comprehensive API documentation, see [API_DOCUMENTATION.md](../../API_DOCUMENTATION.md) in the repository root.
 
 ## Core Modules
 
-### `rust_sitter`
+### `adze`
 
 Main runtime library providing parsing functionality.
 
 ```rust
-use rust_sitter::*;
+use adze::*;
 ```
 
 **Key Components:**
@@ -20,12 +20,12 @@ use rust_sitter::*;
 - Tree and node manipulation
 - Error recovery and incremental parsing
 
-### `rust_sitter_tool`
+### `adze_tool`
 
 Build-time code generation and grammar processing.
 
 ```rust
-use rust_sitter_tool::build_parsers;
+use adze_tool::build_parsers;
 
 // In build.rs
 fn main() {
@@ -33,24 +33,24 @@ fn main() {
 }
 ```
 
-### `rust_sitter_macro`
+### `adze_macro`
 
 Procedural macros for grammar definition.
 
 ```rust
-#[rust_sitter::grammar("mylang")]
+#[adze::grammar("mylang")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program { /* ... */ }
 }
 ```
 
 **Available Macros:**
-- `#[rust_sitter::grammar]` - Grammar module definition
-- `#[rust_sitter::language]` - Root language type
-- `#[rust_sitter::leaf]` - Terminal symbol
-- `#[rust_sitter::repeat]` - Repeated elements
-- `#[rust_sitter::extra]` - Extra/whitespace tokens
+- `#[adze::grammar]` - Grammar module definition
+- `#[adze::language]` - Root language type
+- `#[adze::leaf]` - Terminal symbol
+- `#[adze::repeat]` - Repeated elements
+- `#[adze::extra]` - Extra/whitespace tokens
 
 ## Runtime APIs
 
@@ -59,9 +59,9 @@ mod grammar {
 Production-ready GLR parser with incremental parsing capabilities.
 
 ```rust
-use rust_sitter::parser_v4::{Parser, Tree};
-use rust_sitter::pure_incremental::Edit;
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use adze::parser_v4::{Parser, Tree};
+use adze::pure_incremental::Edit;
+use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
 
 // Create parser with grammar and parse table
 let mut parser = Parser::new(grammar, parse_table, "my_language".to_string());
@@ -87,7 +87,7 @@ let reused = get_reuse_count(); // 999/1000 typical reuse
 ### Tree-sitter Compatibility Layer
 
 ```rust
-use rust_sitter::tree_sitter::{Parser, Language, Tree, Node};
+use adze::tree_sitter::{Parser, Language, Tree, Node};
 
 let mut parser = Parser::new();
 parser.set_language(&language)?;
@@ -103,7 +103,7 @@ let root = tree.root_node();
 Main serialization interface with multiple output formats.
 
 ```rust
-use rust_sitter::serialization::TreeSerializer;
+use adze::serialization::TreeSerializer;
 
 let serializer = TreeSerializer::new(source)
     .with_unnamed_nodes()
@@ -149,7 +149,7 @@ Safe dynamic library loading with FFI safety.
 
 ```rust
 use libloading::Library;
-use rust_sitter::tree_sitter::{Language, Parser};
+use adze::tree_sitter::{Language, Parser};
 
 // Load grammar library
 let lib = Library::new("path/to/grammar.so")?;
@@ -206,21 +206,21 @@ fn parse_file_dynamic(
 ### Basic Types
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub struct Program {
-    #[rust_sitter::repeat] 
+    #[adze::repeat] 
     pub statements: Vec<Statement>,
 }
 
-#[rust_sitter::language]
+#[adze::language]
 pub enum Statement {
     Expression(Expression),
     Declaration(Declaration),
 }
 
-#[rust_sitter::language]
+#[adze::language]
 pub struct Identifier {
-    #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
     pub name: String,
 }
 ```
@@ -229,11 +229,11 @@ pub struct Identifier {
 
 **Precedence:**
 ```rust
-#[rust_sitter::prec_left(1)]
-Add(Box<Expr>, #[rust_sitter::leaf(text = "+")] (), Box<Expr>),
+#[adze::prec_left(1)]
+Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
 
-#[rust_sitter::prec_left(2)]  
-Multiply(Box<Expr>, #[rust_sitter::leaf(text = "*")] (), Box<Expr>),
+#[adze::prec_left(2)]  
+Multiply(Box<Expr>, #[adze::leaf(text = "*")] (), Box<Expr>),
 ```
 
 **Optional Fields:**
@@ -248,21 +248,21 @@ pub struct Function {
 **Delimited Lists:**
 ```rust
 pub struct ArgList {
-    #[rust_sitter::repeat(separator = ",")]
+    #[adze::repeat(separator = ",")]
     pub args: Vec<Expression>,
 }
 ```
 
 **External Scanners:**
 ```rust
-#[rust_sitter::external_scanner]
+#[adze::external_scanner]
 pub struct IndentationScanner {
     // External scanner implementation
 }
 
-#[rust_sitter::external_token]  
+#[adze::external_token]  
 pub struct Indent {
-    #[rust_sitter::scanner_ref(IndentationScanner)]
+    #[adze::scanner_ref(IndentationScanner)]
     scanner: (),
 }
 ```
@@ -272,7 +272,7 @@ pub struct Indent {
 ### Parse Errors
 
 ```rust
-use rust_sitter::{ParseError, ParseResult};
+use adze::{ParseError, ParseResult};
 
 match parser.parse_utf8(input, None) {
     Ok(tree) => {
@@ -296,7 +296,7 @@ match parser.parse_utf8(input, None) {
 ### AST Extraction Errors
 
 ```rust
-use rust_sitter::{AstError, AstResult};
+use adze::{AstError, AstResult};
 
 match my_grammar::extract_ast(&tree) {
     Ok(ast) => process_ast(ast),
@@ -333,7 +333,7 @@ fn test_expression_parsing() {
 
 ```rust
 use proptest::prelude::*;
-use rust_sitter::testing::roundtrip_test;
+use adze::testing::roundtrip_test;
 
 proptest! {
     #[test]
@@ -349,7 +349,7 @@ proptest! {
 ### Performance Testing
 
 ```rust
-use rust_sitter::testing::{BenchmarkResult, benchmark_parsing};
+use adze::testing::{BenchmarkResult, benchmark_parsing};
 
 #[test]
 fn test_parsing_performance() {
@@ -367,10 +367,10 @@ fn test_parsing_performance() {
 ### Production Incremental Parsing (PR #62)
 
 ```rust
-use rust_sitter::parser_v4::{Parser, Tree};
-use rust_sitter::pure_incremental::Edit;
-use rust_sitter::pure_parser::Point;
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use adze::parser_v4::{Parser, Tree};
+use adze::pure_incremental::Edit;
+use adze::pure_parser::Point;
+use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
 
 // Create parser
 let mut parser = Parser::new(grammar, parse_table, "my_language".to_string());
@@ -405,7 +405,7 @@ let tree2 = parser.reparse("let x = 42", &tree1, &edit)?;
 ### Tree Editing
 
 ```rust
-use rust_sitter::{Tree, EditError, Point};
+use adze::{Tree, EditError, Point};
 
 // Safe tree editing with error handling
 match tree.edit(&edit) {
@@ -430,7 +430,7 @@ Control functionality with Cargo features:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6", features = [
+adze = { version = "0.6", features = [
     "glr-core",      # GLR parsing engine
     "incremental",   # Incremental parsing
     "serialization", # Tree serialization

@@ -1,6 +1,6 @@
 # GOTO Indexing Invariants
 
-This document describes the critical invariants maintained for GOTO table indexing in the rust-sitter GLR parser.
+This document describes the critical invariants maintained for GOTO table indexing in the adze GLR parser.
 
 ## Key Invariants
 
@@ -51,7 +51,7 @@ table.goto_indexing = GotoIndexing::DirectSymbolId;
 Use these helpers instead of direct column math:
 
 ```rust
-use rust_sitter_glr_core::test_helpers::test::*;
+use adze_glr_core::test_helpers::test::*;
 
 // Get actions for state/symbol
 let actions = actions_for(&table, state, symbol);
@@ -68,7 +68,7 @@ if has_accept_on_eof(&table, state) { ... }
 Use the test allocator to avoid EOF collision:
 
 ```rust
-use rust_sitter_glr_core::test_symbol_alloc::test::SymbolAllocator;
+use adze_glr_core::test_symbol_alloc::test::SymbolAllocator;
 
 let mut alloc = SymbolAllocator::new();
 let token_a = alloc.next();  // SymbolId(1)

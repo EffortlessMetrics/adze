@@ -1,18 +1,18 @@
-#[rust_sitter::grammar("words")]
+#[adze::grammar("words")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(Debug)]
     pub struct Words {
-        #[rust_sitter::leaf(text = r"if")]
+        #[adze::leaf(text = r"if")]
         _keyword: (),
-        #[rust_sitter::word]
-        #[rust_sitter::leaf(pattern = r"[a-z_]+", transform = |v| v.to_string())]
+        #[adze::word]
+        #[adze::leaf(pattern = r"[a-z_]+", transform = |v| v.to_string())]
         _word: String,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }

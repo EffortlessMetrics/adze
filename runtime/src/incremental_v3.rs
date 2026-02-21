@@ -3,9 +3,9 @@
 //! This module implements efficient incremental parsing by reusing unchanged subtrees
 
 use crate::parser_v3::ParseNode;
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 use anyhow::Result;
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::{HashMap, HashSet};
 
 /// Edit operation representing a change in the source

@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-//! Procedural macros for rust-sitter grammar definition
+//! Procedural macros for adze grammar definition
 
 use quote::ToTokens;
 use syn::{ItemMod, parse_macro_input};
@@ -17,7 +17,7 @@ use expansion::*;
 ///
 /// ## Example
 /// ```ignore
-/// #[rust_sitter::language]
+/// #[adze::language]
 /// pub struct Code {
 ///     ...
 /// }
@@ -35,9 +35,9 @@ pub fn language(
 ///
 /// ## Example
 /// ```ignore
-/// #[rust_sitter::extra]
+/// #[adze::extra]
 /// struct Whitespace {
-///     #[rust_sitter::leaf(pattern = r"\s")]
+///     #[adze::leaf(pattern = r"\s")]
 ///     _whitespace: (),
 /// }
 /// ```
@@ -65,20 +65,20 @@ pub fn extra(
 /// Using the `leaf` attribute on a field:
 /// ```ignore
 /// Number(
-///     #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+///     #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
 ///     u32
 /// )
 /// ```
 ///
 /// Using the attribute on a unit struct or unit enum variant:
 /// ```ignore
-/// #[rust_sitter::leaf(text = "9")]
+/// #[adze::leaf(text = "9")]
 /// struct BigDigit;
 ///
 /// enum SmallDigit {
-///     #[rust_sitter::leaf(text = "0")]
+///     #[adze::leaf(text = "0")]
 ///     Zero,
-///     #[rust_sitter::leaf(text = "1")]
+///     #[adze::leaf(text = "1")]
 ///     One,
 /// }
 /// ```
@@ -99,7 +99,7 @@ pub fn leaf(
 /// ```ignore
 /// struct MyNode {
 ///    ...,
-///    #[rust_sitter::skip(false)]
+///    #[adze::skip(false)]
 ///    node_visited: bool
 /// }
 /// ```
@@ -119,7 +119,7 @@ pub fn skip(
 ///
 /// ## Example
 /// ```ignore
-/// #[rust_sitter::prec(1)]
+/// #[adze::prec(1)]
 /// PriorityExpr(Box<Expr>, Box<Expr>)
 /// ```
 pub fn prec(
@@ -140,7 +140,7 @@ pub fn prec(
 ///
 /// ## Example
 /// ```ignore
-/// #[rust_sitter::prec_left(1)]
+/// #[adze::prec_left(1)]
 /// Subtract(Box<Expr>, Box<Expr>)
 /// ```
 pub fn prec_left(
@@ -161,7 +161,7 @@ pub fn prec_left(
 ///
 /// ## Example
 /// ```ignore
-/// #[rust_sitter::prec_right(1)]
+/// #[adze::prec_right(1)]
 /// Cons(Box<Expr>, Box<Expr>)
 /// ```
 pub fn prec_right(
@@ -173,7 +173,7 @@ pub fn prec_right(
 
 #[proc_macro_attribute]
 /// On `Vec<_>` typed fields, specifies a non-terminal that should be parsed in between the elements.
-/// The `#[rust_sitter::repeat]` annotation must be used on the field as well.
+/// The `#[adze::repeat]` annotation must be used on the field as well.
 ///
 /// This annotation takes a single, unnamed argument, which specifies a field type to parse. This can
 /// either be a reference to another type, or can be defined as a `leaf` field. Generally, the argument
@@ -181,8 +181,8 @@ pub fn prec_right(
 ///
 /// ## Example
 /// ```ignore
-/// #[rust_sitter::delimited(
-///     #[rust_sitter::leaf(text = ",")]
+/// #[adze::delimited(
+///     #[adze::leaf(text = ",")]
 ///     ()
 /// )]
 /// numbers: Vec<Number>
@@ -201,7 +201,7 @@ pub fn delimited(
 ///
 /// ## Example
 /// ```ignore
-/// #[rust_sitter::repeat(non_empty = true)]
+/// #[adze::repeat(non_empty = true)]
 /// numbers: Vec<Number>
 /// ```
 pub fn repeat(
@@ -216,7 +216,7 @@ pub fn repeat(
 ///
 /// ## Example
 /// ```ignore
-/// #[rust_sitter::external]
+/// #[adze::external]
 /// struct IndentToken;
 /// ```
 #[proc_macro_attribute]
@@ -232,8 +232,8 @@ pub fn external(
 ///
 /// ## Example
 /// ```ignore
-/// #[rust_sitter::word]
-/// #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+/// #[adze::word]
+/// #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
 /// struct Identifier(String);
 /// ```
 #[proc_macro_attribute]
@@ -244,8 +244,8 @@ pub fn word(
     item
 }
 
-/// Mark a module to be analyzed for a Rust Sitter grammar. Takes a single, unnamed argument, which
-/// specifies the name of the grammar. This name must be unique across all Rust Sitter grammars within
+/// Mark a module to be analyzed for a Adze grammar. Takes a single, unnamed argument, which
+/// specifies the name of the grammar. This name must be unique across all Adze grammars within
 /// a compilation unit.
 #[proc_macro_attribute]
 pub fn grammar(
@@ -255,7 +255,7 @@ pub fn grammar(
     let attr_tokens: proc_macro2::TokenStream = attr.into();
     let module: ItemMod = parse_macro_input!(input);
     let expanded = expand_grammar(syn::parse_quote! {
-        #[rust_sitter::grammar[#attr_tokens]]
+        #[adze::grammar[#attr_tokens]]
         #module
     })
     .map(ToTokens::into_token_stream)
@@ -302,12 +302,12 @@ mod tests {
     fn enum_transformed_fields() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub enum Expression {
                         Number(
-                            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse::<i32>().unwrap())]
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse::<i32>().unwrap())]
                             i32
                         ),
                     }
@@ -324,16 +324,16 @@ mod tests {
     fn enum_recursive() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub enum Expression {
                         Number(
-                            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                             i32
                         ),
                         Neg(
-                            #[rust_sitter::leaf(text = "-")]
+                            #[adze::leaf(text = "-")]
                             (),
                             Box<Expression>
                         ),
@@ -351,18 +351,18 @@ mod tests {
     fn enum_prec_left() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub enum Expression {
                         Number(
-                            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                             i32
                         ),
-                        #[rust_sitter::prec_left(1)]
+                        #[adze::prec_left(1)]
                         Sub(
                             Box<Expression>,
-                            #[rust_sitter::leaf(text = "-")]
+                            #[adze::leaf(text = "-")]
                             (),
                             Box<Expression>
                         ),
@@ -380,18 +380,18 @@ mod tests {
     fn struct_extra() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub enum Expression {
                         Number(
-                            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32,
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32,
                         ),
                     }
 
-                    #[rust_sitter::extra]
+                    #[adze::extra]
                     struct Whitespace {
-                        #[rust_sitter::leaf(pattern = r"\s")]
+                        #[adze::leaf(pattern = r"\s")]
                         _whitespace: (),
                     }
                 }
@@ -407,16 +407,16 @@ mod tests {
     fn grammar_unboxed_field() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub struct Language {
                         e: Expression,
                     }
 
                     pub enum Expression {
                         Number(
-                            #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                            #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                             i32
                         ),
                     }
@@ -433,21 +433,21 @@ mod tests {
     fn struct_repeat() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub struct NumberList {
                         numbers: Vec<Number>,
                     }
 
                     pub struct Number {
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                         v: i32
                     }
 
-                    #[rust_sitter::extra]
+                    #[adze::extra]
                     struct Whitespace {
-                        #[rust_sitter::leaf(pattern = r"\s")]
+                        #[adze::leaf(pattern = r"\s")]
                         _whitespace: (),
                     }
                 }
@@ -463,17 +463,17 @@ mod tests {
     fn struct_optional() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub struct Language {
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                         v: Option<i32>,
                         t: Option<Number>,
                     }
 
                     pub struct Number {
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                         v: i32
                     }
                 }
@@ -489,17 +489,17 @@ mod tests {
     fn enum_with_unamed_vector() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
                     pub struct Number {
-                            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                             value: u32
                     }
 
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub enum Expr {
                         Numbers(
-                            #[rust_sitter::repeat(non_empty = true)]
+                            #[adze::repeat(non_empty = true)]
                             Vec<Number>
                         )
                     }
@@ -516,16 +516,16 @@ mod tests {
     fn enum_with_named_field() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub enum Expr {
                         Number(
-                                #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                                #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                                 u32
                         ),
                         Neg {
-                            #[rust_sitter::leaf(text = "!")]
+                            #[adze::leaf(text = "!")]
                             _bang: (),
                             value: Box<Expr>,
                         }
@@ -543,23 +543,23 @@ mod tests {
     fn spanned_in_vec() -> Result<()> {
         insta::assert_snapshot!(rustfmt_code(
             &expand_grammar(parse_quote! {
-                #[rust_sitter::grammar("test")]
+                #[adze::grammar("test")]
                 mod grammar {
-                    use rust_sitter::Spanned;
+                    use adze::Spanned;
 
-                    #[rust_sitter::language]
+                    #[adze::language]
                     pub struct NumberList {
                         numbers: Vec<Spanned<Number>>,
                     }
 
                     pub struct Number {
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                         v: i32
                     }
 
-                    #[rust_sitter::extra]
+                    #[adze::extra]
                     struct Whitespace {
-                        #[rust_sitter::leaf(pattern = r"\s")]
+                        #[adze::leaf(pattern = r"\s")]
                         _whitespace: (),
                     }
                 }

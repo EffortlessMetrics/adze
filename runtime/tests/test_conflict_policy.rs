@@ -5,10 +5,10 @@
 
 mod support;
 
-use rust_sitter::decoder;
-use rust_sitter::ts_format::choose_action as ts_choose;
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::StateId;
+use adze::decoder;
+use adze::ts_format::choose_action as ts_choose;
+use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use adze_ir::StateId;
 
 #[test]
 fn shift_wins_sr_conflict_raw_table() {
@@ -271,7 +271,7 @@ fn conflict_policy_consistency() {
 #[test]
 fn test_chooser_policy_matches_encoder() {
     // Verify that the ts_choose function used in tests matches the encoder's behavior
-    use rust_sitter_ir::RuleId;
+    use adze_ir::RuleId;
 
     // Test SR conflict: Shift should win
     let sr_cell = vec![Action::Shift(StateId(5)), Action::Reduce(RuleId(2))];

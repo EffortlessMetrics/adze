@@ -227,10 +227,8 @@ pub fn download_grammar(test: &GrammarTest, target_dir: &Path) -> Result<PathBuf
 }
 
 pub fn test_grammar(test: &GrammarTest, grammar_dir: &Path) -> Result<TestResult> {
-    use rust_sitter_tool::grammar_js::{
-        GrammarJsConverter, GrammarJsParserV3, parse_grammar_js_v2,
-    };
-    use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+    use adze_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3, parse_grammar_js_v2};
+    use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 
     let mut result = TestResult {
         grammar: test.name.clone(),
@@ -449,8 +447,8 @@ fn generate_report(results: &[TestResult]) -> Result<()> {
 }
 
 pub fn test_pure_rust(_sh: &Shell, grammar: crate::Grammar, verbose: bool) -> Result<()> {
-    use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
-    use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+    use adze_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
+    use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 
     println!(
         "Testing {} grammar with pure-Rust backend...\n",

@@ -1,19 +1,19 @@
-# GLR Positioning: rust-sitter vs Other Parser Tools
+# GLR Positioning: adze vs Other Parser Tools
 
 **Version**: 1.0.0
 **Date**: 2025-11-20
-**Purpose**: Compare rust-sitter's GLR implementation against alternative parser tools
+**Purpose**: Compare adze's GLR implementation against alternative parser tools
 **Audience**: Technical decision-makers evaluating parser infrastructure
 
 ---
 
 ## Executive Summary
 
-rust-sitter provides a **Rust-native GLR parser with artifact-driven deployment** using modern governance practices (BDD, TDD, contract-first, Infrastructure-as-Code). This document positions rust-sitter against common alternatives and clarifies when to use each tool.
+adze provides a **Rust-native GLR parser with artifact-driven deployment** using modern governance practices (BDD, TDD, contract-first, Infrastructure-as-Code). This document positions adze against common alternatives and clarifies when to use each tool.
 
-### When to Choose rust-sitter
+### When to Choose adze
 
-Use rust-sitter when you need:
+Use adze when you need:
 - ✅ **GLR semantics** for ambiguous grammars
 - ✅ **Artifact-driven deployment** (`.parsetable` as deployable binary artifacts)
 - ✅ **Governance-first infrastructure** (contracts, ADRs, BDD specs, audit trails)
@@ -31,7 +31,7 @@ Use rust-sitter when you need:
 
 ## Comparison Matrix
 
-| Feature | rust-sitter GLR | Tree-sitter | LALRPOP | pest | nom |
+| Feature | adze GLR | Tree-sitter | LALRPOP | pest | nom |
 |---------|----------------|-------------|---------|------|-----|
 | **Ambiguous Grammars** | ✅ GLR preserves conflicts | ❌ Must resolve at design time | ❌ LR(1) only | ⚠️ PEG ordered choice | ✅ Manual handling |
 | **Artifact Story** | ✅ `.parsetable` binary format | ⚠️ C parser + JSON | ❌ Codegen | ❌ Codegen | ❌ Codegen |
@@ -48,19 +48,19 @@ Use rust-sitter when you need:
 
 ## Detailed Comparisons
 
-### 1. rust-sitter GLR vs Tree-sitter
+### 1. adze GLR vs Tree-sitter
 
 **Tree-sitter** is the industry standard for incremental parsing in editors, with a mature C implementation, extensive grammar ecosystem, and strong LSP integration.
 
-#### Where rust-sitter is Stronger
+#### Where adze is Stronger
 
 **GLR Semantics**
-- **rust-sitter**: Preserves all conflicting actions in multi-action cells; can explore multiple parse paths
+- **adze**: Preserves all conflicting actions in multi-action cells; can explore multiple parse paths
 - **Tree-sitter**: Requires conflict resolution at grammar design time; cannot handle true ambiguity
 - **Use Case**: Parsing inherently ambiguous languages (e.g., C++ templates, dangling-else constructs)
 
 **Artifact-Driven Architecture**
-- **rust-sitter**: `.parsetable` files are versioned, hashed, and deployable as standalone artifacts
+- **adze**: `.parsetable` files are versioned, hashed, and deployable as standalone artifacts
   - Build: `grammar → ParseTable IR → .parsetable (bincode)`
   - Runtime: `Parser::load_glr_table_from_bytes()`
   - Benefit: Reproducible builds, auditable parsing infrastructure
@@ -68,14 +68,14 @@ Use rust-sitter when you need:
 - **Use Case**: Multi-tenant systems, compliance-heavy environments, CI/CD with artifact provenance
 
 **Governance & Contracts**
-- **rust-sitter**: BDD specs, ADRs, completion contracts, performance baselines with CI gates
+- **adze**: BDD specs, ADRs, completion contracts, performance baselines with CI gates
   - Example: `GLR_V1_COMPLETION_CONTRACT.md` defines all acceptance criteria
   - Example: `PERFORMANCE_BASELINE.md` documents thresholds with automated regression tests
 - **Tree-sitter**: Well-tested but no formal contract documents
 - **Use Case**: Regulated industries, security-critical systems, audit requirements
 
 **Pure Rust + WASM**
-- **rust-sitter**: Zero C dependencies, first-class WASM support
+- **adze**: Zero C dependencies, first-class WASM support
 - **Tree-sitter**: C core with Rust bindings; WASM support limited
 - **Use Case**: Browser-based parsing, sandboxed environments, Rust-only stacks
 
@@ -83,23 +83,23 @@ Use rust-sitter when you need:
 
 **Incremental Parsing**
 - **Tree-sitter**: Battle-tested incremental reparsing, fundamental to design
-- **rust-sitter**: Planned for v0.7.0, not yet implemented
+- **adze**: Planned for v0.7.0, not yet implemented
 - **Impact**: Tree-sitter is orders of magnitude faster for editor use cases
 
 **Editor Integration**
 - **Tree-sitter**: Neovim, Emacs, VS Code, and many more; syntax highlighting, folding, selections
-- **rust-sitter**: Planned for v1.0
+- **adze**: Planned for v1.0
 - **Impact**: Use Tree-sitter if editor integration is needed today
 
 **Grammar Ecosystem**
 - **Tree-sitter**: 50+ maintained grammars (Python, JavaScript, Rust, Go, etc.)
-- **rust-sitter**: Small set of proof-of-concept grammars
+- **adze**: Small set of proof-of-concept grammars
 - **Impact**: Tree-sitter has a large head start on grammar availability
 
 **Maturity & Performance**
 - **Tree-sitter**: Years of production use, highly optimized C implementation
-- **rust-sitter**: Beta quality (v0.6.1), baseline performance (not yet optimized)
-- **Impact**: Tree-sitter is proven at scale; rust-sitter is emerging infrastructure
+- **adze**: Beta quality (v0.6.1), baseline performance (not yet optimized)
+- **Impact**: Tree-sitter is proven at scale; adze is emerging infrastructure
 
 #### Recommendation
 
@@ -107,33 +107,33 @@ Use rust-sitter when you need:
 |----------|--------|
 | Editor integration needed **today** | **Tree-sitter** |
 | Incremental parsing critical | **Tree-sitter** |
-| Need governance/contracts/BDD | **rust-sitter** |
-| Artifact-driven deployment | **rust-sitter** |
-| GLR ambiguity handling | **rust-sitter** |
-| Pure Rust/WASM required | **rust-sitter** |
-| Multi-grammar runtime loading | **rust-sitter** |
+| Need governance/contracts/BDD | **adze** |
+| Artifact-driven deployment | **adze** |
+| GLR ambiguity handling | **adze** |
+| Pure Rust/WASM required | **adze** |
+| Multi-grammar runtime loading | **adze** |
 
-**Summary**: Tree-sitter wins on maturity and editor story; rust-sitter wins on governance, GLR semantics, and artifact infrastructure.
+**Summary**: Tree-sitter wins on maturity and editor story; adze wins on governance, GLR semantics, and artifact infrastructure.
 
 ---
 
-### 2. rust-sitter GLR vs LALRPOP
+### 2. adze GLR vs LALRPOP
 
 **LALRPOP** is a Rust LR(1) parser generator with clean syntax and good error messages.
 
 #### Semantic Differences
 
 **Ambiguity Handling**
-- **rust-sitter**: GLR multi-action cells preserve all conflicting actions; runtime explores multiple paths
+- **adze**: GLR multi-action cells preserve all conflicting actions; runtime explores multiple paths
 - **LALRPOP**: LR(1) requires conflict resolution at grammar design time; shift/reduce conflicts are errors
-- **Impact**: LALRPOP cannot handle inherently ambiguous grammars; rust-sitter can
+- **Impact**: LALRPOP cannot handle inherently ambiguous grammars; adze can
 
 **Artifact vs Codegen**
-- **rust-sitter**: Emits `.parsetable` binary artifacts; runtime loads them dynamically
+- **adze**: Emits `.parsetable` binary artifacts; runtime loads them dynamically
 - **LALRPOP**: Generates Rust code at build time; one grammar = one compiled crate
-- **Impact**: rust-sitter supports runtime grammar selection; LALRPOP requires recompilation
+- **Impact**: adze supports runtime grammar selection; LALRPOP requires recompilation
 
-#### Where rust-sitter is Stronger
+#### Where adze is Stronger
 
 1. **Multi-Grammar Systems**: Load different grammars at runtime without recompiling
 2. **Ambiguous Grammars**: Handle dangling-else, expression grammars with multiple valid parses
@@ -150,15 +150,15 @@ Use rust-sitter when you need:
 | Scenario | Choose |
 |----------|--------|
 | Building a few simple DSLs | **LALRPOP** |
-| Need ambiguous grammar support | **rust-sitter** |
-| Want runtime grammar loading | **rust-sitter** |
+| Need ambiguous grammar support | **adze** |
+| Want runtime grammar loading | **adze** |
 | Prefer codegen simplicity | **LALRPOP** |
 
-**Summary**: LALRPOP is simpler for deterministic grammars; rust-sitter is more powerful for ambiguous grammars and multi-grammar systems.
+**Summary**: LALRPOP is simpler for deterministic grammars; adze is more powerful for ambiguous grammars and multi-grammar systems.
 
 ---
 
-### 3. rust-sitter GLR vs pest
+### 3. adze GLR vs pest
 
 **pest** is a PEG (Parsing Expression Grammar) parser with clean syntax and good ergonomics.
 
@@ -166,7 +166,7 @@ Use rust-sitter when you need:
 
 **PEG vs GLR**
 - **pest**: Ordered choice (`/`) tries alternatives sequentially; first match wins
-- **rust-sitter**: GLR explores all valid parses; can expose parse forests
+- **adze**: GLR explores all valid parses; can expose parse forests
 - **Impact**: For ambiguous inputs, PEG gives one parse (by ordering); GLR can give all valid parses
 
 **Example: Ambiguous Expression**
@@ -184,7 +184,7 @@ GLR:
   With precedence: Select Add(a, Mul(b, c)) as primary
 ```
 
-#### Where rust-sitter is Stronger
+#### Where adze is Stronger
 
 1. **True Ambiguity Handling**: GLR preserves all parses; PEG hides alternatives
 2. **Governance**: BDD specs, contracts, CI gates (pest has none)
@@ -204,29 +204,29 @@ GLR:
 |----------|--------|
 | Building DSLs with simple grammars | **pest** |
 | Need ordered choice semantics | **pest** |
-| Need all valid parses (ambiguity) | **rust-sitter** |
-| Governance/compliance requirements | **rust-sitter** |
-| Artifact-driven deployment | **rust-sitter** |
+| Need all valid parses (ambiguity) | **adze** |
+| Governance/compliance requirements | **adze** |
+| Artifact-driven deployment | **adze** |
 
-**Summary**: pest is lightweight and developer-friendly; rust-sitter is heavier but handles ambiguity and governance needs.
+**Summary**: pest is lightweight and developer-friendly; adze is heavier but handles ambiguity and governance needs.
 
 ---
 
-### 4. rust-sitter GLR vs nom
+### 4. adze GLR vs nom
 
 **nom** is a parser combinator library where parsers are hand-written Rust functions.
 
 #### Architectural Differences
 
 **Declarative vs Combinators**
-- **rust-sitter**: Grammars defined in IR, compiled to parse tables, loaded by runtime
+- **adze**: Grammars defined in IR, compiled to parse tables, loaded by runtime
 - **nom**: Parsers are Rust functions composed with combinators (`alt`, `many`, `tag`, etc.)
 
 **Separation of Concerns**
-- **rust-sitter**: Grammar (data) vs Runtime (code) cleanly separated
+- **adze**: Grammar (data) vs Runtime (code) cleanly separated
 - **nom**: Grammar and parsing logic mixed in Rust code
 
-#### Where rust-sitter is Stronger
+#### Where adze is Stronger
 
 1. **Governance**: Grammars as inspectable, versioned artifacts vs Rust code
 2. **Audit Trail**: SHA256 hashes of tables, BDD specs, contract compliance
@@ -246,17 +246,17 @@ GLR:
 |----------|--------|
 | Maximum performance needed | **nom** |
 | Need full control over parsing | **nom** |
-| Governance/audit requirements | **rust-sitter** |
-| Non-programmers write grammars | **rust-sitter** |
-| GLR semantics for ambiguity | **rust-sitter** |
+| Governance/audit requirements | **adze** |
+| Non-programmers write grammars | **adze** |
+| GLR semantics for ambiguity | **adze** |
 
-**Summary**: nom is for performance and control; rust-sitter is for governance and GLR semantics as infrastructure.
+**Summary**: nom is for performance and control; adze is for governance and GLR semantics as infrastructure.
 
 ---
 
-## The rust-sitter Unique Value Proposition
+## The adze Unique Value Proposition
 
-Across all comparisons, rust-sitter's unique positioning is:
+Across all comparisons, adze's unique positioning is:
 
 > **Parser infrastructure for governed environments where provenance, reproducibility, and GLR semantics matter more than raw performance or maturity.**
 
@@ -305,7 +305,7 @@ Across all comparisons, rust-sitter's unique positioning is:
 
 ## Roadmap: Closing Gaps
 
-rust-sitter is **intentionally beta** to establish governance before scaling. Here's how gaps close:
+adze is **intentionally beta** to establish governance before scaling. Here's how gaps close:
 
 ### v0.7.0 (March 2026)
 - ✅ Incremental parsing (Tree-sitter parity feature)
@@ -334,7 +334,7 @@ Use this flowchart to choose the right tool:
 
 ```
 Do you need GLR semantics (ambiguous grammars)?
-├─ Yes → rust-sitter or nom (if you want manual control)
+├─ Yes → adze or nom (if you want manual control)
 └─ No → Continue...
 
 Do you need editor integration TODAY?
@@ -342,11 +342,11 @@ Do you need editor integration TODAY?
 └─ No → Continue...
 
 Do you need governance/contracts/audit trails?
-├─ Yes → rust-sitter
+├─ Yes → adze
 └─ No → Continue...
 
 Do you need runtime grammar loading?
-├─ Yes → rust-sitter
+├─ Yes → adze
 └─ No → Continue...
 
 Is this a single simple DSL?
@@ -358,22 +358,22 @@ Do you need maximum performance?
 └─ No → Continue...
 
 Default recommendation: Start with pest or LALRPOP for simplicity;
-graduate to rust-sitter when governance/GLR becomes critical.
+graduate to adze when governance/GLR becomes critical.
 ```
 
 ---
 
 ## Performance Comparison (Preliminary)
 
-**Note**: rust-sitter is at baseline performance (not yet optimized). These numbers will improve significantly with planned optimizations.
+**Note**: adze is at baseline performance (not yet optimized). These numbers will improve significantly with planned optimizations.
 
 ### Current Benchmarks (v0.6.1-beta)
 
-| Operation | rust-sitter GLR | Tree-sitter (est.) | Notes |
+| Operation | adze GLR | Tree-sitter (est.) | Notes |
 |-----------|----------------|-------------------|-------|
-| Python 1000 lines | 62.4 µs (~16K lines/sec) | ~50-100K lines/sec (est.) | rust-sitter: baseline, not optimized |
-| GLR fork operation | 73 ns | N/A (no GLR) | rust-sitter: sub-microsecond fork |
-| Expression parsing (100 ops) | 11 ns | ~5-10 ns (est.) | rust-sitter: very competitive |
+| Python 1000 lines | 62.4 µs (~16K lines/sec) | ~50-100K lines/sec (est.) | adze: baseline, not optimized |
+| GLR fork operation | 73 ns | N/A (no GLR) | adze: sub-microsecond fork |
+| Expression parsing (100 ops) | 11 ns | ~5-10 ns (est.) | adze: very competitive |
 | Memory (Python grammar) | Comparable | Comparable | Similar algorithms |
 
 **Planned Optimizations** (v0.7.0):
@@ -395,7 +395,7 @@ graduate to rust-sitter when governance/GLR becomes critical.
 - **pest**: https://pest.rs/
 - **nom**: https://github.com/rust-bakery/nom
 
-### rust-sitter Documentation
+### adze Documentation
 
 - **Performance Baseline**: [docs/PERFORMANCE_BASELINE.md](../PERFORMANCE_BASELINE.md)
 - **GLR Completion Contract**: [docs/specs/GLR_V1_COMPLETION_CONTRACT.md](./GLR_V1_COMPLETION_CONTRACT.md)
@@ -414,7 +414,7 @@ graduate to rust-sitter when governance/GLR becomes critical.
 **Document Status**: ✅ COMPLETE
 **Last Updated**: 2025-11-20
 **Next Review**: After v0.7.0 release (March 2026)
-**Owner**: rust-sitter core team
+**Owner**: adze core team
 
 ---
 

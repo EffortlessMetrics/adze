@@ -52,7 +52,7 @@ New commands for the development workflow:
 ## Architecture Overview
 
 ```
-rust-sitter/
+adze/
 ├── tool/
 │   └── src/
 │       └── grammar_js/        # Grammar.js parsing

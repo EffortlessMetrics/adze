@@ -11,13 +11,13 @@ The most significant change is switching from `runtime` to `runtime2` with GLR i
 **Before (runtime):**
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5", features = ["runtime"] }
+adze = { version = "0.5", features = ["runtime"] }
 ```
 
 **After (runtime2):**
 ```toml
 [dependencies]
-rust-sitter-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
 ```
 
 This change provides:
@@ -32,7 +32,7 @@ The parser instantiation and usage pattern has evolved:
 
 **Before (runtime):**
 ```rust
-use rust_sitter::Parser;
+use adze::Parser;
 
 let parser = Parser::new();
 let result = parser.parse(input)?;
@@ -40,7 +40,7 @@ let result = parser.parse(input)?;
 
 **After (runtime2):**
 ```rust
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 let mut parser = Parser::new();
 parser.set_language(glr_language)?;  // GLR language with parse table
@@ -100,7 +100,7 @@ Example of GLR conflict handling:
 
 ```rust
 // Grammar with shift/reduce conflicts (e.g., empty production)
-#[rust_sitter::language]
+#[adze::language]
 struct Module {
     statements: Vec<Statement>, // REPEAT(_statement) creates conflict
 }
@@ -116,7 +116,7 @@ Runtime2 uses a comprehensive feature flag system:
 
 ```toml
 [dependencies]
-rust-sitter-runtime = { version = "0.1", features = [
+adze-runtime = { version = "0.1", features = [
     "glr-core",          # GLR parsing engine (default)
     "incremental",       # Incremental parsing support
     "arenas",           # Arena allocators for performance
@@ -134,13 +134,13 @@ Change your `Cargo.toml` to use runtime2:
 ```toml
 [dependencies]
 # Remove old runtime
-# rust-sitter = "0.5"
+# adze = "0.5"
 
 # Add GLR runtime
-rust-sitter-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
 
 [build-dependencies]
-rust-sitter-tool = "0.6"  # Ensure build tool compatibility
+adze-tool = "0.6"  # Ensure build tool compatibility
 ```
 
 ### 2. Update Build Configuration
@@ -149,7 +149,7 @@ Ensure your `build.rs` uses the latest tool:
 
 ```rust
 fn main() {
-    rust_sitter_tool::build_parsers().unwrap();
+    adze_tool::build_parsers().unwrap();
 }
 ```
 
@@ -162,7 +162,7 @@ let result = grammar::parse(input)?;
 
 **After:**
 ```rust
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 let mut parser = Parser::new();
 parser.set_language(grammar::language())?;
@@ -173,7 +173,7 @@ let result = grammar::extract_ast(&tree)?;
 ### 4. Enable Performance Monitoring (Optional)
 
 ```bash
-RUST_SITTER_LOG_PERFORMANCE=true cargo run
+ADZE_LOG_PERFORMANCE=true cargo run
 ```
 
 ### 5. Test Incremental Parsing
@@ -193,19 +193,19 @@ let language = grammar::language();  // Must have parse_table: Some(...)
 ```
 
 ### Issue: "Language has no tokenizer"
-**Solution**: The generated GLR language needs a tokenizer. This is automatically provided by `rust-sitter-tool`.
+**Solution**: The generated GLR language needs a tokenizer. This is automatically provided by `adze-tool`.
 
 ### Issue: "GLR core feature not enabled"
 **Solution**: Add the `glr-core` feature to your dependencies:
 ```toml
-rust-sitter-runtime = { version = "0.1", features = ["glr-core"] }
+adze-runtime = { version = "0.1", features = ["glr-core"] }
 ```
 
 ### Issue: Performance issues with large inputs
 **Solution**: 
 1. Enable arena allocators: `features = ["arenas")`
 2. Use incremental parsing for repeated edits
-3. Monitor performance with `RUST_SITTER_LOG_PERFORMANCE=true`
+3. Monitor performance with `ADZE_LOG_PERFORMANCE=true`
 
 ## New Features to Explore
 

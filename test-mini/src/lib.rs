@@ -1,11 +1,11 @@
 #![allow(clippy::empty_line_after_outer_attr, clippy::unnecessary_cast)]
 
-#[rust_sitter::grammar("mini")]
+#[adze::grammar("mini")]
 pub mod grammar {
     #[derive(Debug)]
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {
-        #[rust_sitter::leaf(pattern = r"\d+", text = true)]
+        #[adze::leaf(pattern = r"\d+", text = true)]
         pub number: String,
     }
 }

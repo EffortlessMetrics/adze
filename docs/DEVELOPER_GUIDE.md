@@ -1,4 +1,4 @@
-# Developer Guide - rust-sitter
+# Developer Guide - adze
 
 ## Prerequisites
 
@@ -43,22 +43,22 @@ cargo build --workspace --release
 ### Strict Checks
 ```bash
 # Enable strict API and documentation checks
-cargo check -p rust-sitter --features "strict_docs strict_api"
+cargo check -p adze --features "strict_docs strict_api"
 
 # Run with all strict features
-cargo test -p rust-sitter --features "strict_docs strict_api"
+cargo test -p adze --features "strict_docs strict_api"
 ```
 
 ### Feature Testing
 ```bash
 # Test ts-compat with pure-rust backend
-cargo test -p rust-sitter --features "ts-compat pure-rust"
+cargo test -p adze --features "ts-compat pure-rust"
 
 # Test incremental GLR feature
 cargo test --workspace --features incremental_glr
 
 # Test feature powerset (comprehensive)
-cargo hack test -p rust-sitter --feature-powerset
+cargo hack test -p adze --feature-powerset
 ```
 
 ### GLR Development Workflow
@@ -67,7 +67,7 @@ cargo hack test -p rust-sitter --feature-powerset
 cd runtime2 && cargo test --features glr-core
 
 # Test GLR with incremental parsing
-cargo test -p rust-sitter-runtime --features incremental_glr
+cargo test -p adze-runtime --features incremental_glr
 
 # Test all GLR feature combinations
 cargo test --features "glr-core,incremental" --workspace
@@ -76,7 +76,7 @@ cargo test --features "glr-core,incremental" --workspace
 cd runtime2 && cargo test glr_parse
 
 # Test incremental parsing with performance monitoring  
-RUST_SITTER_LOG_PERFORMANCE=true cargo test -p rust-sitter-runtime test_incremental
+ADZE_LOG_PERFORMANCE=true cargo test -p adze-runtime test_incremental
 
 # Run GLR stress tests (if available) 
 cd runtime2 && cargo test --release --features glr-core -- --ignored
@@ -85,13 +85,13 @@ cd runtime2 && cargo test --release --features glr-core -- --ignored
 ### Performance Testing & Monitoring
 ```bash
 # Enable performance logging during tests
-export RUST_SITTER_LOG_PERFORMANCE=true
+export ADZE_LOG_PERFORMANCE=true
 
 # Use capped testing for consistent benchmarks
 cargo test-safe --features incremental_glr
 
 # Monitor subtree reuse during incremental parsing
-cargo test -p rust-sitter-runtime test_incremental_parsing_reuse_counter -- --nocapture
+cargo test -p adze-runtime test_incremental_parsing_reuse_counter -- --nocapture
 
 # Run performance regression tests
 cargo bench --features incremental_glr -- incremental
@@ -103,22 +103,22 @@ RUST_TEST_THREADS=2 RAYON_NUM_THREADS=4 cargo test --workspace
 ### Benchmarks (Unstable)
 ```bash
 # Build benchmarks without running (faster)
-cargo bench -p rust-sitter --features unstable-benches --no-run
+cargo bench -p adze --features unstable-benches --no-run
 
 # Run benchmarks
-cargo bench -p rust-sitter --features unstable-benches
+cargo bench -p adze --features unstable-benches
 ```
 
 ### API Stability Checks
 ```bash
 # Check for breaking changes locally (against baseline tag)
-cargo semver-checks check-release -p rust-sitter --baseline-rev v0.8.0-dev.api-freeze-1
+cargo semver-checks check-release -p adze --baseline-rev v0.8.0-dev.api-freeze-1
 
 # Generate public API report
-cargo public-api -p rust-sitter > public-api.txt
+cargo public-api -p adze > public-api.txt
 
 # Check API diff
-cargo public-api --diff-git-checks origin/main...HEAD -p rust-sitter
+cargo public-api --diff-git-checks origin/main...HEAD -p adze
 ```
 
 ### Code Quality
@@ -139,14 +139,14 @@ cargo deny check advisories
 ### Grammar Development
 ```bash
 # Build a specific grammar
-cargo build -p rust-sitter-python
+cargo build -p adze-python
 
 # Test a grammar with snapshot tests
-cargo test -p rust-sitter-example
+cargo test -p adze-example
 cargo insta review  # Review snapshot changes
 
 # Build with debug artifacts
-RUST_SITTER_EMIT_ARTIFACTS=true cargo build -p rust-sitter-example
+ADZE_EMIT_ARTIFACTS=true cargo build -p adze-example
 # Check artifacts in target/debug/build/<crate>-<hash>/out/
 ```
 
@@ -194,12 +194,12 @@ cargo run -p ts-bridge -- path/to/grammar.so output.json tree_sitter_<lang>
 ## Environment Variables
 
 ### Core Development
-- `RUST_SITTER_EMIT_ARTIFACTS=true` - Output generated grammar files for debugging
+- `ADZE_EMIT_ARTIFACTS=true` - Output generated grammar files for debugging
 - `RUST_LOG=debug` - Enable debug logging
 - `RUST_BACKTRACE=1` - Show backtraces on panic
 
 ### GLR Performance & Monitoring
-- `RUST_SITTER_LOG_PERFORMANCE=true` - Enable detailed GLR forest-to-tree conversion metrics
+- `ADZE_LOG_PERFORMANCE=true` - Enable detailed GLR forest-to-tree conversion metrics
 - `RUST_TEST_THREADS=N` - Control Rust test concurrency (default: 2 for stability)
 - `RAYON_NUM_THREADS=N` - Limit rayon thread pool size (default: 4)
 - `TOKIO_WORKER_THREADS=N` - Control tokio worker thread count (default: 2)
@@ -207,8 +207,8 @@ cargo run -p ts-bridge -- path/to/grammar.so output.json tree_sitter_<lang>
 
 ### Testing & Debugging
 - `TIMEOUT=NNNs` - Set timeout for test scripts (e.g., `TIMEOUT=600s`)
-- `RUST_SITTER_TEST_QUIET=true` - Reduce test output verbosity
-- `RUST_SITTER_DISABLE_REUSE=true` - Disable subtree reuse for debugging
+- `ADZE_TEST_QUIET=true` - Reduce test output verbosity
+- `ADZE_DISABLE_REUSE=true` - Disable subtree reuse for debugging
 
 ## Common Issues & Solutions
 
@@ -226,7 +226,7 @@ mv test.rs.disabled test.rs
 #### Performance Problems
 ```bash
 # Check if performance logging is enabled
-echo $RUST_SITTER_LOG_PERFORMANCE
+echo $ADZE_LOG_PERFORMANCE
 
 # Monitor subtree reuse effectiveness
 cargo test property_incremental_test -- --nocapture | grep -i reuse
@@ -238,10 +238,10 @@ cargo test-safe --features incremental_glr
 #### Incremental Parsing Not Working
 ```bash
 # Verify feature flags are enabled
-cargo test -p rust-sitter-runtime --features incremental_glr --lib
+cargo test -p adze-runtime --features incremental_glr --lib
 
 # Check for forest splicing vs full parse fallbacks
-RUST_SITTER_LOG_PERFORMANCE=true cargo test -p rust-sitter-runtime test_incremental
+ADZE_LOG_PERFORMANCE=true cargo test -p adze-runtime test_incremental
 
 # Test with simplified input to isolate issues
 cargo test glr_incremental_reuse
@@ -276,29 +276,29 @@ cargo build -p example --features pure-rust
 ## Release Checklist
 
 1. [ ] Run full test suite: `cargo test --workspace --all-features`
-2. [ ] Check for breaking changes: `cargo semver-checks check-release -p rust-sitter`
+2. [ ] Check for breaking changes: `cargo semver-checks check-release -p adze`
 3. [ ] Update CHANGELOG.md
 4. [ ] Bump versions in Cargo.toml files
 5. [ ] Create release tag: `git tag v0.8.0`
 6. [ ] Move API baseline tag if needed
 7. [ ] Push tags: `git push --tags`
-8. [ ] Publish to crates.io: `cargo publish -p rust-sitter`
+8. [ ] Publish to crates.io: `cargo publish -p adze`
 
 ## GLR Grammar Normalization Development (v0.6.0)
 
 ### Enhanced SymbolMetadata Testing
 ```bash
 # Test new SymbolMetadata fields and validation
-cargo test -p rust-sitter-ir test_symbol_metadata_complete -- --nocapture
+cargo test -p adze-ir test_symbol_metadata_complete -- --nocapture
 
 # Validate GLR-specific symbol classification
-cargo test -p rust-sitter-glr-core test_symbol_classification
+cargo test -p adze-glr-core test_symbol_classification
 
 # Test is_extra, is_fragile, and is_terminal fields
-cargo test -p rust-sitter test_symbol_metadata_fields
+cargo test -p adze test_symbol_metadata_fields
 
 # Validate symbol_id assignment and uniqueness
-cargo test -p rust-sitter-common test_symbol_id_uniqueness
+cargo test -p adze-common test_symbol_id_uniqueness
 ```
 
 ### Memory Safety Development Practices
@@ -332,11 +332,11 @@ metadata.validate()?; // Comprehensive validation
 
 ## Summary - v0.6.0 Enhancements
 
-This developer guide reflects the major improvements in rust-sitter v0.6.0:
+This developer guide reflects the major improvements in adze v0.6.0:
 
 - **Memory Safety Breakthrough**: Eliminated FFI segmentation faults through comprehensive safety improvements
 - **GLR Grammar Normalization**: Enhanced SymbolMetadata with new fields for complete symbol classification  
 - **Code Quality**: Resolved all clippy warnings and implemented consistent formatting
 - **Test Infrastructure**: Enhanced coverage with 55+ GLR tests, 127+ runtime tests, and comprehensive safety validation
 
-Follow these updated practices for safe, effective development in the rust-sitter ecosystem.
+Follow these updated practices for safe, effective development in the adze ecosystem.

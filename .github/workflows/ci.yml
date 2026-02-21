@@ -138,22 +138,22 @@ jobs:
       - name: Tablegen rustdoc (strict, all features)
         env:
           RUSTDOCFLAGS: --cfg docsrs -D warnings
-        run: cargo doc -p rust-sitter-tablegen --all-features --no-deps --features strict_docs
+        run: cargo doc -p adze-tablegen --all-features --no-deps --features strict_docs
       
       - name: Tablegen doctests (strict)
-        run: cargo test -p rust-sitter-tablegen --doc --features strict_docs
+        run: cargo test -p adze-tablegen --doc --features strict_docs
       
       - name: Clippy (tablegen only, warnings as errors)
-        run: cargo clippy -p rust-sitter-tablegen -- -D warnings
+        run: cargo clippy -p adze-tablegen -- -D warnings
       
       - name: Example (pure-rust) tests
-        run: cargo test -p rust-sitter-example --features pure-rust -- --test-threads=$RUST_TEST_THREADS
+        run: cargo test -p adze-example --features pure-rust -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test tablegen (small-table)
-        run: cargo test -p rust-sitter-tablegen --features "small-table" -- --test-threads=$RUST_TEST_THREADS --nocapture
+        run: cargo test -p adze-tablegen --features "small-table" -- --test-threads=$RUST_TEST_THREADS --nocapture
       
       - name: Compile pure-rust golden tests (no-run)
-        run: cargo test -p rust-sitter --test golden_tests --features pure-rust --no-run
+        run: cargo test -p adze --test golden_tests --features pure-rust --no-run
 
   # Matrix smoke test to prevent feature drift
   matrix-smoke:
@@ -188,18 +188,18 @@ jobs:
         env:
           RUSTFLAGS: '-C debug-assertions'
         run: |
-          cargo test -p rust-sitter-glr-core --lib -- --test-threads=$RUST_TEST_THREADS
-          cargo test -p rust-sitter-glr-core --tests -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p adze-glr-core --lib -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p adze-glr-core --tests -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test runtime with debug assertions
         env:
           RUSTFLAGS: '-C debug-assertions'
-        run: cargo test -p rust-sitter --lib -- --test-threads=$RUST_TEST_THREADS
+        run: cargo test -p adze --lib -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test tablegen with debug assertions
         env:
           RUSTFLAGS: '-C debug-assertions'
-        run: cargo test -p rust-sitter-tablegen --lib -- --test-threads=$RUST_TEST_THREADS
+        run: cargo test -p adze-tablegen --lib -- --test-threads=$RUST_TEST_THREADS
 
   test-release:
     name: Test Release Mode (${{ matrix.features }})
@@ -222,10 +222,10 @@ jobs:
       - name: Run invariant tests with strict-invariants
         if: contains(matrix.features, 'strict-invariants')
         run: |
-          cargo test -p rust-sitter-glr-core --release --features strict-invariants,test-helpers -- --test-threads=$RUST_TEST_THREADS
-          cargo test -p rust-sitter-glr-core --release --test test_eof_fix --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
-          cargo test -p rust-sitter-glr-core --release --test test_eof_column_parity --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
-          cargo test -p rust-sitter-glr-core --release --test test_accept_via_insertion --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p adze-glr-core --release --features strict-invariants,test-helpers -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p adze-glr-core --release --test test_eof_fix --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p adze-glr-core --release --test test_eof_column_parity --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p adze-glr-core --release --test test_accept_via_insertion --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
 
   benchmarks:
     name: Benchmark Compilation
@@ -236,13 +236,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       
       - name: Check glr-core benchmarks compile
-        run: cargo bench -p rust-sitter-glr-core --bench automaton --no-run
+        run: cargo bench -p adze-glr-core --bench automaton --no-run
       
       - name: Check tablegen benchmarks compile
-        run: cargo bench -p rust-sitter-tablegen --bench compression --no-run
+        run: cargo bench -p adze-tablegen --bench compression --no-run
       
       - name: Check incremental benchmarks compile
-        run: cargo bench -p rust-sitter-benchmarks --bench incremental_bench --no-run
+        run: cargo bench -p adze-benchmarks --bench incremental_bench --no-run
 
   backend-matrix:
     name: Backend Build Matrix (${{ matrix.backend }})
@@ -273,16 +273,16 @@ jobs:
         run: cargo check --workspace ${{ matrix.backend.flags }}
       
       - name: Run clippy on runtime with ${{ matrix.backend.name }}
-        run: cargo clippy -p rust-sitter ${{ matrix.backend.flags }} -- -D warnings
+        run: cargo clippy -p adze ${{ matrix.backend.flags }} -- -D warnings
       
       - name: Run clippy on example with ${{ matrix.backend.name }}
-        run: cargo clippy -p rust-sitter-example ${{ matrix.backend.flags }} -- -D warnings
+        run: cargo clippy -p adze-example ${{ matrix.backend.flags }} -- -D warnings
       
       - name: Build example with ${{ matrix.backend.name }}
-        run: cargo build -p rust-sitter-example ${{ matrix.backend.flags }}
+        run: cargo build -p adze-example ${{ matrix.backend.flags }}
       
       - name: Test runtime with ${{ matrix.backend.name }}
-        run: cargo test -p rust-sitter ${{ matrix.backend.flags }} -- --test-threads=$RUST_TEST_THREADS
+        run: cargo test -p adze ${{ matrix.backend.flags }} -- --test-threads=$RUST_TEST_THREADS
 
   miri:
     name: Miri (UB Detection)
@@ -301,15 +301,15 @@ jobs:
         env:
           MIRIFLAGS: "-Zmiri-strict-provenance -Zmiri-symbolic-alignment-check"
         run: |
-          cargo miri test -p rust-sitter --lib
-          cargo miri test -p rust-sitter-glr-core --lib
-          cargo miri test -p rust-sitter-tablegen --lib
+          cargo miri test -p adze --lib
+          cargo miri test -p adze-glr-core --lib
+          cargo miri test -p adze-tablegen --lib
       
       - name: Run Miri on external scanner tests
         env:
           MIRIFLAGS: "-Zmiri-strict-provenance"
         run: |
-          cargo miri test -p rust-sitter --features external_scanners external_scanner_ || true
+          cargo miri test -p adze --features external_scanners external_scanner_ || true
 
   ts-compat:
     name: Tree-sitter Compatibility API
@@ -321,17 +321,17 @@ jobs:
       
       - name: Build with ts-compat feature
         run: |
-          cargo build -p rust-sitter --features "ts-compat pure-rust"
-          cargo build -p rust-sitter-example --features "ts-compat pure-rust"
+          cargo build -p adze --features "ts-compat pure-rust"
+          cargo build -p adze-example --features "ts-compat pure-rust"
       
       - name: Test ts-compat API
-        run: cargo test -p rust-sitter --features "ts-compat pure-rust" --test ts_compat_equiv -- --test-threads=$RUST_TEST_THREADS
+        run: cargo test -p adze --features "ts-compat pure-rust" --test ts_compat_equiv -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test ts-compat golden tests
-        run: cargo test -p rust-sitter --test golden_tests --features ts-compat -- --test-threads=$RUST_TEST_THREADS
+        run: cargo test -p adze --test golden_tests --features ts-compat -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test ts-compat with incremental GLR
-        run: cargo test -p rust-sitter --features "ts-compat pure-rust incremental_glr" --test ts_compat_equiv -- --test-threads=$RUST_TEST_THREADS
+        run: cargo test -p adze --features "ts-compat pure-rust incremental_glr" --test ts_compat_equiv -- --test-threads=$RUST_TEST_THREADS
 
   sanitizers:
     name: Sanitizers (ASAN/UBSAN)
@@ -347,7 +347,7 @@ jobs:
           RUSTDOCFLAGS: "-Zsanitizer=address"
         run: |
           cargo test -Zbuild-std --target x86_64-unknown-linux-gnu \
-            -p rust-sitter --lib --tests
+            -p adze --lib --tests
       
       - name: Run with Undefined Behavior Sanitizer
         env:
@@ -355,7 +355,7 @@ jobs:
           RUSTDOCFLAGS: "-Zsanitizer=undefined"
         run: |
           cargo test -Zbuild-std --target x86_64-unknown-linux-gnu \
-            -p rust-sitter --lib --tests
+            -p adze --lib --tests
 
   minimal-versions:
     name: Minimal Versions
@@ -386,29 +386,29 @@ jobs:
       - name: Install cargo-semver-checks
         run: cargo install cargo-semver-checks --locked
       
-      - name: Check for breaking changes in rust-sitter
+      - name: Check for breaking changes in adze
         run: |
           cargo semver-checks check-release \
-            -p rust-sitter \
+            -p adze \
             --baseline-rev v0.8.0-dev.api-freeze-1
       
       - name: Check for breaking changes in macro
         run: |
           cargo semver-checks check-release \
-            -p rust-sitter-macro \
+            -p adze-macro \
             --baseline-rev v0.8.0-dev.api-freeze-1
       
       - name: Check for breaking changes in tool
         run: |
           cargo semver-checks check-release \
-            -p rust-sitter-tool \
+            -p adze-tool \
             --baseline-rev v0.8.0-dev.api-freeze-1
       
       - name: Public API diff (heads-up only)
         continue-on-error: true
         run: |
           cargo install cargo-public-api || true
-          cargo public-api -p rust-sitter > public-api.new.txt
+          cargo public-api -p adze > public-api.new.txt
           git show v0.8.0-dev.api-freeze-1:public-api.txt > public-api.old.txt || echo "No baseline API file yet" > public-api.old.txt
           diff -u public-api.old.txt public-api.new.txt > api-diff.txt || true
           echo "API Diff Summary:" >> $GITHUB_STEP_SUMMARY
@@ -437,10 +437,10 @@ jobs:
       - name: Check codegen determinism
         run: |
           # Build twice and compare outputs
-          cargo build -p rust-sitter-example --release
+          cargo build -p adze-example --release
           cp -r target/release target/release1
           cargo clean
-          cargo build -p rust-sitter-example --release
+          cargo build -p adze-example --release
           
           # Compare generated artifacts
           if ! diff -r target/release1 target/release > /dev/null 2>&1; then
@@ -461,9 +461,9 @@ jobs:
         with:
           tool: cargo-hack
       
-      - name: Test feature powerset (rust-sitter)
+      - name: Test feature powerset (adze)
         run: |
-          cargo hack test -p rust-sitter --feature-powerset \
+          cargo hack test -p adze --feature-powerset \
             --exclude-features default \
             --skip tree-sitter-standard \
             --lib --tests
@@ -473,7 +473,7 @@ jobs:
       
       - name: Test experimental examples (opt-in)
         if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[test-examples]') }}
-        run: cargo test -p rust-sitter --examples --features experimental_examples -- --test-threads=$RUST_TEST_THREADS
+        run: cargo test -p adze --examples --features experimental_examples -- --test-threads=$RUST_TEST_THREADS
 
   msrv:
     name: MSRV (1.89.0)
@@ -502,19 +502,19 @@ jobs:
           cargo install cargo-public-api --locked
           cargo install cargo-semver-checks --locked
       
-      - name: Public API diff (rust-sitter)
+      - name: Public API diff (adze)
         continue-on-error: true
         run: |
           git fetch origin ${{ github.base_ref }}
           cargo public-api --diff-git-checks origin/${{ github.base_ref }}...HEAD \
-            -p rust-sitter --deny-changes
+            -p adze --deny-changes
       
       - name: SemVer checks (public crates)
         continue-on-error: true
         run: |
-          cargo semver-checks check-release -p rust-sitter || true
-          cargo semver-checks check-release -p rust-sitter-ir || true
-          cargo semver-checks check-release -p rust-sitter-glr-core || true
+          cargo semver-checks check-release -p adze || true
+          cargo semver-checks check-release -p adze-ir || true
+          cargo semver-checks check-release -p adze-glr-core || true
 
   security:
     name: Security & Supply Chain
@@ -550,9 +550,9 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --workspace --no-deps --all-features
 
-  # Dedicated rust-sitter-python job to prevent timeouts
-  rust-sitter-python:
-    name: rust-sitter-python (Optimized Build)
+  # Dedicated adze-python job to prevent timeouts
+  adze-python:
+    name: adze-python (Optimized Build)
     runs-on: ubuntu-22.04
     timeout-minutes: 45
     env:
@@ -567,14 +567,14 @@ jobs:
         with:
           workspaces: |
             grammars/python -> target
-      - name: Build rust-sitter-python
-        run: cargo build -p rust-sitter-python --locked --jobs 2
+      - name: Build adze-python
+        run: cargo build -p adze-python --locked --jobs 2
       - name: Compile tests (no run)
-        run: cargo test -p rust-sitter-python --locked --no-run --jobs 2
+        run: cargo test -p adze-python --locked --no-run --jobs 2
       - name: Run tests
-        run: cargo test -p rust-sitter-python -- --test-threads 1 --nocapture
+        run: cargo test -p adze-python -- --test-threads 1 --nocapture
       - name: Capture cargo timings
-        run: cargo build -p rust-sitter-python --timings && ls -R target/cargo-timings || true
+        run: cargo build -p adze-python --timings && ls -R target/cargo-timings || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -610,16 +610,16 @@ jobs:
       - name: Build for ${{ matrix.target }}
         run: |
           if [ "${{ matrix.target }}" = "wasm32-unknown-unknown" ]; then
-            cargo build --target ${{ matrix.target }} --package rust-sitter --no-default-features
+            cargo build --target ${{ matrix.target }} --package adze --no-default-features
           else
-            cargo build --target ${{ matrix.target }} --package rust-sitter
+            cargo build --target ${{ matrix.target }} --package adze
           fi
       
       - name: Check ChildEdge size on 32-bit
         if: matrix.target == 'i686-unknown-linux-gnu'
         run: |
           # Ensure ChildEdge maintains expected size on 32-bit platforms
-          cargo test --target ${{ matrix.target }} --package rust-sitter --lib -- --test-threads=$RUST_TEST_THREADS --nocapture child_edge_size || true
+          cargo test --target ${{ matrix.target }} --package adze --lib -- --test-threads=$RUST_TEST_THREADS --nocapture child_edge_size || true
 
   coverage:
     name: Code Coverage
@@ -839,13 +839,13 @@ jobs:
 
       - name: Validate package manifests
         run: |
-          cargo package -p rust-sitter-ir --no-verify
-          cargo package -p rust-sitter-glr-core --no-verify
-          cargo package -p rust-sitter-tablegen --no-verify
-          cargo package -p rust-sitter-common --no-verify
-          cargo package -p rust-sitter-macro --no-verify
-          cargo package -p rust-sitter --no-verify
-          cargo package -p rust-sitter-tool --no-verify
+          cargo package -p adze-ir --no-verify
+          cargo package -p adze-glr-core --no-verify
+          cargo package -p adze-tablegen --no-verify
+          cargo package -p adze-common --no-verify
+          cargo package -p adze-macro --no-verify
+          cargo package -p adze --no-verify
+          cargo package -p adze-tool --no-verify
 
   benches-unstable:
     name: Benches (unstable, opt-in)
@@ -856,4 +856,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build benches (no run)
-        run: cargo bench -p rust-sitter --features unstable-benches --no-run
+        run: cargo bench -p adze --features unstable-benches --no-run
+
+  ci-supported:
+    name: ci-supported
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ci-supported-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - name: Run ci-supported lane
+        run: just ci-supported

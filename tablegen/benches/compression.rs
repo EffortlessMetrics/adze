@@ -1,13 +1,13 @@
 //! Benchmarks for table compression performance
 #![allow(clippy::let_and_return)]
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::builder::GrammarBuilder;
-use rust_sitter_tablegen::{
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::builder::GrammarBuilder;
+use adze_tablegen::{
     TableCompressor,
     helpers::{collect_token_indices, eof_accepts_or_reduces},
 };
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 
 /// Benchmark small grammar compression
 fn bench_small_grammar(c: &mut Criterion) {
@@ -52,25 +52,25 @@ fn bench_arithmetic_grammar(c: &mut Criterion) {
             "expr",
             vec!["expr", "+", "expr"],
             1,
-            rust_sitter_ir::Associativity::Left,
+            adze_ir::Associativity::Left,
         )
         .rule_with_precedence(
             "expr",
             vec!["expr", "-", "expr"],
             1,
-            rust_sitter_ir::Associativity::Left,
+            adze_ir::Associativity::Left,
         )
         .rule_with_precedence(
             "expr",
             vec!["expr", "*", "expr"],
             2,
-            rust_sitter_ir::Associativity::Left,
+            adze_ir::Associativity::Left,
         )
         .rule_with_precedence(
             "expr",
             vec!["expr", "/", "expr"],
             2,
-            rust_sitter_ir::Associativity::Left,
+            adze_ir::Associativity::Left,
         )
         .rule("expr", vec!["(", "expr", ")"])
         .rule("expr", vec!["NUMBER"])

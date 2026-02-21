@@ -3,8 +3,8 @@
 //! This test suite verifies that the GLR parser properly handles errors through
 //! its public API, focusing on the error types and display functionality.
 
-use rust_sitter::glr_parser::GLRError;
-use rust_sitter_ir::ProductionId;
+use adze::glr_parser::GLRError;
+use adze_ir::ProductionId;
 
 /// Test error message formatting and display
 #[test]

@@ -37,13 +37,13 @@
 //! - [ ] Performance: parse time < 100ms for simple expressions
 //! - [ ] Memory: no leaks, bounded usage
 
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
-use rust_sitter_ir::{
+use adze_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
+use adze_ir::{
     Grammar, ProductionId, Rule, Symbol, Token as IrToken, TokenPattern as IrTokenPattern,
 };
-use rust_sitter_runtime::language::SymbolMetadata;
-use rust_sitter_runtime::tokenizer::{Matcher, TokenPattern, WhitespaceMode};
-use rust_sitter_runtime::{Parser, Token, Tree};
+use adze_runtime::language::SymbolMetadata;
+use adze_runtime::tokenizer::{Matcher, TokenPattern, WhitespaceMode};
+use adze_runtime::{Parser, Token, Tree};
 
 /// AST representation for parsed expressions
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -126,8 +126,8 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
             Symbol::Terminal(minus_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)), // Lower precedence
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(1)), // Lower precedence
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(1),
         fields: vec![],
     });
@@ -140,8 +140,8 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
             Symbol::Terminal(star_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)), // Higher precedence
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(2)), // Higher precedence
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(2),
         fields: vec![],
     });
@@ -220,7 +220,7 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
 /// let tree = parse("1 - 2 * 3").unwrap();
 /// // Tree represents: Sub(1, Mul(2, 3))
 /// ```
-pub fn parse(input: &str) -> Result<Tree, rust_sitter_runtime::error::ParseError> {
+pub fn parse(input: &str) -> Result<Tree, adze_runtime::error::ParseError> {
     let (table, metadata, patterns) = create_arithmetic_grammar();
 
     let mut parser = Parser::new();

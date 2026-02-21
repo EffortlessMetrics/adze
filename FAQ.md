@@ -1,22 +1,22 @@
 # Frequently Asked Questions
 
-Common questions about rust-sitter, answered concisely.
+Common questions about adze, answered concisely.
 
-**Can't find your question?** Check [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) or ask in [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions).
+**Can't find your question?** Check [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) or ask in [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions).
 
 ---
 
 ## General Questions
 
-### What is rust-sitter?
+### What is adze?
 
-rust-sitter is a parser generator for Rust that lets you define grammars using Rust types and attributes. It generates efficient parsers at compile time.
+adze is a parser generator for Rust that lets you define grammars using Rust types and attributes. It generates efficient parsers at compile time.
 
 **Think**: "Tree-sitter meets Rust macros"
 
-### Why use rust-sitter instead of tree-sitter?
+### Why use adze instead of tree-sitter?
 
-| Feature | rust-sitter | tree-sitter |
+| Feature | adze | tree-sitter |
 |---------|-------------|-------------|
 | **Language** | Pure Rust | C with bindings |
 | **Grammar Definition** | Rust types + attributes | JavaScript DSL |
@@ -26,11 +26,11 @@ rust-sitter is a parser generator for Rust that lets you define grammars using R
 | **Incremental Parsing** | 🚧 In progress (v0.7.0) | ✅ Mature |
 | **Editor Integration** | 🚧 Coming | ✅ Extensive |
 
-**Use rust-sitter if**: You want type-safe parsing in pure Rust, need WASM support, or want to handle ambiguous grammars.
+**Use adze if**: You want type-safe parsing in pure Rust, need WASM support, or want to handle ambiguous grammars.
 
 **Use tree-sitter if**: You need mature editor integration or battle-tested incremental parsing today.
 
-### Is rust-sitter production-ready?
+### Is adze production-ready?
 
 **v0.6.1-beta**: ✅ **Macro-based grammar generation is production-ready**
 - Core parsing: 100% functional
@@ -58,22 +58,22 @@ rust-sitter is a parser generator for Rust that lets you define grammars using R
 - Your grammar is unambiguous (most programming languages)
 - Standard LR parsing works fine
 
-rust-sitter handles both automatically - you don't need to choose.
+adze handles both automatically - you don't need to choose.
 
 ---
 
 ## Getting Started
 
-### How do I install rust-sitter?
+### How do I install adze?
 
 Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter = "0.6"
+adze = "0.6"
 
 [build-dependencies]
-rust-sitter-tool = "0.6"
+adze-tool = "0.6"
 ```
 
 See [QUICK_START.md](./QUICK_START.md) for a 5-minute tutorial.
@@ -87,11 +87,11 @@ See [QUICK_START.md](./QUICK_START.md) for a 5-minute tutorial.
 ### What's the smallest example?
 
 ```rust
-#[rust_sitter::grammar("tiny")]
+#[adze::grammar("tiny")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Number {
-        #[rust_sitter::leaf(pattern = r"\d+")]
+        #[adze::leaf(pattern = r"\d+")]
         value: String,
     }
 }
@@ -105,7 +105,7 @@ fn main() {
 Don't forget `build.rs`:
 ```rust
 fn main() {
-    rust_sitter_tool::build_parsers(&std::path::PathBuf::from("src/main.rs"));
+    adze_tool::build_parsers(&std::path::PathBuf::from("src/main.rs"));
 }
 ```
 
@@ -115,12 +115,12 @@ fn main() {
 
 ### How do I handle whitespace?
 
-Mark it as `#[rust_sitter::extra]`:
+Mark it as `#[adze::extra]`:
 
 ```rust
-#[rust_sitter::extra]
+#[adze::extra]
 struct Whitespace {
-    #[rust_sitter::leaf(pattern = r"\s")]
+    #[adze::leaf(pattern = r"\s")]
     _ws: (),
 }
 ```
@@ -129,13 +129,13 @@ This tells the parser to skip whitespace anywhere.
 
 ### How do I set operator precedence?
 
-Use `#[rust_sitter::prec_left(N)]` where higher N = tighter binding:
+Use `#[adze::prec_left(N)]` where higher N = tighter binding:
 
 ```rust
-#[rust_sitter::prec_left(1)]  // Lowest precedence
+#[adze::prec_left(1)]  // Lowest precedence
 Add(Box<Expr>, #[leaf(text = "+")] (), Box<Expr>),
 
-#[rust_sitter::prec_left(2)]  // Higher precedence
+#[adze::prec_left(2)]  // Higher precedence
 Mul(Box<Expr>, #[leaf(text = "*")] (), Box<Expr>),
 ```
 
@@ -158,8 +158,8 @@ Use `Vec<T>`:
 
 ```rust
 pub struct ArgumentList {
-    #[rust_sitter::repeat]
-    #[rust_sitter::delimited(#[leaf(text = ",")] ())]
+    #[adze::repeat]
+    #[adze::delimited(#[leaf(text = ",")] ())]
     args: Vec<Expression>,
 }
 ```
@@ -170,7 +170,7 @@ Yes! Use the `transform` parameter:
 
 ```rust
 Number(
-    #[rust_sitter::leaf(
+    #[adze::leaf(
         pattern = r"\d+",
         transform = |s| s.parse::<i32>().unwrap()
     )]
@@ -180,12 +180,12 @@ Number(
 
 ### How do I handle comments?
 
-Mark them as `#[rust_sitter::extra]`:
+Mark them as `#[adze::extra]`:
 
 ```rust
-#[rust_sitter::extra]
+#[adze::extra]
 struct Comment {
-    #[rust_sitter::leaf(pattern = r"//[^\n]*")]
+    #[adze::leaf(pattern = r"//[^\n]*")]
     _comment: (),
 }
 ```
@@ -204,10 +204,10 @@ The first build generates the parser, which can take time. Subsequent builds are
 
 ### Where are the generated files?
 
-Set `RUST_SITTER_EMIT_ARTIFACTS=true` to see generated files:
+Set `ADZE_EMIT_ARTIFACTS=true` to see generated files:
 
 ```bash
-RUST_SITTER_EMIT_ARTIFACTS=true cargo build
+ADZE_EMIT_ARTIFACTS=true cargo build
 ls target/debug/build/*/out/
 ```
 
@@ -220,7 +220,7 @@ You'll see:
 
 1. **Enable artifact emission**:
    ```bash
-   RUST_SITTER_EMIT_ARTIFACTS=true cargo build
+   ADZE_EMIT_ARTIFACTS=true cargo build
    ```
 
 2. **Check generated grammar**:
@@ -238,7 +238,7 @@ Your grammar has ambiguity. Solutions:
 
 1. **Add precedence**: Use `#[prec_left]` or `#[prec_right]`
 2. **Restructure grammar**: Make it unambiguous
-3. **Use GLR**: rust-sitter handles conflicts automatically via GLR
+3. **Use GLR**: adze handles conflicts automatically via GLR
 
 ### How do I see what the parser is doing?
 
@@ -254,7 +254,7 @@ Or use the parse tree visitor (coming in v0.7.0).
 
 ## Features and Capabilities
 
-### Does rust-sitter support error recovery?
+### Does adze support error recovery?
 
 ✅ Yes! The parser handles malformed input gracefully:
 
@@ -267,13 +267,13 @@ match grammar::parse("1 + ") {  // Incomplete expression
 
 Error nodes are inserted for missing/unexpected tokens.
 
-### Can I use rust-sitter with WASM?
+### Can I use adze with WASM?
 
 ✅ Yes! Pure-Rust backend has first-class WASM support:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6", features = ["pure-rust"] }
+adze = { version = "0.6", features = ["pure-rust"] }
 ```
 
 Then compile to WASM:
@@ -281,7 +281,7 @@ Then compile to WASM:
 cargo build --target wasm32-unknown-unknown
 ```
 
-### Does rust-sitter support external scanners?
+### Does adze support external scanners?
 
 ✅ Yes! For context-sensitive lexing (like Python indentation):
 
@@ -289,7 +289,7 @@ cargo build --target wasm32-unknown-unknown
 #[derive(Default)]
 struct IndentScanner;
 
-impl rust_sitter::ExternalScanner for IndentScanner {
+impl adze::ExternalScanner for IndentScanner {
     fn scan(&mut self, lexer: &mut Lexer, valid: &[bool]) -> ScanResult {
         // Custom scanning logic
     }
@@ -319,7 +319,7 @@ Basic tree navigation works now. Full query system (predicates, captures) coming
 
 ## Performance
 
-### How fast is rust-sitter?
+### How fast is adze?
 
 **Status**: Baseline being established in v0.7.0 Week 1
 
@@ -345,7 +345,7 @@ See [docs/PERFORMANCE_BASELINE.md](./docs/PERFORMANCE_BASELINE.md) for upcoming 
 - Incremental parsing for editors
 - Table compression for memory
 
-### Does rust-sitter support parallel parsing?
+### Does adze support parallel parsing?
 
 Not currently. Parsing is single-threaded. You can parse multiple files in parallel though:
 
@@ -375,8 +375,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) and [GAPS.md](./GAPS.md).
 
 1. **Search existing issues**: Check if it's already reported
 2. **Create minimal reproduction**: Simplest grammar that shows the bug
-3. **Open issue**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
-4. **Include**: rust-sitter version, Rust version, minimal example
+3. **Open issue**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
+4. **Include**: adze version, Rust version, minimal example
 
 ### Can I add a new grammar to the examples?
 
@@ -393,9 +393,9 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ## Comparison to Alternatives
 
-### rust-sitter vs nom
+### adze vs nom
 
-| Feature | rust-sitter | nom |
+| Feature | adze | nom |
 |---------|-------------|-----|
 | **Approach** | Declarative grammar | Combinator library |
 | **Generated Code** | Yes (build time) | No (runtime combinators) |
@@ -404,11 +404,11 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 | **Learning Curve** | Moderate (grammars) | Moderate (combinators) |
 
 **Use nom if**: You need fine control, hand-written parsers, or no build step.
-**Use rust-sitter if**: You have a grammar, want error recovery, or need GLR.
+**Use adze if**: You have a grammar, want error recovery, or need GLR.
 
-### rust-sitter vs pest
+### adze vs pest
 
-| Feature | rust-sitter | pest |
+| Feature | adze | pest |
 |---------|-------------|-----|
 | **Grammar Format** | Rust attributes | PEG syntax |
 | **Type Safety** | Compile-time AST | Runtime rule matching |
@@ -416,11 +416,11 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 | **Precedence** | Built-in | Manual |
 
 **Use pest if**: You like PEG grammars or want external grammar files.
-**Use rust-sitter if**: You want type-safe ASTs or need ambiguity support.
+**Use adze if**: You want type-safe ASTs or need ambiguity support.
 
-### rust-sitter vs lalrpop
+### adze vs lalrpop
 
-| Feature | rust-sitter | lalrpop |
+| Feature | adze | lalrpop |
 |---------|-------------|---------|
 | **Grammar Format** | Rust attributes | LALR DSL |
 | **GLR Support** | Yes | No |
@@ -428,7 +428,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 | **WASM** | First-class | Requires work |
 
 **Use lalrpop if**: You need battle-tested LALR parsing.
-**Use rust-sitter if**: You need GLR, WASM, or prefer Rust-native grammars.
+**Use adze if**: You need GLR, WASM, or prefer Rust-native grammars.
 
 ---
 
@@ -460,18 +460,18 @@ See [ROADMAP.md](./ROADMAP.md) for full vision.
 - Production-grade incremental parsing
 - Comprehensive language support (50+ grammars)
 
-### Will rust-sitter replace tree-sitter?
+### Will adze replace tree-sitter?
 
 No. They serve different use cases:
 
 - **tree-sitter**: Mature, editor-focused, C-based, extensive ecosystem
-- **rust-sitter**: Pure-Rust, type-safe, GLR, WASM-first
+- **adze**: Pure-Rust, type-safe, GLR, WASM-first
 
-Think of rust-sitter as "tree-sitter for Rust-native projects" not a replacement.
+Think of adze as "tree-sitter for Rust-native projects" not a replacement.
 
-### Can I use both tree-sitter and rust-sitter?
+### Can I use both tree-sitter and adze?
 
-Yes! rust-sitter can:
+Yes! adze can:
 - Import tree-sitter grammars (via ts-bridge tool)
 - Generate tree-sitter compatible parsers
 - Interop with tree-sitter tooling
@@ -483,8 +483,8 @@ See [tools/ts-bridge/](./tools/ts-bridge/) for the bridge tool.
 ## Still Have Questions?
 
 - **Check**: [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) (coming v0.7.0)
-- **Ask**: [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
-- **Report Bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
+- **Ask**: [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions)
+- **Report Bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 - **Tutorial**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)
 - **Examples**: [example/src/](./example/src/)
 

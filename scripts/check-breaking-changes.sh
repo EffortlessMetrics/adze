@@ -42,7 +42,7 @@ check_dependencies() {
 run_contract_tests() {
     echo -e "\n🧪 Running API contract tests..."
     
-    if cargo test -p rust-sitter --test api_contract 2>/dev/null; then
+    if cargo test -p adze --test api_contract 2>/dev/null; then
         echo -e "${GREEN}✅ API contract tests passed${NC}"
         return 0
     else
@@ -55,7 +55,7 @@ run_contract_tests() {
 check_doc_coverage() {
     echo -e "\n📚 Checking documentation coverage..."
     
-    if cargo doc -p rust-sitter --no-deps \
+    if cargo doc -p adze --no-deps \
         --features strict_docs 2>&1 | grep -q "warning"; then
         echo -e "${YELLOW}⚠️  Documentation warnings found${NC}"
         return 1
@@ -79,7 +79,7 @@ Generated: $(date)
 ## Public Types
 
 \`\`\`
-$(cargo rustdoc -p rust-sitter -- -Z unstable-options --output-format json 2>/dev/null | \
+$(cargo rustdoc -p adze -- -Z unstable-options --output-format json 2>/dev/null | \
     jq -r '.index | to_entries[] | select(.value.visibility == "public") | .value.name' | \
     sort | head -20 || echo "Unable to generate type list")
 \`\`\`
@@ -88,7 +88,7 @@ $(cargo rustdoc -p rust-sitter -- -Z unstable-options --output-format json 2>/de
 
 EOF
     
-    for crate in rust-sitter rust-sitter-macro rust-sitter-tool; do
+    for crate in adze adze-macro adze-tool; do
         echo "### $crate" >> "$output_file"
         if check_crate "$crate" HEAD~1 &>/dev/null; then
             echo "✅ No breaking changes" >> "$output_file"
@@ -117,7 +117,7 @@ main() {
     echo -e "\n${YELLOW}Checking against baseline: $baseline${NC}"
     
     # Check each crate
-    for crate in rust-sitter rust-sitter-macro rust-sitter-tool; do
+    for crate in adze adze-macro adze-tool; do
         if ! check_crate "$crate" "$baseline"; then
             failed=$((failed + 1))
         fi

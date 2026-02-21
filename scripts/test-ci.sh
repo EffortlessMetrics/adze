@@ -7,7 +7,7 @@ echo "Running workspace tests (excluding problematic crates)..."
 cargo test --workspace \
   --exclude ts-bridge \
   --exclude ts-c-harness \
-  --exclude rust-sitter-runtime
+  --exclude adze-runtime
 
 echo "Testing ts-bridge..."
 cargo test -p ts-bridge

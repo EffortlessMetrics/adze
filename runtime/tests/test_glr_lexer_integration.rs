@@ -1,8 +1,8 @@
 // Integration test for GLR lexer and parser
-use rust_sitter::glr_lexer::{GLRLexer, tokenize_and_parse};
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze::glr_lexer::{GLRLexer, tokenize_and_parse};
+use adze::glr_parser::GLRParser;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
 #[test]
@@ -77,7 +77,7 @@ fn test_arithmetic_with_lexer() {
             Symbol::NonTerminal(term_id),
         ],
         precedence: None,
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        associativity: Some(adze_ir::Associativity::Left),
         fields: vec![],
         production_id: ProductionId(0),
     });
@@ -101,7 +101,7 @@ fn test_arithmetic_with_lexer() {
             Symbol::NonTerminal(factor_id),
         ],
         precedence: None,
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        associativity: Some(adze_ir::Associativity::Left),
         fields: vec![],
         production_id: ProductionId(2),
     });

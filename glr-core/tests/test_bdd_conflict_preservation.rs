@@ -5,11 +5,11 @@
 //!
 //! Reference: docs/plans/BDD_GLR_CONFLICT_PRESERVATION.md
 
-use rust_sitter_glr_core::{
+use adze_glr_core::{
     Action, Conflict, ConflictResolver, ConflictType, FirstFollowSets, ParseTable,
     build_lr1_automaton,
 };
-use rust_sitter_ir::{
+use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
     Token, TokenPattern,
 };

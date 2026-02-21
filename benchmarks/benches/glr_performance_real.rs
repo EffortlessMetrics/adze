@@ -1,7 +1,7 @@
-//! Real parsing benchmarks for rust-sitter
+//! Real parsing benchmarks for adze
 //!
 //! This benchmark measures actual parsing performance using valid arithmetic
-//! expression fixtures and the rust-sitter GLR parser.
+//! expression fixtures and the adze GLR parser.
 //!
 //! ## Current Approach (v0.8.0)
 //!
@@ -32,7 +32,7 @@
 //!
 //! ## Migration Path to Language Grammars
 //!
-//! When rust-sitter-python/javascript are ready:
+//! When adze-python/javascript are ready:
 //! 1. Add language-specific fixture generation
 //! 2. Create parallel benchmark groups for each grammar
 //! 3. Compare performance against tree-sitter baselines
@@ -41,8 +41,8 @@
 //! - Spec: docs/specs/REAL_PARSING_BENCHMARKS_SPEC.md
 //! - Fixtures: benchmarks/fixtures/arithmetic/
 
+use adze_example::arithmetic::grammar::parse;
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter_example::arithmetic::grammar::parse;
 
 // Load arithmetic fixtures at compile time (deterministic, zero I/O overhead)
 const ARITH_SMALL: &str = include_str!("../fixtures/arithmetic/small.expr");

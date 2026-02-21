@@ -1,4 +1,4 @@
-// Concurrency caps for rust-sitter runtime
+// Concurrency caps for adze runtime
 // Sets up bounded thread pools for tokio, rayon, and other parallel operations
 
 use once_cell::sync::Lazy;

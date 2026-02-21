@@ -1,6 +1,6 @@
-# Rust-Sitter v0.6.0 Tracking Issues
+# Adze v0.6.0 Tracking Issues
 
-This document tracks known issues and planned improvements for the rust-sitter project.
+This document tracks known issues and planned improvements for the adze project.
 
 ## High Priority Issues
 
@@ -48,9 +48,9 @@ This document tracks known issues and planned improvements for the rust-sitter p
 - [ ] All public APIs have comprehensive documentation
 
 **Affected Crates:**
-- `rust-sitter-glr-core` (123 warnings)
-- `rust-sitter-tablegen` (multiple warnings)
-- `rust-sitter-common` (11 warnings)
+- `adze-glr-core` (123 warnings)
+- `adze-tablegen` (multiple warnings)
+- `adze-common` (11 warnings)
 
 ---
 

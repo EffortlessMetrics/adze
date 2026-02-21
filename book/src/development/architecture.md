@@ -1,11 +1,11 @@
 # Architecture Overview
 
-rust-sitter is a comprehensive parser generation framework that transforms Rust code annotations into high-performance parsers. This document explains the system architecture, component interactions, and design principles.
+adze is a comprehensive parser generation framework that transforms Rust code annotations into high-performance parsers. This document explains the system architecture, component interactions, and design principles.
 
 ## System Architecture
 
 ```
-rust-sitter ecosystem architecture:
+adze ecosystem architecture:
 
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   User Grammar  │    │  Build Process   │    │  Runtime Parse  │
@@ -43,22 +43,22 @@ rust-sitter ecosystem architecture:
 The grammar definition layer processes Rust type annotations and extracts grammar rules:
 
 ```rust
-#[rust_sitter::grammar("arithmetic")]
+#[adze::grammar("arithmetic")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
             u32,
         ),
-        #[rust_sitter::prec_left(1)]
-        Add(Box<Expr>, #[rust_sitter::leaf(text = "+")] (), Box<Expr>),
+        #[adze::prec_left(1)]
+        Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
     }
 }
 ```
 
 **Process Flow**:
-1. **Macro Processing**: `rust_sitter::grammar` collects annotated types
+1. **Macro Processing**: `adze::grammar` collects annotated types
 2. **Rule Extraction**: `common/` extracts grammar rules from type definitions
 3. **IR Generation**: Converts Rust types to grammar intermediate representation
 
@@ -71,7 +71,7 @@ The build system transforms grammar definitions into executable parsers:
 ```rust
 // build.rs
 fn main() {
-    rust_sitter_tool::build_parsers(&PathBuf::from("src/grammar.rs"));
+    adze_tool::build_parsers(&PathBuf::from("src/grammar.rs"));
 }
 ```
 
@@ -89,7 +89,7 @@ The runtime provides multiple parser implementations with different capabilities
 
 #### runtime/ - Legacy Compatibility
 ```rust
-use rust_sitter::parser_v4::Parser;
+use adze::parser_v4::Parser;
 
 let mut parser = Parser::new(grammar, parse_table, "my_language".to_string());
 let result = parser.parse(source_code)?;
@@ -97,7 +97,7 @@ let result = parser.parse(source_code)?;
 
 #### runtime2/ - Production GLR Implementation
 ```rust
-use rust_sitter_runtime2::Parser;
+use adze_runtime2::Parser;
 
 let mut parser = Parser::new();
 parser.set_language(language)?;
@@ -116,7 +116,7 @@ let tree = parser.parse_utf8(source.as_bytes(), None)?;
 
 **Location**: `golden-tests/`
 
-Golden tests form the cornerstone of rust-sitter's quality assurance, ensuring perfect compatibility with Tree-sitter:
+Golden tests form the cornerstone of adze's quality assurance, ensuring perfect compatibility with Tree-sitter:
 
 ```
 golden-tests/
@@ -320,7 +320,7 @@ Application Code
 
 ### Concurrency Management
 
-rust-sitter implements bounded concurrency to ensure stable operation across different environments:
+adze implements bounded concurrency to ensure stable operation across different environments:
 
 ```rust
 // Concurrency caps automatically adjust to system resources
@@ -346,7 +346,7 @@ TOKIO_WORKER_THREADS=2     // Async runtime threads
 
 ### Adding New Languages
 
-1. **Create Grammar Crate**: Define Rust types with rust-sitter annotations
+1. **Create Grammar Crate**: Define Rust types with adze annotations
 2. **Integration Tests**: Add language to golden-tests framework
 3. **Build Configuration**: Update workspace and feature flags
 4. **Documentation**: Add language-specific examples and guides
@@ -372,7 +372,7 @@ The architecture now supports external lexer utilities for seamless integration 
 
 **Integration Pattern**:
 ```rust
-use rust_sitter::external_lexer::ExternalLexer;
+use adze::external_lexer::ExternalLexer;
 
 // Create FFI-compatible lexer for external scanners
 fn create_tree_sitter_lexer(input: &'static [u8]) -> TsLexer {
@@ -463,7 +463,7 @@ find golden-tests/*/fixtures -name "*.js" | wc -l
 
 ```rust
 // Built-in performance monitoring
-std::env::set_var("RUST_SITTER_LOG_PERFORMANCE", "true");
+std::env::set_var("ADZE_LOG_PERFORMANCE", "true");
 
 // Automatic metrics:
 // - Node count: 1247 nodes processed
@@ -477,7 +477,7 @@ std::env::set_var("RUST_SITTER_LOG_PERFORMANCE", "true");
 Golden tests provide quantitative compatibility metrics:
 - **Parse Success Rate**: Percentage of files successfully parsed
 - **Tree Accuracy**: Hash comparison success rate
-- **Performance Ratio**: rust-sitter vs Tree-sitter timing
+- **Performance Ratio**: adze vs Tree-sitter timing
 - **Memory Efficiency**: Peak memory usage comparison
 
 ## Future Architecture Evolution
@@ -507,4 +507,4 @@ Golden tests provide quantitative compatibility metrics:
 - **Review [Contributing Guide](contributing.md)** for development workflows
 - **See [API Documentation](../reference/api.md)** for programmatic interfaces
 
-The rust-sitter architecture provides a solid foundation for high-performance, compatible, and maintainable parser generation, with golden tests ensuring perfect Tree-sitter compatibility at every step of development.
+The adze architecture provides a solid foundation for high-performance, compatible, and maintainable parser generation, with golden tests ensuring perfect Tree-sitter compatibility at every step of development.

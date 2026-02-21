@@ -14,7 +14,7 @@ use indexmap::IndexMap;
 /// # Examples
 ///
 /// ```no_run
-/// use rust_sitter_ir::builder::GrammarBuilder;
+/// use adze_ir::builder::GrammarBuilder;
 ///
 /// let grammar = GrammarBuilder::new("example")
 ///     .token("NUMBER", r"\d+")

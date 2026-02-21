@@ -43,7 +43,7 @@ This specification validates the complete pipeline:
 
 ### Test Grammar: ambiguous_expr.rs
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Expr {
     Binary(Box<Expr>, String, Box<Expr>),  // NO precedence → creates conflict
     Number(i32),
@@ -199,7 +199,7 @@ fn test_ambiguous_vs_arithmetic_comparison() {
 
 ```toml
 [dev-dependencies]
-rust-sitter-example = { path = "../example", features = ["glr"] }
+adze-example = { path = "../example", features = ["glr"] }
 ```
 
 ---
@@ -252,7 +252,7 @@ rust-sitter-example = { path = "../example", features = ["glr"] }
 - [ ] Scenario 2 test passes: GLR parsing produces valid AST
 - [ ] Scenario 3 test passes: Backward compatibility maintained
 - [ ] Comparison test passes: Ambiguous vs arithmetic differentiated
-- [ ] All tests pass with `cargo test -p rust-sitter --features glr`
+- [ ] All tests pass with `cargo test -p adze --features glr`
 - [ ] Documentation updated with findings
 
 ---
@@ -266,7 +266,7 @@ rust-sitter-example = { path = "../example", features = ["glr"] }
 ✅ Proves: Complete pipeline works end-to-end
 ✅ Proves: Backward compatibility preserved
 
-**Impact**: Production-ready GLR support for rust-sitter
+**Impact**: Production-ready GLR support for adze
 
 ---
 

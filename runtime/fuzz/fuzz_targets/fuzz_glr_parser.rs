@@ -1,11 +1,9 @@
 #![no_main]
 
+use adze::{glr_lexer::GLRLexer, glr_parser::GLRParser};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use libfuzzer_sys::fuzz_target;
-use rust_sitter::{glr_lexer::GLRLexer, glr_parser::GLRParser};
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
-use rust_sitter_ir::{
-    Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
-};
 use std::sync::Arc;
 
 // Create a test grammar that can handle various inputs
@@ -143,7 +141,7 @@ fn create_test_grammar() -> Arc<Grammar> {
 // Create static parse table to avoid rebuilding on every fuzz iteration
 lazy_static::lazy_static! {
     static ref TEST_GRAMMAR: Arc<Grammar> = create_test_grammar();
-    static ref PARSE_TABLE: rust_sitter_glr_core::ParseTable = {
+    static ref PARSE_TABLE: adze_glr_core::ParseTable = {
         let ff_sets = FirstFollowSets::compute(&TEST_GRAMMAR).unwrap();
         build_lr1_automaton(&TEST_GRAMMAR, &ff_sets)
             .expect("Failed to build parse table for test grammar")

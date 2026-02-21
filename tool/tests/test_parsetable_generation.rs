@@ -5,7 +5,7 @@
 
 #![cfg(feature = "serialization")]
 
-use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_json};
+use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_json};
 use std::fs;
 
 /// Helper: Create a minimal test grammar JSON
@@ -34,7 +34,7 @@ fn create_test_grammar_json() -> String {
 #[test]
 fn test_parsetable_generation() {
     // Create a temporary output directory
-    let temp_dir = std::env::temp_dir().join("rust_sitter_parsetable_test");
+    let temp_dir = std::env::temp_dir().join("adze_parsetable_test");
     if temp_dir.exists() {
         fs::remove_dir_all(&temp_dir).expect("Failed to clean temp dir");
     }
@@ -90,7 +90,7 @@ fn test_parsetable_generation() {
 #[test]
 fn test_parsetable_deserialization() {
     // Create a temporary output directory
-    let temp_dir = std::env::temp_dir().join("rust_sitter_parsetable_deser_test");
+    let temp_dir = std::env::temp_dir().join("adze_parsetable_deser_test");
     if temp_dir.exists() {
         fs::remove_dir_all(&temp_dir).expect("Failed to clean temp dir");
     }
@@ -158,7 +158,7 @@ fn test_parsetable_deserialization() {
 #[test]
 fn test_multiple_grammars() {
     // Create a temporary output directory
-    let temp_dir = std::env::temp_dir().join("rust_sitter_multi_parsetable_test");
+    let temp_dir = std::env::temp_dir().join("adze_multi_parsetable_test");
     if temp_dir.exists() {
         fs::remove_dir_all(&temp_dir).expect("Failed to clean temp dir");
     }

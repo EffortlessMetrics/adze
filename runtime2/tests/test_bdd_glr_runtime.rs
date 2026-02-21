@@ -7,12 +7,12 @@
 
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-use rust_sitter_ir::{
+use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };
-use rust_sitter_runtime::{
+use adze_runtime::{
     Parser,
     language::SymbolMetadata,
     tokenizer::{Matcher, TokenPattern as RuntimeTokenPattern},

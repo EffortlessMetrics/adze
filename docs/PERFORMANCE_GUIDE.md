@@ -1,10 +1,10 @@
-# Rust Sitter Performance Guide
+# Adze Performance Guide
 
 Comprehensive guide to optimizing parser performance and benchmarking.
 
 ## Overview
 
-Rust Sitter provides state-of-the-art performance through:
+Adze provides state-of-the-art performance through:
 - SIMD-accelerated lexing (AVX2/NEON)
 - Zero-copy parsing with arena allocation
 - Optimized table compression
@@ -49,8 +49,8 @@ pub struct ExprStatement {
 
 // After: Direct representation
 pub enum Statement {
-    #[rust_sitter::inline]
-    Expr(Expression, #[rust_sitter::leaf(text = ";")] ()),
+    #[adze::inline]
+    Expr(Expression, #[adze::leaf(text = ";")] ()),
 }
 ```
 
@@ -68,12 +68,12 @@ pub enum Expression {
 #### Token Consolidation
 ```rust
 // Before: Separate tokens
-#[rust_sitter::leaf(text = "+")]
-#[rust_sitter::leaf(text = "-")]
-#[rust_sitter::leaf(text = "*")]
+#[adze::leaf(text = "+")]
+#[adze::leaf(text = "-")]
+#[adze::leaf(text = "*")]
 
 // After: Combined pattern
-#[rust_sitter::leaf(pattern = r"[+\-*/]", transform = |s| s.parse())]
+#[adze::leaf(pattern = r"[+\-*/]", transform = |s| s.parse())]
 ```
 
 ### 2. Parser Configuration
@@ -106,30 +106,30 @@ let parser = Parser::new(grammar, table)
 # Cargo.toml
 [features]
 default = ["simd"]
-simd = ["rust-sitter/simd"]
+simd = ["adze/simd"]
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-rust-sitter = { version = "1.0", features = ["avx2"] }
+adze = { version = "1.0", features = ["avx2"] }
 
 [target.'cfg(target_arch = "aarch64")'.dependencies]  
-rust-sitter = { version = "1.0", features = ["neon"] }
+adze = { version = "1.0", features = ["neon"] }
 ```
 
 #### SIMD-Friendly Patterns
 ```rust
 // Aligned patterns for SIMD
-#[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
+#[adze::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
 // Processes 16 bytes at once on AVX2
 
 // Character classes
-#[rust_sitter::leaf(pattern = r"[\x00-\x7F]+")]  // ASCII fast path
+#[adze::leaf(pattern = r"[\x00-\x7F]+")]  // ASCII fast path
 ```
 
 ### 4. Memory Optimization
 
 #### Arena Allocation
 ```rust
-use rust_sitter::arena::Arena;
+use adze::arena::Arena;
 
 let arena = Arena::with_capacity(1024 * 1024); // 1MB
 let parser = Parser::with_arena(grammar, table, arena);
@@ -137,7 +137,7 @@ let parser = Parser::with_arena(grammar, table, arena);
 
 #### String Interning
 ```rust
-use rust_sitter::intern::StringInterner;
+use adze::intern::StringInterner;
 
 let mut interner = StringInterner::new();
 let parser = Parser::new(grammar, table)
@@ -158,7 +158,7 @@ impl<'a> Extract<'a> for &'a str {
 
 #### Large File Splitting
 ```rust
-use rust_sitter::parallel::ParallelParser;
+use adze::parallel::ParallelParser;
 
 let parser = ParallelParser::new(grammar, table)
     .with_chunk_size(100_000)  // 100KB chunks
@@ -204,7 +204,7 @@ criterion_main!(benches);
 #### CPU Profiling
 ```bash
 # Using perf
-rust-sitter profile --perf
+adze profile --perf
 
 # Using flamegraph
 cargo flamegraph --bin parser -- input.rs
@@ -216,22 +216,22 @@ samply record ./parser input.rs
 #### Memory Profiling
 ```bash
 # Heap profiling
-rust-sitter profile --heap
+adze profile --heap
 
 # Valgrind massif
 valgrind --tool=massif ./parser input.rs
 
 # Built-in allocator stats
-RUST_SITTER_ALLOC_STATS=1 ./parser input.rs
+ADZE_ALLOC_STATS=1 ./parser input.rs
 ```
 
 ### Performance Dashboard
 ```bash
 # Generate performance report
-rust-sitter perf --dashboard
+adze perf --dashboard
 
 # Continuous tracking
-rust-sitter perf --track results/
+adze perf --track results/
 ```
 
 ## Profile-Guided Optimization
@@ -359,7 +359,7 @@ rustflags = [
 
 ### Metrics Collection
 ```rust
-use rust_sitter::metrics::{Metrics, MetricsCollector};
+use adze::metrics::{Metrics, MetricsCollector};
 
 let mut collector = MetricsCollector::new();
 let parser = Parser::new(grammar, table)
@@ -382,7 +382,7 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     steps:
-      - uses: rust-sitter/benchmark-action@v1
+      - uses: adze/benchmark-action@v1
         with:
           benchmarks: |
             parsing: cargo bench parse
@@ -418,7 +418,7 @@ jobs:
 
 ## Resources
 
-- [Performance Tuning Tutorial](https://docs.rust-sitter.dev/performance)
-- [Benchmark Suite](https://github.com/rust-sitter/benchmarks)
-- [Optimization Examples](https://github.com/rust-sitter/examples/performance)
-- [Performance FAQ](https://docs.rust-sitter.dev/faq/performance)
+- [Performance Tuning Tutorial](https://docs.adze.dev/performance)
+- [Benchmark Suite](https://github.com/adze/benchmarks)
+- [Optimization Examples](https://github.com/adze/examples/performance)
+- [Performance FAQ](https://docs.adze.dev/faq/performance)

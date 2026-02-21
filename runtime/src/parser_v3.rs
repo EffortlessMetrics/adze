@@ -3,9 +3,9 @@
 
 use crate::error_recovery::{ErrorRecoveryConfig, RecoveryAction};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use anyhow::{Result, bail};
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::fmt;
 
 // Re-export the lexer Token type for consistency
@@ -629,7 +629,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::*;
+    use adze_ir::*;
 
     fn create_simple_grammar() -> Grammar {
         let mut grammar = Grammar {
@@ -657,7 +657,7 @@ mod tests {
 
         grammar.tokens.insert(
             num_id,
-            rust_sitter_ir::Token {
+            adze_ir::Token {
                 name: "number".to_string(),
                 pattern: TokenPattern::Regex(r"\d+".to_string()),
                 fragile: false,
@@ -666,7 +666,7 @@ mod tests {
 
         grammar.tokens.insert(
             plus_id,
-            rust_sitter_ir::Token {
+            adze_ir::Token {
                 name: "plus".to_string(),
                 pattern: TokenPattern::String("+".to_string()),
                 fragile: false,

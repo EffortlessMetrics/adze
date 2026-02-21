@@ -1,7 +1,7 @@
 #![cfg(all(test, feature = "external_scanners"))]
 
 /// Test for OCaml-style nested comments external scanner
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use adze::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 /// Token type for nested comments
 const COMMENT: u16 = 2000;

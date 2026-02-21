@@ -14,7 +14,7 @@ Rust-sitter provides **two intentional runtime modes**, not one "real" and one "
 1. **Tree-sitter LR Mode** (`runtime/`) - Full TSLanguage ABI compatibility
 2. **Rust-native GLR Mode** (`runtime2/` + `.parsetable`) - True GLR semantics
 
-Both modes share the same IR (`rust_sitter_ir::Grammar`) and tree-facing API, but differ in their parse table representation and execution semantics.
+Both modes share the same IR (`adze_ir::Grammar`) and tree-facing API, but differ in their parse table representation and execution semantics.
 
 **Key Principle**:
 > "Tree-sitter compatibility is supported fully in LR mode; GLR semantics are available via the `.parsetable` + runtime2 path for grammars that need them."
@@ -163,7 +163,7 @@ Use Rust-native GLR mode when you need:
 
 Both modes share the following components:
 
-### 1. Grammar IR (`rust_sitter_ir::Grammar`)
+### 1. Grammar IR (`adze_ir::Grammar`)
 
 Both modes consume the same intermediate representation:
 
@@ -178,7 +178,7 @@ pub struct Grammar {
 }
 ```
 
-**Invariant**: Any grammar expressible in `rust_sitter_ir` can be processed by both modes.
+**Invariant**: Any grammar expressible in `adze_ir` can be processed by both modes.
 
 ### 2. Tree API (`runtime/src/tree.rs`)
 
@@ -222,7 +222,7 @@ Grammars can specify their runtime requirements:
 
 ```rust
 // In grammar annotation or config
-#[rust_sitter::grammar("my_lang")]
+#[adze::grammar("my_lang")]
 #[runtime(mode = "lr")]  // or "glr" or "both"
 #[glr_required = false]  // or true
 pub mod my_lang { ... }
@@ -376,7 +376,7 @@ fn test_same_tree_api_both_modes() {
 
 ## Migration Guidance
 
-### From Tree-sitter to rust-sitter TS-LR
+### From Tree-sitter to adze TS-LR
 
 **Zero code changes required** for basic parsing:
 
@@ -386,7 +386,7 @@ let mut parser = ts::Parser::new();
 parser.set_language(tree_sitter_json()).unwrap();
 let tree = parser.parse(source, None).unwrap();
 
-// rust-sitter TS-LR (identical API)
+// adze TS-LR (identical API)
 let mut parser = Parser::new();
 parser.set_language(language()).unwrap();
 let tree = parser.parse(source, None).unwrap();

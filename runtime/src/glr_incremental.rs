@@ -22,8 +22,8 @@
 
 use crate::glr_parser::GLRParser;
 use crate::subtree::Subtree;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{Grammar, RuleId, SymbolId};
+use adze_glr_core::ParseTable;
+use adze_ir::{Grammar, RuleId, SymbolId};
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;

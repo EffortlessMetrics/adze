@@ -6,28 +6,32 @@ fn invalid_precedence_combination() {
     let dir = tempdir().unwrap();
     let grammar_path = dir.path().join("grammar.rs");
 
-    fs::write(&grammar_path, r#"
-        #[rust_sitter::grammar("test_combination")]
+    fs::write(
+        &grammar_path,
+        r#"
+        #[adze::grammar("test_combination")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                     i32
                 ),
-                #[rust_sitter::prec(1)]
-                #[rust_sitter::prec_left(2)]
+                #[adze::prec(1)]
+                #[adze::prec_left(2)]
                 Add(
                     Box<Expression>,
-                    #[rust_sitter::leaf(text = "+")]
+                    #[adze::leaf(text = "+")]
                     (),
                     Box<Expression>,
                 ),
             }
         }
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
         error_msg.contains("only one of prec, prec_left, and prec_right can be specified"),
@@ -44,19 +48,19 @@ fn precedence_with_prec_and_prec_right() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_prec_right_combo")]
+        #[adze::grammar("test_prec_right_combo")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec(5)]
-                #[rust_sitter::prec_right(10)]
+                #[adze::prec(5)]
+                #[adze::prec_right(10)]
                 Power(
                     Box<Expression>,
-                    #[rust_sitter::leaf(text = "^")]
+                    #[adze::leaf(text = "^")]
                     (),
                     Box<Expression>,
                 ),
@@ -66,7 +70,7 @@ fn precedence_with_prec_and_prec_right() {
     )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
         error_msg.contains("only one of prec, prec_left, and prec_right can be specified"),
@@ -83,23 +87,23 @@ fn all_three_precedence_attributes() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_all_three")]
+        #[adze::grammar("test_all_three")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec(1)]
-                #[rust_sitter::prec_left(2)]
-                #[rust_sitter::prec_right(3)]
+                #[adze::prec(1)]
+                #[adze::prec_left(2)]
+                #[adze::prec_right(3)]
                 Ternary(
                     Box<Expression>,
-                    #[rust_sitter::leaf(text = "?")]
+                    #[adze::leaf(text = "?")]
                     (),
                     Box<Expression>,
-                    #[rust_sitter::leaf(text = ":")]
+                    #[adze::leaf(text = ":")]
                     (),
                     Box<Expression>,
                 ),
@@ -109,7 +113,7 @@ fn all_three_precedence_attributes() {
     )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
         error_msg.contains("only one of prec, prec_left, and prec_right can be specified"),
@@ -123,22 +127,26 @@ fn non_integer_precedence_literal() {
     let dir = tempdir().unwrap();
     let grammar_path = dir.path().join("grammar.rs");
 
-    fs::write(&grammar_path, r#"
-        #[rust_sitter::grammar("test_non_integer")]
+    fs::write(
+        &grammar_path,
+        r#"
+        #[adze::grammar("test_non_integer")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                     i32
                 ),
-                #[rust_sitter::prec("high")]
+                #[adze::prec("high")]
                 Priority(Box<Expression>),
             }
         }
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
         error_msg.contains("Expected integer literal for precedence"),
@@ -155,15 +163,15 @@ fn non_integer_prec_left_literal() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_non_integer_left")]
+        #[adze::grammar("test_non_integer_left")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec_left(3.14)]
+                #[adze::prec_left(3.14)]
                 Float(Box<Expression>),
             }
         }
@@ -171,7 +179,7 @@ fn non_integer_prec_left_literal() {
     )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
         error_msg.contains("Expected integer literal for left-associative precedence"),
@@ -188,15 +196,15 @@ fn non_integer_prec_right_literal() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_non_integer_right")]
+        #[adze::grammar("test_non_integer_right")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec_right(true)]
+                #[adze::prec_right(true)]
                 Boolean(Box<Expression>),
             }
         }
@@ -204,7 +212,7 @@ fn non_integer_prec_right_literal() {
     )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
         error_msg.contains("Expected integer literal for right-associative precedence"),
@@ -221,17 +229,17 @@ fn precedence_with_variable_reference() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_variable_ref")]
+        #[adze::grammar("test_variable_ref")]
         mod grammar {
             const HIGH_PREC: u32 = 10;
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec(HIGH_PREC)]
+                #[adze::prec(HIGH_PREC)]
                 HighPriority(Box<Expression>),
             }
         }
@@ -239,7 +247,7 @@ fn precedence_with_variable_reference() {
     )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
         error_msg.contains("Expected integer literal for precedence"),
@@ -256,15 +264,15 @@ fn precedence_with_negative_number() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_negative")]
+        #[adze::grammar("test_negative")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec(-5)]
+                #[adze::prec(-5)]
                 Negative(Box<Expression>),
             }
         }
@@ -273,7 +281,7 @@ fn precedence_with_negative_number() {
     .unwrap();
 
     // This should fail at parse time since we expect u32
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     // Either parsing fails or we get an invalid integer error
     assert!(
@@ -293,15 +301,15 @@ fn precedence_with_zero() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_zero_prec")]
+        #[adze::grammar("test_zero_prec")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec(0)]
+                #[adze::prec(0)]
                 Zero(Box<Expression>),
             }
         }
@@ -310,7 +318,7 @@ fn precedence_with_zero() {
     .unwrap();
 
     // Zero precedence should be valid
-    let grammars = rust_sitter_tool::generate_grammars(&grammar_path).unwrap();
+    let grammars = adze_tool::generate_grammars(&grammar_path).unwrap();
     assert!(
         !grammars.is_empty(),
         "Should generate grammar with zero precedence"
@@ -331,15 +339,15 @@ fn precedence_with_very_large_number() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_large_prec")]
+        #[adze::grammar("test_large_prec")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec(4294967295)]
+                #[adze::prec(4294967295)]
                 MaxPrec(Box<Expression>),
             }
         }
@@ -348,7 +356,7 @@ fn precedence_with_very_large_number() {
     .unwrap();
 
     // Max u32 should be valid
-    let grammars = rust_sitter_tool::generate_grammars(&grammar_path).unwrap();
+    let grammars = adze_tool::generate_grammars(&grammar_path).unwrap();
     assert!(
         !grammars.is_empty(),
         "Should generate grammar with max precedence"
@@ -369,15 +377,15 @@ fn precedence_too_large_for_u32() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_too_large")]
+        #[adze::grammar("test_too_large")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec(4294967296)]
+                #[adze::prec(4294967296)]
                 TooBig(Box<Expression>),
             }
         }
@@ -385,7 +393,7 @@ fn precedence_too_large_for_u32() {
     )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
     assert!(
         error_msg.contains("Invalid integer literal") || error_msg.contains("number too large"),
@@ -402,32 +410,32 @@ fn valid_precedence_combinations() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_valid_precs")]
+        #[adze::grammar("test_valid_precs")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec(1)]
+                #[adze::prec(1)]
                 Addition(
                     Box<Expression>,
-                    #[rust_sitter::leaf(text = "+")]
+                    #[adze::leaf(text = "+")]
                     (),
                     Box<Expression>,
                 ),
-                #[rust_sitter::prec_left(2)]
+                #[adze::prec_left(2)]
                 Multiplication(
                     Box<Expression>,
-                    #[rust_sitter::leaf(text = "*")]
+                    #[adze::leaf(text = "*")]
                     (),
                     Box<Expression>,
                 ),
-                #[rust_sitter::prec_right(3)]
+                #[adze::prec_right(3)]
                 Exponentiation(
                     Box<Expression>,
-                    #[rust_sitter::leaf(text = "^")]
+                    #[adze::leaf(text = "^")]
                     (),
                     Box<Expression>,
                 ),
@@ -438,7 +446,7 @@ fn valid_precedence_combinations() {
     .unwrap();
 
     // This should succeed
-    let grammars = rust_sitter_tool::generate_grammars(&grammar_path).unwrap();
+    let grammars = adze_tool::generate_grammars(&grammar_path).unwrap();
     assert!(
         !grammars.is_empty(),
         "Should generate valid grammar with different precedence types"

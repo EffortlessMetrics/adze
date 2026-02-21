@@ -1,4 +1,4 @@
-# rust-sitter v0.6.1-beta
+# adze v0.6.1-beta
 
 **Algorithmically correct GLR parser — six critical correctness fixes, 100% core GLR test pass.**
 
@@ -27,10 +27,10 @@
 ### Upgrade
 ```toml
 [dependencies]
-rust-sitter = "0.6.1-beta"
-rust-sitter-tool = "0.6.1-beta" # optional
+adze = "0.6.1-beta"
+adze-tool = "0.6.1-beta" # optional
 ```
 
 ---
 
-**Full Changelog**: https://github.com/EffortlessMetrics/rust-sitter/compare/v0.6.0...v0.6.1-beta
+**Full Changelog**: https://github.com/EffortlessMetrics/adze/compare/v0.6.0...v0.6.1-beta

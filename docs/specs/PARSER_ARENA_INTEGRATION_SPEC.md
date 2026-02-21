@@ -6,7 +6,7 @@
 
 ## Overview
 
-This specification defines the integration of the arena allocator into rust-sitter's parser and tree types, completing Phase 2 of the arena allocator implementation.
+This specification defines the integration of the arena allocator into adze's parser and tree types, completing Phase 2 of the arena allocator implementation.
 
 ## Goals
 

@@ -1,10 +1,10 @@
-# Rust Sitter Performance Guide
+# Adze Performance Guide
 
-This document describes the performance optimizations implemented in rust-sitter, with a focus on the new GLR runtime2 capabilities.
+This document describes the performance optimizations implemented in adze, with a focus on the new GLR runtime2 capabilities.
 
 ## Overview
 
-Rust Sitter includes several performance optimizations that make it competitive with or faster than traditional parsers:
+Adze includes several performance optimizations that make it competitive with or faster than traditional parsers:
 
 1. **GLR Forest-to-Tree Conversion** - High-performance ambiguous parse handling
 2. **Incremental Parsing with Subtree Reuse** - O(log n) complexity for edits
@@ -21,7 +21,7 @@ The GLR runtime2 provides comprehensive performance monitoring and optimization:
 Enable detailed conversion monitoring:
 
 ```bash
-RUST_SITTER_LOG_PERFORMANCE=true cargo run
+ADZE_LOG_PERFORMANCE=true cargo run
 ```
 
 **Sample Output:**
@@ -39,7 +39,7 @@ RUST_SITTER_LOG_PERFORMANCE=true cargo run
 ### Performance Monitoring API
 
 ```rust
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 use std::time::Instant;
 
 let mut parser = Parser::new();
@@ -62,7 +62,7 @@ GLR incremental parsing provides sophisticated subtree reuse:
 
 ```rust
 // Monitor subtree reuse effectiveness
-use rust_sitter_runtime::glr_incremental::{SUBTREE_REUSE_COUNT, reset_reuse_counter};
+use adze_runtime::glr_incremental::{SUBTREE_REUSE_COUNT, reset_reuse_counter};
 use std::sync::atomic::Ordering;
 
 reset_reuse_counter();
@@ -85,7 +85,7 @@ Enable arena allocators for parsing-heavy workloads:
 
 ```toml
 [dependencies]
-rust-sitter-runtime = { version = "0.1", features = ["glr-core", "arenas"] }
+adze-runtime = { version = "0.1", features = ["glr-core", "arenas"] }
 ```
 
 **Benefits:**
@@ -149,7 +149,7 @@ The parallel parser (`parallel_parser` module) enables multi-threaded parsing:
 ### Configuration
 
 ```rust
-use rust_sitter::parallel_parser::{ParallelParser, ParallelConfig};
+use adze::parallel_parser::{ParallelParser, ParallelConfig};
 
 let config = ParallelConfig {
     min_file_size: 100_000,  // 100KB minimum
@@ -187,7 +187,7 @@ let parser = ParallelParser::new(grammar, table, config);
 
 ### Memory Usage Comparison
 
-| File Size | Tree-sitter C | Rust Sitter | Reduction |
+| File Size | Tree-sitter C | Adze | Reduction |
 |-----------|---------------|-------------|-----------|
 | 100 KB    | 2.1 MB       | 1.8 MB      | 14%       |
 | 1 MB      | 21 MB        | 17 MB       | 19%       |
@@ -314,7 +314,7 @@ cargo bench -- --save-baseline baseline
 
 ## Conclusion
 
-Rust Sitter's performance optimizations make it suitable for:
+Adze's performance optimizations make it suitable for:
 - Real-time syntax highlighting
 - Large-scale code analysis
 - IDE language servers

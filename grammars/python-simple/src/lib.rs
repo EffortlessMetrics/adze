@@ -6,81 +6,81 @@
 )]
 
 // Simplified Python grammar for testing pure-rust implementation
-#[rust_sitter::grammar("python_simple")]
+#[adze::grammar("python_simple")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Module {
-        #[rust_sitter::repeat(non_empty = false)]
+        #[adze::repeat(non_empty = false)]
         pub body: Vec<Statement>,
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Statement {
         Expression(ExpressionStatement),
         Assignment(AssignmentStatement),
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct ExpressionStatement {
         pub expression: Expression,
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct AssignmentStatement {
         pub target: Identifier,
-        #[rust_sitter::leaf(text = "=")]
+        #[adze::leaf(text = "=")]
         _equals: (),
         pub value: Expression,
     }
 
-    #[rust_sitter::language]
-    #[rust_sitter::prec(1)]
+    #[adze::language]
+    #[adze::prec(1)]
     pub enum Expression {
-        #[rust_sitter::prec(3)]
+        #[adze::prec(3)]
         Primary(PrimaryExpression),
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Add(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "+")] (),
+            #[adze::leaf(text = "+")] (),
             Box<Expression>,
         ),
-        #[rust_sitter::prec_left(2)]
+        #[adze::prec_left(2)]
         Multiply(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "*")] (),
+            #[adze::leaf(text = "*")] (),
             Box<Expression>,
         ),
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum PrimaryExpression {
         Number(NumberLiteral),
         String(StringLiteral),
         Identifier(Identifier),
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct NumberLiteral {
-        #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
+        #[adze::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
         pub value: i32,
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct StringLiteral {
-        #[rust_sitter::leaf(pattern = r#""[^"]*"|'[^']*'"#)]
+        #[adze::leaf(pattern = r#""[^"]*"|'[^']*'"#)]
         pub value: String,
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Identifier {
-        #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
+        #[adze::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
         pub name: String,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     #[allow(dead_code)]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }
@@ -94,7 +94,7 @@ mod perf_test;
 mod tests {
     use super::*;
 
-    fn print_tree(node: &rust_sitter::pure_parser::ParsedNode, source: &[u8], indent: usize) {
+    fn print_tree(node: &adze::pure_parser::ParsedNode, source: &[u8], indent: usize) {
         let text =
             std::str::from_utf8(&source[node.start_byte..node.end_byte]).unwrap_or("<invalid>");
         eprintln!(
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     #[ignore = "Extract implementation needs support for nested enum variants (Expression_Add inside Statement)"]
     fn test_primary_expression() {
-        // use rust_sitter::Extract;
+        // use adze::Extract;
 
         // First, let's debug what symbols are available
         eprintln!("\n=== Available symbols in language ===");
@@ -140,7 +140,7 @@ mod tests {
         let input = "42";
 
         // Parse with debug output
-        use rust_sitter::pure_parser::Parser;
+        use adze::pure_parser::Parser;
         let mut parser = Parser::new();
         parser.set_language(lang).unwrap();
         let parse_result = parser.parse_bytes(input.as_bytes());
@@ -194,7 +194,7 @@ mod tests {
     #[test]
     #[ignore = "Extract implementation needs support for nested enum variants (Expression_Add inside Statement)"]
     fn test_extract_string() {
-        // use rust_sitter::Extract;
+        // use adze::Extract;
 
         // Test parsing "hello" as a string literal
         let input = r#""hello""#;
@@ -224,7 +224,7 @@ mod tests {
     #[test]
     #[ignore = "Extract implementation needs support for nested enum variants (Expression_Add inside Statement)"]
     fn test_extract_identifier() {
-        // use rust_sitter::Extract;
+        // use adze::Extract;
 
         // Test parsing "x" as an identifier
         let input = "x";

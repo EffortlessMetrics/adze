@@ -10,7 +10,7 @@ Implemented (2025-11-19)
 
 ## Purpose
 
-Define the precise behavior of enum variant inlining in rust-sitter grammar generation to enable GLR conflict preservation while maintaining backward compatibility.
+Define the precise behavior of enum variant inlining in adze grammar generation to enable GLR conflict preservation while maintaining backward compatibility.
 
 ## Overview
 
@@ -41,7 +41,7 @@ Boolean: `should_inline` (true = inline, false = create intermediate symbol)
 ```
 should_inline_variant(variant) -> bool:
     // Rule 1: Explicit opt-out takes precedence
-    if variant.has_attribute("rust_sitter::no_inline"):
+    if variant.has_attribute("adze::no_inline"):
         return false
 
     // Rule 2: Unit variants never inline (backward compatibility)
@@ -62,7 +62,7 @@ should_inline_variant(variant) -> bool:
 
 **Input Rust Code:**
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Expr {
     Binary(Box<Expr>, String, Box<Expr>),
     Number(i32),
@@ -104,9 +104,9 @@ enum Expr {
 
 **Input Rust Code:**
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Expr {
-    #[rust_sitter::no_inline]
+    #[adze::no_inline]
     Binary(Box<Expr>, String, Box<Expr>),
 
     Number(i32),
@@ -143,11 +143,11 @@ enum Expr {
 
 ## Attribute Specification
 
-### `#[rust_sitter::no_inline]`
+### `#[adze::no_inline]`
 
 **Syntax:**
 ```rust
-#[rust_sitter::no_inline]
+#[adze::no_inline]
 variant_name(fields)
 ```
 
@@ -162,10 +162,10 @@ variant_name(fields)
 
 **Example:**
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Statement {
     // Complex variant - keep intermediate for clarity
-    #[rust_sitter::no_inline]
+    #[adze::no_inline]
     FunctionDecl {
         name: String,
         params: Vec<Param>,
@@ -180,13 +180,13 @@ enum Statement {
 **Error Conditions:**
 ```rust
 // ERROR: no_inline on enum itself
-#[rust_sitter::no_inline]  // ❌ Error
+#[adze::no_inline]  // ❌ Error
 enum Expr { ... }
 
 // ERROR: no_inline on field
 enum Expr {
     Binary(
-        #[rust_sitter::no_inline]  // ❌ Error
+        #[adze::no_inline]  // ❌ Error
         Box<Expr>,
         String,
         Box<Expr>
@@ -230,7 +230,7 @@ Expr → NUMBER
 ```
 
 **Migration:**
-- Add `#[rust_sitter::no_inline]` to variants if intermediate symbols needed
+- Add `#[adze::no_inline]` to variants if intermediate symbols needed
 - Update CST traversal code if relying on `Expr_Binary` node names
 
 ## Field Naming in Inlined Variants
@@ -256,7 +256,7 @@ enum Node {
 
 **Input:**
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Expr {
     Binary(Box<Expr>, String, Box<Expr>),
     Number(i32),
@@ -274,9 +274,9 @@ enum Expr {
 
 **Input:**
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Stmt {
-    #[rust_sitter::no_inline]
+    #[adze::no_inline]
     FunctionDecl { name: String, body: Block },
 
     Expr(Expression),  // Inlined by default
@@ -293,12 +293,12 @@ enum Stmt {
 
 **Input:**
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Expr {
-    #[rust_sitter::prec_left(1)]
+    #[adze::prec_left(1)]
     Add(Box<Expr>, Box<Expr>),
 
-    #[rust_sitter::prec_left(2)]
+    #[adze::prec_left(2)]
     Mul(Box<Expr>, Box<Expr>),
 
     Number(i32),
@@ -316,7 +316,7 @@ enum Expr {
 
 **Input:**
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Token {
     Plus,
     Minus,
@@ -337,8 +337,8 @@ enum Token {
 
 **Error 1: `no_inline` on enum**
 ```rust
-#[rust_sitter::no_inline]  // ❌ Error
-#[rust_sitter::language]
+#[adze::no_inline]  // ❌ Error
+#[adze::language]
 enum Expr { ... }
 ```
 **Error Message:** "`no_inline` attribute can only be applied to enum variants, not the enum itself"
@@ -347,7 +347,7 @@ enum Expr { ... }
 ```rust
 enum Expr {
     Binary(
-        #[rust_sitter::no_inline] Box<Expr>,  // ❌ Error
+        #[adze::no_inline] Box<Expr>,  // ❌ Error
         String
     )
 }
@@ -357,7 +357,7 @@ enum Expr {
 **Error 3: `no_inline` with parameters**
 ```rust
 enum Expr {
-    #[rust_sitter::no_inline(true)]  // ❌ Error
+    #[adze::no_inline(true)]  // ❌ Error
     Binary(Box<Expr>, String, Box<Expr>)
 }
 ```

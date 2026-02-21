@@ -1,4 +1,4 @@
-use rust_sitter_tool::grammar_js::parse_grammar_js_v2;
+use adze_tool::grammar_js::parse_grammar_js_v2;
 
 #[test]
 fn test_simple_inline_parsing() {

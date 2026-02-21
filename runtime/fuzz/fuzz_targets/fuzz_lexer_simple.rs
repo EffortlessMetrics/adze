@@ -1,8 +1,8 @@
 #![no_main]
 
+use adze::glr_lexer::GLRLexer;
+use adze_ir::{Grammar, SymbolId, Token, TokenPattern};
 use libfuzzer_sys::fuzz_target;
-use rust_sitter::glr_lexer::GLRLexer;
-use rust_sitter_ir::{Grammar, SymbolId, Token, TokenPattern};
 
 // Create a simple test grammar
 fn create_test_grammar() -> Grammar {

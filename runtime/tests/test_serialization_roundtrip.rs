@@ -1,7 +1,7 @@
 //! Comprehensive serialization roundtrip tests
 //!
 //! These tests ensure that:
-//! 1. Serialization APIs work correctly with the rust-sitter types
+//! 1. Serialization APIs work correctly with the adze types
 //! 2. SerializedNode roundtrips through JSON properly
 //! 3. S-expression parsing roundtrips correctly
 //! 4. TreeSerializer produces valid output
@@ -11,7 +11,7 @@
 // Only compile this test file when serialization feature is enabled
 #![cfg(feature = "serialization")]
 
-use rust_sitter::serialization::*;
+use adze::serialization::*;
 use std::collections::HashMap;
 
 #[cfg(test)]

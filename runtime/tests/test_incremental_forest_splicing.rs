@@ -1,8 +1,8 @@
 //! Test for the new forest splicing incremental parsing approach
 
-use rust_sitter::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
 /// Create a simple arithmetic grammar for testing
@@ -45,8 +45,8 @@ fn create_test_grammar() -> Grammar {
                 Symbol::Terminal(plus_id),
                 Symbol::NonTerminal(expr_id),
             ],
-            precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-            associativity: Some(rust_sitter_ir::Associativity::Left),
+            precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+            associativity: Some(adze_ir::Associativity::Left),
             fields: vec![],
             production_id: ProductionId(0),
         },

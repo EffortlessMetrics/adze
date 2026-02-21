@@ -1,8 +1,8 @@
 //! Trip-wire test to prevent regression of debug_error_stats to silent zeros
 #![cfg(not(feature = "strict-invariants"))]
 
-use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
-use rust_sitter_ir::{RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
+use adze_ir::{RuleId, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 #[test]
@@ -81,10 +81,10 @@ fn test_error_stats_not_stubbed() {
             map.insert(SymbolId(5), 0); // S
             map
         },
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(5),
-        grammar: rust_sitter_ir::Grammar::new("test".to_string()),
+        grammar: adze_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
         token_count: 4, // ERROR, 'a', 'b', 'c'
         external_token_count: 0,
@@ -233,10 +233,10 @@ fn test_clean_parse_has_zero_errors() {
             map.insert(SymbolId(5), 0); // S
             map
         },
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(5),
-        grammar: rust_sitter_ir::Grammar::new("test".to_string()),
+        grammar: adze_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
         token_count: 4, // ERROR, 'a', 'b', 'c'
         external_token_count: 0,

@@ -1,18 +1,18 @@
 #!/bin/bash
 set -e
 
-echo "=== Package validation for rust-sitter workspace ==="
+echo "=== Package validation for adze workspace ==="
 echo ""
 
 # All crates validated via cargo package (topological order)
 CRATES=(
-    "rust-sitter-common"
-    "rust-sitter-ir"
-    "rust-sitter-glr-core"
-    "rust-sitter-tablegen"
-    "rust-sitter-macro"
-    "rust-sitter"
-    "rust-sitter-tool"
+    "adze-common"
+    "adze-ir"
+    "adze-glr-core"
+    "adze-tablegen"
+    "adze-macro"
+    "adze"
+    "adze-tool"
 )
 
 for crate in "${CRATES[@]}"; do

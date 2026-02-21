@@ -9,7 +9,7 @@ use crate::Tree;
 use crate::error::ParseError;
 use crate::glr_engine::{ForestNode, ForestNodeId, ParseForest};
 use crate::tree::TreeNode;
-use rust_sitter_glr_core::SymbolId;
+use adze_glr_core::SymbolId;
 use std::collections::HashSet;
 use std::fmt;
 

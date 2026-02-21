@@ -1,5 +1,5 @@
-use rust_sitter_ir::error::IrError;
-use rust_sitter_tablegen::error::TableGenError;
+use adze_ir::error::IrError;
+use adze_tablegen::error::TableGenError;
 
 #[test]
 fn ir_error_preserves_source_chain() {

@@ -3,12 +3,12 @@
 
 #[cfg(feature = "incremental_glr")]
 mod comprehensive_incremental_tests {
-    use rust_sitter::glr_incremental::{
+    use adze::glr_incremental::{
         GLREdit, GLRToken, IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
     };
-    use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
-    use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-    use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use adze::glr_lexer::{GLRLexer, TokenWithPosition};
+    use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::time::Instant;
 
     /// Create simple arithmetic grammar for testing
@@ -93,8 +93,8 @@ mod comprehensive_incremental_tests {
                 Symbol::Terminal(plus_id),
                 Symbol::NonTerminal(term_id),
             ],
-            precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-            associativity: Some(rust_sitter_ir::Associativity::Left),
+            precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+            associativity: Some(adze_ir::Associativity::Left),
             fields: vec![],
             production_id: ProductionId(0),
         });
@@ -106,8 +106,8 @@ mod comprehensive_incremental_tests {
                 Symbol::Terminal(minus_id),
                 Symbol::NonTerminal(term_id),
             ],
-            precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-            associativity: Some(rust_sitter_ir::Associativity::Left),
+            precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+            associativity: Some(adze_ir::Associativity::Left),
             fields: vec![],
             production_id: ProductionId(1),
         });
@@ -133,8 +133,8 @@ mod comprehensive_incremental_tests {
                 Symbol::Terminal(star_id),
                 Symbol::NonTerminal(factor_id),
             ],
-            precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)),
-            associativity: Some(rust_sitter_ir::Associativity::Left),
+            precedence: Some(adze_ir::PrecedenceKind::Static(2)),
+            associativity: Some(adze_ir::Associativity::Left),
             fields: vec![],
             production_id: ProductionId(3),
         });

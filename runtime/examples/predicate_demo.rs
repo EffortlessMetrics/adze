@@ -1,10 +1,10 @@
-//! Demonstrates query predicate evaluation in rust-sitter
+//! Demonstrates query predicate evaluation in adze
 
-use rust_sitter::{
+use adze::{
     parser::ParseNode,
     query::{ast::Predicate, predicate_eval::PredicateContext},
 };
-use rust_sitter_ir::SymbolId;
+use adze_ir::SymbolId;
 use std::collections::HashMap;
 
 fn main() {

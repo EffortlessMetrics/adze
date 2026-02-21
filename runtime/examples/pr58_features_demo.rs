@@ -5,9 +5,9 @@
 //! 2. Production-ready incremental parsing with 16x performance improvements
 //! 3. Direct Forest Splicing algorithm with conservative subtree reuse
 
-use rust_sitter::ts_compat::{InputEdit, Language, Parser, Point};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze::ts_compat::{InputEdit, Language, Parser, Point};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -76,8 +76,8 @@ fn create_demo_language() -> Result<Arc<Language>, String> {
             Symbol::Terminal(plus_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+        associativity: Some(adze_ir::Associativity::Left),
         fields: vec![],
         production_id: ProductionId(1),
     };
@@ -280,7 +280,7 @@ fn demonstrate_incremental_parsing(parser: &mut Parser) -> Result<(), Box<dyn st
     println!("\n🎯 Performance Notes:");
     println!("  • Direct Forest Splicing algorithm targets 16x speedup for large files");
     println!("  • Subtree reuse effectiveness depends on edit scope and location");
-    println!("  • Enable RUST_SITTER_LOG_PERFORMANCE=true for detailed metrics");
+    println!("  • Enable ADZE_LOG_PERFORMANCE=true for detailed metrics");
     println!("  • Use incremental_glr feature flag for production deployment");
 
     println!("\n✅ Incremental parsing demonstration complete!");

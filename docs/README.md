@@ -1,6 +1,6 @@
-# Rust Sitter Documentation
+# Adze Documentation
 
-This directory contains comprehensive documentation for Rust Sitter.
+This directory contains comprehensive documentation for Adze.
 
 ## Getting Started
 

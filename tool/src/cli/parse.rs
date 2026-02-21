@@ -28,7 +28,7 @@ pub fn parse_file(
     // Check if a crate path was provided
     if let Some(crate_path) = parser_path {
         // MVP: Provide honest feedback about the current limitations
-        eprintln!("rust-sitter CLI v0.6.0 - Parse Command");
+        eprintln!("adze CLI v0.6.0 - Parse Command");
         eprintln!("========================================");
         eprintln!();
         eprintln!("STATUS: The dynamic parser loading feature is not yet implemented.");
@@ -45,9 +45,9 @@ pub fn parse_file(
         eprintln!();
         eprintln!("1. Define your grammar in Rust:");
         eprintln!("   ```rust");
-        eprintln!("   #[rust_sitter::grammar(\"my_language\")]");
+        eprintln!("   #[adze::grammar(\"my_language\")]");
         eprintln!("   pub mod grammar {{");
-        eprintln!("       #[rust_sitter::language]");
+        eprintln!("       #[adze::language]");
         eprintln!("       pub struct MyLanguage;");
         eprintln!("   }}");
         eprintln!("   ```");
@@ -74,26 +74,26 @@ pub fn parse_file(
         eprintln!("  - Dynamic parser loading via --parser flag");
         eprintln!("  - Tree-sitter compatible CLI functionality");
         eprintln!();
-        eprintln!("For updates, see: https://github.com/EffortlessMetrics/rust-sitter");
+        eprintln!("For updates, see: https://github.com/EffortlessMetrics/adze");
 
         // Return an honest error code
         std::process::exit(64); // EX_USAGE - command line usage error
     }
 
     // No parser specified - provide helpful message
-    eprintln!("rust-sitter parse - No parser specified");
+    eprintln!("adze parse - No parser specified");
     eprintln!("========================================");
     eprintln!();
-    eprintln!("To parse files with rust-sitter:");
+    eprintln!("To parse files with adze:");
     eprintln!();
     eprintln!("Option 1: Use a parser crate (not yet implemented)");
     eprintln!(
-        "  rust-sitter parse --parser <parser-crate> {}",
+        "  adze parse --parser <parser-crate> {}",
         file_path.display()
     );
     eprintln!();
     eprintln!("Option 2: Integrate directly in Rust code (working today)");
-    eprintln!("  1. Define your grammar using #[rust_sitter::grammar]");
+    eprintln!("  1. Define your grammar using #[adze::grammar]");
     eprintln!("  2. Build it with `cargo build`");
     eprintln!("  3. Use the generated parse() function in your code");
     eprintln!();

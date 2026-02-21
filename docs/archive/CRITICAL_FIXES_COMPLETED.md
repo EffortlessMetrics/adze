@@ -1,7 +1,7 @@
-# Critical Fixes Completed for rust-sitter v0.6.0
+# Critical Fixes Completed for adze v0.6.0
 
 ## Summary
-Comprehensive audit and fixes applied to address mock implementations, placeholder code, and incomplete functionality in the rust-sitter codebase.
+Comprehensive audit and fixes applied to address mock implementations, placeholder code, and incomplete functionality in the adze codebase.
 
 ## Critical Issues Fixed
 

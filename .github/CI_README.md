@@ -1,6 +1,6 @@
-# CI Infrastructure for rust-sitter
+# CI Infrastructure for adze
 
-This document describes the comprehensive CI setup for rust-sitter.
+This document describes the comprehensive CI setup for adze.
 
 ## Overview
 

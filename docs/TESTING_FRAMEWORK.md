@@ -1,10 +1,10 @@
-# Rust Sitter Testing Framework
+# Adze Testing Framework
 
 Comprehensive testing framework for grammar development and validation.
 
 ## Overview
 
-The Rust Sitter testing framework provides multiple testing strategies to ensure grammar correctness, performance, and compatibility:
+The Adze testing framework provides multiple testing strategies to ensure grammar correctness, performance, and compatibility:
 
 - **Corpus Testing**: Test against real-world code examples
 - **Property-Based Testing**: Automatically generate test cases
@@ -17,16 +17,16 @@ The Rust Sitter testing framework provides multiple testing strategies to ensure
 
 ```bash
 # Run all tests for your grammar
-rust-sitter test
+adze test
 
 # Run specific test suite
-rust-sitter test --suite corpus
+adze test --suite corpus
 
 # Run with coverage
-rust-sitter test --coverage
+adze test --coverage
 
 # Benchmark performance
-rust-sitter bench
+adze bench
 ```
 
 ## Corpus Testing
@@ -87,7 +87,7 @@ fn test() {} // inline
 
 ### Running Corpus Tests
 ```rust
-use rust_sitter::testing::{TestRunner, CorpusConfig};
+use adze::testing::{TestRunner, CorpusConfig};
 
 #[test]
 fn test_corpus() {
@@ -105,7 +105,7 @@ fn test_corpus() {
 
 ### Automatic Test Generation
 ```rust
-use rust_sitter::testing::{PropertyTest, Arbitrary};
+use adze::testing::{PropertyTest, Arbitrary};
 
 #[test]
 fn test_properties() {
@@ -147,7 +147,7 @@ impl Arbitrary for MyExpression {
 
 ### Coverage-Guided Fuzzing
 ```rust
-use rust_sitter::testing::{Fuzzer, FuzzConfig};
+use adze::testing::{Fuzzer, FuzzConfig};
 
 #[test]
 fn fuzz_grammar() {
@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: rust-sitter/fuzz-action@v1
+      - uses: adze/fuzz-action@v1
         with:
           duration: 3600  # 1 hour
           corpus: fuzz/corpus
@@ -185,7 +185,7 @@ jobs:
 
 ### Benchmark Suite
 ```rust
-use rust_sitter::testing::{Benchmark, BenchConfig};
+use adze::testing::{Benchmark, BenchConfig};
 
 #[bench]
 fn bench_parsing(b: &mut Bencher) {
@@ -202,32 +202,32 @@ fn bench_parsing(b: &mut Bencher) {
 ### Performance Tracking
 ```bash
 # Run benchmarks and save results
-rust-sitter bench --save results.json
+adze bench --save results.json
 
 # Compare with previous run
-rust-sitter bench --baseline results.json
+adze bench --baseline results.json
 
 # Generate performance report
-rust-sitter bench --report html
+adze bench --report html
 ```
 
 ### Profiling
 ```bash
 # CPU profiling
-rust-sitter profile --flamegraph
+adze profile --flamegraph
 
 # Memory profiling
-rust-sitter profile --memory
+adze profile --memory
 
 # Cache analysis
-rust-sitter profile --cache-stats
+adze profile --cache-stats
 ```
 
 ## Differential Testing
 
 ### Compare with Tree-sitter
 ```rust
-use rust_sitter::testing::{DifferentialTest, TreeSitterGrammar};
+use adze::testing::{DifferentialTest, TreeSitterGrammar};
 
 #[test]
 fn test_compatibility() {
@@ -252,7 +252,7 @@ fn test_compatibility() {
 
 ### Lint Checks
 ```rust
-use rust_sitter::testing::{GrammarLinter, LintLevel};
+use adze::testing::{GrammarLinter, LintLevel};
 
 #[test]
 fn lint_grammar() {
@@ -285,7 +285,7 @@ fn lint_grammar() {
 ### Using Insta
 ```rust
 use insta::assert_snapshot;
-use rust_sitter::testing::format_tree;
+use adze::testing::format_tree;
 
 #[test]
 fn test_snapshot() {
@@ -307,7 +307,7 @@ cargo insta accept
 
 ### Test Macros
 ```rust
-use rust_sitter::test_grammar;
+use adze::test_grammar;
 
 test_grammar! {
     grammar: my_grammar,
@@ -340,7 +340,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: rust-sitter/test-action@v1
+      - uses: adze/test-action@v1
         with:
           coverage: true
           bench: true
@@ -351,12 +351,12 @@ jobs:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/rust-sitter/hooks
+  - repo: https://github.com/adze/hooks
     rev: v1.0.0
     hooks:
-      - id: rust-sitter-test
-      - id: rust-sitter-lint
-      - id: rust-sitter-format
+      - id: adze-test
+      - id: adze-lint
+      - id: adze-format
 ```
 
 ## Test Coverage
@@ -364,18 +364,18 @@ repos:
 ### Generate Coverage Report
 ```bash
 # Run with coverage
-rust-sitter test --coverage
+adze test --coverage
 
 # Generate HTML report
-rust-sitter coverage --html
+adze coverage --html
 
 # Upload to Codecov
-rust-sitter coverage --codecov
+adze coverage --codecov
 ```
 
 ### Coverage Requirements
 ```toml
-# rust-sitter.toml
+# adze.toml
 [coverage]
 minimum = 90
 exclude = ["tests/**", "benches/**"]
@@ -386,18 +386,18 @@ exclude = ["tests/**", "benches/**"]
 ### Debug Mode
 ```bash
 # Step through parsing
-rust-sitter debug "fn main() {}"
+adze debug "fn main() {}"
 
 # Show parser states
-rust-sitter debug --states
+adze debug --states
 
 # Trace token flow
-rust-sitter debug --trace
+adze debug --trace
 ```
 
 ### Test Utilities
 ```rust
-use rust_sitter::testing::{assert_parse, assert_parse_error};
+use adze::testing::{assert_parse, assert_parse_error};
 
 // Assert successful parse
 assert_parse!(grammar, "fn main() {}");
@@ -429,7 +429,7 @@ assert_parse!(grammar, "fn f() {}" => {
 
 ## Resources
 
-- [Testing Tutorial](https://docs.rust-sitter.dev/testing)
-- [Example Test Suites](https://github.com/rust-sitter/examples)
-- [Best Practices Guide](https://docs.rust-sitter.dev/testing/best-practices)
+- [Testing Tutorial](https://docs.adze.dev/testing)
+- [Example Test Suites](https://github.com/adze/examples)
+- [Best Practices Guide](https://docs.adze.dev/testing/best-practices)
 - [Video Tutorials](https://youtube.com/@rustsitter)

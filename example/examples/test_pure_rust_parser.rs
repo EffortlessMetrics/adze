@@ -16,7 +16,7 @@ fn main() {
     println!("\nParsing: '{}'", input);
 
     // Create parser
-    let mut parser = rust_sitter::pure_parser::Parser::new();
+    let mut parser = adze::pure_parser::Parser::new();
     parser.set_language(language);
 
     let result = parser.parse_string(input);

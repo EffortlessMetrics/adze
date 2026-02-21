@@ -1,6 +1,6 @@
-# Rust Sitter LSP Generator
+# Adze LSP Generator
 
-Automatically generate Language Server Protocol (LSP) implementations from rust-sitter grammars.
+Automatically generate Language Server Protocol (LSP) implementations from adze grammars.
 
 ## Features
 
@@ -13,7 +13,7 @@ Automatically generate Language Server Protocol (LSP) implementations from rust-
 ## Installation
 
 ```bash
-cargo install rust-sitter-lsp-generator
+cargo install adze-lsp-generator
 ```
 
 ## Usage
@@ -23,7 +23,7 @@ cargo install rust-sitter-lsp-generator
 Generate an LSP server with all features:
 
 ```bash
-rust-sitter-lsp-gen generate \
+adze-lsp-gen generate \
   --name my-language-lsp \
   --grammar ./my-grammar/src/lib.rs \
   --output ./my-lsp-server \
@@ -33,7 +33,7 @@ rust-sitter-lsp-gen generate \
 Generate with specific features:
 
 ```bash
-rust-sitter-lsp-gen generate \
+adze-lsp-gen generate \
   --name my-language-lsp \
   --grammar ./my-grammar/src/lib.rs \
   --completion \
@@ -44,7 +44,7 @@ rust-sitter-lsp-gen generate \
 ### Builder API
 
 ```rust
-use rust_sitter_lsp_generator::LspBuilder;
+use adze_lsp_generator::LspBuilder;
 
 fn main() -> Result<()> {
     LspBuilder::new("my-language-lsp")
@@ -158,7 +158,7 @@ Create an LSP config file:
 Then generate from config:
 
 ```bash
-rust-sitter-lsp-gen from-config --config lsp-config.json
+adze-lsp-gen from-config --config lsp-config.json
 ```
 
 ## Examples
@@ -168,8 +168,8 @@ rust-sitter-lsp-gen from-config --config lsp-config.json
 Generate an LSP server with enhanced hover support:
 
 ```rust
-use rust_sitter_lsp_generator::{LspGenerator, LspConfig};
-use rust_sitter_ir::Grammar;
+use adze_lsp_generator::{LspGenerator, LspConfig};
+use adze_ir::Grammar;
 
 fn main() -> anyhow::Result<()> {
     // Load your grammar
@@ -221,7 +221,7 @@ See the `examples/` directory for complete examples:
 ## Architecture
 
 The LSP generator works by:
-1. Analyzing your rust-sitter grammar
+1. Analyzing your adze grammar
 2. Extracting keywords, symbols, and structure
 3. Generating handler implementations
 4. Creating a tower-lsp based server
@@ -237,4 +237,4 @@ Contributions are welcome! Areas for improvement:
 
 ## License
 
-Same as rust-sitter project.
+Same as adze project.

@@ -48,11 +48,11 @@ pub enum TableGenError {
 
     /// Error bubbled from the GLR automaton builder.
     #[error(transparent)]
-    Glr(#[from] rust_sitter_glr_core::GLRError),
+    Glr(#[from] adze_glr_core::GLRError),
 
     /// Error bubbled from the IR layer.
     #[error(transparent)]
-    Ir(#[from] rust_sitter_ir::IrError),
+    Ir(#[from] adze_ir::IrError),
 }
 
 /// Convenience type alias for TableGen results.

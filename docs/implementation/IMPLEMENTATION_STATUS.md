@@ -6,21 +6,21 @@ We have successfully implemented the core components of a pure-Rust Tree-sitter 
 
 ## Completed Components
 
-### 1. Grammar Intermediate Representation (`rust-sitter-ir`)
+### 1. Grammar Intermediate Representation (`adze-ir`)
 - ✅ Full grammar representation with GLR support
 - ✅ Precedence and associativity handling
 - ✅ Field mappings and alias sequences
 - ✅ Fragile token support
 - ✅ External scanner integration
 
-### 2. GLR Parser Generation Core (`rust-sitter-glr-core`)
+### 2. GLR Parser Generation Core (`adze-glr-core`)
 - ✅ FIRST/FOLLOW set computation
 - ✅ LR(1) item sets and canonical collection
 - ✅ Conflict detection and resolution
 - ✅ GLR fork/merge logic
 - ✅ Parse table generation
 
-### 3. Table Generation and Compression (`rust-sitter-tablegen`)
+### 3. Table Generation and Compression (`adze-tablegen`)
 - ✅ Tree-sitter table compression algorithms
 - ✅ Static Language object generation
 - ✅ NODE_TYPES JSON metadata generation
@@ -28,7 +28,7 @@ We have successfully implemented the core components of a pure-Rust Tree-sitter 
 - ✅ Field mapping tables
 - ✅ ABI v15 compliance
 
-### 4. Runtime Components (`rust-sitter`)
+### 4. Runtime Components (`adze`)
 - ✅ Grammar-aware lexer
 - ✅ Error-recovering lexer with multiple recovery modes
 - ✅ LR parser implementation
@@ -97,10 +97,10 @@ We have successfully implemented the core components of a pure-Rust Tree-sitter 
 ## Integration Points
 
 ### 1. Build Tool Integration
-The implementation integrates with existing `rust-sitter-tool` for build-time code generation.
+The implementation integrates with existing `adze-tool` for build-time code generation.
 
 ### 2. Macro Support
-Works with existing `rust-sitter-macro` for grammar definition using Rust attributes.
+Works with existing `adze-macro` for grammar definition using Rust attributes.
 
 ### 3. Runtime Features
 Supports both pure-Rust (`tree-sitter-c2rust`) and standard C runtime backends.

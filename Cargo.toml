@@ -38,12 +38,12 @@ exclude = [
 
 [workspace.package]
 authors = ["Steven Zimmerman, CPA <git@effortlesssteven.com>"]
-documentation = "https://github.com/effortlessmetrics/rust-sitter"
+documentation = "https://github.com/effortlessmetrics/adze"
 edition = "2024"
-homepage = "https://github.com/effortlessmetrics/rust-sitter"
+homepage = "https://github.com/effortlessmetrics/adze"
 license = "Apache-2.0 OR MIT"
 publish = false
-repository = "https://github.com/effortlessmetrics/rust-sitter"
+repository = "https://github.com/effortlessmetrics/adze"
 rust-version = "1.92.0"
 
 

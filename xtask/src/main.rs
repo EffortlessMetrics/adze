@@ -15,7 +15,7 @@ mod test_grammars;
 mod test_local_grammars;
 
 #[derive(Parser)]
-#[command(author, version, about = "Rust Sitter development tasks")]
+#[command(author, version, about = "Adze development tasks")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

@@ -85,7 +85,7 @@
 //! # Examples
 //!
 //! ```ignore
-//! use rust_sitter_glr_core::conflict_inspection::count_conflicts;
+//! use adze_glr_core::conflict_inspection::count_conflicts;
 //!
 //! let grammar = load_ambiguous_grammar();
 //! let summary = count_conflicts(&grammar.parse_table);
@@ -95,7 +95,7 @@
 //! ```
 
 use crate::{Action, ParseTable, StateId};
-use rust_sitter_ir::SymbolId;
+use adze_ir::SymbolId;
 use std::fmt;
 
 /// Summary of conflicts in a parse table
@@ -166,7 +166,7 @@ pub enum ConflictType {
 /// # Examples
 ///
 /// ```ignore
-/// use rust_sitter_glr_core::conflict_inspection::count_conflicts;
+/// use adze_glr_core::conflict_inspection::count_conflicts;
 ///
 /// let grammar = load_ambiguous_grammar();
 /// let summary = count_conflicts(&grammar.parse_table);
@@ -385,7 +385,7 @@ impl fmt::Display for ConflictDetail {
 mod tests {
     use super::*;
     use crate::Action;
-    use rust_sitter_ir::RuleId;
+    use adze_ir::RuleId;
 
     /// Helper to create a minimal ParseTable for testing
     fn create_test_table(action_table: Vec<Vec<Vec<Action>>>) -> ParseTable {
@@ -404,7 +404,7 @@ mod tests {
             goto_indexing: crate::GotoIndexing::NonterminalMap,
             eof_symbol: SymbolId(0),
             start_symbol: SymbolId(0),
-            grammar: rust_sitter_ir::Grammar::new("test".to_string()),
+            grammar: adze_ir::Grammar::new("test".to_string()),
             initial_state: StateId(0),
             token_count: 0,
             external_token_count: 0,

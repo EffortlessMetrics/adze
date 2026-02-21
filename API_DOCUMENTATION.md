@@ -1,6 +1,6 @@
-# Rust Sitter API Documentation
+# Adze API Documentation
 
-Complete API reference for rust-sitter v0.6.0 - the production-ready pure-Rust parser generator with GLR support.
+Complete API reference for adze v0.6.0 - the production-ready pure-Rust parser generator with GLR support.
 
 > **Note**: This document covers the stable API. Some advanced features (queries, incremental parsing, serialization) are available under feature flags and their APIs may change before v1.0.
 > 
@@ -112,49 +112,49 @@ pub struct SymbolMetadata {
 
 ### Procedural Macros
 
-#### `#[rust_sitter::grammar("name")]`
+#### `#[adze::grammar("name")]`
 Defines a grammar module:
 ```rust
-#[rust_sitter::grammar("my_language")]
+#[adze::grammar("my_language")]
 mod grammar {
     // Grammar definitions
 }
 ```
 
-#### `#[rust_sitter::language]`
+#### `#[adze::language]`
 Marks the root AST type:
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub struct Program {
     statements: Vec<Statement>,
 }
 ```
 
-#### `#[rust_sitter::leaf(...)]`
+#### `#[adze::leaf(...)]`
 Defines leaf nodes:
 ```rust
 // Pattern matching
-#[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
+#[adze::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
 field: u32,
 
 // Exact text
-#[rust_sitter::leaf(text = "+")]
+#[adze::leaf(text = "+")]
 plus: (),
 ```
 
-#### `#[rust_sitter::prec_left(n)]` / `#[rust_sitter::prec_right(n)]`
+#### `#[adze::prec_left(n)]` / `#[adze::prec_right(n)]`
 Sets precedence and associativity:
 ```rust
-#[rust_sitter::prec_left(1)]
-Add(Box<Expr>, #[rust_sitter::leaf(text = "+")] (), Box<Expr>),
+#[adze::prec_left(1)]
+Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
 ```
 
-#### `#[rust_sitter::extra]`
+#### `#[adze::extra]`
 Marks nodes that can be skipped:
 ```rust
-#[rust_sitter::extra]
+#[adze::extra]
 struct Whitespace {
-    #[rust_sitter::leaf(pattern = r"\s+")]
+    #[adze::leaf(pattern = r"\s+")]
     _ws: (),
 }
 ```
@@ -375,7 +375,7 @@ impl ExternalLexer {
 
 **Usage Example - Creating Tree-sitter Compatible Lexer**:
 ```rust
-use rust_sitter::external_lexer::ExternalLexer;
+use adze::external_lexer::ExternalLexer;
 
 // Create external lexer for use with Tree-sitter external scanners
 let input = b"hello\nworld";
@@ -563,15 +563,15 @@ pub enum RecoveryAction {
 > **Feature Flags**: Incremental parsing capabilities require feature flags:
 > ```toml
 > [dependencies] 
-> rust-sitter = { version = "0.6", features = ["incremental"] }           # Basic incremental
-> rust-sitter = { version = "0.6", features = ["incremental_glr"] }       # GLR + incremental  
+> adze = { version = "0.6", features = ["incremental"] }           # Basic incremental
+> adze = { version = "0.6", features = ["incremental_glr"] }       # GLR + incremental  
 > ```
 
 ### GLR-Compatible Incremental Parsing (Production Ready)
 The GLR runtime2 provides seamless incremental parsing through the standard Parser API:
 
 ```rust
-use rust_sitter_runtime::{Parser, Tree, InputEdit, Point};
+use adze_runtime::{Parser, Tree, InputEdit, Point};
 
 // Create parser with GLR language
 let mut parser = Parser::new();
@@ -666,7 +666,7 @@ pub struct Point {
 
 ### Incremental Parsing Workflow
 ```rust
-use rust_sitter_runtime::{Tree, InputEdit, Point, EditError};
+use adze_runtime::{Tree, InputEdit, Point, EditError};
 
 // 1. Parse initial content
 let mut tree = parser.parse_utf8("fn main() {}", None)?;
@@ -941,11 +941,11 @@ impl GoldenTest {
     pub fn expected_hash_path(&self) -> PathBuf;
 }
 
-/// Run a golden test with rust-sitter parser
+/// Run a golden test with adze parser
 pub fn run_golden_test(test: GoldenTest) -> anyhow::Result<()>;
 
-/// Parse source with rust-sitter and return S-expression
-pub fn parse_with_rust_sitter(language: &str, source: &str) -> anyhow::Result<String>;
+/// Parse source with adze and return S-expression
+pub fn parse_with_adze(language: &str, source: &str) -> anyhow::Result<String>;
 
 /// Convert parse tree to S-expression format
 pub fn tree_to_sexp(node: &ParsedNode, source: &str) -> String;
@@ -960,11 +960,11 @@ pub fn escape_string(s: &str) -> String;
 **Feature Flags:**
 ```toml
 [dependencies]
-rust-sitter-golden-tests = { path = "golden-tests" }
+adze-golden-tests = { path = "golden-tests" }
 
 [features]
-python-grammar = ["rust-sitter-python", "rust-sitter"]
-javascript-grammar = ["rust-sitter-javascript", "rust-sitter"] 
+python-grammar = ["adze-python", "adze"]
+javascript-grammar = ["adze-javascript", "adze"] 
 all-grammars = ["python-grammar", "javascript-grammar"]
 ```
 
@@ -1039,7 +1039,7 @@ The runtime2 includes comprehensive performance monitoring and optimization:
 
 ```rust
 // Enable performance logging via environment variable
-std::env::set_var("RUST_SITTER_LOG_PERFORMANCE", "true");
+std::env::set_var("ADZE_LOG_PERFORMANCE", "true");
 
 // Parse with automatic performance monitoring
 let mut parser = Parser::new();
@@ -1049,7 +1049,7 @@ let tree = parser.parse_utf8(large_input, old_tree)?;
 ```
 
 **Environment Variables:**
-- `RUST_SITTER_LOG_PERFORMANCE=true`: Enables detailed forest-to-tree conversion metrics
+- `ADZE_LOG_PERFORMANCE=true`: Enables detailed forest-to-tree conversion metrics
 - `RUST_TEST_THREADS=N`: Controls test concurrency for stable benchmarking
 - `RAYON_NUM_THREADS=N`: Limits parallel processing for predictable performance
 
@@ -1271,7 +1271,7 @@ Rust-sitter uses feature flags to enable optional functionality. Configure featu
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6", features = ["incremental", "external-scanners", "queries"] }
+adze = { version = "0.6", features = ["incremental", "external-scanners", "queries"] }
 ```
 
 ### Available Features
@@ -1301,7 +1301,7 @@ rust-sitter = { version = "0.6", features = ["incremental", "external-scanners",
 **Incremental Parsing** (requires `incremental` feature):
 ```rust
 #[cfg(feature = "incremental")]
-use rust_sitter_runtime::{Tree, InputEdit, EditError};
+use adze_runtime::{Tree, InputEdit, EditError};
 
 #[cfg(feature = "incremental")]
 fn edit_tree(tree: &mut Tree, edit: InputEdit) -> Result<(), EditError> {
@@ -1340,7 +1340,7 @@ Use `Arc<Grammar>` to share grammars across threads.
 
 ### Concurrency Management (v0.5+)
 ```rust
-use rust_sitter::concurrency_caps;
+use adze::concurrency_caps;
 
 /// Initialize bounded thread pools for stable performance
 pub fn init_concurrency_caps();

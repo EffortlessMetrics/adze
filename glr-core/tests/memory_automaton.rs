@@ -3,8 +3,8 @@
 
 #[cfg(test)]
 mod memory_tests {
-    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use rust_sitter_ir::builder::GrammarBuilder;
+    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+    use adze_ir::builder::GrammarBuilder;
 
     #[test]
     fn dhat_heap_lr1_automaton() {

@@ -1,7 +1,7 @@
 #![no_main]
 
+use adze::*;
 use libfuzzer_sys::fuzz_target;
-use rust_sitter::*;
 
 fuzz_target!(|data: &[u8]| {
     // Convert random bytes to UTF-8 string (lossy is fine for fuzzing)

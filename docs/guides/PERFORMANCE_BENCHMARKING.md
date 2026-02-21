@@ -1,6 +1,6 @@
 # Performance Benchmarking Guide
 
-This guide explains how to run, analyze, and extend rust-sitter's performance benchmarking infrastructure.
+This guide explains how to run, analyze, and extend adze's performance benchmarking infrastructure.
 
 ## Quick Start
 
@@ -25,7 +25,7 @@ cargo xtask profile memory arithmetic medium
 
 ### Current Benchmarks (v0.8.0)
 
-rust-sitter uses Criterion for performance benchmarking with the following structure:
+adze uses Criterion for performance benchmarking with the following structure:
 
 **Location**: `benchmarks/benches/glr_performance_real.rs`
 
@@ -76,7 +76,7 @@ cargo xtask validate-fixtures              # Verify fixtures parse correctly
 cargo xtask fixtures-info                  # Show fixture statistics
 
 # Benchmarking
-cargo bench -p rust-sitter-benchmarks      # Run all benchmarks
+cargo bench -p adze-benchmarks      # Run all benchmarks
 cargo bench -- arithmetic_parsing          # Run specific group
 cargo bench --bench glr_performance_real   # Run specific benchmark file
 
@@ -153,7 +153,7 @@ pub fn generate_python_fixtures(output_dir: &str) -> Result<()> {
 In `benchmarks/benches/`:
 
 ```rust
-use rust_sitter_python::grammar::parse;
+use adze_python::grammar::parse;
 
 const PYTHON_SMALL: &str = include_str!("../fixtures/python/small.py");
 // ...
@@ -288,7 +288,7 @@ Performance gates ensure regressions don't slip through:
 1. **Language Grammar Benchmarks**: Python, JavaScript, Rust fixtures
 2. **Incremental Parsing Benchmarks**: Measure edit performance
 3. **Memory Benchmarks**: Track allocation counts and peak usage
-4. **Comparative Benchmarks**: rust-sitter vs tree-sitter-c
+4. **Comparative Benchmarks**: adze vs tree-sitter-c
 5. **Stress Tests**: Pathological inputs, deeply nested structures
 
 ### Infrastructure TODOs:

@@ -1,6 +1,6 @@
 # Pure-Rust Tree-sitter Implementation
 
-This document describes the pure-Rust implementation of Tree-sitter that has been integrated into rust-sitter.
+This document describes the pure-Rust implementation of Tree-sitter that has been integrated into adze.
 
 ## Overview
 
@@ -49,7 +49,7 @@ The pure-Rust implementation provides a complete Tree-sitter-compatible parser g
 ### Building a Parser
 
 ```rust
-use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
+use adze_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
 
 let options = BuildOptions {
     out_dir: "target/parsers".to_string(),
@@ -63,7 +63,7 @@ let result = build_parser_from_grammar_js(&grammar_path, options)?;
 ### Using the Parser
 
 ```rust
-use rust_sitter_runtime::pure_parser::Parser;
+use adze_runtime::pure_parser::Parser;
 
 let mut parser = Parser::new();
 parser.set_language(language)?;
@@ -82,7 +82,7 @@ if let Some(root) = result.root {
 - ✅ Table compression (Tree-sitter compatible)
 - ✅ ABI-compatible language generation
 - ✅ Basic runtime parser
-- ✅ Integration with rust-sitter-tool
+- ✅ Integration with adze-tool
 - ✅ Comprehensive test suite
 
 ### In Progress
@@ -102,23 +102,23 @@ The implementation includes several test suites:
 
 1. **Unit Tests** - Test individual components
    ```bash
-   cargo test -p rust-sitter-tablegen
-   cargo test -p rust-sitter-glr-core
+   cargo test -p adze-tablegen
+   cargo test -p adze-glr-core
    ```
 
 2. **Integration Tests** - Test full parser generation
    ```bash
-   cargo test -p rust-sitter-tablegen --test integration_test
+   cargo test -p adze-tablegen --test integration_test
    ```
 
 3. **End-to-End Tests** - Test with real grammars
    ```bash
-   cargo test -p rust-sitter-tool --test pure_rust_e2e_test
+   cargo test -p adze-tool --test pure_rust_e2e_test
    ```
 
 4. **Benchmarks** - Compare with C implementation
    ```bash
-   cargo bench -p rust-sitter-benchmarks
+   cargo bench -p adze-benchmarks
    ```
 
 ## Performance
@@ -158,4 +158,4 @@ To contribute to the pure-Rust implementation:
 
 ## License
 
-Same as rust-sitter project.
+Same as adze project.

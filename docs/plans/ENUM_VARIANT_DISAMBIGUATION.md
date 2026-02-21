@@ -6,7 +6,7 @@
 
 ## Hypothesis
 
-The way rust-sitter maps Rust enum variants to grammar productions **naturally creates unambiguous grammars** even when the user intends to create ambiguity.
+The way adze maps Rust enum variants to grammar productions **naturally creates unambiguous grammars** even when the user intends to create ambiguity.
 
 ## Background
 
@@ -39,14 +39,14 @@ Binary → Expr Op Expr  # Creates recursion through Expr
 ###Enum-Based Grammar (FAILS)
 Using Rust enums:
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Expr {
     Binary(Box<Expr>, String, Box<Expr>),
     Number(i32),
 }
 ```
 
-**How rust-sitter translates this**:
+**How adze translates this**:
 ```
 Expr → Expr_Binary       # Separate non-terminal for Binary variant
 Expr → Expr_Number       # Separate non-terminal for Number variant
@@ -215,7 +215,7 @@ The intermediate symbols give the LR(1) parser **disambiguation points**:
    - Result: `Expr → Expr OP Expr` (direct)
 
 2. **Option B: Attribute Control**
-   - Add `#[rust_sitter::inline]` attribute
+   - Add `#[adze::inline]` attribute
    - User can control when to inline vs create intermediate
    - More flexible but requires user knowledge
 
@@ -229,7 +229,7 @@ The intermediate symbols give the LR(1) parser **disambiguation points**:
 
 Implement **Option A with Option B as override**:
 - Default: Inline simple enum variants (no intermediate symbols)
-- Attribute: `#[rust_sitter::no_inline]` to keep intermediate when needed
+- Attribute: `#[adze::no_inline]` to keep intermediate when needed
 - This preserves backward compatibility while enabling ambiguous grammars
 
 ### Implementation Plan

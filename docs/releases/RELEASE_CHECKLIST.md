@@ -1,4 +1,4 @@
-# Release Checklist for rust-sitter v0.5.0-beta
+# Release Checklist for adze v0.5.0-beta
 
 ## Pre-release Steps
 
@@ -11,13 +11,13 @@
 
 ## Publishing Order (dependencies first)
 
-1. [ ] Publish `rust-sitter-ir`
-2. [ ] Publish `rust-sitter-glr-core` 
-3. [ ] Publish `rust-sitter-tablegen`
-4. [ ] Publish `rust-sitter-common`
-5. [ ] Publish `rust-sitter-macro`
-6. [ ] Publish `rust-sitter-tool`
-7. [ ] Publish `rust-sitter` (runtime)
+1. [ ] Publish `adze-ir`
+2. [ ] Publish `adze-glr-core` 
+3. [ ] Publish `adze-tablegen`
+4. [ ] Publish `adze-common`
+5. [ ] Publish `adze-macro`
+6. [ ] Publish `adze-tool`
+7. [ ] Publish `adze` (runtime)
 
 ## Post-release Steps
 
@@ -34,13 +34,13 @@
 cargo test --all
 
 # Check that crates can be published
-cargo publish --dry-run -p rust-sitter-ir
-cargo publish --dry-run -p rust-sitter-glr-core
-cargo publish --dry-run -p rust-sitter-tablegen
-cargo publish --dry-run -p rust-sitter-common
-cargo publish --dry-run -p rust-sitter-macro
-cargo publish --dry-run -p rust-sitter-tool
-cargo publish --dry-run -p rust-sitter
+cargo publish --dry-run -p adze-ir
+cargo publish --dry-run -p adze-glr-core
+cargo publish --dry-run -p adze-tablegen
+cargo publish --dry-run -p adze-common
+cargo publish --dry-run -p adze-macro
+cargo publish --dry-run -p adze-tool
+cargo publish --dry-run -p adze
 
 # Build documentation
 cargo doc --all --no-deps

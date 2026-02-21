@@ -1,6 +1,6 @@
-// LSP feature implementations for rust-sitter grammars
+// LSP feature implementations for adze grammars
 
-use rust_sitter_ir::{Grammar, TokenPattern};
+use adze_ir::{Grammar, TokenPattern};
 use std::collections::BTreeSet;
 
 /// Trait for LSP features
@@ -349,7 +349,7 @@ pub async fn handle_diagnostics(
                     severity: Some(lsp_types::DiagnosticSeverity::ERROR),
                     code: None,
                     code_description: None,
-                    source: Some("rust-sitter".to_string()),
+                    source: Some("adze".to_string()),
                     message: error.message,
                     related_information: None,
                     tags: None,
@@ -402,11 +402,11 @@ fn offset_to_position(text: &str, offset: usize) -> lsp_types::Position {{
 #[cfg(test)]
 mod tests {
     use super::*;
+    use adze_ir::builder::GrammarBuilder;
     use anyhow::Result;
     use lsp_types::{
         HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,
     };
-    use rust_sitter_ir::builder::GrammarBuilder;
     use std::collections::HashMap;
     use std::io::Write;
     use tempfile::NamedTempFile;

@@ -1,7 +1,7 @@
-use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{ExternalToken, Grammar, StateId, SymbolId};
-use rust_sitter_tablegen::StaticLanguageGenerator;
-use rust_sitter_tablegen::external_scanner::ExternalScannerGenerator;
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
+use adze_ir::{ExternalToken, Grammar, StateId, SymbolId};
+use adze_tablegen::StaticLanguageGenerator;
+use adze_tablegen::external_scanner::ExternalScannerGenerator;
 
 #[test]
 #[ignore = "External scanner test needs valid parse table with at least one shift action for compression validation"]

@@ -17,7 +17,7 @@ repos:
 
       - id: cargo-test-core
         name: cargo test glr-core (test-helpers)
-        entry: bash -c 'cargo test -p rust-sitter-glr-core --features test-helpers --quiet'
+        entry: bash -c 'cargo test -p adze-glr-core --features test-helpers --quiet'
         language: system
         pass_filenames: false
         files: 'glr-core/.*\.rs$'
@@ -51,10 +51,10 @@ repos:
           bash -c '
             set -euo pipefail
             # Run just the tiny, deterministic tests that encode the invariants:
-            cargo test -p rust-sitter-glr-core --test test_eof_fix --quiet
-            cargo test -p rust-sitter-glr-core --test test_eof_column_parity --quiet
-            cargo test -p rust-sitter-glr-core --test test_accept_via_insertion --quiet
-            cargo test -p rust-sitter-glr-core --test test_error_stats_tripwire --quiet
+            cargo test -p adze-glr-core --test test_eof_fix --quiet
+            cargo test -p adze-glr-core --test test_eof_column_parity --quiet
+            cargo test -p adze-glr-core --test test_accept_via_insertion --quiet
+            cargo test -p adze-glr-core --test test_error_stats_tripwire --quiet
           '
         files: 'glr-core/.*\.rs$'
 

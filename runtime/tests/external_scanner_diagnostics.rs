@@ -1,5 +1,5 @@
 #![cfg(test)]
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use adze::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 /// Comprehensive diagnostic test for indentation scanner
 #[test]

@@ -1,11 +1,11 @@
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::time::Duration;
 
-use glr_test_support::test_utilities::make_minimal_table;
-use rust_sitter_glr_core::Driver;
+use adze_glr_core::Driver;
 #[cfg(feature = "perf-counters")]
-use rust_sitter_glr_core::perf;
-use rust_sitter_ir::SymbolId;
+use adze_glr_core::perf;
+use adze_ir::SymbolId;
+use glr_test_support::test_utilities::make_minimal_table;
 
 pub fn bench_parse_small(c: &mut Criterion) {
     let mut g = c.benchmark_group("glr-perf-snapshot");

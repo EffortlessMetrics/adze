@@ -86,12 +86,12 @@ impl ParserBackend {
                      To fix this, enable the GLR feature in your Cargo.toml:\n\
                      \n\
                      [dependencies]\n\
-                     rust-sitter = {{ version = \"0.7\", features = [\"glr\"] }}\n\
+                     adze = {{ version = \"0.7\", features = [\"glr\"] }}\n\
                      \n\
                      Or use the tree-sitter C runtime (default):\n\
                      \n\
                      [dependencies]\n\
-                     rust-sitter = \"0.7\"\n\
+                     adze = \"0.7\"\n\
                      \n\
                      See: ARCHITECTURE_ISSUE_GLR_PARSER.md for details"
                 );

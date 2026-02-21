@@ -130,18 +130,18 @@ To test GLR conflict preservation, we need grammars with **inherent ambiguity** 
 Create a grammar where the SAME production can appear in multiple contexts:
 
 ```rust
-#[rust_sitter::grammar("ambiguous_expr")]
+#[adze::grammar("ambiguous_expr")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         // Single binary operation rule (no precedence)
         Binary(
             Box<Expr>,
-            #[rust_sitter::leaf(pattern = r"[-+*/]")] String,
+            #[adze::leaf(pattern = r"[-+*/]")] String,
             Box<Expr>,
         ),
 
-        Number(#[rust_sitter::leaf(pattern = r"\d+")] i32),
+        Number(#[adze::leaf(pattern = r"\d+")] i32),
     }
 }
 ```
@@ -157,21 +157,21 @@ pub mod grammar {
 ### Option B: Grammar with Indirect Left Recursion
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub enum S {
     A(Box<A>),
     B(Box<B>),
 }
 
-#[rust_sitter::language]
+#[adze::language]
 pub enum A {
-    SA(Box<S>, #[rust_sitter::leaf(text = "a")] ()),
+    SA(Box<S>, #[adze::leaf(text = "a")] ()),
     Epsilon,
 }
 
-#[rust_sitter::language]
+#[adze::language]
 pub enum B {
-    SB(Box<S>, #[rust_sitter::leaf(text = "b")] ()),
+    SB(Box<S>, #[adze::leaf(text = "b")] ()),
     Epsilon,
 }
 ```
@@ -183,20 +183,20 @@ pub enum B {
 Use a single Statement production with optional else:
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub enum Statement {
     If(
-        #[rust_sitter::leaf(text = "if")] (),
+        #[adze::leaf(text = "if")] (),
         Box<Expr>,
-        #[rust_sitter::leaf(text = "then")] (),
+        #[adze::leaf(text = "then")] (),
         Box<Statement>,
         Option<ElseClause>,  // Optional!
     ),
-    Other(#[rust_sitter::leaf(text = "other")] ()),
+    Other(#[adze::leaf(text = "other")] ()),
 }
 
 pub struct ElseClause {
-    #[rust_sitter::leaf(text = "else")] (),
+    #[adze::leaf(text = "else")] (),
     Box<Statement>,
 }
 ```

@@ -295,7 +295,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
-name = "rust-sitter"
+name = "adze"
 version = "0.5.0-beta"
 dependencies = [
  "ahash",
@@ -304,15 +304,15 @@ dependencies = [
  "log",
  "rayon",
  "regex",
- "rust-sitter-glr-core",
- "rust-sitter-ir",
- "rust-sitter-macro",
- "rust-sitter-tablegen",
+ "adze-glr-core",
+ "adze-ir",
+ "adze-macro",
+ "adze-tablegen",
  "thiserror 1.0.69",
 ]
 
 [[package]]
-name = "rust-sitter-common"
+name = "adze-common"
 version = "0.5.0-beta"
 dependencies = [
  "quote",
@@ -320,31 +320,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-sitter-fuzz"
+name = "adze-fuzz"
 version = "0.0.0"
 dependencies = [
  "arbitrary",
  "lazy_static",
  "libfuzzer-sys",
- "rust-sitter",
- "rust-sitter-glr-core",
- "rust-sitter-ir",
+ "adze",
+ "adze-glr-core",
+ "adze-ir",
 ]
 
 [[package]]
-name = "rust-sitter-glr-core"
+name = "adze-glr-core"
 version = "0.5.0-beta"
 dependencies = [
  "fixedbitset",
  "indexmap",
- "rust-sitter-ir",
+ "adze-ir",
  "rustc-hash",
  "serde",
  "thiserror 1.0.69",
 ]
 
 [[package]]
-name = "rust-sitter-ir"
+name = "adze-ir"
 version = "0.5.0-beta"
 dependencies = [
  "anyhow",
@@ -355,24 +355,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-sitter-macro"
+name = "adze-macro"
 version = "0.5.0-beta"
 dependencies = [
  "proc-macro2",
  "quote",
- "rust-sitter-common",
+ "adze-common",
  "syn 2.0.104",
 ]
 
 [[package]]
-name = "rust-sitter-tablegen"
+name = "adze-tablegen"
 version = "0.5.0-beta"
 dependencies = [
  "indexmap",
  "proc-macro2",
  "quote",
- "rust-sitter-glr-core",
- "rust-sitter-ir",
+ "adze-glr-core",
+ "adze-ir",
  "serde",
  "serde_json",
  "thiserror 2.0.12",

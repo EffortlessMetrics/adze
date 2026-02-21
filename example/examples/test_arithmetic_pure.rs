@@ -1,5 +1,5 @@
 // Test the pure-Rust arithmetic parser
-use rust_sitter::pure_parser::*;
+use adze::pure_parser::*;
 use std::cmp::min;
 
 fn main() {

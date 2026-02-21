@@ -1,4 +1,4 @@
-use rust_sitter_tool::build_parsers;
+use adze_tool::build_parsers;
 use std::path::PathBuf;
 
 fn main() {

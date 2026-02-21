@@ -1,9 +1,7 @@
-use rust_sitter_glr_core::{Action, GotoIndexing, ParseTable};
-use rust_sitter_ir::{FieldId, Grammar, StateId, SymbolId, Token, TokenPattern};
-use rust_sitter_tablegen::validation::TSLanguage;
-use rust_sitter_tablegen::{
-    CompressedParseTable, LanguageBuilder, LanguageValidator, ValidationError,
-};
+use adze_glr_core::{Action, GotoIndexing, ParseTable};
+use adze_ir::{FieldId, Grammar, StateId, SymbolId, Token, TokenPattern};
+use adze_tablegen::validation::TSLanguage;
+use adze_tablegen::{CompressedParseTable, LanguageBuilder, LanguageValidator, ValidationError};
 
 // Helper function to create a default ParseTable for testing
 fn create_test_parse_table(grammar: Grammar) -> ParseTable {
@@ -293,7 +291,7 @@ fn create_test_language() -> TSLanguage {
         lex_fn: None,
         keyword_lex_fn: None,
         keyword_capture_token: 0,
-        external_scanner_data: rust_sitter_tablegen::validation::TSExternalScannerData {
+        external_scanner_data: adze_tablegen::validation::TSExternalScannerData {
             states: std::ptr::null(),
             symbol_map: std::ptr::null(),
             create: None,

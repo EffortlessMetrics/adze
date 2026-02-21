@@ -6,16 +6,16 @@
 
 #[cfg(feature = "pure-rust-glr")]
 mod glr_integration {
-    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use rust_sitter_ir::builder::GrammarBuilder;
-    use rust_sitter_runtime::Parser;
+    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+    use adze_ir::builder::GrammarBuilder;
+    use adze_runtime::Parser;
 
     /// Build a simple expression grammar for testing
     ///
     /// Grammar:
     ///   expr → expr + expr   (ambiguous - no precedence)
     ///   expr → NUMBER
-    fn build_test_grammar() -> rust_sitter_ir::Grammar {
+    fn build_test_grammar() -> adze_ir::Grammar {
         GrammarBuilder::new("test_expr")
             .token("NUMBER", r"\d+")
             .token("+", "+")
@@ -26,7 +26,7 @@ mod glr_integration {
     }
 
     /// Create a static ParseTable for testing
-    fn create_static_parse_table() -> &'static rust_sitter_glr_core::ParseTable {
+    fn create_static_parse_table() -> &'static adze_glr_core::ParseTable {
         let mut grammar = build_test_grammar();
         let first_follow = FirstFollowSets::compute_normalized(&mut grammar).unwrap();
         let table = build_lr1_automaton(&grammar, &first_follow).unwrap();
@@ -69,7 +69,7 @@ mod glr_integration {
 
     #[test]
     fn test_glr_parser_mode_switching() {
-        use rust_sitter_runtime::{Language, language::SymbolMetadata};
+        use adze_runtime::{Language, language::SymbolMetadata};
 
         let mut parser = Parser::new();
         let table = create_static_parse_table();

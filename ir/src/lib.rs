@@ -3,8 +3,8 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), warn(missing_docs))]
 
-//! Grammar Intermediate Representation for pure-Rust Tree-sitter
-//! This module provides GLR-aware data structures for representing Tree-sitter grammars
+//! Grammar Intermediate Representation for Adze
+//! This module provides GLR-aware data structures for representing grammars
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -90,8 +90,8 @@ impl Grammar {
             return Some(source_file_id);
         }
 
-        // In rust-sitter, source_file is often just a reference to the actual language type
-        // So let's look for the language type that's marked with #[rust_sitter::language]
+        // In adze, source_file is often just a reference to the actual language type
+        // So let's look for the language type that's marked with #[adze::language]
         // This is typically the first non-terminal that has rules
 
         // Try common patterns first
@@ -437,7 +437,7 @@ impl Grammar {
 
     /// Extract IR from procedural macro data
     pub fn from_macro_output(data: &str) -> Result<Self, GrammarError> {
-        // This will be implemented to parse the output from rust-sitter macros
+        // This will be implemented to parse the output from adze macros
         serde_json::from_str(data).map_err(GrammarError::ParseError)
     }
 

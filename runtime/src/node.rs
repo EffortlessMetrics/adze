@@ -7,7 +7,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use rust_sitter::parser_v4::Parser;
+//! use adze::parser_v4::Parser;
 //!
 //! let mut parser = Parser::new(grammar, parse_table, "example".to_string());
 //! let tree = parser.parse("1 + 2")?;

@@ -1,9 +1,9 @@
-// Interactive grammar playground for rust-sitter
+// Interactive grammar playground for adze
 // Provides web-based and CLI interfaces for testing grammars
 
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 use anyhow::Result;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

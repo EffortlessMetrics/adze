@@ -9,7 +9,7 @@
 //! - Add with_arena_capacity() constructor
 //! - Verify no behavior changes to existing functionality
 
-use rust_sitter::arena_allocator::TreeArena;
+use adze::arena_allocator::TreeArena;
 
 // ============================================================================
 // Spec 1: Arena Metrics API
@@ -72,8 +72,8 @@ fn spec_1_arena_custom_capacity() {
 fn arena_and_tree_node_data_integration() {
     // Verify TreeArena and TreeNodeData work together
 
-    use rust_sitter::arena_allocator::NodeHandle;
-    use rust_sitter::tree_node_data::TreeNodeData;
+    use adze::arena_allocator::NodeHandle;
+    use adze::tree_node_data::TreeNodeData;
 
     let arena = TreeArena::new();
 

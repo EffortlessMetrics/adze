@@ -1,6 +1,6 @@
-# Rust Sitter Roadmap
+# Adze Roadmap
 
-This document outlines the completed features and future direction of the rust-sitter project.
+This document outlines the completed features and future direction of the adze project.
 
 ## ✅ Completed Features (v0.6.1-beta - Current Release)
 
@@ -202,15 +202,15 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 ## 📚 Resources
 
 ### Documentation
-- [API Reference](https://docs.rs/rust-sitter)
+- [API Reference](https://docs.rs/adze)
 - [Grammar Guide](./docs/grammar-guide.md)
 - [Migration Guide](./docs/migration.md)
 - [GLR Guardrails](./docs/GLR_GUARDRAILS.md)
 
 ### Community
-- GitHub: [EffortlessMetrics/rust-sitter](https://github.com/EffortlessMetrics/rust-sitter)
-- Issues: [Bug Reports](https://github.com/EffortlessMetrics/rust-sitter/issues)
-- Discussions: [Q&A Forum](https://github.com/EffortlessMetrics/rust-sitter/discussions)
+- GitHub: [EffortlessMetrics/adze](https://github.com/EffortlessMetrics/adze)
+- Issues: [Bug Reports](https://github.com/EffortlessMetrics/adze/issues)
+- Discussions: [Q&A Forum](https://github.com/EffortlessMetrics/adze/discussions)
 
 ## License
 

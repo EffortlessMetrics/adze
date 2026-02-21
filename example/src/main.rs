@@ -1,11 +1,11 @@
 use std::io::Write;
 
+use adze::errors::{ParseError, ParseErrorReason};
 use codemap::CodeMap;
 use codemap_diagnostic::{ColorConfig, Diagnostic, Emitter, Level, SpanLabel, SpanStyle};
-use rust_sitter::errors::{ParseError, ParseErrorReason};
 
 // Import modules from the lib instead of compiling them locally
-use rust_sitter_example::{
+use adze_example::{
     ambiguous, arithmetic, external_word_example, optionals, performance_test, repetitions,
     test_precedence, test_whitespace, words,
 };

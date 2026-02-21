@@ -42,15 +42,15 @@
 //! Only perform pointer-based deduplication when new_stacks.len() exceeds this threshold.
 //! This prevents performance overhead for small stack sets while ensuring correctness
 //! for larger sets where duplicate stacks could impact performance.
-//! Default: 10. Override with env var RUST_SITTER_SAFE_DEDUP_N for testing.
+//! Default: 10. Override with env var ADZE_SAFE_DEDUP_N for testing.
 //!
 //! ## Example Usage
 //!
 //! ```rust,ignore
-//! use rust_sitter::glr_parser::GLRParser;
-//! use rust_sitter::glr_lexer::GLRLexer;
-//! use rust_sitter_ir::{Grammar, SymbolId};
-//! use rust_sitter_glr_core::ParseTable;
+//! use adze::glr_parser::GLRParser;
+//! use adze::glr_lexer::GLRLexer;
+//! use adze_ir::{Grammar, SymbolId};
+//! use adze_glr_core::ParseTable;
 //!
 //! // Create parser with grammar and parse table (grammar and parse_table provided by your app)
 //! # fn example(grammar: Grammar, parse_table: ParseTable) {
@@ -79,12 +79,12 @@ pub const DEFAULT_SAFE_DEDUP_THRESHOLD: usize = 10;
 
 #[inline]
 pub fn safe_dedup_threshold() -> usize {
-    if let Some(s) = option_env!("RUST_SITTER_SAFE_DEDUP_N")
+    if let Some(s) = option_env!("ADZE_SAFE_DEDUP_N")
         && let Ok(n) = s.parse::<usize>()
     {
         return n;
     }
-    std::env::var("RUST_SITTER_SAFE_DEDUP_N")
+    std::env::var("ADZE_SAFE_DEDUP_N")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(DEFAULT_SAFE_DEDUP_THRESHOLD)
@@ -92,10 +92,10 @@ pub fn safe_dedup_threshold() -> usize {
 
 use crate::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryAction};
 use crate::subtree::{Subtree, SubtreeNode};
-use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
-use rust_sitter_glr_core::{FirstFollowSets, VecWrapperResolver};
-use rust_sitter_ir::{Grammar, PrecedenceKind, Rule, Symbol};
-use rust_sitter_ir::{RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
+use adze_glr_core::{FirstFollowSets, VecWrapperResolver};
+use adze_ir::{Grammar, PrecedenceKind, Rule, Symbol};
+use adze_ir::{RuleId, StateId, SymbolId};
 use std::collections::VecDeque;
 use std::sync::Arc;
 
@@ -118,7 +118,7 @@ pub enum GLRError {
         /// The type of complex symbol that was encountered
         symbol_type: String,
         /// The production ID where the symbol was found
-        production_id: rust_sitter_ir::ProductionId,
+        production_id: adze_ir::ProductionId,
         /// The position within the rule's RHS where the symbol occurred
         position: usize,
     },
@@ -477,10 +477,10 @@ impl GLRParser {
     fn goto_next_state(&self, state: StateId, lhs: SymbolId) -> Option<StateId> {
         let row = self.table.goto_table.get(state.0 as usize)?;
         let col = match self.table.goto_indexing {
-            rust_sitter_glr_core::GotoIndexing::NonterminalMap => {
+            adze_glr_core::GotoIndexing::NonterminalMap => {
                 *self.table.nonterminal_to_index.get(&lhs)?
             }
-            rust_sitter_glr_core::GotoIndexing::DirectSymbolId => lhs.0 as usize,
+            adze_glr_core::GotoIndexing::DirectSymbolId => lhs.0 as usize,
         };
         row.get(col).copied().filter(|&s| s.0 != 0)
     }
@@ -1732,8 +1732,8 @@ impl GLRParser {
 
             // Check if this rule has precedence (static or dynamic)
             let dynamic_prec = match &rule.precedence {
-                Some(rust_sitter_ir::PrecedenceKind::Dynamic(prec)) => *prec as i32,
-                Some(rust_sitter_ir::PrecedenceKind::Static(prec)) => *prec as i32, // Add support for static precedence
+                Some(adze_ir::PrecedenceKind::Dynamic(prec)) => *prec as i32,
+                Some(adze_ir::PrecedenceKind::Static(prec)) => *prec as i32, // Add support for static precedence
                 None => 0,
             };
 

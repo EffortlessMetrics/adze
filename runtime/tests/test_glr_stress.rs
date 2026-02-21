@@ -3,10 +3,10 @@
 //! These tests verify that the GLR parser can handle complex ambiguous grammars
 //! without exponential blowup or incorrect behavior.
 
-use rust_sitter::glr_lexer::GLRLexer;
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze::glr_lexer::GLRLexer;
+use adze::glr_parser::GLRParser;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Create a deeply ambiguous expression grammar
 /// This grammar has multiple ways to parse the same expression

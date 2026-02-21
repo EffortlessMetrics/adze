@@ -1,11 +1,11 @@
-//! GLR runtime for rust-sitter parsers with Tree-sitter API compatibility
+//! GLR runtime for adze parsers with Tree-sitter API compatibility
 //!
 //! This crate provides a runtime that mimics Tree-sitter's API while using
 //! GLR parsing internally to handle ambiguous grammars.
 //!
 //! # Quick start
 //! ```ignore
-//! use rust_sitter_runtime::{Parser, Language, Token};
+//! use adze_runtime::{Parser, Language, Token};
 //! // `parse_table` and metadata would come from a generated parser crate.
 //! let lang = Language::builder()
 //!     .parse_table(todo!())

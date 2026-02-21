@@ -1,8 +1,8 @@
 #[cfg(test)]
 #[cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
 mod tests {
-    use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSParseAction};
-    use rust_sitter::unified_parser::Parser;
+    use adze::pure_parser::{ExternalScanner, TSLanguage, TSParseAction};
+    use adze::unified_parser::Parser;
     use std::ptr;
 
     // Parse actions for mock language

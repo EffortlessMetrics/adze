@@ -1,8 +1,8 @@
-// LSP (Language Server Protocol) generator for rust-sitter
-// Automatically generates language servers from rust-sitter grammars
+// LSP (Language Server Protocol) generator for adze
+// Automatically generates language servers from adze grammars
 
+use adze_ir::Grammar;
 use anyhow::{Context, Result};
-use rust_sitter_ir::Grammar;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -14,7 +14,7 @@ use codegen::LspCodeGenerator;
 pub use config::LspConfig;
 use features::{CompletionProvider, DiagnosticsProvider, HoverProvider, LspFeature};
 
-/// Main LSP generator for rust-sitter grammars
+/// Main LSP generator for adze grammars
 pub struct LspGenerator {
     grammar: Grammar,
     config: LspConfig,
@@ -183,8 +183,8 @@ fn load_grammar(path: &Path) -> Result<Grammar> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use adze_ir::builder::GrammarBuilder;
     use anyhow::Result;
-    use rust_sitter_ir::builder::GrammarBuilder;
     use std::fs;
     use tempfile::{NamedTempFile, tempdir};
 
@@ -209,7 +209,7 @@ mod tests {
         let generator = LspGenerator::new(grammar);
 
         assert!(generator.features.is_empty());
-        assert_eq!(generator.config.name, "rust-sitter-lsp");
+        assert_eq!(generator.config.name, "adze-lsp");
     }
 
     #[test]

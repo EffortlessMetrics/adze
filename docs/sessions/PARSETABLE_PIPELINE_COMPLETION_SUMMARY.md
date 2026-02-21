@@ -373,7 +373,7 @@ Scenario: Multi-action cells preserved through encoding
 13. `glr-core/Cargo.toml` - Added `serialization` feature
 14. `tablegen/Cargo.toml` - Added dependencies (serde_json, sha2, chrono, rustc_version_runtime)
 15. `tool/Cargo.toml` - Added `serialization` feature
-16. `runtime2/Cargo.toml` - Added `serialization` feature, rust-sitter-tablegen dev dependency
+16. `runtime2/Cargo.toml` - Added `serialization` feature, adze-tablegen dev dependency
 
 ---
 
@@ -393,7 +393,7 @@ Scenario: Multi-action cells preserved through encoding
 ### Complete Working Example
 ```rust
 // In build.rs - generates .parsetable file
-use rust_sitter_tool::{build_parsers, BuildOptions};
+use adze_tool::{build_parsers, BuildOptions};
 
 fn main() {
     let options = BuildOptions {
@@ -404,7 +404,7 @@ fn main() {
 }
 
 // In runtime - load and parse
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 let bytes = include_bytes!("../target/grammar_arithmetic/arithmetic.parsetable");
 let mut parser = Parser::new();

@@ -1,7 +1,7 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 // Table compression algorithms for parse tables
-use rust_sitter_glr_core::Action;
-use rust_sitter_ir::StateId;
+use adze_glr_core::Action;
+use adze_ir::StateId;
 use std::collections::HashMap;
 
 /// Compressed representation of action table
@@ -209,7 +209,7 @@ impl BitPackedActionTable {
                 if rule_id == u32::MAX {
                     Action::Accept
                 } else {
-                    Action::Reduce(rust_sitter_ir::RuleId(rule_id as u16))
+                    Action::Reduce(adze_ir::RuleId(rule_id as u16))
                 }
             } else {
                 Action::Error // Fallback
@@ -229,7 +229,7 @@ mod tests {
             vec![vec![Action::Error], vec![Action::Shift(StateId(1))]],
             vec![vec![Action::Error], vec![Action::Shift(StateId(1))]], // Duplicate
             vec![
-                vec![Action::Reduce(rust_sitter_ir::RuleId(0))],
+                vec![Action::Reduce(adze_ir::RuleId(0))],
                 vec![Action::Error],
             ],
         ];
@@ -252,7 +252,7 @@ mod tests {
         );
         assert_eq!(
             decompress_action(&compressed, 2, 0),
-            Action::Reduce(rust_sitter_ir::RuleId(0))
+            Action::Reduce(adze_ir::RuleId(0))
         );
     }
 

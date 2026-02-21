@@ -2,9 +2,9 @@
 // This module implements fork/merge handling for ambiguous grammars
 
 use crate::parser_v3::{ParseNode, ParserState};
+use adze_glr_core::Action;
+use adze_ir::{StateId, SymbolId};
 use anyhow::Result;
-use rust_sitter_glr_core::Action;
-use rust_sitter_ir::{StateId, SymbolId};
 use std::collections::{HashMap, VecDeque};
 
 /// A GLR parser stack that can represent multiple parse paths
@@ -279,7 +279,7 @@ impl GLRParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::RuleId;
+    use adze_ir::RuleId;
 
     #[test]
     fn test_glr_fork() {

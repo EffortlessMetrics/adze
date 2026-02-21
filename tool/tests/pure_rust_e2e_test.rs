@@ -1,6 +1,6 @@
 // End-to-end test for pure-Rust parser generation
 
-use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 use std::fs;
 use tempfile::TempDir;
 

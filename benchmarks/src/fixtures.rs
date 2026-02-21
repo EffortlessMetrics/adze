@@ -438,7 +438,7 @@ mod tests {
 
     #[test]
     fn test_fixture_generation() {
-        let temp_dir = std::env::temp_dir().join("rust-sitter-fixtures-test");
+        let temp_dir = std::env::temp_dir().join("adze-fixtures-test");
         std::fs::create_dir_all(&temp_dir).unwrap();
 
         let generator = FixtureGenerator::new(&temp_dir);

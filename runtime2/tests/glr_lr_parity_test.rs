@@ -7,13 +7,13 @@
 
 #![cfg(feature = "pure-rust-glr")]
 
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
-use rust_sitter_ir::{
+use adze_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
+use adze_ir::{
     Grammar, ProductionId, Rule, Symbol, Token as IrToken, TokenPattern as IrTokenPattern,
 };
-use rust_sitter_runtime::language::SymbolMetadata;
-use rust_sitter_runtime::tokenizer::{Matcher, TokenPattern, WhitespaceMode};
-use rust_sitter_runtime::{Parser, Token, Tree, node::Node};
+use adze_runtime::language::SymbolMetadata;
+use adze_runtime::tokenizer::{Matcher, TokenPattern, WhitespaceMode};
+use adze_runtime::{Parser, Token, Tree, node::Node};
 
 /// Test helper: Compare two trees for structural equality
 ///
@@ -151,8 +151,8 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
             Symbol::Terminal(minus_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(1),
         fields: vec![],
     });
@@ -165,8 +165,8 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
             Symbol::Terminal(star_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(2)),
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(2),
         fields: vec![],
     });
@@ -228,7 +228,7 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
 }
 
 /// Parse with GLR runtime
-fn parse_glr(input: &str) -> Result<Tree, rust_sitter_runtime::error::ParseError> {
+fn parse_glr(input: &str) -> Result<Tree, adze_runtime::error::ParseError> {
     let (table, metadata, patterns) = create_arithmetic_grammar();
 
     let mut parser = Parser::new();
@@ -247,7 +247,7 @@ fn parse_glr(input: &str) -> Result<Tree, rust_sitter_runtime::error::ParseError
 /// available for runtime2. This validates GLR consistency.
 ///
 /// Future: Compare against actual LR runtime when available.
-fn parse_lr(input: &str) -> Result<Tree, rust_sitter_runtime::error::ParseError> {
+fn parse_lr(input: &str) -> Result<Tree, adze_runtime::error::ParseError> {
     // TODO: Use actual LR runtime when available
     // For now, use GLR as baseline
     parse_glr(input)

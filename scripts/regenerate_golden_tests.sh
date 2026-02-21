@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "🔄 Regenerating golden test outputs for rust-sitter"
+echo "🔄 Regenerating golden test outputs for adze"
 echo "================================================="
 
 # Colors for output

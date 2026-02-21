@@ -47,7 +47,7 @@ fn generate_arithmetic_golden(sh: &Shell, output_dir: &Path) -> Result<()> {
     sh.change_dir(project_root());
 
     // Build and run the example to generate outputs
-    cmd!(sh, "cargo build -p rust-sitter-example").run()?;
+    cmd!(sh, "cargo build -p adze-example").run()?;
 
     // TODO: Run our tablegen to generate NODE_TYPES.json and tables
     // For now, create placeholder
@@ -470,7 +470,7 @@ fn find_grammar_json(_sh: &Shell, grammar_name: &str) -> Result<PathBuf> {
     }
 
     bail!(
-        "Could not find grammar JSON for {}. Make sure to build with RUST_SITTER_EMIT_ARTIFACTS=true",
+        "Could not find grammar JSON for {}. Make sure to build with ADZE_EMIT_ARTIFACTS=true",
         grammar_name
     )
 }

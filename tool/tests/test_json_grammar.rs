@@ -1,10 +1,10 @@
-use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 
 #[test]
 #[ignore = "Full grammar.js processing pipeline generates empty parse table - needs grammar IR extraction fixes"]
 fn test_json_grammar_parsing() {
     // Create a temporary grammar file
-    let temp_dir = std::env::temp_dir().join("rust_sitter_json_test");
+    let temp_dir = std::env::temp_dir().join("adze_json_test");
     std::fs::create_dir_all(&temp_dir).unwrap();
     let grammar_path = temp_dir.join("grammar.js");
 

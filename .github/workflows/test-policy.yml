@@ -175,7 +175,7 @@ jobs:
             if [ -d "$crate" ]; then
               echo "Testing $crate with timeout..."
 
-              timeout 60s cargo test -p rust-sitter-${crate} --lib --tests || {
+              timeout 60s cargo test -p adze-${crate} --lib --tests || {
                 exit_code=$?
                 if [ $exit_code -eq 124 ]; then
                   echo "::error::Tests in $crate exceeded 60s timeout"

@@ -1,6 +1,6 @@
-# Rust Sitter Grammar Playground
+# Adze Grammar Playground
 
-An interactive testing environment for rust-sitter grammars with both CLI and web interfaces.
+An interactive testing environment for adze grammars with both CLI and web interfaces.
 
 ## Features
 
@@ -16,7 +16,7 @@ An interactive testing environment for rust-sitter grammars with both CLI and we
 ## Installation
 
 ```bash
-cargo install rust-sitter-playground
+cargo install adze-playground
 ```
 
 ## Usage
@@ -26,7 +26,7 @@ cargo install rust-sitter-playground
 Launch a web server for interactive testing:
 
 ```bash
-rust-sitter-playground web --grammar ./my-grammar/src/lib.rs --port 8080
+adze-playground web --grammar ./my-grammar/src/lib.rs --port 8080
 ```
 
 Then open http://localhost:8080 in your browser.
@@ -36,7 +36,7 @@ Then open http://localhost:8080 in your browser.
 Launch an interactive terminal session:
 
 ```bash
-rust-sitter-playground cli --grammar ./my-grammar/src/lib.rs
+adze-playground cli --grammar ./my-grammar/src/lib.rs
 ```
 
 Commands:
@@ -52,7 +52,7 @@ Commands:
 Execute a test suite without interaction:
 
 ```bash
-rust-sitter-playground test \
+adze-playground test \
   --grammar ./my-grammar/src/lib.rs \
   --tests ./tests.json \
   --format json
@@ -63,7 +63,7 @@ rust-sitter-playground test \
 Get detailed analysis of your grammar:
 
 ```bash
-rust-sitter-playground analyze \
+adze-playground analyze \
   --grammar ./my-grammar/src/lib.rs \
   --format text
 ```
@@ -135,12 +135,12 @@ Create test files in JSON format:
 
 ```bash
 # Launch web playground
-rust-sitter-playground web \
+adze-playground web \
   --grammar ../grammars/javascript/src/lib.rs \
   --tests ./js-tests.json
 
 # CLI testing
-rust-sitter-playground cli --grammar ../grammars/javascript/src/lib.rs
+adze-playground cli --grammar ../grammars/javascript/src/lib.rs
 > parse function hello() { return "world"; }
 ✓ Parse successful
 Tree:
@@ -158,7 +158,7 @@ Time: 0.52ms
 
 ```bash
 # Analyze Python grammar
-rust-sitter-playground analyze --grammar ../grammars/python/src/lib.rs
+adze-playground analyze --grammar ../grammars/python/src/lib.rs
 
 Grammar Statistics:
   Rules: 142
@@ -209,4 +209,4 @@ The playground is extensible:
 
 ## License
 
-Same as rust-sitter project.
+Same as adze project.

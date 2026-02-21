@@ -57,3 +57,9 @@ __pycache__/
 
 # Stale API report artifacts
 api-report-*.md
+
+# Compiled test binaries
+test_doc_examples
+
+# Benchmark results (generated)
+benchmarks/results/

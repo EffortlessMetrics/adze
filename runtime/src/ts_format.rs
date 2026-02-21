@@ -16,7 +16,7 @@ pub enum TSActionTag {
     Accept = 4, // Tree-sitter uses 4 for Accept (not 3)
 }
 
-use rust_sitter_glr_core::{Action, ParseTable};
+use adze_glr_core::{Action, ParseTable};
 
 /// Choose a single action from a GLR cell deterministically
 /// Prefers Accept > Shift > Reduce > Error

@@ -1,4 +1,4 @@
-# Cargo configuration for rust-sitter
+# Cargo configuration for adze
 
 [build]
 # Number of parallel jobs, defaults to # of CPUs (0 is invalid, remove to use default)

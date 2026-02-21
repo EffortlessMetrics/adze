@@ -231,7 +231,7 @@ struct TSLanguage {
 };
 ```
 
-**rust-sitter's GLR Format**:
+**adze's GLR Format**:
 ```rust
 pub struct ParseTable {
     pub action_table: Vec<Vec<Vec<Action>>>,  // Multi-action cells
@@ -392,7 +392,7 @@ Update test expectations to reflect current architecture:
 #[cfg(feature = "pure-rust")]
 fn test_conflict_preservation_through_abi() {
     // This test DOCUMENTS the current limitation
-    let table = rust_sitter::decoder::decode_parse_table(&LANGUAGE);
+    let table = adze::decoder::decode_parse_table(&LANGUAGE);
     let summary = count_conflicts(&table);
 
     // Current behavior: TSLanguage ABI doesn't preserve conflicts

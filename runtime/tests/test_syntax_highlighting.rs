@@ -1,8 +1,8 @@
 // Test for syntax highlighting functionality
-use rust_sitter::parser::ParseNode;
-use rust_sitter::query::compiler::compile_query;
-use rust_sitter::query::{Highlighter, Theme};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze::parser::ParseNode;
+use adze::query::compiler::compile_query;
+use adze::query::{Highlighter, Theme};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_simple_grammar() -> Grammar {
     let mut grammar = Grammar::new("simple".to_string());

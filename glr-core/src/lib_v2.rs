@@ -3,7 +3,7 @@ use crate::{
     Action, FirstFollowSets, GLRError, ItemSetCollection, ParseTable, RuleId, StateId, SymbolId,
     SymbolMetadata,
 };
-use rust_sitter_ir::{Grammar, Symbol, TokenPattern};
+use adze_ir::{Grammar, Symbol, TokenPattern};
 use std::collections::HashMap;
 
 /// Build LR(1) automaton with proper conflict handling for GLR parsing

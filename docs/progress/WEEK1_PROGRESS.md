@@ -222,4 +222,4 @@ Simpler approach - look for tests that just need Grammar setup fixed, not parser
 ---
 
 **Next Update**: After benchmarks are run and data populated
-**Maintained By**: rust-sitter core team
+**Maintained By**: adze core team

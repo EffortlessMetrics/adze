@@ -12,7 +12,7 @@
 #[cfg(feature = "pure-rust")]
 mod runtime_conflict_preservation {
     #[allow(unused_imports)]
-    use rust_sitter_glr_core::conflict_inspection::*;
+    use adze_glr_core::conflict_inspection::*;
 
     /// Test: Ambiguous Expression Grammar Conflicts Survive Encoding/Decoding
     ///
@@ -43,10 +43,10 @@ mod runtime_conflict_preservation {
 
         // TODO: Implement once example grammars export LANGUAGE symbols
         /*
-        use rust_sitter::decoder::decode_parse_table;
+        use adze::decoder::decode_parse_table;
 
         // Get LANGUAGE from generated parser
-        let lang = unsafe { &rust_sitter_example::ambiguous_expr::generated::LANGUAGE };
+        let lang = unsafe { &adze_example::ambiguous_expr::generated::LANGUAGE };
 
         // Decode runtime ParseTable
         let table = decode_parse_table(lang);
@@ -93,9 +93,9 @@ mod runtime_conflict_preservation {
 
         // TODO: Validate that conflict-free grammars stay conflict-free
         /*
-        use rust_sitter::decoder::decode_parse_table;
+        use adze::decoder::decode_parse_table;
 
-        let lang = unsafe { &rust_sitter_example::arithmetic::generated::LANGUAGE };
+        let lang = unsafe { &adze_example::arithmetic::generated::LANGUAGE };
         let table = decode_parse_table(lang);
         let summary = count_conflicts(&table);
 

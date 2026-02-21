@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rust-sitter = { path = "../../runtime" }
+adze = { path = "../../runtime" }
 
 [build-dependencies]
-rust-sitter-tool = { path = "../../tool" }
+adze-tool = { path = "../../tool" }

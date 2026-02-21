@@ -1,10 +1,10 @@
-# Rust-Sitter Documentation
+# Adze Documentation
 
-[![Crates.io](https://img.shields.io/crates/v/rust-sitter)](https://crates.io/crates/rust-sitter)
+[![Crates.io](https://img.shields.io/crates/v/adze)](https://crates.io/crates/adze)
 
-Welcome to the official documentation for **Rust-Sitter** - a Rust framework that makes it easy to create efficient parsers by leveraging the [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) parser generator.
+Welcome to the official documentation for **Adze** - a Rust framework that makes it easy to create efficient parsers by leveraging the [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) parser generator.
 
-With Rust-Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
+With Adze, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
 ## Key Features
 
@@ -23,18 +23,18 @@ With Rust-Sitter, you can define your entire grammar with annotations on idiomat
 Here's a simple arithmetic expression parser:
 
 ```rust
-#[rust_sitter::grammar("arithmetic")]
+#[adze::grammar("arithmetic")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
             u32,
         ),
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Add(
             Box<Expr>,
-            #[rust_sitter::leaf(text = "+")] (),
+            #[adze::leaf(text = "+")] (),
             Box<Expr>,
         )
     }
@@ -44,9 +44,9 @@ mod grammar {
 let result = grammar::parse("1+2+3");
 ```
 
-## When to Use Rust-Sitter
+## When to Use Adze
 
-Rust-Sitter is ideal for:
+Adze is ideal for:
 
 - **Language Server Protocol (LSP) implementations** - Fast incremental parsing for IDE support
 - **Code analysis tools** - Syntax highlighting, linting, formatting
@@ -64,10 +64,10 @@ Rust-Sitter is ideal for:
 
 ## Getting Help
 
-- **GitHub Issues**: Report bugs or request features at [rust-sitter/issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
-- **Discussions**: Ask questions and share experiences in [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
+- **GitHub Issues**: Report bugs or request features at [adze/issues](https://github.com/EffortlessMetrics/adze/issues)
+- **Discussions**: Ask questions and share experiences in [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions)
 - **Examples**: Check out the [example grammars](reference/grammar-examples.md) for inspiration
 
 ## License
 
-Rust-Sitter is licensed under the MIT license. See the [LICENSE](https://github.com/EffortlessMetrics/rust-sitter/blob/main/LICENSE) file for details.
+Adze is licensed under the MIT license. See the [LICENSE](https://github.com/EffortlessMetrics/adze/blob/main/LICENSE) file for details.

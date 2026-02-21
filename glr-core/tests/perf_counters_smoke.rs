@@ -1,6 +1,6 @@
 #![cfg(feature = "perf-counters")]
 
-use rust_sitter_glr_core::perf;
+use adze_glr_core::perf;
 
 #[test]
 fn counters_api_smoke_test() {

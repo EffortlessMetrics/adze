@@ -64,7 +64,7 @@ Wire `parser_v4.rs` (full GLR runtime) as the default parser for macro-generated
 ```
 User Grammar
     ↓
-rust_sitter_tool::build_parsers()
+adze_tool::build_parsers()
     ↓
 GLR tables generated (correct) ✅
     ↓
@@ -79,7 +79,7 @@ Wrong associativity/precedence
 ```
 User Grammar
     ↓
-rust_sitter_tool::build_parsers()
+adze_tool::build_parsers()
     ↓
 GLR tables generated (correct) ✅
     ↓
@@ -113,9 +113,9 @@ glr = ["pure-rust"]  # GLR requires pure-rust
 **Test**:
 ```bash
 # Should compile with different feature combinations
-cargo build -p rust-sitter --features "pure-rust"
-cargo build -p rust-sitter --features "glr"
-cargo build -p rust-sitter --features "tree-sitter-standard"
+cargo build -p adze --features "pure-rust"
+cargo build -p adze --features "glr"
+cargo build -p adze --features "tree-sitter-standard"
 ```
 
 **Acceptance Criteria**:
@@ -372,7 +372,7 @@ fn scenario_mixed_precedence() {
 
 **Process**:
 1. Remove `#[ignore]` from associativity tests
-2. Run with GLR feature: `cargo test -p rust-sitter-example --features glr`
+2. Run with GLR feature: `cargo test -p adze-example --features glr`
 3. Verify all tests pass
 4. Update test documentation
 

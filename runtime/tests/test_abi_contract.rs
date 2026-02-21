@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
     // Import the correct types from ts_format module
-    use rust_sitter::ts_format::{TSActionTag, choose_action};
-    use rust_sitter_glr_core::Action;
-    use rust_sitter_ir::{RuleId, StateId};
+    use adze::ts_format::{TSActionTag, choose_action};
+    use adze_glr_core::Action;
+    use adze_ir::{RuleId, StateId};
 
     #[test]
     fn test_action_tag_constants() {

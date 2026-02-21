@@ -29,7 +29,7 @@ for crate in runtime glr-core tablegen tools/ts-bridge ir common macro tool exam
         if [ "$crate" = "tools/ts-bridge" ]; then
             crate_name="ts-bridge"
         else
-            crate_name="rust-sitter-$crate_name"
+            crate_name="adze-$crate_name"
         fi
         
         echo "  $crate_name:"

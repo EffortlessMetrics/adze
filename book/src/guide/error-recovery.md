@@ -1,6 +1,6 @@
 # Error Recovery
 
-Error recovery in rust-sitter enables robust parsing of malformed or partially complete code. This guide covers the error recovery systems available in rust-sitter, from basic span validation to advanced parser recovery strategies.
+Error recovery in adze enables robust parsing of malformed or partially complete code. This guide covers the error recovery systems available in adze, from basic span validation to advanced parser recovery strategies.
 
 ## Overview
 
@@ -18,7 +18,7 @@ Rust-sitter provides multiple layers of error recovery:
 The `SpanError` system provides comprehensive error handling for span-based operations, eliminating panic-prone indexing that can crash parsers when working with malformed input.
 
 ```rust
-use rust_sitter::{Spanned, SpanError};
+use adze::{Spanned, SpanError};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SpanError {
@@ -126,7 +126,7 @@ fn process_spans_with_recovery(
 Rust-sitter parsers return detailed error information when parsing fails:
 
 ```rust
-use rust_sitter_runtime::{Parser, ParseError};
+use adze_runtime::{Parser, ParseError};
 
 let mut parser = Parser::new();
 parser.set_language(my_language())?;
@@ -202,7 +202,7 @@ When using incremental parsing, error recovery becomes more complex because edit
 ### Edit Validation
 
 ```rust
-use rust_sitter_runtime::{Tree, InputEdit, EditError, Point};
+use adze_runtime::{Tree, InputEdit, EditError, Point};
 
 fn apply_edit_safely(
     tree: &mut Tree, 
@@ -528,7 +528,7 @@ impl DetailedParseError {
 
 ## Performance Considerations
 
-Error recovery adds some overhead, but rust-sitter's implementation is designed to be efficient:
+Error recovery adds some overhead, but adze's implementation is designed to be efficient:
 
 - **Lazy Validation**: Spans are only validated when accessed
 - **Zero-Cost Abstractions**: No overhead when not using error recovery features
@@ -539,7 +539,7 @@ Monitor performance using the built-in instrumentation:
 
 ```rust
 // Enable performance logging
-std::env::set_var("RUST_SITTER_LOG_PERFORMANCE", "true");
+std::env::set_var("ADZE_LOG_PERFORMANCE", "true");
 
 // Monitor error recovery overhead
 let start = std::time::Instant::now();

@@ -1,10 +1,10 @@
 // End-to-end test of the pure-Rust Tree-sitter runtime
 // This tests the complete pipeline from grammar to parsing
 
-use rust_sitter::lexer::GrammarLexer;
-use rust_sitter::parser::Parser;
-use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{
+use adze::lexer::GrammarLexer;
+use adze::parser_v4::Parser;
+use adze_glr_core::{Action, ParseTable, SymbolMetadata};
+use adze_ir::{
     Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token as IrToken, TokenPattern,
 };
 
@@ -166,7 +166,7 @@ fn create_arithmetic_parse_table() -> ParseTable {
         initial_state: StateId(0),
         rules: vec![],
         lex_modes: vec![
-            rust_sitter_glr_core::LexMode {
+            adze_glr_core::LexMode {
                 lex_state: 0,
                 external_lex_state: 0
             };
@@ -179,7 +179,7 @@ fn create_arithmetic_parse_table() -> ParseTable {
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),
         nonterminal_to_index: std::collections::BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         grammar: Grammar::default(),
     };
 
@@ -288,14 +288,14 @@ fn test_simple_parse() {
 
     // Parse the string "123"
     let input = "123";
-    let result = parser.parse(input);
+    let result = parser.parse_tree(input);
 
     // For now this will fail because our parse table is incomplete
     // but it demonstrates the structure
     match result {
-        Ok(node) => {
+        Ok(root) => {
             println!("Unexpectedly parsed successfully!");
-            println!("Root node: symbol={:?}", node.root_kind);
+            println!("Root node: symbol={:?}", root.symbol);
         }
         Err(e) => {
             println!("Parse error (expected): {:?}", e);
@@ -329,7 +329,7 @@ fn test_simple_parse() {
 /// Test error recovery in lexer
 #[test]
 fn test_lexer_error_recovery() {
-    use rust_sitter::lexer::ErrorRecoveringLexer;
+    use adze::lexer::ErrorRecoveringLexer;
 
     let grammar = create_arithmetic_grammar();
     let token_patterns: Vec<_> = grammar

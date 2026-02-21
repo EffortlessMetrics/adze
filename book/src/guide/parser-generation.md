@@ -1,21 +1,21 @@
 # Parser Generation
 
-This chapter explains how Rust-Sitter transforms your grammar definitions into efficient parsers.
+This chapter explains how Adze transforms your grammar definitions into efficient parsers.
 
 ## The Generation Process
 
 ### Build-Time Generation
 
-Rust-Sitter uses a build script to generate parsers at compile time:
+Adze uses a build script to generate parsers at compile time:
 
-1. **Grammar Extraction**: The `rust-sitter-tool` reads your Rust source files
+1. **Grammar Extraction**: The `adze-tool` reads your Rust source files
 2. **IR Generation**: Converts Rust types to an intermediate representation
 3. **Parser Generation**: Creates Tree-sitter grammar JSON or pure-Rust tables
 4. **Compilation**: Compiles the generated parser into your binary
 
 ### Generated Files
 
-When you build with `RUST_SITTER_EMIT_ARTIFACTS=true`, you can inspect:
+When you build with `ADZE_EMIT_ARTIFACTS=true`, you can inspect:
 
 ```
 target/debug/build/*/out/
@@ -33,11 +33,11 @@ The modern GLR runtime provides:
 - **Tree-sitter Compatible API**: Drop-in replacement with `Parser::new()`, `parse()`, etc.
 - **GLR Engine Integration**: Handles ambiguous grammars with multiple parse paths
 - **Incremental Parsing**: Automatic subtree reuse with conservative conflict avoidance
-- **Performance Monitoring**: Built-in metrics via `RUST_SITTER_LOG_PERFORMANCE`
+- **Performance Monitoring**: Built-in metrics via `ADZE_LOG_PERFORMANCE`
 - **Feature Gates**: `glr-core`, `incremental`, `arenas` for different capabilities
 
 ```rust
-use rust_sitter_runtime::{Parser, Language};
+use adze_runtime::{Parser, Language};
 
 let mut parser = Parser::new();
 parser.set_language(glr_language)?;  // Validates parse table presence
@@ -92,7 +92,7 @@ GLR parsing in runtime2 provides robust conflict resolution:
 **Example: Handling Ambiguous Grammar**
 ```rust
 // Grammar with shift/reduce conflicts
-#[rust_sitter::language]
+#[adze::language]
 struct Module {
     statements: Vec<Statement>, // REPEAT(_statement) creates conflicts
 }
@@ -153,7 +153,7 @@ Shows:
 ### Enable Performance Monitoring
 
 ```bash
-RUST_SITTER_LOG_PERFORMANCE=true cargo run
+ADZE_LOG_PERFORMANCE=true cargo run
 ```
 
 Outputs:
@@ -164,7 +164,7 @@ Outputs:
 ### Inspect Generated Grammar
 
 ```bash
-RUST_SITTER_EMIT_ARTIFACTS=true cargo build
+ADZE_EMIT_ARTIFACTS=true cargo build
 cat target/debug/build/*/out/grammar.json | jq
 ```
 

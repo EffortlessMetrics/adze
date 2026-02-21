@@ -2,7 +2,7 @@
 
 ## ✅ Completed API Lockdown
 
-The rust-sitter API is now frozen with comprehensive safeguards against accidental breaking changes.
+The adze API is now frozen with comprehensive safeguards against accidental breaking changes.
 
 ### What's Been Implemented
 
@@ -66,7 +66,7 @@ cargo install cargo-semver-checks
 
 # Check against baseline
 cargo semver-checks check-release \
-  -p rust-sitter \
+  -p adze \
   --baseline-rev v0.8.0-dev.api-freeze-1
 ```
 

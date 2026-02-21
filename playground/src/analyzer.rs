@@ -1,8 +1,8 @@
-// Grammar analyzer for the rust-sitter playground
+// Grammar analyzer for the adze playground
 
 use crate::{Ambiguity, AnalysisResult, Conflict, GrammarStats, Suggestion, SuggestionLevel};
+use adze_ir::{Grammar, Symbol, SymbolId};
 use anyhow::Result;
-use rust_sitter_ir::{Grammar, Symbol, SymbolId};
 use std::collections::HashSet;
 
 /// Analyze a grammar and return insights

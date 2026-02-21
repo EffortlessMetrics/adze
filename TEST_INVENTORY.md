@@ -63,7 +63,7 @@ test_states:
 
 ### ✅ Locked-In Tests (Passing)
 
-#### Macro Generation (`rust-sitter-macro`)
+#### Macro Generation (`adze-macro`)
 - **Count**: 13/13 passing
 - **Category**: E2E + INTEGRATION
 - **Confidence**: HIGH
@@ -78,7 +78,7 @@ test_states:
 4. `test_leaf_patterns` - Tests #[leaf] with pattern/text
 5. `test_repeat_delimited` - Tests Vec<> with delimiters
 
-#### GLR Core (`rust-sitter-glr-core`)
+#### GLR Core (`adze-glr-core`)
 - **Count**: 30/30 passing
 - **Category**: UNIT + INTEGRATION
 - **Confidence**: HIGH
@@ -94,7 +94,7 @@ test_states:
 5. `test_associativity_left` - Left-associative parsing
 6. `test_associativity_right` - Right-associative parsing
 
-#### Table Generation (`rust-sitter-tablegen`)
+#### Table Generation (`adze-tablegen`)
 - **Count**: 8/8 passing
 - **Category**: UNIT + INTEGRATION
 - **Confidence**: HIGH
@@ -109,7 +109,7 @@ test_states:
 4. `test_empty_tables` - Edge case handling
 5. `test_abi_compatibility` - Tree-sitter ABI match
 
-#### Runtime Basic (`rust-sitter`)
+#### Runtime Basic (`adze`)
 - **Count**: ~50 passing (need exact count)
 - **Category**: UNIT + INTEGRATION
 - **Confidence**: MEDIUM-HIGH
@@ -199,11 +199,11 @@ test_states:
 ```yaml
 test_policy:
   minimum_test_count:
-    rust-sitter: 50
-    rust-sitter-macro: 13
-    rust-sitter-glr-core: 30
-    rust-sitter-tablegen: 8
-    rust-sitter-tool: 10
+    adze: 50
+    adze-macro: 13
+    adze-glr-core: 30
+    adze-tablegen: 8
+    adze-tool: 10
 
   ignored_tests:
     max_allowed: 25  # Current count, should decrease over time
@@ -283,7 +283,7 @@ fn test_issue_42_null_pointer_crash() {
 
 ```gherkin
 Feature: GLR Parser Runtime
-  As a rust-sitter user
+  As a adze user
   I want correct precedence and associativity
   So that my grammars parse expressions correctly
 

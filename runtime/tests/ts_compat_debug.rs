@@ -1,10 +1,10 @@
 #![cfg(all(feature = "ts-compat", feature = "pure-rust"))]
 
-use rust_sitter::ts_compat::Parser;
+use adze::ts_compat::Parser;
 
 #[test]
 fn debug_parse_flow() {
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
     let mut parser = Parser::new();
     parser.set_language(lang.clone()).unwrap();
 
@@ -34,7 +34,7 @@ fn debug_parse_flow() {
             let sym_name = lang
                 .grammar
                 .rule_names
-                .get(&rust_sitter::rust_sitter_ir::SymbolId(sym_id as u16))
+                .get(&adze::adze_ir::SymbolId(sym_id as u16))
                 .map(|s| s.as_str())
                 .unwrap_or("?");
             println!("  Symbol {} ({}) -> {:?}", sym_id, sym_name, actions);
@@ -47,7 +47,7 @@ fn debug_parse_flow() {
             let sym_name = lang
                 .grammar
                 .rule_names
-                .get(&rust_sitter::rust_sitter_ir::SymbolId(sym_id as u16))
+                .get(&adze::adze_ir::SymbolId(sym_id as u16))
                 .map(|s| s.as_str())
                 .unwrap_or("?");
             println!("  Symbol {} ({}) -> {:?}", sym_id, sym_name, actions);
@@ -60,7 +60,7 @@ fn debug_parse_flow() {
             let sym_name = lang
                 .grammar
                 .rule_names
-                .get(&rust_sitter::rust_sitter_ir::SymbolId(sym_id as u16))
+                .get(&adze::adze_ir::SymbolId(sym_id as u16))
                 .map(|s| s.as_str())
                 .unwrap_or("?");
             println!("  Symbol {} ({}) -> {:?}", sym_id, sym_name, actions);
@@ -75,7 +75,7 @@ fn debug_parse_flow() {
                 let sym_name = lang
                     .grammar
                     .rule_names
-                    .get(&rust_sitter::rust_sitter_ir::SymbolId(sym as u16))
+                    .get(&adze::adze_ir::SymbolId(sym as u16))
                     .map(|s| s.as_str())
                     .unwrap_or("?");
                 println!(

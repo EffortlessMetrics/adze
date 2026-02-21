@@ -17,7 +17,7 @@ jobs:
       - name: Run small benchmarks
         run: |
           # Run a small subset / faster flag for CI
-          RUSTFLAGS='-C target-cpu=native' cargo bench -p rust-sitter -- --warm-up-time 0 --measurement-time 1 || true
+          RUSTFLAGS='-C target-cpu=native' cargo bench -p adze -- --warm-up-time 0 --measurement-time 1 || true
       - name: Upload bench output
         if: always()
         uses: actions/upload-artifact@v4

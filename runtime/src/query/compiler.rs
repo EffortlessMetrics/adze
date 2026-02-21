@@ -1,7 +1,7 @@
 // Query compiler - compiles query strings into Query objects
 use super::ast::Query;
 use super::parser::QueryParser;
-use rust_sitter_ir::Grammar;
+use adze_ir::Grammar;
 
 /// Compile a query string into a Query object
 pub fn compile_query(source: &str, grammar: &Grammar) -> Result<Query, super::QueryError> {
@@ -13,10 +13,10 @@ pub fn compile_query(source: &str, grammar: &Grammar) -> Result<Query, super::Qu
 mod tests {
     use super::*;
     use crate::query::QueryError;
-    use rust_sitter_ir::{Grammar, SymbolId, Token, TokenPattern};
+    use adze_ir::{Grammar, SymbolId, Token, TokenPattern};
 
     fn create_test_grammar() -> Grammar {
-        use rust_sitter_ir::{Rule, Symbol};
+        use adze_ir::{Rule, Symbol};
 
         let mut grammar = Grammar::new("test".to_string());
 
@@ -46,7 +46,7 @@ mod tests {
             precedence: None,
             associativity: None,
             fields: vec![],
-            production_id: rust_sitter_ir::ProductionId(0),
+            production_id: adze_ir::ProductionId(0),
         });
 
         grammar.rules.entry(SymbolId(11)).or_default().push(Rule {
@@ -55,7 +55,7 @@ mod tests {
             precedence: None,
             associativity: None,
             fields: vec![],
-            production_id: rust_sitter_ir::ProductionId(1),
+            production_id: adze_ir::ProductionId(1),
         });
 
         // Add rule names
@@ -71,7 +71,7 @@ mod tests {
             .insert(SymbolId(11), "statement".to_string());
 
         // Add field names to grammar and statement rule
-        use rust_sitter_ir::FieldId;
+        use adze_ir::FieldId;
         grammar.fields.insert(FieldId(1), "value".to_string());
         if let Some(rules) = grammar.rules.get_mut(&SymbolId(11))
             && let Some(rule) = rules.get_mut(0)

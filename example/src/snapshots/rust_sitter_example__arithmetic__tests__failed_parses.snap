@@ -1,9 +1,0 @@
----
-source: src/arithmetic.rs
-expression: "grammar::parse(\"1 + 2\")"
----
-Ok(
-    Number(
-        1,
-    ),
-)

@@ -1,6 +1,6 @@
 // Test GLR fork/merge functionality
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
 // Import internal modules for testing
@@ -108,8 +108,8 @@ fn create_arithmetic_grammar() -> Grammar {
             Symbol::Terminal(plus_id),
             Symbol::NonTerminal(e_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(0),
         fields: vec![],
     });
@@ -122,8 +122,8 @@ fn create_arithmetic_grammar() -> Grammar {
             Symbol::Terminal(times_id),
             Symbol::NonTerminal(e_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(2)),
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(1),
         fields: vec![],
     });

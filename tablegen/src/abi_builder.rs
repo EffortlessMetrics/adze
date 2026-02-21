@@ -4,10 +4,10 @@
 
 use crate::abi::*;
 use crate::compress::CompressedTables;
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern};
 use proc_macro2::TokenStream;
 use quote::quote;
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern};
 use std::collections::HashSet;
 
 /// Builder for generating ABI-compatible language structures
@@ -191,13 +191,13 @@ impl<'a> AbiLanguageBuilder<'a> {
 
         // Only import TSSymbol if we have external scanners
         let ts_symbol_import = if !self.grammar.externals.is_empty() {
-            quote! { use rust_sitter::TSSymbol; }
+            quote! { use adze::TSSymbol; }
         } else {
             quote! {}
         };
 
         quote! {
-            use rust_sitter::pure_parser::*;
+            use adze::pure_parser::*;
             #ts_symbol_import
 
             // Lexer implementation
@@ -303,9 +303,9 @@ impl<'a> AbiLanguageBuilder<'a> {
 
             // Export the language function for FFI
             // Edition-aware attribute toggle (2021 vs 2024)
-            #[cfg(rust_sitter_unsafe_attrs)]
+            #[cfg(adze_unsafe_attrs)]
             #[unsafe(no_mangle)]
-            #[cfg(not(rust_sitter_unsafe_attrs))]
+            #[cfg(not(adze_unsafe_attrs))]
             #[no_mangle]
             pub unsafe extern "C" fn #language_fn_ident() -> *const TSLanguage {
                 &LANGUAGE as *const TSLanguage
@@ -1442,7 +1442,7 @@ struct LanguageCounts {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::*;
+    use adze_ir::*;
 
     #[test]
     fn test_deterministic_symbol_ordering() {

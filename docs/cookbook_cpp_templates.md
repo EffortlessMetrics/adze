@@ -29,24 +29,24 @@ Fork at '>>':
 ### 1. Define Your Grammar
 
 ```rust
-use rust_sitter::language;
+use adze::language;
 
 #[language]
 pub struct CppTemplates {
-    #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
+    #[adze::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
     pub identifier: String,
     
-    #[rust_sitter::leaf(pattern = r">>")]
+    #[adze::leaf(pattern = r">>")]
     pub right_shift: String,
     
-    #[rust_sitter::leaf(pattern = r">")]
+    #[adze::leaf(pattern = r">")]
     pub greater_than: String,
     
-    #[rust_sitter::leaf(pattern = r"<")]
+    #[adze::leaf(pattern = r"<")]
     pub less_than: String,
 }
 
-#[derive(rust_sitter::Node)]
+#[derive(adze::Node)]
 pub struct TemplateType {
     name: Identifier,
     _lt: LessThan,
@@ -54,7 +54,7 @@ pub struct TemplateType {
     _gt: GreaterThan,
 }
 
-#[derive(rust_sitter::Node)]
+#[derive(adze::Node)]
 pub enum TemplateArgs {
     Single(Type),
     Multiple(Vec<Type>),
@@ -67,7 +67,7 @@ The key is letting GLR maintain both parse paths:
 
 ```rust
 // In your grammar rules
-#[derive(rust_sitter::Node)]
+#[derive(adze::Node)]
 pub enum Type {
     Simple(Identifier),
     Template(TemplateType),
@@ -75,12 +75,12 @@ pub enum Type {
     NestedTemplate(NestedTemplate),
 }
 
-#[derive(rust_sitter::Node)]
+#[derive(adze::Node)]
 pub struct NestedTemplate {
     outer: TemplateType,
-    #[rust_sitter::leaf(pattern = r">")]  // Force separate '>'
+    #[adze::leaf(pattern = r">")]  // Force separate '>'
     _close1: String,
-    #[rust_sitter::leaf(pattern = r">")]  // tokens for nested
+    #[adze::leaf(pattern = r">")]  // tokens for nested
     _close2: String,
 }
 ```
@@ -88,7 +88,7 @@ pub struct NestedTemplate {
 ### 3. Use Precedence to Guide Resolution
 
 ```rust
-#[derive(rust_sitter::Node)]
+#[derive(adze::Node)]
 pub enum Expression {
     #[prec(10)]  // Templates have high precedence
     Template(TemplateType),
@@ -127,9 +127,9 @@ fn test_nested_templates() {
 Sometimes you need context to resolve ambiguity:
 
 ```rust
-#[derive(rust_sitter::Node)]
+#[derive(adze::Node)]
 pub struct Declaration {
-    #[rust_sitter::context]  // Mark as template context
+    #[adze::context]  // Mark as template context
     type_spec: TypeSpecifier,
     name: Identifier,
 }
@@ -170,7 +170,7 @@ assert_eq!(tree.error_count(), 0);
 
 ```rust
 // Enable GLR debugging
-std::env::set_var("RUST_SITTER_GLR_DEBUG", "1");
+std::env::set_var("ADZE_GLR_DEBUG", "1");
 
 // Parse and see fork points
 let tree = parser.parse(source, None).unwrap();
@@ -193,10 +193,10 @@ if let Some(forest) = parser.get_parse_forest() {
 ### 3. Use Precedence Annotations
 
 ```rust
-#[derive(rust_sitter::Node)]
+#[derive(adze::Node)]
 pub struct TemplateClose {
     #[prec(100)]  // Very high precedence
-    #[rust_sitter::pattern(">")]
+    #[adze::pattern(">")]
     close: String,
 }
 ```

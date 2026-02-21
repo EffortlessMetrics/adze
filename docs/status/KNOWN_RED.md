@@ -2,65 +2,9 @@
 
 Last updated: 2026-02-20
 
-These test files in `rust-sitter` (runtime crate) have **compilation errors**
-that prevent `cargo clippy -p rust-sitter --all-targets -- -D warnings`
-from passing. They represent API drift in test code, not library code.
+## Open Items
 
-The supported CI lane (`just ci-supported`) uses `--lib` for `rust-sitter` to
-avoid these test compilation failures. Library code is clean.
-
----
-
-## Compilation Errors (API drift)
-
-### 1. `runtime/tests/integration_test.rs` (9 errors)
-
-**Errors:** Type annotations needed (`E0282`), missing methods (`E0599`)
-
-**Root cause:** Test relies on API signatures that have changed during
-GLR parser refactoring.
-
-### 2. `runtime/tests/unified_parser_test.rs`
-
-**Error:** `no method 'parse' found for struct 'Parser'`
-
-**Root cause:** The unified parser API was refactored; `parse()` no longer
-exists with this signature.
-
-### 3. `runtime/tests/tree_node_lifetime_test.rs` (26 errors)
-
-**Error:** `arguments to this method are incorrect` (`E0308`)
-
-**Root cause:** `TreeNodeData` API changed; test passes wrong argument types.
-
-### 4. `runtime/tests/parser_v3_test.rs` (3 errors)
-
-**Error:** Various compilation errors from API drift.
-
-### 5. `runtime/tests/debug_ffi_fix.rs`
-
-**Error:** `no method 'parse' found for struct 'Parser'`
-
-**Root cause:** Same unified parser API drift as item 2.
-
----
-
-## Separate Crate Errors
-
-### 6. `grammars/python/tests/smoke_test.rs`
-
-**Error:** `no method 'root_kind' found for struct 'Tree'`
-
-**Root cause:** The `Tree` API does not expose a `root_kind()` method; test was
-written against a planned but unimplemented interface.
-
-### 7. `grammars/python/tests/incremental_glr_test.rs`
-
-**Error:** `no method 'parse' found for struct 'Parser'`
-
-**Root cause:** Same unified parser API drift as item 2.
-
-### 8. `rust-sitter-runtime` (runtime2) - `glr_parse_simple` test failure
+### 8. `adze-runtime` (runtime2) - `glr_parse_simple` test failure
 
 **Error:** `ParseError: no valid parse paths at byte 1`
 
@@ -70,16 +14,28 @@ written against a planned but unimplemented interface.
 
 ## Scope
 
-All errors are in **test files only**. Library code passes clippy cleanly:
+Library code and test targets now pass clippy cleanly:
 ```bash
-cargo clippy -p rust-sitter --lib -- -D warnings  # passes
+cargo clippy -p adze --all-targets -- -D warnings  # passes
 ```
 
-The supported CI lane (`just ci-supported`) excludes the broken test targets.
+The supported CI lane (`just ci-supported`) includes test targets for `adze`.
 
 ## Resolved Items
 
+- **Items 1-7** (2026-02-20): Fixed all test compilation errors from API drift:
+  - **`runtime/src/unified_parser.rs`** — Added `parse()` convenience method delegating to `parse_with_old_tree`
+  - **`runtime/tests/integration_test.rs`** — Replaced `tree.root_kind()` with `tree.root_node().symbol()`
+  - **`runtime/tests/unified_parser_test.rs`** — Compiles after `parse()` method was added
+  - **`runtime/tests/tree_node_lifetime_test.rs`** — Switched from `TreeNodeData` to `TreeNode` to match `TreeArena::alloc` API
+  - **`runtime/tests/parser_v3_test.rs`** — Changed import to `parser_v4::Parser`, switched to `parse_tree()` and `root.symbol.0`
+  - **`runtime/tests/debug_ffi_fix.rs`** — Compiles after `parse()` method was added
+  - **`runtime/tests/end_to_end.rs`** — Changed import to `parser_v4::Parser`, switched to `parse_tree()` and `root.symbol`
+  - **`grammars/python/tests/smoke_test.rs`** — Replaced `tree.root_kind()` with `tree.root_node().symbol()`
+  - **`grammars/python/tests/incremental_glr_test.rs`** — Fixed borrow checker issues with scoped tree lifetimes
+  - **`runtime/tests/arena_allocator_test.rs`** — Added `#![allow(unexpected_cfgs)]` for `proptest` feature
+  - **`runtime/tests/tree_node_data_test.rs`** — Added `#![allow(unexpected_cfgs)]` for `proptest` feature
 - **`runtime/tests/arena_allocator_test.rs`** — `unexpected cfg condition value: proptest`
-  warning already suppressed by `#[allow(unexpected_cfgs)]` (line 418). No action needed.
+  warning suppressed by `#![allow(unexpected_cfgs)]`.
 - **`runtime/tests/ts_compat_guardrails.rs`** — `named` → `is_named` field rename
   applied. Feature-gated behind `ts-compat` + `pure-rust` (non-default).

@@ -1,4 +1,4 @@
-# Quick Reference - Rust Sitter Development
+# Quick Reference - Adze Development
 
 ## 🚀 Green-Light Checklist
 
@@ -32,8 +32,8 @@ make lint        # Full lint suite
 
 ### 1. Inspect Edges
 ```bash
-cargo tree -p rust-sitter -i tree-sitter -e features
-cargo tree -p rust-sitter | rg "tree-sitter"
+cargo tree -p adze -i tree-sitter -e features
+cargo tree -p adze | rg "tree-sitter"
 ```
 
 ### 2. Temporarily Pin in Workspace
@@ -76,7 +76,7 @@ lint = "xtask lint"  # Now you can run: cargo lint --fast
 ### Configurable Clippy Cores
 Already supported via ENV:
 ```bash
-XTASK_CLIPPY_CORES=rust-sitter,glr-core cargo xtask lint --fast
+XTASK_CLIPPY_CORES=adze,glr-core cargo xtask lint --fast
 ```
 
 ---

@@ -1,6 +1,6 @@
+use adze::arena_allocator::{Arena, TypedArena};
+use adze::stack_pool::StackPool;
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::arena_allocator::{Arena, TypedArena};
-use rust_sitter::stack_pool::StackPool;
 
 fn benchmark_stack_pool(c: &mut Criterion) {
     let mut group = c.benchmark_group("stack_pool");

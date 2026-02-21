@@ -1,4 +1,4 @@
-/// CPU and memory profiling for rust-sitter
+/// CPU and memory profiling for adze
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use xshell::{Shell, cmd};

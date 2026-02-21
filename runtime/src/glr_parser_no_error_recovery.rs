@@ -2,9 +2,9 @@
 // This implementation supports the new GLR `ActionCell` architecture where
 // `action_table[state][symbol]` is `Vec<Action>`.
 
-use rust_sitter_glr_core::{parse_forest::ErrorMeta, parse_forest::ForestAlternative};
-use rust_sitter_glr_core::{Action, ParseError, ParseForest, ParseTable};
-use rust_sitter_ir::{RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, ParseError, ParseForest, ParseTable};
+use adze_glr_core::{parse_forest::ErrorMeta, parse_forest::ForestAlternative};
+use adze_ir::{RuleId, StateId, SymbolId};
 use std::collections::HashMap;
 
 /// A simple GLR parser that produces a parse forest. This version does not
@@ -24,7 +24,7 @@ impl GLRParser {
     /// should be a sequence of `SymbolId` tokens (terminals). An EOF symbol will
     /// be appended automatically.
     pub fn parse(&mut self, tokens: &[SymbolId]) -> Result<ParseForest, ParseError> {
-        use rust_sitter_glr_core::ForestNode;
+        use adze_glr_core::ForestNode;
 
         // Prepare parse forest
         let mut forest = ParseForest {
@@ -242,10 +242,10 @@ impl GLRParser {
     fn get_goto(&self, state: StateId, symbol: SymbolId) -> Option<StateId> {
         let row = self.table.goto_table.get(state.0 as usize)?;
         let col = match self.table.goto_indexing {
-            rust_sitter_glr_core::GotoIndexing::NonterminalMap => {
+            adze_glr_core::GotoIndexing::NonterminalMap => {
                 *self.table.nonterminal_to_index.get(&symbol)?
             }
-            rust_sitter_glr_core::GotoIndexing::DirectSymbolId => symbol.0 as usize,
+            adze_glr_core::GotoIndexing::DirectSymbolId => symbol.0 as usize,
         };
         row.get(col).copied()
     }
@@ -256,7 +256,7 @@ impl GLRParser {
         forest.next_node_id += 1;
         forest.nodes.insert(
             node_id,
-            rust_sitter_glr_core::ForestNode {
+            adze_glr_core::ForestNode {
                 id: node_id,
                 symbol,
                 span: (position, position + 1),

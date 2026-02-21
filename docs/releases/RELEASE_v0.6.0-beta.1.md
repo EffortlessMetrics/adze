@@ -11,13 +11,13 @@
 
 The crates **MUST** be published in this exact order due to dependencies:
 
-1. **rust-sitter-common** (no external deps)
-2. **rust-sitter-ir** (no external deps)
-3. **rust-sitter-glr-core** (depends on: ir)
-4. **rust-sitter-tablegen** (depends on: ir, glr-core)
-5. **rust-sitter-macro** (depends on: common)
-6. **rust-sitter-tool** (depends on: common, ir, glr-core, tablegen)
-7. **rust-sitter** (runtime - depends on: macro, ir, glr-core, tablegen)
+1. **adze-common** (no external deps)
+2. **adze-ir** (no external deps)
+3. **adze-glr-core** (depends on: ir)
+4. **adze-tablegen** (depends on: ir, glr-core)
+5. **adze-macro** (depends on: common)
+6. **adze-tool** (depends on: common, ir, glr-core, tablegen)
+7. **adze** (runtime - depends on: macro, ir, glr-core, tablegen)
 
 ## 🚀 Actual Release Commands
 
@@ -31,31 +31,31 @@ cargo login [YOUR_API_TOKEN]
 **IMPORTANT**: Wait 60 seconds between each publish for crates.io index to update!
 
 ```bash
-# Publish rust-sitter-common
+# Publish adze-common
 cd common && cargo publish --allow-dirty && cd ..
 sleep 60
 
-# Publish rust-sitter-ir  
+# Publish adze-ir  
 cd ir && cargo publish --allow-dirty && cd ..
 sleep 60
 
-# Publish rust-sitter-glr-core
+# Publish adze-glr-core
 cd glr-core && cargo publish --allow-dirty && cd ..
 sleep 60
 
-# Publish rust-sitter-tablegen
+# Publish adze-tablegen
 cd tablegen && cargo publish --allow-dirty && cd ..
 sleep 60
 
-# Publish rust-sitter-macro
+# Publish adze-macro
 cd macro && cargo publish --allow-dirty && cd ..
 sleep 60
 
-# Publish rust-sitter-tool
+# Publish adze-tool
 cd tool && cargo publish --allow-dirty && cd ..
 sleep 60
 
-# Publish rust-sitter (runtime)
+# Publish adze (runtime)
 cd runtime && cargo publish --allow-dirty && cd ..
 ```
 
@@ -67,7 +67,7 @@ git push origin v0.6.0-beta.1
 
 ### Step 4: GitHub Release
 
-Create release at: https://github.com/EffortlessMetrics/rust-sitter/releases/new
+Create release at: https://github.com/EffortlessMetrics/adze/releases/new
 
 **Title**: v0.6.0-beta.1: Production-Ready GLR Parser
 
@@ -75,7 +75,7 @@ Create release at: https://github.com/EffortlessMetrics/rust-sitter/releases/new
 ```markdown
 ## 🎯 Major Achievement: GLR Parser Implementation
 
-This release transforms rust-sitter from a simple LR parser to a true GLR (Generalized LR) parser capable of handling ambiguous grammars.
+This release transforms adze from a simple LR parser to a true GLR (Generalized LR) parser capable of handling ambiguous grammars.
 
 ### ✨ Key Features
 
@@ -96,7 +96,7 @@ This release transforms rust-sitter from a simple LR parser to a true GLR (Gener
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-rust-sitter = "0.6.0-beta.1"
+adze = "0.6.0-beta.1"
 ```
 
 ### 🚧 Beta Notice
@@ -105,7 +105,7 @@ This is a beta release. While the GLR implementation is complete and tested, per
 
 ### 📖 Documentation
 
-See the updated [README](https://github.com/EffortlessMetrics/rust-sitter) for usage examples and migration guide.
+See the updated [README](https://github.com/EffortlessMetrics/adze) for usage examples and migration guide.
 ```
 
 ### Step 5: Announce

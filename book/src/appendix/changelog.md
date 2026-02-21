@@ -24,7 +24,7 @@ This release completes a major architectural refactoring that improves performan
 ### Fixed
 
 - **All Test Failures**: Complete test suite now passes (0 failures)
-- **Binary Name Collision**: Resolved between rust-sitter-tool and rust-sitter-cli
+- **Binary Name Collision**: Resolved between adze-tool and adze-cli
 - **Compilation Errors**: Fixed over 100 compilation errors across the workspace
 - **FOLLOW Set Computation**: Corrected for recursive and empty productions
 - **Error Recovery Tests**: Updated to match new API
@@ -47,7 +47,7 @@ This release completes a major architectural refactoring that improves performan
 
 ### 🚀 Major Architectural Improvements
 
-This beta release represents a significant evolution of rust-sitter with GLR parsing support, enhanced error recovery, and a stabilized codebase ready for production use.
+This beta release represents a significant evolution of adze with GLR parsing support, enhanced error recovery, and a stabilized codebase ready for production use.
 
 ### Added
 

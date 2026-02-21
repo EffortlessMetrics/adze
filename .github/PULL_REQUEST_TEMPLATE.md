@@ -1,15 +1,14 @@
-## Checklist
-- [ ] Ran fast lint locally:
-  ```bash
-  cargo xtask lint --fast --since origin/main
-  ```
-- [ ] CI is green (or clearly explained)
-- [ ] Docs/CHANGELOG updated when needed
-
 ## Summary
 
-(what/why)
+<!-- What does this PR do and why? -->
 
-## Notes for reviewers
+## Test Plan
 
-(context, breaking changes, etc.)
+- [ ] Ran `cargo fmt --all --check`
+- [ ] Ran `cargo clippy --all -- -D warnings`
+- [ ] Ran `cargo test` (or relevant subset)
+- [ ] Snapshot tests updated with `cargo insta review` (if applicable)
+
+## Notes for Reviewers
+
+<!-- Breaking changes, design decisions, areas to focus review on, etc. -->

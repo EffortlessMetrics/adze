@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
 use crate::errors::IteratorExt as _;
+use adze_common::*;
 use proc_macro2::Span;
 use quote::{ToTokens, quote};
-use rust_sitter_common::*;
 use syn::{parse::Parse, punctuated::Punctuated, *};
 
 fn is_sitter_attr(attr: &Attribute) -> bool {
@@ -11,7 +11,7 @@ fn is_sitter_attr(attr: &Attribute) -> bool {
         .segments
         .iter()
         .next()
-        .map(|segment| segment.ident == "rust_sitter")
+        .map(|segment| segment.ident == "adze")
         .unwrap_or(false)
 }
 
@@ -35,7 +35,7 @@ fn gen_field(ident_str: String, leaf: Field) -> Expr {
     let leaf_attr = leaf
         .attrs
         .iter()
-        .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
+        .find(|attr| attr.path() == &syn::parse_quote!(adze::leaf));
 
     let leaf_params = leaf_attr.and_then(|a| {
         a.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
@@ -51,7 +51,7 @@ fn gen_field(ident_str: String, leaf: Field) -> Expr {
     // ❌ CRITICAL BUG: Transform functions are captured but never executed! (Issue #74)
     //
     // PROBLEM: This code generates the macro expansion for transform functions like:
-    //   #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
+    //   #[adze::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
     // But the generated code only captures the closure, it doesn't actually CALL it!
     //
     // CURRENT FLOW:
@@ -97,7 +97,7 @@ fn gen_field(ident_str: String, leaf: Field) -> Expr {
     };
 
     syn::parse_quote!({
-        ::rust_sitter::__private::extract_field::<#leaf_type,_>(cursor, source, last_idx, #ident_str, #closure_expr)
+        ::adze::__private::extract_field::<#leaf_type,_>(cursor, source, last_idx, #ident_str, #closure_expr)
     })
 }
 
@@ -116,14 +116,14 @@ fn gen_struct_or_variant(
         let is_leaf = field
             .attrs
             .iter()
-            .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
+            .any(|attr| attr.path() == &syn::parse_quote!(adze::leaf));
         if is_leaf {
             // For leaf variants, extract directly from the node without navigating to children
             let leaf_type = &field.ty;
             let leaf_attr = field
                 .attrs
                 .iter()
-                .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf));
+                .find(|attr| attr.path() == &syn::parse_quote!(adze::leaf));
 
             let leaf_params = leaf_attr.and_then(|a| {
                 a.parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
@@ -154,7 +154,7 @@ fn gen_struct_or_variant(
             };
 
             return Ok(syn::parse_quote!({
-                let value = <#leaf_type as ::rust_sitter::Extract<_>>::extract(Some(node), source, 0, #closure_expr);
+                let value = <#leaf_type as ::adze::Extract<_>>::extract(Some(node), source, 0, #closure_expr);
                 #construct_name(value)
             }));
         }
@@ -182,7 +182,7 @@ fn gen_struct_or_variant(
                 let expr = if let Some(skip_attrs) = field
                     .attrs
                     .iter()
-                    .find(|attr| attr.path() == &syn::parse_quote!(rust_sitter::skip))
+                    .find(|attr| attr.path() == &syn::parse_quote!(adze::skip))
                 {
                     skip_attrs.parse_args::<syn::Expr>()?
                 } else {
@@ -247,7 +247,7 @@ fn gen_struct_or_variant(
     };
 
     Ok(
-        syn::parse_quote!(::rust_sitter::__private::extract_struct_or_variant(node, move |cursor, last_idx| #construct_expr)),
+        syn::parse_quote!(::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| #construct_expr)),
     )
 }
 
@@ -256,7 +256,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         .attrs
         .iter()
         .find_map(|a| {
-            if a.path() == &syn::parse_quote!(rust_sitter::grammar) {
+            if a.path() == &syn::parse_quote!(adze::grammar) {
                 let grammar_name_expr = a.parse_args_with(Expr::parse).ok();
                 if let Some(Expr::Lit(ExprLit {
                     attrs: _,
@@ -291,7 +291,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
             | Item::Struct(ItemStruct { ident, attrs, .. }) => {
                 if attrs
                     .iter()
-                    .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::language))
+                    .any(|attr| attr.path() == &syn::parse_quote!(adze::language))
                 {
                     Some(ident.clone())
                 } else {
@@ -303,7 +303,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         .ok_or_else(|| {
             syn::Error::new(
                 Span::call_site(),
-                "Each parser must have the root type annotated with `#[rust_sitter::language]`",
+                "Each parser must have the root type annotated with `#[adze::language]`",
             )
         })?;
 
@@ -343,7 +343,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             unnamed.unnamed.len() == 1 && unnamed.unnamed[0]
                                 .attrs
                                 .iter()
-                                .any(|attr| attr.path() == &syn::parse_quote!(rust_sitter::leaf))
+                                .any(|attr| attr.path() == &syn::parse_quote!(adze::leaf))
                         } else {
                             false
                         };
@@ -403,7 +403,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                     let enum_name = &e.ident;
                     let extract_impl: Item = syn::parse_quote! {
-                        impl ::rust_sitter::Extract<#enum_name> for #enum_name {
+                        impl ::adze::Extract<#enum_name> for #enum_name {
                             type LeafFn = ();
 
                             #[cfg(feature = "pure-rust")]
@@ -411,11 +411,11 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                             #[allow(non_snake_case)]
                             #[cfg(not(feature = "pure-rust"))]
-                            fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                            fn extract(node: Option<::adze::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
 
                                 // Recursively unwrap hidden rules and wrapper nodes
-                                fn unwrap_hidden_rules(node: ::rust_sitter::tree_sitter::Node) -> ::rust_sitter::tree_sitter::Node {
+                                fn unwrap_hidden_rules(node: ::adze::tree_sitter::Node) -> ::adze::tree_sitter::Node {
                                     // If this is a hidden rule (starts with '_') or has a single child, unwrap it
                                     if (node.kind().starts_with('_') || node.child_count() == 1) && node.child_count() > 0 {
                                         if let Some(child) = node.child(0) {
@@ -444,11 +444,11 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                             #[allow(non_snake_case)]
                             #[cfg(feature = "pure-rust")]
-                            fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                            fn extract(node: Option<&::adze::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
 
                                 // Recursively unwrap hidden rules and wrapper nodes
-                                fn unwrap_hidden_rules<'a>(node: &'a ::rust_sitter::pure_parser::ParsedNode) -> &'a ::rust_sitter::pure_parser::ParsedNode {
+                                fn unwrap_hidden_rules<'a>(node: &'a ::adze::pure_parser::ParsedNode) -> &'a ::adze::pure_parser::ParsedNode {
                                     // If this is a hidden rule (starts with '_') or has a single child, unwrap it
                                     if (node.kind().starts_with('_') || node.children.len() == 1) && node.children.len() > 0 {
                                         return unwrap_hidden_rules(&node.children[0]);
@@ -505,7 +505,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                     // Always generate both versions - the cfg will be evaluated when the generated code is compiled
                     let extract_impl: Item = syn::parse_quote! {
-                        impl ::rust_sitter::Extract<#struct_name> for #struct_name {
+                        impl ::adze::Extract<#struct_name> for #struct_name {
                             type LeafFn = ();
 
                             #[cfg(feature = "pure-rust")]
@@ -513,14 +513,14 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                             #[allow(non_snake_case)]
                             #[cfg(not(feature = "pure-rust"))]
-                            fn extract(node: Option<::rust_sitter::tree_sitter::Node>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                            fn extract(node: Option<::adze::tree_sitter::Node>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
                                 #extract_expr_std
                             }
 
                             #[allow(non_snake_case)]
                             #[cfg(feature = "pure-rust")]
-                            fn extract(node: Option<&::rust_sitter::pure_parser::ParsedNode>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                            fn extract(node: Option<&::adze::pure_parser::ParsedNode>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
                                 let node = node.unwrap();
                                 #extract_expr
                             }
@@ -541,13 +541,13 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
     transformed.push(syn::parse_quote! {
         #[cfg(not(feature = "pure-rust"))]
         unsafe extern "C" {
-            fn #tree_sitter_ident() -> ::rust_sitter::tree_sitter::Language;
+            fn #tree_sitter_ident() -> ::adze::tree_sitter::Language;
         }
     });
 
     transformed.push(syn::parse_quote! {
         #[cfg(not(feature = "pure-rust"))]
-        pub fn language() -> ::rust_sitter::tree_sitter::Language {
+        pub fn language() -> ::adze::tree_sitter::Language {
             unsafe { #tree_sitter_ident() }
         }
     });
@@ -560,7 +560,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
     transformed.push(syn::parse_quote! {
         #[cfg(feature = "pure-rust")]
-        pub fn language() -> &'static ::rust_sitter::pure_parser::TSLanguage {
+        pub fn language() -> &'static ::adze::pure_parser::TSLanguage {
             unsafe { &LANGUAGE }
         }
     });
@@ -573,8 +573,8 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         #[doc = #root_type_docstr]
         /// instance containing the parsed structured data.
         #[cfg(not(feature = "pure-rust"))]
-        pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::rust_sitter::errors::ParseError>> {
-            ::rust_sitter::__private::parse::<#root_type>(input, language)
+        pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::adze::errors::ParseError>> {
+            ::adze::__private::parse::<#root_type>(input, language)
         }
     });
 
@@ -584,8 +584,8 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         #[doc = #root_type_docstr]
         /// instance containing the parsed structured data.
         #[cfg(feature = "pure-rust")]
-        pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::rust_sitter::errors::ParseError>> {
-            ::rust_sitter::__private::parse::<#root_type>(input, language)
+        pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::adze::errors::ParseError>> {
+            ::adze::__private::parse::<#root_type>(input, language)
         }
     });
 

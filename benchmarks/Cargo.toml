@@ -1,5 +1,5 @@
 [package]
-name = "rust-sitter-benchmarks"
+name = "adze-benchmarks"
 version = "0.1.0"
 edition = "2024"
 
@@ -36,12 +36,12 @@ name = "arena_vs_box_allocation"
 harness = false
 
 [dependencies]
-rust-sitter = { path = "../runtime", features = ["pure-rust"] }
-rust-sitter-example = { path = "../example" }
-rust-sitter-python = { path = "../grammars/python" }
-rust-sitter-ir = { path = "../ir" }
-rust-sitter-glr-core = { path = "../glr-core", features = ["glr_telemetry"] }
-rust-sitter-tablegen = { path = "../tablegen" }
+adze = { path = "../runtime", features = ["pure-rust"] }
+adze-example = { path = "../example" }
+adze-python = { path = "../grammars/python" }
+adze-ir = { path = "../ir" }
+adze-glr-core = { path = "../glr-core", features = ["glr_telemetry"] }
+adze-tablegen = { path = "../tablegen" }
 tree-sitter = "0.20"
 criterion = "0.5"
 indexmap = "2.0"

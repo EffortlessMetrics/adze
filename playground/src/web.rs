@@ -1,4 +1,4 @@
-// Web interface for the rust-sitter playground
+// Web interface for the adze playground
 
 use crate::PlaygroundSession;
 use anyhow::Result;

@@ -11,9 +11,9 @@ The GLR (Generalized LR) parser can handle ambiguous grammars by maintaining mul
 ### Basic Example
 
 ```rust
-use rust_sitter::glr_visualization::{GLRVisualizer, VisualizationOptions};
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter::glr_lexer::GLRLexer;
+use adze::glr_visualization::{GLRVisualizer, VisualizationOptions};
+use adze::glr_parser::GLRParser;
+use adze::glr_lexer::GLRLexer;
 
 // Create parser and lexer
 let grammar = create_your_grammar();

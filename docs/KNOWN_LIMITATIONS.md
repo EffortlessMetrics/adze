@@ -1,10 +1,10 @@
 # Known Limitations and Upcoming Features
 
-This document outlines the current limitations of rust-sitter v0.5.0-beta and the planned features for future releases.
+This document outlines the current limitations of adze v0.5.0-beta and the planned features for future releases.
 
 ## ✅ Supported Features
 
-rust-sitter v0.5.0-beta provides a pure-Rust implementation of Tree-sitter with the following capabilities:
+adze v0.5.0-beta provides a pure-Rust implementation of Tree-sitter with the following capabilities:
 
 - **Core Grammar Features**
   - Sequences, choices, repeats, and optionals
@@ -100,7 +100,7 @@ The following Tree-sitter features are not yet supported in v0.5.0-beta:
 - ✅ Word token support (DONE)
 - ✅ External/supertypes/conflicts parsing (DONE)
 - ✨ External scanner runtime implementation
-- ✨ Basic CLI tool (`rust-sitter generate`, `rust-sitter parse`)
+- ✨ Basic CLI tool (`adze generate`, `adze parse`)
 - 📈 Support for ~70% of popular grammars
 
 ### v0.7.0 (Target: Q3 2025)
@@ -126,7 +126,7 @@ The following Tree-sitter features are not yet supported in v0.5.0-beta:
 
 We welcome contributions! If you're interested in implementing any of these features:
 
-1. Check the [GitHub issues](https://github.com/yourusername/rust-sitter/issues) for existing work
+1. Check the [GitHub issues](https://github.com/yourusername/adze/issues) for existing work
 2. Open an issue to discuss your approach
 3. Submit a PR with tests
 
@@ -139,5 +139,5 @@ Priority areas for contribution:
 ## 📞 Contact
 
 For questions or feedback:
-- GitHub Issues: [rust-sitter/issues](https://github.com/yourusername/rust-sitter/issues)
-- Discussions: [rust-sitter/discussions](https://github.com/yourusername/rust-sitter/discussions)
+- GitHub Issues: [adze/issues](https://github.com/yourusername/adze/issues)
+- Discussions: [adze/discussions](https://github.com/yourusername/adze/discussions)

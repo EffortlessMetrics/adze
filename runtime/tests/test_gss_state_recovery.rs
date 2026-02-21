@@ -1,11 +1,11 @@
 #[cfg(feature = "incremental_glr")]
 #[cfg(test)]
 mod incremental_glr_tests {
-    use rust_sitter::glr_incremental::{
+    use adze::glr_incremental::{
         ChunkIdentifier, GLREdit, GLRToken, SUBTREE_REUSE_COUNT, get_reuse_count,
         reset_reuse_counter,
     };
-    use rust_sitter_ir::SymbolId;
+    use adze_ir::SymbolId;
     use std::sync::atomic::Ordering;
 
     #[test]

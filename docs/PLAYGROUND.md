@@ -1,10 +1,10 @@
-# Rust Sitter Playground
+# Adze Playground
 
 Interactive web-based environment for grammar development and testing.
 
 ## Overview
 
-The Rust Sitter Playground provides a browser-based IDE for developing, testing, and sharing grammars. Features include:
+The Adze Playground provides a browser-based IDE for developing, testing, and sharing grammars. Features include:
 
 - **Live Parsing**: See parse trees update as you type
 - **Grammar Editor**: Syntax highlighting for grammar definitions
@@ -16,13 +16,13 @@ The Rust Sitter Playground provides a browser-based IDE for developing, testing,
 ## Quick Start
 
 ### Online Playground
-Visit [play.rust-sitter.dev](https://play.rust-sitter.dev) to start immediately.
+Visit [play.adze.dev](https://play.adze.dev) to start immediately.
 
 ### Local Playground
 ```bash
 # Install and run locally
-cargo install rust-sitter-playground
-rust-sitter-playground
+cargo install adze-playground
+adze-playground
 
 # Open browser at http://localhost:8080
 ```
@@ -30,13 +30,13 @@ rust-sitter-playground
 ### Embedded Playground
 ```bash
 # Add to your project
-rust-sitter playground --grammar src/grammar.rs
+adze playground --grammar src/grammar.rs
 
 # Custom port
-rust-sitter playground --port 3000
+adze playground --port 3000
 
 # Watch mode (auto-reload)
-rust-sitter playground --watch
+adze playground --watch
 ```
 
 ## User Interface
@@ -91,9 +91,9 @@ rust-sitter playground --watch
 #### Auto-Compilation
 ```rust
 // Changes compile automatically
-#[rust_sitter::grammar("my_lang")]
+#[adze::grammar("my_lang")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {
         statements: Vec<Statement>,
     }
@@ -200,7 +200,7 @@ Visual coverage overlay showing which grammar rules are tested.
 
 #### Share via URL
 ```
-https://play.rust-sitter.dev/#grammar=...&code=...
+https://play.adze.dev/#grammar=...&code=...
 ```
 
 #### Export Options
@@ -212,7 +212,7 @@ https://play.rust-sitter.dev/#grammar=...&code=...
 #### Embedding
 ```html
 <iframe 
-  src="https://play.rust-sitter.dev/embed?grammar=..." 
+  src="https://play.adze.dev/embed?grammar=..." 
   width="100%" 
   height="600">
 </iframe>
@@ -231,7 +231,7 @@ https://play.rust-sitter.dev/#grammar=...&code=...
 
 #### Import from URL
 ```
-https://play.rust-sitter.dev/?import=github:tree-sitter/tree-sitter-rust
+https://play.adze.dev/?import=github:tree-sitter/tree-sitter-rust
 ```
 
 ### 2. Collaborative Editing
@@ -278,7 +278,7 @@ AI: "How can I make this grammar faster?"
 #### CI/CD Integration
 ```yaml
 # .github/workflows/playground.yml
-- uses: rust-sitter/playground-action@v1
+- uses: adze/playground-action@v1
   with:
     grammar: src/grammar.rs
     tests: tests/corpus
@@ -396,9 +396,9 @@ Content-Type: application/json
 #### Docker
 ```dockerfile
 FROM rust:1.70
-RUN cargo install rust-sitter-playground
+RUN cargo install adze-playground
 EXPOSE 8080
-CMD ["rust-sitter-playground", "--host", "0.0.0.0"]
+CMD ["adze-playground", "--host", "0.0.0.0"]
 ```
 
 #### Kubernetes
@@ -406,7 +406,7 @@ CMD ["rust-sitter-playground", "--host", "0.0.0.0"]
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rust-sitter-playground
+  name: adze-playground
 spec:
   replicas: 3
   template:
@@ -484,15 +484,15 @@ Enables verbose logging and additional tools.
 ## Examples Gallery
 
 Browse example grammars:
-- [Simple Calculator](https://play.rust-sitter.dev/?example=calc)
-- [JSON Parser](https://play.rust-sitter.dev/?example=json)
-- [Mini Python](https://play.rust-sitter.dev/?example=python)
-- [Config Language](https://play.rust-sitter.dev/?example=config)
-- [Markdown](https://play.rust-sitter.dev/?example=markdown)
+- [Simple Calculator](https://play.adze.dev/?example=calc)
+- [JSON Parser](https://play.adze.dev/?example=json)
+- [Mini Python](https://play.adze.dev/?example=python)
+- [Config Language](https://play.adze.dev/?example=config)
+- [Markdown](https://play.adze.dev/?example=markdown)
 
 ## Resources
 
-- [Playground Tutorial](https://docs.rust-sitter.dev/playground/tutorial)
+- [Playground Tutorial](https://docs.adze.dev/playground/tutorial)
 - [Video Walkthrough](https://youtube.com/@rustsitter)
-- [Example Grammars](https://github.com/rust-sitter/playground-examples)
-- [Report Issues](https://github.com/rust-sitter/playground/issues)
+- [Example Grammars](https://github.com/adze/playground-examples)
+- [Report Issues](https://github.com/adze/playground/issues)

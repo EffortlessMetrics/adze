@@ -1,14 +1,16 @@
-# Rust Sitter
+# Adze
 
-[![CI](https://github.com/EffortlessMetrics/rust-sitter/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/rust-sitter/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/rust-sitter)](https://crates.io/crates/rust-sitter)
+[![CI](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/adze)](https://crates.io/crates/adze)
 
-**Define grammars in Rust. Get type-safe parsers at compile-time.**
+**Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable (not affiliated).**
+
+Define grammars as Rust types, compile to parse tables, parse ambiguous inputs with GLR, extract typed Rust values.
 
 ```rust
-#[rust_sitter::grammar("calc")]
+#[adze::grammar("calc")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         Number(#[leaf(pattern = r"\d+")] i32),
         #[prec_left(1)]
@@ -24,9 +26,9 @@ fn main() {
 
 ---
 
-## Why rust-sitter?
+## Why adze?
 
-| Feature | rust-sitter | tree-sitter | nom | pest |
+| Feature | adze | tree-sitter | nom | pest |
 |---------|-------------|-------------|-----|------|
 | **Grammar in** | Rust types | JavaScript | Rust code | PEG file |
 | **Output** | Typed AST | Generic tree | Combinator | Generic tree |
@@ -46,8 +48,8 @@ fn main() {
 Or install now:
 
 ```bash
-cargo add rust-sitter
-cargo add --build rust-sitter-tool
+cargo add adze
+cargo add --build adze-tool
 ```
 
 Then see [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) for the full tutorial.
@@ -80,7 +82,7 @@ See [ROADMAP.md](./ROADMAP.md) for the full plan.
 
 ## Parser Modes
 
-rust-sitter supports multiple parser backends. Choose based on your needs:
+adze supports multiple parser backends. Choose based on your needs:
 
 | Mode | Parser Used | GLR Support | Status | Best For |
 |------|-------------|-------------|---------|----------|
@@ -92,15 +94,15 @@ rust-sitter supports multiple parser backends. Choose based on your needs:
 ```toml
 # Default: tree-sitter C backend
 [dependencies]
-rust-sitter = "0.6"
+adze = "0.6"
 
 # Pure Rust (WASM-compatible)
 [dependencies]
-rust-sitter = { version = "0.6", features = ["pure-rust"] }
+adze = { version = "0.6", features = ["pure-rust"] }
 
 # Pure Rust with GLR (experimental)
 [dependencies]
-rust-sitter = { version = "0.6", features = ["pure-rust", "glr"] }
+adze = { version = "0.6", features = ["pure-rust", "glr"] }
 ```
 
 **Note**: The GLR runtime (`parser_v4`) is implemented and tested but not yet wired as the default for macro-generated grammars. See [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md) for details.
@@ -138,26 +140,26 @@ rust-sitter = { version = "0.6", features = ["pure-rust", "glr"] }
 
 **Grammar Definition**:
 ```rust
-#[rust_sitter::grammar("mylang")]
+#[adze::grammar("mylang")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         // Numbers
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
             i32
         ),
 
         // Operators with precedence
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Add(Box<Expr>, #[leaf(text = "+")] (), Box<Expr>),
 
-        #[rust_sitter::prec_left(2)]  // Higher precedence
+        #[adze::prec_left(2)]  // Higher precedence
         Mul(Box<Expr>, #[leaf(text = "*")] (), Box<Expr>),
     }
 
     // Skip whitespace
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
         #[leaf(pattern = r"\s")] _ws: (),
     }
@@ -177,8 +179,8 @@ mod grammar {
 **Repetition (Lists)**:
 ```rust
 pub struct ArgList {
-    #[rust_sitter::repeat]
-    #[rust_sitter::delimited(#[leaf(text = ",")] ())]
+    #[adze::repeat]
+    #[adze::delimited(#[leaf(text = ",")] ())]
     args: Vec<Expr>,  // Comma-separated list
 }
 ```
@@ -193,7 +195,7 @@ pub struct Function {
 
 **External Scanners** (for context-sensitive lexing like Python indentation):
 ```rust
-impl rust_sitter::ExternalScanner for IndentScanner {
+impl adze::ExternalScanner for IndentScanner {
     fn scan(&mut self, lexer: &mut Lexer, valid: &[bool]) -> ScanResult {
         // Custom lexing logic
     }
@@ -207,9 +209,9 @@ impl rust_sitter::ExternalScanner for IndentScanner {
 ### Simple Expression Grammar
 
 ```rust
-#[rust_sitter::grammar("expr")]
+#[adze::grammar("expr")]
 mod expr {
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(Debug, PartialEq)]
     pub enum Expr {
         Num(#[leaf(pattern = r"\d+")] i32),
@@ -246,16 +248,16 @@ fn test_parse() {
 
 ```toml
 [dependencies]
-rust-sitter = "0.6"
+adze = "0.6"
 
 [build-dependencies]
-rust-sitter-tool = "0.6"
+adze-tool = "0.6"
 ```
 
 Create `build.rs`:
 ```rust
 fn main() {
-    rust_sitter_tool::build_parsers(&std::path::PathBuf::from("src/main.rs"));
+    adze_tool::build_parsers(&std::path::PathBuf::from("src/main.rs"));
 }
 ```
 
@@ -270,7 +272,7 @@ fn main() {
 ```
 ┌─────────────────────┐
 │ Your Rust Code      │
-│ #[rust_sitter::...] │  1. Annotate types
+│ #[adze::...] │  1. Annotate types
 └──────────┬──────────┘
            │
            ▼
@@ -321,7 +323,7 @@ See [docs/PERFORMANCE_BASELINE.md](./docs/PERFORMANCE_BASELINE.md) for ongoing w
 cargo test
 
 # Run specific examples
-cargo test -p rust-sitter-example
+cargo test -p adze-example
 
 # Update snapshot tests
 cargo insta review
@@ -361,7 +363,7 @@ Each task includes estimated time, difficulty level, and step-by-step guidance.
 4. Run tests: `cargo test`
 5. Run linter: `cargo clippy --all -- -D warnings`
 
-**Questions?** Check [FAQ.md](./FAQ.md) or ask in [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
+**Questions?** Check [FAQ.md](./FAQ.md) or ask in [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 
 ---
 
@@ -395,17 +397,17 @@ See [ROADMAP.md](./ROADMAP.md) for the complete vision.
 ### vs tree-sitter
 
 **Similarities**:
-- GLR parsing (rust-sitter) / LR parsing (tree-sitter)
+- GLR parsing (adze) / LR parsing (tree-sitter)
 - Error recovery
 - External scanners
 
 **Differences**:
-- **Grammar**: Rust types (rust-sitter) vs JavaScript DSL (tree-sitter)
-- **Output**: Typed AST (rust-sitter) vs generic tree (tree-sitter)
-- **Dependencies**: Pure Rust (rust-sitter) vs C + Node.js (tree-sitter)
-- **WASM**: First-class (rust-sitter) vs requires bindings (tree-sitter)
+- **Grammar**: Rust types (adze) vs JavaScript DSL (tree-sitter)
+- **Output**: Typed AST (adze) vs generic tree (tree-sitter)
+- **Dependencies**: Pure Rust (adze) vs C + Node.js (tree-sitter)
+- **WASM**: First-class (adze) vs requires bindings (tree-sitter)
 
-**When to use rust-sitter**:
+**When to use adze**:
 - Want type-safe parsing in pure Rust
 - Need WASM support
 - Prefer Rust-native workflow
@@ -424,8 +426,8 @@ See [FAQ.md](./FAQ.md) for more comparisons (nom, pest, lalrpop).
 
 **Get Help**:
 - **Questions**: [FAQ.md](./FAQ.md)
-- **Bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
+- **Bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions)
 
 **Stay Updated**:
 - **Changelog**: [CHANGELOG.md](./CHANGELOG.md)
@@ -451,7 +453,7 @@ at your option.
 
 ## Acknowledgments
 
-rust-sitter builds on ideas from:
+adze builds on ideas from:
 - [Tree-sitter](https://tree-sitter.github.io/) - Inspiration and table format
 - [LALR](https://en.wikipedia.org/wiki/LALR_parser) - Parser algorithm foundations
 - [GLR parsing](https://en.wikipedia.org/wiki/GLR_parser) - Ambiguity handling

@@ -1,18 +1,18 @@
-# How to Use GLR Incremental Parsing in rust-sitter
+# How to Use GLR Incremental Parsing in adze
 
 > **⚠️ Status**: The incremental parsing path is currently **disabled** and falls back to fresh parsing for consistency. The infrastructure documented here exists but has known issues. See `glr_incremental.rs` for details.
 
-This guide documents rust-sitter's GLR incremental parsing infrastructure (implemented September 2025) with fork-aware subtree reuse and conservative fallback strategies.
+This guide documents adze's GLR incremental parsing infrastructure (implemented September 2025) with fork-aware subtree reuse and conservative fallback strategies.
 
 ## Prerequisites
 
-Add rust-sitter with GLR incremental parsing support to your `Cargo.toml`:
+Add adze with GLR incremental parsing support to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6", features = ["incremental_glr"] }
-rust-sitter-glr-core = "0.6"
-rust-sitter-ir = "0.6"
+adze = { version = "0.6", features = ["incremental_glr"] }
+adze-glr-core = "0.6"
+adze-ir = "0.6"
 ```
 
 **Feature Requirements**:
@@ -25,9 +25,9 @@ rust-sitter-ir = "0.6"
 ### 1. GLR Incremental Parser Setup
 
 ```rust
-use rust_sitter::runtime::{GLRIncrementalParser, GLRToken, GLREdit, ForestNode};
-use rust_sitter_ir::{Grammar, SymbolId};
-use rust_sitter_glr_core::ParseTable;
+use adze::runtime::{GLRIncrementalParser, GLRToken, GLREdit, ForestNode};
+use adze_ir::{Grammar, SymbolId};
+use adze_glr_core::ParseTable;
 use std::sync::Arc;
 
 // Initialize GLR incremental parser with parse table and grammar
@@ -95,7 +95,7 @@ Monitor GLR incremental parsing with fork tracking:
 
 ```rust
 use std::time::Instant;
-use rust_sitter::runtime::{GLRIncrementalParser, ForkTracker};
+use adze::runtime::{GLRIncrementalParser, ForkTracker};
 
 fn demonstrate_glr_performance() -> Result<(), Box<dyn std::error::Error>> {
     let mut parser = GLRIncrementalParser::new(
@@ -155,7 +155,7 @@ fn create_tokens_for_content(content: &str) -> Vec<GLRToken> {
 GLR incremental parsing supports external scanners for complex tokenization patterns:
 
 ```rust
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use adze::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 // Custom external scanner implementation
 #[derive(Default)]
@@ -240,7 +240,7 @@ If you encounter issues with feature combinations:
 ```toml
 # Recommended feature combination for GLR incremental parsing
 [dependencies]
-rust-sitter = { version = "0.6", features = ["incremental_glr", "external_scanners"] }
+adze = { version = "0.6", features = ["incremental_glr", "external_scanners"] }
 ```
 
 **Avoid** mixing legacy incremental features with GLR:
@@ -252,7 +252,7 @@ rust-sitter = { version = "0.6", features = ["incremental_glr", "external_scanne
 Enable performance logging to track GLR behavior:
 
 ```bash
-export RUST_SITTER_LOG_PERFORMANCE=true
+export ADZE_LOG_PERFORMANCE=true
 cargo run your_program
 ```
 
@@ -364,7 +364,7 @@ fn parse_with_fallback(
 Analyze incremental parsing effectiveness:
 
 ```rust
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
 
 struct PerformanceAnalyzer {
     total_edits: usize,
@@ -532,7 +532,7 @@ fn robust_incremental_parse(
 ### IDE Language Server
 
 ```rust
-use rust_sitter::parser_v4::Parser;
+use adze::parser_v4::Parser;
 
 struct LanguageServer {
     parser: Parser,
@@ -611,7 +611,7 @@ impl CodeAnalyzer {
 
 ## Conclusion
 
-rust-sitter includes incremental parsing infrastructure designed for text editing scenarios. The Direct Forest Splicing algorithm is designed to achieve significant speedups while maintaining GLR compatibility.
+adze includes incremental parsing infrastructure designed for text editing scenarios. The Direct Forest Splicing algorithm is designed to achieve significant speedups while maintaining GLR compatibility.
 
 **Current Status**: The incremental parsing path is currently disabled and falls back to fresh parsing for consistency. See `glr_incremental.rs` for details.
 

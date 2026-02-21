@@ -1,6 +1,6 @@
-# Getting Started with Rust-Sitter
+# Getting Started with Adze
 
-A comprehensive guide to building parsers with Rust-Sitter's macro-based grammar generation.
+A comprehensive guide to building parsers with Adze's macro-based grammar generation.
 
 ## Table of Contents
 
@@ -15,14 +15,14 @@ A comprehensive guide to building parsers with Rust-Sitter's macro-based grammar
 
 ### Installation
 
-Add rust-sitter to your `Cargo.toml`:
+Add adze to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter = "0.6.1"
+adze = "0.6.1"
 
 [build-dependencies]
-rust-sitter-tool = "0.6.1"
+adze-tool = "0.6.1"
 ```
 
 ### Create a Simple Grammar
@@ -30,11 +30,11 @@ rust-sitter-tool = "0.6.1"
 Create `src/lib.rs`:
 
 ```rust
-#[rust_sitter::grammar("my_lang")]
+#[adze::grammar("my_lang")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {
-        #[rust_sitter::leaf(pattern = r"\d+", text = true)]
+        #[adze::leaf(pattern = r"\d+", text = true)]
         pub number: String,
     }
 }
@@ -66,12 +66,12 @@ That's it! You now have a working parser for numbers.
 
 ### Grammar Attributes
 
-- **`#[rust_sitter::grammar("name")]`**: Marks a module as a grammar definition
-- **`#[rust_sitter::language]`**: Marks a type as part of the grammar
-- **`#[rust_sitter::leaf]`**: Defines a terminal symbol (token)
-- **`#[rust_sitter::extra]`**: Defines symbols to ignore (like whitespace)
-- **`#[rust_sitter::repeat]`**: Allows repetition of elements
-- **`#[rust_sitter::prec]`**: Sets precedence levels for disambiguation
+- **`#[adze::grammar("name")]`**: Marks a module as a grammar definition
+- **`#[adze::language]`**: Marks a type as part of the grammar
+- **`#[adze::leaf]`**: Defines a terminal symbol (token)
+- **`#[adze::extra]`**: Defines symbols to ignore (like whitespace)
+- **`#[adze::repeat]`**: Allows repetition of elements
+- **`#[adze::prec]`**: Sets precedence levels for disambiguation
 
 ### Grammar Types
 
@@ -86,32 +86,32 @@ That's it! You now have a working parser for numbers.
 ### Example 1: Simple Calculator
 
 ```rust
-#[rust_sitter::grammar("calc")]
+#[adze::grammar("calc")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {
         pub expression: Expression,
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expression {
         Number(NumberLiteral),
-        #[rust_sitter::prec_left(1)]
-        Add(Box<Expression>, #[rust_sitter::leaf(text = "+")] (), Box<Expression>),
-        #[rust_sitter::prec_left(2)]
-        Multiply(Box<Expression>, #[rust_sitter::leaf(text = "*")] (), Box<Expression>),
+        #[adze::prec_left(1)]
+        Add(Box<Expression>, #[adze::leaf(text = "+")] (), Box<Expression>),
+        #[adze::prec_left(2)]
+        Multiply(Box<Expression>, #[adze::leaf(text = "*")] (), Box<Expression>),
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct NumberLiteral {
-        #[rust_sitter::leaf(pattern = r"\d+", text = true)]
+        #[adze::leaf(pattern = r"\d+", text = true)]
         pub value: String,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     #[allow(dead_code)]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s+")]
+        #[adze::leaf(pattern = r"\s+")]
         _ws: (),
     }
 }
@@ -120,24 +120,24 @@ pub mod grammar {
 ### Example 2: Lists and Repetition
 
 ```rust
-#[rust_sitter::grammar("list")]
+#[adze::grammar("list")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct ItemList {
-        #[rust_sitter::repeat(non_empty = false)]
+        #[adze::repeat(non_empty = false)]
         pub items: Vec<Item>,
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Item {
-        #[rust_sitter::leaf(pattern = r"\w+", text = true)]
+        #[adze::leaf(pattern = r"\w+", text = true)]
         pub name: String,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     #[allow(dead_code)]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s+")]
+        #[adze::leaf(pattern = r"\s+")]
         _ws: (),
     }
 }
@@ -146,9 +146,9 @@ pub mod grammar {
 ### Example 3: JSON-like Structure
 
 ```rust
-#[rust_sitter::grammar("json_simple")]
+#[adze::grammar("json_simple")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Value {
         Number(NumberLiteral),
         String(StringLiteral),
@@ -156,50 +156,50 @@ pub mod grammar {
         Array(Array),
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Object {
-        #[rust_sitter::leaf(text = "{")]
+        #[adze::leaf(text = "{")]
         _open: (),
-        #[rust_sitter::repeat(non_empty = false)]
+        #[adze::repeat(non_empty = false)]
         pub pairs: Vec<Pair>,
-        #[rust_sitter::leaf(text = "}")]
+        #[adze::leaf(text = "}")]
         _close: (),
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Pair {
         pub key: StringLiteral,
-        #[rust_sitter::leaf(text = ":")]
+        #[adze::leaf(text = ":")]
         _colon: (),
         pub value: Value,
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Array {
-        #[rust_sitter::leaf(text = "[")]
+        #[adze::leaf(text = "[")]
         _open: (),
-        #[rust_sitter::repeat(non_empty = false)]
+        #[adze::repeat(non_empty = false)]
         pub items: Vec<Value>,
-        #[rust_sitter::leaf(text = "]")]
+        #[adze::leaf(text = "]")]
         _close: (),
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct NumberLiteral {
-        #[rust_sitter::leaf(pattern = r"-?\d+", text = true)]
+        #[adze::leaf(pattern = r"-?\d+", text = true)]
         pub value: String,
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct StringLiteral {
-        #[rust_sitter::leaf(pattern = r#""[^"]*""#, text = true)]
+        #[adze::leaf(pattern = r#""[^"]*""#, text = true)]
         pub value: String,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     #[allow(dead_code)]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s+")]
+        #[adze::leaf(pattern = r"\s+")]
         _ws: (),
     }
 }
@@ -250,7 +250,7 @@ Full expression parser with precedence.
 To extract the actual text from a token, use `text = true`:
 
 ```rust
-#[rust_sitter::leaf(pattern = r"\d+", text = true)]
+#[adze::leaf(pattern = r"\d+", text = true)]
 pub value: String,
 ```
 
@@ -258,13 +258,13 @@ Without `text = true`, you get unit type `()`.
 
 ### Ignoring Whitespace
 
-Use `#[rust_sitter::extra]` for whitespace:
+Use `#[adze::extra]` for whitespace:
 
 ```rust
-#[rust_sitter::extra]
+#[adze::extra]
 #[allow(dead_code)]
 struct Whitespace {
-    #[rust_sitter::leaf(pattern = r"\s+")]
+    #[adze::leaf(pattern = r"\s+")]
     _ws: (),
 }
 ```
@@ -274,11 +274,11 @@ struct Whitespace {
 Use precedence numbers for operators (higher = tighter binding):
 
 ```rust
-#[rust_sitter::prec_left(1)]  // Lower precedence
-Add(Box<Expression>, #[rust_sitter::leaf(text = "+")] (), Box<Expression>),
+#[adze::prec_left(1)]  // Lower precedence
+Add(Box<Expression>, #[adze::leaf(text = "+")] (), Box<Expression>),
 
-#[rust_sitter::prec_left(2)]  // Higher precedence
-Multiply(Box<Expression>, #[rust_sitter::leaf(text = "*")] (), Box<Expression>),
+#[adze::prec_left(2)]  // Higher precedence
+Multiply(Box<Expression>, #[adze::leaf(text = "*")] (), Box<Expression>),
 ```
 
 This ensures `1 + 2 * 3` parses as `1 + (2 * 3)`.
@@ -287,13 +287,13 @@ This ensures `1 + 2 * 3` parses as `1 + (2 * 3)`.
 
 For zero or more items:
 ```rust
-#[rust_sitter::repeat(non_empty = false)]
+#[adze::repeat(non_empty = false)]
 pub items: Vec<Item>,
 ```
 
 For one or more items:
 ```rust
-#[rust_sitter::repeat(non_empty = true)]
+#[adze::repeat(non_empty = true)]
 pub items: Vec<Item>,
 ```
 
@@ -319,16 +319,16 @@ This error occurs when the Extract trait cannot determine which variant to use. 
 
 Usually means a token_count issue. This was fixed in v0.6.1.
 
-**Solution**: Upgrade to rust-sitter 0.6.1 or later.
+**Solution**: Upgrade to adze 0.6.1 or later.
 
 #### Empty string extraction
 
 Forgot `text = true` on leaf pattern.
 
-**Solution**: Add `text = true` to the `#[rust_sitter::leaf]` attribute:
+**Solution**: Add `text = true` to the `#[adze::leaf]` attribute:
 
 ```rust
-#[rust_sitter::leaf(pattern = r"\d+", text = true)]
+#[adze::leaf(pattern = r"\d+", text = true)]
 pub value: String,
 ```
 
@@ -337,7 +337,7 @@ pub value: String,
 1. **Add Debug derives** to your types:
    ```rust
    #[derive(Debug)]
-   #[rust_sitter::language]
+   #[adze::language]
    pub struct MyType { ... }
    ```
 
@@ -363,8 +363,8 @@ pub value: String,
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
-- **Documentation**: [Comprehensive Docs](https://hydro-project.github.io/rust-sitter/)
+- **Issues**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
+- **Documentation**: [Comprehensive Docs](https://hydro-project.github.io/adze/)
 - **Examples**: See `/example/` and `/grammars/` directories
 
 ## Success Stories

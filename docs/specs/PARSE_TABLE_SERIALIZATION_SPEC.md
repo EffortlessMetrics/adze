@@ -355,7 +355,7 @@ fn test_ambiguous_expr_roundtrip() {
 ### Generated File Structure
 
 ```
-target/debug/build/rust-sitter-example-<hash>/out/
+target/debug/build/adze-example-<hash>/out/
 ├── arithmetic.rs           # Generated Rust code (existing)
 ├── arithmetic.c            # Generated C parser (existing, LR mode)
 ├── arithmetic.parsetable   # Serialized ParseTable (NEW, GLR mode)
@@ -374,7 +374,7 @@ fn generate_glr_parse_table(
     grammar_name: &str,
 ) -> Result<()> {
     // 1. Build LR(1) automaton
-    let table = rust_sitter_glr_core::build_lr1_automaton(grammar)?;
+    let table = adze_glr_core::build_lr1_automaton(grammar)?;
 
     // 2. Serialize to bytes
     let bytes = table.to_bytes()?;
@@ -390,8 +390,8 @@ fn generate_glr_parse_table(
         pub static PARSE_TABLE_BYTES: &[u8] = include_bytes!("{}");
 
         #[cfg(feature = "glr")]
-        pub fn parse_table() -> rust_sitter_glr_core::ParseTable {{
-            rust_sitter_glr_core::ParseTable::from_bytes(PARSE_TABLE_BYTES)
+        pub fn parse_table() -> adze_glr_core::ParseTable {{
+            adze_glr_core::ParseTable::from_bytes(PARSE_TABLE_BYTES)
                 .expect("Failed to deserialize parse table")
         }}
         "#,

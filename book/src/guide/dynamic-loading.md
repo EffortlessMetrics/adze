@@ -1,6 +1,6 @@
 # Dynamic Loading How-To Guide
 
-This guide covers practical scenarios for using rust-sitter's dynamic loading feature to parse files with pre-compiled Tree-sitter grammars.
+This guide covers practical scenarios for using adze's dynamic loading feature to parse files with pre-compiled Tree-sitter grammars.
 
 ## Prerequisites
 
@@ -8,7 +8,7 @@ Before using dynamic loading, ensure you have:
 
 1. **CLI with Dynamic Support**: 
    ```bash
-   cargo install rust-sitter-cli --features dynamic
+   cargo install adze-cli --features dynamic
    ```
 
 2. **Tree-sitter Grammar Libraries**: Compiled `.so/.dylib/.dll` files
@@ -83,10 +83,10 @@ find node_modules -name "*.node" -o -name "*.so" | grep tree_sitter
 
 ```bash
 # Parse and get basic statistics
-rust-sitter parse --dynamic /usr/lib/libtree-sitter-json.so data.json
+adze parse --dynamic /usr/lib/libtree-sitter-json.so data.json
 
 # Output JSON for further processing
-rust-sitter parse --dynamic /usr/lib/libtree-sitter-json.so data.json --format json > analysis.json
+adze parse --dynamic /usr/lib/libtree-sitter-json.so data.json --format json > analysis.json
 
 # Process the results
 cat analysis.json | jq '.nodes' # Get node count
@@ -116,7 +116,7 @@ for py_file in *.py; do
     echo "Processing $py_file..."
     
     result_file="$OUTPUT_DIR/${py_file%.py}.json"
-    rust-sitter parse --dynamic "$PYTHON_LIB" "$py_file" --format json > "$result_file"
+    adze parse --dynamic "$PYTHON_LIB" "$py_file" --format json > "$result_file"
     
     # Check if parsing was successful
     status=$(jq -r '.status' "$result_file" 2>/dev/null || echo "error")
@@ -151,7 +151,7 @@ detect_language() {
             lang_name=$(basename "$lib_path" .so | sed 's/libtree-sitter-//')
             
             # Parse with this grammar
-            result=$(rust-sitter parse --dynamic "$lib_path" "$file" --format json 2>/dev/null)
+            result=$(adze parse --dynamic "$lib_path" "$file" --format json 2>/dev/null)
             
             if echo "$result" | jq -e '.status == "ok"' >/dev/null 2>&1; then
                 nodes=$(echo "$result" | jq -r '.nodes // 0')
@@ -193,7 +193,7 @@ validate_json_files() {
         if [ -f "$json_file" ]; then
             echo "Validating $json_file..."
             
-            result=$(rust-sitter parse --dynamic "$json_lib" "$json_file" --format json)
+            result=$(adze parse --dynamic "$json_lib" "$json_file" --format json)
             status=$(echo "$result" | jq -r '.status')
             
             if [ "$status" != "ok" ]; then
@@ -216,7 +216,7 @@ validate_python_files() {
         if [ -f "$py_file" ]; then
             echo "Validating $py_file..."
             
-            result=$(rust-sitter parse --dynamic "$python_lib" "$py_file" --format json)
+            result=$(adze parse --dynamic "$python_lib" "$py_file" --format json)
             status=$(echo "$result" | jq -r '.status')
             
             if [ "$status" != "ok" ]; then
@@ -268,7 +268,7 @@ collect_metrics() {
             file_size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo 0)
             total_size=$((total_size + file_size))
             
-            result=$(rust-sitter parse --dynamic "$grammar_lib" "$file" --format json 2>/dev/null)
+            result=$(adze parse --dynamic "$grammar_lib" "$file" --format json 2>/dev/null)
             
             if echo "$result" | jq -e '.status == "ok"' >/dev/null 2>&1; then
                 nodes=$(echo "$result" | jq -r '.nodes // 0')
@@ -315,13 +315,13 @@ extract_python_classes() {
     echo "Analyzing $python_file..."
     
     # Parse the file and output detailed structure
-    rust-sitter parse --dynamic "$python_lib" "$python_file" --format sexp > /tmp/parse_tree.sexp
+    adze parse --dynamic "$python_lib" "$python_file" --format sexp > /tmp/parse_tree.sexp
     
     # Extract class and function names (would need additional processing)
     echo "Parse tree saved to /tmp/parse_tree.sexp"
     
     # Basic statistics
-    result=$(rust-sitter parse --dynamic "$python_lib" "$python_file" --format json)
+    result=$(adze parse --dynamic "$python_lib" "$python_file" --format json)
     nodes=$(echo "$result" | jq -r '.nodes // 0')
     
     echo "  Structure complexity: $nodes nodes"
@@ -345,11 +345,11 @@ done
         {
             "label": "Parse Current File",
             "type": "shell",
-            "command": "rust-sitter",
+            "command": "adze",
             "args": [
                 "parse",
                 "--dynamic",
-                "${config:rust-sitter.grammarPath}",
+                "${config:adze.grammarPath}",
                 "${file}",
                 "--format",
                 "json"
@@ -369,7 +369,7 @@ done
             "command": "bash",
             "args": [
                 "-c",
-                "find src -name '*.py' -exec rust-sitter parse --dynamic /usr/lib/libtree-sitter-python.so {} --format json \\; | jq -r 'select(.status != \"ok\") | \"Error in file\"'"
+                "find src -name '*.py' -exec adze parse --dynamic /usr/lib/libtree-sitter-python.so {} --format json \\; | jq -r 'select(.status != \"ok\") | \"Error in file\"'"
             ],
             "group": "build"
         }
@@ -380,7 +380,7 @@ done
 ```json
 // .vscode/settings.json
 {
-    "rust-sitter.grammarPath": "/usr/lib/libtree-sitter-python.so"
+    "adze.grammarPath": "/usr/lib/libtree-sitter-python.so"
 }
 ```
 
@@ -395,9 +395,9 @@ Some grammars use non-standard symbol names:
 nm -D /path/to/library.so | grep -i tree_sitter
 
 # Try common alternatives
-rust-sitter parse --dynamic lib.so input.txt --symbol language
-rust-sitter parse --dynamic lib.so input.txt --symbol get_language
-rust-sitter parse --dynamic lib.so input.txt --symbol tree_sitter_lang_language
+adze parse --dynamic lib.so input.txt --symbol language
+adze parse --dynamic lib.so input.txt --symbol get_language
+adze parse --dynamic lib.so input.txt --symbol tree_sitter_lang_language
 ```
 
 ### Performance Monitoring
@@ -418,7 +418,7 @@ for file in "$TEST_DIR"/*; do
         size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
         start_time=$(date +%s%3N)
         
-        result=$(rust-sitter parse --dynamic "$GRAMMAR_LIB" "$file" --format json)
+        result=$(adze parse --dynamic "$GRAMMAR_LIB" "$file" --format json)
         
         end_time=$(date +%s%3N)
         parse_time=$((end_time - start_time))
@@ -448,7 +448,7 @@ echo "file,status,error_details" > errors.csv
 
 for file in $FILE_PATTERN; do
     if [ -f "$file" ]; then
-        result=$(rust-sitter parse --dynamic "$GRAMMAR_LIB" "$file" --format json 2>&1)
+        result=$(adze parse --dynamic "$GRAMMAR_LIB" "$file" --format json 2>&1)
         
         if echo "$result" | jq -e '.status == "ok"' >/dev/null 2>&1; then
             echo "$(basename "$file"),ok," >> errors.csv
@@ -492,19 +492,19 @@ nm -D library.so | grep -v "^$"
 nm -D library.so | grep -i tree
 
 # Common symbol name patterns to try:
-rust-sitter parse --dynamic lib.so input.txt --symbol language
-rust-sitter parse --dynamic lib.so input.txt --symbol tree_sitter_LANG
-rust-sitter parse --dynamic lib.so input.txt --symbol get_language
+adze parse --dynamic lib.so input.txt --symbol language
+adze parse --dynamic lib.so input.txt --symbol tree_sitter_LANG
+adze parse --dynamic lib.so input.txt --symbol get_language
 ```
 
 **Parse Failures:**
 ```bash
 # Enable verbose output for debugging
-rust-sitter --verbose parse --dynamic lib.so input.txt
+adze --verbose parse --dynamic lib.so input.txt
 
 # Try with smaller input files to isolate issues
 head -n 10 large_file.txt > small_test.txt
-rust-sitter parse --dynamic lib.so small_test.txt
+adze parse --dynamic lib.so small_test.txt
 ```
 
 **Permission Issues:**
@@ -520,13 +520,13 @@ ls -Z /path/to/library.so
 
 **For Large Files:**
 - Use streaming approaches for files >100MB
-- Enable performance monitoring: `RUST_SITTER_LOG_PERFORMANCE=true`
+- Enable performance monitoring: `ADZE_LOG_PERFORMANCE=true`
 - Consider breaking large files into smaller chunks
 
 **For Batch Processing:**
 - Use parallel processing with GNU parallel:
   ```bash
-  find . -name "*.py" | parallel rust-sitter parse --dynamic lib.so {} --format json
+  find . -name "*.py" | parallel adze parse --dynamic lib.so {} --format json
   ```
 - Cache library loading when processing many files
 - Use JSON output format for machine processing
@@ -553,7 +553,7 @@ validate: validate-python validate-json
 validate-python:
 	@echo "Validating Python files..."
 	@for file in src/*.py; do \
-		if rust-sitter parse --dynamic $(PYTHON_LIB) "$$file" --format json | \
+		if adze parse --dynamic $(PYTHON_LIB) "$$file" --format json | \
 		   jq -e '.status == "ok"' >/dev/null; then \
 			echo "✅ $$file"; \
 		else \
@@ -565,7 +565,7 @@ validate-python:
 validate-json:
 	@echo "Validating JSON files..."
 	@for file in config/*.json; do \
-		if rust-sitter parse --dynamic $(JSON_LIB) "$$file" --format json | \
+		if adze parse --dynamic $(JSON_LIB) "$$file" --format json | \
 		   jq -e '.status == "ok"' >/dev/null; then \
 			echo "✅ $$file"; \
 		else \
@@ -590,9 +590,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Install rust-sitter CLI
+    - name: Install adze CLI
       run: |
-        cargo install rust-sitter-cli --features dynamic
+        cargo install adze-cli --features dynamic
     
     - name: Install Tree-sitter grammars
       run: |
@@ -603,7 +603,7 @@ jobs:
       run: |
         for file in config/*.json; do
           if [ -f "$file" ]; then
-            rust-sitter parse --dynamic /usr/lib/libtree-sitter-json.so "$file" --format json
+            adze parse --dynamic /usr/lib/libtree-sitter-json.so "$file" --format json
           fi
         done
     
@@ -611,7 +611,7 @@ jobs:
       run: |
         for file in src/*.py; do
           if [ -f "$file" ]; then
-            rust-sitter parse --dynamic /usr/lib/libtree-sitter-python.so "$file" --format json
+            adze parse --dynamic /usr/lib/libtree-sitter-python.so "$file" --format json
           fi
         done
 ```

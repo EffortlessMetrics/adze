@@ -82,13 +82,13 @@ Tests from spec:
 #### 1.3 Safety Verification
 ```bash
 # Run under Miri
-cargo +nightly miri test -p rust-sitter arena_allocator
+cargo +nightly miri test -p adze arena_allocator
 
 # Build with ASan
-RUSTFLAGS="-Z sanitizer=address" cargo test -p rust-sitter arena_allocator
+RUSTFLAGS="-Z sanitizer=address" cargo test -p adze arena_allocator
 
 # Check with Valgrind
-valgrind --leak-check=full cargo test -p rust-sitter arena_allocator
+valgrind --leak-check=full cargo test -p adze arena_allocator
 ```
 
 ### Phase 2: Tree Integration (Day 3-4)
@@ -214,10 +214,10 @@ fn benchmark_without_arena(c: &mut Criterion) {
 **Run comparison**:
 ```bash
 # Baseline (without arena)
-cargo bench -p rust-sitter-benchmarks --bench glr_performance_real
+cargo bench -p adze-benchmarks --bench glr_performance_real
 
 # With arena
-cargo bench -p rust-sitter-benchmarks --bench glr_performance_real --features arena-allocator
+cargo bench -p adze-benchmarks --bench glr_performance_real --features arena-allocator
 
 # Compare
 cargo xtask compare-baseline v0.8.0-corrected --threshold 5

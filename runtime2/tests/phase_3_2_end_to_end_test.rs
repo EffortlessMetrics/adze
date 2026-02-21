@@ -9,13 +9,11 @@
 
 #[cfg(feature = "pure-rust-glr")]
 mod phase_3_2_end_to_end {
-    use rust_sitter_glr_core::{
-        Action, FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton,
-    };
-    use rust_sitter_ir::{
+    use adze_glr_core::{Action, FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
+    use adze_ir::{
         Grammar, ProductionId, Rule, Symbol, Token as IrToken, TokenPattern as IrTokenPattern,
     };
-    use rust_sitter_runtime::{
+    use adze_runtime::{
         Parser,
         language::SymbolMetadata,
         tokenizer::{Matcher, TokenPattern, WhitespaceMode},

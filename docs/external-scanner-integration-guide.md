@@ -2,7 +2,7 @@
 
 > **✅ Production Ready** (PR #59): Complete external scanner support in the pure-Rust parser implementation
 
-This guide walks through integrating external scanners with rust-sitter's pure-Rust parser implementation. External scanners enable complex tokenization that cannot be expressed with regular expressions, such as indentation-sensitive parsing, heredoc strings, and context-sensitive tokenization.
+This guide walks through integrating external scanners with adze's pure-Rust parser implementation. External scanners enable complex tokenization that cannot be expressed with regular expressions, such as indentation-sensitive parsing, heredoc strings, and context-sensitive tokenization.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ This guide walks through integrating external scanners with rust-sitter's pure-R
 
 ## Overview
 
-rust-sitter supports two types of external scanners:
+adze supports two types of external scanners:
 
 - **C FFI Scanners**: Use existing Tree-sitter C external scanners with full ABI compatibility
 - **Pure-Rust Scanners**: Implement scanners directly in Rust using native traits
@@ -39,7 +39,7 @@ The most straightforward approach is to use existing Tree-sitter external scanne
 
 ```rust
 use std::ffi::c_void;
-use rust_sitter::pure_parser::{ExternalScanner, TSLexer};
+use adze::pure_parser::{ExternalScanner, TSLexer};
 
 // Link to existing Tree-sitter scanner
 extern "C" {
@@ -84,7 +84,7 @@ static PYTHON_EXTERNAL_SYMBOL_MAP: &[u16] = &[
 ];
 
 // Language integration
-use rust_sitter::pure_parser::TSLanguage;
+use adze::pure_parser::TSLanguage;
 
 static PYTHON_LANGUAGE: TSLanguage = TSLanguage {
     // ... other fields ...
@@ -105,8 +105,8 @@ fn main() {
     println!("cargo:rustc-link-lib=tree-sitter-python");
     println!("cargo:rustc-link-search=native=/path/to/tree-sitter-python/lib");
     
-    // Build rust-sitter parser
-    rust_sitter_tool::build_parsers(&["src/grammar.rs"]).expect("Failed to build parser");
+    // Build adze parser
+    adze_tool::build_parsers(&["src/grammar.rs"]).expect("Failed to build parser");
 }
 ```
 
@@ -117,7 +117,7 @@ fn main() {
 For pure-Rust implementations, implement the `ExternalScanner` trait:
 
 ```rust
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use adze::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 #[derive(Default, Debug)]
 struct PythonIndentationScanner {
@@ -258,7 +258,7 @@ impl ExternalScanner for PythonIndentationScanner {
 Register scanners with the scanner registry:
 
 ```rust
-use rust_sitter::scanner_registry::ExternalScannerRegistry;
+use adze::scanner_registry::ExternalScannerRegistry;
 
 fn setup_python_grammar() -> Grammar {
     let mut registry = ExternalScannerRegistry::default();
@@ -280,11 +280,11 @@ fn setup_python_grammar() -> Grammar {
 Here's a complete example showing external scanner integration:
 
 ```rust
-#[rust_sitter::grammar("python_simple")]
+#[adze::grammar("python_simple")]
 mod python_grammar {
-    use rust_sitter::*;
+    use adze::*;
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {
         statements: Vec<Statement>,
     }
@@ -295,31 +295,31 @@ mod python_grammar {
     }
 
     pub struct FunctionDef {
-        #[rust_sitter::leaf(text = "def")]
+        #[adze::leaf(text = "def")]
         def_keyword: (),
         
-        #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
+        #[adze::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
         name: String,
         
-        #[rust_sitter::leaf(text = "(")]
+        #[adze::leaf(text = "(")]
         open_paren: (),
         
-        #[rust_sitter::leaf(text = ")")]
+        #[adze::leaf(text = ")")]
         close_paren: (),
         
-        #[rust_sitter::leaf(text = ":")]
+        #[adze::leaf(text = ":")]
         colon: (),
         
         // External tokens for indentation
-        #[rust_sitter::external(symbol = "NEWLINE")]
+        #[adze::external(symbol = "NEWLINE")]
         newline: (),
         
-        #[rust_sitter::external(symbol = "INDENT")]
+        #[adze::external(symbol = "INDENT")]
         indent: (),
         
         body: Block,
         
-        #[rust_sitter::external(symbol = "DEDENT")]
+        #[adze::external(symbol = "DEDENT")]
         dedent: (),
     }
 
@@ -328,13 +328,13 @@ mod python_grammar {
     }
 
     pub struct SimpleStatement {
-        #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
+        #[adze::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
         name: String,
     }
 
     // External scanner configuration
-    #[rust_sitter::external_scanner]
-    pub fn create_scanner() -> Box<dyn rust_sitter::ExternalScanner> {
+    #[adze::external_scanner]
+    pub fn create_scanner() -> Box<dyn adze::ExternalScanner> {
         Box::new(PythonIndentationScanner::default())
     }
 }
@@ -533,7 +533,7 @@ Create unit tests for scanner logic:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter::external_scanner::test_utils::TestLexer;
+    use adze::external_scanner::test_utils::TestLexer;
 
     #[test]
     fn test_indentation_scanner() {

@@ -1,5 +1,5 @@
 #[cfg(feature = "serialization")]
-use rust_sitter_ir::{SymbolId, TokenPattern};
+use adze_ir::{SymbolId, TokenPattern};
 #[cfg(feature = "serialization")]
 use std::collections::HashMap;
 #[cfg(feature = "serialization")]

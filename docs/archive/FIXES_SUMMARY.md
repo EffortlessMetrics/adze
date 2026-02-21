@@ -1,4 +1,4 @@
-# rust-sitter v0.6.0 Release Fixes Summary
+# adze v0.6.0 Release Fixes Summary
 
 ## Completed Fixes
 

@@ -1,49 +1,49 @@
 //! Example demonstrating external scanner and word token attributes
 
 #[allow(dead_code)]
-#[rust_sitter::grammar("python_like")]
+#[adze::grammar("python_like")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Statement {
         If(IfStatement),
         Expression(Expression),
     }
 
     pub struct IfStatement {
-        #[rust_sitter::leaf(text = "if")]
+        #[adze::leaf(text = "if")]
         _if: (),
         condition: Expression,
-        #[rust_sitter::leaf(text = ":")]
+        #[adze::leaf(text = ":")]
         _colon: (),
         body: Vec<Statement>,
     }
 
     pub enum Expression {
         Identifier(Identifier),
-        Number(#[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
     }
 
     // Word token - helps distinguish keywords from identifiers
-    #[rust_sitter::word]
+    #[adze::word]
     pub struct Identifier {
-        #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
         name: String,
     }
 
     // External scanner tokens for indentation-based parsing
-    #[rust_sitter::external]
+    #[adze::external]
     pub struct Indent;
 
-    #[rust_sitter::external]
+    #[adze::external]
     pub struct Dedent;
 
-    #[rust_sitter::external]
+    #[adze::external]
     pub struct Newline;
 
     // Regular extras
-    #[rust_sitter::extra]
+    #[adze::extra]
     pub struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"[ \t]+")]
+        #[adze::leaf(pattern = r"[ \t]+")]
         _ws: (),
     }
 }

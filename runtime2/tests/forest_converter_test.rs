@@ -5,12 +5,12 @@
 
 #[cfg(feature = "pure-rust-glr")]
 mod forest_converter_unit_tests {
-    use rust_sitter_glr_core::SymbolId;
-    use rust_sitter_runtime::Tree;
-    use rust_sitter_runtime::forest_converter::{
+    use adze_glr_core::SymbolId;
+    use adze_runtime::Tree;
+    use adze_runtime::forest_converter::{
         ConversionError, DisambiguationStrategy, ForestConverter,
     };
-    use rust_sitter_runtime::glr_engine::{ForestNode, ForestNodeId, ParseForest};
+    use adze_runtime::glr_engine::{ForestNode, ForestNodeId, ParseForest};
 
     /// Helper: Create simple unambiguous forest
     ///
@@ -253,9 +253,9 @@ mod forest_converter_unit_tests {
 
 #[cfg(feature = "pure-rust-glr")]
 mod forest_converter_integration_tests {
-    use rust_sitter_glr_core::SymbolId;
-    use rust_sitter_runtime::forest_converter::{DisambiguationStrategy, ForestConverter};
-    use rust_sitter_runtime::glr_engine::{ForestNode, ForestNodeId, ParseForest};
+    use adze_glr_core::SymbolId;
+    use adze_runtime::forest_converter::{DisambiguationStrategy, ForestConverter};
+    use adze_runtime::glr_engine::{ForestNode, ForestNodeId, ParseForest};
 
     /// Integration Test: End-to-end arithmetic expression
     ///

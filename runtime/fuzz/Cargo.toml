@@ -1,5 +1,5 @@
 [package]
-name = "rust-sitter-fuzz"
+name = "adze-fuzz"
 version = "0.0.0"
 publish = false
 edition = "2024"
@@ -13,10 +13,10 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 lazy_static = "1.4"
 arbitrary = { version = "1", features = ["derive"] }
-rust-sitter-ir = { path = "../../ir" }
-rust-sitter-glr-core = { path = "../../glr-core" }
+adze-ir = { path = "../../ir" }
+adze-glr-core = { path = "../../glr-core" }
 
-[dependencies.rust-sitter]
+[dependencies.adze]
 path = ".."
 features = ["pure-rust"]
 

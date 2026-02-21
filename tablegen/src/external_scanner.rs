@@ -1,6 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+use adze_ir::{ExternalToken, Grammar, SymbolId};
 use quote::quote;
-use rust_sitter_ir::{ExternalToken, Grammar, SymbolId};
 use std::collections::HashMap;
 
 /// Generates external scanner data and interface for Tree-sitter
@@ -77,7 +77,7 @@ impl ExternalScannerGenerator {
 
             // External scanner data
             #[allow(dead_code)]
-            static EXTERNAL_SCANNER_DATA: rust_sitter::ffi::TSExternalScannerData = rust_sitter::ffi::TSExternalScannerData {
+            static EXTERNAL_SCANNER_DATA: adze::ffi::TSExternalScannerData = adze::ffi::TSExternalScannerData {
                 states: EXTERNAL_SCANNER_STATES.as_ptr(),
                 symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr(),
                 create: None, // TODO: Link to user scanner

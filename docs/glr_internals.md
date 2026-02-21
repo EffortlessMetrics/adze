@@ -6,7 +6,7 @@ GLR (Generalized LR) parsing extends traditional LR parsing to handle **ambiguou
 
 ## Symbol Normalization: The Foundation of GLR Processing
 
-**Production Ready (September 2025)**: rust-sitter implements comprehensive symbol normalization to ensure GLR algorithms can process complex grammar symbols.
+**Production Ready (September 2025)**: adze implements comprehensive symbol normalization to ensure GLR algorithms can process complex grammar symbols.
 
 ### Why Normalization is Required
 
@@ -156,7 +156,7 @@ Initial state 0 after closure has 12 items:
 
 The high symbol IDs (1018, 1023) indicate successful auxiliary symbol creation.
 
-## rust-sitter's GLR Implementation
+## adze's GLR Implementation
 
 ### Action Table Structure
 ```rust
@@ -278,4 +278,4 @@ Now both interpretations are explored, the correct one survives!
 
 - [Tomita's Algorithm (1985)](https://en.wikipedia.org/wiki/GLR_parser) - Original GLR paper
 - [Tree-sitter's Conflict Resolution](https://tree-sitter.github.io/tree-sitter/creating-parsers#conflicts) 
-- [rust-sitter's Multi-Path Architecture](/runtime/src/glr_forest.rs)
+- [adze's Multi-Path Architecture](/runtime/src/glr_forest.rs)

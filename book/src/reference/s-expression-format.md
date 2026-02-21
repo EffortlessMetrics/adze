@@ -1,6 +1,6 @@
 # S-Expression Format Reference
 
-rust-sitter uses S-expression format for parse tree serialization, maintaining compatibility with Tree-sitter's standard output format. This format provides a human-readable representation of parse trees used in golden tests, debugging, and tree analysis.
+adze uses S-expression format for parse tree serialization, maintaining compatibility with Tree-sitter's standard output format. This format provides a human-readable representation of parse trees used in golden tests, debugging, and tree analysis.
 
 ## Format Overview
 
@@ -275,10 +275,10 @@ def foo(
 
 ## Generating S-Expressions
 
-### From rust-sitter
+### From adze
 
 ```rust
-use rust_sitter::tree_to_sexp;
+use adze::tree_to_sexp;
 
 let source = "def hello(): pass";
 let tree = python_parser.parse(source)?;
@@ -310,7 +310,7 @@ S-expressions enable precise compatibility testing:
 #[test]
 fn test_python_parsing() {
     let source = load_fixture("example.py");
-    let actual_sexp = parse_with_rust_sitter(source)?;
+    let actual_sexp = parse_with_adze(source)?;
     let expected_sexp = load_expected("example.sexp")?;
     assert_eq!(actual_sexp, expected_sexp);
 }
@@ -322,11 +322,11 @@ S-expressions provide readable tree inspection:
 
 ```bash
 # Debug parsing issues
-echo "problematic_code" | rust-sitter parse --sexp
+echo "problematic_code" | adze parse --sexp
 
 # Compare implementations
 echo "test_input" | tree-sitter parse --quiet > expected.sexp
-echo "test_input" | rust-sitter parse --sexp > actual.sexp
+echo "test_input" | adze parse --sexp > actual.sexp
 diff expected.sexp actual.sexp
 ```
 
@@ -451,4 +451,4 @@ fn node_to_sexp(node: &ParsedNode, source: &str, indent: usize) -> String {
 - **[API Documentation](api.md)**: Programmatic S-expression generation
 - **[Architecture](../development/architecture.md)**: Parse tree internal representation
 
-S-expressions provide a standardized, human-readable format for parse tree representation, enabling effective debugging, testing, and analysis across the rust-sitter ecosystem.
+S-expressions provide a standardized, human-readable format for parse tree representation, enabling effective debugging, testing, and analysis across the adze ecosystem.

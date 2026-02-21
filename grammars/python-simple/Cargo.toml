@@ -1,14 +1,14 @@
 [package]
-name = "rust-sitter-python-simple"
+name = "adze-python-simple"
 version = "0.1.0"
 edition = "2024"
 
 [features]
 default = ["pure-rust"]
-pure-rust = ["rust-sitter/pure-rust"]
+pure-rust = ["adze/pure-rust"]
 
 [dependencies]
-rust-sitter = { path = "../../runtime", default-features = false }
+adze = { path = "../../runtime", default-features = false }
 
 [build-dependencies]
-rust-sitter-tool = { path = "../../tool" }
+adze-tool = { path = "../../tool" }

@@ -9,7 +9,7 @@
 //! - Reports errors for unrecognized characters
 
 use crate::{Token, error::ParseError};
-use rust_sitter_glr_core::SymbolId;
+use adze_glr_core::SymbolId;
 use std::fmt;
 
 /// Tokenizer scans input and produces tokens according to grammar

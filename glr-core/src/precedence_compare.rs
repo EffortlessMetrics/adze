@@ -1,7 +1,7 @@
 // Tree-sitter compatible precedence comparison logic
 // Direct port of precedence comparison from Tree-sitter's C implementation
 
-use rust_sitter_ir::{Associativity, Grammar, PrecedenceKind, RuleId, Symbol, SymbolId};
+use adze_ir::{Associativity, Grammar, PrecedenceKind, RuleId, Symbol, SymbolId};
 use std::collections::HashMap;
 
 /// Precedence information for a symbol or rule
@@ -134,7 +134,7 @@ pub fn compare_precedences(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::{Grammar, Precedence};
+    use adze_ir::{Grammar, Precedence};
 
     #[test]
     fn test_precedence_comparison() {

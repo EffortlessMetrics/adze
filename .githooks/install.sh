@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install script for rust-sitter git hooks
+# Install script for adze git hooks
 # Sets up symlinks from .git/hooks to .githooks for version-controlled hooks
 set -euo pipefail
 
@@ -19,14 +19,14 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 GIT_HOOKS_DIR="$REPO_ROOT/.git/hooks"
 GITHOOKS_DIR="$REPO_ROOT/.githooks"
 
-echo -e "${BLUE}rust-sitter Git Hooks Installer${NC}"
+echo -e "${BLUE}adze Git Hooks Installer${NC}"
 echo -e "${BLUE}================================${NC}"
 echo ""
 
 # Check if we're in a git repository
 if [ ! -d "$REPO_ROOT/.git" ]; then
     echo -e "${RED}✖ Error: Not in a git repository${NC}"
-    echo "This script must be run from within the rust-sitter repository"
+    echo "This script must be run from within the adze repository"
     exit 1
 fi
 

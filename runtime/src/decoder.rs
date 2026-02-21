@@ -1,14 +1,14 @@
 //! Decoder for extracting Grammar and ParseTable from Tree-sitter's TSLanguage struct
 //!
 //! This module reverse-engineers Tree-sitter's compressed parse table format
-//! and decodes it into rust-sitter's native structures.
+//! and decodes it into adze's native structures.
 
-use indexmap::IndexMap;
-use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{
+use adze_glr_core::{Action, LexMode, ParseRule, ParseTable, SymbolMetadata};
+use adze_ir::{
     ExternalToken, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol,
     SymbolId, Token, TokenPattern,
 };
+use indexmap::IndexMap;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::{CStr, c_char};
 use std::path::Path;
@@ -218,7 +218,7 @@ pub fn decode_grammar_with_patterns(
                         let pattern = if let Some(real_pattern) = token_patterns.get(name) {
                             real_pattern.clone()
                         } else {
-                            rust_sitter_ir::TokenPattern::String(name.clone())
+                            adze_ir::TokenPattern::String(name.clone())
                         };
 
                         tokens.insert(
@@ -244,7 +244,7 @@ pub fn decode_grammar_with_patterns(
                 let pattern = if let Some(real_pattern) = token_patterns.get(name) {
                     real_pattern.clone()
                 } else {
-                    rust_sitter_ir::TokenPattern::String(name.clone())
+                    adze_ir::TokenPattern::String(name.clone())
                 };
 
                 tokens.insert(
@@ -988,7 +988,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         index_to_symbol,
         external_scanner_states,
         nonterminal_to_index,
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol,
         start_symbol: {
             // Compute start symbol from the rules

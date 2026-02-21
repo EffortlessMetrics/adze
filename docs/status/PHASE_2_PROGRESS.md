@@ -33,10 +33,10 @@ Phase 2 focuses on validating that GLR parse tables correctly preserve conflicts
 
 **Validation**:
 ```bash
-cargo test -p rust-sitter-glr-core conflict_inspection
+cargo test -p adze-glr-core conflict_inspection
 # 7/7 unit tests passed
 
-cargo test -p rust-sitter-glr-core --test conflict_inspection_integration
+cargo test -p adze-glr-core --test conflict_inspection_integration
 # 6/6 integration tests passed
 ```
 
@@ -74,7 +74,7 @@ cargo test -p rust-sitter-glr-core --test conflict_inspection_integration
 
 **Validation Results**:
 ```bash
-cargo test -p rust-sitter-glr-core --test table_generation_validation
+cargo test -p adze-glr-core --test table_generation_validation
 # 4/4 integration tests passed
 
 TG-001 Dangling Else:
@@ -150,13 +150,13 @@ for symbol_idx in 0..state_actions.len() {
 
 **Validation**:
 ```bash
-cargo test -p rust-sitter-glr-core conflict_inspection
+cargo test -p adze-glr-core conflict_inspection
 # 7/7 unit tests passed
 
-cargo test -p rust-sitter-glr-core --test conflict_inspection_integration
+cargo test -p adze-glr-core --test conflict_inspection_integration
 # 6/6 integration tests passed
 
-cargo test -p rust-sitter-glr-core --test table_generation_validation
+cargo test -p adze-glr-core --test table_generation_validation
 # 5/5 table generation tests passed (including real pipeline validation)
 ```
 
@@ -169,10 +169,10 @@ cargo test -p rust-sitter-glr-core --test table_generation_validation
 **Module**: `example/src/{dangling_else,ambiguous_expr}.rs`
 
 **Implementation**:
-- Added `rust-sitter-glr-core` as dev-dependency to example crate
+- Added `adze-glr-core` as dev-dependency to example crate
 - Implemented `test_conflict_detection` in dangling_else.rs using conflict inspection API
 - Implemented `test_conflict_detection` in ambiguous_expr.rs using conflict inspection API
-- Both tests use `rust_sitter::decoder::decode_parse_table` to convert LANGUAGE → ParseTable
+- Both tests use `adze::decoder::decode_parse_table` to convert LANGUAGE → ParseTable
 - Tests validate expected conflict counts and properties
 - Replaced `#[ignore]` with `#[cfg(feature = "pure-rust")]` feature gates
 
@@ -181,10 +181,10 @@ cargo test -p rust-sitter-glr-core --test table_generation_validation
 #[test]
 #[cfg(feature = "pure-rust")]
 fn test_conflict_detection() {
-    use rust_sitter_glr_core::conflict_inspection::*;
+    use adze_glr_core::conflict_inspection::*;
 
     // Decode LANGUAGE into ParseTable
-    let table = rust_sitter::decoder::decode_parse_table(&LANGUAGE);
+    let table = adze::decoder::decode_parse_table(&LANGUAGE);
 
     // Run conflict inspection
     let summary = count_conflicts(&table);
@@ -273,8 +273,8 @@ cargo test test_conflict_detection --features pure-rust
 ### Conflict Inspection API
 
 ```
-cargo test -p rust-sitter-glr-core conflict_inspection
-   Compiling rust-sitter-glr-core v0.8.0-dev
+cargo test -p adze-glr-core conflict_inspection
+   Compiling adze-glr-core v0.8.0-dev
     Finished `test` profile
      Running unittests src/lib.rs
 
@@ -293,8 +293,8 @@ test result: ok. 7 passed; 0 failed; 0 ignored
 ### Conflict Inspection Integration Tests
 
 ```
-cargo test -p rust-sitter-glr-core --test conflict_inspection_integration
-   Compiling rust-sitter-glr-core v0.8.0-dev
+cargo test -p adze-glr-core --test conflict_inspection_integration
+   Compiling adze-glr-core v0.8.0-dev
     Finished `test` profile
      Running tests/conflict_inspection_integration.rs
 
@@ -312,8 +312,8 @@ test result: ok. 6 passed; 0 failed; 0 ignored
 ### Table Generation Validation Tests
 
 ```
-cargo test -p rust-sitter-glr-core --test table_generation_validation
-   Compiling rust-sitter-glr-core v0.8.0-dev
+cargo test -p adze-glr-core --test table_generation_validation
+   Compiling adze-glr-core v0.8.0-dev
     Finished `test` profile
      Running tests/table_generation_validation.rs
 

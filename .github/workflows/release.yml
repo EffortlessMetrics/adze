@@ -30,7 +30,7 @@ jobs:
       - name: Get current version
         id: current
         run: |
-          VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "rust-sitter") | .version')
+          VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "adze") | .version')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Current version: $VERSION"
       
@@ -100,10 +100,10 @@ jobs:
         run: |
           mkdir -p artifacts
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            7z a artifacts/rust-sitter-${{ inputs.version }}-${{ matrix.target }}.zip \
+            7z a artifacts/adze-${{ inputs.version }}-${{ matrix.target }}.zip \
               target/${{ matrix.target }}/release/*.exe
           else
-            tar czf artifacts/rust-sitter-${{ inputs.version }}-${{ matrix.target }}.tar.gz \
+            tar czf artifacts/adze-${{ inputs.version }}-${{ matrix.target }}.tar.gz \
               -C target/${{ matrix.target }}/release .
           fi
       
@@ -130,16 +130,16 @@ jobs:
       - name: Update workspace versions
         run: |
           # Update all workspace members to new version
-          cargo set-version -p rust-sitter ${{ inputs.version }}
-          cargo set-version -p rust-sitter-macro ${{ inputs.version }}
-          cargo set-version -p rust-sitter-tool ${{ inputs.version }}
-          cargo set-version -p rust-sitter-common ${{ inputs.version }}
-          cargo set-version -p rust-sitter-ir ${{ inputs.version }}
-          cargo set-version -p rust-sitter-glr-core ${{ inputs.version }}
-          cargo set-version -p rust-sitter-tablegen ${{ inputs.version }}
+          cargo set-version -p adze ${{ inputs.version }}
+          cargo set-version -p adze-macro ${{ inputs.version }}
+          cargo set-version -p adze-tool ${{ inputs.version }}
+          cargo set-version -p adze-common ${{ inputs.version }}
+          cargo set-version -p adze-ir ${{ inputs.version }}
+          cargo set-version -p adze-glr-core ${{ inputs.version }}
+          cargo set-version -p adze-tablegen ${{ inputs.version }}
           
           # Update internal dependencies
-          cargo update -p rust-sitter -p rust-sitter-macro -p rust-sitter-tool
+          cargo update -p adze -p adze-macro -p adze-tool
       
       - name: Commit version updates
         run: |
@@ -166,25 +166,25 @@ jobs:
       - name: Publish crates in dependency order
         run: |
           # Publish in dependency order
-          cargo publish -p rust-sitter-common
+          cargo publish -p adze-common
           sleep 30  # Wait for crates.io to index
           
-          cargo publish -p rust-sitter-ir
+          cargo publish -p adze-ir
           sleep 30
           
-          cargo publish -p rust-sitter-glr-core
+          cargo publish -p adze-glr-core
           sleep 30
           
-          cargo publish -p rust-sitter-tablegen
+          cargo publish -p adze-tablegen
           sleep 30
           
-          cargo publish -p rust-sitter
+          cargo publish -p adze
           sleep 30
           
-          cargo publish -p rust-sitter-macro
+          cargo publish -p adze-macro
           sleep 30
           
-          cargo publish -p rust-sitter-tool
+          cargo publish -p adze-tool
 
   create-release:
     name: Create GitHub Release
@@ -231,14 +231,14 @@ jobs:
           echo "## Latest Release: v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Published Crates:" >> $GITHUB_STEP_SUMMARY
-          echo "- rust-sitter: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- rust-sitter-macro: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- rust-sitter-tool: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- adze: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- adze-macro: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- adze-tool: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
       
       - name: Trigger docs.rs build
         run: |
           # Trigger docs.rs to build the new version
-          curl -X POST https://docs.rs/api/crate/rust-sitter/${{ inputs.version }}/build
+          curl -X POST https://docs.rs/api/crate/adze/${{ inputs.version }}/build
 
   dry-run-summary:
     name: Dry Run Summary
@@ -261,12 +261,12 @@ jobs:
           echo "- Artifacts built successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 Would Publish:" >> $GITHUB_STEP_SUMMARY
-          echo "1. rust-sitter-common" >> $GITHUB_STEP_SUMMARY
-          echo "2. rust-sitter-ir" >> $GITHUB_STEP_SUMMARY
-          echo "3. rust-sitter-glr-core" >> $GITHUB_STEP_SUMMARY
-          echo "4. rust-sitter-tablegen" >> $GITHUB_STEP_SUMMARY
-          echo "5. rust-sitter" >> $GITHUB_STEP_SUMMARY
-          echo "6. rust-sitter-macro" >> $GITHUB_STEP_SUMMARY
-          echo "7. rust-sitter-tool" >> $GITHUB_STEP_SUMMARY
+          echo "1. adze-common" >> $GITHUB_STEP_SUMMARY
+          echo "2. adze-ir" >> $GITHUB_STEP_SUMMARY
+          echo "3. adze-glr-core" >> $GITHUB_STEP_SUMMARY
+          echo "4. adze-tablegen" >> $GITHUB_STEP_SUMMARY
+          echo "5. adze" >> $GITHUB_STEP_SUMMARY
+          echo "6. adze-macro" >> $GITHUB_STEP_SUMMARY
+          echo "7. adze-tool" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**To perform actual release, run workflow again with dry_run=false**" >> $GITHUB_STEP_SUMMARY

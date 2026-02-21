@@ -3,13 +3,13 @@
 
 mod common;
 
-use rust_sitter::parser_v4::Parser;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
+use adze::parser_v4::Parser;
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 
 /// Helper to create a simple test grammar
 fn create_test_grammar() -> (Grammar, ParseTable) {
-    use rust_sitter_ir::{ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use adze_ir::{ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     let mut grammar = Grammar::new("test".to_string());
 

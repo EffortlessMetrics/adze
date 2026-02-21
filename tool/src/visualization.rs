@@ -1,7 +1,7 @@
-// Grammar visualization tools for the pure-Rust Tree-sitter implementation
+// Grammar visualization tools for Adze
 // This module provides tools to visualize grammars and parse trees
 
-use rust_sitter_ir::{Grammar, Symbol, SymbolId};
+use adze_ir::{Grammar, Symbol, SymbolId};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 
@@ -224,8 +224,8 @@ impl GrammarVisualizer {
         writeln!(&mut output, "\nTokens:").unwrap();
         for (id, token) in &self.grammar.tokens {
             let pattern = match &token.pattern {
-                rust_sitter_ir::TokenPattern::String(s) => format!("\"{}\"", s),
-                rust_sitter_ir::TokenPattern::Regex(r) => format!("/{}/", r),
+                adze_ir::TokenPattern::String(s) => format!("\"{}\"", s),
+                adze_ir::TokenPattern::Regex(r) => format!("/{}/", r),
             };
             writeln!(&mut output, "  {} ({:?}) = {}", token.name, id, pattern).unwrap();
         }
@@ -444,8 +444,8 @@ impl GrammarVisualizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::Rule;
-    use rust_sitter_ir::{ProductionId, Token, TokenPattern};
+    use adze_ir::Rule;
+    use adze_ir::{ProductionId, Token, TokenPattern};
 
     #[test]
     fn test_grammar_to_text() {

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the Direct Forest Splicing algorithm implemented in rust-sitter v0.6.0. This innovative approach delivers **O(edit size)** incremental parsing performance while fully preserving parse ambiguities, achieving **16× speedup** over full reparsing on real-world edits.
+This document describes the Direct Forest Splicing algorithm implemented in adze v0.6.0. This innovative approach delivers **O(edit size)** incremental parsing performance while fully preserving parse ambiguities, achieving **16× speedup** over full reparsing on real-world edits.
 
 ## The Breakthrough: Direct Forest Splicing
 
@@ -149,7 +149,7 @@ test_large_file_performance:
 ## Usage Example
 
 ```rust
-use rust_sitter::glr_incremental::{IncrementalGLRParser, GLREdit, GLRToken};
+use adze::glr_incremental::{IncrementalGLRParser, GLREdit, GLRToken};
 
 // Create parser
 let mut parser = IncrementalGLRParser::new(grammar, table);
@@ -197,6 +197,6 @@ The Direct Forest Splicing algorithm represents a breakthrough in incremental GL
 - **100% ambiguity preservation** - all parse alternatives maintained
 - **999/1000 subtree reuse** on typical edits
 
-This makes rust-sitter the first parser generator to deliver truly efficient incremental parsing for ambiguous grammars, enabling real-time parsing of languages like C++, Rust, and Python in IDEs and language servers.
+This makes adze the first parser generator to deliver truly efficient incremental parsing for ambiguous grammars, enabling real-time parsing of languages like C++, Rust, and Python in IDEs and language servers.
 
 The implementation is feature-complete and tested, ready for production use after minor hardening tasks.

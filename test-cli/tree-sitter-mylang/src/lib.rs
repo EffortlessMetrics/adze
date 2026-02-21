@@ -1,6 +1,6 @@
-use rust_sitter::Grammar;
+use adze::Grammar;
 
-#[rust_sitter::grammar("mylang")]
+#[adze::grammar("mylang")]
 pub struct mylang;
 
 #[cfg(test)]

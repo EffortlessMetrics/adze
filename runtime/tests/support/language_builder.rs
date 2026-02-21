@@ -1,7 +1,7 @@
-use rust_sitter::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
-use rust_sitter::ts_format::{TSActionTag, choose_action_with_precedence};
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, StateId, Symbol, SymbolId};
+use adze::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
+use adze::ts_format::{TSActionTag, choose_action_with_precedence};
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{Grammar, StateId, Symbol, SymbolId};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::CString;
 use std::os::raw::c_void;
@@ -302,7 +302,7 @@ pub fn encode_actions(parse_table: &ParseTable) -> (Vec<TSParseAction>, Vec<u16>
 /// Handles: { } : , "string" number
 #[allow(dead_code)]
 unsafe extern "C" fn json_lexer(lexer: *mut c_void, _state: TSLexState) -> bool {
-    use rust_sitter::lex::TsLexer;
+    use adze::lex::TsLexer;
     let lex = unsafe { &mut *(lexer as *mut TsLexer) };
 
     // Skip whitespace
@@ -488,7 +488,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
 
     // Helper to create a TSRule from a rule and symbol_to_index
     fn make_ts_rule(
-        r: &rust_sitter_glr_core::ParseRule,
+        r: &adze_glr_core::ParseRule,
         symbol_to_index: &BTreeMap<SymbolId, usize>,
     ) -> TSRule {
         let lhs_col = symbol_to_index.get(&r.lhs).copied().unwrap_or(0) as u16;
@@ -602,7 +602,7 @@ const MODE_NORMAL: u16 = 1;
 /// Emits INDENT once at start, then WORD tokens
 #[allow(dead_code)]
 unsafe extern "C" fn indent_lexer(lexer: *mut c_void, state: TSLexState) -> bool {
-    use rust_sitter::lex::TsLexer;
+    use adze::lex::TsLexer;
     let lex = unsafe { &mut *(lexer as *mut TsLexer) };
 
     // Skip whitespace

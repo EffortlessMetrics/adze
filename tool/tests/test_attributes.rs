@@ -9,20 +9,20 @@ fn test_external_attribute() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_external")]
+        #[adze::grammar("test_external")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     i32
                 ),
             }
 
-            #[rust_sitter::external]
+            #[adze::external]
             struct IndentToken;
 
-            #[rust_sitter::external]
+            #[adze::external]
             struct DedentToken;
         }
     "#,
@@ -31,7 +31,7 @@ fn test_external_attribute() {
 
     // Generate grammar JSON
     let grammars =
-        rust_sitter_tool::generate_grammars(&grammar_path).expect("Failed to generate grammars");
+        adze_tool::generate_grammars(&grammar_path).expect("Failed to generate grammars");
     assert!(!grammars.is_empty(), "No grammars generated");
 
     let grammar_json = &grammars[0];
@@ -58,20 +58,20 @@ fn test_word_attribute() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_word")]
+        #[adze::grammar("test_word")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Identifier(Identifier),
                 Keyword(
-                    #[rust_sitter::leaf(text = "if")]
+                    #[adze::leaf(text = "if")]
                     ()
                 ),
             }
 
-            #[rust_sitter::word]
+            #[adze::word]
             struct Identifier {
-                #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+                #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
                 name: String,
             }
         }
@@ -81,7 +81,7 @@ fn test_word_attribute() {
 
     // Generate grammar JSON
     let grammars =
-        rust_sitter_tool::generate_grammars(&grammar_path).expect("Failed to generate grammars");
+        adze_tool::generate_grammars(&grammar_path).expect("Failed to generate grammars");
     assert!(!grammars.is_empty(), "No grammars generated");
 
     let grammar_json = &grammars[0];
@@ -107,9 +107,9 @@ fn test_combined_attributes() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_combined")]
+        #[adze::grammar("test_combined")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Program {
                 statements: Vec<Statement>,
             }
@@ -121,24 +121,24 @@ fn test_combined_attributes() {
             pub enum Expression {
                 Identifier(Identifier),
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     i32
                 ),
             }
 
-            #[rust_sitter::word]
+            #[adze::word]
             struct Identifier {
-                #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+                #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
                 name: String,
             }
 
-            #[rust_sitter::extra]
+            #[adze::extra]
             struct Whitespace {
-                #[rust_sitter::leaf(pattern = r"\s+")]
+                #[adze::leaf(pattern = r"\s+")]
                 _ws: (),
             }
 
-            #[rust_sitter::external]
+            #[adze::external]
             struct Comment;
         }
     "#,
@@ -147,7 +147,7 @@ fn test_combined_attributes() {
 
     // Generate grammar JSON
     let grammars =
-        rust_sitter_tool::generate_grammars(&grammar_path).expect("Failed to generate grammars");
+        adze_tool::generate_grammars(&grammar_path).expect("Failed to generate grammars");
     assert!(!grammars.is_empty(), "No grammars generated");
 
     let grammar_json = &grammars[0];

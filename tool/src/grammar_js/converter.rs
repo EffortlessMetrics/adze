@@ -1,13 +1,13 @@
 //! Converter from Grammar.js to Rust-sitter IR
 
 use super::{GrammarJs, Rule as JsRule};
-use anyhow::{Context, Result};
-use indexmap::IndexMap;
-use indexmap::IndexMap as OrderedMap;
-use rust_sitter_ir::{
+use adze_ir::{
     Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId, Grammar,
     PrecedenceKind, ProductionId, Rule, RuleId, Symbol, SymbolId, Token, TokenPattern,
 };
+use anyhow::{Context, Result};
+use indexmap::IndexMap;
+use indexmap::IndexMap as OrderedMap;
 use std::collections::HashMap;
 
 /// Converts a Grammar.js structure to Rust-sitter IR

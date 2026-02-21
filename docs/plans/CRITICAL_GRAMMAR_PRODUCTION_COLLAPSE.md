@@ -32,16 +32,16 @@ This explains why no conflicts are being generated: the recursive Binary product
 
 **Grammar Definition** (example/src/ambiguous_expr.rs):
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Expr {
     /// Single binary operation variant - NO precedence!
     Binary(
         Box<Expr>,
-        #[rust_sitter::leaf(pattern = r"[-+*/]")] String,
+        #[adze::leaf(pattern = r"[-+*/]")] String,
         Box<Expr>,
     ),
-    Number(#[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+    Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
 }
 ```
 
@@ -207,7 +207,7 @@ All three grammars show zero conflicts, which is impossible for the ambiguous_ex
 ## Test Artifacts
 
 **Generated Parse Table**:
-- Location: `target/debug/build/rust-sitter-example-*/out/grammar_ambiguous_expr/parser_ambiguous_expr.rs`
+- Location: `target/debug/build/adze-example-*/out/grammar_ambiguous_expr/parser_ambiguous_expr.rs`
 - Analysis: See detailed table decode above
 
 **Diagnostic Tests**:

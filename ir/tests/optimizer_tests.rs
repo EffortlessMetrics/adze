@@ -1,5 +1,5 @@
-use rust_sitter_ir::optimizer::{GrammarOptimizer, OptimizationStats};
-use rust_sitter_ir::*;
+use adze_ir::optimizer::{GrammarOptimizer, OptimizationStats};
+use adze_ir::*;
 
 fn create_test_grammar() -> Grammar {
     let mut grammar = Grammar {

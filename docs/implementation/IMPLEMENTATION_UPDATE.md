@@ -78,7 +78,7 @@ This document summarizes the comprehensive enhancements made to the pure-Rust Tr
 
 ### Module Organization
 ```
-rust-sitter/
+adze/
 ├── ir/                    # Grammar IR with optimization & validation
 │   ├── optimizer.rs       # Grammar optimization passes
 │   └── validation.rs      # Grammar validation and diagnostics
@@ -104,7 +104,7 @@ rust-sitter/
 
 ### Grammar Optimization
 ```rust
-use rust_sitter_ir::{GrammarOptimizer, Grammar};
+use adze_ir::{GrammarOptimizer, Grammar};
 
 let mut optimizer = GrammarOptimizer::new();
 optimizer.optimize_grammar(&mut grammar);
@@ -114,7 +114,7 @@ println!("Removed {} unused symbols", stats.removed_unused_symbols);
 
 ### Error Recovery
 ```rust
-use rust_sitter::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState};
+use adze::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState};
 
 let config = ErrorRecoveryConfigBuilder::new()
     .max_panic_skip(100)
@@ -127,7 +127,7 @@ let mut recovery = ErrorRecoveryState::new(config);
 
 ### Tree Visiting
 ```rust
-use rust_sitter::visitor::{TreeWalker, StatsVisitor};
+use adze::visitor::{TreeWalker, StatsVisitor};
 
 let mut visitor = StatsVisitor::default();
 let walker = TreeWalker::new(source);
@@ -137,7 +137,7 @@ println!("Total nodes: {}", visitor.total_nodes);
 
 ### Grammar Visualization
 ```rust
-use rust_sitter_tool::GrammarVisualizer;
+use adze_tool::GrammarVisualizer;
 
 let visualizer = GrammarVisualizer::new(grammar);
 let dot = visualizer.to_dot();

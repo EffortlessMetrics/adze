@@ -19,7 +19,7 @@ The pure-Rust parser implementation has a **critical architectural mismatch**:
 **Example Failure**:
 ```rust
 // Grammar:
-#[rust_sitter::prec_left(2)]
+#[adze::prec_left(2)]
 Mul(Box<Expr>, "*", Box<Expr>)
 
 // Input: "1 * 2 * 3"
@@ -108,10 +108,10 @@ Modify `pure_parser.rs` to:
 ```toml
 # Cargo.toml
 [dependencies]
-rust-sitter = "0.8"  # Uses C backend by default - works correctly
+adze = "0.8"  # Uses C backend by default - works correctly
 
 [dependencies]
-rust-sitter = { version = "0.8", features = ["pure-rust"] }  # ❌ Broken for associativity
+adze = { version = "0.8", features = ["pure-rust"] }  # ❌ Broken for associativity
 ```
 
 ## Test Impact

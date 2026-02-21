@@ -1,6 +1,6 @@
 # Dev Workflow (Quick Linting)
 
-This guide covers the essential linting commands for rust-sitter development.
+This guide covers the essential linting commands for adze development.
 
 ## Fast local checks (3-5s)
 ```bash

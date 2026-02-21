@@ -2,8 +2,8 @@
 //! Tests epsilon spans, fork handling, EOF acceptance, and root selection
 #![cfg(not(feature = "strict-invariants"))]
 
-use rust_sitter_glr_core::{Action, Driver, GotoIndexing, LexMode, ParseRule, ParseTable};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, Driver, GotoIndexing, LexMode, ParseRule, ParseTable};
+use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 type ActionCell = Vec<Action>;

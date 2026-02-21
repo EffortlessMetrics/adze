@@ -1,7 +1,7 @@
 //! Tree → text/JSON/binary serializers for debugging and tooling.
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
-// Parse tree serialization for the pure-Rust Tree-sitter implementation
+// Parse tree serialization for Adze
 // This module provides serialization and deserialization of parse trees
 
 #[cfg(feature = "pure-rust")]

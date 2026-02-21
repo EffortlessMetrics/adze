@@ -1,6 +1,6 @@
 // Tests for grammar normalization functionality
 
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 #[test]
 fn test_normalize_optional_symbol() {

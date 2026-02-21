@@ -1,7 +1,7 @@
-use rust_sitter_glr_core::stack::StackNode;
+use adze_glr_core::stack::StackNode;
 
 #[cfg(feature = "test-api")]
-use rust_sitter_glr_core::stack::test_helpers::GlrStack;
+use adze_glr_core::stack::test_helpers::GlrStack;
 
 // For tests that don't require test-api feature, use struct literals
 

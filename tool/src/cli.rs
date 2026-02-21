@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 mod parse;
 mod test;
 
-/// Tree-sitter compatible CLI for rust-sitter
+/// Tree-sitter compatible CLI for adze
 #[derive(Parser)]
-#[command(name = "rust-sitter")]
+#[command(name = "adze")]
 #[command(about = "A pure-Rust implementation of Tree-sitter", long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
@@ -207,10 +207,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rust-sitter = "0.5.0-beta"
+adze = "0.5.0-beta"
 
 [build-dependencies]
-rust-sitter-tool = "0.5.0-beta"
+adze-tool = "0.5.0-beta"
 "#,
         name.to_lowercase()
     );
@@ -219,7 +219,7 @@ rust-sitter-tool = "0.5.0-beta"
 
     // Create build.rs
     let build_content = r#"fn main() {
-    rust_sitter_tool::build_parsers();
+    adze_tool::build_parsers();
 }
 "#;
 
@@ -228,9 +228,9 @@ rust-sitter-tool = "0.5.0-beta"
     // Create src/lib.rs
     fs::create_dir_all(dir.join("src"))?;
     let lib_content = format!(
-        r#"use rust_sitter::Grammar;
+        r#"use adze::Grammar;
 
-#[rust_sitter::grammar("{}")]
+#[adze::grammar("{}")]
 pub struct {};
 
 #[cfg(test)]

@@ -746,7 +746,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
-name = "rust-sitter"
+name = "adze"
 version = "0.8.0-dev"
 dependencies = [
  "ahash",
@@ -756,10 +756,10 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
- "rust-sitter-glr-core",
- "rust-sitter-ir",
- "rust-sitter-macro",
- "rust-sitter-tablegen",
+ "adze-glr-core",
+ "adze-ir",
+ "adze-macro",
+ "adze-tablegen",
  "smallvec",
  "thiserror",
  "tree-sitter",
@@ -767,7 +767,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-sitter-common"
+name = "adze-common"
 version = "0.8.0-dev"
 dependencies = [
  "quote",
@@ -775,28 +775,28 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-sitter-example"
+name = "adze-example"
 version = "0.8.0-dev"
 dependencies = [
  "codemap",
  "codemap-diagnostic",
  "insta",
- "rust-sitter",
- "rust-sitter-glr-core",
- "rust-sitter-tool",
+ "adze",
+ "adze-glr-core",
+ "adze-tool",
  "toml",
  "tree-sitter-c2rust",
  "wasm-bindgen-test",
 ]
 
 [[package]]
-name = "rust-sitter-glr-core"
+name = "adze-glr-core"
 version = "0.8.0-dev"
 dependencies = [
  "bincode",
  "fixedbitset",
  "indexmap",
- "rust-sitter-ir",
+ "adze-ir",
  "rustc-hash",
  "serde",
  "thiserror",
@@ -804,7 +804,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-sitter-ir"
+name = "adze-ir"
 version = "0.8.0-dev"
 dependencies = [
  "anyhow",
@@ -815,25 +815,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-sitter-macro"
+name = "adze-macro"
 version = "0.8.0-dev"
 dependencies = [
  "proc-macro2",
  "quote",
- "rust-sitter-common",
+ "adze-common",
  "syn 2.0.106",
 ]
 
 [[package]]
-name = "rust-sitter-tablegen"
+name = "adze-tablegen"
 version = "0.8.0-dev"
 dependencies = [
  "chrono",
  "indexmap",
  "proc-macro2",
  "quote",
- "rust-sitter-glr-core",
- "rust-sitter-ir",
+ "adze-glr-core",
+ "adze-ir",
  "rustc-hash",
  "rustc_version_runtime",
  "serde",
@@ -844,7 +844,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-sitter-tool"
+name = "adze-tool"
 version = "0.8.0-dev"
 dependencies = [
  "anyhow",
@@ -856,10 +856,10 @@ dependencies = [
  "proc-macro2",
  "quote",
  "regex",
- "rust-sitter-common",
- "rust-sitter-glr-core",
- "rust-sitter-ir",
- "rust-sitter-tablegen",
+ "adze-common",
+ "adze-glr-core",
+ "adze-ir",
+ "adze-tablegen",
  "serde",
  "serde_json",
  "syn 2.0.106",

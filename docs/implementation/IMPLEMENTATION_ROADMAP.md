@@ -86,7 +86,7 @@ graph TD
 **Deliverables**: Fixed debugging tools, hardened macro system, GLR project structure
 
 Key achievements:
-- Fixed RUST_SITTER_EMIT_ARTIFACTS debugging capability
+- Fixed ADZE_EMIT_ARTIFACTS debugging capability
 - Improved macro error recovery for IDE scenarios
 - Established GLR-aware crate structure (ir/, glr-core/, tablegen/)
 
@@ -206,7 +206,7 @@ Tasks:
 
 Tasks:
 - [ ] 10.0 Grammar.js compatibility layer
-- [ ] 10.1 Tree-sitter CLI drop-in replacement (rust-sitter-cli)
+- [ ] 10.1 Tree-sitter CLI drop-in replacement (adze-cli)
 - [ ] 10.2 Support for all grammar.js features (word, inline, conflicts, etc.)
 - [ ] 10.3 Automated migration tool for existing grammars
 - [ ] 10.4 Validation against Tree-sitter grammar corpus

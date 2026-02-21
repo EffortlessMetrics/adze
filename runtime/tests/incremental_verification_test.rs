@@ -3,16 +3,16 @@
 
 mod common;
 
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
-use rust_sitter::parser_v4::Parser;
-use rust_sitter::pure_incremental::Edit;
-use rust_sitter::pure_parser::Point;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
+use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use adze::parser_v4::Parser;
+use adze::pure_incremental::Edit;
+use adze::pure_parser::Point;
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 
 /// Helper to create a simple test grammar
 fn create_test_grammar() -> (Grammar, ParseTable) {
-    use rust_sitter_ir::{ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use adze_ir::{ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     let mut grammar = Grammar::new("test".to_string());
 

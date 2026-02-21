@@ -15,7 +15,7 @@ Successfully compiled the Tree-sitter Python grammar using the pure-Rust impleme
 
 ### 1. Type System Alignment
 - **Issue**: Critical `SymbolId` type mismatch between crates
-- **Solution**: Unified type definitions across `rust_sitter` and `rust_sitter_ir`
+- **Solution**: Unified type definitions across `adze` and `adze_ir`
 - **Files Modified**:
   - `/runtime/src/external_scanner.rs`
   - `/runtime/src/parser_v4.rs`
@@ -53,8 +53,8 @@ The Python grammar compilation produces:
 ### Build Process
 ```bash
 # Clean and rebuild
-cargo clean -p rust-sitter-python
-cargo build -p rust-sitter-python --features pure-rust
+cargo clean -p adze-python
+cargo build -p adze-python --features pure-rust
 
 # Run compilation test
 cargo test --test compile_test test_language_struct_compiles -- --nocapture

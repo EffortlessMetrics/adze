@@ -1,21 +1,21 @@
 # CLI Reference
 
-Complete reference for the rust-sitter command-line interface.
+Complete reference for the adze command-line interface.
 
 ## Installation
 
 Install the CLI tool:
 
 ```bash
-cargo install rust-sitter-cli
+cargo install adze-cli
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/hydro-project/rust-sitter
-cd rust-sitter
-cargo build --release -p rust-sitter-cli
+git clone https://github.com/hydro-project/adze
+cd adze
+cargo build --release -p adze-cli
 ```
 
 ## Global Options
@@ -25,7 +25,7 @@ cargo build --release -p rust-sitter-cli
 Enable verbose output showing detailed processing information.
 
 ```bash
-rust-sitter --verbose parse grammar.rs input.txt
+adze --verbose parse grammar.rs input.txt
 ```
 
 ### `--help, -h`
@@ -33,19 +33,19 @@ rust-sitter --verbose parse grammar.rs input.txt
 Show help information for commands.
 
 ```bash
-rust-sitter --help
-rust-sitter parse --help
+adze --help
+adze parse --help
 ```
 
 ## Commands
 
 ### `init`
 
-Create a new rust-sitter grammar project.
+Create a new adze grammar project.
 
 **Usage:**
 ```bash
-rust-sitter init <NAME> [OPTIONS]
+adze init <NAME> [OPTIONS]
 ```
 
 **Arguments:**
@@ -57,10 +57,10 @@ rust-sitter init <NAME> [OPTIONS]
 **Example:**
 ```bash
 # Create a new JSON grammar
-rust-sitter init json-parser
+adze init json-parser
 
 # Create in specific directory
-rust-sitter init json-parser --output ~/projects/
+adze init json-parser --output ~/projects/
 ```
 
 **Generated Structure:**
@@ -79,11 +79,11 @@ json-parser/
 
 ### `build`
 
-Build grammar parsers from rust-sitter grammar definitions.
+Build grammar parsers from adze grammar definitions.
 
 **Usage:**
 ```bash
-rust-sitter build [PATH] [OPTIONS]
+adze build [PATH] [OPTIONS]
 ```
 
 **Arguments:**
@@ -95,13 +95,13 @@ rust-sitter build [PATH] [OPTIONS]
 **Examples:**
 ```bash
 # Build grammar in current directory
-rust-sitter build
+adze build
 
 # Build specific grammar file
-rust-sitter build src/grammar.rs
+adze build src/grammar.rs
 
 # Watch for changes
-rust-sitter build --watch
+adze build --watch
 ```
 
 **Watch Mode:**
@@ -109,11 +109,11 @@ Automatically rebuilds when `.rs` files change. Useful during grammar developmen
 
 ### `parse`
 
-Parse input files using rust-sitter grammars.
+Parse input files using adze grammars.
 
 **Usage:**
 ```bash
-rust-sitter parse <GRAMMAR> <INPUT> [OPTIONS]
+adze parse <GRAMMAR> <INPUT> [OPTIONS]
 ```
 
 **Arguments:**
@@ -128,25 +128,25 @@ rust-sitter parse <GRAMMAR> <INPUT> [OPTIONS]
 **Static Parsing Examples:**
 ```bash
 # Parse with tree output (default)
-rust-sitter parse grammar.rs input.txt
+adze parse grammar.rs input.txt
 
 # Parse with JSON output
-rust-sitter parse grammar.rs input.txt --format json
+adze parse grammar.rs input.txt --format json
 
 # Parse with S-expression output  
-rust-sitter parse grammar.rs input.txt --format sexp
+adze parse grammar.rs input.txt --format sexp
 ```
 
 **Dynamic Loading Examples:**
 ```bash
 # Parse JSON file with tree-sitter-json
-rust-sitter parse --dynamic libtree-sitter-json.so input.json
+adze parse --dynamic libtree-sitter-json.so input.json
 
 # Use custom symbol name
-rust-sitter parse --dynamic libmy-lang.so input.txt --symbol tree_sitter_mylang
+adze parse --dynamic libmy-lang.so input.txt --symbol tree_sitter_mylang
 
 # JSON output for tooling
-rust-sitter parse --dynamic libpython.so script.py --format json
+adze parse --dynamic libpython.so script.py --format json
 ```
 
 **Output Formats:**
@@ -182,11 +182,11 @@ Input size: 1024 bytes
 
 ### `test`
 
-Run tests for rust-sitter grammars.
+Run tests for adze grammars.
 
 **Usage:**
 ```bash
-rust-sitter test [PATH] [OPTIONS]
+adze test [PATH] [OPTIONS]
 ```
 
 **Arguments:**
@@ -198,10 +198,10 @@ rust-sitter test [PATH] [OPTIONS]
 **Examples:**
 ```bash
 # Run tests
-rust-sitter test
+adze test
 
 # Update snapshots
-rust-sitter test --update
+adze test --update
 ```
 
 Uses `cargo test` internally with `insta` snapshot testing.
@@ -212,7 +212,7 @@ Generate documentation from grammar files.
 
 **Usage:**
 ```bash
-rust-sitter doc <GRAMMAR> [OPTIONS]
+adze doc <GRAMMAR> [OPTIONS]
 ```
 
 **Arguments:**
@@ -224,10 +224,10 @@ rust-sitter doc <GRAMMAR> [OPTIONS]
 **Example:**
 ```bash
 # Output to console
-rust-sitter doc src/grammar.rs
+adze doc src/grammar.rs
 
 # Save to file
-rust-sitter doc src/grammar.rs --output docs/grammar.md
+adze doc src/grammar.rs --output docs/grammar.md
 ```
 
 Extracts documentation from `///` comments in grammar files.
@@ -238,7 +238,7 @@ Validate grammar syntax without full compilation.
 
 **Usage:**
 ```bash
-rust-sitter check <GRAMMAR>
+adze check <GRAMMAR>
 ```
 
 **Arguments:**
@@ -246,7 +246,7 @@ rust-sitter check <GRAMMAR>
 
 **Example:**
 ```bash
-rust-sitter check src/grammar.rs
+adze check src/grammar.rs
 ```
 
 **Output:**
@@ -262,7 +262,7 @@ Show statistics about grammar files.
 
 **Usage:**
 ```bash
-rust-sitter stats <GRAMMAR>
+adze stats <GRAMMAR>
 ```
 
 **Arguments:**
@@ -270,7 +270,7 @@ rust-sitter stats <GRAMMAR>
 
 **Example:**
 ```bash
-rust-sitter stats src/grammar.rs
+adze stats src/grammar.rs
 ```
 
 **Output:**
@@ -382,18 +382,18 @@ Control logging output:
 
 ```bash
 # Show all debug information
-RUST_LOG=debug rust-sitter parse --dynamic lib.so input.txt
+RUST_LOG=debug adze parse --dynamic lib.so input.txt
 
 # Show only warnings and errors
-RUST_LOG=warn rust-sitter build
+RUST_LOG=warn adze build
 ```
 
-### `RUST_SITTER_LOG_PERFORMANCE`
+### `ADZE_LOG_PERFORMANCE`
 
 Enable performance monitoring for GLR parsing:
 
 ```bash
-RUST_SITTER_LOG_PERFORMANCE=true rust-sitter parse grammar.rs input.txt
+ADZE_LOG_PERFORMANCE=true adze parse grammar.rs input.txt
 ```
 
 Output example:
@@ -407,10 +407,10 @@ Control snapshot testing behavior:
 
 ```bash
 # Always update snapshots
-INSTA_UPDATE=always rust-sitter test
+INSTA_UPDATE=always adze test
 
 # Never update snapshots (CI mode)
-INSTA_UPDATE=no rust-sitter test
+INSTA_UPDATE=no adze test
 ```
 
 ## Exit Codes
@@ -458,8 +458,8 @@ node-types.json
 nm -D library.so | grep tree_sitter
 
 # Try common symbol names
-rust-sitter parse --dynamic lib.so input.txt --symbol language
-rust-sitter parse --dynamic lib.so input.txt --symbol get_language
+adze parse --dynamic lib.so input.txt --symbol language
+adze parse --dynamic lib.so input.txt --symbol get_language
 ```
 
 **"library not found"**
@@ -481,7 +481,7 @@ brew install tree-sitter              # macOS
 cargo build --features dynamic
 
 # Or install with dynamic support
-cargo install rust-sitter-cli --features dynamic
+cargo install adze-cli --features dynamic
 ```
 
 **"Parse tree too deep"**
@@ -499,7 +499,7 @@ cargo install rust-sitter-cli --features dynamic
 Enable verbose debugging:
 
 ```bash
-rust-sitter --verbose parse --dynamic lib.so input.txt
+adze --verbose parse --dynamic lib.so input.txt
 ```
 
 Shows:
@@ -526,7 +526,7 @@ Shows:
 # Parse all Python files in a directory
 
 for file in *.py; do
-    result=$(rust-sitter parse --dynamic libtree-sitter-python.so "$file" --format json)
+    result=$(adze parse --dynamic libtree-sitter-python.so "$file" --format json)
     status=$(echo "$result" | jq -r '.status')
     
     if [ "$status" = "ok" ]; then
@@ -542,15 +542,15 @@ done
 ```yaml
 # GitHub Actions example
 - name: Validate Grammar
-  run: rust-sitter check src/grammar.rs
+  run: adze check src/grammar.rs
 
 - name: Test Grammar  
-  run: rust-sitter test --update=no
+  run: adze test --update=no
 
 - name: Parse Test Files
   run: |
     for test_file in tests/fixtures/*.txt; do
-      rust-sitter parse grammar.rs "$test_file" --format json
+      adze parse grammar.rs "$test_file" --format json
     done
 ```
 
@@ -561,7 +561,7 @@ done
 {
     "label": "Parse Current File",
     "type": "shell", 
-    "command": "rust-sitter",
+    "command": "adze",
     "args": [
         "parse", 
         "--dynamic",

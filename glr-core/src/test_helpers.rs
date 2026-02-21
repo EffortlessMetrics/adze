@@ -2,7 +2,7 @@
 #[cfg(test)]
 pub mod test {
     use crate::{Action, GotoIndexing, ParseTable};
-    use rust_sitter_ir::{StateId, SymbolId};
+    use adze_ir::{StateId, SymbolId};
 
     /// Get actions for a given state and symbol, using proper index mapping
     pub fn actions_for(table: &ParseTable, state: usize, sym: SymbolId) -> &[Action] {

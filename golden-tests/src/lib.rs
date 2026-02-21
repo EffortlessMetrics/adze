@@ -48,8 +48,8 @@ mod tests {
         }
     }
 
-    /// Parse a file with rust-sitter and return S-expression
-    fn parse_with_rust_sitter(language: &str, source: &str) -> Result<String> {
+    /// Parse a file with adze and return S-expression
+    fn parse_with_adze(language: &str, source: &str) -> Result<String> {
         match language {
             "python" => parse_python(source),
             "javascript" => parse_javascript(source),
@@ -60,12 +60,12 @@ mod tests {
     /// Parse Python source code and return S-expression
     #[cfg(feature = "python-grammar")]
     fn parse_python(source: &str) -> Result<String> {
-        use rust_sitter::pure_parser::Parser;
+        use adze::pure_parser::Parser;
 
-        rust_sitter_python::register_scanner();
+        adze_python::register_scanner();
         let mut parser = Parser::new();
         parser
-            .set_language(rust_sitter_python::get_language())
+            .set_language(adze_python::get_language())
             .map_err(|e| anyhow::anyhow!(e))?;
         let result = parser.parse_string(source);
         if let Some(root) = result.root {
@@ -93,11 +93,11 @@ mod tests {
     /// Parse JavaScript source code and return S-expression
     #[cfg(feature = "javascript-grammar")]
     fn parse_javascript(source: &str) -> Result<String> {
-        use rust_sitter::pure_parser::Parser;
+        use adze::pure_parser::Parser;
 
         let mut parser = Parser::new();
         parser
-            .set_language(&rust_sitter_javascript::grammar::LANGUAGE)
+            .set_language(&adze_javascript::grammar::LANGUAGE)
             .map_err(|e| anyhow::anyhow!(e))?;
         let result = parser.parse_string(source);
         if let Some(root) = result.root {
@@ -123,9 +123,9 @@ mod tests {
     }
 
     #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
-    fn tree_to_sexp(node: &rust_sitter::pure_parser::ParsedNode, source: &str) -> String {
+    fn tree_to_sexp(node: &adze::pure_parser::ParsedNode, source: &str) -> String {
         fn node_to_sexp(
-            node: &rust_sitter::pure_parser::ParsedNode,
+            node: &adze::pure_parser::ParsedNode,
             source: &str,
             indent: usize,
         ) -> String {
@@ -187,8 +187,8 @@ mod tests {
         let source = fs::read_to_string(test.fixture_path())
             .with_context(|| format!("Failed to read fixture: {}", test.fixture_name))?;
 
-        // Parse with rust-sitter
-        let sexp = match parse_with_rust_sitter(test.language, &source) {
+        // Parse with adze
+        let sexp = match parse_with_adze(test.language, &source) {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Skipping {}: {}", test.fixture_name, e);
@@ -202,7 +202,7 @@ mod tests {
             println!("Updating golden reference for {}", test.fixture_name);
 
             // Note: In real implementation, we'd run tree-sitter here
-            // For now, we just save what rust-sitter produces
+            // For now, we just save what adze produces
             let sexp_path = test.expected_sexp_path();
             let hash_path = test.expected_hash_path();
 

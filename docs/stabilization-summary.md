@@ -1,10 +1,10 @@
-# Rust-Sitter Stabilization Summary
+# Adze Stabilization Summary
 
-This document summarizes the major changes made during the stabilization effort to bring the rust-sitter workspace to a fully compilable and testable state.
+This document summarizes the major changes made during the stabilization effort to bring the adze workspace to a fully compilable and testable state.
 
 ## Overview
 
-The rust-sitter project underwent significant architectural changes to support GLR (Generalized LR) parsing, pure-Rust implementation, and improved error handling. This stabilization effort fixed compilation errors, updated APIs, and added new debugging/benchmarking infrastructure.
+The adze project underwent significant architectural changes to support GLR (Generalized LR) parsing, pure-Rust implementation, and improved error handling. This stabilization effort fixed compilation errors, updated APIs, and added new debugging/benchmarking infrastructure.
 
 ## Major Changes
 
@@ -52,7 +52,7 @@ let subtree = pool.subtree(rule.symbol(true), &children);
 
 ### 3. Grammar Representation
 
-**Location**: `rust-sitter-ir/src/grammar.rs`
+**Location**: `adze-ir/src/grammar.rs`
 
 Simplified and made more consistent:
 
@@ -207,7 +207,7 @@ Look for:
 
 #### Empty Sequences
 Replace `Option<Vec<T>>` workaround with proper empty sequence support:
-- Add `ZeroOrMore<T>` type to rust-sitter
+- Add `ZeroOrMore<T>` type to adze
 - Update macro expansion to handle empty productions
 - Update grammar crates to use new API
 
@@ -260,7 +260,7 @@ Replace `Option<Vec<T>>` workaround with proper empty sequence support:
 
 ## Conclusion
 
-The rust-sitter workspace is now in a stable, compilable state with:
+The adze workspace is now in a stable, compilable state with:
 - ✅ All tests compile
 - ✅ GLR parser works correctly
 - ✅ Benchmarking infrastructure in place

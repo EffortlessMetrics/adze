@@ -1,8 +1,8 @@
-# Rust Sitter Project Status
+# Adze Project Status
 
 ## 📦 v0.6.0-beta - GLR Core Complete, Advanced Features In Development
 
-Rust Sitter v0.6.0-beta achieves a correct GLR parser implementation with successful Python grammar compilation. While the core parsing algorithm is solid, several features remain experimental or in development.
+Adze v0.6.0-beta achieves a correct GLR parser implementation with successful Python grammar compilation. While the core parsing algorithm is solid, several features remain experimental or in development.
 
 ## ✅ Completed Features
 
@@ -101,15 +101,15 @@ If you're using the older implementation status documents:
 
 ```bash
 # Clone and build from source
-git clone https://github.com/rust-sitter/rust-sitter
-cd rust-sitter
+git clone https://github.com/adze/adze
+cd adze
 cargo build --release
 
 # Run the generate command (main working feature)
-cargo run -p rust-sitter-tool -- generate
+cargo run -p adze-tool -- generate
 
 # Run tests
-cargo test -p rust-sitter
+cargo test -p adze
 ```
 
 ## 📚 Resources
@@ -120,8 +120,8 @@ cargo test -p rust-sitter
 - [Example Grammars](./example/src/) - Working examples
 
 ### Repository
-- [GitHub](https://github.com/rust-sitter/rust-sitter)
-- [Issues](https://github.com/rust-sitter/rust-sitter/issues)
+- [GitHub](https://github.com/adze/adze)
+- [Issues](https://github.com/adze/adze/issues)
 
 ## 🎯 Next Steps
 
@@ -159,6 +159,6 @@ Special thanks to:
 
 ---
 
-**Rust Sitter v0.5.0-beta** - The future of parsing is here, and it's written in Rust! 🦀
+**Adze v0.5.0-beta** - The future of parsing is here, and it's written in Rust! 🦀
 
 *Note: While currently in beta, the implementation is feature-complete and production-ready. The v1.0 stable release is planned following community feedback and final testing.*

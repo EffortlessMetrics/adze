@@ -1,7 +1,7 @@
 // Lexer generation for pure-Rust parser
+use adze_ir::{Grammar, SymbolId, TokenPattern};
 use proc_macro2::TokenStream;
 use quote::quote;
-use rust_sitter_ir::{Grammar, SymbolId, TokenPattern};
 use std::collections::BTreeMap;
 
 /// Generate a simple lexer function for the grammar

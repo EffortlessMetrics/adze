@@ -1,11 +1,11 @@
 //! Simple demonstration of incremental parsing capabilities
 
-use rust_sitter::glr_incremental::Edit;
+use adze::glr_incremental::Edit;
 
 fn main() {
     println!("=== Incremental Parsing Feature Demo ===\n");
 
-    println!("rust-sitter supports incremental parsing, which means:");
+    println!("adze supports incremental parsing, which means:");
     println!("- Small edits reuse most of the existing parse tree");
     println!("- Parse time is proportional to edit size, not document size");
     println!("- Essential for real-time IDE performance\n");

@@ -1,6 +1,6 @@
 # Disabled Test Files
 
-The following test files are currently disabled due to API changes in the rust-sitter codebase:
+The following test files are currently disabled due to API changes in the adze codebase:
 
 ## Runtime Tests
 - `test_pure_rust_e2e.rs.disabled` - Uses old TSLanguage API structure
@@ -18,7 +18,7 @@ The following test files are currently disabled due to API changes in the rust-s
 
 ## Why These Are Disabled
 
-These tests were written for an earlier version of rust-sitter and need to be rewritten to work with:
+These tests were written for an earlier version of adze and need to be rewritten to work with:
 1. The new GLR parser architecture (ActionCell instead of Action)
 2. The updated pure-Rust implementation
 3. The revised Tree-sitter ABI compatibility layer

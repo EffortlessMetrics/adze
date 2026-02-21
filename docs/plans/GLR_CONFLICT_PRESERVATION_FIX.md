@@ -140,7 +140,7 @@ fn resolve_shift_reduce_conflict(&self, conflict: &mut Conflict, grammar: &Gramm
 **Test**: Run table inspection test again
 
 ```bash
-cargo test -p rust-sitter --test test_arithmetic_table_loading --features glr -- --nocapture
+cargo test -p adze --test test_arithmetic_table_loading --features glr -- --nocapture
 ```
 
 **Expected Output**:
@@ -200,21 +200,21 @@ fn choose_action(&self, actions: &[Action], state: StateId) -> Action {
 
 ### Test 1: Table Inspection
 ```bash
-cargo test -p rust-sitter --test test_arithmetic_table_loading --features glr -- --nocapture
+cargo test -p adze --test test_arithmetic_table_loading --features glr -- --nocapture
 ```
 **Expected**: Multi-action cells detected
 
 ### Test 2: Arithmetic Parsing
 ```bash
-cargo test -p rust-sitter-example --lib --features glr test_glr_precedence
+cargo test -p adze-example --lib --features glr test_glr_precedence
 ```
 **Expected**: All precedence/associativity tests pass
 
 ### Test 3: BDD Scenarios
 ```bash
 # After fix, implement BDD scenarios from GLR_RUNTIME_WIRING_PLAN.md Step 5
-cargo test -p rust-sitter-example --features glr scenario_left_assoc
-cargo test -p rust-sitter-example --features glr scenario_precedence
+cargo test -p adze-example --features glr scenario_left_assoc
+cargo test -p adze-example --features glr scenario_precedence
 ```
 
 ---

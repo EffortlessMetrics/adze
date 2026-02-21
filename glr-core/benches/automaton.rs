@@ -1,8 +1,8 @@
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::builder::GrammarBuilder;
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::builder::GrammarBuilder;
 
-fn small_nullable() -> rust_sitter_ir::Grammar {
+fn small_nullable() -> adze_ir::Grammar {
     GrammarBuilder::new("small_nullable")
         .token("IDENT", r"[a-zA-Z_][a-zA-Z0-9_]*")
         .rule("module", vec![]) // ε
@@ -11,7 +11,7 @@ fn small_nullable() -> rust_sitter_ir::Grammar {
         .build()
 }
 
-fn small_nonnullable() -> rust_sitter_ir::Grammar {
+fn small_nonnullable() -> adze_ir::Grammar {
     GrammarBuilder::new("small_nonnullable")
         .token("IDENT", r"[a-zA-Z_][a-zA-Z0-9_]*")
         .rule("program", vec!["IDENT"])
@@ -19,7 +19,7 @@ fn small_nonnullable() -> rust_sitter_ir::Grammar {
         .build()
 }
 
-fn medium_expression() -> rust_sitter_ir::Grammar {
+fn medium_expression() -> adze_ir::Grammar {
     GrammarBuilder::new("medium_expr")
         .token("NUMBER", r"\d+")
         .token("PLUS", r"\+")

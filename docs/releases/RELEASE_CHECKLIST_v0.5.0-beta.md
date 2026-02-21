@@ -1,22 +1,22 @@
-# Rust-Sitter v0.5.0-beta Release Checklist
+# Adze v0.5.0-beta Release Checklist
 
 ## Pre-Release Validation ✓
 
 ### Build Status (Updated 2025-08-02)
 - [x] Core crates compile successfully
-  - [x] rust-sitter (runtime) - with GLR parser implementation
-  - [x] rust-sitter-macro
-  - [x] rust-sitter-tool
-  - [x] rust-sitter-common
-  - [x] rust-sitter-ir
-  - [x] rust-sitter-glr-core - new GLR core
-  - [x] rust-sitter-tablegen
-  - [x] rust-sitter-cli
+  - [x] adze (runtime) - with GLR parser implementation
+  - [x] adze-macro
+  - [x] adze-tool
+  - [x] adze-common
+  - [x] adze-ir
+  - [x] adze-glr-core - new GLR core
+  - [x] adze-tablegen
+  - [x] adze-cli
 - [x] Example crate compiles successfully
 - [~] Grammar crates have empty rule issues
-  - [~] rust-sitter-javascript (EmptyString error)
-  - [~] rust-sitter-go (EmptyString error)
-  - [~] rust-sitter-python (EmptyString error)
+  - [~] adze-javascript (EmptyString error)
+  - [~] adze-go (EmptyString error)
+  - [~] adze-python (EmptyString error)
 
 ### Test Status
 - [x] All core tests compile successfully
@@ -37,19 +37,19 @@
 ## Release Package Contents
 
 ### Core Crates (to publish)
-1. rust-sitter-common v0.5.0-beta
-2. rust-sitter-ir v0.5.0-beta
-3. rust-sitter-macro v0.5.0-beta
-4. rust-sitter v0.5.0-beta
-5. rust-sitter-tool v0.5.0-beta
-6. rust-sitter-glr-core v0.5.0-beta
-7. rust-sitter-tablegen v0.5.0-beta
-8. rust-sitter-cli v0.5.0-beta
+1. adze-common v0.5.0-beta
+2. adze-ir v0.5.0-beta
+3. adze-macro v0.5.0-beta
+4. adze v0.5.0-beta
+5. adze-tool v0.5.0-beta
+6. adze-glr-core v0.5.0-beta
+7. adze-tablegen v0.5.0-beta
+8. adze-cli v0.5.0-beta
 
 ### Example Crates (not published)
-- rust-sitter-example
-- rust-sitter-javascript
-- rust-sitter-go
+- adze-example
+- adze-javascript
+- adze-go
 
 ## Known Issues (Documented)
 
@@ -93,13 +93,13 @@ This is a **beta release** intended for early adopters and feedback. Users shoul
 
 ```bash
 # Build all core crates
-cargo build --workspace --exclude rust-sitter-python --exclude rust-sitter-playground
+cargo build --workspace --exclude adze-python --exclude adze-playground
 
 # Run tests (expect some failures)
-cargo test --workspace --exclude rust-sitter-python --exclude rust-sitter-playground
+cargo test --workspace --exclude adze-python --exclude adze-playground
 
 # Check examples work
-cargo run -p rust-sitter-example
+cargo run -p adze-example
 ```
 
 ## Support Channels

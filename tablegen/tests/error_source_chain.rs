@@ -1,6 +1,6 @@
-use rust_sitter_glr_core::GLRError;
-use rust_sitter_ir::error::IrError;
-use rust_sitter_tablegen::error::TableGenError;
+use adze_glr_core::GLRError;
+use adze_ir::error::IrError;
+use adze_tablegen::error::TableGenError;
 use std::error::Error;
 
 #[test]

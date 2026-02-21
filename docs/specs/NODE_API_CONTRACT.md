@@ -320,4 +320,4 @@ Use existing arithmetic tests:
 
 **Status**: Ready for implementation
 **Next**: Implement Phase 1 MVP in `runtime2/src/node.rs`
-**Validation**: Run `cargo test -p rust-sitter-runtime --example arithmetic`
+**Validation**: Run `cargo test -p adze-runtime --example arithmetic`

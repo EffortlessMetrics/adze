@@ -1,4 +1,4 @@
-// Rust Sitter Playground JavaScript
+// Adze Playground JavaScript
 
 class Playground {
     constructor() {

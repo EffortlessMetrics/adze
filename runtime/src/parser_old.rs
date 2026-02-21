@@ -1,8 +1,8 @@
 // Pure-Rust parser execution engine
-// This module implements the runtime parsing logic for the pure-Rust Tree-sitter
+// This module implements the runtime parsing logic for Adze
 
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 
 /// Parser state during execution
 #[derive(Debug, Clone)]

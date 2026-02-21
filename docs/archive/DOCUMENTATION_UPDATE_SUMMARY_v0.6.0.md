@@ -127,4 +127,4 @@ None - Documentation finalization complete. All Diataxis categories updated:
 This completes the full PR review cycle for GLR grammar normalization:
 **pr-initial** → **test→context→cleanup** → **pr-merger** → **pr-doc-finalizer** ✅
 
-**Final Status**: rust-sitter documentation is current, comprehensive, and production-ready for v0.6.0 with enhanced GLR grammar normalization, memory safety improvements, and performance enhancements.
+**Final Status**: adze documentation is current, comprehensive, and production-ready for v0.6.0 with enhanced GLR grammar normalization, memory safety improvements, and performance enhancements.

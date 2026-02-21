@@ -3,7 +3,7 @@
 #![allow(dead_code)] // TODO(Phase 2 Day 5): Fix lifetime issues with Tree<'arena>
 
 // Unified parser API - hides implementation complexity behind a clean interface
-// This is the main public-facing API for rust-sitter parsing
+// This is the main public-facing API for adze parsing
 // NOTE: This module needs updates for Tree<'arena> integration (Day 5)
 
 use crate::parser_v4;
@@ -84,28 +84,22 @@ impl Parser {
         self.inner.is_some()
     }
 
-    // TODO(Phase 2 Day 5): Uncomment and fix lifetime issues
-    // Parse source code into a syntax tree
-    // The issue is that parse_with_auto_lexer returns Tree<'a> tied to &'a mut self,
-    // but we're trying to return it from parse() which also borrows &'a mut self.
-    // This needs proper lifetime elision or restructuring for Day 5.
-    /*
+    /// Parse source code into a syntax tree
+    ///
+    /// # Arguments
+    /// * `source` - The source code to parse
+    /// * `_old_tree` - Previous tree for incremental parsing (currently unused)
+    ///
+    /// # Returns
+    /// * `Some(Tree)` on successful parse
+    /// * `None` if parsing fails or no language is set
     pub fn parse<'a>(
         &'a mut self,
         source: &str,
         _old_tree: Option<&parser_v4::Tree<'a>>,
     ) -> Option<parser_v4::Tree<'a>> {
-        let parser = self.inner.as_mut()?;
-
-        if let Some(language) = self.language {
-            // Use the auto-lexer method that checks for lex_fn
-            parser.parse_with_auto_lexer(source, language).ok()
-        } else {
-            // Fallback to regular parse if no language stored
-            parser.parse(source).ok()
-        }
+        self.parse_with_old_tree(source.as_bytes(), None, None)
     }
-    */
 
     /// Parse source code with incremental parsing support
     ///
@@ -245,9 +239,7 @@ mod tests {
     #[test]
     fn test_parse_without_language() {
         let mut parser = Parser::new();
-        // Note: parse() method is commented out due to lifetime issues
-        // Use parse_with_old_tree instead
-        let result = parser.parse_with_old_tree(b"test", None, None);
+        let result = parser.parse("test", None);
         assert!(result.is_none());
     }
 

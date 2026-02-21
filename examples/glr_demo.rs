@@ -1,12 +1,12 @@
 //! Demonstrates GLR parsing capabilities with ambiguous grammars
 //!
-//! This example shows how rust-sitter handles ambiguous parse cases
+//! This example shows how adze handles ambiguous parse cases
 //! using GLR (Generalized LR) parsing with SPPF (Shared Packed Parse Forest).
 
-use rust_sitter::*;
+use adze::*;
 
 // Example 1: Classic dangling-else ambiguity
-#[rust_sitter::grammar("dangling_else")]
+#[adze::grammar("dangling_else")]
 pub struct DanglingElseGrammar;
 
 pub enum Statement {
@@ -19,7 +19,7 @@ pub enum Statement {
 }
 
 // Example 2: Arithmetic with ambiguous precedence
-#[rust_sitter::grammar("ambiguous_math")]
+#[adze::grammar("ambiguous_math")]
 pub struct AmbiguousMathGrammar;
 
 pub enum Expr {

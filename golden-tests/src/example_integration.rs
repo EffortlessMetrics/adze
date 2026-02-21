@@ -1,4 +1,4 @@
-// This file shows how the golden tests will integrate with rust-sitter grammars
+// This file shows how the golden tests will integrate with adze grammars
 // once they are available. This is not functional yet but shows the pattern.
 
 #![allow(dead_code)]
@@ -7,13 +7,13 @@
 /*
 #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
 mod example_integration {
-    use rust_sitter::Parse;
+    use adze::Parse;
 
     // Example of what the Python parser integration would look like
     #[cfg(feature = "python-grammar")]
     pub fn parse_python_to_sexp(source: &str) -> anyhow::Result<String> {
         // This would use the generated Python parser
-        let parsed = rust_sitter_python::parse(source)?;
+        let parsed = adze_python::parse(source)?;
 
         // Convert to S-expression format
         Ok(tree_to_sexp(&parsed))
@@ -23,15 +23,15 @@ mod example_integration {
     #[cfg(feature = "javascript-grammar")]
     pub fn parse_javascript_to_sexp(source: &str) -> anyhow::Result<String> {
         // This would use the generated JavaScript parser
-        let parsed = rust_sitter_javascript::parse(source)?;
+        let parsed = adze_javascript::parse(source)?;
 
         // Convert to S-expression format
         Ok(tree_to_sexp(&parsed))
     }
 
     // Convert parse tree to S-expression (matching Tree-sitter's format)
-    fn tree_to_sexp<T: rust_sitter::Node>(tree: &T) -> String {
-        fn node_to_sexp<N: rust_sitter::Node>(node: &N, source: &str, indent: usize) -> String {
+    fn tree_to_sexp<T: adze::Node>(tree: &T) -> String {
+        fn node_to_sexp<N: adze::Node>(node: &N, source: &str, indent: usize) -> String {
             let mut result = String::new();
             let spaces = " ".repeat(indent);
 

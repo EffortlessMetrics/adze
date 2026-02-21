@@ -1,4 +1,4 @@
-use rust_sitter::unified_parser::Parser;
+use adze::unified_parser::Parser;
 use std::time::Instant;
 
 #[cfg(test)]

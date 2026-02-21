@@ -1,12 +1,12 @@
 // Test for nullable start symbol handling in table compression
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
-use rust_sitter_ir::*;
-use rust_sitter_tablegen::{compress::TableCompressor, helpers::collect_token_indices};
+use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use adze_ir::*;
+use adze_tablegen::{compress::TableCompressor, helpers::collect_token_indices};
 use rustc_hash::FxHashSet;
 
 /// Assert core invariants about state 0 in the parse table
 fn assert_state0_invariants(grammar: &Grammar, pt: &ParseTable) {
-    use rust_sitter_glr_core::Action;
+    use adze_glr_core::Action;
 
     let token_indices = collect_token_indices(grammar, pt);
     // Use pt.eof_symbol to get the actual EOF symbol (dynamically assigned)

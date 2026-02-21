@@ -1,6 +1,6 @@
 # GLR Parser Troubleshooting Guide
 
-This guide helps you understand and resolve errors in rust-sitter GLR parser generation, including precedence attributes, symbol normalization, and grammar compatibility issues.
+This guide helps you understand and resolve errors in adze GLR parser generation, including precedence attributes, symbol normalization, and grammar compatibility issues.
 
 ## Overview
 
@@ -22,18 +22,18 @@ Error: Complex symbols like 'Repeat(Sequence([Terminal(comma), NonTerminal(pair)
 **Solution:**
 ```bash
 # Verify GLR-core integration is working
-cargo test -p rust-sitter-glr-core first_follow_sets
+cargo test -p adze-glr-core first_follow_sets
 
 # Run the specific failing test to see detailed output
-cargo test test_json_language_generation -p rust-sitter-tablegen -- --nocapture
+cargo test test_json_language_generation -p adze-tablegen -- --nocapture
 
 # Test normalization directly
-cargo test -p rust-sitter-ir --test test_normalization
+cargo test -p adze-ir --test test_normalization
 ```
 
 **Manual Fix (if needed):**
 ```rust
-use rust_sitter_ir::{Grammar, GrammarError};
+use adze_ir::{Grammar, GrammarError};
 
 let mut grammar = load_grammar();
 
@@ -96,9 +96,9 @@ pub struct RepeatedStatement { /* ... */ }
 
 Rust-sitter provides three precedence attributes to control parsing of ambiguous grammars:
 
-- `#[rust_sitter::prec(n)]` - Non-associative precedence
-- `#[rust_sitter::prec_left(n)]` - Left-associative precedence  
-- `#[rust_sitter::prec_right(n)]` - Right-associative precedence
+- `#[adze::prec(n)]` - Non-associative precedence
+- `#[adze::prec_left(n)]` - Left-associative precedence  
+- `#[adze::prec_right(n)]` - Right-associative precedence
 
 ## Common Error Messages and Solutions
 
@@ -113,8 +113,8 @@ only one of prec, prec_left, and prec_right can be specified, but found: prec, p
 
 **Bad Example:**
 ```rust
-#[rust_sitter::prec(1)]
-#[rust_sitter::prec_left(2)]
+#[adze::prec(1)]
+#[adze::prec_left(2)]
 pub struct Conflict {
     // ...
 }
@@ -123,7 +123,7 @@ pub struct Conflict {
 **Solution:** Use only one precedence attribute per rule:
 ```rust
 // Choose the appropriate associativity
-#[rust_sitter::prec_left(2)]
+#[adze::prec_left(2)]
 pub struct Fixed {
     // ...
 }
@@ -133,7 +133,7 @@ pub struct Fixed {
 
 **Error Message:**
 ```
-Expected integer literal for precedence. Use #[rust_sitter::prec(123)] with a positive integer (0 to 4294967295).
+Expected integer literal for precedence. Use #[adze::prec(123)] with a positive integer (0 to 4294967295).
 ```
 
 **Problem:** The precedence value is not an integer literal.
@@ -141,24 +141,24 @@ Expected integer literal for precedence. Use #[rust_sitter::prec(123)] with a po
 **Common Bad Examples:**
 ```rust
 // String instead of integer
-#[rust_sitter::prec("high")]
+#[adze::prec("high")]
 
 // Float instead of integer
-#[rust_sitter::prec_left(3.14)]
+#[adze::prec_left(3.14)]
 
 // Variable instead of literal
 const HIGH_PREC: u32 = 10;
-#[rust_sitter::prec(HIGH_PREC)]
+#[adze::prec(HIGH_PREC)]
 
 // Boolean instead of integer
-#[rust_sitter::prec_right(true)]
+#[adze::prec_right(true)]
 ```
 
 **Solution:** Use integer literals directly:
 ```rust
-#[rust_sitter::prec(10)]           // ✅ Valid
-#[rust_sitter::prec_left(20)]      // ✅ Valid
-#[rust_sitter::prec_right(30)]     // ✅ Valid
+#[adze::prec(10)]           // ✅ Valid
+#[adze::prec_left(20)]      // ✅ Valid
+#[adze::prec_right(30)]     // ✅ Valid
 ```
 
 ### Error: Precedence Value Out of Range
@@ -172,15 +172,15 @@ Invalid integer literal for precedence: number too large for type 'u32'
 
 **Bad Examples:**
 ```rust
-#[rust_sitter::prec(-1)]           // Negative number
-#[rust_sitter::prec(4294967296)]   // Too large for u32
+#[adze::prec(-1)]           // Negative number
+#[adze::prec(4294967296)]   // Too large for u32
 ```
 
 **Solution:** Use values within the valid range:
 ```rust
-#[rust_sitter::prec(0)]            // ✅ Minimum value
-#[rust_sitter::prec(100)]          // ✅ Common value
-#[rust_sitter::prec(4294967295)]   // ✅ Maximum value
+#[adze::prec(0)]            // ✅ Minimum value
+#[adze::prec(100)]          // ✅ Common value
+#[adze::prec(4294967295)]   // ✅ Maximum value
 ```
 
 ## Best Practices
@@ -188,7 +188,7 @@ Invalid integer literal for precedence: number too large for type 'u32'
 ### Precedence Value Guidelines
 
 1. **Valid Range:** 0 to 4294967295 (u32)
-2. **Zero is Valid:** `#[rust_sitter::prec(0)]` is the lowest precedence
+2. **Zero is Valid:** `#[adze::prec(0)]` is the lowest precedence
 3. **Use Meaningful Gaps:** Space values (10, 20, 30) for future expansion
 4. **Higher Numbers Bind Tighter:** Multiplication (20) > Addition (10)
 
@@ -196,16 +196,16 @@ Invalid integer literal for precedence: number too large for type 'u32'
 
 ```rust
 // Arithmetic operators (common pattern)
-#[rust_sitter::prec_left(10)]  // Addition, subtraction
+#[adze::prec_left(10)]  // Addition, subtraction
 Add(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec_left(20)]  // Multiplication, division
+#[adze::prec_left(20)]  // Multiplication, division
 Mul(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec_right(30)] // Exponentiation
+#[adze::prec_right(30)] // Exponentiation
 Pow(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec(40)]       // Comparison (non-associative)
+#[adze::prec(40)]       // Comparison (non-associative)
 Compare(Box<Expr>, CompOp, Box<Expr>),
 ```
 
@@ -271,7 +271,7 @@ Precedence errors include specific context:
 
 ## Integration with GLR Parsing (Enhanced in v0.6.1)
 
-In rust-sitter's GLR mode with recent fixes:
+In adze's GLR mode with recent fixes:
 - **Precedence Disambiguation**: Correctly resolves operator precedence conflicts (e.g., `1+2*3` → `1+(2*3)`)
 - **Action Ordering**: Multiple precedence conflicts are preserved but properly ordered by precedence level
 - **Conflict Preservation**: Precedence helps order actions but doesn't eliminate them completely for ambiguity handling
@@ -282,10 +282,10 @@ In rust-sitter's GLR mode with recent fixes:
 
 ```rust
 // Example: Expression with operator precedence
-#[rust_sitter::prec_left(1)]   // Lower precedence (looser binding)
+#[adze::prec_left(1)]   // Lower precedence (looser binding)
 Add(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec_left(2)]   // Higher precedence (tighter binding)
+#[adze::prec_left(2)]   // Higher precedence (tighter binding)
 Mul(Box<Expr>, (), Box<Expr>),
 ```
 
@@ -308,14 +308,14 @@ prec(3, seq($.left, '==', $.right))
 
 Becomes:
 ```rust
-// rust-sitter
-#[rust_sitter::prec_left(1)]
+// adze
+#[adze::prec_left(1)]
 Add(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec_right(2)]
+#[adze::prec_right(2)]
 Pow(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec(3)]
+#[adze::prec(3)]
 Equal(Box<Expr>, (), Box<Expr>),
 ```
 
@@ -337,7 +337,7 @@ Equal(Box<Expr>, (), Box<Expr>),
 
 If precedence errors occur in complex grammars:
 1. Isolate the problematic rule in a minimal test case
-2. Check for interactions with `#[rust_sitter::field]` and other attributes
+2. Check for interactions with `#[adze::field]` and other attributes
 3. Verify the rule structure matches the precedence attribute type
 
 ## Getting Help

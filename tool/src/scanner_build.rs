@@ -146,14 +146,14 @@ impl ScannerBuilder {
         let bindings = format!(
             r#"
 // Auto-generated bindings for {} scanner
-use rust_sitter::external_scanner_ffi::{{TSExternalScannerData, CreateFn, DestroyFn, ScanFn, SerializeFn, DeserializeFn}};
+use adze::external_scanner_ffi::{{TSExternalScannerData, CreateFn, DestroyFn, ScanFn, SerializeFn, DeserializeFn}};
 
 extern "C" {{
     fn tree_sitter_{}_external_scanner_create() -> *mut std::ffi::c_void;
     fn tree_sitter_{}_external_scanner_destroy(payload: *mut std::ffi::c_void);
     fn tree_sitter_{}_external_scanner_scan(
         payload: *mut std::ffi::c_void,
-        lexer: *mut rust_sitter::external_scanner_ffi::TSLexer,
+        lexer: *mut adze::external_scanner_ffi::TSLexer,
         valid_symbols: *const bool,
     ) -> bool;
     fn tree_sitter_{}_external_scanner_serialize(
@@ -181,9 +181,9 @@ pub fn get_external_scanner_data() -> TSExternalScannerData {{
 }}
 
 /// Register this scanner with the global registry
-pub fn register_scanner(external_tokens: Vec<rust_sitter::SymbolId>) {{
+pub fn register_scanner(external_tokens: Vec<adze::SymbolId>) {{
     let data = get_external_scanner_data();
-    rust_sitter::scanner_registry::register_c_scanner(
+    adze::scanner_registry::register_c_scanner(
         "{}",
         data,
         external_tokens,
@@ -208,7 +208,7 @@ pub fn register_scanner(external_tokens: Vec<rust_sitter::SymbolId>) {{
             .with_context(|| format!("Failed to write scanner bindings to {:?}", bindings_path))?;
 
         println!(
-            "cargo:rustc-env=RUST_SITTER_SCANNER_BINDINGS_{}",
+            "cargo:rustc-env=ADZE_SCANNER_BINDINGS_{}",
             self.grammar_name.to_uppercase()
         );
 
@@ -232,7 +232,7 @@ pub fn register_scanner(external_tokens: Vec<rust_sitter::SymbolId>) {{
         let registration = format!(
             r#"
 // Auto-generated registration for {} Rust scanner
-use rust_sitter::scanner_registry::ExternalScannerBuilder;
+use adze::scanner_registry::ExternalScannerBuilder;
 
 include!({:?});
 

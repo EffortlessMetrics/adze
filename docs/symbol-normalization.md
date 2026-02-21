@@ -1,8 +1,8 @@
-# Symbol Normalization in rust-sitter
+# Symbol Normalization in adze
 
 ## Overview
 
-Symbol normalization is a crucial preprocessing step in the rust-sitter GLR parser generation pipeline. It converts complex grammar symbols (like `Optional`, `Repeat`, `Sequence`, `Choice`) into equivalent simple productions that only contain `Terminal`, `NonTerminal`, `External`, and `Epsilon` symbols.
+Symbol normalization is a crucial preprocessing step in the adze GLR parser generation pipeline. It converts complex grammar symbols (like `Optional`, `Repeat`, `Sequence`, `Choice`) into equivalent simple productions that only contain `Terminal`, `NonTerminal`, `External`, and `Epsilon` symbols.
 
 ## Why Normalization is Needed
 
@@ -119,7 +119,7 @@ _aux1007 -> ε
 Normalization happens automatically during `FirstFollowSets::compute()`:
 
 ```rust
-use rust_sitter_glr_core::FirstFollowSets;
+use adze_glr_core::FirstFollowSets;
 
 let mut grammar = create_grammar_with_complex_symbols();
 
@@ -132,7 +132,7 @@ let first_follow = FirstFollowSets::compute(&mut grammar)?;
 You can also normalize grammars explicitly:
 
 ```rust
-use rust_sitter_ir::Grammar;
+use adze_ir::Grammar;
 
 let mut grammar = create_grammar_with_complex_symbols();
 
@@ -165,10 +165,10 @@ The normalization functionality is comprehensively tested:
 
 ```bash
 # Run normalization-specific tests
-cargo test -p rust-sitter-ir --test test_normalization
+cargo test -p adze-ir --test test_normalization
 
 # Run integration test that was originally failing
-cargo test test_json_language_generation -p rust-sitter-tablegen
+cargo test test_json_language_generation -p adze-tablegen
 ```
 
 ## Error Handling

@@ -5,7 +5,7 @@
 ```rust
 // This will fail!
 pub struct Module {
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub statements: Vec<Statement>,
 }
 ```
@@ -14,7 +14,7 @@ pub struct Module {
 
 ```rust
 pub struct Module {
-    #[rust_sitter::repeat(non_empty = true)]
+    #[adze::repeat(non_empty = true)]
     pub statements: Vec<Statement>,
 }
 ```
@@ -23,14 +23,14 @@ pub struct Module {
 
 ```rust
 pub struct ListExpression {
-    #[rust_sitter::leaf(text = "[")]
+    #[adze::leaf(text = "[")]
     _open: (),
-    #[rust_sitter::leaf(pattern = r"\s*")]
-    #[rust_sitter::skip]
+    #[adze::leaf(pattern = r"\s*")]
+    #[adze::skip]
     _ws: (),
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub elements: Vec<Expression>,
-    #[rust_sitter::leaf(text = "]")]
+    #[adze::leaf(text = "]")]
     _close: (),
 }
 ```
@@ -42,7 +42,7 @@ pub enum Name {
     Simple(Identifier),
     Qualified {
         first: Identifier,
-        #[rust_sitter::repeat(non_empty = true)]
+        #[adze::repeat(non_empty = true)]
         rest: Vec<NamePart>,
     }
 }
@@ -51,7 +51,7 @@ pub enum Name {
 ## 🔍 Debug with:
 
 ```bash
-RUST_SITTER_EMIT_ARTIFACTS=true cargo build
+ADZE_EMIT_ARTIFACTS=true cargo build
 # Check target/debug/build/*/out/grammar.json
 ```
 

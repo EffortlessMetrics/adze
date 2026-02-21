@@ -1,8 +1,8 @@
 //! This test fixture intentionally omits multiple required fields to ensure compile-time errors
 //! This helps catch regressions where ParseTable initializers forget required fields
 
-use rust_sitter_glr_core::{Action, GotoIndexing, ParseTable};
-use rust_sitter_ir::{StateId, SymbolId};
+use adze_glr_core::{Action, GotoIndexing, ParseTable};
+use adze_ir::{StateId, SymbolId};
 use std::collections::BTreeMap;
 
 fn main() {

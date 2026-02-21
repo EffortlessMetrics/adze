@@ -181,8 +181,8 @@ mod glr_tests {
 #[cfg(all(test, feature = "pure-rust-glr"))]
 mod glr_ambiguity_tests {
     use super::*;
-    use rust_sitter_runtime::Parser;
-    use rust_sitter_runtime::forest_converter::DisambiguationStrategy;
+    use adze_runtime::Parser;
+    use adze_runtime::forest_converter::DisambiguationStrategy;
 
     #[test]
     fn test_ambiguous_expr_produces_tree() {
@@ -300,7 +300,7 @@ Use property-based testing to verify parity across many inputs.
 
 #[cfg(all(test, feature = "pure-rust-glr"))]
 mod parity_tests {
-    use rust_sitter_runtime::{Parser, Language};
+    use adze_runtime::{Parser, Language};
 
     /// Test helper: Compare GLR and LR parse trees
     fn assert_trees_equal(input: &str, grammar: &str) {
@@ -409,7 +409,7 @@ Establish performance baselines and ensure GLR is within acceptable overhead.
 //! Establishes performance baselines for GLR runtime.
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 fn bench_arithmetic_simple(c: &mut Criterion) {
     let mut group = c.benchmark_group("arithmetic_simple");
@@ -669,7 +669,7 @@ Comprehensive end-to-end tests validating full pipeline.
 
 #[cfg(feature = "pure-rust-glr")]
 mod e2e_tests {
-    use rust_sitter_runtime::Parser;
+    use adze_runtime::Parser;
 
     /// Scenario 1: Simple Unambiguous Parse
     #[test]

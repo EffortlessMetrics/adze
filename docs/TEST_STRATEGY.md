@@ -1,4 +1,4 @@
-# Rust-Sitter Test Strategy
+# Adze Test Strategy
 
 ## Overview
 
@@ -8,7 +8,7 @@ This document outlines the comprehensive testing strategy for the pure-Rust Tree
 
 ### 1. Unit Tests (Per Module)
 
-#### IR Module (`rust-sitter-ir`)
+#### IR Module (`adze-ir`)
 - [ ] Grammar construction and validation
 - [ ] Symbol ID allocation and management
 - [ ] Field ID ordering and validation
@@ -18,7 +18,7 @@ This document outlines the comprehensive testing strategy for the pure-Rust Tree
 - [ ] Alias sequence management
 - [ ] Production ID generation
 
-#### GLR Core Module (`rust-sitter-glr-core`)
+#### GLR Core Module (`adze-glr-core`)
 - [ ] FIRST set computation correctness
 - [ ] FOLLOW set computation correctness
 - [ ] LR(0) item generation
@@ -29,7 +29,7 @@ This document outlines the comprehensive testing strategy for the pure-Rust Tree
 - [ ] GLR fork point identification
 - [ ] State merging logic
 
-#### Table Generation Module (`rust-sitter-tablegen`)
+#### Table Generation Module (`adze-tablegen`)
 - [ ] Action table encoding/decoding
 - [ ] Goto table compression
 - [ ] Small vs large table selection

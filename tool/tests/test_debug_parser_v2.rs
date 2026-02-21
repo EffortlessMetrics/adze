@@ -42,7 +42,7 @@ fn test_debug_javascript_parsing() {
     }
 
     // Now try with the actual parser
-    use rust_sitter_tool::grammar_js::parse_grammar_js_v2;
+    use adze_tool::grammar_js::parse_grammar_js_v2;
 
     match parse_grammar_js_v2(&content) {
         Ok(grammar) => {

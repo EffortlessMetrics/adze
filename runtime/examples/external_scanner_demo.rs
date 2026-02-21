@@ -1,8 +1,8 @@
 // runtime/examples/external_scanner_demo.rs
 use std::panic::{self, AssertUnwindSafe};
 
-use rust_sitter::pure_external_scanner::{ExternalScanner, ExternalScannerRegistry, Lexer};
-use rust_sitter_python::grammar_python::LANGUAGE as PY_LANGUAGE;
+use adze::pure_external_scanner::{ExternalScanner, ExternalScannerRegistry, Lexer};
+use adze_python::grammar_python::LANGUAGE as PY_LANGUAGE;
 
 #[derive(Default)]
 struct PythonStringsScanner;

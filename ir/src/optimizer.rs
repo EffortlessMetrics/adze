@@ -1,4 +1,4 @@
-// Grammar optimization passes for the pure-Rust Tree-sitter implementation
+// Grammar optimization passes for Adze
 // This module implements various optimizations to improve parser performance
 
 #[cfg(test)]

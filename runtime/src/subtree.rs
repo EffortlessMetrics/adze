@@ -3,7 +3,7 @@
 
 // Subtree representation with dynamic precedence support
 
-use rust_sitter_ir::SymbolId;
+use adze_ir::SymbolId;
 use smallvec::SmallVec;
 use std::sync::Arc;
 

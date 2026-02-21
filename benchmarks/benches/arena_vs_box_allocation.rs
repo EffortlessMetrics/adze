@@ -6,8 +6,8 @@
 //!
 //! Run with: cargo bench --bench arena_vs_box_allocation
 
+use adze::arena_allocator::{TreeArena, TreeNode};
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
-use rust_sitter::arena_allocator::{TreeArena, TreeNode};
 
 /// Benchmark arena allocation for N nodes
 fn bench_arena_allocation(c: &mut Criterion) {
@@ -115,7 +115,7 @@ fn build_binary_tree(arena: &mut TreeArena, depth: u32) {
         arena: &mut TreeArena,
         depth: u32,
         value: &mut i32,
-    ) -> rust_sitter::arena_allocator::NodeHandle {
+    ) -> adze::arena_allocator::NodeHandle {
         if depth == 0 {
             let handle = arena.alloc(TreeNode::leaf(*value));
             *value += 1;

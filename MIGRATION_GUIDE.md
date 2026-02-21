@@ -1,12 +1,12 @@
-# Migration Guide: Tree-sitter to Rust Sitter
+# Migration Guide: Tree-sitter to Adze
 
 **Updated for v0.6.0**: This guide includes critical migration information for GLR grammar normalization, enhanced SymbolMetadata, and memory safety improvements.
 
-This guide helps you migrate existing Tree-sitter grammars to rust-sitter v0.6.0+ with comprehensive safety and GLR enhancements.
+This guide helps you migrate existing Tree-sitter grammars to adze v0.6.0+ with comprehensive safety and GLR enhancements.
 
 ## Overview
 
-Rust Sitter v0.6.0 provides 99% compatibility with Tree-sitter grammars while offering:
+Adze v0.6.0 provides 99% compatibility with Tree-sitter grammars while offering:
 - **Pure Rust implementation** (no C dependencies, WASM-compatible)
 - **GLR Grammar Normalization** with enhanced SymbolMetadata for comprehensive symbol classification
 - **Memory Safety Breakthrough** - eliminated FFI segmentation faults through safe mock language approach
@@ -180,11 +180,11 @@ module.exports = grammar({
 });
 ```
 
-**Rust Sitter:**
+**Adze:**
 ```rust
-#[rust_sitter::grammar("my_language")]
+#[adze::grammar("my_language")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct SourceFile {
         statements: Vec<Statement>,
     }
@@ -196,17 +196,17 @@ mod grammar {
     
     pub struct ExpressionStatement {
         expression: Expression,
-        #[rust_sitter::leaf(text = ";")]
+        #[adze::leaf(text = ";")]
         semicolon: (),
     }
     
     pub enum Expression {
         Identifier(
-            #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+            #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
             String
         ),
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
+            #[adze::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
             u32
         ),
     }
@@ -224,20 +224,20 @@ expression: $ => choice(
 )
 ```
 
-**Rust Sitter:**
+**Adze:**
 ```rust
 pub enum Expression {
-    #[rust_sitter::prec_left(2)]
+    #[adze::prec_left(2)]
     Multiply(
         Box<Expression>,
-        #[rust_sitter::leaf(text = "*")] (),
+        #[adze::leaf(text = "*")] (),
         Box<Expression>
     ),
     
-    #[rust_sitter::prec_left(1)]
+    #[adze::prec_left(1)]
     Add(
         Box<Expression>,
-        #[rust_sitter::leaf(text = "+")] (),
+        #[adze::leaf(text = "+")] (),
         Box<Expression>
     ),
     
@@ -257,19 +257,19 @@ function_declaration: $ => seq(
 )
 ```
 
-**Rust Sitter:**
+**Adze:**
 ```rust
 pub struct FunctionDeclaration {
-    #[rust_sitter::leaf(text = "function")]
+    #[adze::leaf(text = "function")]
     keyword: (),
     
-    #[rust_sitter::field("name")]
+    #[adze::field("name")]
     name: Identifier,
     
-    #[rust_sitter::field("parameters")]
+    #[adze::field("parameters")]
     parameters: ParameterList,
     
-    #[rust_sitter::field("body")]
+    #[adze::field("body")]
     body: Block,
 }
 ```
@@ -288,19 +288,19 @@ parameter_list: $ => seq(
 )
 ```
 
-**Rust Sitter:**
+**Adze:**
 ```rust
 pub struct ParameterList {
-    #[rust_sitter::leaf(text = "(")]
+    #[adze::leaf(text = "(")]
     lparen: (),
     
-    #[rust_sitter::delimited(
-        #[rust_sitter::leaf(text = ",")]
+    #[adze::delimited(
+        #[adze::leaf(text = ",")]
         ()
     )]
     parameters: Vec<Parameter>,
     
-    #[rust_sitter::leaf(text = ")")]
+    #[adze::leaf(text = ")")]
     rparen: (),
 }
 ```
@@ -329,9 +329,9 @@ bool tree_sitter_python_external_scanner_scan(
 }
 ```
 
-**Rust Sitter:**
+**Adze:**
 ```rust
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use adze::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 #[derive(Default)]
 struct PythonScanner {
@@ -374,22 +374,22 @@ module.exports = grammar({
 });
 ```
 
-**Rust Sitter:**
+**Adze:**
 ```rust
-#[rust_sitter::grammar("my_language")]
+#[adze::grammar("my_language")]
 mod grammar {
-    #[rust_sitter::extra]
+    #[adze::extra]
     pub enum Extra {
         Whitespace(
-            #[rust_sitter::leaf(pattern = r"\s")]
+            #[adze::leaf(pattern = r"\s")]
             ()
         ),
         Comment(Comment),
     }
     
-    #[rust_sitter::word]
+    #[adze::word]
     pub struct Identifier {
-        #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
         value: String,
     }
 }
@@ -406,7 +406,7 @@ conflicts: $ => [
 ]
 ```
 
-**Rust Sitter:**
+**Adze:**
 ```rust
 // Handled automatically by GLR parsing
 // Or use explicit precedence annotations
@@ -419,9 +419,9 @@ conflicts: $ => [
 prec.dynamic(1, $.expression)
 ```
 
-**Rust Sitter:**
+**Adze:**
 ```rust
-#[rust_sitter::prec_dynamic(1)]
+#[adze::prec_dynamic(1)]
 Expression(Box<Expression>)
 ```
 
@@ -435,7 +435,7 @@ inline: $ => [
 ]
 ```
 
-**Rust Sitter:**
+**Adze:**
 ```rust
 // Use Rust's type system instead
 type Expression = ExpressionImpl;
@@ -449,26 +449,26 @@ type Statement = StatementImpl;
 // binding.gyp, package.json, etc.
 ```
 
-### Rust Sitter:
+### Adze:
 ```toml
 # Cargo.toml
 [dependencies]
-rust-sitter = "0.4.5"
+adze = "0.4.5"
 
 [build-dependencies]
-rust-sitter-tool = "0.4.5"
+adze-tool = "0.4.5"
 ```
 
 ```rust
 // build.rs
 fn main() {
-    rust_sitter_tool::build_parsers(&PathBuf::from("src/grammar.rs"));
+    adze_tool::build_parsers(&PathBuf::from("src/grammar.rs"));
 }
 ```
 
 ## Query Migration
 
-Tree-sitter queries work unchanged in rust-sitter:
+Tree-sitter queries work unchanged in adze:
 
 ```scheme
 (function_declaration
@@ -490,18 +490,18 @@ Tree-sitter queries work unchanged in rust-sitter:
 ### 1. Token Transformation
 ```rust
 // Wrong: transform returns wrong type
-#[rust_sitter::leaf(pattern = r"\d+", transform = |s| s)]
+#[adze::leaf(pattern = r"\d+", transform = |s| s)]
 
 // Correct: parse string to number
-#[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
+#[adze::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
 ```
 
 ### 2. Missing Extras
 ```rust
 // Don't forget to mark whitespace as extra
-#[rust_sitter::extra]
+#[adze::extra]
 struct Whitespace {
-    #[rust_sitter::leaf(pattern = r"\s+")]
+    #[adze::leaf(pattern = r"\s+")]
     _ws: (),
 }
 ```
@@ -527,7 +527,7 @@ const parser = require('tree-sitter-my-language');
 // Test with tree-sitter CLI
 ```
 
-### Rust Sitter:
+### Adze:
 ```rust
 #[test]
 fn test_parsing() {
@@ -538,7 +538,7 @@ fn test_parsing() {
 
 ## Tool Compatibility
 
-- **tree-sitter CLI**: Use `rust-sitter-cli` with enhanced features
+- **tree-sitter CLI**: Use `adze-cli` with enhanced features
 - **Syntax highlighting**: 100% compatible with existing queries
 - **Language servers**: Automatic LSP generation from grammars
 - **Editors**: Works with all Tree-sitter-enabled editors
@@ -549,41 +549,41 @@ fn test_parsing() {
 
 ## Getting Help
 
-1. **Interactive Playground**: Test your grammar at [play.rust-sitter.dev](https://play.rust-sitter.dev)
-2. **Examples**: Browse 150+ grammars at [grammars.rust-sitter.dev](https://grammars.rust-sitter.dev)
-3. **Debugging**: Use `rust-sitter debug` command for step-through parsing
-4. **Testing**: Built-in test framework with `rust-sitter test`
+1. **Interactive Playground**: Test your grammar at [play.adze.dev](https://play.adze.dev)
+2. **Examples**: Browse 150+ grammars at [grammars.adze.dev](https://grammars.adze.dev)
+3. **Debugging**: Use `adze debug` command for step-through parsing
+4. **Testing**: Built-in test framework with `adze test`
 5. **Community**: 
-   - Discord: [discord.gg/rust-sitter](https://discord.gg/rust-sitter)
-   - Forum: [discuss.rust-sitter.dev](https://discuss.rust-sitter.dev)
-   - Stack Overflow: [#rust-sitter](https://stackoverflow.com/questions/tagged/rust-sitter)
+   - Discord: [discord.gg/adze](https://discord.gg/adze)
+   - Forum: [discuss.adze.dev](https://discuss.adze.dev)
+   - Stack Overflow: [#adze](https://stackoverflow.com/questions/tagged/adze)
 
 ## Migration Tools
 
 ### Automatic Migration
 ```bash
-# Convert Tree-sitter grammar to Rust Sitter
-rust-sitter migrate path/to/grammar.js
+# Convert Tree-sitter grammar to Adze
+adze migrate path/to/grammar.js
 
 # Validate compatibility
-rust-sitter validate --tree-sitter-compat
+adze validate --tree-sitter-compat
 
 # Generate migration report
-rust-sitter migrate --report path/to/grammar.js
+adze migrate --report path/to/grammar.js
 ```
 
 ### Migration Wizard
 ```bash
 # Interactive migration with guidance
-rust-sitter migrate --interactive path/to/grammar.js
+adze migrate --interactive path/to/grammar.js
 ```
 
 ## Success Stories
 
 - **GitHub**: Migrated 50+ language grammars, 30% performance improvement
-- **Microsoft**: Using rust-sitter in VS Code for WebAssembly languages
+- **Microsoft**: Using adze in VS Code for WebAssembly languages
 - **JetBrains**: Evaluating for next-generation IDE parsers
-- **Cloudflare**: Running rust-sitter parsers at edge with Workers
+- **Cloudflare**: Running adze parsers at edge with Workers
 
 ## GLR Runtime Migration (September 2025)
 
@@ -614,13 +614,13 @@ let result = parser.parse_utf8(input, None)?; // Handles conflicts automatically
 **Test your grammar with GLR features:**
 ```bash
 # Test GLR grammar normalization
-cargo test -p rust-sitter-glr-core test_complex_symbols_not_normalized
+cargo test -p adze-glr-core test_complex_symbols_not_normalized
 
 # Validate GLR runtime integration
-cargo test -p rust-sitter-runtime test_glr_integration -- --nocapture
+cargo test -p adze-runtime test_glr_integration -- --nocapture
 
 # Test performance with GLR features
-RUST_SITTER_LOG_PERFORMANCE=true cargo test glr_performance_test
+ADZE_LOG_PERFORMANCE=true cargo test glr_performance_test
 ```
 
 ### Query Matching API Changes (PR #54)
@@ -675,7 +675,7 @@ let matcher = QueryMatcher::new(&query, source, &metadata);
 
 ## Performance Comparison
 
-| Metric | Tree-sitter | Rust Sitter v0.6.0 | Improvement |
+| Metric | Tree-sitter | Adze v0.6.0 | Improvement |
 |--------|-------------|--------------------|--------------|\n| Parse Time | 100ms | 65ms | 35% faster |
 | Memory Usage | 50MB | 30MB | 40% less |
 | Incremental Parse | 5ms | 1.5ms | 70% faster |
@@ -687,10 +687,10 @@ let matcher = QueryMatcher::new(&query, source, &metadata);
 
 ## Next Steps
 
-1. **Try the Playground**: [play.rust-sitter.dev](https://play.rust-sitter.dev)
+1. **Try the Playground**: [play.adze.dev](https://play.adze.dev)
 2. **Read the Tutorial**: [Tutorial](./TUTORIAL.md)
-3. **Browse Examples**: [GitHub Examples](https://github.com/rust-sitter/examples)
+3. **Browse Examples**: [GitHub Examples](https://github.com/adze/examples)
 4. **Generate LSP**: [LSP Generator Guide](./LSP_GENERATOR.md)
-5. **Join Community**: [Discord](https://discord.gg/rust-sitter)
+5. **Join Community**: [Discord](https://discord.gg/adze)
 
-The rust-sitter implementation is production-ready and actively maintained with regular updates and improvements.
+The adze implementation is production-ready and actively maintained with regular updates and improvements.

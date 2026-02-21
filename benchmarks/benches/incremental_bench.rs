@@ -1,7 +1,7 @@
+use adze::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser};
+use adze::glr_parser::GLRParser;
+use adze_benchmarks::test_grammars::{load_arithmetic_grammar, tokenize_arithmetic};
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use rust_sitter::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser};
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_benchmarks::test_grammars::{load_arithmetic_grammar, tokenize_arithmetic};
 
 /// Common edit patterns in programming
 #[derive(Debug, Clone)]

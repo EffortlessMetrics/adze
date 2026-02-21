@@ -2,7 +2,7 @@
 // Parses Tree-sitter's S-expression query syntax
 
 use super::ast::*;
-use rust_sitter_ir::{Grammar, SymbolId};
+use adze_ir::{Grammar, SymbolId};
 use std::collections::HashMap;
 
 /// Parser for tree-sitter query language

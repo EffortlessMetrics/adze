@@ -4,8 +4,8 @@
 ///
 /// This module provides schema validation to prevent encoding/decoding mismatches
 /// between table generation and runtime parsing.
-use rust_sitter_glr_core::{Action, ParseTable, StateId};
-use rust_sitter_ir::RuleId;
+use adze_glr_core::{Action, ParseTable, StateId};
+use adze_ir::RuleId;
 use std::collections::HashSet;
 
 /// Schema validation error

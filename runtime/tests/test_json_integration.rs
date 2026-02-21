@@ -1,10 +1,10 @@
 // Integration test for JSON parsing with GLR parser
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
 // Import from the glr_parser module
-use rust_sitter::glr_parser::GLRParser;
+use adze::glr_parser::GLRParser;
 
 #[test]
 fn test_simple_json_grammar() {

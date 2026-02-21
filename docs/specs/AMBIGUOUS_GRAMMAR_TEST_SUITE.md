@@ -37,9 +37,9 @@ This specification defines a comprehensive test suite of intentionally ambiguous
 #### Grammar Definition
 
 ```rust
-#[rust_sitter::grammar("dangling_else")]
+#[adze::grammar("dangling_else")]
 mod dangling_else {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Stmt {
         If(Box<Expr>, Box<Stmt>),
         IfElse(Box<Expr>, Box<Stmt>, Box<Stmt>),
@@ -110,9 +110,9 @@ Feature: Dangling Else Ambiguity
 #### Grammar Definition
 
 ```rust
-#[rust_sitter::grammar("precedence_free")]
+#[adze::grammar("precedence_free")]
 mod precedence_free {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         // NO precedence annotations - intentionally ambiguous
         Binary(Box<Expr>, Op, Box<Expr>),
@@ -190,9 +190,9 @@ Feature: Precedence-Free Expression Ambiguity
 #### Grammar Definition
 
 ```rust
-#[rust_sitter::grammar("assoc_ambiguous")]
+#[adze::grammar("assoc_ambiguous")]
 mod assoc_ambiguous {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         // Same precedence, NO associativity - ambiguous
         #[prec(1)]
@@ -265,9 +265,9 @@ Feature: Operator Associativity Ambiguity
 #### Grammar Definition
 
 ```rust
-#[rust_sitter::grammar("expr_stmt")]
+#[adze::grammar("expr_stmt")]
 mod expr_stmt {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {
         pub stmts: Vec<Stmt>,
     }
@@ -318,9 +318,9 @@ mod expr_stmt {
 #### Grammar Definition
 
 ```rust
-#[rust_sitter::grammar("reduce_reduce")]
+#[adze::grammar("reduce_reduce")]
 mod reduce_reduce {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Decl {
         TypeDecl(Type),
         VarDecl(Var),

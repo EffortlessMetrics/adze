@@ -6,7 +6,7 @@
 
 ## Overview
 
-This specification defines the behavior, API, and performance characteristics of rust-sitter's arena allocator for parse tree nodes.
+This specification defines the behavior, API, and performance characteristics of adze's arena allocator for parse tree nodes.
 
 ## Goals
 

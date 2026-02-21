@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Process utilities for rust-sitter CI/orchestration
+ * Process utilities for adze CI/orchestration
  * Provides robust process management without ps dependency and EAGAIN handling
  */
 
@@ -267,7 +267,7 @@ Commands:
   cleanup-locks           - Clean up stale locks
 
 Examples:
-  ./scripts/process-utils.js run cargo test -p rust-sitter-python
+  ./scripts/process-utils.js run cargo test -p adze-python
   ./scripts/process-utils.js agent pr-cleanup-reviewer
   ./scripts/process-utils.js cleanup-locks
 `);

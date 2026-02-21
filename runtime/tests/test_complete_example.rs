@@ -1,4 +1,4 @@
-// Complete example demonstrating all rust-sitter features
+// Complete example demonstrating all adze features
 // This test shows how to build a working parser from scratch
 #![cfg(test)]
 #![allow(unused_imports, dead_code)]
@@ -8,11 +8,11 @@
 #[cfg(not(feature = "experimental_examples"))]
 use std::process::exit;
 
-use rust_sitter_glr_core::*;
-use rust_sitter_ir::*;
+use adze_glr_core::*;
+use adze_ir::*;
 use std::collections::BTreeMap;
 
-/// Build a complete JSON parser using rust-sitter
+/// Build a complete JSON parser using adze
 mod json_parser {
     use super::*;
 
@@ -229,7 +229,7 @@ fn test_complete_json_parser() {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(1),
         grammar: grammar.clone(),
@@ -251,7 +251,7 @@ fn test_complete_json_parser() {
 
     // 3. Test with sample JSON
     let test_cases = [
-        r#"{"name": "rust-sitter", "version": "0.5.0"}"#,
+        r#"{"name": "adze", "version": "0.5.0"}"#,
         r#"[1, 2, 3, true, false, null]"#,
         r#"{"nested": {"array": [1, 2, 3]}, "empty": {}}"#,
     ];
@@ -292,7 +292,7 @@ fn test_complete_json_parser() {
 
 #[test]
 #[ignore = "needs update to current parser API"]
-fn test_rust_sitter_feature_completeness() {
+fn test_adze_feature_completeness() {
     println!("\n");
     println!("╔══════════════════════════════════════════════════════════╗");
     println!("║           RUST-SITTER FEATURE COMPLETENESS               ║");
@@ -325,19 +325,19 @@ fn test_rust_sitter_feature_completeness() {
 #[test]
 #[ignore = "needs update to current parser API"]
 fn test_end_to_end_workflow() {
-    println!("\n🚀 Rust-Sitter End-to-End Workflow Demo\n");
+    println!("\n🚀 Adze End-to-End Workflow Demo\n");
 
     // Step 1: Define grammar using Rust types
     println!("1️⃣  Define grammar with Rust macros:");
-    println!("   #[rust_sitter::grammar(\"my_language\")]");
+    println!("   #[adze::grammar(\"my_language\")]");
     println!("   mod grammar {{");
-    println!("       #[rust_sitter::leaf]");
+    println!("       #[adze::leaf]");
     println!("       struct Number(String);");
     println!("   }}");
 
     // Step 2: Build time - generate parser
     println!("\n2️⃣  At build time (build.rs):");
-    println!("   rust_sitter_tool::build_parsers()?;");
+    println!("   adze_tool::build_parsers()?;");
     println!("   → Generates Tree-sitter grammar JSON");
     println!("   → Compiles to static parse tables");
     println!("   → Links external scanners");

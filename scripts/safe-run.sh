@@ -1,5 +1,5 @@
 #!/bin/bash
-# Safe command runner for rust-sitter CI/automation
+# Safe command runner for adze CI/automation
 # Eliminates EAGAIN issues and provides process group management
 
 set -euo pipefail
@@ -206,7 +206,7 @@ main() {
             cat << EOF
 Usage: $0 <command> [args...]
 
-Safe command runner for rust-sitter CI/automation.
+Safe command runner for adze CI/automation.
 Provides process group management, EAGAIN handling, and agent debouncing.
 
 Commands:
@@ -219,7 +219,7 @@ Environment Variables:
   TIMEOUT_SEC                      - Command timeout in seconds (default: 1800)
 
 Examples:
-  $0 run cargo test -p rust-sitter-python
+  $0 run cargo test -p adze-python
   $0 run-with-lock rust-build cargo build --workspace
   $0 agent pr-cleanup-reviewer
   $0 cleanup-locks

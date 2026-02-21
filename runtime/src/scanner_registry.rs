@@ -1,10 +1,10 @@
-// External scanner registry for rust-sitter
+// External scanner registry for adze
 // This module provides a registry for external scanners that can be used by parsers
 
 use crate::external_scanner::{ExternalScanner, ScanResult};
 use crate::external_scanner_ffi::{CExternalScanner, TSExternalScannerData};
+use adze_ir::SymbolId;
 use once_cell::sync::Lazy;
-use rust_sitter_ir::SymbolId;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 

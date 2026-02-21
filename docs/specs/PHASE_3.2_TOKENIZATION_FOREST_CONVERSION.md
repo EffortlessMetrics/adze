@@ -916,8 +916,8 @@ mod forest_integration {
 - `unicode-segmentation` (optional) - for Unicode token boundaries
 
 ### Internal Dependencies
-- `rust-sitter-ir` - Grammar representation
-- `rust-sitter-glr-core` - ParseTable and Action types
+- `adze-ir` - Grammar representation
+- `adze-glr-core` - ParseTable and Action types
 - `runtime2` - Tree, Node, Token APIs
 
 ---

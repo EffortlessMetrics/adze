@@ -11,10 +11,10 @@
 #[test]
 fn inspect_dangling_else_conflicts() {
     // Access the generated dangling_else language
-    let lang = unsafe { &rust_sitter_example::dangling_else::generated::LANGUAGE };
+    let lang = unsafe { &adze_example::dangling_else::generated::LANGUAGE };
 
     // Decode the parse table
-    let parse_table = rust_sitter::decoder::decode_parse_table(lang);
+    let parse_table = adze::decoder::decode_parse_table(lang);
 
     eprintln!("\n=== Dangling Else Grammar Parse Table Inspection ===");
     eprintln!("Total states: {}", parse_table.action_table.len());

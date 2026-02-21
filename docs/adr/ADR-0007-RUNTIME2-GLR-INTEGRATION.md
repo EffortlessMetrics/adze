@@ -21,7 +21,7 @@ During Phase 3.3 implementation (GLR integration testing with example grammars),
 ```toml
 # example/Cargo.toml
 [dependencies]
-rust-sitter = { path = "../runtime", default-features = false }
+adze = { path = "../runtime", default-features = false }
 ```
 
 **Problem**: Example grammars depend on `runtime`, but GLR implementation lives in `runtime2`.

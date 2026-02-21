@@ -4,7 +4,7 @@
 **Date**: 2025-11-20
 **Status**: ACTIVE
 **Branch**: `claude/complete-glr-v1-01W8RVz8tiznbXVTSkWicqPJ`
-**Target**: Production-ready GLR parser for rust-sitter
+**Target**: Production-ready GLR parser for adze
 
 ---
 
@@ -216,7 +216,7 @@ Scenario: Multi-action cells preserved through encoding
 
 ### AC-5: Runtime Integration
 
-**Requirement**: GLR runtime must integrate seamlessly with existing rust-sitter runtime.
+**Requirement**: GLR runtime must integrate seamlessly with existing adze runtime.
 
 **Acceptance Tests**:
 
@@ -481,7 +481,7 @@ cargo test --workspace --features glr
 cargo test --test bdd_glr_scenarios
 
 # Run integration tests
-cargo test -p rust-sitter-example --features glr
+cargo test -p adze-example --features glr
 
 # Verify documentation builds
 cargo doc --no-deps --features glr
@@ -517,7 +517,7 @@ Before declaring GLR v1 complete, verify:
 ### Qualitative Metrics
 
 - **API Usability**: External reviewer can enable GLR without confusion
-- **Grammar Portability**: Can convert tree-sitter grammars to rust-sitter GLR
+- **Grammar Portability**: Can convert tree-sitter grammars to adze GLR
 - **Error Messages**: Clear, actionable error messages for GLR-specific issues
 - **Stability**: No panics on ambiguous grammars or edge cases
 
@@ -681,7 +681,7 @@ GLR v1 is **DONE** when:
 **Contract Version**: 1.0.0
 **Last Updated**: 2025-11-20
 **Next Review**: After Week 1 completion
-**Owner**: rust-sitter core team
+**Owner**: adze core team
 
 ---
 

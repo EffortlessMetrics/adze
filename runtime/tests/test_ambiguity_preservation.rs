@@ -1,7 +1,7 @@
 //! Tests for ambiguity preservation in compression
 
-use rust_sitter::subtree::{Subtree, SubtreeNode};
-use rust_sitter_ir::SymbolId;
+use adze::subtree::{Subtree, SubtreeNode};
+use adze_ir::SymbolId;
 use std::sync::Arc;
 
 #[test]

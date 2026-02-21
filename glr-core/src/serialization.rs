@@ -27,7 +27,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use rust_sitter_glr_core::ParseTable;
+//! use adze_glr_core::ParseTable;
 //!
 //! # fn build_parse_table() -> ParseTable { todo!() }
 //! let table = build_parse_table();
@@ -109,7 +109,7 @@ impl ParseTable {
     /// # Example
     ///
     /// ```no_run
-    /// # use rust_sitter_glr_core::ParseTable;
+    /// # use adze_glr_core::ParseTable;
     /// # fn create_table() -> ParseTable { todo!() }
     /// let table = create_table();
     /// let bytes = table.to_bytes()?;
@@ -147,7 +147,7 @@ impl ParseTable {
     /// # Example
     ///
     /// ```no_run
-    /// # use rust_sitter_glr_core::ParseTable;
+    /// # use adze_glr_core::ParseTable;
     /// # fn get_serialized_bytes() -> Vec<u8> { todo!() }
     /// let bytes = get_serialized_bytes();
     /// let table = ParseTable::from_bytes(&bytes)?;

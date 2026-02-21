@@ -1,7 +1,7 @@
 [book]
-title = "Rust-Sitter Documentation"
-authors = ["Rust-Sitter Contributors"]
-description = "The official documentation for Rust-Sitter - a Rust framework for generating Tree-sitter parsers"
+title = "Adze Documentation"
+authors = ["Adze Contributors"]
+description = "The official documentation for Adze - a Rust framework for generating Tree-sitter parsers"
 language = "en"
 
 [build]
@@ -13,9 +13,9 @@ edition = "2024"
 [output.html]
 theme = "rust"
 default-theme = "rust"
-git-repository-url = "https://github.com/EffortlessMetrics/rust-sitter"
+git-repository-url = "https://github.com/EffortlessMetrics/adze"
 git-repository-icon = "fa-github"
-edit-url-template = "https://github.com/EffortlessMetrics/rust-sitter/edit/main/book/{path}"
+edit-url-template = "https://github.com/EffortlessMetrics/adze/edit/main/book/{path}"
 
 [output.html.playground]
 runnable = false

@@ -189,7 +189,7 @@ Profile memory usage and ensure reasonable resource consumption.
 
 #### Tools
 
-- `RUST_SITTER_LOG_PERFORMANCE=true` (existing)
+- `ADZE_LOG_PERFORMANCE=true` (existing)
 - Custom instrumentation in GLREngine
 - Benchmarks with `criterion` memory profiling
 

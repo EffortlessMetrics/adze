@@ -1,9 +1,9 @@
-// SIMD-accelerated lexer for rust-sitter
+// SIMD-accelerated lexer for adze
 // Uses portable_simd for cross-platform SIMD operations
 
 use crate::lexer::Token as LexerToken;
+use adze_ir::{SymbolId, TokenPattern};
 use anyhow::Result;
-use rust_sitter_ir::{SymbolId, TokenPattern};
 use std::simd::*;
 
 /// SIMD-accelerated lexer for fast token scanning
@@ -330,11 +330,7 @@ impl SimdLexer {
             }
         }
 
-        if len > 0 {
-            Some(len)
-        } else {
-            None
-        }
+        if len > 0 { Some(len) } else { None }
     }
 
     /// SIMD-accelerated digit matching
@@ -376,11 +372,7 @@ impl SimdLexer {
             }
         }
 
-        if len > 0 {
-            Some(len)
-        } else {
-            None
-        }
+        if len > 0 { Some(len) } else { None }
     }
 
     /// SIMD-accelerated identifier matching
@@ -464,11 +456,7 @@ impl SimdLexer {
             }
         }
 
-        if len > 0 {
-            Some(len)
-        } else {
-            None
-        }
+        if len > 0 { Some(len) } else { None }
     }
 }
 

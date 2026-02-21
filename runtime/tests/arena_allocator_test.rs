@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 //! Arena Allocator Tests
 //!
 //! This test suite implements all behavioral specifications from
@@ -5,7 +6,7 @@
 //!
 //! Test-Driven Development: These tests define expected behavior before implementation.
 
-use rust_sitter::arena_allocator::{NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
 
 // ============================================================================
 // Spec 1: Basic Allocation

@@ -37,7 +37,7 @@ module.exports = grammar({
 });
 "#;
 
-    use rust_sitter_tool::grammar_js::parse_grammar_js_v2;
+    use adze_tool::grammar_js::parse_grammar_js_v2;
 
     println!("Testing pattern 1 (module.exports)...");
     match parse_grammar_js_v2(pattern1) {

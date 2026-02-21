@@ -10,9 +10,9 @@
 
 ## Executive Summary
 
-This contract defines the complete roadmap for achieving Tree-sitter feature parity while leveraging rust-sitter's unique GLR capabilities. It consolidates all planning documents into a single source of truth using contract-first, BDD, and Infrastructure-as-Code methodologies.
+This contract defines the complete roadmap for achieving Tree-sitter feature parity while leveraging adze's unique GLR capabilities. It consolidates all planning documents into a single source of truth using contract-first, BDD, and Infrastructure-as-Code methodologies.
 
-**Vision**: rust-sitter becomes the leading Rust-native parsing framework with:
+**Vision**: adze becomes the leading Rust-native parsing framework with:
 1. **Tree-sitter Parity**: 100% compatibility for deterministic grammars
 2. **GLR Advantage**: True ambiguity handling beyond Tree-sitter's capabilities
 3. **Production Quality**: Performance, stability, and ecosystem on par with Tree-sitter
@@ -154,14 +154,14 @@ graph TD
 **Key Deliverables**:
 1. ⏳ Grammar IR (neutral representation supporting TS + GLR features)
 2. ⏳ TS → IR converter (`grammar.js`/`grammar.json` → `.rsir`)
-3. ⏳ IR → rust-sitter compiler (generate parser tables + code)
+3. ⏳ IR → adze compiler (generate parser tables + code)
 4. ⏳ Coverage: ≥95% of tree-sitter-python test suite passing
 5. ⏳ TS-compat runtime API (`ts::Parser`, `ts::Tree`, `ts::Node`, `ts::TreeCursor`)
 6. ⏳ CLI parity: `cargo xtask ts-parse` equivalent to `tree-sitter parse`
 
 **Success Metrics**:
 - Test coverage: ≥95% of TS grammar test suites pass
-- API compatibility: All TS runtime concepts have rust-sitter equivalents
+- API compatibility: All TS runtime concepts have adze equivalents
 - Performance: Within 2× TS C on converted grammars
 
 **Timeline**: 8 weeks (Q2 2026)
@@ -185,7 +185,7 @@ graph TD
 **Success Metrics**:
 - Query compatibility: ≥90% of TS queries work unchanged
 - Editor integration: At least 1 production-quality editor integration
-- Migration guide: Clear docs for moving from TS to rust-sitter
+- Migration guide: Clear docs for moving from TS to adze
 
 **Timeline**: 8 weeks (Q3 2026)
 
@@ -278,7 +278,7 @@ cargo xtask profile memory          # Memory profiling with heaptrack
 # Grammar tooling
 cargo xtask ts-import-grammar <repo>    # Import TS grammar
 cargo xtask ts-parse <file>             # Parse with TS-compat mode
-cargo xtask ts-compare <grammar> <file> # Compare TS vs rust-sitter
+cargo xtask ts-compare <grammar> <file> # Compare TS vs adze
 
 # Testing & validation
 cargo xtask test-corpus                 # Test against TS corpus
@@ -379,7 +379,7 @@ cargo xtask perf-report                 # Generate performance report
 - **Fallback**: Document known incompatibilities, provide workarounds
 
 **2. Editor Integration Adoption**
-- **Risk**: Editor maintainers don't adopt rust-sitter
+- **Risk**: Editor maintainers don't adopt adze
 - **Mitigation**: Reference implementations + migration tooling
 - **Fallback**: Focus on Rust-first use cases (WASM, embedded)
 
@@ -529,7 +529,7 @@ Tree-sitter Parity is **COMPLETE** when:
 **Contract Version**: 1.0.0
 **Last Updated**: 2025-11-20
 **Next Review**: After v0.8.0 completion
-**Owner**: rust-sitter core team
+**Owner**: adze core team
 
 ---
 

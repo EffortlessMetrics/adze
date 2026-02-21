@@ -3,10 +3,10 @@
 
 #![cfg(test)]
 
-use rust_sitter::glr_lexer::GLRLexer;
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze::glr_lexer::GLRLexer;
+use adze::glr_parser::GLRParser;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Create a grammar that requires reduce→re-closure to find accepts
 fn create_reduce_reclosure_grammar() -> Grammar {
@@ -137,7 +137,7 @@ fn test_eof_recovery_no_delete_guard() {
     }
 
     // Enable error recovery
-    use rust_sitter::error_recovery::ErrorRecoveryConfigBuilder;
+    use adze::error_recovery::ErrorRecoveryConfigBuilder;
     let recovery_config = ErrorRecoveryConfigBuilder::new().max_panic_skip(3).build();
     parser.enable_error_recovery(recovery_config);
 

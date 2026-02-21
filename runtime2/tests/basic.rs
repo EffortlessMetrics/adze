@@ -1,6 +1,6 @@
 //! Basic tests to verify the runtime compiles and has the expected API
 
-use rust_sitter_runtime::{Parser, Tree, test_helpers::stub_language};
+use adze_runtime::{Parser, Tree, test_helpers::stub_language};
 
 #[test]
 fn can_create_parser() {
@@ -43,7 +43,7 @@ fn node_text_extraction() {
 
 #[test]
 fn error_display() {
-    use rust_sitter_runtime::ParseError;
+    use adze_runtime::ParseError;
 
     let error = ParseError::no_language();
     assert_eq!(error.to_string(), "no language set");
@@ -55,7 +55,7 @@ fn error_display() {
 #[cfg(feature = "external-scanners")]
 #[test]
 fn external_scanner_trait() {
-    use rust_sitter_runtime::external_scanner::{ExternalScanner, ScanResult};
+    use adze_runtime::external_scanner::{ExternalScanner, ScanResult};
 
     struct TestScanner;
 

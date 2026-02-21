@@ -1,6 +1,6 @@
 # Installation
 
-This chapter covers how to install and set up Rust-Sitter in your project.
+This chapter covers how to install and set up Adze in your project.
 
 ## Prerequisites
 
@@ -9,19 +9,19 @@ This chapter covers how to install and set up Rust-Sitter in your project.
 
 ## Adding Dependencies
 
-Add Rust-Sitter to your `Cargo.toml`:
+Add Adze to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter = "0.5.0-beta"
+adze = "0.5.0-beta"
 
 [build-dependencies]
-rust-sitter-tool = "0.5.0-beta"
+adze-tool = "0.5.0-beta"
 ```
 
 ## Choosing a Backend
 
-Rust-Sitter offers three backend options via feature flags:
+Adze offers three backend options via feature flags:
 
 ### Pure-Rust Backend (Recommended)
 
@@ -29,7 +29,7 @@ The pure-Rust backend generates static parsers at compile-time without C depende
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5.0-beta", features = ["pure-rust"] }
+adze = { version = "0.5.0-beta", features = ["pure-rust"] }
 ```
 
 **Advantages:**
@@ -44,7 +44,7 @@ Legacy backend using transpiled C code:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5.0-beta", features = ["tree-sitter-c2rust"] }
+adze = { version = "0.5.0-beta", features = ["tree-sitter-c2rust"] }
 ```
 
 ### Standard Tree-sitter Backend
@@ -53,7 +53,7 @@ Uses the standard Tree-sitter C runtime:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5.0-beta", features = ["tree-sitter-standard"] }
+adze = { version = "0.5.0-beta", features = ["tree-sitter-standard"] }
 ```
 
 ## Build Configuration
@@ -68,7 +68,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src");
     
     // Generate parsers from grammar definitions
-    rust_sitter_tool::build_parsers(&PathBuf::from("src/main.rs"));
+    adze_tool::build_parsers(&PathBuf::from("src/main.rs"));
 }
 ```
 
@@ -78,7 +78,7 @@ Additional features you can enable:
 
 ```toml
 [dependencies]
-rust-sitter = { 
+adze = { 
     version = "0.5.0-beta", 
     features = [
         "pure-rust",      # Pure Rust backend
@@ -94,16 +94,16 @@ rust-sitter = {
 Create a simple test file to verify your setup:
 
 ```rust
-#[rust_sitter::grammar("test")]
+#[adze::grammar("test")]
 mod grammar {
-    #[rust_sitter::language]
-    #[rust_sitter::leaf(text = "hello")]
+    #[adze::language]
+    #[adze::leaf(text = "hello")]
     struct Hello;
 }
 
 fn main() {
     match grammar::parse("hello") {
-        Ok(_) => println!("Rust-Sitter is working!"),
+        Ok(_) => println!("Adze is working!"),
         Err(e) => eprintln!("Parse error: {}", e),
     }
 }
@@ -120,8 +120,8 @@ cargo run
 
 ### Common Issues
 
-1. **Build fails with "cannot find macro `rust_sitter`"**
-   - Ensure both `rust-sitter` and `rust-sitter-tool` are in your dependencies
+1. **Build fails with "cannot find macro `adze`"**
+   - Ensure both `adze` and `adze-tool` are in your dependencies
    - Check that your `build.rs` is properly configured
 
 2. **"Multiple applicable items in scope" errors**
@@ -134,4 +134,4 @@ cargo run
 
 ## Next Steps
 
-Now that you have Rust-Sitter installed, proceed to the [Quick Start](quickstart.md) guide to create your first grammar!
+Now that you have Adze installed, proceed to the [Quick Start](quickstart.md) guide to create your first grammar!

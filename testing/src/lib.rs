@@ -1,9 +1,9 @@
-// Beta testing framework for rust-sitter
+// Beta testing framework for adze
 // Tests compatibility with official Tree-sitter grammars
 
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 use anyhow::{Context, Result};
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -86,7 +86,7 @@ impl BetaTester {
                                 if test_result.output != tree_sitter_result.output {
                                     result.failed_tests += 1;
                                     result.errors.push(format!(
-                                        "Output mismatch for {}: rust-sitter != tree-sitter",
+                                        "Output mismatch for {}: adze != tree-sitter",
                                         test_file.display()
                                     ));
                                 }
@@ -136,7 +136,7 @@ impl BetaTester {
 
     /// Generate parse table for grammar
     pub fn generate_parse_table(&self, grammar: &Grammar) -> Result<ParseTable> {
-        use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+        use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 
         let ff =
             FirstFollowSets::compute(grammar).context("Failed to compute first/follow sets")?;
@@ -180,7 +180,7 @@ impl BetaTester {
     fn compare_with_tree_sitter(
         &self,
         file_path: &Path,
-        _rust_sitter_result: &FileTestResult,
+        _adze_result: &FileTestResult,
     ) -> Result<FileTestResult> {
         if let Some(tree_sitter_path) = &self.config.tree_sitter_path {
             // Run tree-sitter CLI
@@ -302,7 +302,7 @@ impl CompatibilityReport {
     pub fn save_markdown(&self, path: &Path) -> Result<()> {
         let mut md = String::new();
 
-        md.push_str("# Rust Sitter Compatibility Report\n\n");
+        md.push_str("# Adze Compatibility Report\n\n");
         md.push_str(&format!("**Version**: {}\n", self.version));
         md.push_str(&format!("**Date**: {}\n", self.date));
         md.push_str(&format!(

@@ -34,9 +34,9 @@ fn test_javascript_grammar_parsing() {
 
     // Create a simple test Rust file that uses the JavaScript grammar
     let test_src = r#"
-        use rust_sitter::Grammar;
+        use adze::Grammar;
         
-        #[rust_sitter::grammar("javascript")]
+        #[adze::grammar("javascript")]
         pub struct JavaScript;
     "#;
 
@@ -53,7 +53,7 @@ fn test_javascript_grammar_parsing() {
     fs::copy(&grammar_path, &grammar_dest).unwrap();
 
     // Try to build the parser using pure_rust_builder directly
-    use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+    use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 
     let options = BuildOptions {
         out_dir: temp_dir.path().to_str().unwrap().to_string(),

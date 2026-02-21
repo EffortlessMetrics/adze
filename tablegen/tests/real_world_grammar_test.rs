@@ -1,8 +1,8 @@
 // Tests with real-world-like grammars to validate the pure-Rust implementation
 
-use rust_sitter_glr_core::FirstFollowSets;
-use rust_sitter_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use rust_sitter_tablegen::{NodeTypesGenerator, StaticLanguageGenerator};
+use adze_glr_core::FirstFollowSets;
+use adze_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_tablegen::{NodeTypesGenerator, StaticLanguageGenerator};
 
 /// Create a JSON-like grammar that resembles real Tree-sitter grammars
 fn create_json_grammar() -> Grammar {
@@ -364,7 +364,7 @@ fn test_json_language_generation() {
 
     // Create a minimal parse table for testing using automatic normalization
     let first_follow = FirstFollowSets::compute_normalized(&mut grammar).unwrap();
-    let parse_table = rust_sitter_glr_core::build_lr1_automaton(&grammar, &first_follow)
+    let parse_table = adze_glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Should build parse table");
 
     let generator = StaticLanguageGenerator::new(grammar, parse_table);

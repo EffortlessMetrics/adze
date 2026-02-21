@@ -1,7 +1,7 @@
 // Simple test to debug GLR parse table generation
 
-use rust_sitter_glr_core::{ConflictResolver, FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_glr_core::{ConflictResolver, FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 #[test]
 fn test_minimal_grammar() {
@@ -123,7 +123,7 @@ fn test_simple_expression() {
             println!("  States: {}", table.state_count);
 
             // Check for conflicts
-            let item_sets = rust_sitter_glr_core::ItemSetCollection::build_canonical_collection(
+            let item_sets = adze_glr_core::ItemSetCollection::build_canonical_collection(
                 &grammar,
                 &first_follow,
             );

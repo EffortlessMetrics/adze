@@ -7,8 +7,8 @@
 
 use crate::Token;
 use crate::error::{ParseError, ParseErrorKind};
-use rust_sitter_glr_core::{Action, ParseTable, StateId, SymbolId};
-use rust_sitter_ir::RuleId;
+use adze_glr_core::{Action, ParseTable, StateId, SymbolId};
+use adze_ir::RuleId;
 use std::collections::HashMap;
 use std::ops::Range;
 
@@ -440,7 +440,7 @@ impl ParseForest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_glr_core::ParseTable;
+    use adze_glr_core::ParseTable;
 
     fn shift_then_accept_table() -> &'static ParseTable {
         let mut table = ParseTable::default();

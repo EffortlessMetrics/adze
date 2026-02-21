@@ -282,37 +282,37 @@ mod scenario_1_detect_conflicts {
 
 ## 📊 Test Grammar: Dangling Else
 
-**Grammar Definition** (in rust-sitter syntax):
+**Grammar Definition** (in adze syntax):
 ```rust
-#[rust_sitter::grammar("dangling_else")]
+#[adze::grammar("dangling_else")]
 pub mod dangling_else {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Statement {
         // If-then (no else)
         IfThen(
-            #[rust_sitter::leaf(text = "if")] (),
+            #[adze::leaf(text = "if")] (),
             Box<Expr>,
-            #[rust_sitter::leaf(text = "then")] (),
+            #[adze::leaf(text = "then")] (),
             Box<Statement>,
         ),
 
         // If-then-else (with else)
         IfThenElse(
-            #[rust_sitter::leaf(text = "if")] (),
+            #[adze::leaf(text = "if")] (),
             Box<Expr>,
-            #[rust_sitter::leaf(text = "then")] (),
+            #[adze::leaf(text = "then")] (),
             Box<Statement>,
-            #[rust_sitter::leaf(text = "else")] (),
+            #[adze::leaf(text = "else")] (),
             Box<Statement>,
         ),
 
         // Simple statement
-        Other(#[rust_sitter::leaf(text = "other")] ()),
+        Other(#[adze::leaf(text = "other")] ()),
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
-        Var(#[rust_sitter::leaf(pattern = r"[a-z]+")] String),
+        Var(#[adze::leaf(pattern = r"[a-z]+")] String),
     }
 }
 ```

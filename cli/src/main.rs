@@ -1,7 +1,7 @@
+use adze_tool::build_parsers;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use rust_sitter_tool::build_parsers;
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
@@ -10,7 +10,7 @@ mod parse;
 
 /// Rust-sitter CLI
 #[derive(Parser)]
-#[command(name = "rust-sitter")]
+#[command(name = "adze")]
 #[command(about = "Rust-sitter CLI - Tools for grammar development")]
 #[command(author, version, long_about = None)]
 struct Cli {
@@ -24,7 +24,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Initialize a new rust-sitter grammar project
+    /// Initialize a new adze grammar project
     Init {
         /// Name of the grammar
         name: String,
@@ -157,10 +157,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rust-sitter = {{ version = "0.5.0-beta" }}
+adze = {{ version = "0.5.0-beta" }}
 
 [build-dependencies]
-rust-sitter-tool = {{ version = "0.5.0-beta" }}
+adze-tool = {{ version = "0.5.0-beta" }}
 
 [dev-dependencies]
 insta = "1.40"
@@ -171,7 +171,7 @@ insta = "1.40"
     fs::write(project_dir.join("Cargo.toml"), cargo_toml)?;
 
     // Create build.rs
-    let build_rs = r#"use rust_sitter_tool::build_parsers;
+    let build_rs = r#"use adze_tool::build_parsers;
 use std::path::PathBuf;
 
 fn main() {
@@ -186,41 +186,41 @@ fn main() {
     let grammar_rs = format!(
         r#"//! {} grammar definition
 
-#[rust_sitter::grammar("{}")]
+#[adze::grammar("{}")]
 mod grammar {{
     /// Root node of the grammar
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {{
-        #[rust_sitter::repeat]
+        #[adze::repeat]
         pub statements: Vec<Statement>,
     }}
     
     /// A statement in the language
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Statement {{
         pub expr: Expr,
-        #[rust_sitter::leaf(text = ";")]
+        #[adze::leaf(text = ";")]
         _semicolon: (),
     }}
     
     /// An expression
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {{
         Number(Number),
         Identifier(Identifier),
     }}
     
     /// A numeric literal
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Number {{
-        #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
+        #[adze::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
         pub value: i32,
     }}
     
     /// An identifier
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Identifier {{
-        #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
         pub name: String,
     }}
 }}
@@ -255,7 +255,7 @@ fn test_simple_program() {
     let readme = format!(
         r#"# {}
 
-A rust-sitter grammar for {}.
+A adze grammar for {}.
 
 ## Usage
 
@@ -406,7 +406,7 @@ fn parse_file(
             eprintln!("{} Failed to parse: {}", "❌".red(), e);
             eprintln!("\n{} Alternative approaches:", "💡".yellow());
             eprintln!("1. Ensure your grammar file is valid");
-            eprintln!("2. Build your grammar with `rust-sitter build`");
+            eprintln!("2. Build your grammar with `adze build`");
             eprintln!("3. Use the generated parse() function in your Rust code:");
             eprintln!("\n   use my_grammar::parse;\n   let result = parse(\"input text\");\n");
             Err(e)
@@ -449,7 +449,7 @@ fn parse_file_dynamic(
             lib.get(&sym_name)?;
         let _lang_ptr = get_language();
 
-        // TODO: Bridge to rust-sitter's pure parser using the language pointer
+        // TODO: Bridge to adze's pure parser using the language pointer
         println!(
             "{} Loaded language from: {}",
             "✓".green(),
@@ -538,9 +538,9 @@ fn show_stats(grammar: &Path) -> Result<()> {
     let content = fs::read_to_string(grammar)?;
 
     let lines = content.lines().count();
-    let rules = content.matches("#[rust_sitter::language]").count();
-    let leaf_rules = content.matches("#[rust_sitter::leaf").count();
-    let repeat_rules = content.matches("#[rust_sitter::repeat").count();
+    let rules = content.matches("#[adze::language]").count();
+    let leaf_rules = content.matches("#[adze::leaf").count();
+    let repeat_rules = content.matches("#[adze::repeat").count();
 
     println!("  {} {}", "Lines:".bright_black(), lines);
     println!("  {} {}", "Rules:".bright_black(), rules);

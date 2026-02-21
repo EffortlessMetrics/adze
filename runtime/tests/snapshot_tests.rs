@@ -8,8 +8,8 @@ use insta::assert_snapshot;
 #[cfg(feature = "incremental_glr")]
 mod glr_snapshots {
     use super::*;
-    use rust_sitter::glr_incremental::IncrementalGLRParser;
-    use rust_sitter::glr_parser::GLRParser;
+    use adze::glr_incremental::IncrementalGLRParser;
+    use adze::glr_parser::GLRParser;
 
     /// Helper to create a stable string representation of a parse forest
     fn forest_to_string(forest: &impl std::fmt::Debug) -> String {

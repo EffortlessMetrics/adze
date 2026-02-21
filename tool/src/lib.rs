@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-//! Build tool for rust-sitter parser generation
+//! Build tool for adze parser generation
 
 use serde_json::Value;
 use syn::{Item, parse_quote};
@@ -35,7 +35,7 @@ pub use error::{Result as ToolResult, ToolError};
 // Version 0.25.1 is what we depend on in Cargo.toml
 const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 1));
 
-/// Generates JSON strings defining Tree Sitter grammars for every Rust Sitter
+/// Generates JSON strings defining Tree Sitter grammars for every Adze
 /// grammar found in the given module and recursive submodules.
 pub fn generate_grammars(root_file: &Path) -> ToolResult<Vec<Value>> {
     let root_file = syn_inline_mod::parse_and_inline_modules(root_file).items;
@@ -56,7 +56,7 @@ fn generate_all_grammars(item: &Item, out: &mut Vec<Value>) -> ToolResult<()> {
 
         if m.attrs
             .iter()
-            .any(|a| a.path() == &parse_quote!(rust_sitter::grammar))
+            .any(|a| a.path() == &parse_quote!(adze::grammar))
         {
             out.push(generate_grammar(m)?);
         }
@@ -73,17 +73,17 @@ use tree_sitter_generate::generate_parser_for_grammar;
 
 #[cfg(feature = "build_parsers")]
 /// Using the `cc` crate, generates and compiles a C parser with Tree Sitter
-/// for every Rust Sitter grammar found in the given module and recursive
+/// for every Adze grammar found in the given module and recursive
 /// submodules.
 pub fn build_parsers(root_file: &Path) {
     // Determine which builder to use - check both env vars for compatibility
     let use_pure_rust = std::env::var("CARGO_FEATURE_PURE_RUST").is_ok()
-        || std::env::var("RUST_SITTER_USE_PURE_RUST").is_ok();
+        || std::env::var("ADZE_USE_PURE_RUST").is_ok();
 
     // Debug to file to bypass any stderr capture issues
     {
         use std::io::Write;
-        if let Ok(mut f) = std::fs::File::create("/tmp/rust_sitter_debug.txt") {
+        if let Ok(mut f) = std::fs::File::create("/tmp/adze_debug.txt") {
             writeln!(f, "build_parsers called for: {}", root_file.display()).ok();
             writeln!(
                 f,
@@ -93,8 +93,8 @@ pub fn build_parsers(root_file: &Path) {
             .ok();
             writeln!(
                 f,
-                "RUST_SITTER_USE_PURE_RUST={:?}",
-                std::env::var("RUST_SITTER_USE_PURE_RUST")
+                "ADZE_USE_PURE_RUST={:?}",
+                std::env::var("ADZE_USE_PURE_RUST")
             )
             .ok();
             writeln!(f, "use_pure_rust={}", use_pure_rust).ok();
@@ -130,12 +130,12 @@ pub fn build_parsers(root_file: &Path) {
     // If we get here, use C-based generation exclusively
     use std::env;
     let out_dir = env::var("OUT_DIR").unwrap();
-    let emit_artifacts: bool = env::var("RUST_SITTER_EMIT_ARTIFACTS")
+    let emit_artifacts: bool = env::var("ADZE_EMIT_ARTIFACTS")
         .map(|s| s.parse().unwrap_or(false))
         .unwrap_or(false);
 
     // Only check CLI if explicitly requested (for debugging)
-    if std::env::var("RUST_SITTER_REQUIRE_TS_CLI").is_ok()
+    if std::env::var("ADZE_REQUIRE_TS_CLI").is_ok()
         && let Err(e) = std::process::Command::new("tree-sitter")
             .arg("--version")
             .output()
@@ -343,16 +343,16 @@ mod tests {
     #[test]
     fn enum_with_named_field() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub enum Expr {
                     Number(
-                            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                             u32
                     ),
                     Neg {
-                        #[rust_sitter::leaf(text = "!")]
+                        #[adze::leaf(text = "!")]
                         _bang: (),
                         value: Box<Expr>,
                     }
@@ -376,12 +376,12 @@ mod tests {
     #[test]
     fn enum_transformed_fields() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub enum Expression {
                     Number(
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                         i32
                     ),
                 }
@@ -404,16 +404,16 @@ mod tests {
     #[test]
     fn enum_recursive() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub enum Expression {
                     Number(
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                         i32
                     ),
                     Neg(
-                        #[rust_sitter::leaf(text = "-", transform = |v| ())]
+                        #[adze::leaf(text = "-", transform = |v| ())]
                         (),
                         Box<Expression>
                     ),
@@ -437,18 +437,18 @@ mod tests {
     #[test]
     fn enum_prec_left() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub enum Expression {
                     Number(
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                         i32
                     ),
-                    #[rust_sitter::prec_left(1)]
+                    #[adze::prec_left(1)]
                     Sub(
                         Box<Expression>,
-                        #[rust_sitter::leaf(text = "-", transform = |v| ())]
+                        #[adze::leaf(text = "-", transform = |v| ())]
                         (),
                         Box<Expression>
                     ),
@@ -472,19 +472,19 @@ mod tests {
     #[test]
     fn grammar_with_extras() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub enum Expression {
                     Number(
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                         i32
                     ),
                 }
 
-                #[rust_sitter::extra]
+                #[adze::extra]
                 struct Whitespace {
-                    #[rust_sitter::leaf(pattern = r"\s", transform = |_v| ())]
+                    #[adze::leaf(pattern = r"\s", transform = |_v| ())]
                     _whitespace: (),
                 }
             }
@@ -506,16 +506,16 @@ mod tests {
     #[test]
     fn grammar_unboxed_field() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub struct Language {
                     e: Expression,
                 }
 
                 pub enum Expression {
                     Number(
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                         i32
                     ),
                 }
@@ -538,26 +538,26 @@ mod tests {
     #[test]
     fn grammar_repeat() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             pub mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub struct NumberList {
-                    #[rust_sitter::repeat(non_empty = true)]
-                    #[rust_sitter::delimited(
-                        #[rust_sitter::leaf(text = ",")]
+                    #[adze::repeat(non_empty = true)]
+                    #[adze::delimited(
+                        #[adze::leaf(text = ",")]
                         ()
                     )]
                     numbers: Vec<Number>,
                 }
 
                 pub struct Number {
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     v: i32,
                 }
 
-                #[rust_sitter::extra]
+                #[adze::extra]
                 struct Whitespace {
-                    #[rust_sitter::leaf(pattern = r"\s")]
+                    #[adze::leaf(pattern = r"\s")]
                     _whitespace: (),
                 }
             }
@@ -579,22 +579,22 @@ mod tests {
     #[test]
     fn grammar_repeat_no_delimiter() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             pub mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub struct NumberList {
-                    #[rust_sitter::repeat(non_empty = true)]
+                    #[adze::repeat(non_empty = true)]
                     numbers: Vec<Number>,
                 }
 
                 pub struct Number {
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     v: i32,
                 }
 
-                #[rust_sitter::extra]
+                #[adze::extra]
                 struct Whitespace {
-                    #[rust_sitter::leaf(pattern = r"\s")]
+                    #[adze::leaf(pattern = r"\s")]
                     _whitespace: (),
                 }
             }
@@ -616,26 +616,26 @@ mod tests {
     #[test]
     fn grammar_repeat1() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             pub mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub struct NumberList {
-                    #[rust_sitter::repeat(non_empty = true)]
-                    #[rust_sitter::delimited(
-                        #[rust_sitter::leaf(text = ",")]
+                    #[adze::repeat(non_empty = true)]
+                    #[adze::delimited(
+                        #[adze::leaf(text = ",")]
                         ()
                     )]
                     numbers: Vec<Number>,
                 }
 
                 pub struct Number {
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     v: i32,
                 }
 
-                #[rust_sitter::extra]
+                #[adze::extra]
                 struct Whitespace {
-                    #[rust_sitter::leaf(pattern = r"\s")]
+                    #[adze::leaf(pattern = r"\s")]
                     _whitespace: (),
                 }
             }
@@ -657,19 +657,19 @@ mod tests {
     #[test]
     fn struct_optional() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 pub struct Language {
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     v: Option<i32>,
-                    #[rust_sitter::leaf(pattern = r" ", transform = |v| ())]
+                    #[adze::leaf(pattern = r" ", transform = |v| ())]
                     space: (),
                     t: Option<Number>,
                 }
 
                 pub struct Number {
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     v: i32
                 }
             }
@@ -691,17 +691,17 @@ mod tests {
     #[test]
     fn enum_with_unamed_vector() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             mod grammar {
                 pub struct Number {
-                        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                         value: u32
                 }
 
-                #[rust_sitter::language]
+                #[adze::language]
                 pub enum Expr {
                     Numbers(
-                        #[rust_sitter::repeat(non_empty = true)]
+                        #[adze::repeat(non_empty = true)]
                         Vec<Number>
                     )
                 }
@@ -724,20 +724,20 @@ mod tests {
     #[test]
     fn spanned_in_vec() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test")]
+            #[adze::grammar("test")]
             mod grammar {
-                use rust_sitter::Spanned;
+                use adze::Spanned;
 
-                #[rust_sitter::language]
+                #[adze::language]
                 pub struct NumberList {
-                    #[rust_sitter::repeat(non_empty = true)]
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    #[adze::repeat(non_empty = true)]
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
                     numbers: Vec<Spanned<i32>>,
                 }
 
-                #[rust_sitter::extra]
+                #[adze::extra]
                 struct Whitespace {
-                    #[rust_sitter::leaf(pattern = r"\s")]
+                    #[adze::leaf(pattern = r"\s")]
                     _whitespace: (),
                 }
             }
@@ -757,28 +757,28 @@ mod tests {
     }
 
     /// CRITICAL BUG REPRODUCTION: Test Binary variant generation with inlining
-    /// https://github.com/EffortlessMetrics/rust-sitter/issues/BINARY_VARIANT_MISSING
+    /// https://github.com/EffortlessMetrics/adze/issues/BINARY_VARIANT_MISSING
     #[test]
     fn test_binary_variant_inlined_generation() {
         // This test reproduces the critical bug where Binary variant disappears
         let m = if let syn::Item::Mod(m) = parse_quote! {
-            #[rust_sitter::grammar("test_binary")]
+            #[adze::grammar("test_binary")]
             pub mod grammar {
-                #[rust_sitter::language]
+                #[adze::language]
                 #[derive(Debug)]
                 pub enum Expr {
                     Binary(
                         Box<Expr>,
-                        #[rust_sitter::leaf(pattern = r"[-+*/]")] String,
+                        #[adze::leaf(pattern = r"[-+*/]")] String,
                         Box<Expr>,
                     ),
-                    Number(#[rust_sitter::leaf(pattern = r"\d+")] i32),
+                    Number(#[adze::leaf(pattern = r"\d+")] i32),
                 }
 
                 /// Whitespace handling - match real ambiguous_expr grammar
-                #[rust_sitter::extra]
+                #[adze::extra]
                 struct Whitespace {
-                    #[rust_sitter::leaf(pattern = r"\s")]
+                    #[adze::leaf(pattern = r"\s")]
                     _whitespace: (),
                 }
             }
@@ -891,7 +891,7 @@ mod tests {
         // Set up test environment
         let original_target = env::var("TARGET").ok();
         let original_out_dir = env::var("OUT_DIR").ok();
-        let original_emit = env::var("RUST_SITTER_EMIT_ARTIFACTS").ok();
+        let original_emit = env::var("ADZE_EMIT_ARTIFACTS").ok();
         let original_opt_level = env::var("OPT_LEVEL").ok();
         let original_host = env::var("HOST").ok();
         let original_profile = env::var("PROFILE").ok();
@@ -910,7 +910,7 @@ mod tests {
             env::set_var("OPT_LEVEL", "0");
             env::set_var("HOST", target);
             env::set_var("PROFILE", "debug");
-            env::set_var("RUST_SITTER_EMIT_ARTIFACTS", "true");
+            env::set_var("ADZE_EMIT_ARTIFACTS", "true");
         }
 
         let test_dir = "./test_emit_artifacts_output";
@@ -921,12 +921,12 @@ mod tests {
 
         // Create a simple test grammar file
         let test_grammar = r#"
-#[rust_sitter::grammar("test_emit")]
+#[adze::grammar("test_emit")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expression {
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+            #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
             i32
         ),
     }
@@ -936,7 +936,7 @@ mod grammar {
         let grammar_file = "test_emit_grammar.rs";
         std::fs::write(grammar_file, test_grammar).unwrap();
 
-        // Test that build_parsers doesn't panic with RUST_SITTER_EMIT_ARTIFACTS=true
+        // Test that build_parsers doesn't panic with ADZE_EMIT_ARTIFACTS=true
         let result = std::panic::catch_unwind(|| {
             super::build_parsers(Path::new(grammar_file));
         });
@@ -960,8 +960,8 @@ mod grammar {
         }
         unsafe {
             match original_emit {
-                Some(val) => env::set_var("RUST_SITTER_EMIT_ARTIFACTS", val),
-                None => env::remove_var("RUST_SITTER_EMIT_ARTIFACTS"),
+                Some(val) => env::set_var("ADZE_EMIT_ARTIFACTS", val),
+                None => env::remove_var("ADZE_EMIT_ARTIFACTS"),
             }
         }
         unsafe {
@@ -986,7 +986,7 @@ mod grammar {
         // Assert that the function completed successfully
         assert!(
             result.is_ok(),
-            "build_parsers should not panic with RUST_SITTER_EMIT_ARTIFACTS=true"
+            "build_parsers should not panic with ADZE_EMIT_ARTIFACTS=true"
         );
     }
 }

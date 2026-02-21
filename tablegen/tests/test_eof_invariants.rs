@@ -1,9 +1,9 @@
 //! Integration test for EOF invariants
 //! Validates that EOF handling works correctly without position assumptions
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::*;
-use rust_sitter_tablegen::helpers::{collect_token_indices, eof_accepts_or_reduces};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::*;
+use adze_tablegen::helpers::{collect_token_indices, eof_accepts_or_reduces};
 
 #[test]
 fn test_eof_in_token_indices() {
@@ -49,8 +49,8 @@ fn test_eof_helper_signatures() {
     // This test validates that the helper functions have the expected signatures
     // It will fail to compile if the API changes unexpectedly
 
-    use rust_sitter_glr_core::ParseTable;
-    use rust_sitter_ir::Grammar;
+    use adze_glr_core::ParseTable;
+    use adze_ir::Grammar;
 
     // These are just type checks, not runtime tests
     let _: fn(&Grammar, &ParseTable) -> Vec<usize> = collect_token_indices;

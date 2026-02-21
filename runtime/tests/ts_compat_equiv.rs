@@ -2,12 +2,12 @@
 
 #![cfg(all(test, feature = "ts-compat", feature = "pure-rust"))]
 
-use rust_sitter::ts_compat::{InputEdit, Parser, Point};
+use adze::ts_compat::{InputEdit, Parser, Point};
 
 #[test]
 fn test_fresh_parse_simple() {
     let mut parser = Parser::new();
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
 
     parser.set_language(lang).expect("Failed to set language");
 
@@ -19,7 +19,7 @@ fn test_fresh_parse_simple() {
 #[test]
 fn test_fresh_equals_incremental_simple() {
     let mut parser = Parser::new();
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
 
     parser.set_language(lang).expect("Failed to set language");
 
@@ -54,7 +54,7 @@ fn test_fresh_equals_incremental_simple() {
 #[test]
 fn test_deletion_edit() {
     let mut parser = Parser::new();
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
 
     parser.set_language(lang).expect("Failed to set language");
 
@@ -84,7 +84,7 @@ fn test_deletion_edit() {
 #[test]
 fn test_insertion_edit() {
     let mut parser = Parser::new();
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
 
     parser.set_language(lang).expect("Failed to set language");
 
@@ -114,7 +114,7 @@ fn test_insertion_edit() {
 #[test]
 fn test_multiple_edits() {
     let mut parser = Parser::new();
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
 
     parser.set_language(lang).expect("Failed to set language");
 
@@ -158,7 +158,7 @@ fn test_multiple_edits() {
 fn test_incremental_glr_enabled() {
     // This test verifies that incremental GLR is actually being used
     let mut parser = Parser::new();
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
 
     parser.set_language(lang).expect("Failed to set language");
 
@@ -197,7 +197,7 @@ mod prop_tests {
     #[test]
     fn test_random_edits() {
         let mut parser = Parser::new();
-        let lang = rust_sitter_example::ts_langs::arithmetic();
+        let lang = adze_example::ts_langs::arithmetic();
         parser.set_language(lang).expect("Failed to set language");
 
         for _ in 0..10 {

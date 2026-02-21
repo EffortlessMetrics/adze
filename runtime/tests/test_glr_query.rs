@@ -1,5 +1,5 @@
 // Test GLR query support
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // NOTE: These tests use internal modules not exported by the public API
 #[path = "../src/glr_query.rs"]
@@ -94,8 +94,8 @@ fn create_test_grammar() -> Grammar {
             Symbol::Terminal(plus_id),
             Symbol::NonTerminal(term_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(0),
         fields: vec![],
     });
@@ -118,8 +118,8 @@ fn create_test_grammar() -> Grammar {
             Symbol::Terminal(times_id),
             Symbol::NonTerminal(factor_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(2)),
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(2),
         fields: vec![],
     });

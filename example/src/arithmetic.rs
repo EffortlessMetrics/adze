@@ -22,36 +22,36 @@ extern "C" {
 // - Level 1 (lower): Subtraction (-) - left associative
 // - Level 2 (higher): Multiplication (*) - left associative
 // This ensures "1 - 2 * 3" parses as "1 - (2 * 3)" due to precedence
-#[rust_sitter::grammar("arithmetic")]
+#[adze::grammar("arithmetic")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(PartialEq, Eq, Debug)]
     pub enum Expression {
-        Number(#[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
 
         /// Subtraction: precedence level 1 (lower precedence, looser binding)
         /// Left associative: "1 - 2 - 3" → "(1 - 2) - 3"
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Sub(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "-")] (),
+            #[adze::leaf(text = "-")] (),
             Box<Expression>,
         ),
 
         /// Multiplication: precedence level 2 (higher precedence, tighter binding)
         /// Left associative: "1 * 2 * 3" → "(1 * 2) * 3"
         /// Higher precedence than subtraction: "1 - 2 * 3" → "1 - (2 * 3)"
-        #[rust_sitter::prec_left(2)]
+        #[adze::prec_left(2)]
         Mul(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "*")] (),
+            #[adze::leaf(text = "*")] (),
             Box<Expression>,
         ),
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }

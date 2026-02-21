@@ -5,9 +5,9 @@
 
 #[cfg(feature = "pure-rust-glr")]
 mod tokenizer_unit_tests {
-    use rust_sitter_glr_core::SymbolId;
-    use rust_sitter_runtime::Token;
-    use rust_sitter_runtime::tokenizer::{
+    use adze_glr_core::SymbolId;
+    use adze_runtime::Token;
+    use adze_runtime::tokenizer::{
         Matcher, TokenPattern, Tokenizer, TokenizerError, WhitespaceMode,
     };
 
@@ -254,8 +254,8 @@ mod tokenizer_unit_tests {
 
 #[cfg(feature = "pure-rust-glr")]
 mod tokenizer_integration_tests {
-    use rust_sitter_glr_core::SymbolId;
-    use rust_sitter_runtime::tokenizer::{Matcher, TokenPattern, Tokenizer, WhitespaceMode};
+    use adze_glr_core::SymbolId;
+    use adze_runtime::tokenizer::{Matcher, TokenPattern, Tokenizer, WhitespaceMode};
 
     /// Integration Test: Arithmetic expression tokenization
     ///

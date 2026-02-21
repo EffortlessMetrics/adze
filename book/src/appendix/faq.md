@@ -2,17 +2,17 @@
 
 ## General Questions
 
-### What is Rust-Sitter?
+### What is Adze?
 
-Rust-Sitter is a Rust framework that makes it easy to create efficient parsers by leveraging the Tree-sitter parser generator. It allows you to define grammars using Rust's type system with procedural macros.
+Adze is a Rust framework that makes it easy to create efficient parsers by leveraging the Tree-sitter parser generator. It allows you to define grammars using Rust's type system with procedural macros.
 
 ### How does it differ from Tree-sitter?
 
-While Tree-sitter requires writing grammars in JavaScript, Rust-Sitter lets you define grammars directly in Rust with type safety and IDE support. It generates Tree-sitter-compatible parsers while providing a more ergonomic Rust API.
+While Tree-sitter requires writing grammars in JavaScript, Adze lets you define grammars directly in Rust with type safety and IDE support. It generates Tree-sitter-compatible parsers while providing a more ergonomic Rust API.
 
 ### What languages are supported?
 
-Rust-Sitter can parse any language you define a grammar for. Example grammars are provided for JavaScript, Python, Go, and more. See the [Language Support](../reference/language-support.md) page for details.
+Adze can parse any language you define a grammar for. Example grammars are provided for JavaScript, Python, Go, and more. See the [Language Support](../reference/language-support.md) page for details.
 
 ## Technical Questions
 
@@ -37,9 +37,9 @@ GLR (Generalized LR) parsing is an extension of LR parsing that can handle ambig
 Define whitespace as an "extra" token that's automatically skipped:
 
 ```rust
-#[rust_sitter::extra]
+#[adze::extra]
 struct Whitespace {
-    #[rust_sitter::leaf(pattern = r"\s+")]
+    #[adze::leaf(pattern = r"\s+")]
     _ws: (),
 }
 ```
@@ -50,9 +50,9 @@ Yes, but with limitations in the current beta. Basic external scanner support ex
 
 ## Performance Questions
 
-### How fast is Rust-Sitter?
+### How fast is Adze?
 
-Rust-Sitter parsers are comparable in speed to hand-written parsers:
+Adze parsers are comparable in speed to hand-written parsers:
 - **Parsing**: 50-200 MB/s typical
 - **Incremental**: Sub-millisecond for typical edits
 - **Memory**: Low overhead with object pooling
@@ -82,10 +82,10 @@ You likely have conflicting backend features enabled. Choose only one:
 Ensure both dependencies are present:
 ```toml
 [dependencies]
-rust-sitter = "0.5.0-beta"
+adze = "0.5.0-beta"
 
 [build-dependencies]
-rust-sitter-tool = "0.5.0-beta"
+adze-tool = "0.5.0-beta"
 ```
 
 ### Grammar has conflicts
@@ -102,32 +102,32 @@ Common precedence errors and solutions:
 **Multiple precedence attributes:**
 ```rust
 // ❌ Error
-#[rust_sitter::prec(1)]
-#[rust_sitter::prec_left(2)]
+#[adze::prec(1)]
+#[adze::prec_left(2)]
 struct Bad { }
 
 // ✅ Fix: Use only one
-#[rust_sitter::prec_left(2)]
+#[adze::prec_left(2)]
 struct Good { }
 ```
 
 **Invalid precedence value:**
 ```rust
 // ❌ Error: String instead of integer
-#[rust_sitter::prec("high")]
+#[adze::prec("high")]
 
 // ✅ Fix: Use integer literal
-#[rust_sitter::prec(10)]
+#[adze::prec(10)]
 ```
 
 **Variable instead of literal:**
 ```rust
 // ❌ Error: Cannot use variables
 const HIGH: u32 = 10;
-#[rust_sitter::prec(HIGH)]
+#[adze::prec(HIGH)]
 
 // ✅ Fix: Use literal value directly
-#[rust_sitter::prec(10)]
+#[adze::prec(10)]
 ```
 
 ### What precedence values should I use?
@@ -140,17 +140,17 @@ const HIGH: u32 = 10;
 
 **Common patterns:**
 ```rust
-#[rust_sitter::prec_left(10)]  // Addition, subtraction
-#[rust_sitter::prec_left(20)]  // Multiplication, division
-#[rust_sitter::prec_right(30)] // Exponentiation
-#[rust_sitter::prec(40)]       // Comparison operators
+#[adze::prec_left(10)]  // Addition, subtraction
+#[adze::prec_left(20)]  // Multiplication, division
+#[adze::prec_right(30)] // Exponentiation
+#[adze::prec(40)]       // Comparison operators
 ```
 
 ### WASM build fails
 
 Make sure you're using the `pure-rust` feature:
 ```toml
-rust-sitter = { version = "0.5.0-beta", features = ["pure-rust"] }
+adze = { version = "0.5.0-beta", features = ["pure-rust"] }
 ```
 
 ## Migration Questions
@@ -184,7 +184,7 @@ We welcome contributions! See our [Contributing Guide](../development/contributi
 
 ### Where do I report bugs?
 
-Please report issues on our [GitHub repository](https://github.com/EffortlessMetrics/rust-sitter/issues).
+Please report issues on our [GitHub repository](https://github.com/EffortlessMetrics/adze/issues).
 
 ### How do I add a new language grammar?
 

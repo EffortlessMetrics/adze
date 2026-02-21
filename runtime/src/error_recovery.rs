@@ -1,13 +1,13 @@
 //! Error recovery strategies for robust parsing.
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
-// Comprehensive error recovery strategies for the pure-Rust Tree-sitter implementation
+// Comprehensive error recovery strategies for Adze
 // This module implements various error recovery techniques to produce useful parse trees
 // even when the input contains syntax errors.
 
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::StateId;
-use rust_sitter_ir::{Grammar, SymbolId};
+use adze_glr_core::ParseTable;
+use adze_ir::StateId;
+use adze_ir::{Grammar, SymbolId};
 use smallvec::SmallVec;
 use std::collections::{HashSet, VecDeque};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -37,15 +37,15 @@ pub enum RecoveryStrategy {
 #[derive(Debug, Clone)]
 pub enum RecoveryAction {
     /// Insert a token to continue parsing
-    InsertToken(rust_sitter_ir::SymbolId),
+    InsertToken(adze_ir::SymbolId),
     /// Delete the current token
     DeleteToken,
     /// Replace the current token with another
     #[allow(dead_code)]
-    ReplaceToken(rust_sitter_ir::SymbolId),
+    ReplaceToken(adze_ir::SymbolId),
     /// Create an error node containing problematic tokens
     #[allow(dead_code)]
-    CreateErrorNode(Vec<rust_sitter_ir::SymbolId>),
+    CreateErrorNode(Vec<adze_ir::SymbolId>),
 }
 
 /// Error recovery configuration
@@ -77,13 +77,13 @@ pub struct ErrorRecoveryConfig {
 
 impl ErrorRecoveryConfig {
     /// Check if a token can be deleted
-    pub fn can_delete_token(&self, token: rust_sitter_ir::SymbolId) -> bool {
+    pub fn can_delete_token(&self, token: adze_ir::SymbolId) -> bool {
         // Check if token is explicitly marked as deletable, or if it's not a sync token
         self.deletable_tokens.contains(&token.0) || !self.sync_tokens.contains(&token)
     }
 
     /// Check if a token can be replaced
-    pub fn can_replace_token(&self, token: rust_sitter_ir::SymbolId) -> bool {
+    pub fn can_replace_token(&self, token: adze_ir::SymbolId) -> bool {
         // Allow replacing if it's not a sync token
         !self.sync_tokens.contains(&token)
     }

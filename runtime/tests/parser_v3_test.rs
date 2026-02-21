@@ -4,10 +4,10 @@
 
 mod common;
 
+use adze::parser_v4::Parser;
+use adze_glr_core::{Action, ParseRule, ParseTable};
+use adze_ir::*;
 use glr_test_support::make_minimal_table;
-use rust_sitter::parser::Parser;
-use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
-use rust_sitter_ir::*;
 
 fn create_simple_arithmetic_grammar() -> Grammar {
     let mut grammar = Grammar {
@@ -172,12 +172,9 @@ fn test_parse_number() {
 
     let mut parser = Parser::new(grammar, parse_table, "test".to_string());
 
-    match parser.parse("42") {
-        Ok(tree) => {
-            assert_eq!(tree.root_kind, 3); // expr
-            // Tree structure no longer has children field
-            // assert_eq!(tree.children.len(), 1);
-            // assert_eq!(tree.children[0].symbol, SymbolId(1)); // number
+    match parser.parse_tree("42") {
+        Ok(root) => {
+            assert_eq!(root.symbol.0, 3); // expr
         }
         Err(e) => panic!("Parse failed: {}", e),
     }
@@ -191,13 +188,9 @@ fn test_parse_addition() {
 
     let mut parser = Parser::new(grammar, parse_table, "test".to_string());
 
-    match parser.parse("1+2") {
-        Ok(tree) => {
-            assert_eq!(tree.root_kind, 3); // expr
-            // Tree structure no longer has children field - skip child assertions
-            // assert_eq!(tree.children[0].symbol, SymbolId(3)); // expr (left)
-            // assert_eq!(tree.children[1].symbol, SymbolId(2)); // +
-            // assert_eq!(tree.children[2].symbol, SymbolId(3)); // expr (right)
+    match parser.parse_tree("1+2") {
+        Ok(root) => {
+            assert_eq!(root.symbol.0, 3); // expr
         }
         Err(e) => panic!("Parse failed: {}", e),
     }
@@ -212,10 +205,9 @@ fn test_parse_with_whitespace() {
     let mut parser = Parser::new(grammar, parse_table, "test".to_string());
 
     // The lexer should skip whitespace
-    match parser.parse("1 + 2") {
-        Ok(tree) => {
-            assert_eq!(tree.root_kind, 3); // expr
-            // Tree structure no longer has children field - skip child assertions
+    match parser.parse_tree("1 + 2") {
+        Ok(root) => {
+            assert_eq!(root.symbol.0, 3); // expr
         }
         Err(e) => panic!("Parse failed: {}", e),
     }

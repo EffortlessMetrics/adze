@@ -1,10 +1,10 @@
-# Rust Sitter LSP Generator
+# Adze LSP Generator
 
 Automatically generate Language Server Protocol (LSP) servers from your grammar.
 
 ## Overview
 
-The Rust Sitter LSP Generator creates fully-featured language servers from grammar definitions, providing:
+The Adze LSP Generator creates fully-featured language servers from grammar definitions, providing:
 
 - **Syntax Highlighting**: Token-based and semantic
 - **Diagnostics**: Real-time syntax error reporting
@@ -19,13 +19,13 @@ The Rust Sitter LSP Generator creates fully-featured language servers from gramm
 
 ```bash
 # Generate LSP for your grammar
-rust-sitter generate-lsp
+adze generate-lsp
 
 # Generate with all features
-rust-sitter generate-lsp --all-features
+adze generate-lsp --all-features
 
 # Generate VS Code extension
-rust-sitter generate-lsp --vscode
+adze generate-lsp --vscode
 
 # Install and run
 cd my-language-lsp
@@ -37,7 +37,7 @@ my-language-lsp
 
 ### LSP Configuration File
 ```toml
-# rust-sitter-lsp.toml
+# adze-lsp.toml
 [lsp]
 name = "my-language-lsp"
 version = "0.1.0"
@@ -58,7 +58,7 @@ port = 7658
 
 ### Programmatic Configuration
 ```rust
-use rust_sitter::lsp::{LspConfig, generate_lsp};
+use adze::lsp::{LspConfig, generate_lsp};
 
 let config = LspConfig::builder()
     .name("my-language-lsp")
@@ -199,7 +199,7 @@ pub async fn handle_hover(params: HoverParams) -> Result<Option<Hover>> {
 
 #### HoverProvider Configuration
 ```rust
-use rust_sitter_lsp_generator::features::HoverProvider;
+use adze_lsp_generator::features::HoverProvider;
 
 let hover_provider = HoverProvider::new(&grammar);
 
@@ -215,10 +215,10 @@ let hover_provider = HoverProvider::new(&grammar);
 #### Semantic Tokens
 ```rust
 // Define token types in grammar
-#[rust_sitter::semantic_token("function.name")]
+#[adze::semantic_token("function.name")]
 pub struct FunctionName(String);
 
-#[rust_sitter::semantic_token("variable.declaration")]
+#[adze::semantic_token("variable.declaration")]
 pub struct VariableDecl(String);
 
 // Generated LSP will provide semantic highlighting
@@ -226,9 +226,9 @@ pub struct VariableDecl(String);
 
 #### Token Modifiers
 ```rust
-#[rust_sitter::token_modifiers("declaration", "async")]
+#[adze::token_modifiers("declaration", "async")]
 pub struct AsyncFunction {
-    #[rust_sitter::leaf(text = "async")]
+    #[adze::leaf(text = "async")]
     async_keyword: (),
     function: Function,
 }
@@ -444,10 +444,10 @@ trailing_comma = true
 ### Generate Extension
 ```bash
 # Generate VS Code extension
-rust-sitter generate-vscode
+adze generate-vscode
 
 # With custom configuration
-rust-sitter generate-vscode --config vscode.toml
+adze generate-vscode --config vscode.toml
 ```
 
 ### Extension Configuration
@@ -576,7 +576,7 @@ fn test_completions() {
 
 ### Integration Tests
 ```rust
-use rust_sitter::lsp::testing::{LspTestClient, TestScenario};
+use adze::lsp::testing::{LspTestClient, TestScenario};
 
 #[test]
 async fn test_goto_definition() {
@@ -595,13 +595,13 @@ async fn test_goto_definition() {
 ### LSP Test Suite
 ```bash
 # Run LSP test suite
-rust-sitter test-lsp
+adze test-lsp
 
 # Test specific features
-rust-sitter test-lsp --feature completions
+adze test-lsp --feature completions
 
 # Generate test report
-rust-sitter test-lsp --report
+adze test-lsp --report
 ```
 
 ## Deployment
@@ -709,13 +709,13 @@ output = "stdout"
 ## Examples
 
 ### Complete LSP Examples
-- [JSON LSP](https://github.com/rust-sitter/examples/json-lsp)
-- [TOML LSP](https://github.com/rust-sitter/examples/toml-lsp)
-- [SQL LSP](https://github.com/rust-sitter/examples/sql-lsp)
-- [Python LSP](https://github.com/rust-sitter/examples/python-lsp)
+- [JSON LSP](https://github.com/adze/examples/json-lsp)
+- [TOML LSP](https://github.com/adze/examples/toml-lsp)
+- [SQL LSP](https://github.com/adze/examples/sql-lsp)
+- [Python LSP](https://github.com/adze/examples/python-lsp)
 
 ### Resources
 - [LSP Specification](https://microsoft.github.io/language-server-protocol/)
 - [VS Code Extension Guide](https://code.visualstudio.com/api)
-- [LSP Tutorial](https://docs.rust-sitter.dev/lsp/tutorial)
+- [LSP Tutorial](https://docs.adze.dev/lsp/tutorial)
 - [Video: Building an LSP](https://youtube.com/@rustsitter)

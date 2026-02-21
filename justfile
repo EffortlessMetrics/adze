@@ -1,5 +1,5 @@
 #!/usr/bin/env just --justfile
-# Rust-sitter development shortcuts
+# Adze development shortcuts
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
@@ -9,11 +9,11 @@ fmt:
 
 # Run clippy on core workspace members
 clippy:
-    cargo clippy -p rust-sitter -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablegen --lib -- -D warnings
+    cargo clippy -p adze -p adze-glr-core -p adze-ir -p adze-tablegen --lib -- -D warnings
 
 # Run tests on core workspace members
 test:
-    cargo test -p rust-sitter -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablegen --lib
+    cargo test -p adze -p adze-glr-core -p adze-ir -p adze-tablegen --lib
 
 # Run pre-commit checks
 pre:
@@ -59,17 +59,17 @@ snap:
 # See docs/status/KNOWN_RED.md for what is excluded and why.
 ci-supported:
     cargo fmt --all -- --check
-    cargo clippy -p rust-sitter --lib -- -D warnings
-    cargo clippy -p rust-sitter-macro -p rust-sitter-tool \
-        -p rust-sitter-common -p rust-sitter-ir -p rust-sitter-glr-core \
-        -p rust-sitter-tablegen \
+    cargo clippy -p adze --all-targets -- -D warnings
+    cargo clippy -p adze-macro -p adze-tool \
+        -p adze-common -p adze-ir -p adze-glr-core \
+        -p adze-tablegen \
         --all-targets -- -D warnings
-    cargo test -p rust-sitter --lib
-    cargo test -p rust-sitter-macro -p rust-sitter-tool \
-        -p rust-sitter-common -p rust-sitter-ir -p rust-sitter-glr-core \
-        -p rust-sitter-tablegen \
+    cargo test -p adze --lib --tests
+    cargo test -p adze-macro -p adze-tool \
+        -p adze-common -p adze-ir -p adze-glr-core \
+        -p adze-tablegen \
         --lib --tests --bins
-    cargo test -p rust-sitter-glr-core --features serialization --doc
+    cargo test -p adze-glr-core --features serialization --doc
 
 # Clean build artifacts
 clean:

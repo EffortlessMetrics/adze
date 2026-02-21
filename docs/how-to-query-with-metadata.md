@@ -1,6 +1,6 @@
 # How-To: Query Matching with Node Metadata
 
-This guide shows you how to use rust-sitter's enhanced query engine with symbol metadata validation for accurate pattern matching on parsed trees (PR #54).
+This guide shows you how to use adze's enhanced query engine with symbol metadata validation for accurate pattern matching on parsed trees (PR #54).
 
 ## Problem: Inaccurate Query Matching
 
@@ -17,7 +17,7 @@ The enhanced `QueryMatcher` API uses `SymbolMetadata` to provide accurate, memor
 ### Step 1: Basic Setup with Metadata
 
 ```rust
-use rust_sitter_runtime::{Parser, query::{QueryMatcher, compile_query}};
+use adze_runtime::{Parser, query::{QueryMatcher, compile_query}};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize parser with your language
@@ -219,7 +219,7 @@ for m in matches {
 Use the `QueryMatches` iterator for efficient large-file processing:
 
 ```rust
-use rust_sitter_runtime::query::QueryMatches;
+use adze_runtime::query::QueryMatches;
 
 fn process_large_file(
     query: &Query, 

@@ -5,4 +5,4 @@ set -euo pipefail
 # Usage: ./scripts/bench-quick.sh [additional cargo bench args]
 
 echo "Running quick benchmarks with perf-counters..."
-env BENCH_QUICK=1 cargo bench -p rust-sitter-glr-core --features perf-counters "$@"
+env BENCH_QUICK=1 cargo bench -p adze-glr-core --features perf-counters "$@"

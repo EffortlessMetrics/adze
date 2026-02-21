@@ -1,11 +1,11 @@
 //! SIMD-accelerated tokenization helpers (experimental).
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
-// SIMD-accelerated lexer for rust-sitter (stable Rust version)
+// SIMD-accelerated lexer for adze (stable Rust version)
 // Uses manual vectorization techniques for better performance
 
 use crate::lexer::Token as LexerToken;
-use rust_sitter_ir::{SymbolId, TokenPattern};
+use adze_ir::{SymbolId, TokenPattern};
 
 /// SIMD-accelerated lexer using stable Rust features
 pub struct SimdLexer {

@@ -1,10 +1,10 @@
 //! End-to-end tests for full grammar processing pipeline
 //! Tests nullable start (Python-like) and non-nullable (JavaScript-like) grammars
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::builder::GrammarBuilder;
-use rust_sitter_tablegen::TableCompressor;
-use rust_sitter_tablegen::helpers::{collect_token_indices, eof_accepts_or_reduces};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::builder::GrammarBuilder;
+use adze_tablegen::TableCompressor;
+use adze_tablegen::helpers::{collect_token_indices, eof_accepts_or_reduces};
 
 #[test]
 #[ignore = "eof_accepts_or_reduces helper needs fix to properly detect nullable start symbols"]
@@ -86,25 +86,25 @@ fn test_precedence_handling() {
             "expr",
             vec!["expr", "+", "expr"],
             1,
-            rust_sitter_ir::Associativity::Left,
+            adze_ir::Associativity::Left,
         )
         .rule_with_precedence(
             "expr",
             vec!["expr", "-", "expr"],
             1,
-            rust_sitter_ir::Associativity::Left,
+            adze_ir::Associativity::Left,
         )
         .rule_with_precedence(
             "expr",
             vec!["expr", "*", "expr"],
             2,
-            rust_sitter_ir::Associativity::Left,
+            adze_ir::Associativity::Left,
         )
         .rule_with_precedence(
             "expr",
             vec!["expr", "/", "expr"],
             2,
-            rust_sitter_ir::Associativity::Left,
+            adze_ir::Associativity::Left,
         )
         .rule("expr", vec!["(", "expr", ")"])
         .rule("expr", vec!["NUMBER"])

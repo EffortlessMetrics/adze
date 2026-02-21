@@ -22,7 +22,7 @@ The lexer is generating tokens but with wrong symbol IDs. The parser expects non
 - [ ] Order tokens by specificity (longest match first, then most specific)
 
 #### 1.3 Handle Whitespace as Extra
-- [ ] Detect #[rust_sitter::extra] annotations in grammar
+- [ ] Detect #[adze::extra] annotations in grammar
 - [ ] Mark whitespace tokens with proper metadata
 - [ ] Skip extra tokens in parser main loop
 

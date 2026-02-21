@@ -14,8 +14,8 @@
 //! # Example
 //!
 //! ```
-//! use rust_sitter::tree_node_data::TreeNodeData;
-//! use rust_sitter::arena_allocator::NodeHandle;
+//! use adze::tree_node_data::TreeNodeData;
+//! use adze::arena_allocator::NodeHandle;
 //!
 //! // Create a leaf node
 //! let leaf = TreeNodeData::leaf(5, 0, 10);
@@ -99,7 +99,7 @@ impl TreeNodeData {
     /// # Example
     ///
     /// ```
-    /// use rust_sitter::tree_node_data::TreeNodeData;
+    /// use adze::tree_node_data::TreeNodeData;
     ///
     /// let node = TreeNodeData::new(42, 0, 10);
     /// assert_eq!(node.symbol(), 42);
@@ -124,7 +124,7 @@ impl TreeNodeData {
     /// # Example
     ///
     /// ```
-    /// use rust_sitter::tree_node_data::TreeNodeData;
+    /// use adze::tree_node_data::TreeNodeData;
     ///
     /// let leaf = TreeNodeData::leaf(5, 10, 20);
     /// assert!(leaf.is_leaf());
@@ -138,8 +138,8 @@ impl TreeNodeData {
     /// # Example
     ///
     /// ```
-    /// use rust_sitter::tree_node_data::TreeNodeData;
-    /// use rust_sitter::arena_allocator::NodeHandle;
+    /// use adze::tree_node_data::TreeNodeData;
+    /// use adze::arena_allocator::NodeHandle;
     ///
     /// let children = vec![NodeHandle::new(0, 0), NodeHandle::new(0, 1)];
     /// let branch = TreeNodeData::branch(10, 0, 50, children);

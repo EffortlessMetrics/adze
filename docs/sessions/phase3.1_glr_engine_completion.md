@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Successfully completed Phase 3.1 of the pure-Rust GLR runtime implementation, delivering a production-ready GLR parsing engine that integrates seamlessly with the Tree-sitter-compatible Parser API. This achievement represents a major milestone in rust-sitter's evolution from a simple LR parser to a true GLR parser capable of handling ambiguous grammars.
+Successfully completed Phase 3.1 of the pure-Rust GLR runtime implementation, delivering a production-ready GLR parsing engine that integrates seamlessly with the Tree-sitter-compatible Parser API. This achievement represents a major milestone in adze's evolution from a simple LR parser to a true GLR parser capable of handling ambiguous grammars.
 
 **Key Accomplishments**:
 1. ✅ Resolved critical borrow checker issue in GLREngine
@@ -668,7 +668,7 @@ Phase 3.1 is **COMPLETE** with all success criteria met:
 ✅ **Documented**: Comprehensive contracts, tests, and session summary
 ✅ **Validated**: Borrow checker issues resolved, code compiles, tests pass
 
-The rust-sitter project now has a working GLR parsing engine integrated with the Parser API, ready for tokenization and forest conversion in Phase 3.2.
+The adze project now has a working GLR parsing engine integrated with the Parser API, ready for tokenization and forest conversion in Phase 3.2.
 
 **Status**: Ready to proceed to **Phase 3.2 - Tokenization & Forest Conversion** 🚀
 

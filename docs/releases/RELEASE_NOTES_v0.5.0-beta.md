@@ -1,8 +1,8 @@
-# Release Notes: rust-sitter v0.5.0-beta
+# Release Notes: adze v0.5.0-beta
 
 ## 🎉 Major Milestone: Pure-Rust Tree-sitter Implementation
 
-We're excited to announce the beta release of rust-sitter v0.5.0-beta, featuring a **complete pure-Rust implementation** of the Tree-sitter parser generator!
+We're excited to announce the beta release of adze v0.5.0-beta, featuring a **complete pure-Rust implementation** of the Tree-sitter parser generator!
 
 ### What's New
 
@@ -18,10 +18,10 @@ This release eliminates all C dependencies while maintaining compatibility with 
 
 ```toml
 [dependencies]
-rust-sitter = "0.5.0-beta"
+adze = "0.5.0-beta"
 
 [build-dependencies]
-rust-sitter-tool = "0.5.0-beta"
+adze-tool = "0.5.0-beta"
 ```
 
 ### Current Limitations
@@ -34,7 +34,7 @@ This beta release supports basic to medium complexity grammars. The following fe
 - Query language
 - Incremental parsing
 
-See [KNOWN_LIMITATIONS.md](https://github.com/EffortlessMetrics/rust-sitter/blob/main/KNOWN_LIMITATIONS.md) for details.
+See [KNOWN_LIMITATIONS.md](https://github.com/EffortlessMetrics/adze/blob/main/KNOWN_LIMITATIONS.md) for details.
 
 ### Grammar Compatibility
 
@@ -49,11 +49,11 @@ See [KNOWN_LIMITATIONS.md](https://github.com/EffortlessMetrics/rust-sitter/blob
 - Python (requires external scanners)
 - C/C++, Go, Rust, Ruby, etc.
 
-See the [Compatibility Dashboard](https://github.com/EffortlessMetrics/rust-sitter/blob/main/docs/compatibility-dashboard.md) for the full list.
+See the [Compatibility Dashboard](https://github.com/EffortlessMetrics/adze/blob/main/docs/compatibility-dashboard.md) for the full list.
 
 ### Migration from v0.4.x
 
-Most code should work without changes. If you're using advanced features or internal APIs, see our [Migration Guide](https://github.com/EffortlessMetrics/rust-sitter/blob/main/docs/migration-guide.md).
+Most code should work without changes. If you're using advanced features or internal APIs, see our [Migration Guide](https://github.com/EffortlessMetrics/adze/blob/main/docs/migration-guide.md).
 
 ### What's Next
 
@@ -66,7 +66,7 @@ Most code should work without changes. If you're using advanced features or inte
 
 This is a beta release - we need your feedback! Please:
 - Try it with your grammars
-- Report issues on [GitHub](https://github.com/EffortlessMetrics/rust-sitter/issues)
+- Report issues on [GitHub](https://github.com/EffortlessMetrics/adze/issues)
 - Share your experience
 
 ### Contributors

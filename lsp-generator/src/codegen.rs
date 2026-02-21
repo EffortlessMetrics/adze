@@ -2,8 +2,8 @@
 
 use crate::config::LspConfig;
 use crate::features::LspFeature;
+use adze_ir::Grammar;
 use anyhow::Result;
-use rust_sitter_ir::Grammar;
 
 pub struct LspCodeGenerator<'a> {
     grammar: &'a Grammar,
@@ -168,7 +168,7 @@ serde_json = "1.0"
 anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
-rust-sitter = {{ path = "../runtime" }}
+adze = {{ path = "../runtime" }}
 {} = {{ path = "../grammars/{}" }}
 
 [[bin]]
@@ -277,7 +277,7 @@ mod tests {
     use super::*;
     use crate::config::LspConfig;
     use crate::features::LspFeature;
-    use rust_sitter_ir::builder::GrammarBuilder;
+    use adze_ir::builder::GrammarBuilder;
     use serde_json::json;
 
     struct MockFeature {

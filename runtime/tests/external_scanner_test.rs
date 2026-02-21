@@ -5,7 +5,7 @@
 
 #![cfg(test)]
 
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use adze::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 /// Python-style indentation scanner
 #[derive(Debug, Default)]

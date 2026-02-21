@@ -2,7 +2,7 @@
 use super::ast::*;
 use super::predicate_eval::PredicateContext;
 use crate::parser_v4::ParseNode;
-use rust_sitter_glr_core::SymbolMetadata;
+use adze_glr_core::SymbolMetadata;
 use std::collections::HashMap;
 
 /// A match of a query pattern
@@ -348,8 +348,8 @@ impl<'a> Iterator for QueryMatches<'a> {
 mod tests {
     use super::*;
     use crate::query::compile_query;
-    use rust_sitter_glr_core::SymbolMetadata;
-    use rust_sitter_ir::{Grammar, SymbolId, Token, TokenPattern};
+    use adze_glr_core::SymbolMetadata;
+    use adze_ir::{Grammar, SymbolId, Token, TokenPattern};
 
     fn make_node(symbol: u16, start: usize, end: usize) -> ParseNode {
         let symbol_id = SymbolId(symbol);

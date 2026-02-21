@@ -1,13 +1,13 @@
-// CLI entry point for rust-sitter playground
+// CLI entry point for adze playground
 
+use adze_playground::{PlaygroundBuilder, PlaygroundFeature};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use rust_sitter_playground::{PlaygroundBuilder, PlaygroundFeature};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "rust-sitter-playground")]
-#[command(about = "Interactive grammar testing playground for rust-sitter", long_about = None)]
+#[command(name = "adze-playground")]
+#[command(about = "Interactive grammar testing playground for adze", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

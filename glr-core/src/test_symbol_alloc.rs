@@ -1,7 +1,7 @@
 /// Test-only symbol allocator that starts at 1 to avoid EOF collision
 #[cfg(test)]
 pub mod test {
-    use rust_sitter_ir::SymbolId;
+    use adze_ir::SymbolId;
 
     /// Symbol allocator for tests that guarantees no collision with EOF (SymbolId(0))
     pub struct SymbolAllocator(u16);

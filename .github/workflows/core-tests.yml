@@ -27,13 +27,13 @@ jobs:
         run: cargo fmt --all -- --check
       
       - name: Run core tests with test-api and perf-counters
-        run: cargo test -p rust-sitter-glr-core --features test-api,perf-counters --lib --tests --locked
+        run: cargo test -p adze-glr-core --features test-api,perf-counters --lib --tests --locked
       
       - name: Compile benches (no perf counters)
-        run: cargo bench -p rust-sitter-glr-core --no-run --locked
+        run: cargo bench -p adze-glr-core --no-run --locked
       
       - name: Compile benches (with perf counters)
-        run: cargo bench -p rust-sitter-glr-core --features perf-counters --no-run --locked
+        run: cargo bench -p adze-glr-core --features perf-counters --no-run --locked
       
       - name: Check all targets, all features (deny warnings)
         env:
@@ -48,7 +48,7 @@ jobs:
       
       - name: Check no-default-features (core crates only)
         env:
-          CORE_CRATES_NO_DEFAULT: "rust-sitter-glr-core rust-sitter-ir rust-sitter-tablegen rust-sitter-common rust-sitter-macro"
+          CORE_CRATES_NO_DEFAULT: "adze-glr-core adze-ir adze-tablegen adze-common adze-macro"
         run: |
           set -euxo pipefail
           for krate in $CORE_CRATES_NO_DEFAULT; do
@@ -57,4 +57,4 @@ jobs:
           done
       
       - name: Check GLR core with all features
-        run: cargo check -p rust-sitter-glr-core --features "perf-counters test-api" --locked
+        run: cargo check -p adze-glr-core --features "perf-counters test-api" --locked

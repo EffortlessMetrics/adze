@@ -1,12 +1,10 @@
 // Integration test for Python-like grammar with indentation scanner
 
-use rust_sitter::parser_v4::Parser;
-use rust_sitter::scanner_registry::ExternalScannerBuilder;
-use rust_sitter::scanners::IndentationScanner;
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{
-    ExternalToken, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
-};
+use adze::parser_v4::Parser;
+use adze::scanner_registry::ExternalScannerBuilder;
+use adze::scanners::IndentationScanner;
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{ExternalToken, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::collections::BTreeMap;
 
 /// Create a simple Python-like grammar with indentation
@@ -126,25 +124,23 @@ fn create_parse_table() -> ParseTable {
     // This is a simplified parse table - in reality it would be generated
     let mut symbol_to_index = BTreeMap::new();
     for i in 0..10 {
-        symbol_to_index.insert(rust_sitter_ir::SymbolId(i as u16), i);
+        symbol_to_index.insert(adze_ir::SymbolId(i as u16), i);
     }
 
     ParseTable {
         action_table: vec![vec![vec![Action::Error]; 10]; 10],
-        goto_table: vec![vec![rust_sitter_ir::StateId(0); 10]; 10],
+        goto_table: vec![vec![adze_ir::StateId(0); 10]; 10],
         symbol_metadata: vec![],
         state_count: 10,
         symbol_count: 10,
         symbol_to_index,
-        index_to_symbol: (0..10)
-            .map(|i| rust_sitter_ir::SymbolId(i as u16))
-            .collect(),
+        index_to_symbol: (0..10).map(|i| adze_ir::SymbolId(i as u16)).collect(),
         external_scanner_states: vec![],
         token_count: 5,
         external_token_count: 3,
-        eof_symbol: rust_sitter_ir::SymbolId(9),
-        start_symbol: rust_sitter_ir::SymbolId(0),
-        initial_state: rust_sitter_ir::StateId(0),
+        eof_symbol: adze_ir::SymbolId(9),
+        start_symbol: adze_ir::SymbolId(0),
+        initial_state: adze_ir::StateId(0),
         rules: vec![],
         lex_modes: vec![],
         extras: vec![],
@@ -154,8 +150,8 @@ fn create_parse_table() -> ParseTable {
         field_names: vec![],
         field_map: BTreeMap::new(),
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
-        grammar: rust_sitter_ir::Grammar::default(),
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
+        grammar: adze_ir::Grammar::default(),
     }
 }
 
@@ -190,7 +186,7 @@ fn test_python_indentation_scanner() {
 
 #[test]
 fn test_scanner_state_serialization() {
-    use rust_sitter::external_scanner::ExternalScanner;
+    use adze::external_scanner::ExternalScanner;
 
     let mut scanner = IndentationScanner::new();
 
@@ -205,7 +201,7 @@ fn test_scanner_state_serialization() {
         marked_end: usize,
     }
 
-    impl<'a> rust_sitter::external_scanner::Lexer for MockLexer<'a> {
+    impl<'a> adze::external_scanner::Lexer for MockLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
@@ -260,7 +256,7 @@ fn test_scanner_state_serialization() {
 
 #[test]
 fn test_multiple_dedents() {
-    use rust_sitter::external_scanner::ExternalScanner;
+    use adze::external_scanner::ExternalScanner;
 
     let mut scanner = IndentationScanner::new();
 
@@ -275,7 +271,7 @@ fn test_multiple_dedents() {
         marked_end: usize,
     }
 
-    impl<'a> rust_sitter::external_scanner::Lexer for MockLexer<'a> {
+    impl<'a> adze::external_scanner::Lexer for MockLexer<'a> {
         fn lookahead(&self) -> Option<u8> {
             self.input.get(self.position).copied()
         }
@@ -329,7 +325,7 @@ fn test_multiple_dedents() {
 
 #[test]
 fn test_scanner_registry_retrieval() {
-    use rust_sitter::scanner_registry::get_global_registry;
+    use adze::scanner_registry::get_global_registry;
 
     // Register scanner
     ExternalScannerBuilder::new("test_lang").register_rust::<IndentationScanner>();

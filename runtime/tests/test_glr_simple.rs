@@ -1,11 +1,11 @@
 // Simple integration test for GLR parser
 // This demonstrates basic GLR parsing functionality
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
-use rust_sitter::glr_lexer::GLRLexer;
-use rust_sitter::glr_parser::GLRParser;
+use adze::glr_lexer::GLRLexer;
+use adze::glr_parser::GLRParser;
 
 /// Create a simple number grammar for testing
 fn create_number_grammar() -> Grammar {

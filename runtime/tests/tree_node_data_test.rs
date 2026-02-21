@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 //! TreeNodeData Tests
 //!
 //! This test suite implements all behavioral specifications from
@@ -5,8 +6,8 @@
 //!
 //! Test-Driven Development: These tests define expected behavior before implementation.
 
-use rust_sitter::arena_allocator::NodeHandle;
-use rust_sitter::tree_node_data::TreeNodeData;
+use adze::arena_allocator::NodeHandle;
+use adze::tree_node_data::TreeNodeData;
 
 // ============================================================================
 // Spec 1: Basic Node Creation
@@ -392,6 +393,7 @@ fn test_complex_node() {
 // Property Tests (if proptest is available)
 // ============================================================================
 
+#[allow(unexpected_cfgs)]
 #[cfg(feature = "proptest")]
 mod property_tests {
     use super::*;

@@ -26,7 +26,7 @@ pub struct LspConfig {
 impl Default for LspConfig {
     fn default() -> Self {
         Self {
-            name: "rust-sitter-lsp".to_string(),
+            name: "adze-lsp".to_string(),
             version: "0.1.0".to_string(),
             language_id: "unknown".to_string(),
             file_extensions: vec![],
@@ -104,7 +104,7 @@ mod tests {
     fn test_lsp_config_default() {
         let config = LspConfig::default();
 
-        assert_eq!(config.name, "rust-sitter-lsp");
+        assert_eq!(config.name, "adze-lsp");
         assert_eq!(config.version, "0.1.0");
         assert_eq!(config.language_id, "unknown");
         assert!(config.file_extensions.is_empty());

@@ -28,7 +28,7 @@ if [ -d "$GRAMMARS_DIR" ]; then
             # cargo run -p ts-bridge -- "$grammar_so" "$OUTPUT_DIR/$grammar_name.json" "tree_sitter_$grammar_name"
             
             # Run parity test
-            # cargo test -p rust-sitter-glr-core --test parity -- --grammar "$OUTPUT_DIR/$grammar_name.json"
+            # cargo test -p adze-glr-core --test parity -- --grammar "$OUTPUT_DIR/$grammar_name.json"
         fi
     done
 else
@@ -40,7 +40,7 @@ fi
 
 echo ""
 echo "📊 GLR Trace Testing (for debugging conflicts):"
-echo "   cargo test -p rust-sitter-glr-core --features glr-trace -- --nocapture"
+echo "   cargo test -p adze-glr-core --features glr-trace -- --nocapture"
 echo ""
 echo "🔍 To examine specific state/symbol conflicts:"
 echo "   1. Enable glr-trace feature in Cargo.toml"

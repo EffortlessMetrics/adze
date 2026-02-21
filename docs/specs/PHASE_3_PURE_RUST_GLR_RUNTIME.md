@@ -70,7 +70,7 @@ ParseForest (multiple parse trees)
 ```toml
 [features]
 default = ["tree-sitter-c2rust"]  # Existing LR runtime
-glr-core = ["dep:rust-sitter-glr-core"]  # Enable GLR parsing
+glr-core = ["dep:adze-glr-core"]  # Enable GLR parsing
 pure-rust-glr = ["glr-core"]  # Full pure-Rust GLR stack (no TSLanguage)
 ```
 
@@ -395,7 +395,7 @@ pub struct GLRConfig {
 
 **Before** (LR mode):
 ```rust
-let lang = unsafe { &rust_sitter_example::ambiguous_expr::LANGUAGE };
+let lang = unsafe { &adze_example::ambiguous_expr::LANGUAGE };
 let mut parser = Parser::new();
 parser.set_language(lang);
 let tree = parser.parse(b"1 + 2 + 3").unwrap();
@@ -403,7 +403,7 @@ let tree = parser.parse(b"1 + 2 + 3").unwrap();
 
 **After** (GLR mode):
 ```rust
-use rust_sitter_glr_core::build_lr1_automaton;
+use adze_glr_core::build_lr1_automaton;
 
 let grammar = /* load grammar */;
 let table = build_lr1_automaton(&grammar).unwrap();
@@ -461,7 +461,7 @@ let mut parser = create_lr_parser();
 
 ### Internal Dependencies
 - ✅ glr-core (conflict generation validated)
-- ✅ rust-sitter-ir (Grammar representation)
+- ✅ adze-ir (Grammar representation)
 - ⏳ runtime2 (needs GLR engine integration)
 - ⏳ tablegen (may need ParseTable serialization)
 

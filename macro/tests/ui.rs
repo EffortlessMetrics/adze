@@ -1,10 +1,10 @@
-//! Compile-fail tests for rust-sitter macros
+//! Compile-fail tests for adze macros
 //!
 //! These tests ensure that invalid grammar definitions produce
 //! helpful error messages at compile time.
 
 #[test]
-#[ignore = "UI test infrastructure needs rust_sitter crate dependency configuration in trybuild environment"]
+#[ignore = "UI test infrastructure needs adze crate dependency configuration in trybuild environment"]
 fn ui() {
     let t = trybuild::TestCases::new();
 

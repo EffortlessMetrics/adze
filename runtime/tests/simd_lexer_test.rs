@@ -8,8 +8,8 @@
 //! - SIMD-optimized pattern matching (whitespace, digits, identifiers)
 //! - Literal string matching with greedy behavior
 
-use rust_sitter::simd_lexer::SimdLexer;
-use rust_sitter_ir::{SymbolId, TokenPattern};
+use adze::simd_lexer::SimdLexer;
+use adze_ir::{SymbolId, TokenPattern};
 
 // Test basic whitespace tokenization
 #[test]

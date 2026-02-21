@@ -1,4 +1,4 @@
-use rust_sitter::ts_compat::Parser;
+use adze::ts_compat::Parser;
 use wasm_bindgen::prelude::*;
 
 // Called when the WASM module is instantiated
@@ -7,7 +7,7 @@ pub fn main() {
     // Set panic hook for better error messages in browser console
     // console_error_panic_hook::set_once();
 
-    web_sys::console::log_1(&"rust-sitter WASM demo initialized".into());
+    web_sys::console::log_1(&"adze WASM demo initialized".into());
 }
 
 /// Parse Python source code and return S-expression representation
@@ -21,7 +21,7 @@ pub fn parse_python(_source: &str) -> String {
 #[wasm_bindgen]
 pub fn parse_arithmetic(source: &str) -> String {
     let mut parser = Parser::new();
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
 
     if parser.set_language(lang).is_err() {
         return "Failed to set language".to_string();

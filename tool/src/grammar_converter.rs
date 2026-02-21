@@ -1,7 +1,7 @@
 // Simple grammar converter for demonstration
 // This would be expanded with actual grammar extraction logic
 
-use rust_sitter_ir::{
+use adze_ir::{
     Associativity, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };

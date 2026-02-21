@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the design for evolving rust-sitter into a complete, pure-Rust Tree-sitter language generator ecosystem. The design eliminates all C dependencies while maintaining full compatibility with the existing Tree-sitter ecosystem, making rust-sitter the definitive solution for Tree-sitter integration.
+This document outlines the design for evolving adze into a complete, pure-Rust Tree-sitter language generator ecosystem. The design eliminates all C dependencies while maintaining full compatibility with the existing Tree-sitter ecosystem, making adze the definitive solution for Tree-sitter integration.
 
 The core innovation is implementing a pure-Rust GLR (Generalized LR) parser generator that produces static Language objects, replacing the current approach of shelling out to the C-based tree-sitter CLI. **Critical insight**: Tree-sitter's power comes from its GLR algorithm with compile-time conflict resolution, not simple LR(1) parsing. The system must support multiple actions per (state, lookahead) pair and implement fork/merge logic for handling ambiguous grammars.
 
@@ -12,7 +12,7 @@ The core innovation is implementing a pure-Rust GLR (Generalized LR) parser gene
 
 ```mermaid
 graph TB
-    A[Grammar Definition<br/>Rust Structs + Macros] --> B[rust-sitter-macro<br/>Procedural Macros]
+    A[Grammar Definition<br/>Rust Structs + Macros] --> B[adze-macro<br/>Procedural Macros]
     B --> C[Grammar IR<br/>Intermediate Representation]
     C --> D[LR Generator<br/>Pure Rust Table Generation]
     D --> E[Static Language<br/>Embedded Parse Tables]
@@ -27,10 +27,10 @@ graph TB
 
 ### Crate Structure
 
-The evolved rust-sitter will be organized as a Cargo workspace with clear separation of concerns:
+The evolved adze will be organized as a Cargo workspace with clear separation of concerns:
 
 ```
-rust-sitter/
+adze/
 ├── macro/           # Procedural macros (existing, minimal changes)
 ├── runtime/         # Extract trait + runtime support (existing, minor updates)
 ├── ir/             # NEW: Grammar Intermediate Representation

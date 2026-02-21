@@ -44,7 +44,7 @@
 ## Documentation Structure
 
 ```
-rust-sitter/
+adze/
 ├── README.md                      # Project overview (updated)
 ├── API_DOCUMENTATION.md           # Comprehensive API reference
 ├── MIGRATION_GUIDE.md            # Migration from C Tree-sitter
@@ -104,7 +104,7 @@ rust-sitter/
 2. **Version Bumping**
    - Update all Cargo.toml files to v0.5.0
    - Ensure dependency versions are correct
-   - Update rust-sitter-macro version reference
+   - Update adze-macro version reference
 
 3. **Release Process**
    1. Create and push git tag: `git tag v0.5.0`

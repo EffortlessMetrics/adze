@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_primary_expression() {
-        use rust_sitter::Extract;
+        use adze::Extract;
 
         // Test parsing "42" as a PrimaryExpression
         let input = "42";
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_extract_string() {
-        use rust_sitter::Extract;
+        use adze::Extract;
 
         // Test parsing "hello" as a string literal
         let input = r#""hello""#;
@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_extract_identifier() {
-        use rust_sitter::Extract;
+        use adze::Extract;
 
         // Test parsing "x" as an identifier
         let input = "x";

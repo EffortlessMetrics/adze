@@ -1,8 +1,8 @@
-//! Parse command implementation for rust-sitter CLI
+//! Parse command implementation for adze CLI
 
 use anyhow::{Context, Result};
 // Pure parser imports commented out as they're not used in this module currently
-// use rust_sitter::pure_parser::{ParsedNode, Parser, TSLanguage};
+// use adze::pure_parser::{ParsedNode, Parser, TSLanguage};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -47,12 +47,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rust-sitter = { version = "0.6.0", path = "../../../runtime", features = ["serialization"] }
-rust-sitter-tool = { version = "0.6.0", path = "../../../tool" }
+adze = { version = "0.6.0", path = "../../../runtime", features = ["serialization"] }
+adze-tool = { version = "0.6.0", path = "../../../tool" }
 serde_json = "1.0"
 
 [build-dependencies]
-rust-sitter-tool = { version = "0.6.0", path = "../../../tool" }
+adze-tool = { version = "0.6.0", path = "../../../tool" }
 "#;
     fs::write(project_dir.join("Cargo.toml"), cargo_toml)?;
 
@@ -63,7 +63,7 @@ rust-sitter-tool = { version = "0.6.0", path = "../../../tool" }
 
     // Generate build.rs
     let build_rs = r#"
-use rust_sitter_tool::build_parsers;
+use adze_tool::build_parsers;
 use std::path::PathBuf;
 
 fn main() {
@@ -121,7 +121,7 @@ fn generate_parser_main(input_content: &str, format: OutputFormat) -> Result<Str
             r#"
     #[cfg(feature = "serialization")]
     {
-        use rust_sitter::serialization::{TreeSerializer};
+        use adze::serialization::{TreeSerializer};
         let serializer = TreeSerializer::new(input.as_bytes());
         match serializer.serialize_tree(&tree) {
             Ok(json) => println!("{}", json),
@@ -137,7 +137,7 @@ fn generate_parser_main(input_content: &str, format: OutputFormat) -> Result<Str
         OutputFormat::Sexp => {
             r#"
     // Simple S-expression output
-    fn node_to_sexp(node: &rust_sitter::Node, depth: usize) -> String {
+    fn node_to_sexp(node: &adze::Node, depth: usize) -> String {
         let indent = "  ".repeat(depth);
         if node.is_named() {
             let children: Vec<_> = node.children().collect();
@@ -166,7 +166,7 @@ fn generate_parser_main(input_content: &str, format: OutputFormat) -> Result<Str
     let mut dot = String::from("digraph ParseTree {\n");
     let mut node_id = 0;
     
-    fn add_node_to_dot(node: &rust_sitter::Node, dot: &mut String, id_counter: &mut usize, parent_id: Option<usize>) -> usize {
+    fn add_node_to_dot(node: &adze::Node, dot: &mut String, id_counter: &mut usize, parent_id: Option<usize>) -> usize {
         let current_id = *id_counter;
         *id_counter += 1;
         
@@ -197,7 +197,7 @@ fn generate_parser_main(input_content: &str, format: OutputFormat) -> Result<Str
         OutputFormat::Tree => {
             r#"
     // Default tree output
-    fn print_tree(node: &rust_sitter::Node, indent: usize) {
+    fn print_tree(node: &adze::Node, indent: usize) {
         let spaces = "  ".repeat(indent);
         if node.is_named() {
             println!("{}({}", spaces, node.kind());
@@ -217,7 +217,7 @@ fn generate_parser_main(input_content: &str, format: OutputFormat) -> Result<Str
 
     Ok(format!(
         r#"
-use rust_sitter::Parser;
+use adze::Parser;
 
 fn main() {{
     let input = "{}";

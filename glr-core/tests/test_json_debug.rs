@@ -2,7 +2,7 @@
 #![cfg(feature = "json-parity")]
 #![allow(unused_variables, clippy::print_literal)]
 
-use rust_sitter_ir::SymbolId;
+use adze_ir::SymbolId;
 use std::fs;
 
 #[test]
