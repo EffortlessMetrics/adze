@@ -1,0 +1,9 @@
+---
+source: example/src/arithmetic.rs
+expression: "grammar::parse(\"a1\")"
+---
+Ok(
+    Number(
+        1,
+    ),
+)

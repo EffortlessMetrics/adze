@@ -1,0 +1,26 @@
+---
+source: example/src/optionals.rs
+expression: "grammar::parse(\"1_2.\")"
+---
+Ok(
+    Language {
+        v: Some(
+            1,
+        ),
+        _s: (),
+        t: Spanned {
+            value: Some(
+                Number {
+                    v: 2,
+                },
+            ),
+            span: (
+                2,
+                3,
+            ),
+        },
+        _d: Some(
+            (),
+        ),
+    },
+)

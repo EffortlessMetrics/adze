@@ -1,0 +1,45 @@
+name: Documentation Improvement
+description: Report missing, unclear, or incorrect documentation
+labels: ["docs"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us improve the docs! Whether it's a typo, a missing example, or
+        a confusing explanation, we want to know.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - Missing documentation
+        - Unclear or confusing
+        - Incorrect / outdated
+        - Needs better examples
+        - API doc comments (rustdoc)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be improved and where?
+      placeholder: "The section on incremental parsing in the book doesn't mention ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Improvement
+      description: If you have a specific suggestion, describe it here.
+
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: Link to the page or file path, if known.
+      placeholder: "book/src/advanced/glr-parsing.md or https://..."

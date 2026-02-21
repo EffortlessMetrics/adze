@@ -337,7 +337,7 @@ playground.addTool({
 ### JavaScript API
 ```javascript
 // Initialize playground
-const playground = new RustSitterPlayground({
+const playground = new AdzePlayground({
   container: "#playground",
   grammar: myGrammarCode,
   code: "fn main() {}",

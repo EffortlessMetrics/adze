@@ -1,0 +1,184 @@
+---
+source: macro/src/lib.rs
+expression: "rustfmt_code(&expand_grammar(parse_quote!\n{\n    #[adze::grammar(\"test\")] mod grammar\n    {\n        use adze::Spanned; #[adze::language] pub struct NumberList\n        { numbers: Vec<Spanned<Number>>, } pub struct Number\n        {\n            #[adze::leaf(pattern = r\"\\d+\", transform = |v|\n            v.parse().unwrap())] v: i32\n        } #[adze::extra] struct Whitespace\n        { #[adze::leaf(pattern = r\"\\s\")] _whitespace: (), }\n    }\n})? .to_token_stream().to_string())"
+---
+mod grammar {
+    use adze::Spanned;
+    pub struct NumberList {
+        numbers: Vec<Spanned<Number>>,
+    }
+    impl ::adze::Extract<NumberList> for NumberList {
+        type LeafFn = ();
+        #[cfg(feature = "pure-rust")]
+        const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
+        #[allow(non_snake_case)]
+        #[cfg(not(feature = "pure-rust"))]
+        fn extract(
+            node: Option<::adze::tree_sitter::Node>,
+            source: &[u8],
+            last_idx: usize,
+            _leaf_fn: Option<&Self::LeafFn>,
+        ) -> Self {
+            let node = node.unwrap();
+            ::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| NumberList {
+                numbers: {
+                    ::adze::__private::extract_field::<Vec<Spanned<Number>>, _>(
+                        cursor, source, last_idx, "numbers", None,
+                    )
+                },
+            })
+        }
+        #[allow(non_snake_case)]
+        #[cfg(feature = "pure-rust")]
+        fn extract(
+            node: Option<&::adze::pure_parser::ParsedNode>,
+            source: &[u8],
+            last_idx: usize,
+            _leaf_fn: Option<&Self::LeafFn>,
+        ) -> Self {
+            let node = node.unwrap();
+            ::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| NumberList {
+                numbers: {
+                    ::adze::__private::extract_field::<Vec<Spanned<Number>>, _>(
+                        cursor, source, last_idx, "numbers", None,
+                    )
+                },
+            })
+        }
+    }
+    pub struct Number {
+        v: i32,
+    }
+    impl ::adze::Extract<Number> for Number {
+        type LeafFn = ();
+        #[cfg(feature = "pure-rust")]
+        const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
+        #[allow(non_snake_case)]
+        #[cfg(not(feature = "pure-rust"))]
+        fn extract(
+            node: Option<::adze::tree_sitter::Node>,
+            source: &[u8],
+            last_idx: usize,
+            _leaf_fn: Option<&Self::LeafFn>,
+        ) -> Self {
+            let node = node.unwrap();
+            ::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| Number {
+                v: {
+                    ::adze::__private::extract_field::<adze::WithLeaf<i32>, _>(
+                        cursor,
+                        source,
+                        last_idx,
+                        "v",
+                        Some(&|v| v.parse().unwrap()),
+                    )
+                },
+            })
+        }
+        #[allow(non_snake_case)]
+        #[cfg(feature = "pure-rust")]
+        fn extract(
+            node: Option<&::adze::pure_parser::ParsedNode>,
+            source: &[u8],
+            last_idx: usize,
+            _leaf_fn: Option<&Self::LeafFn>,
+        ) -> Self {
+            let node = node.unwrap();
+            ::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| Number {
+                v: {
+                    ::adze::__private::extract_field::<adze::WithLeaf<i32>, _>(
+                        cursor,
+                        source,
+                        last_idx,
+                        "v",
+                        Some(&|v| v.parse().unwrap()),
+                    )
+                },
+            })
+        }
+    }
+    struct Whitespace {
+        _whitespace: (),
+    }
+    impl ::adze::Extract<Whitespace> for Whitespace {
+        type LeafFn = ();
+        #[cfg(feature = "pure-rust")]
+        const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
+        #[allow(non_snake_case)]
+        #[cfg(not(feature = "pure-rust"))]
+        fn extract(
+            node: Option<::adze::tree_sitter::Node>,
+            source: &[u8],
+            last_idx: usize,
+            _leaf_fn: Option<&Self::LeafFn>,
+        ) -> Self {
+            let node = node.unwrap();
+            ::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| Whitespace {
+                _whitespace: {
+                    ::adze::__private::extract_field::<(), _>(
+                        cursor,
+                        source,
+                        last_idx,
+                        "_whitespace",
+                        None,
+                    )
+                },
+            })
+        }
+        #[allow(non_snake_case)]
+        #[cfg(feature = "pure-rust")]
+        fn extract(
+            node: Option<&::adze::pure_parser::ParsedNode>,
+            source: &[u8],
+            last_idx: usize,
+            _leaf_fn: Option<&Self::LeafFn>,
+        ) -> Self {
+            let node = node.unwrap();
+            ::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| Whitespace {
+                _whitespace: {
+                    ::adze::__private::extract_field::<(), _>(
+                        cursor,
+                        source,
+                        last_idx,
+                        "_whitespace",
+                        None,
+                    )
+                },
+            })
+        }
+    }
+    #[cfg(not(feature = "pure-rust"))]
+    unsafe extern "C" {
+        fn tree_sitter_test() -> ::adze::tree_sitter::Language;
+    }
+    #[cfg(not(feature = "pure-rust"))]
+    pub fn language() -> ::adze::tree_sitter::Language {
+        unsafe { tree_sitter_test() }
+    }
+    #[cfg(feature = "pure-rust")]
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_",
+        "test",
+        "/parser_",
+        "test",
+        ".rs"
+    ));
+    #[cfg(feature = "pure-rust")]
+    pub fn language() -> &'static ::adze::pure_parser::TSLanguage {
+        unsafe { &LANGUAGE }
+    }
+    #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
+    #[doc = "[`NumberList`]"]
+    #[doc = r" instance containing the parsed structured data."]
+    #[cfg(not(feature = "pure-rust"))]
+    pub fn parse(input: &str) -> core::result::Result<NumberList, Vec<::adze::errors::ParseError>> {
+        ::adze::__private::parse::<NumberList>(input, language)
+    }
+    #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
+    #[doc = "[`NumberList`]"]
+    #[doc = r" instance containing the parsed structured data."]
+    #[cfg(feature = "pure-rust")]
+    pub fn parse(input: &str) -> core::result::Result<NumberList, Vec<::adze::errors::ParseError>> {
+        ::adze::__private::parse::<NumberList>(input, language)
+    }
+}

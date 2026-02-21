@@ -824,13 +824,13 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-struct RustSitterLanguageServer {
+struct AdzeLanguageServer {
     client: Client,
     parser: Mutex<Parser<grammar::Language>>,
 }
 
 #[tower_lsp::async_trait]
-impl LanguageServer for RustSitterLanguageServer {
+impl LanguageServer for AdzeLanguageServer {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
@@ -855,7 +855,7 @@ impl LanguageServer for RustSitterLanguageServer {
     }
 }
 
-impl RustSitterLanguageServer {
+impl AdzeLanguageServer {
     async fn parse_and_diagnose(&self, document: TextDocumentItem) {
         let parser = self.parser.lock().unwrap();
         
