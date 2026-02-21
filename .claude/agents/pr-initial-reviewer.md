@@ -53,7 +53,7 @@ You will:
 - Defer detailed architectural analysis to context-scout agent
 - Preserve tokens for downstream agents by providing concise, actionable summaries
 
-**RUST-SITTER SPECIFIC CONTEXT**:
+**ADZE SPECIFIC CONTEXT**:
 - **Core Architecture**: Grammar extraction → IR generation → GLR compilation → Table compression → FFI export
 - **Critical Paths**: `tool/` (grammar extraction), `glr-core/` (parser generation), `tablegen/` (compression), `runtime/` (FFI)
 - **Breaking Change Zones**: ABI structs, external scanner signatures, public Extract trait implementations

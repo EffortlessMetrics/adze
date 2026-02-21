@@ -27,7 +27,7 @@ This contract defines the complete specification for GLR v1, establishing clear 
 - ⚠️ Parse forest API not yet exposed (deferred to vNext)
 
 **Architecture Note**:
-> Rust-sitter provides **two intentional runtime modes** (documented in RUNTIME_MODES.md):
+> Adze provides **two intentional runtime modes** (documented in RUNTIME_MODES.md):
 > 1. **Tree-sitter LR Mode** (`runtime/`) - 100% TSLanguage ABI compatibility
 > 2. **Rust-native GLR Mode** (`runtime2/` + `.parsetable`) - True GLR semantics
 >

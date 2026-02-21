@@ -1,6 +1,6 @@
 #![cfg(feature = "runtime-parity")]
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
-//! Integration tests for Tree-sitter/Rust-sitter FFI parity.
+//! Integration tests for Tree-sitter/Adze FFI parity.
 
 use std::ffi::CStr;
 use tree_sitter::{ffi, Parser};

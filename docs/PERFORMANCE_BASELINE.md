@@ -274,7 +274,7 @@ index out of bounds: the len is 0 but the index is 0
 
 ### Theoretical Comparison
 
-| Metric | Tree-sitter (C) | Rust-sitter (current) | Delta | Notes |
+| Metric | Tree-sitter (C) | Adze (current) | Delta | Notes |
 |--------|----------------|----------------------|-------|-------|
 | Parse speed | ~1MB/s (est.) | ~800KB/s (est.) | -20% | ✅ Good for pure Rust |
 | Memory usage | Low | Comparable | ~0% | Similar algorithms |
@@ -492,7 +492,7 @@ All raw benchmark output is preserved in temporary files for reference:
 
 **Document Status**: ✅ **COMPLETE** - Baseline Established (2025-11-20)
 **Next Update**: After v0.7.0 optimizations or significant performance changes
-**Owner**: Rust-sitter maintainers
+**Owner**: Adze maintainers
 **Related Documents**:
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) - v0.7.0 roadmap
 - [STATUS_NOW.md](../STATUS_NOW.md) - Current project status

@@ -4,12 +4,12 @@
 # Target: v0.7.0
 
 Feature: GLR Runtime Integration
-  As a rust-sitter user
+  As a Adze user
   I want correct precedence and associativity in pure-Rust mode
   So that my grammars parse expressions according to their rules
 
   Background:
-    Given rust-sitter is configured with pure-rust feature
+    Given Adze is configured with pure-rust feature
     And the GLR runtime (parser_v4.rs) is wired as the default parser
 
   # ==============================================================================
@@ -19,7 +19,7 @@ Feature: GLR Runtime Integration
   Scenario: Left-associative multiplication
     Given a grammar with left-associative multiplication at precedence 2
     """rust
-    #[rust_sitter::prec_left(2)]
+    #[adze::prec_left(2)]
     Mul(Box<Expr>, #[leaf(text = "*")] (), Box<Expr>)
     """
     When I parse "1 * 2 * 3"
@@ -30,7 +30,7 @@ Feature: GLR Runtime Integration
   Scenario: Left-associative addition
     Given a grammar with left-associative addition at precedence 1
     """rust
-    #[rust_sitter::prec_left(1)]
+    #[adze::prec_left(1)]
     Add(Box<Expr>, #[leaf(text = "+")] (), Box<Expr>)
     """
     When I parse "5 + 10 + 15"
@@ -49,7 +49,7 @@ Feature: GLR Runtime Integration
   Scenario: Right-associative exponentiation
     Given a grammar with right-associative power operation
     """rust
-    #[rust_sitter::prec_right(3)]
+    #[adze::prec_right(3)]
     Power(Box<Expr>, #[leaf(text = "^")] (), Box<Expr>)
     """
     When I parse "2 ^ 3 ^ 4"
@@ -98,7 +98,7 @@ Feature: GLR Runtime Integration
   Scenario: Ambiguous grammar with multiple valid parses
     Given an intentionally ambiguous grammar
     """rust
-    #[rust_sitter::grammar("ambig")]
+    #[adze::grammar("ambig")]
     pub enum Expr {
         Binop(Box<Expr>, Op, Box<Expr>),  // No precedence
         Num(i32),
@@ -130,7 +130,7 @@ Feature: GLR Runtime Integration
     And not pure_parser::Parser
 
   Scenario: Default feature uses tree-sitter C runtime
-    Given Cargo.toml contains only `rust-sitter = "0.7"`
+    Given Cargo.toml contains only `Adze = "0.7"`
     When I compile the grammar
     Then the tree-sitter C backend should be used
     And GLR behavior should be correct via C runtime

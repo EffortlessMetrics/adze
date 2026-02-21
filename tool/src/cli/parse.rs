@@ -41,7 +41,7 @@ pub fn parse_file(
         eprintln!("  - Cannot invoke external parser crates directly");
         eprintln!("  - Parser must be integrated at compile time");
         eprintln!();
-        eprintln!("HOW TO USE RUST-SITTER TODAY:");
+        eprintln!("HOW TO USE ADZE TODAY:");
         eprintln!();
         eprintln!("1. Define your grammar in Rust:");
         eprintln!("   ```rust");

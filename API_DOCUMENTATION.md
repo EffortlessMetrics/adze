@@ -1267,7 +1267,7 @@ pub struct PlaygroundFeatures {
 
 ## Feature Flags
 
-Rust-sitter uses feature flags to enable optional functionality. Configure features in your `Cargo.toml`:
+Adze uses feature flags to enable optional functionality. Configure features in your `Cargo.toml`:
 
 ```toml
 [dependencies]

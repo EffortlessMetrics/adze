@@ -4,7 +4,7 @@ Error recovery in adze enables robust parsing of malformed or partially complete
 
 ## Overview
 
-Rust-sitter provides multiple layers of error recovery:
+Adze provides multiple layers of error recovery:
 
 1. **Span Error Recovery** (PR #55) - Safe span operations with comprehensive validation
 2. **Parser Error Recovery** - Graceful handling of syntax errors during parsing
@@ -123,7 +123,7 @@ fn process_spans_with_recovery(
 
 ### Basic Error Handling
 
-Rust-sitter parsers return detailed error information when parsing fails:
+Adze parsers return detailed error information when parsing fails:
 
 ```rust
 use adze_runtime::{Parser, ParseError};
@@ -551,7 +551,7 @@ println!("Recovery parse took {:?}", duration);
 
 ## Conclusion
 
-Rust-sitter's error recovery system provides multiple layers of protection against malformed input:
+Adze's error recovery system provides multiple layers of protection against malformed input:
 
 1. **SpanError system** prevents panics and provides detailed error information
 2. **Safe span operations** allow graceful handling of invalid ranges

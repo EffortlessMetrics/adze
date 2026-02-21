@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-commit hook for rust-sitter development
+# Pre-commit hook for Adze development
 # Robust version with partial staging detection, targeted formatting, and full diagnostics
 set -euo pipefail
 
@@ -301,15 +301,15 @@ fi
 run_clippy_set() {
     local mode="$1"   # "default" or feature string
     if [ "$mode" = "default" ]; then
-        # Split rust-sitter from other crates: use --lib for rust-sitter
+        # Split adze from other crates: use --lib for adze
         # (test files have known API drift, tracked in KNOWN_RED.md)
         # and --all-targets for all other crates (matching ci-supported lane).
         local rs_args=() other_args=()
         local i=0
         while [ $i -lt ${#pkg_args[@]} ]; do
             if [ "${pkg_args[$i]}" = "-p" ] && [ $((i + 1)) -lt ${#pkg_args[@]} ]; then
-                if [ "${pkg_args[$((i + 1))]}" = "rust-sitter" ]; then
-                    rs_args+=("-p" "rust-sitter")
+                if [ "${pkg_args[$((i + 1))]}" = "adze" ]; then
+                    rs_args+=("-p" "adze")
                 else
                     other_args+=("${pkg_args[$i]}" "${pkg_args[$((i + 1))]}")
                 fi
@@ -320,9 +320,9 @@ run_clippy_set() {
             fi
         done
 
-        # Run --lib only for rust-sitter (test files have KNOWN_RED API drift)
+        # Run --lib only for adze (test files have KNOWN_RED API drift)
         if [ ${#rs_args[@]} -gt 0 ]; then
-            if ! run_with_timeout 300 "clippy rust-sitter --lib" \
+            if ! run_with_timeout 300 "clippy adze --lib" \
                  cargo clippy -q --lib --no-deps --offline "${rs_args[@]}" -- -D warnings; then
                 return 1
             fi
@@ -499,8 +499,8 @@ if [ "${RUN_QUICK_TESTS:-0}" = "1" ]; then
     else
         # Fallback to highest-signal tests if we can't resolve packages
         echo "   Running core invariant tests..."
-        cargo test -q -p rust-sitter-glr-core --lib -- tests::test_eof_normalization || true
-        cargo test -q -p rust-sitter-glr-core --lib -- tests::test_goto_remap || true
+        cargo test -q -p adze-glr-core --lib -- tests::test_eof_normalization || true
+        cargo test -q -p adze-glr-core --lib -- tests::test_goto_remap || true
     fi
 fi
 

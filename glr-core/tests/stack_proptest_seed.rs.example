@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod proptests {
     use proptest::prelude::*;
-    use rust_sitter_glr_core::stack::StackNode;
+    use adze_glr_core::stack::StackNode;
 
     proptest! {
         #[test]

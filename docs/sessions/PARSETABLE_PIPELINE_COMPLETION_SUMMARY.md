@@ -11,7 +11,7 @@
 
 The .parsetable binary file format pipeline is **100% functionally complete** and production-ready. This implementation completes Phases 1-3.3 + Phase 4 of the GLR v1 roadmap, delivering a fully working solution for generating, distributing, loading, and **parsing** with pre-compiled parse tables.
 
-**Key Achievement**: Rust-sitter now supports the complete pipeline from grammar to parse tree:
+**Key Achievement**: Adze now supports the complete pipeline from grammar to parse tree:
 - ✅ **Generate**: .parsetable files from grammars
 - ✅ **Distribute**: Compact binary format ~3-5× smaller than JSON
 - ✅ **Load**: Runtime loading with Parser::load_glr_table_from_bytes()

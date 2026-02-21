@@ -2,7 +2,7 @@
 
 ## Overview
 
-Rust-sitter v0.6.0 introduces the revolutionary **Direct Forest Splicing** algorithm for incremental GLR parsing, delivering 16× performance improvements. This release includes several breaking API changes required to support the new architecture.
+Adze v0.6.0 introduces the revolutionary **Direct Forest Splicing** algorithm for incremental GLR parsing, delivering 16× performance improvements. This release includes several breaking API changes required to support the new architecture.
 
 ## Breaking Changes
 

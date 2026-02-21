@@ -12,6 +12,18 @@ Last updated: 2026-02-20
 
 ---
 
+### 9. `adze` (runtime) — `test_python_decoder_roundtrip`
+
+**Error:** `Reduce mapping failed: no rule for (lhs=771, rhs_len=3)`
+
+**Root cause:** Decoder production-id mapping for the Python grammar is not wired
+correctly. The decode_parse_table path cannot resolve all reduce actions to grammar
+rules, causing a panic during roundtrip verification.
+
+**Tracked in:** `runtime/tests/decoder_regression.rs` (`#[ignore]`)
+
+---
+
 ## Scope
 
 Library code and test targets now pass clippy cleanly:

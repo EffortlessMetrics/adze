@@ -425,7 +425,7 @@ INSTA_UPDATE=no adze test
 
 ### `rust-toolchain.toml`
 
-Rust-sitter requires specific toolchain configuration:
+Adze requires specific toolchain configuration:
 
 ```toml
 [toolchain]
@@ -439,7 +439,7 @@ components = ["rustfmt", "clippy"]
 Generated parser files to ignore:
 
 ```gitignore
-# Rust-sitter generated files
+# Adze generated files
 target/
 parser.c
 tree_sitter/

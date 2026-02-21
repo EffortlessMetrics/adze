@@ -94,7 +94,7 @@ The variants are **distinguished at grammar construction time**, not parse time.
 
 ### 1. Enum Variants Create Implicit Disambiguation
 
-Rust-sitter's grammar macro translates Rust enums into grammar productions. Each enum variant becomes a distinct production rule. This creates implicit disambiguation that prevents conflicts.
+Adze's grammar macro translates Rust enums into grammar productions. Each enum variant becomes a distinct production rule. This creates implicit disambiguation that prevents conflicts.
 
 **Traditional BNF** (creates conflicts):
 ```bnf
@@ -102,7 +102,7 @@ stmt ::= "if" expr "then" stmt
        | "if" expr "then" stmt "else" stmt
 ```
 
-**Rust-sitter** (conflict-free):
+**Adze** (conflict-free):
 ```rust
 enum Statement {
     IfThen(if, Expr, then, Statement),
@@ -201,7 +201,7 @@ pub struct ElseClause {
 }
 ```
 
-**Problem**: Rust-sitter's `Option` handling may still create distinct productions.
+**Problem**: Adze's `Option` handling may still create distinct productions.
 
 ---
 
@@ -240,7 +240,7 @@ pub struct ElseClause {
 Simply having a "classically ambiguous" problem (like dangling-else) doesn't guarantee conflicts in all grammar formulations. The specific way the grammar is written matters enormously.
 
 ### 2. Enum Variants are Powerful Disambiguation
-Rust-sitter's enum-based grammar definition creates strong separation between alternatives, which LR(1) can exploit to avoid conflicts.
+Adze's enum-based grammar definition creates strong separation between alternatives, which LR(1) can exploit to avoid conflicts.
 
 ### 3. Explicit Precedence Works Early
 Precedence annotations likely affect grammar construction, not just conflict resolution. This makes them invisible to conflict detection.

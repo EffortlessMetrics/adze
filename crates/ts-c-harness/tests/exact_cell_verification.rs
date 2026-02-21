@@ -1,5 +1,5 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
-//! Integration tests for exact cell verification between Tree-sitter and Rust-sitter.
+//! Integration tests for exact cell verification between Tree-sitter and Adze.
 
 use std::fs;
 use std::path::Path;

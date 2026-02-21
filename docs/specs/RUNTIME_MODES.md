@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Rust-sitter provides **two intentional runtime modes**, not one "real" and one "legacy":
+Adze provides **two intentional runtime modes**, not one "real" and one "legacy":
 
 1. **Tree-sitter LR Mode** (`runtime/`) - Full TSLanguage ABI compatibility
 2. **Rust-native GLR Mode** (`runtime2/` + `.parsetable`) - True GLR semantics

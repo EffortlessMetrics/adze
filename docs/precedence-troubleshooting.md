@@ -4,7 +4,7 @@ This guide helps you understand and resolve errors in adze GLR parser generation
 
 ## Overview
 
-Rust-sitter's GLR parser handles complex grammars with ambiguities and conflicts. This guide covers common error patterns and their solutions.
+Adze's GLR parser handles complex grammars with ambiguities and conflicts. This guide covers common error patterns and their solutions.
 
 ## GLR Symbol Normalization Issues (Production Ready - September 2025)
 
@@ -94,7 +94,7 @@ pub struct RepeatedStatement { /* ... */ }
 
 ## Precedence Attributes
 
-Rust-sitter provides three precedence attributes to control parsing of ambiguous grammars:
+Adze provides three precedence attributes to control parsing of ambiguous grammars:
 
 - `#[adze::prec(n)]` - Non-associative precedence
 - `#[adze::prec_left(n)]` - Left-associative precedence  

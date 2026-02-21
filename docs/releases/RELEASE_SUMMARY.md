@@ -2,7 +2,7 @@
 
 ## 🚀 What's New
 
-Rust-sitter v0.5.0-beta is now ready for release! This version includes:
+Adze v0.5.0-beta is now ready for release! This version includes:
 
 ### ✅ Core Features
 - **Pure Rust Implementation**: Fully functional parser generator written in Rust

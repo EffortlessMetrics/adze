@@ -295,7 +295,7 @@ fn test_complete_json_parser() {
 fn test_adze_feature_completeness() {
     println!("\n");
     println!("╔══════════════════════════════════════════════════════════╗");
-    println!("║           RUST-SITTER FEATURE COMPLETENESS               ║");
+    println!("║              ADZE FEATURE COMPLETENESS                    ║");
     println!("╠══════════════════════════════════════════════════════════╣");
     println!("║ ✅ Grammar Definition (via Rust macros)                  ║");
     println!("║ ✅ Pure-Rust Parser Engine                               ║");
