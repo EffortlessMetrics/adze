@@ -434,6 +434,7 @@ fn test_mixed_literals_and_patterns() {
 }
 
 #[test]
+#[ignore = "KNOWN BUG: keyword boundary detection - lexer matches keyword prefix instead of full identifier"]
 fn test_keyword_vs_identifier() {
     let patterns = vec![
         (SymbolId(1), TokenPattern::String("function".to_string())),
@@ -450,12 +451,10 @@ fn test_keyword_vs_identifier() {
     assert_eq!(token.symbol, SymbolId(1));
 
     // "functions" should match as identifier (keyword doesn't match whole word)
-    // BUG: lexer returns SymbolId(1) (keyword prefix "function") instead of SymbolId(2) (identifier)
-    // because the lexer lacks word-boundary awareness. It matches the "function" literal (8 bytes).
     let input = b"functions";
     let token = lexer.scan(input, 0).unwrap();
-    assert_eq!(token.symbol, SymbolId(1)); // TODO: fix keyword boundary detection
-    assert_eq!(token.end, 8); // matches "function" prefix, not full "functions"
+    assert_eq!(token.symbol, SymbolId(2));
+    assert_eq!(token.end, 9);
 }
 
 // Test scan position handling

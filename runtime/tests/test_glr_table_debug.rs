@@ -142,7 +142,7 @@ fn build_arithmetic_grammar() -> Grammar {
 }
 
 #[test]
-#[ignore = "pre-existing: FixedBitSet size 12 too small for symbol ID 15"]
+#[ignore = "KNOWN BUG: FixedBitSet sizing - size 12 too small for symbol ID 15"]
 fn test_parse_table_debug() {
     let grammar = build_arithmetic_grammar();
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();

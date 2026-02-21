@@ -8,7 +8,7 @@ use adze::external_scanner::{ExternalScanner, Lexer, ScanResult};
 /// non-newline characters. Needs a fallback `lexer.advance(1)` when no token
 /// is matched.
 #[test]
-#[ignore = "infinite loop: scan() returns None without advancing lexer position"]
+#[ignore = "KNOWN BUG: infinite loop - scan() returns None without advancing lexer position"]
 fn comprehensive_indentation_scan_diagnostics() {
     struct DiagnosticLexer {
         input: Vec<u8>,
