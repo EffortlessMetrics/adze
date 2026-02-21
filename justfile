@@ -58,6 +58,10 @@ snap:
 # Supported CI lane - must always be green
 # See docs/status/KNOWN_RED.md for what is excluded and why.
 ci-supported:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
+    export RUST_TEST_THREADS="${RUST_TEST_THREADS:-2}"
     cargo fmt --all -- --check
     cargo clippy -p adze --all-targets -- -D warnings
     cargo clippy -p adze-macro -p adze-tool \

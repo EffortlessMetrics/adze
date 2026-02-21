@@ -133,9 +133,10 @@ fn build_binary_tree(arena: &mut TreeArena, depth: u32) {
 
 /// Boxed tree node for comparison
 #[derive(Clone)]
+#[allow(dead_code)]
 enum BoxedTreeNode {
     Leaf { value: i32 },
-    Branch { children: Vec<Box<BoxedTreeNode>> },
+    Branch { children: Vec<BoxedTreeNode> },
 }
 
 /// Build a complete binary tree using Box allocation
@@ -149,7 +150,7 @@ fn build_boxed_tree(depth: u32) -> Box<BoxedTreeNode> {
             let left = build_subtree(depth - 1, value);
             let right = build_subtree(depth - 1, value);
             Box::new(BoxedTreeNode::Branch {
-                children: vec![left, right],
+                children: vec![*left, *right],
             })
         }
     }
